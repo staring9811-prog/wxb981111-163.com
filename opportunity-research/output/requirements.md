@@ -22,7 +22,7 @@
 | Prerequisite | Status | Owner | Evidence or deadline | Fallback | Stage | Requirement IDs |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | wen 的 Windows 电脑可运行本机小网页 | ready | wen | 旧技能包脚本（allocate_sales.py、tag_cached.py 等）曾在该机 D:/Codex 下运行，见 input/predecessor | 换一台可运行 Python 的电脑 | 第一期 | REQ-F01-01 |
-| 符合数据接口约定 v1 的第一期真实数据包 | committed | wen | 截止日期待 wen 确认（RA-001） | 先用已提供的 2026.06–09 SKU 表与关键词表转换成约定格式跑通流程；缺评论痛点时先用另两类信号回测 | 第一期 | REQ-F01-01, REQ-F06-05 |
+| 符合数据接口约定 v1 的第一期真实数据包 | committed | wen | wen 承诺下周提供，截止 2026-11-06（用户原话"数据包下周给"，2026-10-26） | 在此之前先用已提供的 2026.06–09 SKU 表与关键词表转换成约定格式跑通流程（用户确认）；缺评论痛点时先用另两类信号回测 | 第一期 | REQ-F01-01, REQ-F06-05 |
 
 ## Feature F01 · 数据导入与约定校验
 

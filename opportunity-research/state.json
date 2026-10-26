@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T13:15:02Z",
+  "last_updated_at_utc": "2026-10-26T13:24:09Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -30,8 +30,8 @@
   },
   "contract_revision": 1,
   "source_ids_changed": [],
-  "current_stage": "5",
-  "current_substep": "core-draft-validators",
+  "current_stage": "design",
+  "current_substep": "handoff-design",
   "completed_stages": [
     "0",
     "1",
@@ -41,32 +41,17 @@
     "4.3",
     "4.4",
     "4.5",
-    "4.6"
+    "4.6",
+    "5"
   ],
   "skipped_stages": [
     "3"
   ],
   "next_action": {
-    "type": "user_decision",
-    "description": "PRD 核心三份初稿已落盘；等待 wen 回答 OQ-18（第一期数据包交付日期）以关闭 RA-001，随后重跑契约校验并交付 Design",
-    "question_ids": [
-      "OQ-18"
-    ]
+    "type": "agent_work",
+    "description": "PRD 核心完成（requirements revision 1，P0/P1=0，四项校验通过）；调度 design-master，输入为同一 output/ 下的 PRD详细版.md、requirements.md、requirements-analysis.md"
   },
-  "open_questions": [
-    {
-      "id": "OQ-18",
-      "title": "第一期数据包（符合约定 v1）的交付时间",
-      "kind": "fact",
-      "category": "system_dependency",
-      "priority": "P1",
-      "depends_on": [],
-      "owner": "wen",
-      "status": "pending_user",
-      "evidence_needed": "wen 承诺的第一批数据包交付日期",
-      "acceptance_threshold": "前置能力表可写为 committed（负责人 + 截止时间）"
-    }
-  ],
+  "open_questions": [],
   "key_decisions_made": [
     {
       "id": "D-1",
@@ -193,6 +178,12 @@
       "decision": "回测控制可观察干扰因素（卖家/品牌实力、上架月份、价格定位、变体数、配送方式、疑似重新上架），不可观察因素写为局限",
       "stage": "1",
       "source": "AI 推荐，用户随共同理解确认"
+    },
+    {
+      "id": "D-22",
+      "decision": "先用 2026.06–09 数据转换的样例包跑通流程；真实数据包 wen 承诺下周提供（截止 2026-11-06）",
+      "stage": "5",
+      "source": "用户原话（2026-10-26）"
     }
   ],
   "category": "generic",
@@ -220,6 +211,7 @@
     "check_evidence": "pass",
     "check_format": "pass",
     "check_consistency": "pass",
-    "check_requirements_contract": "fail: P1 unresolved 1 (RA-001 数据包交付日期)"
+    "check_requirements_contract": "pass（仅关键词提示：外部服务为否定句）",
+    "run_at": "2026-10-26T13:24:09Z"
   }
 }
