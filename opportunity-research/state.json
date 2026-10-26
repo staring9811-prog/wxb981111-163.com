@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T12:56:43Z",
+  "last_updated_at_utc": "2026-10-26T13:01:54Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -13,55 +13,56 @@
   },
   "stage_confirmations": {
     "stage1_shared_understanding": {
-      "status": "pending",
-      "confirmed_at_utc": null
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-10-26T12:58:58Z",
+      "source": "用户选择“没有遗漏，继续”（scene-anchor.md V1）"
     },
     "stage4_5_v1": {
       "status": "pending",
       "confirmed_at_utc": null
     },
     "stage4_6_mvp": {
-      "status": "pending",
-      "confirmed_at_utc": null
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-10-26T13:01:54Z",
+      "source": "D-8（分三期，第一期做透浴室柜）、D-15–D-19；proposal-v1.md §9 记录"
     }
   },
   "contract_revision": 0,
   "source_ids_changed": [],
-  "current_stage": "1",
-  "current_substep": "stage1-gate",
+  "current_stage": "4.5",
+  "current_substep": "v1-user-decision",
   "completed_stages": [
-    "0"
+    "0",
+    "1",
+    "2",
+    "4.1",
+    "4.2",
+    "4.3",
+    "4.4"
   ],
-  "skipped_stages": [],
+  "skipped_stages": [
+    "3"
+  ],
   "next_action": {
-    "type": "stage1_frontier",
-    "description": "等待用户拍板 OQ-17（效率目标口径）并确认场景锚点共同理解（含 OQ-9 默认）",
-    "question_ids": [
-      "OQ-17",
-      "OQ-9"
-    ],
-    "research_ids": []
+    "type": "user_decision",
+    "description": "等待 wen：确认方案 V1（含新默认行为与完成定义），并给出第一期数据包交付时间（OQ-18）",
+    "askuserquestion_options": [
+      "确认 V1（推荐）",
+      "有要改的"
+    ]
   },
   "open_questions": [
     {
-      "id": "OQ-9",
-      "title": "回测干扰因素的控制方式（卖家实力、上架月份、价格定位、变体数、配送方式、重新上架）（AI 默认已写入场景锚点，随共同理解一并确认）",
-      "kind": "decision",
-      "category": "method",
-      "priority": "P2",
-      "depends_on": [],
-      "owner": "user",
-      "status": "pending_user"
-    },
-    {
-      "id": "OQ-17",
-      "title": "研究效率目标（D-14）在数据准备不在本系统内时如何计算",
-      "kind": "decision",
-      "category": "success_metric",
+      "id": "OQ-18",
+      "title": "第一期数据包（符合约定 v1）的交付时间",
+      "kind": "fact",
+      "category": "system_dependency",
       "priority": "P1",
       "depends_on": [],
-      "owner": "user",
-      "status": "pending_user"
+      "owner": "wen",
+      "status": "pending_user",
+      "evidence_needed": "wen 承诺的第一批数据包交付日期",
+      "acceptance_threshold": "前置能力表可写为 committed（负责人 + 截止时间）"
     }
   ],
   "key_decisions_made": [
@@ -178,14 +179,26 @@
       "decision": "拆分项目：数据拉取（卖家精灵 MCP、销量估算、打标、评论与痛点提取）另立数据项目；本项目只做机会判定，第一期用 wen 提供的数据跑通，本次 PRD 写清数据接口约定",
       "stage": "1",
       "source": "用户选择（PRD 第5轮）"
+    },
+    {
+      "id": "D-20",
+      "decision": "效率目标只算本系统内时间：首跑=从导入数据到第一次回测结果（含字段约定确认）≤5个工作日；月更=导入、看异常、看结果、记录立项 ≤半天；数据准备时间由数据项目另定",
+      "stage": "1",
+      "source": "用户选择（PRD 阶段1闸门）"
+    },
+    {
+      "id": "D-21",
+      "decision": "回测控制可观察干扰因素（卖家/品牌实力、上架月份、价格定位、变体数、配送方式、疑似重新上架），不可观察因素写为局限",
+      "stage": "1",
+      "source": "AI 推荐，用户随共同理解确认"
     }
   ],
   "category": "generic",
   "deliverables": {
     "scene_anchor": "scene-anchor.md",
-    "proposal_v0": null,
-    "proposal_v1": null,
-    "debate_log": null,
+    "proposal_v0": "proposal-v0.md",
+    "proposal_v1": "proposal-v1.md",
+    "debate_log": "debate-log.md",
     "assumptions": "assumptions.md",
     "conversation": null,
     "evidence": [
