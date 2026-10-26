@@ -78,8 +78,12 @@ def _finish(engine: Engine, jid: int, status: str, error: str | None, result: An
 
 
 def run(engine: Engine, category_id: int, kind: str, operator: str,
-        work: Callable[[Connection, Callable[[str, float], None]], Any], background: bool = False) -> int:
-    """Run work(conn, report) as job `kind`. Raises JobBusy if another job is running."""
+        work: Callable[[Connection, Callable[[str, float], None]], Any], background: bool = False,
+        after: Callable[[Any], Any] | None = None) -> int:
+    """Run work(conn, report) as job `kind`. Raises JobBusy if another job is running.
+
+    `after(result)` runs once the work's transaction has committed (e.g. the backup after an export must
+    see the committed export); its return value, if not None, replaces the job result."""
     jid = _start(engine, category_id, kind, operator)
 
     def report(step: str, frac: float) -> None:
@@ -89,6 +93,9 @@ def run(engine: Engine, category_id: int, kind: str, operator: str,
         try:
             with engine.begin() as conn:
                 result = work(conn, report)
+            if after is not None:
+                replaced = after(result)
+                result = result if replaced is None else replaced
         except Exception as exc:  # noqa: BLE001 - recorded on the job and re-raised for CLI
             msg = str(exc) or exc.__class__.__name__
             _finish(engine, jid, "failed", msg, {"trace": traceback.format_exc(limit=4)})

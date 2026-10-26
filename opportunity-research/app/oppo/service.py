@@ -85,7 +85,7 @@ def contract_confirm(app: App, keys: list[tuple[str, str]] | None = None, sugges
             if pkg:
                 SPU.refresh_suggestions(conn, cid, pkg["id"], app.operator)
             runs.record_step(conn, cid, "字段确认", started, clock.now_iso(), app.operator,
-                             result=f"保存为 v{no}", link="/contract", package_id=pkg["id"] if pkg else None)
+                             result=f"保存为 v{no}", link="/fields", package_id=pkg["id"] if pkg else None)
         return {"confirmed": n, "version": no}
 
 
@@ -100,7 +100,7 @@ def contract_save(app: App, note: str = "") -> int:
                 SPU.refresh_suggestions(conn, cid, pkg["id"], app.operator)
         pkg = PK.current_package(conn, cid, "history") or PK.current_package(conn, cid, "cross")
         runs.record_step(conn, cid, "字段确认", started, clock.now_iso(), app.operator, result=f"保存为 v{no}",
-                         link="/contract", package_id=pkg["id"] if pkg else None)
+                         link="/fields", package_id=pkg["id"] if pkg else None)
         return no
 
 
@@ -110,7 +110,7 @@ def merge_confirm_basis(app: App, basis: str) -> dict[str, int]:
     with app.engine.begin() as conn:
         res = SPU.confirm_by_basis(conn, cid, basis, app.operator)
         runs.record_step(conn, cid, "SPU 审核", started, clock.now_iso(), app.operator,
-                         result=f"按“{basis}”批量确认 {res['done']} 条", link="/merges")
+                         result=f"按“{basis}”批量确认 {res['done']} 条", link="/spu/merge")
         return res
 
 
@@ -120,7 +120,7 @@ def merge_decide(app: App, ids: list[int], decision: str, source: str = "逐条"
     with app.engine.begin() as conn:
         res = SPU.decide(conn, cid, ids, decision, app.operator, source=source)
         runs.record_step(conn, cid, "SPU 审核", started, clock.now_iso(), app.operator,
-                         result=f"{'确认' if decision == 'confirm' else '拒绝'} {res['done']} 条", link="/merges")
+                         result=f"{'确认' if decision == 'confirm' else '拒绝'} {res['done']} 条", link="/spu/merge")
         return res
 
 
@@ -180,7 +180,20 @@ def export(app: App, month: str | None = None, mode: str = "history", background
     def work(conn: Any, report: Callable[[str, float], None]) -> Any:
         return EX.export_month(conn, app.settings, cid, app.operator, month, mode, report)
 
-    return jobs.run(app.engine, cid, "export", app.operator, work, background=background)
+    def after(result: Any) -> Any:
+        """AC-F10-06: back up automatically after every export; a failed backup never undoes the export."""
+        from oppo.core import backup as BK
+
+        with app.engine.begin() as conn:
+            bk = BK.run_backup(app.settings.db_path, conn, "导出后自动", app.operator, cid)
+            if isinstance(result, dict) and result.get("export_id"):
+                conn.execute(D.export_record.update().where(D.export_record.c.id == result["export_id"])
+                             .values(backup_id=bk["id"]))
+        out = dict(result) if isinstance(result, dict) else {"result": result}
+        out["backup"] = bk
+        return out
+
+    return jobs.run(app.engine, cid, "export", app.operator, work, background=background, after=after)
 
 
 def job_result(app: App, jid: int) -> dict[str, Any]:

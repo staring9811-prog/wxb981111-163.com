@@ -129,4 +129,13 @@
       else if (window.oppoToast) window.oppoToast(res.error || '没有完成');
     });
   });
+
+  /* 口径切换：没有对应数据包时不跳转 */
+  doc.addEventListener('click', function (e) {
+    var a = e.target.closest('.seg__opt[aria-disabled="true"]');
+    if (!a) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (window.oppoToast) window.oppoToast(a.getAttribute('data-tip') || '不可用');
+  }, true);
 })();

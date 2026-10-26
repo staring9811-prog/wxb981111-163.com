@@ -78,6 +78,10 @@ def create_app(svc: SV.App | None = None, token: str | None = None) -> FastAPI:
         r.set_cookie("oppo_mode", mode, samesite="strict", httponly=True)
         return r
 
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon() -> RedirectResponse:
+        return RedirectResponse("/static/favicon.svg", status_code=301)
+
     @app.get("/jobs/current")
     def job_current(request: Request) -> JSONResponse:
         return JSONResponse(C.job_state(request))

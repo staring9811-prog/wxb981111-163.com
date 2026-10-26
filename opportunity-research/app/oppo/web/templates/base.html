@@ -9,6 +9,11 @@
   <link rel="stylesheet" href="/static/tokens.css">
   <link rel="stylesheet" href="/static/app.css">
   <link rel="stylesheet" href="/static/oppo.css">
+  <link rel="stylesheet" href="/static/data_prep.css">
+  <link rel="stylesheet" href="/static/products.css">
+  <link rel="stylesheet" href="/static/analysis.css">
+  <link rel="stylesheet" href="/static/ledger.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body data-mode="{{ mode }}"{% if toast %} data-toast-on-load="{{ toast }}"{% endif %}>
   <script src="/static/icons.js"></script>
@@ -58,6 +63,10 @@
 {% block overlays %}{% endblock %}
   <script src="/static/app.js"></script>
   <script src="/static/oppo.js"></script>
+  <script src="/static/data_prep.js"></script>
+  <script src="/static/products.js"></script>
+  <script src="/static/analysis.js"></script>
+  <script src="/static/ledger.js"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

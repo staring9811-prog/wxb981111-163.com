@@ -8,3 +8,5 @@
 .spin { animation: spin 1.2s linear infinite; }
 .ibar--grey .ibar__band { fill: var(--viz-track, var(--border)); }
 .ibar--grey .ibar__dot { fill: var(--muted); }
+.danger-text { color: var(--danger); }
+.step[data-status="running"] .step__dot { color: var(--accent); }

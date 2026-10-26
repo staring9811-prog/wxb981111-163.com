@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}本月工作台{% endblock %}
+{% block content %}
+{% set st_icon = {"done": "check", "attention": "warning", "block": "warning-octagon", "stale": "arrows-clockwise", "running": "circle-notch"} %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>本月工作台</h1>
+            {% if vm.has_package %}
+            <p class="page-head__sub">{{ vm.month or '—' }} 月更 · 数据至 {{ vm.data_to or '—' }} · {{ '历史' if mode == 'history' else '截面' }}口径{% if vm.card %} · {{ badge(('判定卡 ' ~ vm.card.label ~ ' ' ~ vm.card.status) if mode == 'history' else ('截面卡 ' ~ vm.card.label.replace('截面 ', '') ~ ' ' ~ vm.card.status), fmt.STATUS_BADGE.get(vm.card.status, ('', ''))[0], fmt.STATUS_BADGE.get(vm.card.status, ('', 'info'))[1]) }}{% endif %}</p>
+            {% else %}
+            <p class="page-head__sub">还没有数据包 · 按下面 8 步完成第一次月更</p>
+            {% endif %}
+          </div>
+          <div class="page-head__actions">
+            {% if vm.job %}
+            <button class="btn" type="button" aria-disabled="true" data-tip="{{ job_label }}正在运行，完成后再试">{{ icon('arrows-clockwise') }}<span>全部重算</span></button>
+            {% elif vm.can_recompute %}
+            <button class="btn" type="button" data-open="#recompute-modal">{{ icon('arrows-clockwise') }}<span>全部重算</span></button>
+            {% else %}
+            <button class="btn" type="button" aria-disabled="true" data-tip="{{ '数据包有阻断项，不能计算' if vm.blocked else '当前没有需重算的结果' }}">{{ icon('arrows-clockwise') }}<span>全部重算</span></button>
+            {% endif %}
+            {% if vm.primary.step == 5 and not vm.job and not vm.blocked %}
+            <button class="btn btn--primary" type="button" data-job-start="/jobs/compute">{{ icon('play') }}<span>运行计算</span></button>
+            {% elif vm.primary.step == 6 and not vm.job %}
+            <button class="btn btn--primary" type="button" data-job-start="/jobs/backtest?mode={{ mode }}">{{ icon('flask') }}<span>运行回测</span></button>
+            {% else %}
+            <a class="btn btn--primary" href="{{ vm.primary.href }}">{{ icon(vm.primary.icon) }}<span>{{ vm.primary.label if vm.has_package else '导入第一个数据包' }}</span></a>
+            {% endif %}
+          </div>
+        </div>
+
+        {% for t in vm.todo if t.kind == 'block' %}
+        <div class="banner banner--block enter" style="--i:1" role="alert">
+          {{ icon('warning-octagon') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ t.title }}</div>
+            <div>{{ t.desc }}</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="{{ t.href }}">{{ t.action }}</a></div>
+        </div>
+        {% endfor %}
+        {% if vm.stale %}
+        <div class="banner banner--stale enter" style="--i:1" role="status">
+          {{ icon('arrows-clockwise') }}
+          <div class="banner__body">
+            <div class="banner__title">结果需重算</div>
+            <div>{{ vm.stale|join('；') }}。受影响：成败判定、信号、回测、排序；旧结果仍可查看，系统不会自动重算。</div>
+          </div>
+          {% if vm.can_recompute %}<div class="banner__actions"><button class="btn btn--sm" type="button" data-open="#recompute-modal">全部重算</button></div>{% endif %}
+        </div>
+        {% endif %}
+        {% if vm.card_status == '未验证' %}
+        <div class="banner banner--unverified enter" style="--i:1" role="status">
+          {{ icon('warning') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div>
+            <div>判定卡 {{ vm.card.label }} 没有通过回测验证；下面的排序只能作参考。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/backtest">看回测</a></div>
+        </div>
+        {% elif vm.card_status == '达标（截面）' %}
+        <div class="banner banner--cross enter" style="--i:1" role="status">
+          {{ icon('intersect') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ CARD.CROSS_TEXT }}</div>
+            <div>当前结论来自截面回测（{{ CARD.CROSS_LINE_TEXT }}）。</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <ol class="steps enter" style="--i:1" aria-label="本月 8 步进度">
+          {% for s in vm.steps %}
+          <li class="step step--{{ {'block': 'blocked', 'stale': 'attention', 'running': 'current'}.get(s.status, s.status) }}" data-status="{{ s.status }}">
+            <a class="step__link" href="{{ s.href }}"{% if s.status == 'current' %} aria-current="step"{% endif %}>
+              <span class="step__dot">{% if s.status in st_icon %}{{ icon(st_icon[s.status], 'spin' if s.status == 'running' else '') }}{% else %}{{ s.no }}{% endif %}</span>
+              <span class="step__name">{{ s.name }}</span>
+              <span class="step__meta"{% if s.status == 'running' %} data-job-step{% endif %}>{{ s.meta }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ol>
+
+        {% if not vm.has_package %}
+        <section class="panel section enter" style="--i:2">
+          <div class="empty">
+            {{ icon('package') }}
+            <div class="empty__title">还没有数据包</div>
+            <p class="empty__desc">每月的流程：导入校验 → 确认字段约定 → 数据体检 → 审核 SPU 合并 → 计算成败与信号 → 回测 → 判定卡与排序 → 记录与导出。先导入一个历史或截面数据包。</p>
+            <a class="btn btn--primary" href="/packages?import=1">{{ icon('upload-simple') }}<span>导入第一个数据包</span></a>
+          </div>
+        </section>
+        {% else %}
+        <div class="grid-main-side section">
+          <div class="stack-lg">
+            <section class="panel enter" style="--i:2" aria-labelledby="todo-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="todo-title">待处理</h2>
+                <span class="section__note">{{ vm.todo|length }} 项</span>
+              </div>
+              {% if vm.todo %}
+              <ul class="list">
+                {% for t in vm.todo %}
+                <li class="list__item" data-todo="{{ t.kind }}">
+                  {{ icon(t.icon, 'list__icon list__icon--' ~ t.tone) }}
+                  <div class="list__body">
+                    <div class="list__title">{{ t.title }}{% if t.n %}{{ etag('n=' ~ num(t.n), 'n', t.pop, '样本') if t.pop else etag('n=' ~ num(t.n)) }}{% endif %}</div>
+                    <div class="list__desc">{{ t.desc }}</div>
+                  </div>
+                  {% if t.job %}
+                    {% if vm.can_recompute %}<button class="btn btn--sm list__action" type="button" data-open="#recompute-modal">{{ t.action }}</button>{% endif %}
+                  {% else %}
+                  <a class="btn btn--sm list__action" href="{{ t.href }}">{{ t.action }}</a>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <div class="panel__body"><p class="muted">本月没有待处理的事项</p></div>
+              {% endif %}
+            </section>
+
+            <section class="panel enter" style="--i:3" aria-labelledby="result-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="result-title">本月结论 · 前 5 个细分</h2>
+                {% if vm.top_meta %}<span class="section__note">竖线为全类目平均 {{ pct(vm.top_meta.average.rate) }} {{ etag('n=' ~ (vm.top_meta.average.n or 0)) }}</span>{% endif %}
+              </div>
+              {% if vm.card_status == '未验证' %}
+              <div class="panel__body" style="padding-bottom:0"><div class="banner banner--unverified">{{ icon('warning') }}<div class="banner__body"><div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div></div></div></div>
+              {% endif %}
+              {% if vm.top5 %}
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th class="t-num" scope="col">排名</th>
+                      <th scope="col">细分</th>
+                      <th scope="col">预期命中率（90% 区间）</th>
+                      <th scope="col">锦囊动作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for r in vm.top5 %}
+                    <tr data-href="/ranking#seg-{{ loop.index }}">
+                      <td class="t-num">{{ r.rank }}</td>
+                      <td>{{ segname(r.segment) }}{% if vm.top_meta.cross %} {{ etag('截面', 'cross') }}{% endif %}</td>
+                      <td class="t-nowrap">{{ ibar(r.point, r.ci, vm.top_meta.average.rate, r.sample, grey=vm.card_status == '未验证') }}<span class="ibar-text">{{ ci_text(r.ci) }}</span>{{ etag('n=' ~ r.sample) }}</td>
+                      <td>{% if r.tips %}{{ badge(r.tips[0].action) }}{% else %}<span class="muted">—</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div class="panel__body"><p class="muted">{{ '回测完成后生成排序' if not vm.snapshot else '没有样本量达到 20 的有效细分' }}</p></div>
+              {% endif %}
+              <div class="panel__foot row">
+                <span>参照人群：{{ vm.reference }}</span>
+                <span class="spacer"></span>
+                {% if vm.snapshot %}<a href="/ranking">查看完整排序（{{ vm.snapshot.content.rows|length }} 个细分）</a>{% endif %}
+              </div>
+            </section>
+          </div>
+
+          <aside class="stack-lg" aria-label="用时与备份">
+            <section class="panel enter" style="--i:2" aria-labelledby="time-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="time-title">用时</h2>
+                <a class="small" href="/settings/runs">运行记录</a>
+              </div>
+              <div class="panel__body stack">
+                {% set tm = vm.timing %}
+                <div>
+                  <div class="stat__label">本次月更{% if tm.month_start %}（{{ tm.month_start.strftime('%m-%d %H:%M') }} 导入起）{% endif %}</div>
+                  {% if tm.month_minutes is not none %}
+                  {% set ratio = tm.month_minutes / tm.target %}
+                  <div class="stat__value">{{ tm.month_minutes // 60 }}<span class="stat__unit">小时</span> {{ '%02d'|format(tm.month_minutes % 60) }}<span class="stat__unit">分</span></div>
+                  <div class="meter{% if ratio > 1 %} meter--danger{% elif ratio > 0.8 %} meter--warn{% endif %}" role="meter" aria-valuemin="0" aria-valuemax="{{ tm.target }}" aria-valuenow="{{ tm.month_minutes }}" aria-label="本次月更已用 {{ tm.month_minutes }} 分钟，目标 {{ tm.target }} 分钟"><i style="width:{{ [ratio * 100, 100]|min|round(1) }}%"></i></div>
+                  <div class="stat__meta">目标 ≤ 4 小时，{% if ratio > 1 %}已超出目标 {{ tm.month_minutes - tm.target }} 分钟{% else %}已用 {{ (ratio * 100)|round|int }}%{% endif %}{% if tm.exported %}（已导出）{% endif %}</div>
+                  {% else %}
+                  <div class="stat__value">—</div>
+                  {% endif %}
+                </div>
+                <div>
+                  {% set fr = tm.first %}
+                  <div class="stat__label">首跑{% if fr %}（{{ fr.start.strftime('%Y-%m-%d') }} → {{ fr.end.strftime('%Y-%m-%d') if fr.end else '进行中' }}）{% endif %}</div>
+                  {% if fr and fr.days is not none %}
+                  <div class="stat__value">{{ fr.days }}<span class="stat__unit">个工作日</span></div>
+                  <div class="meter{% if fr.days > tm.first_target %} meter--danger{% endif %}" role="meter" aria-valuemin="0" aria-valuemax="{{ tm.first_target }}" aria-valuenow="{{ fr.days }}" aria-label="首跑 {{ fr.days }} 个工作日，目标 {{ tm.first_target }} 个工作日"><i style="width:{{ [fr.days / tm.first_target * 100, 100]|min|round(1) }}%"></i></div>
+                  {% else %}
+                  <div class="stat__value">{{ '进行中' if fr else '—' }}</div>
+                  {% endif %}
+                  <div class="stat__meta">目标 ≤ 5 个工作日</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel enter" style="--i:3" aria-labelledby="backup-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="backup-title">备份</h2>
+                <a class="small" href="/settings/backup">备份与恢复</a>
+              </div>
+              <div class="panel__body">
+                {% set bk = vm.backup %}
+                <dl class="kv">
+                  <dt>上次成功</dt><dd class="num">{{ (bk.last_success.created_at or '')[:16] if bk.last_success else '还没有' }}</dd>
+                  {% if bk.last and bk.last.status == 'failed' %}<dt>上次失败</dt><dd class="danger-text">{{ (bk.last.created_at or '')[:16] }} · {{ bk.last.error }}</dd>{% endif %}
+                  <dt>目录</dt><dd class="fp">{{ bk.setting.directory if bk.setting else '未设置' }}</dd>
+                  <dt>下次</dt><dd>导出本月报告后自动备份</dd>
+                </dl>
+              </div>
+            </section>
+
+            <section class="panel enter" style="--i:4" aria-labelledby="rule-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="rule-title">口径与成功线</h2>
+                <a class="small" href="/settings/category">配置 v{{ vm.config_version }}</a>
+              </div>
+              <div class="panel__body">
+                {% set c = vm.config %}
+                <dl class="kv">
+                  <dt>口径</dt><dd>{% if mode == 'history' %}历史{% if has_cross %}（截面结果见<a href="/backtest?mode=cross">回测</a>，以历史为准）{% endif %}{% else %}截面（{{ CARD.CROSS_LINE_TEXT }}）{% endif %}</dd>
+                  <dt>成功线</dt><dd>上架 {{ c.success.window_months }} 个月内小类 BSR ≤ {{ c.success.bsr_max|int }}，或 SPU 任一月销售额 ≥ {{ money(c.success.gmv_min) }}</dd>
+                  <dt>参照人群</dt><dd>{{ vm.reference }}</dd>
+                </dl>
+              </div>
+            </section>
+          </aside>
+        </div>
+        {% endif %}
+
+        <p class="page-foot">{{ foot }}</p>
+{% endblock %}
+{% block overlays %}
+        <div class="modal" id="recompute-modal" role="dialog" aria-modal="true" aria-labelledby="recompute-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="recompute-title">全部重算</h2>
+                <p class="modal__sub">在后台运行 · 完成后生成新的排序快照（序号加 1）</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack">
+              <p>原因：{{ vm.stale|join('；') or '—' }}</p>
+              <dl class="kv">
+                <dt>将重算</dt><dd>成败判定、信号、排序（用当前判定卡）</dd>
+                <dt>不改动</dt><dd>已保存的月度快照、台账、判定卡与策略库</dd>
+              </dl>
+              <p class="small muted">需要重新回测时，重算完成后在回测页运行。</p>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="button" data-job-start="/jobs/recompute">开始重算</button>
+            </div>
+          </div>
+        </div>
+{% endblock %}
