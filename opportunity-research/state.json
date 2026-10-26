@@ -1,0 +1,210 @@
+{
+  "state_schema_version": 1,
+  "project_name": "opportunity-research",
+  "project_started_at_utc": "2026-10-26T12:02:40Z",
+  "last_updated_at_utc": "2026-10-26T12:06:35Z",
+  "work_type": "feature",
+  "workflow_mode": "standard",
+  "delivery_target": "tdd",
+  "upstream": {
+    "solution_doc": "output/解题方案书.md",
+    "solution_state": "solution/state.json",
+    "solution_confirmation": "用户 2026-10-26 回复“进入 PRD”（solution/state.json decisions: 方案确认）"
+  },
+  "stage_confirmations": {
+    "stage1_shared_understanding": {
+      "status": "pending",
+      "confirmed_at_utc": null
+    },
+    "stage4_5_v1": {
+      "status": "pending",
+      "confirmed_at_utc": null
+    },
+    "stage4_6_mvp": {
+      "status": "pending",
+      "confirmed_at_utc": null
+    }
+  },
+  "contract_revision": 0,
+  "source_ids_changed": [],
+  "current_stage": "1",
+  "current_substep": "frontier-round-1-partial",
+  "completed_stages": [
+    "0"
+  ],
+  "skipped_stages": [],
+  "next_action": {
+    "type": "stage1_frontier",
+    "description": "等待用户回答 OQ-1（谁会用）与 OQ-3（卖家精灵取数能力，含评论）",
+    "question_ids": [
+      "OQ-1",
+      "OQ-3"
+    ],
+    "research_ids": []
+  },
+  "open_questions": [
+    {
+      "id": "OQ-1",
+      "title": "使用者与角色：谁用、几个人、几个品类、谁导出数据、谁看结果",
+      "kind": "fact",
+      "category": "users_roles",
+      "priority": "P0",
+      "depends_on": [],
+      "owner": "user",
+      "status": "pending_user"
+    },
+    {
+      "id": "OQ-2",
+      "title": "使用形态：对话驱动+文件报告 / 网页工作台 / 混合",
+      "kind": "decision",
+      "category": "product_form",
+      "priority": "P0",
+      "depends_on": [
+        "OQ-1",
+        "OQ-4"
+      ],
+      "owner": "user",
+      "status": "pending_user"
+    },
+    {
+      "id": "OQ-3",
+      "title": "卖家精灵自动取数能力：MCP/API 能否取历史月份选产品/选市场、近12个月新品全量、评论（第一期要采评论）；套餐与额度",
+      "kind": "fact",
+      "category": "system_dependency",
+      "priority": "P1",
+      "depends_on": [],
+      "owner": "user",
+      "status": "pending_user",
+      "evidence_needed": "现有卖家精灵 MCP/API 的可用工具清单与一次历史月份取数的实际返回，或账号套餐页截图",
+      "acceptance_threshold": "能明确判断月度数据是自动取还是人工导出"
+    },
+    {
+      "id": "OQ-4",
+      "title": "运行位置：本机（现有 Windows+Codex/Claude Code）还是服务器多人共用",
+      "kind": "decision",
+      "category": "deployment",
+      "priority": "P1",
+      "depends_on": [
+        "OQ-1"
+      ],
+      "owner": "user",
+      "status": "pending_user"
+    },
+    {
+      "id": "OQ-7",
+      "title": "研究效率目标（基线：一次品类研究约20天）",
+      "kind": "decision",
+      "category": "success_metric",
+      "priority": "P1",
+      "depends_on": [
+        "OQ-3"
+      ],
+      "owner": "user",
+      "status": "pending_user"
+    },
+    {
+      "id": "OQ-9",
+      "title": "回测干扰因素的控制方式（卖家实力、上架月份、价格定位、变体数、配送方式、重新上架）",
+      "kind": "decision",
+      "category": "method",
+      "priority": "P2",
+      "depends_on": [],
+      "owner": "agent",
+      "status": "pending_research"
+    },
+    {
+      "id": "OQ-10",
+      "title": "外部能力配置责任：卖家精灵凭据、LLM 凭据（打标/痛点抽取）由谁提供、在哪配置",
+      "kind": "decision",
+      "category": "external_capability",
+      "priority": "P1",
+      "depends_on": [
+        "OQ-2",
+        "OQ-4"
+      ],
+      "owner": "user",
+      "status": "pending_user"
+    }
+  ],
+  "key_decisions_made": [
+    {
+      "id": "D-1",
+      "decision": "要改进的决策：产品经理立项选哪些细分；主结果=立项命中率，次=研究效率与可复现性",
+      "stage": "solution",
+      "source": "解题方案书 §1–2（用户确认）"
+    },
+    {
+      "id": "D-2",
+      "decision": "成功线：上架6个月内小类BSR前50（ASIN层）或SPU累计GMV≥$20万，满足其一",
+      "stage": "solution",
+      "source": "解题方案书 §2"
+    },
+    {
+      "id": "D-3",
+      "decision": "路线A：竞品新品回测→机会判定卡；输出排序+区间+立项锦囊；策略库由产品经理维护",
+      "stage": "solution",
+      "source": "解题方案书 §5"
+    },
+    {
+      "id": "D-4",
+      "decision": "有效标准：后期批次前20%细分命中率≥平均2倍且优于任一现有单指标，达标才交付使用；之后每月台账、6个月对账",
+      "stage": "solution",
+      "source": "解题方案书 §6"
+    },
+    {
+      "id": "D-5",
+      "decision": "SPU：一个设计含各尺寸各颜色；竞品按同品牌+同款式归并",
+      "stage": "solution",
+      "source": "解题方案书 §4"
+    },
+    {
+      "id": "D-6",
+      "decision": "销量按SKU用子体月销量估算向上累加；评分优先子体，缺失用父体并标来源",
+      "stage": "solution",
+      "source": "解题方案书 §4（用户字段规则）"
+    },
+    {
+      "id": "D-7",
+      "decision": "数据全部来自卖家精灵（历史月份、新品全量、BSR/价格历史），POE可选交叉核对，不用Keepa",
+      "stage": "solution",
+      "source": "解题方案书 §4"
+    },
+    {
+      "id": "D-8",
+      "decision": "分三期：一期=亚马逊美国·浴室柜完整链路（导入→字段规则→新品批次→信号→回测→判定卡与锦囊→台账→策略库），按品类配置搭建；二期=接第二个品类验证复用；三期=接 HDP/Lowe's/Wayfair",
+      "stage": "1",
+      "source": "用户选择（PRD 第1轮，2026-10-26）"
+    },
+    {
+      "id": "D-9",
+      "decision": "评论痛点信号第一期一开始就做，三类信号一起回测",
+      "stage": "1",
+      "source": "用户选择（PRD 第1轮）"
+    },
+    {
+      "id": "D-10",
+      "decision": "类型属性（材质、元素、形态）缺失时一律按父体值回填并标来源；颜色、尺寸不回填；用户接受部分家族柜体材质等回填有误的风险（小试⑤：柜体材质约35%家族内不一致）。盆数随尺寸变化，按尺寸类属性处理、不按父体回填（AI 解释，待用户如有异议再改）",
+      "stage": "1",
+      "source": "用户选择（PRD 第1轮）+ AI 对盆数的解释"
+    }
+  ],
+  "category": "generic",
+  "deliverables": {
+    "scene_anchor": null,
+    "proposal_v0": null,
+    "proposal_v1": null,
+    "debate_log": null,
+    "assumptions": null,
+    "conversation": null,
+    "evidence": [],
+    "drafts": [],
+    "final_prd": null,
+    "requirements_contract": null,
+    "requirements_analysis": null,
+    "bugfix_contract": null,
+    "prd_summary": null,
+    "prd_dev": null,
+    "ppt_outline": null,
+    "ppt_pages": []
+  }
+}
