@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T13:24:09Z",
+  "last_updated_at_utc": "2026-10-26T13:32:38Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -28,10 +28,27 @@
       "source": "D-8（分三期，第一期做透浴室柜）、D-15–D-19；proposal-v1.md §9 记录"
     }
   },
-  "contract_revision": 1,
-  "source_ids_changed": [],
-  "current_stage": "design",
-  "current_substep": "handoff-design",
+  "contract_revision": 2,
+  "source_ids_changed": [
+    "REQ-F01-03",
+    "AC-F01-06",
+    "REQ-F03-02",
+    "AC-F03-04",
+    "REQ-F05-02",
+    "AC-F05-06",
+    "AC-F05-07",
+    "AC-F05-08",
+    "REQ-F06-08",
+    "AC-F06-11",
+    "AC-F06-12",
+    "REQ-F07-03",
+    "AC-F07-09",
+    "AC-F07-10",
+    "AC-F07-11",
+    "AC-F07-12"
+  ],
+  "current_stage": "5",
+  "current_substep": "revision-2",
   "completed_stages": [
     "0",
     "1",
@@ -41,17 +58,32 @@
     "4.3",
     "4.4",
     "4.5",
-    "4.6",
-    "5"
+    "4.6"
   ],
   "skipped_stages": [
     "3"
   ],
   "next_action": {
-    "type": "agent_work",
-    "description": "PRD 核心完成（requirements revision 1，P0/P1=0，四项校验通过）；调度 design-master，输入为同一 output/ 下的 PRD详细版.md、requirements.md、requirements-analysis.md"
+    "type": "user_decision",
+    "description": "需求 revision 2（截面模式）已写入；等待 wen 回答 OQ-20 关闭 RA-020，随后回到 Design 写蓝图",
+    "question_ids": [
+      "OQ-20"
+    ]
   },
-  "open_questions": [],
+  "open_questions": [
+    {
+      "id": "OQ-20",
+      "title": "截面数据包（近 12 个月上架的全部新品含低销量 + 6–9 月月度数据）的交付时间",
+      "kind": "fact",
+      "category": "system_dependency",
+      "priority": "P1",
+      "depends_on": [],
+      "owner": "wen",
+      "status": "pending_user",
+      "evidence_needed": "wen 承诺的交付日期",
+      "acceptance_threshold": "前置能力表可写为 committed（负责人 + 截止时间）"
+    }
+  ],
   "key_decisions_made": [
     {
       "id": "D-1",
@@ -184,6 +216,12 @@
       "decision": "先用 2026.06–09 数据转换的样例包跑通流程；真实数据包 wen 承诺下周提供（截止 2026-11-06）",
       "stage": "5",
       "source": "用户原话（2026-10-26）"
+    },
+    {
+      "id": "D-23",
+      "decision": "第一期加入截面模式：用最近几个月数据 + 同期全部新品（含没卖起来的），控制上架月龄建模，早批次建模、晚批次检验；结论标'截面口径，待历史回测确认'，历史模式结论优先",
+      "stage": "design→PRD 变更",
+      "source": "用户选择（2026-10-26，设计阶段提出）"
     }
   ],
   "category": "generic",
@@ -211,7 +249,39 @@
     "check_evidence": "pass",
     "check_format": "pass",
     "check_consistency": "pass",
-    "check_requirements_contract": "pass（仅关键词提示：外部服务为否定句）",
-    "run_at": "2026-10-26T13:24:09Z"
+    "check_requirements_contract": "fail: P1 unresolved 1 (RA-020 截面数据包交付日期)"
+  },
+  "design": {
+    "entry_check": {
+      "status": "passed",
+      "inputs": [
+        "output/PRD详细版.md",
+        "output/requirements.md@rev1",
+        "output/requirements-analysis.md"
+      ],
+      "scope": "第一期"
+    },
+    "decisions": [
+      {
+        "id": "DD-1",
+        "decision": "导航：侧栏模块 + 首页本月工作台 8 步流程进度条",
+        "source": "用户选择"
+      },
+      {
+        "id": "DD-2",
+        "decision": "视觉：浅色冷静数据台，设计签名为数字旁的证据小标签（样本量、估算/实测/快照/回填）",
+        "source": "用户选择"
+      },
+      {
+        "id": "DD-3",
+        "decision": "屏幕：1366–1920 宽均可用，窄屏收起次要列",
+        "source": "用户选择"
+      },
+      {
+        "id": "DD-4",
+        "decision": "网页报告：一屏结论 + 可展开依据",
+        "source": "用户选择"
+      }
+    ]
   }
 }

@@ -4,12 +4,12 @@
 
 - work_type: feature
 - workflow_mode: standard
-- revision: 1
+- revision: 2
 - scope: 第一期
 - source_prd: PRD详细版.md
 - status: active
 
-> 本次范围为第一期（用户确认 D-8）：亚马逊美国 · 浴室柜，本机小网页。第二期（迁服务器、多人与权限、第二个品类）与第三期（HDP、Lowe's、Wayfair）不在本契约内。数据接口约定 v1 见 `PRD详细版.md` §10.4。
+> 本次范围为第一期（用户确认 D-8）：亚马逊美国 · 浴室柜，本机小网页。revision 2 新增截面模式（用户确认 D-23）：REQ-F01-03、REQ-F03-02、REQ-F05-02、REQ-F06-08、REQ-F07-03。第二期（迁服务器、多人与权限、第二个品类）与第三期（HDP、Lowe's、Wayfair）不在本契约内。数据接口约定 v1 见 `PRD详细版.md` §10.4。
 
 ## External capability configuration
 
@@ -22,6 +22,7 @@
 | Prerequisite | Status | Owner | Evidence or deadline | Fallback | Stage | Requirement IDs |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | wen 的 Windows 电脑可运行本机小网页 | ready | wen | 旧技能包脚本（allocate_sales.py、tag_cached.py 等）曾在该机 D:/Codex 下运行，见 input/predecessor | 换一台可运行 Python 的电脑 | 第一期 | REQ-F01-01 |
+| 截面数据包（同期上架的全部新品含低销量 + 观察月份月度数据，约定 v1.1） | committed | wen | 截止日期待 wen 确认（RA-020） | 先用已提供的 2026.06–09 头部数据跑通流程，截面回测在补齐失败样本前被阻断（AC-F03-04） | 第一期 | REQ-F01-03, REQ-F07-03 |
 | 符合数据接口约定 v1 的第一期真实数据包 | committed | wen | wen 承诺下周提供，截止 2026-11-06（用户原话"数据包下周给"，2026-10-26） | 在此之前先用已提供的 2026.06–09 SKU 表与关键词表转换成约定格式跑通流程（用户确认）；缺评论痛点时先用另两类信号回测 | 第一期 | REQ-F01-01, REQ-F06-05 |
 
 ## Feature F01 · 数据导入与约定校验
@@ -105,6 +106,26 @@ THE SYSTEM SHALL 保存该数据包的只读副本、每个文件的 SHA-256 指
 ```text
 WHEN 产品经理导入的数据包与某个已有版本的全部文件指纹相同
 THE SYSTEM SHALL 提示"该数据包已导入"并显示已有版本号，不创建新的数据包版本
+```
+
+### REQ-F01-03 · 识别数据包类型
+
+数据包分两类：历史数据包（约定 v1，PRD §10.4 C1–C7）与截面数据包（约定 v1.1，PRD §10.4 S1–S3 加 C4、可选 C5–C7）。数据包根目录的清单文件声明类型，系统按对应约定校验。
+
+- Story: US-F01-01
+- Stage: 第一期
+- Revision: 1
+- Status: active
+
+### AC-F01-06 · 按类型校验
+
+- Parent: REQ-F01-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 产品经理导入数据包
+THE SYSTEM SHALL 按清单文件声明的类型（历史数据包或截面数据包）选择对应约定校验，清单缺失或类型无法识别时记为阻断
 ```
 
 ## Feature F02 · 字段约定确认
@@ -269,6 +290,26 @@ THE SYSTEM SHALL 在首页显示该预警，直到产品经理将其标为"已�
 ```text
 WHEN 体检运行完成
 THE SYSTEM SHALL 保持数据包只读副本的每个文件指纹与导入时完全一致
+```
+
+### REQ-F03-02 · 截面数据包必须包含失败样本
+
+截面模型要回答"新品命中概率"，新品清单必须包含没卖起来的商品；只含头部商品时回归会高估成功率（小试⑥）。
+
+- Story: US-F03-01
+- Stage: 第一期
+- Revision: 1
+- Status: active
+
+### AC-F03-04 · 疑似只含头部时阻断截面回测
+
+- Parent: REQ-F03-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 截面数据包中观察月份月销量低于品类配置头部门槛（浴室柜 60 件）的新品占比为 0
+THE SYSTEM SHALL 阻断截面回测，并提示"新品清单疑似只含头部商品，缺少失败样本"
 ```
 
 ## Feature F04 · 新品判定与 SPU 归并
@@ -472,6 +513,48 @@ WHEN 某新 SPU 尚未命中且判定窗口内有任一月缺少销量或 BSR �
 THE SYSTEM SHALL 将其标为"数据不全"，不计入命中率分母，并列出缺失的月份
 ```
 
+### REQ-F05-02 · 截面口径成败判定
+
+截面数据包中，上架于回看窗口内（默认最新观察月往前 12 个月）的新 SPU，在任一观察月满足以下任一条即为"截面命中"：任一子 ASIN 小类 BSR ≤ 品类配置 BSR 阈值；或 SPU 当月销售额 ≥ GMV 阈值 ÷ 判定窗口月数（浴室柜默认 200,000 ÷ 6 ≈ 33,333 美元）。否则为"截面未命中"。每个观察月记录 SPU 当时的上架月龄（上架当月为第 1 个月）。
+
+- Story: US-F05-01
+- Stage: 第一期
+- Revision: 1
+- Status: active
+
+### AC-F05-06 · 判为截面命中
+
+- Parent: REQ-F05-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 截面数据包中某新 SPU 在任一观察月满足 REQ-F05-02 的任一条件
+THE SYSTEM SHALL 将其判为"截面命中"，并记录达成月份与当时的上架月龄
+```
+
+### AC-F05-07 · 判为截面未命中
+
+- Parent: REQ-F05-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 截面数据包中某新 SPU 在全部观察月都有数据且均不满足 REQ-F05-02 的条件
+THE SYSTEM SHALL 将其判为"截面未命中"，并记录最后一个观察月的上架月龄
+```
+
+### AC-F05-08 · 截面口径单独标注
+
+- Parent: REQ-F05-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 展示或导出截面口径的成败结果
+THE SYSTEM SHALL 标注"截面口径（近似成功线）"，与 6 个月窗口口径区分
+```
+
 ## Feature F06 · 信号计算
 
 ### US-F06-01 · 看到每个细分在每个月"当时"的信号
@@ -655,6 +738,37 @@ WHEN 某子体的颜色、尺寸或盆数没有子体确认值
 THE SYSTEM SHALL 不使用父体值回填，并把该子体归入该维度的"未知"档
 ```
 
+### REQ-F06-08 · 截面模式下的信号口径
+
+截面模式中，新品批次与结果在同一观察期内，"新品进得去"会用到同期结果，因此不计算；"需求在涨"与"现有产品没做好"仍按批次上架月之前的数据计算，缺数据时为"无数据"；四个现用指标只用上架早于新品回看窗口的老品在观察月份的数据计算。
+
+- Story: US-F06-01
+- Stage: 第一期
+- Revision: 1
+- Status: active
+
+### AC-F06-11 · 截面模式不算新品进得去
+
+- Parent: REQ-F06-08
+- Priority: P0
+- EARS:
+
+```text
+WHEN 在截面数据包上计算信号
+THE SYSTEM SHALL 不计算"新品进得去"，并在信号表中标注"截面模式不适用"
+```
+
+### AC-F06-12 · 现用指标只用老品
+
+- Parent: REQ-F06-08
+- Priority: P0
+- EARS:
+
+```text
+WHEN 在截面数据包上计算四个现用指标
+THE SYSTEM SHALL 只使用上架日期早于新品回看窗口的商品数据，并在信号表中显示参与计算的老品数量
+```
+
 ## Feature F07 · 时间切分回测
 
 ### US-F07-01 · 用之前先知道信号到底准不准
@@ -769,6 +883,59 @@ THE SYSTEM SHALL 纳入 REQ-F07-02 的六项干扰因素，并在回测报告中
 ```text
 WHEN 生成回测报告
 THE SYSTEM SHALL 在结论旁列出"广告投入、站外引流未纳入"的局限说明
+```
+
+### REQ-F07-03 · 截面模式回测
+
+在截面数据包上：按上架月份排序新 SPU 批次，前 2/3 批次建模、后 1/3 检验；模型以"截面命中"为结果，纳入细分属性、上架月龄和 REQ-F07-02 的干扰因素；按模型给出的"标准月龄（默认 6 个月）命中概率"对细分排序，用与 REQ-F07-01 相同的 2 倍与前 20% 口径评估，基线为只用老品计算的四个现用指标。同一品类同时有历史模式结论时，以历史模式为准。
+
+- Story: US-F07-01
+- Stage: 第一期
+- Revision: 1
+- Status: active
+
+### AC-F07-09 · 截面回测划分批次并控制月龄
+
+- Parent: REQ-F07-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 产品经理在截面数据包上启动回测
+THE SYSTEM SHALL 按上架月份把新 SPU 批次分为建模组和检验组，模型纳入上架月龄与六项干扰因素，并在报告中列出两组批次范围
+```
+
+### AC-F07-10 · 截面回测评估口径
+
+- Parent: REQ-F07-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 截面回测完成
+THE SYSTEM SHALL 按标准月龄命中概率对细分排序，给出检验组前 20% 细分的截面命中率、全类目平均、倍数、样本量和 90% 区间，并与只用老品计算的四个现用指标排序比较
+```
+
+### AC-F07-11 · 截面达标单独标注
+
+- Parent: REQ-F07-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 截面回测满足 2 倍且优于四个现用指标
+THE SYSTEM SHALL 将结论标为"达标（截面）"，并在判定卡、排序、锦囊和导出文件上显示"截面口径，待历史回测确认"
+```
+
+### AC-F07-12 · 历史模式优先
+
+- Parent: REQ-F07-03
+- Priority: P1
+- EARS:
+
+```text
+WHEN 同一品类同时存在历史模式与截面模式的回测结论
+THE SYSTEM SHALL 以历史模式结论决定判定卡状态，并在回测页并列显示两种结论
 ```
 
 ## Feature F08 · 判定卡与立项锦囊
