@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T12:50:50Z",
+  "last_updated_at_utc": "2026-10-26T12:56:43Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -28,54 +28,40 @@
   "contract_revision": 0,
   "source_ids_changed": [],
   "current_stage": "1",
-  "current_substep": "frontier-round-4",
+  "current_substep": "stage1-gate",
   "completed_stages": [
     "0"
   ],
   "skipped_stages": [],
   "next_action": {
     "type": "stage1_frontier",
-    "description": "等待用户回答 OQ-10（大模型 API 密钥或订阅）与 OQ-15（卖家精灵密钥能否给本机程序用），开放回答",
+    "description": "等待用户拍板 OQ-17（效率目标口径）并确认场景锚点共同理解（含 OQ-9 默认）",
     "question_ids": [
-      "OQ-10",
-      "OQ-15"
+      "OQ-17",
+      "OQ-9"
     ],
     "research_ids": []
   },
   "open_questions": [
     {
       "id": "OQ-9",
-      "title": "回测干扰因素的控制方式（卖家实力、上架月份、价格定位、变体数、配送方式、重新上架）",
+      "title": "回测干扰因素的控制方式（卖家实力、上架月份、价格定位、变体数、配送方式、重新上架）（AI 默认已写入场景锚点，随共同理解一并确认）",
       "kind": "decision",
       "category": "method",
       "priority": "P2",
       "depends_on": [],
-      "owner": "agent",
-      "status": "pending_research"
+      "owner": "user",
+      "status": "pending_user"
     },
     {
-      "id": "OQ-10",
-      "title": "大模型能力：打标与评论痛点抽取用哪家的 API 密钥，还是只能用 Codex/Claude Code 订阅",
-      "kind": "fact",
-      "category": "external_capability",
+      "id": "OQ-17",
+      "title": "研究效率目标（D-14）在数据准备不在本系统内时如何计算",
+      "kind": "decision",
+      "category": "success_metric",
       "priority": "P1",
       "depends_on": [],
       "owner": "user",
-      "status": "pending_user",
-      "evidence_needed": "现有可用的大模型 API 密钥或订阅类型",
-      "acceptance_threshold": "能确定大模型步骤由程序直接调用还是在对话会话里执行"
-    },
-    {
-      "id": "OQ-15",
-      "title": "卖家精灵密钥能否给独立程序（本机小网页）使用：Codex 里 MCP 用的密钥或开放平台 API key",
-      "kind": "fact",
-      "category": "external_capability",
-      "priority": "P1",
-      "depends_on": [],
-      "owner": "user",
-      "status": "pending_user",
-      "evidence_needed": "能否取得卖家精灵 MCP 密钥或 API key",
-      "acceptance_threshold": "确认本机小网页能直接调用卖家精灵取数"
+      "status": "pending_user"
     }
   ],
   "key_decisions_made": [
@@ -180,11 +166,23 @@
       "decision": "第二期接第二个品类时迁到服务器，届时启用多人共用与角色权限（D-12）",
       "stage": "1",
       "source": "用户选择（PRD 第3轮）"
+    },
+    {
+      "id": "D-18",
+      "decision": "大模型步骤（打标、评论痛点提取）第一期不在小网页内自动调用（无 API 密钥），由对话中的 Codex/Claude Code 或上游数据流程完成；第一期由 wen 提供处理好的干净数据；卖家精灵 MCP 密钥可供小网页使用",
+      "stage": "1",
+      "source": "用户原话（PRD 第4轮）"
+    },
+    {
+      "id": "D-19",
+      "decision": "拆分项目：数据拉取（卖家精灵 MCP、销量估算、打标、评论与痛点提取）另立数据项目；本项目只做机会判定，第一期用 wen 提供的数据跑通，本次 PRD 写清数据接口约定",
+      "stage": "1",
+      "source": "用户选择（PRD 第5轮）"
     }
   ],
   "category": "generic",
   "deliverables": {
-    "scene_anchor": null,
+    "scene_anchor": "scene-anchor.md",
     "proposal_v0": null,
     "proposal_v1": null,
     "debate_log": null,
