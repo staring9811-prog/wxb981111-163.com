@@ -1,0 +1,10 @@
+/* Runtime additions to the prototype stylesheet (no colours outside tokens). */
+.seg__opt { text-decoration: none; display: inline-flex; align-items: center; }
+.seg__opt[aria-disabled="true"] { opacity: .45; pointer-events: auto; cursor: not-allowed; }
+.field-error { color: var(--danger); font-size: var(--text-xs); margin-top: 2px; }
+.field-error:empty { display: none; }
+.form-error { margin-bottom: var(--space-3); }
+[data-ajax] .is-invalid { border-color: var(--danger) !important; }
+.spin { animation: spin 1.2s linear infinite; }
+.ibar--grey .ibar__band { fill: var(--viz-track, var(--border)); }
+.ibar--grey .ibar__dot { fill: var(--muted); }
