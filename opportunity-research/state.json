@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T12:06:35Z",
+  "last_updated_at_utc": "2026-10-26T12:11:12Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -28,67 +28,44 @@
   "contract_revision": 0,
   "source_ids_changed": [],
   "current_stage": "1",
-  "current_substep": "frontier-round-1-partial",
+  "current_substep": "frontier-round-2b",
   "completed_stages": [
     "0"
   ],
   "skipped_stages": [],
   "next_action": {
     "type": "stage1_frontier",
-    "description": "等待用户回答 OQ-1（谁会用）与 OQ-3（卖家精灵取数能力，含评论）",
+    "description": "等待用户回答 OQ-4（服务器与维护人，开放回答）与 OQ-7（研究效率目标）",
     "question_ids": [
-      "OQ-1",
-      "OQ-3"
+      "OQ-4",
+      "OQ-7"
     ],
     "research_ids": []
   },
   "open_questions": [
     {
-      "id": "OQ-1",
-      "title": "使用者与角色：谁用、几个人、几个品类、谁导出数据、谁看结果",
-      "kind": "fact",
-      "category": "users_roles",
-      "priority": "P0",
-      "depends_on": [],
-      "owner": "user",
-      "status": "pending_user"
-    },
-    {
       "id": "OQ-2",
-      "title": "使用形态：对话驱动+文件报告 / 网页工作台 / 混合",
+      "title": "产品形态与托管：共享网页工作台 / 飞书为主 / 本地文件",
       "kind": "decision",
       "category": "product_form",
       "priority": "P0",
       "depends_on": [
-        "OQ-1",
         "OQ-4"
       ],
       "owner": "user",
       "status": "pending_user"
     },
     {
-      "id": "OQ-3",
-      "title": "卖家精灵自动取数能力：MCP/API 能否取历史月份选产品/选市场、近12个月新品全量、评论（第一期要采评论）；套餐与额度",
+      "id": "OQ-4",
+      "title": "运行与维护条件：公司是否有现成服务器（云或内网）及维护人",
       "kind": "fact",
-      "category": "system_dependency",
+      "category": "deployment",
       "priority": "P1",
       "depends_on": [],
       "owner": "user",
       "status": "pending_user",
-      "evidence_needed": "现有卖家精灵 MCP/API 的可用工具清单与一次历史月份取数的实际返回，或账号套餐页截图",
-      "acceptance_threshold": "能明确判断月度数据是自动取还是人工导出"
-    },
-    {
-      "id": "OQ-4",
-      "title": "运行位置：本机（现有 Windows+Codex/Claude Code）还是服务器多人共用",
-      "kind": "decision",
-      "category": "deployment",
-      "priority": "P1",
-      "depends_on": [
-        "OQ-1"
-      ],
-      "owner": "user",
-      "status": "pending_user"
+      "evidence_needed": "现有服务器/云账号情况与负责维护的人",
+      "acceptance_threshold": "能判断共享网页工作台由谁托管、谁维护"
     },
     {
       "id": "OQ-7",
@@ -97,7 +74,7 @@
       "category": "success_metric",
       "priority": "P1",
       "depends_on": [
-        "OQ-3"
+        "OQ-12"
       ],
       "owner": "user",
       "status": "pending_user"
@@ -186,6 +163,24 @@
       "decision": "类型属性（材质、元素、形态）缺失时一律按父体值回填并标来源；颜色、尺寸不回填；用户接受部分家族柜体材质等回填有误的风险（小试⑤：柜体材质约35%家族内不一致）。盆数随尺寸变化，按尺寸类属性处理、不按父体回填（AI 解释，待用户如有异议再改）",
       "stage": "1",
       "source": "用户选择（PRD 第1轮）+ AI 对盆数的解释"
+    },
+    {
+      "id": "D-11",
+      "decision": "多人使用：各品类产品经理（5–8个品类）为直接使用者；老板与下游开发、采购、运营为结果接收方；卖家精灵 MCP 额度每月4000次",
+      "stage": "1",
+      "source": "用户原话（PRD 第1轮）"
+    },
+    {
+      "id": "D-12",
+      "decision": "角色权限：产品经理只能改自己负责品类的字段规则、策略库和立项记录，可查看所有品类结果；老板与下游开发、采购、运营只读查看结论、依据和台账并可导出；另设管理员管理账号、密钥和额度",
+      "stage": "1",
+      "source": "用户选择（PRD 第2轮）"
+    },
+    {
+      "id": "D-13",
+      "decision": "额度不足时加购卖家精灵额度，一次性完成历史回填与评论采集",
+      "stage": "1",
+      "source": "用户选择（PRD 第2轮）"
     }
   ],
   "category": "generic",
@@ -194,9 +189,11 @@
     "proposal_v0": null,
     "proposal_v1": null,
     "debate_log": null,
-    "assumptions": null,
+    "assumptions": "assumptions.md",
     "conversation": null,
-    "evidence": [],
+    "evidence": [
+      "evidence/额度测算.md"
+    ],
     "drafts": [],
     "final_prd": null,
     "requirements_contract": null,
