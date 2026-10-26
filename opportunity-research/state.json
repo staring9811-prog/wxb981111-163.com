@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T13:01:54Z",
+  "last_updated_at_utc": "2026-10-26T13:15:02Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -18,8 +18,9 @@
       "source": "用户选择“没有遗漏，继续”（scene-anchor.md V1）"
     },
     "stage4_5_v1": {
-      "status": "pending",
-      "confirmed_at_utc": null
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-10-26T13:03:10Z",
+      "source": "用户选择“确认 V1”（proposal-v1.md）"
     },
     "stage4_6_mvp": {
       "status": "confirmed",
@@ -27,10 +28,10 @@
       "source": "D-8（分三期，第一期做透浴室柜）、D-15–D-19；proposal-v1.md §9 记录"
     }
   },
-  "contract_revision": 0,
+  "contract_revision": 1,
   "source_ids_changed": [],
-  "current_stage": "4.5",
-  "current_substep": "v1-user-decision",
+  "current_stage": "5",
+  "current_substep": "core-draft-validators",
   "completed_stages": [
     "0",
     "1",
@@ -38,17 +39,18 @@
     "4.1",
     "4.2",
     "4.3",
-    "4.4"
+    "4.4",
+    "4.5",
+    "4.6"
   ],
   "skipped_stages": [
     "3"
   ],
   "next_action": {
     "type": "user_decision",
-    "description": "等待 wen：确认方案 V1（含新默认行为与完成定义），并给出第一期数据包交付时间（OQ-18）",
-    "askuserquestion_options": [
-      "确认 V1（推荐）",
-      "有要改的"
+    "description": "PRD 核心三份初稿已落盘；等待 wen 回答 OQ-18（第一期数据包交付日期）以关闭 RA-001，随后重跑契约校验并交付 Design",
+    "question_ids": [
+      "OQ-18"
     ]
   },
   "open_questions": [
@@ -205,13 +207,19 @@
       "evidence/额度测算.md"
     ],
     "drafts": [],
-    "final_prd": null,
-    "requirements_contract": null,
-    "requirements_analysis": null,
+    "final_prd": "output/PRD详细版.md",
+    "requirements_contract": "output/requirements.md",
+    "requirements_analysis": "output/requirements-analysis.md",
     "bugfix_contract": null,
     "prd_summary": null,
     "prd_dev": null,
     "ppt_outline": null,
     "ppt_pages": []
+  },
+  "validation": {
+    "check_evidence": "pass",
+    "check_format": "pass",
+    "check_consistency": "pass",
+    "check_requirements_contract": "fail: P1 unresolved 1 (RA-001 数据包交付日期)"
   }
 }
