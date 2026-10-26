@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T12:11:12Z",
+  "last_updated_at_utc": "2026-10-26T12:12:10Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -35,10 +35,9 @@
   "skipped_stages": [],
   "next_action": {
     "type": "stage1_frontier",
-    "description": "等待用户回答 OQ-4（服务器与维护人，开放回答）与 OQ-7（研究效率目标）",
+    "description": "等待用户回答 OQ-4（公司是否有服务器及维护人，开放回答）；之后可问 OQ-2 产品形态与托管、OQ-10 外部能力配置",
     "question_ids": [
-      "OQ-4",
-      "OQ-7"
+      "OQ-4"
     ],
     "research_ids": []
   },
@@ -66,18 +65,6 @@
       "status": "pending_user",
       "evidence_needed": "现有服务器/云账号情况与负责维护的人",
       "acceptance_threshold": "能判断共享网页工作台由谁托管、谁维护"
-    },
-    {
-      "id": "OQ-7",
-      "title": "研究效率目标（基线：一次品类研究约20天）",
-      "kind": "decision",
-      "category": "success_metric",
-      "priority": "P1",
-      "depends_on": [
-        "OQ-12"
-      ],
-      "owner": "user",
-      "status": "pending_user"
     },
     {
       "id": "OQ-9",
@@ -179,6 +166,12 @@
     {
       "id": "D-13",
       "decision": "额度不足时加购卖家精灵额度，一次性完成历史回填与评论采集",
+      "stage": "1",
+      "source": "用户选择（PRD 第2轮）"
+    },
+    {
+      "id": "D-14",
+      "decision": "研究效率目标：新品类首次跑通（字段确认+历史回填+首次回测）≤5个工作日；之后每月自动更新，人工≤半天（看结果、处理异常提示）；基线为一次品类研究约20天",
       "stage": "1",
       "source": "用户选择（PRD 第2轮）"
     }
