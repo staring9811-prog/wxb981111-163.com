@@ -1,0 +1,8 @@
+# 原始业务数据与派生大文件不入库（原件由用户保管，可随时重新放入 input/）
+opportunity-research/input/data_v2/
+opportunity-research/solution/trial/*.csv
+.DS_Store
+__pycache__/
+# 用户上传的旧技能包（含站点 passkey 与旧机器路径），只在本地参考
+opportunity-research/input/predecessor/
+opportunity-research/input/data_1/
