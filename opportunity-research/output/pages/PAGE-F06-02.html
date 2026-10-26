@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F06-02">
+  <title>细分详情 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html" aria-current="page"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <!-- 背景：信号页（简化），抽屉打开时位于遮罩之下 -->
+        <div class="page-head">
+          <div>
+            <h1>信号</h1>
+            <p class="page-head__sub">T = 2027-05 · 历史口径 · 第 T 月的信号只用早于 2027-05-01 的数据</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">细分</th>
+                <th class="t-num" scope="col">需求在涨</th>
+                <th class="t-num" scope="col">新品进得去</th>
+                <th class="t-num" scope="col">结构类痛点占比</th>
+                <th class="t-num" scope="col">高销低评占比</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="is-selected"><td><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></td><td class="t-num">+18.4%</td><td class="t-num">37.5%</td><td class="t-num">12.6%</td><td class="t-num">8.1%</td></tr>
+              <tr><td><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></td><td class="t-num">+14.9%</td><td class="t-num">33.3%</td><td class="t-num">15.2%</td><td class="t-num"><span class="etag etag--nodata">无数据</span></td></tr>
+              <tr><td><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></td><td class="t-num">+21.7%</td><td class="t-num">20.0%</td><td class="t-num">11.0%</td><td class="t-num">5.4%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <aside class="drawer" id="seg-drawer" role="dialog" aria-modal="true" aria-labelledby="seg-title" data-open-on-load data-close-href="PAGE-F06-01.html">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="seg-title"><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></h2>
+              <p class="drawer__sub">细分详情 · T = 2027-05 · 历史口径 · 排序第 1 名</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+
+          <div class="drawer__body stack-lg">
+            <section aria-labelledby="def-title">
+              <h3 id="def-title">细分定义</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>宽度档</dt><dd>30–48″：宽度大于 30、小于 48 英寸</dd>
+                <dt>形态</dt><dd>落地式（含父体回填的子体）</dd>
+                <dt>价格带</dt><dd>$500–900：子体当月销量加权均价</dd>
+                <dt>未知档</dt><dd class="muted">任一维度为"未知"的子体归入该维度的"未知"档，不在本细分</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="sig-title">
+              <div class="section__head">
+                <h3 id="sig-title">当月信号</h3>
+                <span class="section__note">只用早于 2027-05-01 的数据</span>
+              </div>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th scope="col">信号</th><th class="t-num" scope="col">值</th><th scope="col">分子 / 分母</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>需求在涨<div class="cell-sub">关键词 2027-01–04 搜索量同比</div></td>
+                      <td class="t-num">+18.4%<button class="etag" type="button" data-pop-title="需求在涨" data-pop="口径=T−4 至 T−1 月搜索量合计同比;参与关键词=23 个（已映射到本细分）;来源文件=C5 关键词月度;性质=推导;数据包=P-0008">推导</button></td>
+                      <td class="small">关键词 23 个</td>
+                    </tr>
+                    <tr>
+                      <td>新品进得去<div class="cell-sub">2026-05–2026-10 上架的已判定新 SPU</div></td>
+                      <td class="t-num">37.5%<span class="etag etag--n">n=24</span></td>
+                      <td class="small">命中 9 / 已判定 24</td>
+                    </tr>
+                    <tr>
+                      <td>结构类痛点占比<div class="cell-sub">评论日期早于 2027-05</div></td>
+                      <td class="t-num">12.6%<button class="etag" type="button" data-pop-title="结构类痛点占比" data-pop="分子=214 条结构类痛点评论;分母=1,698 条评论;去重规则=父体级评论只计入上月销量最大的子体所在细分;来源文件=C6 评论痛点;性质=人工标注（标注版本 v3）">人工</button></td>
+                      <td class="small">214 / 1,698 条评论</td>
+                    </tr>
+                    <tr>
+                      <td>高销低评占比<div class="cell-sub">上月销量前 25% 且均分 &lt; 4.0</div></td>
+                      <td class="t-num">8.1%<span class="etag etag--n">n=3</span></td>
+                      <td class="small">涉及 3 个商品</td>
+                    </tr>
+                    <tr>
+                      <td>单位 ASIN 贡献</td>
+                      <td class="t-num">41.2 件<span class="etag etag--cand">候选</span><span class="etag">估算</span></td>
+                      <td class="small">2027-04 销量 ÷ 有销量的子 ASIN 数</td>
+                    </tr>
+                    <tr>
+                      <td>属性溢价</td>
+                      <td class="t-num">+12.4%<span class="etag etag--cand">候选</span></td>
+                      <td class="small">对比同宽度档销量加权均价</td>
+                    </tr>
+                    <tr>
+                      <td>属性趋势</td>
+                      <td class="t-num">+2.1 个百分点<span class="etag etag--cand">候选</span></td>
+                      <td class="small">近 3 个月份额对比前 3 个月</td>
+                    </tr>
+                    <tr>
+                      <td>低分高销</td>
+                      <td class="t-num">8.1%<span class="etag etag--cand">候选</span></td>
+                      <td class="small">与高销低评同口径</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="fill-title">
+              <div class="section__head">
+                <h3 id="fill-title">父体回填</h3>
+                <span class="etag etag--fill">回填 31%</span>
+              </div>
+              <p class="small">本细分 31% 的子体至少有一个类型属性来自父体回填：形态 22%、柜体材质 9%、安装方式 6%。颜色、尺寸、盆数随变体变化，不回填，缺失时归入"未知"档。</p>
+            </section>
+
+            <section aria-labelledby="trend-title">
+              <div class="section__head">
+                <h3 id="trend-title">信号趋势</h3>
+                <span class="section__note">2026-12 至 2027-05，按当月口径各自计算</span>
+              </div>
+              <div class="grid-2">
+                <figure style="margin:0">
+                  <figcaption class="small strong">需求在涨（同比）</figcaption>
+                  <svg class="spark" viewBox="0 0 260 78" width="100%" role="img" aria-label="需求在涨 2026-12 至 2027-05：+9.8%、+12.1%、+15.6%、+14.2%、+16.9%、+18.4%">
+                    <line class="spark__grid" x1="8" y1="56" x2="232" y2="56"/>
+                    <line class="spark__grid" x1="8" y1="32" x2="232" y2="32"/>
+                    <path class="spark__area" d="M8,32.5 L52.8,27 L97.6,18.6 L142.4,21.9 L187.2,15.4 L232,11.8 L232,56 L8,56 Z"/>
+                    <path class="spark__line" d="M8,32.5 L52.8,27 L97.6,18.6 L142.4,21.9 L187.2,15.4 L232,11.8"/>
+                    <circle class="spark__dot" cx="232" cy="11.8" r="4"/>
+                    <text class="spark__value" x="236" y="9">+18.4%</text>
+                    <text class="spark__label" x="8" y="72">2026-12</text>
+                    <text class="spark__label" x="232" y="72" text-anchor="end">2027-05</text>
+                    <text class="spark__label" x="236" y="35">10%</text>
+                    <rect class="ibar__hit" x="0" y="0" width="30" height="60" tabindex="0" data-tip="+9.8%|2026-12 · 关键词 21 个"/>
+                    <rect class="ibar__hit" x="30" y="0" width="45" height="60" tabindex="0" data-tip="+12.1%|2027-01 · 关键词 22 个"/>
+                    <rect class="ibar__hit" x="75" y="0" width="45" height="60" tabindex="0" data-tip="+15.6%|2027-02 · 关键词 22 个"/>
+                    <rect class="ibar__hit" x="120" y="0" width="45" height="60" tabindex="0" data-tip="+14.2%|2027-03 · 关键词 23 个"/>
+                    <rect class="ibar__hit" x="165" y="0" width="45" height="60" tabindex="0" data-tip="+16.9%|2027-04 · 关键词 23 个"/>
+                    <rect class="ibar__hit" x="210" y="0" width="50" height="60" tabindex="0" data-tip="+18.4%|2027-05 · 关键词 23 个"/>
+                  </svg>
+                </figure>
+                <figure style="margin:0">
+                  <figcaption class="small strong">新品进得去（命中 / 已判定）</figcaption>
+                  <svg class="spark" viewBox="0 0 260 78" width="100%" role="img" aria-label="新品进得去 2026-12 至 2027-05：28.6%、30.0%、31.8%、34.8%、33.3%、37.5%">
+                    <line class="spark__grid" x1="8" y1="56" x2="232" y2="56"/>
+                    <line class="spark__grid" x1="8" y1="32" x2="232" y2="32"/>
+                    <path class="spark__area" d="M8,28.5 L52.8,27.2 L97.6,25.5 L142.4,22.6 L187.2,24 L232,20 L232,56 L8,56 Z"/>
+                    <path class="spark__line" d="M8,28.5 L52.8,27.2 L97.6,25.5 L142.4,22.6 L187.2,24 L232,20"/>
+                    <circle class="spark__dot" cx="232" cy="20" r="4"/>
+                    <text class="spark__value" x="236" y="17">37.5%</text>
+                    <text class="spark__label" x="8" y="72">2026-12</text>
+                    <text class="spark__label" x="232" y="72" text-anchor="end">2027-05</text>
+                    <text class="spark__label" x="236" y="35">25%</text>
+                    <rect class="ibar__hit" x="0" y="0" width="30" height="60" tabindex="0" data-tip="28.6%|2026-12 · 命中 6 / 已判定 21"/>
+                    <rect class="ibar__hit" x="30" y="0" width="45" height="60" tabindex="0" data-tip="30.0%|2027-01 · 命中 6 / 已判定 20"/>
+                    <rect class="ibar__hit" x="75" y="0" width="45" height="60" tabindex="0" data-tip="31.8%|2027-02 · 命中 7 / 已判定 22"/>
+                    <rect class="ibar__hit" x="120" y="0" width="45" height="60" tabindex="0" data-tip="34.8%|2027-03 · 命中 8 / 已判定 23"/>
+                    <rect class="ibar__hit" x="165" y="0" width="45" height="60" tabindex="0" data-tip="33.3%|2027-04 · 命中 8 / 已判定 24"/>
+                    <rect class="ibar__hit" x="210" y="0" width="50" height="60" tabindex="0" data-tip="37.5%|2027-05 · 命中 9 / 已判定 24"/>
+                  </svg>
+                </figure>
+              </div>
+              <details class="small" style="margin-top: var(--space-2)">
+                <summary>表格视图</summary>
+                <div class="table-wrap" style="margin-top: var(--space-2)">
+                  <table class="table">
+                    <thead><tr><th scope="col">月份 T</th><th class="t-num" scope="col">需求在涨</th><th class="t-num" scope="col">新品进得去</th></tr></thead>
+                    <tbody>
+                      <tr><td>2026-12</td><td class="t-num">+9.8%</td><td class="t-num">28.6%（6/21）</td></tr>
+                      <tr><td>2027-01</td><td class="t-num">+12.1%</td><td class="t-num">30.0%（6/20）</td></tr>
+                      <tr><td>2027-02</td><td class="t-num">+15.6%</td><td class="t-num">31.8%（7/22）</td></tr>
+                      <tr><td>2027-03</td><td class="t-num">+14.2%</td><td class="t-num">34.8%（8/23）</td></tr>
+                      <tr><td>2027-04</td><td class="t-num">+16.9%</td><td class="t-num">33.3%（8/24）</td></tr>
+                      <tr><td>2027-05</td><td class="t-num">+18.4%</td><td class="t-num">37.5%（9/24）</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </section>
+
+            <section aria-labelledby="pain-title">
+              <div class="section__head">
+                <h3 id="pain-title">结构类痛点构成</h3>
+                <span class="section__note">共 214 条结构类痛点评论</span>
+              </div>
+              <div class="hbars" style="margin-top: var(--space-4)">
+                <span class="hbar__label">柜门开合不顺 / 铰链松动</span>
+                <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:100%" tabindex="0" data-tip="31%|66 / 214 条"></span></span>
+                <span class="hbar__value">31%</span>
+                <span class="hbar__label">台面开裂或崩边</span>
+                <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:71%" tabindex="0" data-tip="22%|47 / 214 条"></span></span>
+                <span class="hbar__value">22%</span>
+                <span class="hbar__label">柜体受潮变形</span>
+                <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:58%" tabindex="0" data-tip="18%|39 / 214 条"></span></span>
+                <span class="hbar__value">18%</span>
+                <span class="hbar__label">安装孔位不准</span>
+                <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:39%" tabindex="0" data-tip="12%|26 / 214 条"></span></span>
+                <span class="hbar__value">12%</span>
+                <span class="hbar__label">其他结构类</span>
+                <span class="hbar__track"><span class="hbar__bar" style="width:55%" tabindex="0" data-tip="17%|36 / 214 条"></span></span>
+                <span class="hbar__value">17%</span>
+              </div>
+            </section>
+
+            <section aria-labelledby="spu-title">
+              <div class="section__head">
+                <h3 id="spu-title">细分内新 SPU</h3>
+                <span class="section__note">已判定 24 个 · 观察中 7 个</span>
+              </div>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th scope="col">SPU</th><th scope="col">批次</th><th scope="col">成败</th></tr></thead>
+                  <tbody>
+                    <tr data-href="PAGE-F05-01.html"><td><span class="cell-title">SPU-2611-007</span> <span class="cell-sub">SOLIDEE</span></td><td>2026-11</td><td><span class="badge badge--hit"><svg class="icon"><use href="#ph-check-circle"/></svg>命中</span></td></tr>
+                    <tr data-href="PAGE-F05-01.html"><td><span class="cell-title">SPU-2610-018</span> <span class="cell-sub">ARIEL</span></td><td>2026-10</td><td><span class="badge badge--hit"><svg class="icon"><use href="#ph-check-circle"/></svg>命中</span></td></tr>
+                    <tr data-href="PAGE-F05-01.html"><td><span class="cell-title">SPU-2610-004</span> <span class="cell-sub">KEIKI</span></td><td>2026-10</td><td><span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>未命中</span></td></tr>
+                    <tr data-href="PAGE-F05-01.html"><td><span class="cell-title">SPU-2609-013</span> <span class="cell-sub">AmbroVania</span></td><td>2026-09</td><td><span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>未命中</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="small" style="margin-top: var(--space-2)"><a href="PAGE-F04-01.html">在新品与 SPU 中查看本细分全部 31 个</a></p>
+            </section>
+
+            <section aria-labelledby="tip-title">
+              <h3 id="tip-title">适用锦囊</h3>
+              <a class="card-link" href="PAGE-F08-02.html" style="margin-top: var(--space-3)">
+                <div class="row"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已验证</span><span class="mono muted">R-012 · v3</span></div>
+                <p style="margin-top: var(--space-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</p>
+                <p class="small muted" style="margin-top: var(--space-1)">预期命中率 27–46% · 依据批次 2025-04–2026-11 · 样本 76 · 2027-05 对账倍数 2.29×</p>
+              </a>
+            </section>
+
+            <p class="page-foot" style="margin-top: 0">数据包 P-0008 · 约定 v7 · 配置 v2 · 信号计算 2027-05-08 10:07</p>
+          </div>
+
+          <div class="drawer__foot">
+            <a class="btn" href="PAGE-F09-01.html">在本月排序中查看</a>
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

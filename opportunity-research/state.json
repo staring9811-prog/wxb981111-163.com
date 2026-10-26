@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T14:18:46Z",
+  "last_updated_at_utc": "2026-10-26T14:22:40Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -54,7 +54,7 @@
     "REQ-F13-01"
   ],
   "current_stage": "design",
-  "current_substep": "blueprint-confirmation",
+  "current_substep": "stage2-page-list",
   "completed_stages": [
     "0",
     "1",
@@ -71,12 +71,8 @@
     "3"
   ],
   "next_action": {
-    "type": "user_decision",
-    "description": "设计决策蓝图已写（output/设计决策蓝图.md），等用户确认蓝图及 DEC-006 同月快照规则、DEC-007 立项记录可否修改、DEC-015 交付形式",
-    "askuserquestion_options": [
-      "确认蓝图，开始出页面（推荐）",
-      "有要调整的地方"
-    ]
+    "type": "agent_work",
+    "description": "蓝图已确认；按设计流程阶段 II 产出页面清单、DESIGN.md + tokens.css、26 个本期页面 MD/HTML、串联与链接扫描、技术方案、设计追溯矩阵"
   },
   "open_questions": [],
   "key_decisions_made": [
@@ -296,8 +292,33 @@
         "id": "DD-4",
         "decision": "网页报告：一屏结论 + 可展开依据",
         "source": "用户选择"
+      },
+      {
+        "id": "DEC-006",
+        "decision": "同月多次生成排序各存一个不可改快照；对账用当月最后一次导出时的快照，未导出则用最后一个",
+        "source": "用户选择"
+      },
+      {
+        "id": "DEC-007",
+        "decision": "立项记录保存后不可修改，录错追加更正记录，原记录标已更正",
+        "source": "用户选择"
+      },
+      {
+        "id": "DEC-015",
+        "decision": "交付为自带 Python 运行环境与依赖的离线安装包，解压双击启动",
+        "source": "用户选择"
+      },
+      {
+        "id": "DEC-005/008–014/016",
+        "decision": "见 output/设计决策蓝图.md 设计决定清单",
+        "source": "随蓝图确认"
       }
     ],
-    "blueprint": "output/设计决策蓝图.md"
+    "blueprint": "output/设计决策蓝图.md",
+    "blueprint_confirmation": {
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-10-26T14:22:40Z",
+      "source": "用户选择“确认，开始出页面（推荐）”；DEC-006 用当月最后导出的那版；DEC-007 不能改、追加更正；DEC-015 离线安装包"
+    }
   }
 }
