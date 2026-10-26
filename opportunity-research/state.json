@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T15:47:15Z",
+  "last_updated_at_utc": "2026-10-26T15:55:08Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -28,33 +28,20 @@
       "source": "D-8（分三期，第一期做透浴室柜）、D-15–D-19；proposal-v1.md §9 记录"
     }
   },
-  "contract_revision": 4,
+  "contract_revision": 5,
   "source_ids_changed": [
-    "AC-F01-06",
-    "AC-F03-04",
-    "AC-F05-02",
-    "AC-F05-06",
-    "AC-F05-07",
-    "AC-F05-08",
-    "AC-F05-11",
-    "AC-F05-12",
-    "AC-F06-11",
-    "AC-F06-12",
-    "AC-F07-09",
+    "AC-F07-03",
     "AC-F07-10",
     "AC-F07-11",
-    "AC-F07-12",
-    "AC-F07-13",
-    "REQ-F01-03",
-    "REQ-F03-02",
-    "REQ-F05-01",
-    "REQ-F05-02",
-    "REQ-F06-08",
+    "AC-F07-14",
+    "AC-F11-03",
+    "AC-F11-06",
+    "REQ-F07-01",
     "REQ-F07-03",
-    "REQ-F13-01"
+    "REQ-F11-01"
   ],
   "current_stage": "design",
-  "current_substep": "stage3-delivery",
+  "current_substep": "revision5-sync",
   "completed_stages": [
     "0",
     "1",
@@ -71,8 +58,8 @@
     "3"
   ],
   "next_action": {
-    "type": "user_decision",
-    "description": "设计交付前请用户确认 3 个需求层面歧义：AC-F11-03 观察/放弃规则的对账升级口径；截面回测缺部分现用指标时的达标判断（AC-F07-10/11）；合并依据 3 所需的五点描述字段（约定 §10.4）。确认后回 PRD 升 revision，再同步设计并进入 TDD"
+    "type": "agent",
+    "description": "按 output/change-impact.md 同步设计产物到 revision 5（页面、技术方案、追溯矩阵），再进入 TDD 验收契约"
   },
   "open_questions": [],
   "key_decisions_made": [
@@ -231,6 +218,24 @@
       "decision": "参照人群只用起量新品（任一月父体月销 ≥ 60 件），历史与截面两种模式一致；未起量新品不进分母",
       "stage": "PRD 变更",
       "source": "用户选择“只用起量新品”（2026-10-26）；两种模式统一为 AI 依据同一理由推论"
+    },
+    {
+      "id": "D-27",
+      "decision": "策略库规则按动作判断是否升为已验证：立项候选规则倍数 ≥ 2、放弃规则倍数 ≤ 0.5；观察规则对账只记录倍数不升级。规则倍数 = 适用细分对应批次起量新 SPU 的实际命中率 ÷ 同批次全类目平均",
+      "stage": "design→PRD 变更",
+      "source": "用户选择“按动作分别判断（推荐）”（2026-10-26）"
+    },
+    {
+      "id": "D-28",
+      "decision": "回测达标只与算得出的现用指标比较：缺数据的指标不参与比较并在报告列出原因，可比较的少于 1 个时结论为“未达标：数据不足”",
+      "stage": "design→PRD 变更",
+      "source": "用户选择“只和算得出的指标比（推荐）”（2026-10-26，针对截面模式）；历史模式按同一规则处理为 AI 依据同一理由推论"
+    },
+    {
+      "id": "D-29",
+      "decision": "数据接口约定 C1、C2 增加可选字段“五点描述”；未提供时不生成“五点描述相同”的合并建议，对照显示无数据",
+      "stage": "design→PRD 变更",
+      "source": "用户选择“约定里加为可选字段（推荐）”（2026-10-26）"
     }
   ],
   "category": "generic",
@@ -259,16 +264,16 @@
     "check_format": "pass",
     "check_consistency": "pass",
     "check_requirements_contract": "pass",
-    "run_at": "2026-10-26T14:04:05Z",
-    "revision": 4
+    "run_at": "2026-10-26T15:55:08Z",
+    "revision": 5
   },
   "design": {
     "entry_check": {
       "status": "passed",
       "inputs": [
-        "output/PRD详细版.md@v4",
-        "output/requirements.md@rev4",
-        "output/requirements-analysis.md@rev4"
+        "output/PRD详细版.md@v5",
+        "output/requirements.md@rev5",
+        "output/requirements-analysis.md@rev5"
       ],
       "scope": "第一期"
     },
