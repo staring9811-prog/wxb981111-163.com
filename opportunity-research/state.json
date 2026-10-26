@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T12:12:10Z",
+  "last_updated_at_utc": "2026-10-26T12:50:50Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -28,44 +28,21 @@
   "contract_revision": 0,
   "source_ids_changed": [],
   "current_stage": "1",
-  "current_substep": "frontier-round-2b",
+  "current_substep": "frontier-round-4",
   "completed_stages": [
     "0"
   ],
   "skipped_stages": [],
   "next_action": {
     "type": "stage1_frontier",
-    "description": "等待用户回答 OQ-4（公司是否有服务器及维护人，开放回答）；之后可问 OQ-2 产品形态与托管、OQ-10 外部能力配置",
+    "description": "等待用户回答 OQ-10（大模型 API 密钥或订阅）与 OQ-15（卖家精灵密钥能否给本机程序用），开放回答",
     "question_ids": [
-      "OQ-4"
+      "OQ-10",
+      "OQ-15"
     ],
     "research_ids": []
   },
   "open_questions": [
-    {
-      "id": "OQ-2",
-      "title": "产品形态与托管：共享网页工作台 / 飞书为主 / 本地文件",
-      "kind": "decision",
-      "category": "product_form",
-      "priority": "P0",
-      "depends_on": [
-        "OQ-4"
-      ],
-      "owner": "user",
-      "status": "pending_user"
-    },
-    {
-      "id": "OQ-4",
-      "title": "运行与维护条件：公司是否有现成服务器（云或内网）及维护人",
-      "kind": "fact",
-      "category": "deployment",
-      "priority": "P1",
-      "depends_on": [],
-      "owner": "user",
-      "status": "pending_user",
-      "evidence_needed": "现有服务器/云账号情况与负责维护的人",
-      "acceptance_threshold": "能判断共享网页工作台由谁托管、谁维护"
-    },
     {
       "id": "OQ-9",
       "title": "回测干扰因素的控制方式（卖家实力、上架月份、价格定位、变体数、配送方式、重新上架）",
@@ -78,16 +55,27 @@
     },
     {
       "id": "OQ-10",
-      "title": "外部能力配置责任：卖家精灵凭据、LLM 凭据（打标/痛点抽取）由谁提供、在哪配置",
-      "kind": "decision",
+      "title": "大模型能力：打标与评论痛点抽取用哪家的 API 密钥，还是只能用 Codex/Claude Code 订阅",
+      "kind": "fact",
       "category": "external_capability",
       "priority": "P1",
-      "depends_on": [
-        "OQ-2",
-        "OQ-4"
-      ],
+      "depends_on": [],
       "owner": "user",
-      "status": "pending_user"
+      "status": "pending_user",
+      "evidence_needed": "现有可用的大模型 API 密钥或订阅类型",
+      "acceptance_threshold": "能确定大模型步骤由程序直接调用还是在对话会话里执行"
+    },
+    {
+      "id": "OQ-15",
+      "title": "卖家精灵密钥能否给独立程序（本机小网页）使用：Codex 里 MCP 用的密钥或开放平台 API key",
+      "kind": "fact",
+      "category": "external_capability",
+      "priority": "P1",
+      "depends_on": [],
+      "owner": "user",
+      "status": "pending_user",
+      "evidence_needed": "能否取得卖家精灵 MCP 密钥或 API key",
+      "acceptance_threshold": "确认本机小网页能直接调用卖家精灵取数"
     }
   ],
   "key_decisions_made": [
@@ -174,6 +162,24 @@
       "decision": "研究效率目标：新品类首次跑通（字段确认+历史回填+首次回测）≤5个工作日；之后每月自动更新，人工≤半天（看结果、处理异常提示）；基线为一次品类研究约20天",
       "stage": "1",
       "source": "用户选择（PRD 第2轮）"
+    },
+    {
+      "id": "D-15",
+      "decision": "先单机后上服务器：第一期在 wen 的电脑上运行，生成 Excel 和网页报告文件手动分发；之后迁到服务器实现多人共用与权限（D-12 在服务器阶段生效）",
+      "stage": "1",
+      "source": "用户选择（PRD 第3轮）；已知公司目前没有服务器（用户原话）"
+    },
+    {
+      "id": "D-16",
+      "decision": "第一期使用方式：本机小网页（只在 wen 电脑上可访问），点按钮运行、在网页上确认字段和看结果；第二期上服务器时复用",
+      "stage": "1",
+      "source": "用户选择（PRD 第3轮）"
+    },
+    {
+      "id": "D-17",
+      "decision": "第二期接第二个品类时迁到服务器，届时启用多人共用与角色权限（D-12）",
+      "stage": "1",
+      "source": "用户选择（PRD 第3轮）"
     }
   ],
   "category": "generic",
