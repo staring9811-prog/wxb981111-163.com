@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T13:32:38Z",
+  "last_updated_at_utc": "2026-10-26T13:54:41Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -28,24 +28,28 @@
       "source": "D-8（分三期，第一期做透浴室柜）、D-15–D-19；proposal-v1.md §9 记录"
     }
   },
-  "contract_revision": 2,
+  "contract_revision": 3,
   "source_ids_changed": [
-    "REQ-F01-03",
     "AC-F01-06",
-    "REQ-F03-02",
     "AC-F03-04",
-    "REQ-F05-02",
+    "AC-F05-02",
     "AC-F05-06",
     "AC-F05-07",
     "AC-F05-08",
-    "REQ-F06-08",
     "AC-F06-11",
     "AC-F06-12",
-    "REQ-F07-03",
     "AC-F07-09",
     "AC-F07-10",
     "AC-F07-11",
-    "AC-F07-12"
+    "AC-F07-12",
+    "AC-F07-13",
+    "REQ-F01-03",
+    "REQ-F03-02",
+    "REQ-F05-01",
+    "REQ-F05-02",
+    "REQ-F06-08",
+    "REQ-F07-03",
+    "REQ-F13-01"
   ],
   "current_stage": "5",
   "current_substep": "revision-2",
@@ -65,7 +69,7 @@
   ],
   "next_action": {
     "type": "user_decision",
-    "description": "需求 revision 2（截面模式）已写入；等待 wen 回答 OQ-20 关闭 RA-020，随后回到 Design 写蓝图",
+    "description": "需求 revision 3（成功线月度口径 + 截面月龄对齐）已写入；等待 wen 回答 OQ-20（补导全部新品的交付时间）以关闭 RA-020，随后回到 Design",
     "question_ids": [
       "OQ-20"
     ]
@@ -93,7 +97,7 @@
     },
     {
       "id": "D-2",
-      "decision": "成功线：上架6个月内小类BSR前50（ASIN层）或SPU累计GMV≥$20万，满足其一",
+      "decision": "成功线：上架6个月内满足其一——小类BSR前50（ASIN层），或SPU任一月销售额≥$20万（2026-10-26 用户更正为月度口径，见 D-24）",
       "stage": "solution",
       "source": "解题方案书 §2"
     },
@@ -222,6 +226,12 @@
       "decision": "第一期加入截面模式：用最近几个月数据 + 同期全部新品（含没卖起来的），控制上架月龄建模，早批次建模、晚批次检验；结论标'截面口径，待历史回测确认'，历史模式结论优先",
       "stage": "design→PRD 变更",
       "source": "用户选择（2026-10-26，设计阶段提出）"
+    },
+    {
+      "id": "D-24",
+      "decision": "成功线 GMV 条件更正为月度口径：SPU 任一月销售额 ≥ $20 万（不是 6 个月累计）；截面模式按 SPU 上架月龄对齐新品周期",
+      "stage": "PRD 变更",
+      "source": "用户原话（2026-10-26）"
     }
   ],
   "category": "generic",
