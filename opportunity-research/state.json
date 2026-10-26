@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T14:04:05Z",
+  "last_updated_at_utc": "2026-10-26T14:18:46Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -54,7 +54,7 @@
     "REQ-F13-01"
   ],
   "current_stage": "design",
-  "current_substep": "blueprint",
+  "current_substep": "blueprint-confirmation",
   "completed_stages": [
     "0",
     "1",
@@ -71,8 +71,12 @@
     "3"
   ],
   "next_action": {
-    "type": "agent_work",
-    "description": "PRD revision 4 校验通过；回到 Design 写设计决策蓝图并请用户确认（导航、视觉、屏幕、报告已确认 DD-1–DD-4）"
+    "type": "user_decision",
+    "description": "设计决策蓝图已写（output/设计决策蓝图.md），等用户确认蓝图及 DEC-006 同月快照规则、DEC-007 立项记录可否修改、DEC-015 交付形式",
+    "askuserquestion_options": [
+      "确认蓝图，开始出页面（推荐）",
+      "有要调整的地方"
+    ]
   },
   "open_questions": [],
   "key_decisions_made": [
@@ -266,9 +270,9 @@
     "entry_check": {
       "status": "passed",
       "inputs": [
-        "output/PRD详细版.md",
-        "output/requirements.md@rev1",
-        "output/requirements-analysis.md"
+        "output/PRD详细版.md@v4",
+        "output/requirements.md@rev4",
+        "output/requirements-analysis.md@rev4"
       ],
       "scope": "第一期"
     },
@@ -293,6 +297,7 @@
         "decision": "网页报告：一屏结论 + 可展开依据",
         "source": "用户选择"
       }
-    ]
+    ],
+    "blueprint": "output/设计决策蓝图.md"
   }
 }
