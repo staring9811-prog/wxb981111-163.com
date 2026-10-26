@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F14-01">
+  <title>运行记录 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html" aria-current="page"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>运行记录</h1>
+            <p class="page-head__sub">只统计系统内时间 · 首跑 = 首次导入到首次回测报告的工作日数（周一至周五）· 月更 = 当月导入到导出的时长</p>
+          </div>
+        </div>
+
+        <div class="stats enter" style="--i:1">
+          <div class="stat">
+            <div class="stat__label">首跑（2026-11-06 → 2026-11-10）</div>
+            <div class="stat__value">3<span class="stat__unit">个工作日</span></div>
+            <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="5" aria-valuenow="3" aria-label="首跑 3 个工作日，目标 5 个工作日"><i style="width:60%"></i></div>
+            <div class="stat__meta">目标 ≤ 5 个工作日 · 首次导入 10:40 → 首次回测报告 16:52</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">本月 2027-05（进行中）</div>
+            <div class="stat__value">2<span class="stat__unit">小时</span> 06<span class="stat__unit">分</span></div>
+            <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="240" aria-valuenow="126" aria-label="本月已用 126 分钟，目标 240 分钟"><i style="width:52.5%"></i></div>
+            <div class="stat__meta">09:14 导入起，截至 11:20 · 目标 ≤ 4 小时，已用 53% · 待导出</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">最近完成的月更 2027-04</div>
+            <div class="stat__value">3<span class="stat__unit">小时</span> 10<span class="stat__unit">分</span></div>
+            <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="240" aria-valuenow="190" aria-label="2027-04 月更 190 分钟，目标 240 分钟"><i style="width:79.2%"></i></div>
+            <div class="stat__meta">目标 ≤ 4 小时，已用 79%</div>
+          </div>
+        </div>
+
+        <section class="section enter" style="--i:2" aria-labelledby="monthly-title">
+          <div class="section__head">
+            <h2 class="section__title" id="monthly-title">月更</h2>
+            <span class="section__note">近 5 次完成的月更 4 次达标 · 进度条超过目标 80% 为预警色，超过目标为阻断色</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">月份</th>
+                  <th scope="col">导入</th>
+                  <th scope="col">导出</th>
+                  <th class="t-num" scope="col">时长</th>
+                  <th scope="col">对照 4 小时</th>
+                  <th scope="col">是否达标</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="t-nowrap cell-title">2027-05</td>
+                  <td class="t-nowrap num">2027-05-08 09:14</td>
+                  <td class="t-nowrap muted">尚未导出</td>
+                  <td class="t-num">2 小时 06 分<div class="cell-sub">截至 11:20</div></td>
+                  <td><div class="meter" style="margin-top:0;width:180px" role="meter" aria-valuemin="0" aria-valuemax="240" aria-valuenow="126" aria-label="已用 126 分钟"><i style="width:52.5%"></i></div></td>
+                  <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>进行中</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap cell-title">2027-04</td>
+                  <td class="t-nowrap num">2027-04-08 11:53</td>
+                  <td class="t-nowrap num">2027-04-08 15:03</td>
+                  <td class="t-num">3 小时 10 分</td>
+                  <td><div class="meter" style="margin-top:0;width:180px" role="meter" aria-valuemin="0" aria-valuemax="240" aria-valuenow="190" aria-label="190 分钟"><i style="width:79.2%"></i></div></td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>达标</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap cell-title">2027-03</td>
+                  <td class="t-nowrap num">2027-03-05 12:59</td>
+                  <td class="t-nowrap num">2027-03-05 15:41</td>
+                  <td class="t-num">2 小时 42 分</td>
+                  <td><div class="meter" style="margin-top:0;width:180px" role="meter" aria-valuemin="0" aria-valuemax="240" aria-valuenow="162" aria-label="162 分钟"><i style="width:67.5%"></i></div></td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>达标</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap cell-title">2027-02</td>
+                  <td class="t-nowrap num">2027-02-05 09:48</td>
+                  <td class="t-nowrap num">2027-02-05 14:13</td>
+                  <td class="t-num">4 小时 25 分</td>
+                  <td><div class="meter meter--danger" style="margin-top:0;width:180px" role="meter" aria-valuemin="0" aria-valuemax="240" aria-valuenow="265" aria-label="265 分钟，超出目标 25 分钟"><i style="width:100%"></i></div></td>
+                  <td><span class="badge badge--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg>未达标 · 超出 25 分钟</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap cell-title">2027-01</td>
+                  <td class="t-nowrap num">2027-01-07 13:21</td>
+                  <td class="t-nowrap num">2027-01-07 16:26</td>
+                  <td class="t-num">3 小时 05 分</td>
+                  <td><div class="meter" style="margin-top:0;width:180px" role="meter" aria-valuemin="0" aria-valuemax="240" aria-valuenow="185" aria-label="185 分钟"><i style="width:77.1%"></i></div></td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>达标</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap cell-title">2026-12</td>
+                  <td class="t-nowrap num">2026-12-04 12:08</td>
+                  <td class="t-nowrap num">2026-12-04 15:56</td>
+                  <td class="t-num">3 小时 48 分</td>
+                  <td><div class="meter meter--warn" style="margin-top:0;width:180px" role="meter" aria-valuemin="0" aria-valuemax="240" aria-valuenow="228" aria-label="228 分钟，已用目标的 95%"><i style="width:95%"></i></div></td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>达标</span></td>
+                </tr>
+                <tr class="table__divider"><td colspan="6">首跑（按工作日计，不计入月更）</td></tr>
+                <tr data-pin-bottom>
+                  <td class="t-nowrap cell-title">2026-11</td>
+                  <td class="t-nowrap num">2026-11-06 10:40</td>
+                  <td class="t-nowrap num">2026-11-10 17:09</td>
+                  <td class="t-num">3 个工作日<div class="cell-sub">至首次回测报告 2026-11-10 16:52</div></td>
+                  <td><div class="meter" style="margin-top:0;width:180px" role="meter" aria-valuemin="0" aria-valuemax="5" aria-valuenow="3" aria-label="3 个工作日，目标 5 个工作日"><i style="width:60%"></i></div></td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>达标（≤ 5 个工作日）</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:3" aria-labelledby="steps-title">
+          <div class="section__head">
+            <h2 class="section__title" id="steps-title">步骤明细 · 2027-05</h2>
+            <div class="row">
+              <span class="section__note">均在 2027-05-08 · 已记录 7 步，合计 67 分钟；导入至今 2 小时 06 分</span>
+              <label><span class="visually-hidden">选择月份</span>
+                <select class="select" style="width:auto">
+                  <option selected>2027-05（进行中）</option>
+                  <option>2027-04</option>
+                  <option>2027-03</option>
+                  <option>2027-02</option>
+                  <option>2027-01</option>
+                  <option>2026-12</option>
+                  <option>2026-11（首跑）</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">步骤</th>
+                  <th scope="col">开始</th>
+                  <th scope="col">结束</th>
+                  <th class="t-num" scope="col">时长</th>
+                  <th scope="col">操作人</th>
+                  <th scope="col">结果</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><a class="tlink" href="PAGE-F01-02.html">导入</a><div class="cell-sub">读取清单与校验</div></td>
+                  <td class="num">09:14</td>
+                  <td class="num">09:18</td>
+                  <td class="t-num">4 分钟</td>
+                  <td>wen</td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span> <span class="small muted">P-0008 · 2 个警告，排除 49 行</span></td>
+                </tr>
+                <tr>
+                  <td><a class="tlink" href="PAGE-F03-02.html">体检</a><div class="cell-sub">随导入自动运行</div></td>
+                  <td class="num">09:18</td>
+                  <td class="num">09:19</td>
+                  <td class="t-num">1 分钟</td>
+                  <td>系统</td>
+                  <td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>1 项预警</span> <span class="small muted">首次评分早于上架 23.4%，未标已知晓</span></td>
+                </tr>
+                <tr>
+                  <td><a class="tlink" href="PAGE-F02-01.html">字段确认</a></td>
+                  <td class="num">09:21</td>
+                  <td class="num">09:41</td>
+                  <td class="t-num">20 分钟</td>
+                  <td>wen</td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>约定 v7 已保存</span> <span class="small muted">优惠券 1 个字段待确认，不参与计算</span></td>
+                </tr>
+                <tr>
+                  <td><a class="tlink" href="PAGE-F04-02.html">SPU 审核</a></td>
+                  <td class="num">09:44</td>
+                  <td class="num">09:55</td>
+                  <td class="t-num">11 分钟</td>
+                  <td>wen</td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已处理 11 条</span> <span class="small muted">6 条待审，相关子体暂按父 ASIN 计</span></td>
+                </tr>
+                <tr>
+                  <td><a class="tlink" href="PAGE-F06-01.html">计算</a><div class="cell-sub">成败与信号</div></td>
+                  <td class="num">09:56</td>
+                  <td class="num">10:07</td>
+                  <td class="t-num">11 分钟</td>
+                  <td>wen</td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span> <span class="small muted">736 个起量新 SPU · 18 个细分</span></td>
+                </tr>
+                <tr>
+                  <td><a class="tlink" href="PAGE-F07-01.html">回测</a></td>
+                  <td class="num">10:26</td>
+                  <td class="num">10:44</td>
+                  <td class="t-num">18 分钟</td>
+                  <td>wen</td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>达标 2.24×</span> <span class="small muted">BT-0031 · 随机种子 20261106</span></td>
+                </tr>
+                <tr>
+                  <td><a class="tlink" href="PAGE-F09-01.html">排序与快照</a><div class="cell-sub">随回测自动生成</div></td>
+                  <td class="num">10:44</td>
+                  <td class="num">10:46</td>
+                  <td class="t-num">2 分钟</td>
+                  <td>系统</td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span> <span class="small muted">判定卡 v4 · 快照 2027-05 第 1 版</span></td>
+                </tr>
+                <tr>
+                  <td><a class="tlink" href="PAGE-F12-01.html">导出</a></td>
+                  <td class="muted" colspan="4">尚未开始</td>
+                  <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待导出</span> <span class="small muted">导出后自动备份，本月月更随之结束计时</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <p class="page-foot">运行记录由系统在每个步骤开始和结束时自动写入，不能手动修改 · 只统计系统内时间，数据准备由数据项目另计 · 时间为本机时间</p>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

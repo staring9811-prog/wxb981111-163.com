@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F02-01">
+  <title>字段约定 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html" aria-current="page"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>字段约定</h1>
+            <p class="page-head__sub">逐个确认数据包里每个字段的含义和用法 · 当前 v7 基于数据包 P-0008 · 共 80 个字段</p>
+          </div>
+          <div class="page-head__actions">
+            <span class="small muted" data-dirty-hint hidden style="align-self: center"><svg class="icon"><use href="#ph-note-pencil"/></svg> 草稿有未保存的修改</span>
+            <button class="btn" type="button" data-open="#history-drawer"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>版本记录</span></button>
+            <button class="btn" type="button" data-open="#save-modal"><svg class="icon"><use href="#ph-stack"/></svg><span>保存为新版本</span></button>
+          </div>
+        </div>
+
+        <div class="banner banner--warn enter" style="--i:1">
+          <svg class="icon"><use href="#ph-prohibit"/></svg>
+          <div class="banner__body">
+            <div class="banner__title">未确认的字段不参与计算</div>
+            <div>当前 1 个字段未确认：优惠券（C1 月度类目商品）。本月的成败、信号和回测都已排除它，结果页会列出被排除的字段。</div>
+          </div>
+        </div>
+
+        <div class="stats enter" style="--i:1; margin-top: var(--space-4)">
+          <div class="stat">
+            <div class="stat__label">当前版本</div>
+            <div class="stat__value">v7</div>
+            <div class="stat__meta">2027-05-08 09:41 · wen 保存</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">待确认</div>
+            <div class="stat__value">1<span class="stat__unit">个</span></div>
+            <div class="stat__meta">只列变化字段：P-0008 新增 2 个，缺少 0 个，类型改变 0 个</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">已确认</div>
+            <div class="stat__value">79<span class="stat__unit">/ 80</span></div>
+            <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="80" aria-valuenow="79" aria-label="已确认 79 个，共 80 个"><i style="width:98.75%"></i></div>
+            <div class="stat__meta">已确认比例 98.8%<span class="etag etag--n">n=80</span></div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">快照字段</div>
+            <div class="stat__value">3<span class="stat__unit">个</span></div>
+            <div class="stat__meta">当月价格、当月评分、Prime价格 · 回测不用</div>
+          </div>
+        </div>
+
+        <section class="panel section enter" style="--i:2" aria-labelledby="known-title">
+          <div class="panel__head">
+            <h2 class="panel__title" id="known-title">已知口径疑点</h2>
+            <span class="section__note">固定置顶 · 相关字段已按规则使用</span>
+          </div>
+          <div class="panel__body grid-2" style="row-gap: var(--space-4)">
+            <div class="row" style="align-items: flex-start; flex-wrap: nowrap">
+              <svg class="icon list__icon list__icon--warn"><use href="#ph-seal-question"/></svg>
+              <div>
+                <div class="list__title">上架日期取"最早时间"</div>
+                <div class="list__desc">卖家精灵在多个时间中取最早值，可能早于真实开售。SPU 上架日取全部子体的最早值；同一父体内跨度超过 180 天的家族 412 个（20.8%<span class="etag etag--n">n=1,977</span>）。</div>
+              </div>
+            </div>
+            <div class="row" style="align-items: flex-start; flex-wrap: nowrap">
+              <svg class="icon list__icon list__icon--warn"><use href="#ph-seal-question"/></svg>
+              <div>
+                <div class="list__title">首次评分日期可能是父体口径</div>
+                <div class="list__desc">23.4%<span class="etag etag--n">n=9,906</span> 的子体首评早于上架 7 天以上，超过预警阈值 20%。只用于"疑似重新上架"提示，不改动上架日。<a href="PAGE-F03-02.html">看体检</a></div>
+              </div>
+            </div>
+            <div class="row" style="align-items: flex-start; flex-wrap: nowrap">
+              <svg class="icon list__icon list__icon--warn"><use href="#ph-seal-question"/></svg>
+              <div>
+                <div class="list__title">子体月销量是第三方估算</div>
+                <div class="list__desc">卖家精灵按流量词数把父体预测销量分摊到子体。累加到 SPU 和细分后使用，结果标"估算"；6.1%<span class="etag etag--n">n=19,733</span> 的子体-月低于"过去一个月购买"标签下界。</div>
+              </div>
+            </div>
+            <div class="row" style="align-items: flex-start; flex-wrap: nowrap">
+              <svg class="icon list__icon list__icon--warn"><use href="#ph-seal-question"/></svg>
+              <div>
+                <div class="list__title">价格与评分是快照</div>
+                <div class="list__desc">当月价格、当月评分、Prime价格是 2027-05-06 采集时的值，不代表历史月份，回测不用。"低评"改用评论日期早于第 T 月的评论星级（C6）。</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:3" aria-labelledby="table-title" data-filter-scope="#field-table">
+          <div class="section__head">
+            <h2 class="section__title" id="table-title">字段</h2>
+            <span class="section__note">待确认与本月变化的字段排在最前，其余按文件顺序</span>
+          </div>
+          <div class="filters" role="group" aria-label="字段筛选">
+            <button class="chip" type="button" data-filter="view:all" aria-pressed="true">全部 <span class="count">80</span></button>
+            <button class="chip" type="button" data-filter="view:pending" aria-pressed="false">待确认 <span class="count">1</span></button>
+            <button class="chip" type="button" data-filter="view:changed" aria-pressed="false">变化字段 <span class="count">2</span></button>
+            <button class="chip" type="button" data-filter="view:snap" aria-pressed="false">快照 <span class="count">4</span></button>
+            <button class="chip" type="button" data-filter="view:rule" aria-pressed="false">按规则用 <span class="count">23</span></button>
+            <span class="spacer"></span>
+            <label class="search"><svg class="icon"><use href="#ph-magnifying-glass"/></svg><span class="visually-hidden">搜索字段</span><input class="input" type="search" placeholder="字段名或含义"></label>
+          </div>
+
+          <div class="table-wrap" id="field-wrap">
+            <table class="table" id="field-table">
+              <thead>
+                <tr>
+                  <th class="t-check" scope="col"><label class="check"><input type="checkbox" data-select-all="#field-table" aria-label="全选当前显示的字段"></label></th>
+                  <th scope="col">文件</th>
+                  <th scope="col">字段与含义</th>
+                  <th scope="col">粒度</th>
+                  <th scope="col">时点</th>
+                  <th scope="col">性质</th>
+                  <th scope="col">建议用法</th>
+                  <th scope="col">体检证据</th>
+                  <th scope="col">确认状态与来源</th>
+                  <th scope="col"><span class="visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-view="pending changed snap">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择优惠券"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">优惠券 <span class="badge"><svg class="icon"><use href="#ph-plus"/></svg>本月新增</span></div><div class="cell-sub">采集时商品页展示的优惠券（金额或比例），不是当月实际优惠</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">快照<div class="cell-sub">2027-05-06 采集</div></td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">回测不用</span></td>
+                  <td><span class="small">各月取值相同 99.6%</span><button class="etag etag--n" type="button" data-pop-title="体检证据 · 优惠券" data-pop="有值=7,728 个子体（18.7%）;各月取值相同=7,697 个子体（99.6%）;出现=P-0008 新增列，P-0007 及之前没有;判断=取值不随月份变化，符合快照特征;数据包=P-0008">n=7,728</button></td>
+                  <td class="t-nowrap"><span class="badge badge--warn"><svg class="icon"><use href="#ph-seal-question"/></svg>待确认</span><div class="cell-sub">本月新增 · 草稿建议</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="true" aria-controls="edit-coupon" aria-label="收起优惠券的约定" data-tip="收起"><svg class="icon"><use href="#ph-caret-up"/></svg></button></td>
+                </tr>
+                <tr data-view="pending changed snap" id="edit-coupon">
+                  <td colspan="10" style="background: var(--surface-warm); padding: var(--space-4) var(--space-5)">
+                    <form class="grid-2" data-guard aria-label="确认优惠券的约定" style="align-items: start">
+                      <div class="stack">
+                        <div class="field">
+                          <label class="field__label" for="coupon-meaning">含义</label>
+                          <input class="input" id="coupon-meaning" type="text" value="采集时商品页展示的优惠券（金额或比例），不是当月实际优惠">
+                        </div>
+                        <div class="form-grid">
+                          <div class="field">
+                            <label class="field__label" for="coupon-grain">粒度</label>
+                            <select class="select" id="coupon-grain"><option selected>子体</option><option>父体</option><option>SPU</option><option>关键词</option><option>评论</option></select>
+                          </div>
+                          <div class="field">
+                            <label class="field__label" for="coupon-nature">性质</label>
+                            <select class="select" id="coupon-nature"><option selected>平台实测</option><option>第三方估算</option><option>推导</option><option>人工标注</option></select>
+                          </div>
+                          <div class="field">
+                            <label class="field__label" for="coupon-time">时点</label>
+                            <select class="select" id="coupon-time"><option>当月值</option><option selected>快照</option></select>
+                          </div>
+                          <div class="field">
+                            <label class="field__label" for="coupon-date">快照日期</label>
+                            <input class="input" id="coupon-date" type="text" value="2027-05-06">
+                          </div>
+                        </div>
+                        <fieldset class="field" style="border: 0; margin: var(--space-4) 0 0; padding: 0">
+                          <legend class="field__label">建议用法</legend>
+                          <div class="choice-group" style="margin-top: var(--space-1)">
+                            <label class="choice" style="opacity: 0.45; cursor: not-allowed"><input type="radio" name="coupon-use" disabled>直接用</label>
+                            <label class="choice" style="opacity: 0.45; cursor: not-allowed"><input type="radio" name="coupon-use" disabled>按规则用</label>
+                            <label class="choice"><input type="radio" name="coupon-use" checked>回测不用</label>
+                          </div>
+                          <span class="field__hint">时点为快照时只能选"回测不用"：快照字段一律不进入回测信号计算</span>
+                        </fieldset>
+                      </div>
+                      <div class="stack">
+                        <div class="strong">本数据包的体检证据</div>
+                        <dl class="kv">
+                          <dt>有值</dt><dd>7,728 个子体，占 18.7%<span class="etag etag--n">n=41,325</span></dd>
+                          <dt>各月取值</dt><dd>99.6%<span class="etag etag--n">n=7,728</span> 的子体在 31 个月里取值完全相同，符合快照特征</dd>
+                          <dt>出现</dt><dd>P-0008 新增列，P-0007 及之前没有</dd>
+                          <dt>示例值</dt><dd class="mono">$20 off · 5% off · Save $45</dd>
+                        </dl>
+                        <p class="small muted">草稿建议：快照 · 平台实测 · 回测不用。确认前，优惠券不参与任何计算。</p>
+                        <div class="row">
+                          <span class="spacer"></span>
+                          <button class="btn btn--sm" type="button" data-toast="已在草稿中确认优惠券（按修改后的内容），保存为新版本后生效">确认修改</button>
+                          <button class="btn btn--sm" type="button" data-toast="已在草稿中按建议确认优惠券（逐项），保存为新版本后生效"><svg class="icon"><use href="#ph-check"/></svg><span>按建议确认</span></button>
+                        </div>
+                      </div>
+                    </form>
+                  </td>
+                </tr>
+                <tr data-view="changed snap">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择Prime价格"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">Prime价格 <span class="badge"><svg class="icon"><use href="#ph-plus"/></svg>本月新增</span></div><div class="cell-sub">采集时的 Prime 会员价，不代表历史月份</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">快照<div class="cell-sub">2027-05-06 采集</div></td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">回测不用</span></td>
+                  <td><span class="small">各月取值相同 99.9%</span><button class="etag etag--n" type="button" data-pop-title="体检证据 · Prime价格" data-pop="有值=5,083 个子体（12.3%）;各月取值相同=99.9%;出现=P-0008 新增列;数据包=P-0008">n=5,083</button></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v7</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改Prime价格的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择月份"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">月份</div><div class="cell-sub">数据所属自然月，格式 YYYYMM</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">直接用</span></td>
+                  <td><span class="small">2024-10–2027-04，31 个月齐全</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">批量 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改月份的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择子 ASIN"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">子 ASIN</div><div class="cell-sub">子体商品编号；商品身份 = 平台 + 站点 + ASIN</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">直接用</span></td>
+                  <td><span class="small">41,325 个，主键无重复</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">批量 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改子 ASIN的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择当月父 ASIN"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">当月父 ASIN</div><div class="cell-sub">该月子体所属的父 ASIN，可能跨月变化</div></td>
+                  <td class="small t-nowrap">父体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">直接用</span></td>
+                  <td><span class="small">跨月换父体的子体 137 个</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">批量 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改当月父 ASIN的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择品牌"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">品牌</div><div class="cell-sub">商品页品牌名；合并建议只在同品牌内提出</div></td>
+                  <td class="small t-nowrap">父体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">直接用</span></td>
+                  <td><span class="small">缺失 0.2%</span><span class="etag etag--n">n=412,806</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">批量 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改品牌的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="rule">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择上架日期"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">上架日期</div><div class="cell-sub">卖家精灵在多个时间中取最早值，可能早于真实开售</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">推导</td>
+                  <td class="t-nowrap"><span class="small" tabindex="0" data-tip="规则|SPU 上架日取全部子体的最早值|按上架月份划分批次" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span></td>
+                  <td><span class="small">同父体跨度 &gt;180 天 20.8%</span><button class="etag etag--n" type="button" data-pop-title="体检证据 · 上架日期" data-pop="体检项=同一父体内子体上架日期跨度超过 180 天的家族数;数值=412 个家族;分母=1,977 个家族;预警阈值=25%;状态=正常;校验=37 行无法解析，已排除;数据包=P-0008">n=1,977</button></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改上架日期的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="rule">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择首次评分日期"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">首次评分日期</div><div class="cell-sub">第一条评论的日期，可能是父体共享口径</div></td>
+                  <td class="small t-nowrap">父体（疑似）</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small" tabindex="0" data-tip="规则|只用于&quot;疑似重新上架&quot;提示|不改动上架日" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span></td>
+                  <td><span class="small">首评早于上架 &gt;7 天 23.4%</span><button class="etag etag--n" type="button" data-pop-title="体检证据 · 首次评分日期" data-pop="体检项=首次评分日期早于上架日期超过 7 天的子体占比;分子=2,318 个子体;分母=9,906 个有首次评分日期的子体;预警阈值=20%;状态=预警，未标已知晓;数据包=P-0008">n=9,906</button></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v3</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改首次评分日期的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="rule">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择子体月销量"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">子体月销量</div><div class="cell-sub">卖家精灵按流量词数把父体预测销量分摊到子体</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">第三方估算</td>
+                  <td class="t-nowrap"><span class="small" tabindex="0" data-tip="规则|累加到 SPU 与细分后使用|结果一律标&quot;估算&quot;" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span></td>
+                  <td><span class="small">低于购买标签下界 6.1%</span><button class="etag etag--n" type="button" data-pop-title="体检证据 · 子体月销量" data-pop="体检项=子体月销量低于&quot;过去一个月购买&quot;标签下界的比例;分子=1,204 个子体-月;分母=19,733 个有标签的子体-月;预警阈值=10%;状态=正常;数据包=P-0008">n=19,733</button></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改子体月销量的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="rule">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择子体月销售额"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">子体月销售额</div><div class="cell-sub">子体月销量乘当月成交均价，单位美元</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">第三方估算</td>
+                  <td class="t-nowrap"><span class="small" tabindex="0" data-tip="规则|SPU 内各子体累加后与 $100,000 成功线比较|结果一律标&quot;估算&quot;" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span></td>
+                  <td><span class="small">缺失 0.6%，留空不填 0</span><span class="etag etag--n">n=412,806</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改子体月销售额的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="rule">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择父体月销量"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">父体月销量</div><div class="cell-sub">父体当月预测销量</div></td>
+                  <td class="small t-nowrap">父体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">第三方估算</td>
+                  <td class="t-nowrap"><span class="small" tabindex="0" data-tip="规则|只用于起量门槛|任一月 ≥ 60 件即为起量新品" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span></td>
+                  <td><span class="small">与子体累加不一致 3.4%</span><span class="etag etag--n">n=52,316</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改父体月销量的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="rule">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择小类 BSR"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">小类 BSR</div><div class="cell-sub">当月取法：月均排名，节点 6810202011</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small" tabindex="0" data-tip="规则|按此取法与成功线 BSR ≤ 50 比较" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span></td>
+                  <td><span class="small">缺失 2.1%，范围 1–9,812</span><span class="etag etag--n">n=412,806</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改小类 BSR的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择配送方式"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">配送方式</div><div class="cell-sub">FBA、FBM 或 AMZ</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">直接用</span></td>
+                  <td><span class="small">FBA 占 71.3%</span><span class="etag etag--n">n=412,806</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">批量 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改配送方式的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择变体数"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">变体数</div><div class="cell-sub">父体下的子体数量</div></td>
+                  <td class="small t-nowrap">父体</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">直接用</span></td>
+                  <td><span class="small">1–64 个，中位数 6</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">批量 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改变体数的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="snap">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择当月价格"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">当月价格</div><div class="cell-sub">采集时商品页价格，不是该月成交价</div></td>
+                  <td class="small t-nowrap">子体</td>
+                  <td class="small t-nowrap">快照<div class="cell-sub">2027-05-06 采集</div></td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">回测不用</span></td>
+                  <td><span class="small">各月取值相同 97.8%</span><span class="etag etag--n">n=39,870</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改当月价格的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="snap">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择当月评分"></label></td>
+                  <td class="mono" title="C1 月度类目商品">C1</td>
+                  <td><div class="cell-title">当月评分</div><div class="cell-sub">采集时商品页星级均分，变体共享</div></td>
+                  <td class="small t-nowrap">父体</td>
+                  <td class="small t-nowrap">快照<div class="cell-sub">2027-05-06 采集</div></td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small" tabindex="0" data-tip="回测不用|&quot;低评&quot;改用评论日期早于第 T 月的评论星级（C6）" style="text-decoration: underline dotted; text-underline-offset: 3px">回测不用</span></td>
+                  <td><span class="small">各月取值相同 98.4%</span><span class="etag etag--n">n=38,112</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v1</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改当月评分的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择月搜索量"></label></td>
+                  <td class="mono" title="C5 关键词月度">C5</td>
+                  <td><div class="cell-title">月搜索量</div><div class="cell-sub">关键词当月搜索量</div></td>
+                  <td class="small t-nowrap">关键词</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">第三方估算</td>
+                  <td class="t-nowrap"><span class="small">直接用</span></td>
+                  <td><span class="small">2023-12–2027-04，缺失 1.6%</span><span class="etag etag--n">n=9,833</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">批量 · v2</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改月搜索量的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="rule">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择评论日期"></label></td>
+                  <td class="mono" title="C6 评论痛点">C6</td>
+                  <td><div class="cell-title">评论日期</div><div class="cell-sub">评论发布日期</div></td>
+                  <td class="small t-nowrap">评论</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small" tabindex="0" data-tip="规则|第 T 月的信号只用早于 T 月第一天的评论" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span></td>
+                  <td><span class="small">2019-03-02 至 2027-04-30</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v2</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改评论日期的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择星级"></label></td>
+                  <td class="mono" title="C6 评论痛点">C6</td>
+                  <td><div class="cell-title">星级</div><div class="cell-sub">单条评论星级，1–5</div></td>
+                  <td class="small t-nowrap">评论</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small">直接用</span></td>
+                  <td><span class="small">12 行无法解析，已排除</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">批量 · v2</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改星级的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择是否结构类痛点"></label></td>
+                  <td class="mono" title="C6 评论痛点">C6</td>
+                  <td><div class="cell-title">是否结构类痛点</div><div class="cell-sub">评论是否提到结构类问题，如铰链松动、台面开裂</div></td>
+                  <td class="small t-nowrap">评论</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">人工标注</td>
+                  <td class="t-nowrap"><span class="small">直接用</span></td>
+                  <td><span class="small">结构类 11.8%，标注 v3</span><span class="etag etag--n">n=183,452</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v2</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改是否结构类痛点的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+                <tr data-view="rule">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择归属级别"></label></td>
+                  <td class="mono" title="C6 评论痛点">C6</td>
+                  <td><div class="cell-title">归属级别</div><div class="cell-sub">评论挂在子体还是父体</div></td>
+                  <td class="small t-nowrap">评论</td>
+                  <td class="small t-nowrap">当月值</td>
+                  <td class="small t-nowrap">平台实测</td>
+                  <td class="t-nowrap"><span class="small" tabindex="0" data-tip="规则|父体级评论只计入该父体上月销量最大的子体所在细分" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span></td>
+                  <td><span class="small">父体级 64.2%</span><span class="etag etag--n">n=183,452</span></td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已确认</span><div class="cell-sub">逐项 · v2</div></td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-expanded="false" aria-label="修改归属级别的约定" data-tip="展开修改含义与用法"><svg class="icon"><use href="#ph-pencil-simple"/></svg></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="batchbar" data-batchbar="#field-table" hidden>
+            <span>已选 <strong data-batch-count>0</strong> 个字段</span>
+            <button class="btn btn--sm" type="button" data-open="#batch-modal"><svg class="icon"><use href="#ph-list-checks"/></svg><span>按建议批量确认</span></button>
+            <span class="spacer"></span>
+            <button class="btn btn--sm" type="button" data-batch-clear="#field-table">取消选择</button>
+          </div>
+
+          <div class="pager">
+            <span>共 80 个字段 · 每页 50 个</span>
+            <div class="pager__pages">
+              <button class="pager__btn" type="button" aria-label="上一页"><svg class="icon"><use href="#ph-caret-left"/></svg></button>
+              <button class="pager__btn" type="button" aria-current="page">1</button>
+              <button class="pager__btn" type="button">2</button>
+              <button class="pager__btn" type="button" aria-label="下一页"><svg class="icon"><use href="#ph-caret-right"/></svg></button>
+            </div>
+          </div>
+        </section>
+
+        <p class="page-foot">字段约定 v7 · 数据包 P-0008 · 每次保存生成新版本，旧版本只追加不覆盖 · 草稿保存在本机，离开页面不丢</p>
+
+        <div class="modal" id="save-modal" role="dialog" aria-modal="true" aria-labelledby="save-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="save-title">保存为字段约定 v8</h2>
+                <p class="modal__sub">在 v7 基础上保存 · 数据包 P-0008 · 操作人 wen · v7 保留可查</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <div class="modal__body stack-lg">
+              <section aria-labelledby="diff-title">
+                <h3 id="diff-title">变动摘要 · 1 个字段</h3>
+                <div class="diff" style="margin-top: var(--space-3)">
+                  <span class="diff__key">C1 优惠券 · 确认状态</span><span class="diff__old">未确认</span><span class="diff__new">已确认（逐项）</span>
+                  <span class="diff__key">C1 优惠券 · 约定内容</span><span class="small muted">草稿建议，未生效</span><span class="diff__new">子体 · 快照 2027-05-06 · 平台实测 · 回测不用</span>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-3)">保存后待确认字段为 0 个，页头"未确认的字段不参与计算"提示随之消失。</p>
+              </section>
+              <div class="banner banner--stale">
+                <svg class="icon"><use href="#ph-arrows-clockwise"/></svg>
+                <div class="banner__body">
+                  <div class="banner__title">依赖 v7 的结果将标为"需重算"</div>
+                  <div>下列结果用的是字段约定 v7，保存后标为"需重算"，旧结果仍可查看。系统不会自动重算，可在工作台点"全部重算"。已保存的月度快照不改动。</div>
+                </div>
+              </div>
+              <dl class="kv">
+                <dt>成败判定</dt><dd>2027-05-08 10:07 计算</dd>
+                <dt>信号</dt><dd>T = 2027-05，2027-05-08 10:07 计算</dd>
+                <dt>回测</dt><dd>BT-0031，2027-05-08 10:44 完成</dd>
+                <dt>排序</dt><dd>2027-05 第 1 版，2027-05-08 10:46 生成</dd>
+              </dl>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="button" data-save data-close data-toast="已保存为字段约定 v8；成败、信号、回测和排序已标为需重算">保存为 v8</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal" id="batch-modal" role="dialog" aria-modal="true" aria-labelledby="batch-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="batch-title">按建议批量确认</h2>
+                <p class="modal__sub">确认来源记为"批量确认" · 保存为新版本后生效</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <div class="modal__body stack">
+              <p>所选字段将按草稿建议的含义、粒度、时点、性质和用法一次确认。</p>
+              <div class="banner">
+                <svg class="icon"><use href="#ph-info"/></svg>
+                <div class="banner__body">建议先逐项看过"按规则用"的字段：它们的规则会直接影响成败判定和信号。</div>
+              </div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn" type="button" data-close data-toast="已按建议确认所选字段（来源：批量确认），保存为新版本后生效"><svg class="icon"><use href="#ph-check"/></svg><span>按建议确认</span></button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="drawer" id="history-drawer" role="dialog" aria-modal="true" aria-labelledby="history-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="history-title">版本记录</h2>
+              <p class="drawer__sub">字段约定 · 共 7 个版本 · 只追加，不覆盖</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <section aria-labelledby="v7-title">
+              <div class="row">
+                <h3 class="mono" id="v7-title">v7</h3>
+                <span class="badge"><svg class="icon"><use href="#ph-target"/></svg>当前</span>
+                <span class="small muted">2027-05-08 09:41 · wen · 数据包 P-0008 · 变动 2 个字段</span>
+              </div>
+              <div class="diff" style="margin-top: var(--space-3)">
+                <span class="diff__key">C1 Prime价格 · 确认状态</span><span class="small muted">新增字段</span><span class="diff__new">已确认（逐项）</span>
+                <span class="diff__key">C1 Prime价格 · 时点</span><span class="small muted">新增字段</span><span class="diff__new">快照 · 2027-05-06</span>
+                <span class="diff__key">C1 Prime价格 · 建议用法</span><span class="small muted">新增字段</span><span class="diff__new">回测不用</span>
+                <span class="diff__key">C1 优惠券 · 确认状态</span><span class="small muted">新增字段</span><span class="diff__new">未确认，不参与计算</span>
+              </div>
+            </section>
+            <section aria-labelledby="v6-title">
+              <div class="row">
+                <h3 class="mono" id="v6-title">v6</h3>
+                <span class="small muted">2027-04-08 09:47 · wen · 数据包 P-0007 · 变动 1 个字段</span>
+              </div>
+              <div class="diff" style="margin-top: var(--space-3)">
+                <span class="diff__key">C6 痛点事件代码 · 含义</span><span class="diff__old">结构类痛点代码 S01–S11</span><span class="diff__new">结构类痛点代码 S01–S12，新增 S12 安装孔位不准</span>
+              </div>
+            </section>
+            <section aria-labelledby="v5-title">
+              <div class="row">
+                <h3 class="mono" id="v5-title">v5</h3>
+                <span class="small muted">2027-01-07 14:31 · wen · 数据包 P-0004 · 变动 1 个字段</span>
+              </div>
+              <div class="diff" style="margin-top: var(--space-3)">
+                <span class="diff__key">C3 父体月销量 · 确认状态</span><span class="small muted">新增字段</span><span class="diff__new">已确认（逐项）</span>
+                <span class="diff__key">C3 父体月销量 · 建议用法</span><span class="small muted">新增字段</span><span class="diff__new">按规则用：只用于起量门槛</span>
+              </div>
+            </section>
+            <section aria-labelledby="v4-title">
+              <div class="row">
+                <h3 class="mono" id="v4-title">v4</h3>
+                <span class="small muted">2026-12-04 09:16 · wen · 数据包 P-0003 · 变动 1 个字段</span>
+              </div>
+              <div class="diff" style="margin-top: var(--space-3)">
+                <span class="diff__key">C5 关键词属性标签 · 含义</span><span class="diff__old">关键词映射到细分维度的标签</span><span class="diff__new">关键词映射到细分维度的标签；泛词标"通用"，不计入细分信号</span>
+              </div>
+            </section>
+            <details class="small">
+              <summary>更早的版本：v1–v3</summary>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt class="mono">v3</dt><dd>2026-11-10 10:02 · wen · 数据包 P-0002 · 首跑复核：C1、C2 的首次评分日期，粒度由"子体"改为"父体（疑似）"</dd>
+                <dt class="mono">v2</dt><dd>2026-11-06 11:52 · wen · 数据包 P-0002 · 首个历史数据包：确认 C5–C7 等新增字段，逐项与批量确认并用</dd>
+                <dt class="mono">v1</dt><dd>2026-10-28 16:35 · wen · 数据包 P-0001 · 截面样例包：首次确认 S1–S3、C4 的字段</dd>
+              </dl>
+            </details>
+          </div>
+          <div class="drawer__foot">
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -9,7 +9,7 @@
 - ✅ 已完成：
   - 解题方案书：output/解题方案书.md。
   - PRD v4 与需求契约 revision 4：output/PRD详细版.md、requirements.md、requirements-analysis.md，四项校验通过。
-- ▶️ 进行中：Design 阶段 II。设计决策蓝图已确认（output/设计决策蓝图.md），正在出页面清单、设计规范和页面原型。
+- ▶️ 进行中：Design 收尾。页面清单、设计规范、26 页原型（链接扫描 0 缺失）、技术方案、追溯矩阵（126 条 covered）已完成；等用户确认 3 个需求歧义（规则对账升级口径、截面缺指标时的达标判断、五点描述字段），确认后回 PRD 升版再进 TDD。
 - ⏸️ 待办：
   - 设计：蓝图确认后，依次出页面清单、DESIGN.md + tokens.css、26 个本期页面的 MD/HTML、技术方案、设计追溯矩阵。
   - 之后进入 TDD 验收契约，再给 /goal 开发指引。

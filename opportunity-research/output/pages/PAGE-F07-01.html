@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F07-01">
+  <title>回测 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html" aria-current="page"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>回测</h1>
+            <p class="page-head__sub">时间切分回测 · 参照人群：起量新品（任一月父体月销 ≥ 60 件）</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡 v4</span></a>
+            <button class="btn" type="button" data-simulate="回测完成，用时 17 分 42 秒 · 结论与上次一致" data-loading-text="回测运行中 · 定规则…"><svg class="icon"><use href="#ph-play"/></svg><span>运行回测</span></button>
+          </div>
+        </div>
+
+        <section class="enter" style="--i:1" aria-labelledby="concl-title">
+          <div class="section__head">
+            <h2 class="section__title" id="concl-title">结论</h2>
+            <span class="section__note">达标：检验组前 20% 细分命中率 ≥ 全类目平均 2 倍，且高于 4 个现用指标 · 两种口径并列，判定卡状态以历史模式为准</span>
+          </div>
+          <div class="grid-2">
+            <section class="panel" aria-label="历史口径结论" style="display: flex; flex-direction: column">
+              <div class="panel__head">
+                <div class="row"><h3>历史口径 · <span class="mono">BT-0031</span></h3><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>达标</span></div>
+                <span class="small strong">以此为准</span>
+              </div>
+              <div class="panel__body stack" style="flex: 1">
+                <div class="row" style="align-items: flex-start; gap: var(--space-6); flex-wrap: nowrap">
+                  <div>
+                    <div class="hero-figure">2.24×</div>
+                    <div class="stat__meta">前 20% 细分命中率 ÷ 全类目平均<br>重抽样 90% 区间 1.41–3.05</div>
+                  </div>
+                  <div class="banner" style="flex: 1">
+                    <svg class="icon"><use href="#ph-warning"/></svg>
+                    <div class="banner__body">
+                      <div class="banner__title">局限</div>
+                      <div class="small">广告投入、站外引流未纳入。两者无法从数据中观测，结论只反映可观测因素。</div>
+                    </div>
+                  </div>
+                </div>
+                <dl class="kv">
+                  <dt>前 20% 细分</dt><dd>38.6%<span class="etag etag--n">n=44</span>（17 / 44，Wilson 90% 27.3–51.2%）</dd>
+                  <dt>全类目平均</dt><dd>17.2%<span class="etag etag--n">n=186</span>（32 / 186）</dd>
+                  <dt>达标条件</dt><dd><svg class="icon"><use href="#ph-check"/></svg> 38.6% ≥ 2 × 17.2% = 34.4% · <svg class="icon"><use href="#ph-check"/></svg> 高于 4 个现用指标（最高 25.6%）</dd>
+                </dl>
+              </div>
+              <div class="panel__foot">数据包 P-0008 · 2027-05-08 10:26 · 判定卡 v4 由本次回测生成</div>
+            </section>
+
+            <section class="panel" aria-label="截面口径结论" style="display: flex; flex-direction: column">
+              <div class="panel__head">
+                <div class="row"><h3>截面口径 · <span class="mono">BT-0007</span></h3><span class="badge badge--cross"><svg class="icon"><use href="#ph-intersect"/></svg>达标（截面）</span></div>
+                <span class="small muted">已被历史结论取代</span>
+              </div>
+              <div class="panel__body stack" style="flex: 1">
+                <div>
+                  <div class="stat__value">2.05×</div>
+                  <div class="stat__meta">前 20% 细分截面命中率 ÷ 全类目平均 · 重抽样 90% 区间 1.18–3.20</div>
+                </div>
+                <dl class="kv">
+                  <dt>口径</dt><dd><span class="etag etag--cross" style="margin-left: 0">截面</span> 截面口径，待历史回测确认</dd>
+                  <dt>数据包</dt><dd>P-0001（观察月 2026-06–09）</dd>
+                  <dt>检验组</dt><dd>3 个批次（2026-07–2026-09）· 新品-月 135 行</dd>
+                  <dt>局限</dt><dd>广告投入、站外引流未纳入</dd>
+                </dl>
+              </div>
+              <div class="panel__foot">2026-10-29 生成截面卡 v1 · 同时有历史结论时，判定卡状态由 BT-0031 决定</div>
+            </section>
+          </div>
+        </section>
+
+        <!-- 历史口径报告 -->
+        <div data-mode-only="history">
+          <section class="section enter" style="--i:2" aria-labelledby="split-title">
+            <div class="section__head">
+              <h2 class="section__title" id="split-title">批次切分</h2>
+              <span class="section__note">已判定批次 20 个，按上架月份排序，前 2/3 定规则、后 1/3 检验（品类配置 v2；不能整除时检验组向下取整）</span>
+            </div>
+            <div class="stats">
+              <div class="stat">
+                <div class="stat__label">定规则组 · 2025-04 – 2026-05</div>
+                <div class="stat__value">14<span class="stat__unit">个批次</span></div>
+                <div class="stat__meta">起量新 SPU 412 个</div>
+              </div>
+              <div class="stat">
+                <div class="stat__label">检验组 · 2026-06 – 2026-11</div>
+                <div class="stat__value">6<span class="stat__unit">个批次</span></div>
+                <div class="stat__meta">起量新 SPU 186 个 · 有效细分 8 个，前 20% = 2 个</div>
+              </div>
+              <div class="stat">
+                <div class="stat__label">未参与 · 2026-12 – 2027-04</div>
+                <div class="stat__value">5<span class="stat__unit">个批次</span></div>
+                <div class="stat__meta">仍有新 SPU 在观察中，未完成判定</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel section enter" style="--i:3" aria-labelledby="eval-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="eval-title">评估 · 检验组前 20% 细分命中率</h2>
+              <span class="section__note">判定卡与 4 个现用指标各自排序取前 20% 细分 · 竖线为全类目平均与 2 倍线</span>
+            </div>
+            <div class="panel__body">
+              <div class="hbars" role="img" aria-label="检验组前 20% 细分命中率：判定卡 v4 38.6%，属性趋势 25.6%，单位 ASIN 贡献 22.0%，属性溢价 19.5%，低分高销 18.4%；全类目平均 17.2%，2 倍线 34.4%" style="margin-top: var(--space-6)">
+                  <span class="hbar__label">判定卡 v4</span>
+                  <span class="hbar__track"><span class="hbar__ref" style="left: 34.4%"></span><span class="hbar__ref" style="left: 68.8%"></span><span class="hbar__ref-label" style="left: 34.4%">全类目平均 17.2%</span><span class="hbar__ref-label" style="left: 68.8%">2 倍线 34.4%</span><span class="hbar__bar hbar__bar--focus" style="width: 77.2%" tabindex="0" data-tip="38.6%|17 / 44 · Wilson 90% 27.3–51.2%"></span></span>
+                  <span class="hbar__value">38.6%<span class="etag etag--n">n=44</span></span>
+                  <span class="hbar__label">属性趋势<span class="etag etag--cand">候选</span></span>
+                  <span class="hbar__track"><span class="hbar__ref" style="left: 34.4%"></span><span class="hbar__ref" style="left: 68.8%"></span><span class="hbar__bar" style="width: 51.3%" tabindex="0" data-tip="25.6%|10 / 39 · Wilson 90% 16.0–38.5%"></span></span>
+                  <span class="hbar__value">25.6%<span class="etag etag--n">n=39</span></span>
+                  <span class="hbar__label">单位 ASIN 贡献<span class="etag etag--cand">候选</span></span>
+                  <span class="hbar__track"><span class="hbar__ref" style="left: 34.4%"></span><span class="hbar__ref" style="left: 68.8%"></span><span class="hbar__bar" style="width: 43.9%" tabindex="0" data-tip="22.0%|9 / 41 · Wilson 90% 13.2–34.1%"></span></span>
+                  <span class="hbar__value">22.0%<span class="etag etag--n">n=41</span></span>
+                  <span class="hbar__label">属性溢价<span class="etag etag--cand">候选</span></span>
+                  <span class="hbar__track"><span class="hbar__ref" style="left: 34.4%"></span><span class="hbar__ref" style="left: 68.8%"></span><span class="hbar__bar" style="width: 39.0%" tabindex="0" data-tip="19.5%|8 / 41 · Wilson 90% 11.4–31.4%"></span></span>
+                  <span class="hbar__value">19.5%<span class="etag etag--n">n=41</span></span>
+                  <span class="hbar__label">低分高销<span class="etag etag--cand">候选</span></span>
+                  <span class="hbar__track"><span class="hbar__ref" style="left: 34.4%"></span><span class="hbar__ref" style="left: 68.8%"></span><span class="hbar__bar" style="width: 36.8%" tabindex="0" data-tip="18.4%|7 / 38 · Wilson 90% 10.3–30.7%"></span></span>
+                  <span class="hbar__value">18.4%<span class="etag etag--n">n=38</span></span>
+              </div>
+            </div>
+            <div class="table-wrap table-wrap--flush" style="border-top: 1px solid var(--border-soft)">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">信号或规则</th>
+                    <th class="t-num" scope="col">前 20% 命中率</th>
+                    <th scope="col">Wilson 90% 区间（竖线 = 平均 17.2%）</th>
+                    <th class="t-num" scope="col">样本量</th>
+                    <th class="t-num" scope="col">倍数</th>
+                    <th class="t-num" scope="col">倍数 90% 区间（重抽样）</th>
+                  </tr>
+                </thead>
+                <tbody>
+                      <tr class="table__divider"><td colspan="6">判定卡（组合规则）</td></tr>
+                      <tr><td><span class="strong">判定卡 v4</span><div class="cell-sub">需求在涨 0.35 · 新品进得去 0.40 · 结构类痛点占比 0.25</div></td><td class="t-num"><span class="strong">38.6%</span><div class="cell-sub">17 / 44</div></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="判定卡 v4 38.6%，90% 区间 27.3–51.2%" data-tip="38.6%|90% 区间 27.3–51.2% · n=44|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="72.8" y="7" width="63.7" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="103.0" cy="10" r="4"/></svg></span><span class="ibar-text">27.3–51.2%</span></td><td class="t-num">44</td><td class="t-num"><span class="strong">2.24×</span></td><td class="t-num">1.41–3.05</td></tr>
+                      <tr class="table__divider"><td colspan="6">单个信号</td></tr>
+                      <tr><td><span>需求在涨</span></td><td class="t-num"><span>30.2%</span><div class="cell-sub">13 / 43</div></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="需求在涨 30.2%，90% 区间 20.2–42.6%" data-tip="30.2%|90% 区间 20.2–42.6% · n=43|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="53.8" y="7" width="59.9" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="80.6" cy="10" r="4"/></svg></span><span class="ibar-text">20.2–42.6%</span></td><td class="t-num">43</td><td class="t-num"><span>1.76×</span></td><td class="t-num">1.08–2.49</td></tr>
+                      <tr><td><span>新品进得去</span></td><td class="t-num"><span>34.1%</span><div class="cell-sub">15 / 44</div></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="新品进得去 34.1%，90% 区间 23.6–46.5%" data-tip="34.1%|90% 区间 23.6–46.5% · n=44|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="62.8" y="7" width="61.1" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="90.9" cy="10" r="4"/></svg></span><span class="ibar-text">23.6–46.5%</span></td><td class="t-num">44</td><td class="t-num"><span>1.98×</span></td><td class="t-num">1.24–2.77</td></tr>
+                      <tr><td><span>结构类痛点占比</span></td><td class="t-num"><span>27.5%</span><div class="cell-sub">11 / 40</div></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="结构类痛点占比 27.5%，90% 区间 17.6–40.3%" data-tip="27.5%|90% 区间 17.6–40.3% · n=40|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="46.9" y="7" width="60.4" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="73.3" cy="10" r="4"/></svg></span><span class="ibar-text">17.6–40.3%</span></td><td class="t-num">40</td><td class="t-num"><span>1.60×</span></td><td class="t-num">0.93–2.31</td></tr>
+                      <tr><td><span>高销低评占比</span></td><td class="t-num"><span>20.0%</span><div class="cell-sub">8 / 40</div></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="高销低评占比 20.0%，90% 区间 11.7–32.1%" data-tip="20.0%|90% 区间 11.7–32.1% · n=40|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="31.1" y="7" width="54.6" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="53.3" cy="10" r="4"/></svg></span><span class="ibar-text">11.7–32.1%</span></td><td class="t-num">40</td><td class="t-num"><span>1.16×</span></td><td class="t-num">0.61–1.79</td></tr>
+                      <tr class="table__divider"><td colspan="6">现用指标（对照）</td></tr>
+                      <tr><td><span>属性趋势</span><span class="etag etag--cand">候选</span></td><td class="t-num"><span>25.6%</span><div class="cell-sub">10 / 39</div></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="属性趋势 25.6%，90% 区间 16.0–38.5%" data-tip="25.6%|90% 区间 16.0–38.5% · n=39|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="42.6" y="7" width="59.9" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="68.4" cy="10" r="4"/></svg></span><span class="ibar-text">16.0–38.5%</span></td><td class="t-num">39</td><td class="t-num"><span>1.49×</span></td><td class="t-num">0.88–2.17</td></tr>
+                      <tr><td><span>单位 ASIN 贡献</span><span class="etag etag--cand">候选</span></td><td class="t-num"><span>22.0%</span><div class="cell-sub">9 / 41</div></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="单位 ASIN 贡献 22.0%，90% 区间 13.2–34.1%" data-tip="22.0%|90% 区间 13.2–34.1% · n=41|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="35.3" y="7" width="55.7" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="58.5" cy="10" r="4"/></svg></span><span class="ibar-text">13.2–34.1%</span></td><td class="t-num">41</td><td class="t-num"><span>1.28×</span></td><td class="t-num">0.71–1.92</td></tr>
+                      <tr><td><span>属性溢价</span><span class="etag etag--cand">候选</span></td><td class="t-num"><span>19.5%</span><div class="cell-sub">8 / 41</div></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="属性溢价 19.5%，90% 区间 11.4–31.4%" data-tip="19.5%|90% 区间 11.4–31.4% · n=41|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="30.3" y="7" width="53.5" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="52.0" cy="10" r="4"/></svg></span><span class="ibar-text">11.4–31.4%</span></td><td class="t-num">41</td><td class="t-num"><span>1.13×</span></td><td class="t-num">0.60–1.74</td></tr>
+                      <tr><td><span>低分高销</span><span class="etag etag--cand">候选</span></td><td class="t-num"><span>18.4%</span><div class="cell-sub">7 / 38</div></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="低分高销 18.4%，90% 区间 10.3–30.7%" data-tip="18.4%|90% 区间 10.3–30.7% · n=38|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="27.5" y="7" width="54.5" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="49.1" cy="10" r="4"/></svg></span><span class="ibar-text">10.3–30.7%</span></td><td class="t-num">38</td><td class="t-num"><span>1.07×</span></td><td class="t-num">0.52–1.69</td></tr>
+                      <tr class="table__divider"><td colspan="6">基准</td></tr>
+                      <tr><td>全类目平均<div class="cell-sub">检验组全部起量新 SPU</div></td><td class="t-num">17.2%<div class="cell-sub">32 / 186</div></td><td class="t-nowrap"><span class="ibar ibar--muted" tabindex="0" aria-label="全类目平均 17.2%，90% 区间 13.1–22.2%" data-tip="17.2%|90% 区间 13.1–22.2% · n=186|竖线：全类目平均 17.2%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="35.0" y="7" width="24.2" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="45.9" cy="10" r="4"/></svg></span><span class="ibar-text">13.1–22.2%</span></td><td class="t-num">186</td><td class="t-num muted" colspan="2">倍数基准</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel__foot">倍数区间：对细分有放回重抽样 1,000 次，随机种子 20261106，同样输入结果一致</div>
+          </section>
+
+          <div class="grid-main-side section enter" style="--i:4">
+            <section class="panel" aria-labelledby="insuf-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="insuf-title">样本不足的细分 <span class="badge badge--insufficient"><svg class="icon"><use href="#ph-warning"/></svg>10 个</span></h2>
+                <span class="section__note">检验组新 SPU 少于 20 个，不参与达标评估</span>
+              </div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">细分</th>
+                      <th class="t-num" scope="col">检验组新 SPU</th>
+                      <th scope="col">可合并的相邻分档</th>
+                      <th class="t-num" scope="col">合并后</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                      <tr><td class="t-nowrap"><span class="segname"><span>30–48″</span><span>落地式</span><span>≥$900</span></span></td><td class="t-num">5</td><td class="small">并入 30–48″ · 落地式 · $500–900</td><td class="t-num">29</td></tr>
+                      <tr><td class="t-nowrap"><span class="segname"><span>≤30″</span><span>落地式</span><span>$500–900</span></span></td><td class="t-num">4</td><td class="small">并入 ≤30″ · 落地式 · &lt;$500</td><td class="t-num">27</td></tr>
+                      <tr><td class="t-nowrap"><span class="segname"><span>≤30″</span><span>悬浮式</span><span>$500–900</span></span></td><td class="t-num">2</td><td class="small">并入 ≤30″ · 悬浮式 · &lt;$500</td><td class="t-num">22</td></tr>
+                      <tr><td class="t-nowrap"><span class="segname"><span>30–48″</span><span>悬浮式</span><span>≥$900</span></span></td><td class="t-num">1</td><td class="small">并入 30–48″ · 悬浮式 · $500–900</td><td class="t-num">22</td></tr>
+                      <tr><td class="t-nowrap"><span class="segname"><span>≥48″</span><span>落地式</span><span>&lt;$500</span></span></td><td class="t-num">1</td><td class="small">并入 ≥48″ · 落地式 · $500–900</td><td class="t-num">21</td></tr>
+                      <tr><td class="t-nowrap"><span class="segname"><span>≤30″</span><span>落地式</span><span>≥$900</span></span></td><td class="t-num">1</td><td class="small">≤30″ · 落地式 三个价格带合为一档</td><td class="t-num">28</td></tr>
+                      <tr><td class="t-nowrap"><span class="segname"><span>≥48″</span><span>悬浮式</span><span>≥$900</span></span></td><td class="t-num">2</td><td class="small">≥48″ · 悬浮式 三个价格带合为一档</td><td class="t-num">3<div class="cell-sub">仍不足 20</div></td></tr>
+                      <tr><td class="t-nowrap"><span class="segname"><span>≥48″</span><span>悬浮式</span><span>$500–900</span></span></td><td class="t-num">1</td><td class="small">同上</td><td class="t-num">3<div class="cell-sub">仍不足 20</div></td></tr>
+                      <tr><td class="t-nowrap"><span class="segname"><span>≥48″</span><span>悬浮式</span><span>&lt;$500</span></span></td><td class="t-num">0</td><td class="small">同上</td><td class="t-num">3<div class="cell-sub">仍不足 20</div></td></tr>
+                      <tr><td class="t-nowrap"><span class="segname"><span>≤30″</span><span>悬浮式</span><span>≥$900</span></span></td><td class="t-num">0</td><td class="small">并入 ≤30″ · 悬浮式 · $500–900</td><td class="t-num">2<div class="cell-sub">仍不足 20</div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__foot">合并分档要在品类配置中改细分维度与分档，保存为新版本后需重算</div>
+            </section>
+
+            <section class="panel" aria-labelledby="ctrl-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="ctrl-title">控制 6 项干扰因素前后</h2>
+                <span class="etag etag--n">n=412</span>
+              </div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead>
+                    <tr><th scope="col">信号</th><th class="t-num" scope="col">控制前</th><th class="t-num" scope="col">控制后</th><th class="t-num" scope="col">变化</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>需求在涨</td><td class="t-num">1.92</td><td class="t-num strong">1.71</td><td class="t-num">−0.21</td></tr>
+                    <tr><td>新品进得去</td><td class="t-num">2.35</td><td class="t-num strong">2.08</td><td class="t-num">−0.27</td></tr>
+                    <tr><td>结构类痛点占比</td><td class="t-num">1.48</td><td class="t-num strong">1.39</td><td class="t-num">−0.09</td></tr>
+                    <tr><td>高销低评占比</td><td class="t-num">1.21</td><td class="t-num strong">1.06</td><td class="t-num">−0.15</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__body small muted">
+                数值为优势比：信号高一档时命中几率的倍数，在定规则组上估计。控制后仍大于 1，说明信号与命中的关联不只来自下列因素：品牌上架前已有命中 SPU、上架月份、价格位置（相对细分销量加权均价）、变体数、配送方式、疑似重新上架。
+              </div>
+            </section>
+          </div>
+
+          <div class="grid-2 section enter" style="--i:5">
+            <section class="panel" aria-labelledby="snap-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="snap-title">被拒绝的快照字段</h2>
+                <span class="section__note">字段约定 v7 标为快照，不进入回测信号</span>
+              </div>
+              <ul class="list">
+                <li class="list__item"><svg class="icon list__icon"><use href="#ph-prohibit"/></svg><div class="list__body"><div class="list__title">当月价格<span class="etag etag--snap">快照</span></div><div class="list__desc">C1 月度类目商品 · 采集时的价格，不是当月成交价</div></div></li>
+                <li class="list__item"><svg class="icon list__icon"><use href="#ph-prohibit"/></svg><div class="list__body"><div class="list__title">当月评分<span class="etag etag--snap">快照</span></div><div class="list__desc">C1 月度类目商品 · 采集时的评分，可能晚于第 T 月</div></div></li>
+                <li class="list__item"><svg class="icon list__icon"><use href="#ph-prohibit"/></svg><div class="list__body"><div class="list__title">Prime价格<span class="etag etag--snap">快照</span></div><div class="list__desc">C1 月度类目商品 · 本月新增字段，确认为"快照 · 回测不用"</div></div></li>
+              </ul>
+            </section>
+
+            <section class="panel" aria-labelledby="run-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="run-title">运行信息</h2>
+                <a class="small" href="PAGE-F14-01.html">运行记录</a>
+              </div>
+              <div class="panel__body">
+                <dl class="kv">
+                  <dt>回测</dt><dd><span class="mono">BT-0031</span> · 历史口径 · 操作人 wen</dd>
+                  <dt>开始</dt><dd class="num">2027-05-08 10:26 · 用时 17 分 42 秒</dd>
+                  <dt>随机种子</dt><dd class="fp">20261106</dd>
+                  <dt>版本</dt><dd>数据包 P-0008（<span class="fp">9f3c2a7e</span>）· 字段约定 v7 · 品类配置 v2</dd>
+                  <dt>产出</dt><dd>判定卡 v4 · 锦囊 R-012、R-015、R-009 的预期区间</dd>
+                </dl>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- 截面口径报告 -->
+        <div data-mode-only="cross" hidden>
+          <div class="banner banner--cross section">
+            <svg class="icon"><use href="#ph-intersect"/></svg>
+            <div class="banner__body">
+              <div class="banner__title">截面口径，待历史回测确认</div>
+              <div>BT-0007 · 数据包 P-0001（观察月 2026-06–09）。本品类已有历史结论 BT-0031，判定卡状态以历史为准，这里的截面结果只作对照。</div>
+            </div>
+          </div>
+
+          <section class="section" aria-labelledby="cross-split-title">
+            <div class="section__head">
+              <h2 class="section__title" id="cross-split-title">批次切分</h2>
+              <span class="section__note">新品期内每个观察月算一行（新品-月）· 模型纳入上架月龄、细分属性与 6 项干扰因素</span>
+            </div>
+            <div class="stats">
+              <div class="stat">
+                <div class="stat__label">建模组 · 2026-01 – 2026-06</div>
+                <div class="stat__value">6<span class="stat__unit">个批次</span></div>
+                <div class="stat__meta">新品-月 428 行</div>
+              </div>
+              <div class="stat">
+                <div class="stat__label">检验组 · 2026-07 – 2026-09</div>
+                <div class="stat__value">3<span class="stat__unit">个批次</span></div>
+                <div class="stat__meta">新品-月 135 行</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel section" aria-labelledby="heat-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="heat-title">细分 × 月龄 1–6 达标率</h2>
+              <span class="section__note">每格：达标数 / 被观察的 SPU 数 · 按上架月龄对齐 · 全部批次 2026-01–09</span>
+            </div>
+            <div class="panel__body" style="overflow-x: auto">
+              <table class="heat" aria-describedby="heat-title">
+                <thead>
+                  <tr><th scope="col">细分</th><th scope="col">第 1 个月</th><th scope="col">第 2 个月</th><th scope="col">第 3 个月</th><th scope="col">第 4 个月</th><th scope="col">第 5 个月</th><th scope="col">第 6 个月</th><th scope="col">6 个月内命中概率<span class="etag etag--cross">截面</span></th></tr>
+                </thead>
+                <tbody>
+                    <tr><th scope="row"><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span><div class="cell-sub">前 20%</div></th><td class="h1" tabindex="0" data-tip="9.1%|第 1 个月：达标 1 / 观察 11">1/11<span>9.1%</span></td><td class="h3" tabindex="0" data-tip="25.0%|第 2 个月：达标 3 / 观察 12">3/12<span>25.0%</span></td><td class="h4" tabindex="0" data-tip="33.3%|第 3 个月：达标 4 / 观察 12">4/12<span>33.3%</span></td><td class="h4" tabindex="0" data-tip="33.3%|第 4 个月：达标 4 / 观察 12">4/12<span>33.3%</span></td><td class="h4" tabindex="0" data-tip="33.3%|第 5 个月：达标 4 / 观察 12">4/12<span>33.3%</span></td><td class="h3" tabindex="0" data-tip="27.3%|第 6 个月：达标 3 / 观察 11">3/11<span>27.3%</span></td><td class="strong" tabindex="0" data-tip="39.8%|把月龄 1–6 的达成概率合成为上架 6 个月内命中概率|按同一月龄结构标准化">39.8%</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span><div class="cell-sub">前 20%</div></th><td class="h2" tabindex="0" data-tip="14.3%|第 1 个月：达标 1 / 观察 7">1/7<span>14.3%</span></td><td class="h2" tabindex="0" data-tip="14.3%|第 2 个月：达标 1 / 观察 7">1/7<span>14.3%</span></td><td class="h3" tabindex="0" data-tip="28.6%|第 3 个月：达标 2 / 观察 7">2/7<span>28.6%</span></td><td class="h3" tabindex="0" data-tip="28.6%|第 4 个月：达标 2 / 观察 7">2/7<span>28.6%</span></td><td class="h3" tabindex="0" data-tip="28.6%|第 5 个月：达标 2 / 观察 7">2/7<span>28.6%</span></td><td class="h4" tabindex="0" data-tip="33.3%|第 6 个月：达标 2 / 观察 6">2/6<span>33.3%</span></td><td class="strong" tabindex="0" data-tip="36.9%|把月龄 1–6 的达成概率合成为上架 6 个月内命中概率|按同一月龄结构标准化">36.9%</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></th><td class="h2" tabindex="0" data-tip="12.5%|第 1 个月：达标 1 / 观察 8">1/8<span>12.5%</span></td><td class="h2" tabindex="0" data-tip="12.5%|第 2 个月：达标 1 / 观察 8">1/8<span>12.5%</span></td><td class="h3" tabindex="0" data-tip="25.0%|第 3 个月：达标 2 / 观察 8">2/8<span>25.0%</span></td><td class="h3" tabindex="0" data-tip="25.0%|第 4 个月：达标 2 / 观察 8">2/8<span>25.0%</span></td><td class="h3" tabindex="0" data-tip="25.0%|第 5 个月：达标 2 / 观察 8">2/8<span>25.0%</span></td><td class="h3" tabindex="0" data-tip="25.0%|第 6 个月：达标 2 / 观察 8">2/8<span>25.0%</span></td><td class="strong" tabindex="0" data-tip="30.2%|把月龄 1–6 的达成概率合成为上架 6 个月内命中概率|按同一月龄结构标准化">30.2%</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>30–48″</span><span>落地式</span><span>&lt;$500</span></span></th><td class="h1" tabindex="0" data-tip="7.1%|第 1 个月：达标 1 / 观察 14">1/14<span>7.1%</span></td><td class="h2" tabindex="0" data-tip="13.3%|第 2 个月：达标 2 / 观察 15">2/15<span>13.3%</span></td><td class="h2" tabindex="0" data-tip="18.8%|第 3 个月：达标 3 / 观察 16">3/16<span>18.8%</span></td><td class="h2" tabindex="0" data-tip="18.8%|第 4 个月：达标 3 / 观察 16">3/16<span>18.8%</span></td><td class="h3" tabindex="0" data-tip="20.0%|第 5 个月：达标 3 / 观察 15">3/15<span>20.0%</span></td><td class="h2" tabindex="0" data-tip="14.3%|第 6 个月：达标 2 / 观察 14">2/14<span>14.3%</span></td><td class="strong" tabindex="0" data-tip="24.5%|把月龄 1–6 的达成概率合成为上架 6 个月内命中概率|按同一月龄结构标准化">24.5%</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≤30″</span><span>落地式</span><span>&lt;$500</span></span></th><td class="h1" tabindex="0" data-tip="5.0%|第 1 个月：达标 1 / 观察 20">1/20<span>5.0%</span></td><td class="h2" tabindex="0" data-tip="14.3%|第 2 个月：达标 3 / 观察 21">3/21<span>14.3%</span></td><td class="h2" tabindex="0" data-tip="18.2%|第 3 个月：达标 4 / 观察 22">4/22<span>18.2%</span></td><td class="h2" tabindex="0" data-tip="18.2%|第 4 个月：达标 4 / 观察 22">4/22<span>18.2%</span></td><td class="h2" tabindex="0" data-tip="19.0%|第 5 个月：达标 4 / 观察 21">4/21<span>19.0%</span></td><td class="h2" tabindex="0" data-tip="15.8%|第 6 个月：达标 3 / 观察 19">3/19<span>15.8%</span></td><td class="strong" tabindex="0" data-tip="23.4%|把月龄 1–6 的达成概率合成为上架 6 个月内命中概率|按同一月龄结构标准化">23.4%</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≥48″</span><span>落地式</span><span>$500–900</span></span></th><td class="h0" tabindex="0" data-tip="0.0%|第 1 个月：达标 0 / 观察 6">0/6<span>0.0%</span></td><td class="h0" tabindex="0" data-tip="0.0%|第 2 个月：达标 0 / 观察 6">0/6<span>0.0%</span></td><td class="h2" tabindex="0" data-tip="16.7%|第 3 个月：达标 1 / 观察 6">1/6<span>16.7%</span></td><td class="h2" tabindex="0" data-tip="16.7%|第 4 个月：达标 1 / 观察 6">1/6<span>16.7%</span></td><td class="h2" tabindex="0" data-tip="16.7%|第 5 个月：达标 1 / 观察 6">1/6<span>16.7%</span></td><td class="h2" tabindex="0" data-tip="16.7%|第 6 个月：达标 1 / 观察 6">1/6<span>16.7%</span></td><td class="strong" tabindex="0" data-tip="20.7%|把月龄 1–6 的达成概率合成为上架 6 个月内命中概率|按同一月龄结构标准化">20.7%</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>30–48″</span><span>悬浮式</span><span>&lt;$500</span></span></th><td class="h0" tabindex="0" data-tip="0.0%|第 1 个月：达标 0 / 观察 7">0/7<span>0.0%</span></td><td class="h0" tabindex="0" data-tip="0.0%|第 2 个月：达标 0 / 观察 7">0/7<span>0.0%</span></td><td class="h2" tabindex="0" data-tip="12.5%|第 3 个月：达标 1 / 观察 8">1/8<span>12.5%</span></td><td class="h2" tabindex="0" data-tip="12.5%|第 4 个月：达标 1 / 观察 8">1/8<span>12.5%</span></td><td class="h2" tabindex="0" data-tip="14.3%|第 5 个月：达标 1 / 观察 7">1/7<span>14.3%</span></td><td class="h2" tabindex="0" data-tip="14.3%|第 6 个月：达标 1 / 观察 7">1/7<span>14.3%</span></td><td class="strong" tabindex="0" data-tip="17.9%|把月龄 1–6 的达成概率合成为上架 6 个月内命中概率|按同一月龄结构标准化">17.9%</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≤30″</span><span>悬浮式</span><span>&lt;$500</span></span></th><td class="h0" tabindex="0" data-tip="0.0%|第 1 个月：达标 0 / 观察 10">0/10<span>0.0%</span></td><td class="h1" tabindex="0" data-tip="9.1%|第 2 个月：达标 1 / 观察 11">1/11<span>9.1%</span></td><td class="h1" tabindex="0" data-tip="9.1%|第 3 个月：达标 1 / 观察 11">1/11<span>9.1%</span></td><td class="h1" tabindex="0" data-tip="9.1%|第 4 个月：达标 1 / 观察 11">1/11<span>9.1%</span></td><td class="h1" tabindex="0" data-tip="9.1%|第 5 个月：达标 1 / 观察 11">1/11<span>9.1%</span></td><td class="h2" tabindex="0" data-tip="10.0%|第 6 个月：达标 1 / 观察 10">1/10<span>10.0%</span></td><td class="strong" tabindex="0" data-tip="13.0%|把月龄 1–6 的达成概率合成为上架 6 个月内命中概率|按同一月龄结构标准化">13.0%</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>30–48″</span><span>落地式</span><span>≥$900</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 4|观察少于 5 个，不着色">0/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 1 / 观察 4|观察少于 5 个，不着色">1/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 1 / 观察 4|观察少于 5 个，不着色">1/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 1 / 观察 4|观察少于 5 个，不着色">1/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 1 / 观察 4|观察少于 5 个，不着色">1/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 6 个月：达标 1 / 观察 4|观察少于 5 个，不着色">1/4<span>样本过少</span></td><td class="muted">样本不足</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≤30″</span><span>落地式</span><span>$500–900</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 4|观察少于 5 个，不着色">0/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 0 / 观察 4|观察少于 5 个，不着色">0/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 1 / 观察 4|观察少于 5 个，不着色">1/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 1 / 观察 4|观察少于 5 个，不着色">1/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 1 / 观察 4|观察少于 5 个，不着色">1/4<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 6 个月：达标 1 / 观察 4|观察少于 5 个，不着色">1/4<span>样本过少</span></td><td class="muted">样本不足</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≥48″</span><span>悬浮式</span><span>≥$900</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 3|观察少于 5 个，不着色">0/3<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 0 / 观察 3|观察少于 5 个，不着色">0/3<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 1 / 观察 3|观察少于 5 个，不着色">1/3<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 1 / 观察 3|观察少于 5 个，不着色">1/3<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 1 / 观察 3|观察少于 5 个，不着色">1/3<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 6 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="muted">样本不足</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≥48″</span><span>悬浮式</span><span>$500–900</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 6 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="muted">样本不足</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≤30″</span><span>悬浮式</span><span>$500–900</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 6 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="muted">样本不足</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>30–48″</span><span>悬浮式</span><span>≥$900</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 6 个月：达标 0 / 观察 2|观察少于 5 个，不着色">0/2<span>样本过少</span></td><td class="muted">样本不足</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≥48″</span><span>落地式</span><span>&lt;$500</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 6 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="muted">样本不足</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≥48″</span><span>悬浮式</span><span>&lt;$500</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 6 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="muted">样本不足</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≤30″</span><span>落地式</span><span>≥$900</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 6 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="muted">样本不足</td></tr>
+                    <tr><th scope="row"><span class="segname"><span>≤30″</span><span>悬浮式</span><span>≥$900</span></span></th><td class="hx" tabindex="0" data-tip="样本过少|第 1 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 2 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 3 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 4 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="样本过少|第 5 个月：达标 0 / 观察 1|观察少于 5 个，不着色">0/1<span>样本过少</span></td><td class="hx" tabindex="0" data-tip="无数据|≤30″ · 悬浮式 · ≥$900 · 第 6 个月|没有被观察到的新 SPU">无数据</td><td class="muted">样本不足</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel__body row" style="padding-top: 0; gap: var(--space-5)">
+              <span class="scale-legend">达标率 &lt;10% <i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l5"></i><i class="l6"></i> ≥50%（每档 10 个百分点）</span>
+              <span class="scale-legend"><i style="background: var(--surface-warm)"></i> 0 个达标</span>
+              <span class="scale-legend"><i style="box-shadow: inset 0 0 0 1px var(--border)"></i> 样本过少（观察少于 5 个）或无数据</span>
+            </div>
+          </section>
+
+          <section class="panel section" aria-labelledby="cross-eval-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="cross-eval-title">截面评估 · 检验组前 20% 细分</h2>
+              <span class="section__note">前 20% = 2 个细分 · 竖线为全类目平均 17.1%</span>
+            </div>
+            <div class="table-wrap table-wrap--flush">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">排序依据</th>
+                    <th class="t-num" scope="col">截面命中率</th>
+                    <th scope="col">90% 区间</th>
+                    <th class="t-num" scope="col">新 SPU</th>
+                    <th class="t-num" scope="col">倍数</th>
+                    <th class="t-num" scope="col">倍数 90% 区间（重抽样）</th>
+                  </tr>
+                </thead>
+                <tbody>
+                      <tr class="table__divider"><td colspan="6">截面模型（按上架 6 个月内命中概率排序）</td></tr>
+                      <tr><td><span class="strong">截面模型</span></td><td class="t-num"><span class="strong">35.0%</span><span class="etag etag--cross">截面</span></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="截面模型 35.0%，90% 区间 21.0–52.0%" data-tip="35.0%|90% 区间 21.0–52.0% · n=14|竖线：全类目平均 17.1%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="56.0" y="7" width="82.7" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="93.3" cy="10" r="4"/></svg></span><span class="ibar-text">21.0–52.0%</span></td><td class="t-num">14</td><td class="t-num"><span class="strong">2.05×</span></td><td class="t-num">1.18–3.20</td></tr>
+                      <tr class="table__divider"><td colspan="6">现用指标（只用老品计算）</td></tr>
+                      <tr><td><span>属性溢价</span><span class="etag etag--cand">候选</span><div class="cell-sub">老品 n=1,186</div></td><td class="t-num"><span>21.3%</span><span class="etag etag--cross">截面</span></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="属性溢价 21.3%，90% 区间 12.6–33.4%" data-tip="21.3%|90% 区间 12.6–33.4% · n=15|竖线：全类目平均 17.1%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="33.6" y="7" width="55.5" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="56.8" cy="10" r="4"/></svg></span><span class="ibar-text">12.6–33.4%</span></td><td class="t-num">15</td><td class="t-num"><span>1.25×</span></td><td class="t-num">0.66–1.94</td></tr>
+                      <tr><td><span>单位 ASIN 贡献</span><span class="etag etag--cand">候选</span><div class="cell-sub">老品 n=1,186</div></td><td class="t-num"><span>19.6%</span><span class="etag etag--cross">截面</span></td><td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="单位 ASIN 贡献 19.6%，90% 区间 11.2–31.7%" data-tip="19.6%|90% 区间 11.2–31.7% · n=13|竖线：全类目平均 17.1%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="29.9" y="7" width="54.6" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="52.3" cy="10" r="4"/></svg></span><span class="ibar-text">11.2–31.7%</span></td><td class="t-num">13</td><td class="t-num"><span>1.15×</span></td><td class="t-num">0.58–1.83</td></tr>
+                      <tr><td>属性趋势<span class="etag etag--cand">候选</span><div class="cell-sub">观察期 4 个月，不足 6 个月</div></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td></tr>
+                      <tr><td>低分高销<span class="etag etag--cand">候选</span><div class="cell-sub">P-0001 不含评论痛点（C6）</div></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td></tr>
+                      <tr class="table__divider"><td colspan="6">基准</td></tr>
+                      <tr><td>全类目平均<div class="cell-sub">检验组 65 个起量新 SPU</div></td><td class="t-num">17.1%<span class="etag etag--cross">截面</span></td><td class="t-nowrap"><span class="ibar ibar--muted" tabindex="0" aria-label="全类目平均 17.1%，90% 区间 11.0–25.4%" data-tip="17.1%|90% 区间 11.0–25.4% · n=65|竖线：全类目平均 17.1%"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="29.3" y="7" width="38.4" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="45.6" cy="10" r="4"/></svg></span><span class="ibar-text">11.0–25.4%</span></td><td class="t-num">65</td><td class="t-num muted" colspan="2">倍数基准</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel__foot">35.0% ≥ 2 × 17.1% = 34.2%，且高于可计算的 2 个现用指标 → 达标（截面）· 属性趋势、低分高销在本数据包上无数据，未参与比较</div>
+          </section>
+
+          <div class="grid-2 section">
+            <section class="panel" aria-labelledby="cross-snap-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="cross-snap-title">被拒绝的快照字段</h2>
+              </div>
+              <ul class="list">
+                <li class="list__item"><svg class="icon list__icon"><use href="#ph-prohibit"/></svg><div class="list__body"><div class="list__title">当月价格<span class="etag etag--snap">快照</span></div><div class="list__desc">S1 观察期月度类目商品</div></div></li>
+                <li class="list__item"><svg class="icon list__icon"><use href="#ph-prohibit"/></svg><div class="list__body"><div class="list__title">当月评分<span class="etag etag--snap">快照</span></div><div class="list__desc">S1 观察期月度类目商品</div></div></li>
+              </ul>
+            </section>
+            <section class="panel" aria-labelledby="cross-run-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="cross-run-title">运行信息</h2>
+              </div>
+              <div class="panel__body">
+                <dl class="kv">
+                  <dt>回测</dt><dd><span class="mono">BT-0007</span> · 截面口径 · 操作人 wen</dd>
+                  <dt>开始</dt><dd class="num">2026-10-29 10:05 · 用时 6 分 18 秒</dd>
+                  <dt>随机种子</dt><dd class="fp">20261106</dd>
+                  <dt>版本</dt><dd>数据包 P-0001（<span class="fp">a4d2e6b8</span>）· 字段约定 v1 · 品类配置 v1</dd>
+                  <dt>产出</dt><dd>截面卡 v1（已被历史结论取代）</dd>
+                </dl>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

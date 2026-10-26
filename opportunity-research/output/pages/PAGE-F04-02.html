@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F04-02">
+  <title>合并建议 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html" aria-current="page"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>合并建议</h1>
+            <p class="page-head__sub">同品牌、不同父 ASIN 之间按三条依据提出建议，确认后才生效 · 未确认前，涉及的子体按各自父 ASIN 分别计为 SPU</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+          </div>
+        </div>
+
+        <div class="stats enter" style="--i:1">
+          <div class="stat">
+            <div class="stat__label">待审</div>
+            <div class="stat__value">6<span class="stat__unit">条</span></div>
+            <div class="stat__meta">涉及 46 个子 ASIN</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">已确认</div>
+            <div class="stat__value">214<span class="stat__unit">条</span></div>
+            <div class="stat__meta">逐条确认 63 · 批量确认 151</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">已拒绝</div>
+            <div class="stat__value">37<span class="stat__unit">条</span></div>
+            <div class="stat__meta">涉及的子体继续按各自父 ASIN 计</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">已按编号归并</div>
+            <div class="stat__value">128<span class="stat__unit">个 SPU</span></div>
+            <div class="stat__meta">数据包带 SPU 编号，无需审核</div>
+          </div>
+        </div>
+
+        <div class="tabs section enter" style="--i:2" role="tablist" aria-label="合并建议状态">
+          <a class="tab" id="tab-pending" href="#panel-pending" role="tab" aria-controls="panel-pending" aria-selected="true">待审 <span class="count">6</span></a>
+          <a class="tab" id="tab-active" href="#panel-active" role="tab" aria-controls="panel-active" aria-selected="false">已生效归并 <span class="count">214</span></a>
+          <a class="tab" id="tab-rejected" href="#panel-rejected" role="tab" aria-controls="panel-rejected" aria-selected="false">已拒绝 <span class="count">37</span></a>
+        </div>
+
+        <!-- 待审 -->
+        <div id="panel-pending" role="tabpanel" aria-labelledby="tab-pending" data-filter-scope="#pending-table">
+          <div class="filters" role="group" aria-label="按匹配依据筛选">
+            <span class="filters__label">匹配依据</span>
+            <button class="chip" type="button" data-filter="basis:all" aria-pressed="true">全部 <span class="count">6</span></button>
+            <button class="chip" type="button" data-filter="basis:stem" aria-pressed="false" data-tip="标题主干相同|去掉尺寸、颜色、数字和通用词之后，标题完全相同">标题主干相同 <span class="count">2</span></button>
+            <button class="chip" type="button" data-filter="basis:similar" aria-pressed="false" data-tip="标题主干高度相似且类型属性一致|标题主干相似度 ≥ 0.9，且形态、安装方式、台面形态、元素全部一致">标题主干高度相似且类型属性一致 <span class="count">2</span></button>
+            <button class="chip" type="button" data-filter="basis:bullets" aria-pressed="false" data-tip="五点描述相同|五点描述去掉格式后完全相同">五点描述相同 <span class="count">2</span></button>
+            <span class="spacer"></span>
+            <label class="search"><svg class="icon"><use href="#ph-magnifying-glass"/></svg><span class="visually-hidden">搜索</span><input class="input" type="search" placeholder="建议编号、品牌或 ASIN"></label>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="pending-table">
+              <thead>
+                <tr>
+                  <th class="t-check" scope="col"><label class="check"><input type="checkbox" data-select-all="#pending-table" aria-label="全选当前筛选结果"></label></th>
+                  <th scope="col">建议 · 品牌</th>
+                  <th scope="col">涉及父 ASIN · 标题对照</th>
+                  <th class="t-num" scope="col">子 ASIN</th>
+                  <th scope="col">匹配依据</th>
+                  <th scope="col">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- MS-0252 -->
+                <tr data-basis="stem">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择 MS-0252"></label></td>
+                  <td class="t-nowrap"><div class="mono muted">MS-0252</div><div class="cell-title">SOLIDEE</div></td>
+                  <td>
+                    <dl class="kv">
+                      <dt class="mono">B0DK7QW3M0</dt><dd>SOLIDEE 30" Bathroom Vanity with Sintered Stone Top, Fluted Doors, White</dd>
+                      <dt class="mono">B0DM1RT6KZ</dt><dd>SOLIDEE 36 Inch Bathroom Vanity, Sintered Stone Top, Fluted Doors, Sage Green</dd>
+                      <dt class="mono">B0DN4SA2HC</dt><dd>SOLIDEE 48" Bathroom Vanity with Sintered Stone Top &amp; Fluted Doors, Black Walnut</dd>
+                    </dl>
+                  </td>
+                  <td class="t-num">14</td>
+                  <td class="small"><svg class="icon"><use href="#ph-copy"/></svg> 标题主干相同</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-toast="已确认 MS-0252（逐条确认）· 成败、信号、回测已标为需重算"><svg class="icon"><use href="#ph-check"/></svg><span>确认</span></button>
+                    <button class="btn btn--sm btn--ghost" type="button" data-toast="已拒绝 MS-0252 · 涉及的 14 个子 ASIN 继续按各自父 ASIN 计">拒绝</button>
+                  </td>
+                </tr>
+                <tr data-basis="stem">
+                  <td></td>
+                  <td colspan="5" style="padding-top: 0">
+                    <details open>
+                      <summary class="small">对照 3 个父体：标题主干、类型属性、五点摘要</summary>
+                      <div class="table-wrap" style="margin: var(--space-2) 0 var(--space-1)">
+                        <table class="table">
+                          <thead>
+                            <tr><th scope="col">项目</th><th class="mono" scope="col">B0DK7QW3M0</th><th class="mono" scope="col">B0DM1RT6KZ</th><th class="mono" scope="col">B0DN4SA2HC</th><th scope="col">对照</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr data-basis="stem"><td class="muted t-nowrap">尺寸 · 子体</td><td>30″ · 5 个</td><td>36″ · 5 个</td><td>48″ · 4 个</td><td class="small muted">尺寸不同（同一 SPU 可含各尺寸）</td></tr>
+                            <tr data-basis="stem"><td class="muted">标题主干</td><td class="mono" colspan="3">solidee bathroom vanity sintered stone top fluted doors</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 相同</td></tr>
+                            <tr data-basis="stem"><td class="muted">形态</td><td colspan="3">落地式</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="stem"><td class="muted">安装方式</td><td colspan="3">落地安装</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="stem"><td class="muted">台面形态</td><td colspan="3">一体盆</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="stem"><td class="muted">元素</td><td colspan="3">凹槽门</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="stem"><td class="muted">五点摘要</td><td class="small">岩板一体盆，耐高温、耐刮擦；凹槽门板配软关闭铰链；免组装，开箱即装</td><td class="small">岩板一体盆，耐高温、耐刮擦；凹槽门板配软关闭铰链；实木框架，防潮涂层</td><td class="small">岩板一体盆，耐高温、耐刮擦；双开凹槽门配软关闭铰链；附排水组件</td><td class="small muted">前两条相同</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  </td>
+                </tr>
+
+                <!-- MS-0253 -->
+                <tr data-basis="similar">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择 MS-0253"></label></td>
+                  <td class="t-nowrap"><div class="mono muted">MS-0253</div><div class="cell-title">eclife</div></td>
+                  <td>
+                    <dl class="kv">
+                      <dt class="mono">B0DP3KX7VA</dt><dd>eclife 36" Bathroom Vanity with Vessel Sink, Open Storage Shelf, Rustic Wood</dd>
+                      <dt class="mono">B0DQ8MR2EL</dt><dd>eclife 30 Inch Bathroom Vanity Vessel Sink Combo with Open Shelf</dd>
+                    </dl>
+                  </td>
+                  <td class="t-num">9</td>
+                  <td class="small"><svg class="icon"><use href="#ph-scales"/></svg> 标题主干高度相似（0.93）且类型属性一致</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-toast="已确认 MS-0253（逐条确认）· 成败、信号、回测已标为需重算"><svg class="icon"><use href="#ph-check"/></svg><span>确认</span></button>
+                    <button class="btn btn--sm btn--ghost" type="button" data-toast="已拒绝 MS-0253 · 涉及的 9 个子 ASIN 继续按各自父 ASIN 计">拒绝</button>
+                  </td>
+                </tr>
+                <tr data-basis="similar">
+                  <td></td>
+                  <td colspan="5" style="padding-top: 0">
+                    <details>
+                      <summary class="small">对照 2 个父体：标题主干、类型属性、五点摘要</summary>
+                      <div class="table-wrap" style="margin: var(--space-2) 0 var(--space-1)">
+                        <table class="table">
+                          <thead>
+                            <tr><th scope="col">项目</th><th class="mono" scope="col">B0DP3KX7VA</th><th class="mono" scope="col">B0DQ8MR2EL</th><th scope="col">对照</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr data-basis="similar"><td class="muted t-nowrap">尺寸 · 子体</td><td>36″ · 5 个</td><td>30″ · 4 个</td><td class="small muted">尺寸不同</td></tr>
+                            <tr data-basis="similar"><td class="muted">标题主干</td><td class="mono">eclife bathroom vanity vessel sink open storage shelf</td><td class="mono">eclife bathroom vanity vessel sink combo open shelf</td><td class="small">相似度 0.93</td></tr>
+                            <tr data-basis="similar"><td class="muted">形态</td><td colspan="2">落地式</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="similar"><td class="muted">安装方式</td><td colspan="2">落地安装</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="similar"><td class="muted">台面形态</td><td colspan="2">台上盆</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="similar"><td class="muted">元素</td><td colspan="2">开放层架</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="similar"><td class="muted">五点摘要</td><td class="small">实木贴皮柜体，开放层架放毛巾；陶瓷台上盆，含龙头与下水</td><td class="small">开放式储物层架；陶瓷台上盆套装，含龙头；实木贴皮，防潮</td><td class="small muted">措辞不同</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  </td>
+                </tr>
+
+                <!-- MS-0254 -->
+                <tr data-basis="bullets">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择 MS-0254"></label></td>
+                  <td class="t-nowrap"><div class="mono muted">MS-0254</div><div class="cell-title">AmbroVania</div></td>
+                  <td>
+                    <dl class="kv">
+                      <dt class="mono">B0DLM2W5QH</dt><dd>AmbroVania 48" Double Sink Bathroom Vanity, Solid Wood, Carrara Marble Top<div class="cell-sub">现为 SPU-2611-019（暂按父体）</div></dd>
+                      <dt class="mono">B0DS7HT4NC</dt><dd>AmbroVania 60 Inch Bathroom Vanity Cabinet with Double Sinks and Marble Countertop</dd>
+                    </dl>
+                  </td>
+                  <td class="t-num">6</td>
+                  <td class="small"><svg class="icon"><use href="#ph-rows"/></svg> 五点描述相同</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-toast="已确认 MS-0254（逐条确认）· 成败、信号、回测已标为需重算"><svg class="icon"><use href="#ph-check"/></svg><span>确认</span></button>
+                    <button class="btn btn--sm btn--ghost" type="button" data-toast="已拒绝 MS-0254 · 涉及的 6 个子 ASIN 继续按各自父 ASIN 计">拒绝</button>
+                  </td>
+                </tr>
+                <tr data-basis="bullets">
+                  <td></td>
+                  <td colspan="5" style="padding-top: 0">
+                    <details>
+                      <summary class="small">对照 2 个父体：标题主干、类型属性、五点摘要</summary>
+                      <div class="table-wrap" style="margin: var(--space-2) 0 var(--space-1)">
+                        <table class="table">
+                          <thead>
+                            <tr><th scope="col">项目</th><th class="mono" scope="col">B0DLM2W5QH</th><th class="mono" scope="col">B0DS7HT4NC</th><th scope="col">对照</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr data-basis="bullets"><td class="muted t-nowrap">尺寸 · 子体</td><td>48″ · 3 个</td><td>60″ · 3 个</td><td class="small muted">尺寸不同</td></tr>
+                            <tr data-basis="bullets"><td class="muted">标题主干</td><td class="mono">ambrovania double sink bathroom vanity solid wood carrara marble top</td><td class="mono">ambrovania bathroom vanity cabinet double sinks marble countertop</td><td class="small muted">相似度 0.71，低于 0.9</td></tr>
+                            <tr data-basis="bullets"><td class="muted">形态</td><td colspan="2">落地式</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="bullets"><td class="muted">安装方式</td><td colspan="2">落地安装</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="bullets"><td class="muted">台面形态</td><td colspan="2">台下盆</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="bullets"><td class="muted">元素</td><td>古典线条</td><td class="muted">信息不足</td><td class="small muted">无法比较</td></tr>
+                            <tr data-basis="bullets"><td class="muted">五点摘要</td><td class="small" colspan="2">实木框架，卡拉拉大理石台面；双台下陶瓷盆；软关闭抽屉与柜门；预钻龙头孔</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 相同</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  </td>
+                </tr>
+
+                <!-- MS-0255 -->
+                <tr data-basis="stem">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择 MS-0255"></label></td>
+                  <td class="t-nowrap"><div class="mono muted">MS-0255</div><div class="cell-title">LUCKWIND</div></td>
+                  <td>
+                    <dl class="kv">
+                      <dt class="mono">B0DM6PV3RK</dt><dd>LUCKWIND 30" Floating Bathroom Vanity with Ceramic Sink, Wall Mounted, White</dd>
+                      <dt class="mono">B0DR2TA9YF</dt><dd>LUCKWIND 24 Inch Floating Bathroom Vanity with Ceramic Sink, Wall Mounted, Grey</dd>
+                    </dl>
+                  </td>
+                  <td class="t-num">5</td>
+                  <td class="small"><svg class="icon"><use href="#ph-copy"/></svg> 标题主干相同</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-toast="已确认 MS-0255（逐条确认）· 成败、信号、回测已标为需重算"><svg class="icon"><use href="#ph-check"/></svg><span>确认</span></button>
+                    <button class="btn btn--sm btn--ghost" type="button" data-toast="已拒绝 MS-0255 · 涉及的 5 个子 ASIN 继续按各自父 ASIN 计">拒绝</button>
+                  </td>
+                </tr>
+                <tr data-basis="stem">
+                  <td></td>
+                  <td colspan="5" style="padding-top: 0">
+                    <details>
+                      <summary class="small">对照 2 个父体：标题主干、类型属性、五点摘要</summary>
+                      <div class="table-wrap" style="margin: var(--space-2) 0 var(--space-1)">
+                        <table class="table">
+                          <thead>
+                            <tr><th scope="col">项目</th><th class="mono" scope="col">B0DM6PV3RK</th><th class="mono" scope="col">B0DR2TA9YF</th><th scope="col">对照</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr data-basis="stem"><td class="muted t-nowrap">尺寸 · 子体</td><td>30″ · 3 个</td><td>24″ · 2 个</td><td class="small muted">尺寸不同</td></tr>
+                            <tr data-basis="stem"><td class="muted">标题主干</td><td class="mono" colspan="2">luckwind floating bathroom vanity ceramic sink wall mounted</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 相同</td></tr>
+                            <tr data-basis="stem"><td class="muted">形态</td><td colspan="2">悬浮式</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="stem"><td class="muted">安装方式</td><td colspan="2">壁挂安装</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="stem"><td class="muted">台面形态</td><td colspan="2">一体盆</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="stem"><td class="muted">元素</td><td colspan="2">无装饰元素</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="stem"><td class="muted">五点摘要</td><td class="small">陶瓷一体盆；悬浮壁挂，节省空间；两个软关闭抽屉</td><td class="small">陶瓷一体盆；悬浮壁挂，节省空间；单门带层板</td><td class="small muted">前两条相同</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  </td>
+                </tr>
+
+                <!-- MS-0256 -->
+                <tr data-basis="similar">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择 MS-0256"></label></td>
+                  <td class="t-nowrap"><div class="mono muted">MS-0256</div><div class="cell-title">Bellemave</div></td>
+                  <td>
+                    <dl class="kv">
+                      <dt class="mono">B0DR8KT6WP</dt><dd>Bellemave 24" Small Bathroom Vanity with Ceramic Sink, Wall Mounted<div class="cell-sub">现为 SPU-2701-022（暂按父体）</div></dd>
+                      <dt class="mono">B0DV1QS8MB</dt><dd>Bellemave 20 Inch Small Bathroom Vanity with Ceramic Sink and Soft Close Door, Wall Mounted</dd>
+                    </dl>
+                  </td>
+                  <td class="t-num">4</td>
+                  <td class="small"><svg class="icon"><use href="#ph-scales"/></svg> 标题主干高度相似（0.91）且类型属性一致</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-toast="已确认 MS-0256（逐条确认）· 成败、信号、回测已标为需重算"><svg class="icon"><use href="#ph-check"/></svg><span>确认</span></button>
+                    <button class="btn btn--sm btn--ghost" type="button" data-toast="已拒绝 MS-0256 · 涉及的 4 个子 ASIN 继续按各自父 ASIN 计">拒绝</button>
+                  </td>
+                </tr>
+                <tr data-basis="similar">
+                  <td></td>
+                  <td colspan="5" style="padding-top: 0">
+                    <details>
+                      <summary class="small">对照 2 个父体：标题主干、类型属性、五点摘要</summary>
+                      <div class="table-wrap" style="margin: var(--space-2) 0 var(--space-1)">
+                        <table class="table">
+                          <thead>
+                            <tr><th scope="col">项目</th><th class="mono" scope="col">B0DR8KT6WP</th><th class="mono" scope="col">B0DV1QS8MB</th><th scope="col">对照</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr data-basis="similar"><td class="muted t-nowrap">尺寸 · 子体</td><td>24″ · 2 个</td><td>20″ · 2 个</td><td class="small muted">尺寸不同</td></tr>
+                            <tr data-basis="similar"><td class="muted">标题主干</td><td class="mono">bellemave small bathroom vanity ceramic sink wall mounted</td><td class="mono">bellemave small bathroom vanity ceramic sink soft close door wall mounted</td><td class="small">相似度 0.91</td></tr>
+                            <tr data-basis="similar"><td class="muted">形态</td><td colspan="2">悬浮式</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="similar"><td class="muted">安装方式</td><td colspan="2">壁挂安装</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="similar"><td class="muted">台面形态</td><td colspan="2">一体盆</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="similar"><td class="muted">元素</td><td colspan="2">无装饰元素</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="similar"><td class="muted">五点摘要</td><td class="small">小户型 24 英寸；陶瓷一体盆；壁挂省空间，含安装五金</td><td class="small">20 英寸窄柜；陶瓷一体盆；软关闭柜门；壁挂安装，含五金</td><td class="small muted">措辞不同</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  </td>
+                </tr>
+
+                <!-- MS-0257 -->
+                <tr data-basis="bullets">
+                  <td class="t-check"><label class="check"><input type="checkbox" data-row-check aria-label="选择 MS-0257"></label></td>
+                  <td class="t-nowrap"><div class="mono muted">MS-0257</div><div class="cell-title">THINK 30</div></td>
+                  <td>
+                    <dl class="kv">
+                      <dt class="mono">B0DLX5N1FD</dt><dd>THINK 30 30 Inch Bathroom Vanity with Sink, Shaker Doors, Solid Wood Frame<div class="cell-sub">现为 SPU-2611-031（暂按父体）</div></dd>
+                      <dt class="mono">B0DU4WC7JR</dt><dd>Shaker Style Bathroom Vanity 36" with Undermount Sink, THINK 30</dd>
+                      <dt class="mono">B0DV9EM2HT</dt><dd>THINK 30 Bathroom Vanity Set 24 Inch, Solid Wood Frame, Shaker Cabinet with Sink</dd>
+                    </dl>
+                  </td>
+                  <td class="t-num">8</td>
+                  <td class="small"><svg class="icon"><use href="#ph-rows"/></svg> 五点描述相同</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-toast="已确认 MS-0257（逐条确认）· 成败、信号、回测已标为需重算"><svg class="icon"><use href="#ph-check"/></svg><span>确认</span></button>
+                    <button class="btn btn--sm btn--ghost" type="button" data-toast="已拒绝 MS-0257 · 涉及的 8 个子 ASIN 继续按各自父 ASIN 计">拒绝</button>
+                  </td>
+                </tr>
+                <tr data-basis="bullets">
+                  <td></td>
+                  <td colspan="5" style="padding-top: 0">
+                    <details>
+                      <summary class="small">对照 3 个父体：标题主干、类型属性、五点摘要</summary>
+                      <div class="table-wrap" style="margin: var(--space-2) 0 var(--space-1)">
+                        <table class="table">
+                          <thead>
+                            <tr><th scope="col">项目</th><th class="mono" scope="col">B0DLX5N1FD</th><th class="mono" scope="col">B0DU4WC7JR</th><th class="mono" scope="col">B0DV9EM2HT</th><th scope="col">对照</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr data-basis="bullets"><td class="muted t-nowrap">尺寸 · 子体</td><td>30″ · 3 个</td><td>36″ · 3 个</td><td>24″ · 2 个</td><td class="small muted">尺寸不同</td></tr>
+                            <tr data-basis="bullets"><td class="muted">标题主干</td><td class="mono">think bathroom vanity sink shaker doors solid wood frame</td><td class="mono">shaker style bathroom vanity undermount sink think</td><td class="mono">think bathroom vanity set solid wood frame shaker cabinet sink</td><td class="small muted">相似度 0.62–0.84</td></tr>
+                            <tr data-basis="bullets"><td class="muted">形态</td><td colspan="3">落地式</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="bullets"><td class="muted">安装方式</td><td colspan="3">落地安装</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="bullets"><td class="muted">台面形态</td><td>台下盆</td><td>台下盆</td><td class="muted">信息不足</td><td class="small muted">无法比较</td></tr>
+                            <tr data-basis="bullets"><td class="muted">元素</td><td colspan="3">Shaker 门板</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 一致</td></tr>
+                            <tr data-basis="bullets"><td class="muted">五点摘要</td><td class="small" colspan="3">实木框架配 Shaker 门板；石英台面配台下盆；软关闭铰链；预装，含后挡板</td><td class="small"><svg class="icon"><use href="#ph-check"/></svg> 相同</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="batchbar" data-batchbar="#pending-table" hidden>
+            <span>已选 <strong data-batch-count>0</strong> 条建议</span>
+            <span class="spacer"></span>
+            <button class="btn btn--sm" type="button" data-batch-clear="#pending-table">取消选择</button>
+            <button class="btn btn--sm" type="button" data-open="#batch-modal"><svg class="icon"><use href="#ph-list-checks"/></svg><span>批量确认</span></button>
+          </div>
+          <p class="page-foot" style="margin-top: var(--space-3)">建议先按依据筛出"标题主干相同"批量确认，再逐条核对其余两类。确认或拒绝都会记录操作人与时间。</p>
+        </div>
+
+        <!-- 已生效归并 -->
+        <div id="panel-active" role="tabpanel" aria-labelledby="tab-active" data-filter-scope="#active-table" hidden>
+          <div class="filters" role="group" aria-label="按确认方式筛选">
+            <span class="filters__label">确认方式</span>
+            <button class="chip" type="button" data-filter="via:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="via:single" aria-pressed="false">逐条确认 <span class="count">63</span></button>
+            <button class="chip" type="button" data-filter="via:batch" aria-pressed="false">批量确认 <span class="count">151</span></button>
+            <span class="filters__sep" aria-hidden="true"></span>
+            <button class="chip" type="button" data-filter="edited:yes" aria-pressed="false" data-multi>有修改记录 <span class="count">3</span></button>
+            <span class="spacer"></span>
+            <label class="search"><svg class="icon"><use href="#ph-magnifying-glass"/></svg><span class="visually-hidden">搜索</span><input class="input" type="search" placeholder="SPU 编号、品牌或 ASIN"></label>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="active-table">
+              <thead>
+                <tr>
+                  <th scope="col">SPU · 品牌</th>
+                  <th scope="col">涉及父 ASIN</th>
+                  <th class="t-num" scope="col">子 ASIN</th>
+                  <th scope="col">来源建议</th>
+                  <th scope="col">确认</th>
+                  <th scope="col">修改记录</th>
+                  <th scope="col">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-via="single" data-edited="no">
+                  <td class="t-nowrap"><a class="tlink" href="PAGE-F05-01.html">SPU-2702-003</a><div class="cell-sub">ELEVACHIC</div></td>
+                  <td class="mono">B0DT6HG8P1<br>B0DT9KD2R7</td>
+                  <td class="t-num">4</td>
+                  <td><div class="mono">MS-0131</div><div class="cell-sub">标题主干相同</div></td>
+                  <td class="small">逐条确认 · wen<div class="cell-sub t-nowrap">2027-03-05 10:31</div></td>
+                  <td class="small muted">未修改</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-open="#edit-modal" data-merge-spu="SPU-2702-003" data-merge-parents="B0DT6HG8P1 B0DT9KD2R7" data-merge-kids="4"><svg class="icon"><use href="#ph-pencil-simple"/></svg><span>修改</span></button>
+                    <button class="btn btn--sm btn--danger" type="button" data-open="#split-modal" data-merge-spu="SPU-2702-003" data-merge-parents="B0DT6HG8P1 B0DT9KD2R7" data-merge-kids="4"><svg class="icon"><use href="#ph-split-horizontal"/></svg><span>拆分</span></button>
+                  </td>
+                </tr>
+                <tr data-via="single" data-edited="no">
+                  <td class="t-nowrap"><a class="tlink" href="PAGE-F05-01.html">SPU-2612-011</a><div class="cell-sub">LUCKWIND</div></td>
+                  <td class="mono">B0DN9WP6H2<br>B0DP4XE1M8</td>
+                  <td class="t-num">4</td>
+                  <td><div class="mono">MS-0117</div><div class="cell-sub">标题主干高度相似（0.94）且类型属性一致</div></td>
+                  <td class="small">逐条确认 · wen<div class="cell-sub t-nowrap">2027-01-07 10:02</div></td>
+                  <td class="small muted">未修改</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-open="#edit-modal" data-merge-spu="SPU-2612-011" data-merge-parents="B0DN9WP6H2 B0DP4XE1M8" data-merge-kids="4"><svg class="icon"><use href="#ph-pencil-simple"/></svg><span>修改</span></button>
+                    <button class="btn btn--sm btn--danger" type="button" data-open="#split-modal" data-merge-spu="SPU-2612-011" data-merge-parents="B0DN9WP6H2 B0DP4XE1M8" data-merge-kids="4"><svg class="icon"><use href="#ph-split-horizontal"/></svg><span>拆分</span></button>
+                  </td>
+                </tr>
+                <tr data-via="batch" data-edited="no">
+                  <td class="t-nowrap"><a class="tlink" href="PAGE-F05-01.html">SPU-2611-007</a><div class="cell-sub">SOLIDEE</div></td>
+                  <td class="mono">B0DK7QS5J2<br>B0DK7RA4N6</td>
+                  <td class="t-num">6</td>
+                  <td><div class="mono">MS-0098</div><div class="cell-sub">标题主干相同</div></td>
+                  <td class="small">批量确认 · wen<div class="cell-sub t-nowrap">2026-12-04 09:52</div></td>
+                  <td class="small muted">未修改</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-open="#edit-modal" data-merge-spu="SPU-2611-007" data-merge-parents="B0DK7QS5J2 B0DK7RA4N6" data-merge-kids="6"><svg class="icon"><use href="#ph-pencil-simple"/></svg><span>修改</span></button>
+                    <button class="btn btn--sm btn--danger" type="button" data-open="#split-modal" data-merge-spu="SPU-2611-007" data-merge-parents="B0DK7QS5J2 B0DK7RA4N6" data-merge-kids="6"><svg class="icon"><use href="#ph-split-horizontal"/></svg><span>拆分</span></button>
+                  </td>
+                </tr>
+                <tr data-via="batch" data-edited="no">
+                  <td class="t-nowrap"><a class="tlink" href="PAGE-F05-01.html">SPU-2611-012</a><div class="cell-sub">eclife</div></td>
+                  <td class="mono">B0DKS4T2HV<br>B0DKV8N5JC</td>
+                  <td class="t-num">4</td>
+                  <td><div class="mono">MS-0102</div><div class="cell-sub">标题主干相同</div></td>
+                  <td class="small">批量确认 · wen<div class="cell-sub t-nowrap">2026-12-04 09:52</div></td>
+                  <td class="small muted">未修改</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-open="#edit-modal" data-merge-spu="SPU-2611-012" data-merge-parents="B0DKS4T2HV B0DKV8N5JC" data-merge-kids="4"><svg class="icon"><use href="#ph-pencil-simple"/></svg><span>修改</span></button>
+                    <button class="btn btn--sm btn--danger" type="button" data-open="#split-modal" data-merge-spu="SPU-2611-012" data-merge-parents="B0DKS4T2HV B0DKV8N5JC" data-merge-kids="4"><svg class="icon"><use href="#ph-split-horizontal"/></svg><span>拆分</span></button>
+                  </td>
+                </tr>
+                <tr data-via="single" data-edited="yes">
+                  <td class="t-nowrap"><a class="tlink" href="PAGE-F05-01.html">SPU-2610-018</a><div class="cell-sub">ARIEL</div></td>
+                  <td class="mono">B0DH5RM2KT<br>B0DJ1VC9WS</td>
+                  <td class="t-num">3</td>
+                  <td><div class="mono">MS-0091</div><div class="cell-sub">五点描述相同</div></td>
+                  <td class="small">逐条确认 · wen<div class="cell-sub t-nowrap">2026-11-09 16:20</div></td>
+                  <td class="small">
+                    <details>
+                      <summary>修改 1 次 · 2027-02-05</summary>
+                      <dl class="diff" style="margin-top: var(--space-2)">
+                        <dt class="diff__key">父 ASIN</dt><dd class="diff__old mono" style="margin:0">B0DH5RM2KT、B0DJ1VC9WS、B0DJ4QA7LN</dd><dd class="diff__new mono" style="margin:0">B0DH5RM2KT、B0DJ1VC9WS</dd>
+                        <dt class="diff__key">子 ASIN</dt><dd class="diff__old" style="margin:0">5 个</dd><dd class="diff__new" style="margin:0">3 个</dd>
+                      </dl>
+                      <div class="cell-sub" style="margin-top: var(--space-1)">wen · 2027-02-05 10:14 · 受影响结果已于 10:41 重算</div>
+                    </details>
+                  </td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-open="#edit-modal" data-merge-spu="SPU-2610-018" data-merge-parents="B0DH5RM2KT B0DJ1VC9WS" data-merge-kids="3"><svg class="icon"><use href="#ph-pencil-simple"/></svg><span>修改</span></button>
+                    <button class="btn btn--sm btn--danger" type="button" data-open="#split-modal" data-merge-spu="SPU-2610-018" data-merge-parents="B0DH5RM2KT B0DJ1VC9WS" data-merge-kids="3"><svg class="icon"><use href="#ph-split-horizontal"/></svg><span>拆分</span></button>
+                  </td>
+                </tr>
+                <tr data-via="single" data-edited="no">
+                  <td class="t-nowrap"><a class="tlink" href="PAGE-F05-01.html">SPU-2609-013</a><div class="cell-sub">AmbroVania</div></td>
+                  <td class="mono">B0DD8LT3QW<br>B0DF2NH6YB</td>
+                  <td class="t-num">5</td>
+                  <td><div class="mono">MS-0076</div><div class="cell-sub">标题主干高度相似（0.92）且类型属性一致</div></td>
+                  <td class="small">逐条确认 · wen<div class="cell-sub t-nowrap">2026-11-09 15:42</div></td>
+                  <td class="small muted">未修改</td>
+                  <td class="t-nowrap">
+                    <button class="btn btn--sm" type="button" data-open="#edit-modal" data-merge-spu="SPU-2609-013" data-merge-parents="B0DD8LT3QW B0DF2NH6YB" data-merge-kids="5"><svg class="icon"><use href="#ph-pencil-simple"/></svg><span>修改</span></button>
+                    <button class="btn btn--sm btn--danger" type="button" data-open="#split-modal" data-merge-spu="SPU-2609-013" data-merge-parents="B0DD8LT3QW B0DF2NH6YB" data-merge-kids="5"><svg class="icon"><use href="#ph-split-horizontal"/></svg><span>拆分</span></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pager">
+            <span>第 1–6 条，共 214 条 · 每页 50 条</span>
+            <div class="pager__pages">
+              <button class="pager__btn" type="button" aria-label="上一页"><svg class="icon"><use href="#ph-caret-left"/></svg></button>
+              <button class="pager__btn" type="button" aria-current="page">1</button>
+              <button class="pager__btn" type="button">2</button>
+              <button class="pager__btn" type="button">3</button>
+              <button class="pager__btn" type="button">4</button>
+              <button class="pager__btn" type="button">5</button>
+              <button class="pager__btn" type="button" aria-label="下一页"><svg class="icon"><use href="#ph-caret-right"/></svg></button>
+            </div>
+          </div>
+          <p class="page-foot" style="margin-top: var(--space-3)">拆分或修改会记录修改前后、操作人和时间，并把受影响的成败判定、信号和回测标为需重算；系统不自动重算，旧结果在重算前仍可查看。</p>
+        </div>
+
+        <!-- 已拒绝 -->
+        <div id="panel-rejected" role="tabpanel" aria-labelledby="tab-rejected" hidden>
+          <p class="small muted" style="margin-bottom: var(--space-3)">被拒绝的建议不生效，涉及的子体继续按各自父 ASIN 计为 SPU。</p>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">建议 · 品牌</th>
+                  <th scope="col">涉及父 ASIN</th>
+                  <th class="t-num" scope="col">子 ASIN</th>
+                  <th scope="col">匹配依据</th>
+                  <th scope="col">拒绝</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="t-nowrap"><div class="mono muted">MS-0139</div><div class="cell-title">Modway</div></td>
+                  <td class="mono">B0DS3MV7KQ<br>B0DT1RZ4PA</td>
+                  <td class="t-num">5</td>
+                  <td class="small"><svg class="icon"><use href="#ph-scales"/></svg> 标题主干高度相似（0.92）且类型属性一致</td>
+                  <td class="small">wen<div class="cell-sub t-nowrap">2027-04-08 09:58</div></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="mono muted">MS-0127</div><div class="cell-title">KEIKI</div></td>
+                  <td class="mono">B0DQ4PY2WC<br>B0DS8GN5TE</td>
+                  <td class="t-num">6</td>
+                  <td class="small"><svg class="icon"><use href="#ph-rows"/></svg> 五点描述相同</td>
+                  <td class="small">wen<div class="cell-sub t-nowrap">2027-03-05 10:22</div></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="mono muted">MS-0112</div><div class="cell-title">ARIEL</div></td>
+                  <td class="mono">B0DJ8RL1NA<br>B0DK2HT6ZC<br>B0DM5WF3QS</td>
+                  <td class="t-num">9</td>
+                  <td class="small"><svg class="icon"><use href="#ph-copy"/></svg> 标题主干相同</td>
+                  <td class="small">wen<div class="cell-sub t-nowrap">2027-01-07 09:49</div></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="mono muted">MS-0089</div><div class="cell-title">YOURLITE</div></td>
+                  <td class="mono">B0DF6KS9RD<br>B0DG3PL2XN</td>
+                  <td class="t-num">4</td>
+                  <td class="small"><svg class="icon"><use href="#ph-rows"/></svg> 五点描述相同</td>
+                  <td class="small">wen<div class="cell-sub t-nowrap">2026-11-09 15:30</div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pager"><span>第 1–4 条，共 37 条</span></div>
+        </div>
+
+        <!-- 批量确认 -->
+        <div class="modal" id="batch-modal" role="dialog" aria-modal="true" aria-labelledby="batch-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="batch-title">批量确认合并建议</h2>
+                <p class="modal__sub">确认来源记为"批量确认" · 操作人 wen · 时间在确认时记录</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <div class="modal__body stack">
+              <p>将一次确认所选的合并建议。确认后：</p>
+              <ul class="small">
+                <li>涉及的子 ASIN 按建议归并为 SPU；SPU 上架日取全部子体上架日的最早值，晚于它上架的子体标为新变体。</li>
+                <li>依赖这些子体的成败判定、信号和回测结果标为"需重算"，在工作台点"全部重算"后更新；重算前仍可查看旧结果。</li>
+                <li>确认后的归并出现在"已生效归并"，可拆分或修改，修改会留痕。</li>
+              </ul>
+              <div class="banner">
+                <svg class="icon"><use href="#ph-info"/></svg>
+                <div class="banner__body">只确认你核对过的依据。建议先筛出"标题主干相同"批量确认，"高度相似"和"五点描述相同"两类逐条展开对照后再确认。</div>
+              </div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="button" data-close data-toast="已批量确认所选建议，来源记为“批量确认” · 成败、信号、回测已标为需重算"><svg class="icon"><use href="#ph-check"/></svg><span>批量确认</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 修改归并 -->
+        <div class="modal" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="edit-title">修改归并 · <span data-fill="spu">SPU-2611-007</span></h2>
+                <p class="modal__sub">当前包含 <span data-fill="kids">6</span> 个子 ASIN · 修改会留痕并标需重算</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <div class="modal__body stack-lg">
+              <div class="field">
+                <span class="field__label">保留在本 SPU 的父 ASIN</span>
+                <div class="choice-group" data-fill="parent-checks">
+                  <label class="check"><input type="checkbox" checked><span class="mono">B0DK7QS5J2</span></label>
+                  <label class="check"><input type="checkbox" checked><span class="mono">B0DK7RA4N6</span></label>
+                </div>
+                <span class="field__hint">取消勾选的父 ASIN 移出本 SPU，按自身父 ASIN 单独计为 SPU。</span>
+              </div>
+              <label class="field">
+                <span class="field__label">加入父 ASIN</span>
+                <input class="input mono" type="text" placeholder="同品牌的父 ASIN，多个用空格分隔">
+                <span class="field__hint">只能加入同品牌的父 ASIN；加入后其子体按 SPU 上架日重新判断是否为新变体。</span>
+              </label>
+              <div class="banner banner--warn">
+                <svg class="icon"><use href="#ph-arrows-clockwise"/></svg>
+                <div class="banner__body">
+                  <div class="banner__title">保存后将记录并标为需重算</div>
+                  <div>记录修改前后的父 ASIN 与子 ASIN、操作人 wen 和时间；受影响的成败判定、信号和回测标为"需重算"。系统不自动重算。</div>
+                </div>
+              </div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--danger" type="button" data-close data-toast="已保存修改 · 修改前后已记录，成败、信号、回测已标为需重算"><svg class="icon"><use href="#ph-pencil-simple"/></svg><span>保存修改</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 拆分归并 -->
+        <div class="modal" id="split-modal" role="dialog" aria-modal="true" aria-labelledby="split-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="split-title">拆分归并 · <span data-fill="spu">SPU-2611-007</span></h2>
+                <p class="modal__sub">拆分后每个父 ASIN 单独计为一个 SPU</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <div class="modal__body stack-lg">
+              <dl class="kv">
+                <dt>涉及父 ASIN</dt><dd class="mono" data-fill="parents">B0DK7QS5J2、B0DK7RA4N6</dd>
+                <dt>子 ASIN</dt><dd><span data-fill="kids">6</span> 个</dd>
+              </dl>
+              <dl class="diff">
+                <dt class="diff__key">SPU</dt>
+                <dd class="diff__old" style="margin:0">1 个：<span data-fill="spu">SPU-2611-007</span></dd>
+                <dd class="diff__new" style="margin:0"><span data-fill="parent-count">2</span> 个，每个父 ASIN 一个</dd>
+                <dt class="diff__key">上架日</dt>
+                <dd class="diff__old" style="margin:0">取整个 SPU 最早的子体</dd>
+                <dd class="diff__new" style="margin:0">各取本父 ASIN 下最早的子体</dd>
+                <dt class="diff__key">新变体</dt>
+                <dd class="diff__old" style="margin:0">晚于 SPU 上架日的子体</dd>
+                <dd class="diff__new" style="margin:0">按新的上架日重新判断</dd>
+              </dl>
+              <div class="banner banner--warn">
+                <svg class="icon"><use href="#ph-arrows-clockwise"/></svg>
+                <div class="banner__body">
+                  <div class="banner__title">拆分后将记录并标为需重算</div>
+                  <div>记录拆分前后的归并、操作人 wen 和时间；受影响的成败判定、信号和回测标为"需重算"，在工作台点"全部重算"后更新。拆分不删除任何数据，可再次合并。</div>
+                </div>
+              </div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--danger" type="button" data-close data-toast="已拆分 · 拆分前后已记录，成败、信号、回测已标为需重算"><svg class="icon"><use href="#ph-split-horizontal"/></svg><span>确认拆分</span></button>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          (function () {
+            document.querySelectorAll('[data-merge-spu]').forEach(function (btn) {
+              btn.addEventListener('click', function () {
+                var modal = document.querySelector(btn.getAttribute('data-open'));
+                if (!modal) return;
+                var parents = btn.getAttribute('data-merge-parents').split(' ');
+                modal.querySelectorAll('[data-fill="spu"]').forEach(function (el) { el.textContent = btn.getAttribute('data-merge-spu'); });
+                modal.querySelectorAll('[data-fill="kids"]').forEach(function (el) { el.textContent = btn.getAttribute('data-merge-kids'); });
+                modal.querySelectorAll('[data-fill="parents"]').forEach(function (el) { el.textContent = parents.join('、'); });
+                modal.querySelectorAll('[data-fill="parent-count"]').forEach(function (el) { el.textContent = String(parents.length); });
+                modal.querySelectorAll('[data-fill="parent-checks"]').forEach(function (box) {
+                  while (box.firstChild) box.removeChild(box.firstChild);
+                  parents.forEach(function (asin) {
+                    var label = document.createElement('label');
+                    var input = document.createElement('input');
+                    var text = document.createElement('span');
+                    label.className = 'check';
+                    input.type = 'checkbox';
+                    input.checked = true;
+                    text.className = 'mono';
+                    text.textContent = asin;
+                    label.appendChild(input);
+                    label.appendChild(text);
+                    box.appendChild(label);
+                  });
+                });
+              });
+            });
+          })();
+        </script>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

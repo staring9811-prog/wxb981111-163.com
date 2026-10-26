@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F10-06">
+  <title>录入自家上架数据 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html" aria-current="page"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>台账</h1>
+            <p class="page-head__sub">月度快照、立项决定与到期对账 · 记录只追加，保存后不可修改</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn" type="button"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>从数据包导入自家立项</span></button>
+            <a class="btn" href="PAGE-F10-02.html"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>补录在研立项</span></a>
+            <a class="btn" href="PAGE-F10-02.html"><svg class="icon"><use href="#ph-note-pencil"/></svg><span>记录决定</span></a>
+          </div>
+        </div>
+        <nav class="tabs enter" style="--i:1" aria-label="台账">
+          <a class="tab" href="PAGE-F10-01.html">月度快照 <span class="count">10</span></a>
+          <a class="tab" href="PAGE-F10-04.html" aria-current="page">立项记录 <span class="count">6</span></a>
+          <a class="tab" href="PAGE-F10-05.html">到期对账 <span class="count">2</span></a>
+        </nav>
+        <!-- 背景：立项记录（简化），弹窗打开时位于遮罩之下 -->
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th scope="col">编号 · 立项</th><th scope="col">决定 · 来源</th><th scope="col">关联细分 · 对应快照</th><th scope="col">立项日期</th><th scope="col">状态与自家对账</th></tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td><div class="cell-title"><span class="mono">D-0006</span> · 24″ 小户型悬浮柜</div></td>
+              <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-prohibit"/></svg>不立项</span><div style="margin-top: var(--space-1)"><span class="badge"><svg class="icon"><use href="#ph-note-pencil"/></svg>记录</span></div></td>
+              <td class="t-nowrap"><span class="segname"><span>≤30″</span><span>悬浮式</span><span>&lt;$500</span></span><div class="cell-sub">快照 <a href="PAGE-F10-01.html">2027-04 · 第 2 版</a></div></td>
+              <td class="t-nowrap num"><span class="muted">不适用</span></td>
+              <td><span class="muted">不立项，不参与自家对账</span></td>
+            </tr>
+            <tr>
+              <td><div class="cell-title"><span class="mono">D-0005</span> · 48″ 胡桃木 Shaker 落地柜</div></td>
+              <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-flag"/></svg>立项</span><div style="margin-top: var(--space-1)"><span class="badge"><svg class="icon"><use href="#ph-note-pencil"/></svg>记录</span></div></td>
+              <td class="t-nowrap"><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span><div class="cell-sub">快照 <a href="PAGE-F10-01.html">2027-03 · 第 1 版</a></div></td>
+              <td class="t-nowrap num">2027-03-12</td>
+              <td>未上架<div class="cell-sub">在研</div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-title"><span class="mono">D-0004</span> · 36″ 岩板一体盆落地柜二代</div></td>
+              <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-flag"/></svg>立项</span><div style="margin-top: var(--space-1)"><span class="badge"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg>更正</span></div><div class="cell-sub"><a href="#d-0003">更正 D-0003</a></div></td>
+              <td class="t-nowrap"><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span><div class="cell-sub">快照 <a href="PAGE-F10-01.html">2027-02 · 第 1 版</a></div></td>
+              <td class="t-nowrap num">2027-02-14</td>
+              <td>未上架<div class="cell-sub">在研</div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-title"><span class="mono">D-0003</span> · 36″ 岩板一体盆落地柜二代</div></td>
+              <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-flag"/></svg>立项</span><div style="margin-top: var(--space-1)"><span class="badge"><svg class="icon"><use href="#ph-note-pencil"/></svg>记录</span></div></td>
+              <td class="t-nowrap"><span class="diff__old"><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></span> <span class="small muted">误填</span><div class="cell-sub">快照 <a href="PAGE-F10-01.html">2027-02 · 第 1 版</a></div></td>
+              <td class="t-nowrap num">2027-02-14</td>
+              <td><span class="badge badge--old"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg>已更正</span><div class="cell-sub"><a href="#d-0004">见更正记录 D-0004</a></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-title"><span class="mono">D-0002</span> · 30″ 悬浮式双抽柜（ZR-2026-07）</div></td>
+              <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-flag"/></svg>立项</span><div style="margin-top: var(--space-1)"><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>补录</span></div></td>
+              <td class="t-nowrap"><span class="segname"><span>≤30″</span><span>悬浮式</span><span>$500–900</span></span><div class="cell-sub">无对应快照（补录）</div></td>
+              <td class="t-nowrap num">2026-07-02</td>
+              <td>未上架<div class="cell-sub">在研</div></td>
+            </tr>
+            <tr class="is-selected">
+              <td><div class="cell-title"><span class="mono">D-0001</span> · 36″ 岩板一体盆落地柜（ZR-2026-03）</div></td>
+              <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-flag"/></svg>立项</span><div style="margin-top: var(--space-1)"><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>补录</span></div></td>
+              <td class="t-nowrap"><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span><div class="cell-sub">无对应快照（补录）</div></td>
+              <td class="t-nowrap num">2026-03-18</td>
+              <td><div class="row" style="gap: var(--space-2)">已上架 2026-09 <span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>未命中</span></div><div class="cell-sub">最好 BSR 112<button class="etag" type="button" data-pop-title="自家上架数据" data-pop="来源=手工录入（wen）;性质=自家实际数据;上架月=2026-09;窗口=2026-09 至 2027-02">实测</button> · 最高月销售额 $46,800<button class="etag" type="button" data-pop-title="自家上架数据" data-pop="来源=手工录入（wen）;性质=自家实际数据;上架月=2026-09;窗口=2026-09 至 2027-02">实测</button> · <a href="PAGE-F10-05.html">看对账</a></div></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="modal" id="launch-modal" role="dialog" aria-modal="true" aria-labelledby="launch-title" data-open-on-load data-close-href="PAGE-F10-04.html">
+          <div class="modal__dialog modal__dialog--wide">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="launch-title">录入自家上架数据</h2>
+                <p class="modal__sub"><span class="mono">D-0001</span> · 36″ 岩板一体盆落地柜（ZR-2026-03）· <span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span> · 补录 · 立项 2026-03-18</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <form class="modal__body stack-lg" data-guard>
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field__label" for="l-asin">关联 ASIN 或 SPU<span class="req">*</span></label>
+                  <input class="input" id="l-asin" value="B0DGX4M7QK">
+                </div>
+                <div class="field">
+                  <label class="field__label" for="l-month">上架月<span class="req">*</span></label>
+                  <input class="input" id="l-month" value="2026-09" inputmode="numeric">
+                </div>
+              </div>
+
+              <section aria-labelledby="grid-title">
+                <div class="section__head">
+                  <h3 id="grid-title">月龄 1–6</h3>
+                  <span class="section__note">上架当月为第 1 个月 · 留空表示该月缺数据，不按 0 处理</span>
+                </div>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr><th scope="col">指标</th><th class="t-num" scope="col">第 1 个月<div class="cell-sub">2026-09</div></th><th class="t-num" scope="col">第 2 个月<div class="cell-sub">2026-10</div></th><th class="t-num" scope="col">第 3 个月<div class="cell-sub">2026-11</div></th><th class="t-num" scope="col">第 4 个月<div class="cell-sub">2026-12</div></th><th class="t-num" scope="col">第 5 个月<div class="cell-sub">2027-01</div></th><th class="t-num" scope="col">第 6 个月<div class="cell-sub">2027-02</div></th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="t-nowrap cell-title">月销量（件）</td><td><input class="input input--num" value="38" inputmode="numeric" aria-label="2026-09 月销量（件）"></td><td><input class="input input--num" value="96" inputmode="numeric" aria-label="2026-10 月销量（件）"></td><td><input class="input input--num" value="141" inputmode="numeric" aria-label="2026-11 月销量（件）"></td><td><input class="input input--num" value="122" inputmode="numeric" aria-label="2026-12 月销量（件）"></td><td><input class="input input--num" value="104" inputmode="numeric" aria-label="2027-01 月销量（件）"></td><td><input class="input input--num" value="97" inputmode="numeric" aria-label="2027-02 月销量（件）"></td></tr>
+                      <tr><td class="t-nowrap cell-title">月销售额（$）</td><td><input class="input input--num" value="19,000" inputmode="decimal" aria-label="2026-09 月销售额（$）"></td><td><input class="input input--num" value="46,800" inputmode="decimal" aria-label="2026-10 月销售额（$）"></td><td><input class="input input--num" value="44,100" inputmode="decimal" aria-label="2026-11 月销售额（$）"></td><td><input class="input input--num" value="38,900" inputmode="decimal" aria-label="2026-12 月销售额（$）"></td><td><input class="input input--num" value="33,500" inputmode="decimal" aria-label="2027-01 月销售额（$）"></td><td><input class="input input--num" value="31,200" inputmode="decimal" aria-label="2027-02 月销售额（$）"></td></tr>
+                      <tr><td class="t-nowrap cell-title">小类 BSR</td><td><input class="input input--num" value="312" inputmode="numeric" aria-label="2026-09 小类 BSR"></td><td><input class="input input--num" value="164" inputmode="numeric" aria-label="2026-10 小类 BSR"></td><td><input class="input input--num" value="112" inputmode="numeric" aria-label="2026-11 小类 BSR"></td><td><input class="input input--num" value="131" inputmode="numeric" aria-label="2026-12 小类 BSR"></td><td><input class="input input--num" value="158" inputmode="numeric" aria-label="2027-01 小类 BSR"></td><td><input class="input input--num" value="170" inputmode="numeric" aria-label="2027-02 小类 BSR"></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="field__hint" style="margin-top: var(--space-2)">月销售额填 SPU 内各子体合计；小类 BSR 填当月最好的子 ASIN 名次。</p>
+              </section>
+
+              <section class="panel" aria-labelledby="judge-title">
+                <div class="panel__head">
+                  <h3 class="panel__title" id="judge-title">按成功线判定 <span class="small muted">品类配置 v2，与竞品新品同一条</span></h3>
+                  <span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>未命中</span>
+                </div>
+                <div class="panel__body">
+                  <dl class="kv">
+                    <dt>小类 BSR ≤ 50</dt><dd>最好 112<button class="etag" type="button" data-pop-title="自家上架数据" data-pop="来源=手工录入（wen）;性质=自家实际数据;上次保存=2027-03-05 15:52">实测</button>（第 3 个月 · 2026-11）· <span class="muted">未达标</span></dd>
+                    <dt>SPU 任一月销售额 ≥ $100,000</dt><dd>最高 $46,800<button class="etag" type="button" data-pop-title="自家上架数据" data-pop="来源=手工录入（wen）;性质=自家实际数据;上次保存=2027-03-05 15:52">实测</button>（第 2 个月 · 2026-10）· <span class="muted">未达标</span></dd>
+                  </dl>
+                </div>
+                <div class="panel__foot">窗口 2026-09 至 2027-02 的 6 个月数据齐全，两项都未达标，判为未命中。保存时按所填数据重新判定，结果同步到到期对账 · 上次保存 2027-03-05 15:52 · wen</div>
+              </section>
+            </form>
+            <div class="modal__foot">
+              <span class="small" data-dirty-hint hidden style="margin-right: auto">有未保存的修改</span>
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="button" data-close data-save>保存并判定</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

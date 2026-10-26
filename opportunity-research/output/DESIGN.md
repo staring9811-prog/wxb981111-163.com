@@ -217,6 +217,7 @@ a:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: v
 .strong { font-weight: 600; color: var(--fg); }
 .icon { width: 16px; height: 16px; flex: none; fill: currentColor; vertical-align: -3px; }
 .icon--lg { width: 20px; height: 20px; }
+[hidden] { display: none !important; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .stack > * + * { margin-top: var(--space-3); }
 .stack-lg > * + * { margin-top: var(--space-6); }
@@ -420,7 +421,7 @@ a.version:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .dropzone:hover, .dropzone.is-over { background: var(--surface-raised); border-color: var(--fg-2); }
 .dropzone:active { background: var(--border-soft); }
 .dropzone:focus-within { box-shadow: var(--focus-ring); }
-.dropzone .icon { width: 28px; height: 28px; color: var(--muted); }
+.dropzone > .icon { width: 28px; height: 28px; color: var(--muted); }
 ```
 
 ### 面板与可点卡片
@@ -429,6 +430,7 @@ a.version:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 - **可点卡片**（如锦囊卡片）：悬停时底色加深一级。
 - **事项列表**（`.list`）：用于工作台"待处理"等逐条事项，每条为"状态图标 + 标题 + 一行说明 + 去处理"。
 - **面板内表格**：表格放进面板时加 `.table-wrap--flush` 去掉外框，避免双层边框。
+- **展开依据**：用原生 `<details>` / `<summary>`；摘要行为次级文字色，悬停变深，键盘可聚焦。
 
 ```css
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
@@ -452,9 +454,14 @@ a.version:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .card-link:hover { background: var(--surface-raised); border-color: var(--border-control); color: inherit; }
 .card-link:active { background: var(--border-soft); }
 .card-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-5); margin: 0; font-size: var(--text-sm); }
+:where(.kv) { margin: 0; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-5); font-size: var(--text-sm); }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; color: var(--fg); min-width: 0; }
+summary { color: var(--fg-2); cursor: pointer; border-radius: var(--radius-sm); transition: color var(--motion-fast) var(--ease-standard); }
+summary:hover { color: var(--fg); }
+summary:active { color: var(--fg); }
+summary:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .list { margin: 0; padding: 0; list-style: none; }
 .list__item { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-5); border-bottom: 1px solid var(--border-soft); }
 .list__item:last-child { border-bottom: 0; }
@@ -546,6 +553,31 @@ a.version:focus-visible { outline: none; box-shadow: var(--focus-ring); }
   - 成败：命中、未命中、观察中、数据不全；截面口径为截面命中、截面未命中、观察中、老品。
   - 回测结论：达标、达标（截面）、未达标；判定卡多一个"未验证"。
   - 其他：需重算、样本不足、无数据。
+
+**状态词与徽章对照**（全站统一，页面不得另选图标或样式）
+
+| 类别 | 状态词 | 类名 | 图标 |
+| :--- | :--- | :--- | :--- |
+| 成败 | 命中 / 截面命中 | `badge--hit` / `badge--cross` | `check-circle` |
+| 成败 | 未命中 / 截面未命中 | `badge--miss` | `minus` |
+| 成败 | 观察中 | `badge--watch` | `hourglass` |
+| 成败 | 数据不全 | `badge--incomplete` | `warning` |
+| 成败 | 老品 | `badge--old` | `archive` |
+| 回测与判定卡 | 达标 / 已达标 | `badge--pass` | `seal-check` |
+| 回测与判定卡 | 达标（截面） | `badge--cross` | `seal-check` |
+| 回测与判定卡 | 未达标 | `badge--fail` | `x-circle` |
+| 回测与判定卡 | 未验证 | `badge--unverified` | `seal-question` |
+| 锦囊动作 | 立项候选 | `badge--hit` | `flag` |
+| 锦囊动作 | 观察 | `badge--watch` | `eye` |
+| 锦囊动作 | 放弃 | `badge--miss` | `prohibit` |
+| 规则状态 | 已验证 | `badge--pass` | `seal-check` |
+| 规则状态 | 历史观察 | `.badge`（默认） | `clock-counter-clockwise` |
+| 规则状态 | 未验证经验 | `badge--unverified` | `seal-question` |
+| 标记 | 疑似重新上架 | `badge--warn` | `clock-counter-clockwise` |
+| 标记 | 需重算 | `badge--stale` | `arrows-clockwise` |
+| 标记 | 样本不足 | `badge--insufficient` | `info` |
+| 标记 | 阻断 / 警告 / 通过 | `badge--block` / `badge--warn` / `badge--ok` | `warning-octagon` / `warning` / `check-circle` |
+| 标记 | 已知晓 | `badge--ack` | `check` |
 
 ```css
 .badge {
@@ -846,6 +878,7 @@ button.etag:focus-visible { outline: none; box-shadow: var(--focus-ring); }
   font-size: var(--text-sm); font-weight: 500;
   transition: color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard);
 }
+button.tab { border: 0; background: transparent; font: inherit; cursor: pointer; }
 .tab:hover { color: var(--fg); background: var(--surface-raised); }
 .tab:active { background: var(--border-soft); }
 .tab:focus-visible { outline: none; box-shadow: var(--focus-ring); }

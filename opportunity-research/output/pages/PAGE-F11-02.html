@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F11-02">
+  <title>规则编辑 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html" aria-current="page"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <!-- 背景：策略库（简化），抽屉打开时位于遮罩之下 -->
+        <div class="page-head">
+          <div>
+            <h1>策略库</h1>
+            <p class="page-head__sub">规则有版本、有验证状态 · 任何修改都生成新版本 · 改了条件或动作的新版本回到"未验证经验"</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">规则</th>
+                <th scope="col">条件</th>
+                <th scope="col">动作</th>
+                <th scope="col">状态</th>
+                <th scope="col">最近修改</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="t-nowrap"><div class="cell-title mono">R-015 · v2</div><div class="cell-sub">回测生成</div></td>
+                <td>需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</td>
+                <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                <td class="t-nowrap">2027-05-08 10:44</td>
+              </tr>
+              <tr>
+                <td class="t-nowrap"><div class="cell-title mono">R-009 · v2</div><div class="cell-sub">回测生成</div></td>
+                <td>新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</td>
+                <td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td>
+                <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                <td class="t-nowrap">2027-05-08 10:44</td>
+              </tr>
+              <tr>
+                <td class="t-nowrap"><div class="cell-title mono">R-012 · v3</div><div class="cell-sub">回测生成</div></td>
+                <td>需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</td>
+                <td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span></td>
+                <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已验证</span></td>
+                <td class="t-nowrap">2027-05-08 10:07</td>
+              </tr>
+              <tr>
+                <td class="t-nowrap"><div class="cell-title mono">R-004 · v1</div><div class="cell-sub">回测生成（截面）</div></td>
+                <td>需求在涨 ≥ +15%<span class="etag etag--cross">截面</span></td>
+                <td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span></td>
+                <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                <td class="t-nowrap">2026-10-29 10:12</td>
+              </tr>
+              <tr class="is-selected">
+                <td class="t-nowrap"><div class="cell-title mono">R-016 · v2</div><div class="cell-sub">回测生成，v2 人工修改</div></td>
+                <td>需求在涨 ≥ +20% 且 形态 = 悬浮式 且 结构类痛点占比 ≥ 10%</td>
+                <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                <td class="t-nowrap">2027-04-02 14:20</td>
+              </tr>
+              <tr>
+                <td class="t-nowrap"><div class="cell-title mono">R-018 · v1</div><div class="cell-sub">人工新增</div></td>
+                <td>台面材质 = 岩板 且 宽度档 = ≥48″</td>
+                <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                <td class="t-nowrap">2027-03-20 16:05</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <aside class="drawer" id="rule-drawer" role="dialog" aria-modal="true" aria-labelledby="rule-title" data-open-on-load data-close-href="PAGE-F11-01.html">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="rule-title">编辑规则 R-016</h2>
+              <p class="drawer__sub">当前 v2 · <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span> · 由回测 BT-0024 生成，v2 由 wen 于 2027-04-02 修改</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+
+          <div class="drawer__body stack-lg">
+            <form class="stack-lg" id="rule-form" data-guard action="PAGE-F11-01.html" aria-label="规则内容">
+              <section aria-labelledby="cond-title">
+                <div class="section__head">
+                  <h3 id="cond-title">条件<span class="field__label"><span class="req">*</span></span></h3>
+                  <span class="section__note">全部满足时触发 · 回测按同一口径执行</span>
+                </div>
+                <div class="stack" id="cond-list">
+                  <div data-cond style="display:grid;grid-template-columns:20px minmax(0,1fr) 72px 120px 28px;gap:var(--space-2);align-items:center">
+                    <span class="small muted" data-join>当</span>
+                    <select class="select" aria-label="条件 1 · 维度或信号">
+                      <optgroup label="信号">
+                        <option selected>需求在涨（同比，窗口按品类配置）</option>
+                        <option>新品进得去</option>
+                        <option>结构类痛点占比</option>
+                        <option>高销低评占比</option>
+                      </optgroup>
+                      <optgroup label="候选信号">
+                        <option>单位 ASIN 贡献</option>
+                        <option>属性溢价</option>
+                        <option>属性趋势</option>
+                        <option>低分高销</option>
+                      </optgroup>
+                    </select>
+                    <select class="select" aria-label="条件 1 · 比较">
+                      <option selected>≥</option><option>&gt;</option><option>≤</option><option>&lt;</option>
+                    </select>
+                    <input class="input input--num" value="+20%" aria-label="条件 1 · 值">
+                    <button class="btn btn--ghost btn--sm btn--icon" type="button" data-remove aria-label="删除条件 1"><svg class="icon"><use href="#ph-x"/></svg></button>
+                  </div>
+                  <div data-cond style="display:grid;grid-template-columns:20px minmax(0,1fr) 72px 120px 28px;gap:var(--space-2);align-items:center">
+                    <span class="small muted" data-join>且</span>
+                    <select class="select" aria-label="条件 2 · 维度或信号">
+                      <optgroup label="维度与属性">
+                        <option>宽度档</option>
+                        <option selected>形态</option>
+                        <option>价格带</option>
+                        <option>安装方式</option>
+                        <option>元素</option>
+                        <option>台面形态</option>
+                        <option>柜体材质</option>
+                        <option>台面材质</option>
+                        <option>台盆材质</option>
+                        <option>颜色</option>
+                        <option>盆数</option>
+                      </optgroup>
+                    </select>
+                    <select class="select" aria-label="条件 2 · 比较">
+                      <option selected>=</option><option>≠</option>
+                    </select>
+                    <select class="select" aria-label="条件 2 · 值">
+                      <option>落地式</option><option selected>悬浮式</option>
+                    </select>
+                    <button class="btn btn--ghost btn--sm btn--icon" type="button" data-remove aria-label="删除条件 2"><svg class="icon"><use href="#ph-x"/></svg></button>
+                  </div>
+                  <div data-cond style="display:grid;grid-template-columns:20px minmax(0,1fr) 72px 120px 28px;gap:var(--space-2);align-items:center">
+                    <span class="small muted" data-join>且</span>
+                    <select class="select" aria-label="条件 3 · 维度或信号">
+                      <optgroup label="信号">
+                        <option>需求在涨（同比，窗口按品类配置）</option>
+                        <option>新品进得去</option>
+                        <option selected>结构类痛点占比</option>
+                        <option>高销低评占比</option>
+                      </optgroup>
+                      <optgroup label="候选信号">
+                        <option>单位 ASIN 贡献</option>
+                        <option>属性溢价</option>
+                        <option>属性趋势</option>
+                        <option>低分高销</option>
+                      </optgroup>
+                    </select>
+                    <select class="select" aria-label="条件 3 · 比较">
+                      <option selected>≥</option><option>&gt;</option><option>≤</option><option>&lt;</option>
+                    </select>
+                    <input class="input input--num" value="10%" aria-label="条件 3 · 值">
+                    <button class="btn btn--ghost btn--sm btn--icon" type="button" data-remove aria-label="删除条件 3"><svg class="icon"><use href="#ph-x"/></svg></button>
+                  </div>
+                </div>
+                <div class="row" style="margin-top: var(--space-3)">
+                  <button class="btn btn--sm" type="button" id="cond-add"><svg class="icon"><use href="#ph-plus"/></svg><span>添加条件</span></button>
+                  <span class="field__hint">维度取值来自品类配置 v2 的分档；信号按第 T 月只用早于 T 月数据的口径计算。</span>
+                </div>
+              </section>
+
+              <section aria-labelledby="act-title">
+                <h3 id="act-title">动作<span class="field__label"><span class="req">*</span></span></h3>
+                <div class="choice-group" role="radiogroup" aria-labelledby="act-title" style="margin-top: var(--space-3)">
+                  <label class="choice"><input type="radio" name="rule-action" value="go"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</label>
+                  <label class="choice"><input type="radio" name="rule-action" value="watch" checked><svg class="icon"><use href="#ph-eye"/></svg>观察</label>
+                  <label class="choice"><input type="radio" name="rule-action" value="drop"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</label>
+                </div>
+                <p class="field__hint" style="margin-top: var(--space-2)">条件或动作一改，保存后的新版本就是"未验证经验"，要重新经过回测才能回到"历史观察"。</p>
+              </section>
+
+              <div id="reset-hint" hidden>
+                <div class="banner banner--unverified" role="status">
+                  <svg class="icon"><use href="#ph-seal-question"/></svg>
+                  <div class="banner__body">
+                    <div class="banner__title">保存后状态将变为未验证经验</div>
+                    <div>你改了条件或动作。保存后生成 v3，状态为"未验证经验"；v2 保留原状态，可在版本历史里回看。</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="rule-reason">修改理由 <span class="req">*</span></label>
+                <textarea class="textarea" id="rule-reason" required placeholder="写明为什么改，例如依据哪次评审、哪批数据"></textarea>
+                <span class="field__hint">每次保存都要填写，随版本保留，连同操作人和时间一起记录。</span>
+              </div>
+            </form>
+
+            <section aria-labelledby="ver-title">
+              <div class="section__head">
+                <h3 id="ver-title">版本历史</h3>
+                <span class="section__note">只追加，不覆盖 · 旧版本保留原状态</span>
+              </div>
+              <div class="panel">
+                <ol class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-pencil-simple"/></svg>
+                    <div class="list__body">
+                      <div class="list__title row">v2 · 当前 <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></div>
+                      <div class="list__desc">2027-04-02 14:20 · wen · 理由：把需求在涨的阈值从 +15% 提高到 +20%——悬浮式搜索量受季节影响大，+15% 在旺季前后容易误报</div>
+                      <div class="diff" style="margin-top: var(--space-3)">
+                        <span class="diff__key">条件 1</span><span class="diff__old">需求在涨 ≥ +15%</span><span class="diff__new">需求在涨 ≥ +20%</span>
+                        <span class="diff__key">状态</span><span class="diff__old">历史观察</span><span class="diff__new">未验证经验</span>
+                      </div>
+                      <p class="list__desc" style="margin-top: var(--space-2)">条件 2、条件 3 和动作未改。</p>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flask"/></svg>
+                    <div class="list__body">
+                      <div class="list__title row">v1 <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></div>
+                      <div class="list__desc">2027-03-05 15:38 · 系统 · 由回测 BT-0024 生成（定规则批次 2025-04–2026-03，检验批次 2026-04–2026-09，样本 41）</div>
+                      <p class="small" style="margin-top: var(--space-2)">当 需求在涨 ≥ +15% 且 形态 = 悬浮式 且 结构类痛点占比 ≥ 10% → 观察</p>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+            </section>
+          </div>
+
+          <div class="drawer__foot">
+            <span class="small muted" data-dirty-hint hidden>有未保存的修改</span>
+            <span class="spacer"></span>
+            <button class="btn" type="button" data-close>取消</button>
+            <button class="btn btn--primary" type="submit" form="rule-form" data-save><svg class="icon"><use href="#ph-check"/></svg><span>保存为 v3</span></button>
+          </div>
+
+          <template id="cond-tpl">
+            <div data-cond style="display:grid;grid-template-columns:20px minmax(0,1fr) 72px 120px 28px;gap:var(--space-2);align-items:center">
+              <span class="small muted" data-join>且</span>
+              <select class="select" aria-label="维度或信号">
+                <option value="" selected disabled>选择维度或信号</option>
+                <optgroup label="信号">
+                  <option>需求在涨（同比，窗口按品类配置）</option>
+                  <option>新品进得去</option>
+                  <option>结构类痛点占比</option>
+                  <option>高销低评占比</option>
+                </optgroup>
+                <optgroup label="候选信号">
+                  <option>单位 ASIN 贡献</option>
+                  <option>属性溢价</option>
+                  <option>属性趋势</option>
+                  <option>低分高销</option>
+                </optgroup>
+                <optgroup label="维度与属性">
+                  <option>宽度档</option>
+                  <option>形态</option>
+                  <option>价格带</option>
+                  <option>安装方式</option>
+                  <option>元素</option>
+                  <option>台面形态</option>
+                  <option>柜体材质</option>
+                  <option>台面材质</option>
+                  <option>台盆材质</option>
+                  <option>颜色</option>
+                  <option>盆数</option>
+                </optgroup>
+              </select>
+              <select class="select" aria-label="比较">
+                <option>≥</option><option>&gt;</option><option>≤</option><option>&lt;</option><option>=</option><option>≠</option>
+              </select>
+              <input class="input" aria-label="值" placeholder="值">
+              <button class="btn btn--ghost btn--sm btn--icon" type="button" data-remove aria-label="删除这条条件"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+          </template>
+        </aside>
+
+        <script>
+          /* 条件增删与"状态将重置"提示（离开拦截沿用 app.js 的 form[data-guard]） */
+          (function () {
+            var list = document.getElementById('cond-list');
+            var tpl = document.getElementById('cond-tpl');
+            var hint = document.getElementById('reset-hint');
+            var reason = document.getElementById('rule-reason');
+            function relabel() {
+              var rows = list.querySelectorAll('[data-cond]');
+              rows.forEach(function (row, i) {
+                row.querySelector('[data-join]').textContent = i === 0 ? '当' : '且';
+                row.querySelector('[data-remove]').disabled = rows.length === 1;
+              });
+            }
+            function sig() {
+              var rows = Array.prototype.map.call(list.querySelectorAll('[data-cond]'), function (row) {
+                return Array.prototype.map.call(row.querySelectorAll('select, input'), function (el) { return el.value; }).join('|');
+              });
+              var act = document.querySelector('input[name="rule-action"]:checked');
+              return rows.join('&') + '#' + (act ? act.value : '');
+            }
+            var base = sig();
+            function changed() {
+              hint.hidden = sig() === base;
+              reason.dispatchEvent(new Event('input'));
+            }
+            list.addEventListener('change', changed);
+            list.addEventListener('input', changed);
+            document.querySelectorAll('input[name="rule-action"]').forEach(function (r) {
+              r.addEventListener('change', changed);
+            });
+            document.getElementById('cond-add').addEventListener('click', function () {
+              list.appendChild(tpl.content.cloneNode(true));
+              relabel();
+              changed();
+              var rows = list.querySelectorAll('[data-cond]');
+              rows[rows.length - 1].querySelector('select').focus();
+            });
+            list.addEventListener('click', function (e) {
+              var btn = e.target.closest('[data-remove]');
+              if (!btn || btn.disabled) return;
+              btn.closest('[data-cond]').remove();
+              relabel();
+              changed();
+            });
+            relabel();
+          })();
+        </script>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

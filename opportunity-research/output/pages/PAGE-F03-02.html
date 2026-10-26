@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F03-02">
+  <title>数据体检 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html" aria-current="page"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>数据体检</h1>
+            <p class="page-head__sub">数据包 P-0008 · 校验通过后自动运行，2027-05-08 09:18–09:19 · 预警阈值来自品类配置 v2 · 体检只提示，不修改源数据</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>预警阈值设置</span></a>
+          </div>
+        </div>
+
+        <div class="banner banner--warn enter" style="--i:1" id="warn-banner">
+          <svg class="icon"><use href="#ph-warning"/></svg>
+          <div class="banner__body">
+            <div class="banner__title">1 项预警待知晓</div>
+            <div>首次评分日期早于上架日期超过 7 天的子体占比 23.4%<span class="etag etag--n">n=9,906</span>，超过阈值 20%。标为已知晓并填写说明之前，首页会一直提示。</div>
+          </div>
+        </div>
+
+        <section class="section enter" style="--i:2" aria-labelledby="checks-title">
+          <div class="section__head">
+            <h2 class="section__title" id="checks-title">体检项</h2>
+            <span class="section__note">6 项 · 正常 5 · 预警 1 · 样例按偏离程度从大到小取前 5 条</span>
+          </div>
+          <div class="panel">
+            <ul class="list">
+              <li class="list__item" id="check-1">
+                <svg class="icon list__icon list__icon--warn"><use href="#ph-warning"/></svg>
+                <div class="list__body">
+                  <div class="row">
+                    <span class="list__title">1 · 首次评分日期早于上架日期超过 7 天的子体占比</span>
+                    <span class="badge badge--warn" data-ack-badge><svg class="icon"><use href="#ph-warning"/></svg>预警</span>
+                  </div>
+                  <div class="row small" style="margin-top: var(--space-2); column-gap: var(--space-6)">
+                    <span><span class="muted">数值</span> <strong class="num">23.4%</strong><span class="etag etag--n">n=9,906</span></span>
+                    <span><span class="muted">分子</span> <span class="num">2,318</span> 个子体</span>
+                    <span><span class="muted">分母</span> <span class="num">9,906</span> 个有首次评分日期的子体</span>
+                    <span><span class="muted">预警阈值</span> <span class="num">20%</span></span>
+                  </div>
+                  <div class="list__desc" style="margin-top: var(--space-2)">首评日期可能是父体共享口径：新子体挂在老父体下，会带上父体早年的评论。最早首评早于上架超过 7 天的 SPU 会标"疑似重新上架"。相关字段：C1、C2 的首次评分日期，<a href="PAGE-F02-01.html">字段约定</a>中已按"父体（疑似）· 按规则用"处理。</div>
+                  <p class="small" data-ack-note hidden></p>
+                  <details class="small" open style="margin-top: var(--space-3)">
+                    <summary>样例 5 条</summary>
+                    <div class="table-wrap" style="margin-top: var(--space-2)">
+                      <table class="table">
+                        <thead>
+                          <tr><th scope="col">子 ASIN</th><th scope="col">父 ASIN</th><th scope="col">品牌</th><th scope="col">上架日期</th><th scope="col">首次评分日期</th><th class="t-num" scope="col">早于上架</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td class="mono">B0DA7QW3KD</td><td class="mono">B08L5RT2XC</td><td>Fresca</td><td class="num">2025-12-02</td><td class="num">2020-10-02</td><td class="t-num">1,887 天</td></tr>
+                          <tr><td class="mono">B0D6TW1P4L</td><td class="mono">B08TB9X3KQ</td><td>James Martin</td><td class="num">2026-04-15</td><td class="num">2021-06-28</td><td class="t-num">1,752 天</td></tr>
+                          <tr><td class="mono">B0D2KD9V8R</td><td class="mono">B07ZQ4M6HN</td><td>Virtu USA</td><td class="num">2025-08-21</td><td class="num">2020-11-05</td><td class="t-num">1,750 天</td></tr>
+                          <tr><td class="mono">B0DH5TC1MZ</td><td class="mono">B0BN4WQ8KX</td><td>Wyndham Collection</td><td class="num">2026-10-03</td><td class="num">2022-01-15</td><td class="t-num">1,722 天</td></tr>
+                          <tr><td class="mono">B0DF2NB8WS</td><td class="mono">B0CK9TM2E4</td><td>eclife</td><td class="num">2026-09-09</td><td class="num">2023-04-11</td><td class="t-num">1,247 天</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                </div>
+                <div class="list__action" style="align-self: flex-start" data-ack-action>
+                  <button class="btn btn--sm" type="button" data-open="#ack-modal"><svg class="icon"><use href="#ph-seal-check"/></svg><span>标为已知晓</span></button>
+                </div>
+              </li>
+
+              <li class="list__item">
+                <svg class="icon list__icon list__icon--ok"><use href="#ph-check-circle"/></svg>
+                <div class="list__body">
+                  <div class="row">
+                    <span class="list__title">2 · 同一父体内子体上架日期跨度超过 180 天的家族数</span>
+                    <span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span>
+                  </div>
+                  <div class="row small" style="margin-top: var(--space-2); column-gap: var(--space-6)">
+                    <span><span class="muted">数值</span> <strong class="num">412</strong> 个家族，占 <span class="num">20.8%</span><span class="etag etag--n">n=1,977</span></span>
+                    <span><span class="muted">分母</span> <span class="num">1,977</span> 个有 2 个以上子体的家族</span>
+                    <span><span class="muted">预警阈值</span> <span class="num">25%</span></span>
+                  </div>
+                  <div class="list__desc" style="margin-top: var(--space-2)">跨度大多是老父体陆续挂上新子体，或上架日期取的是最早时间。晚于 SPU 上架日的子体按"新变体"处理，不计为新品。</div>
+                  <details class="small" style="margin-top: var(--space-3)">
+                    <summary>样例 5 条</summary>
+                    <div class="table-wrap" style="margin-top: var(--space-2)">
+                      <table class="table">
+                        <thead>
+                          <tr><th scope="col">父 ASIN</th><th scope="col">品牌</th><th class="t-num" scope="col">子体数</th><th scope="col">最早上架</th><th scope="col">最晚上架</th><th class="t-num" scope="col">跨度</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td class="mono">B07ZQ4M6HN</td><td>Virtu USA</td><td class="t-num">18</td><td class="num">2020-01-21</td><td class="num">2025-08-21</td><td class="t-num">2,039 天</td></tr>
+                          <tr><td class="mono">B08L5RT2XC</td><td>Fresca</td><td class="t-num">31</td><td class="num">2020-09-14</td><td class="num">2025-12-02</td><td class="t-num">1,905 天</td></tr>
+                          <tr><td class="mono">B08TB9X3KQ</td><td>James Martin</td><td class="t-num">12</td><td class="num">2021-02-03</td><td class="num">2026-04-15</td><td class="t-num">1,897 天</td></tr>
+                          <tr><td class="mono">B0BN4WQ8KX</td><td>Wyndham Collection</td><td class="t-num">23</td><td class="num">2021-11-08</td><td class="num">2026-10-03</td><td class="t-num">1,790 天</td></tr>
+                          <tr><td class="mono">B0CK9TM2E4</td><td>eclife</td><td class="t-num">14</td><td class="num">2023-03-02</td><td class="num">2026-09-09</td><td class="t-num">1,287 天</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                </div>
+              </li>
+
+              <li class="list__item">
+                <svg class="icon list__icon list__icon--ok"><use href="#ph-check-circle"/></svg>
+                <div class="list__body">
+                  <div class="row">
+                    <span class="list__title">3 · 子体月销量低于"过去一个月购买"标签下界的比例</span>
+                    <span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span>
+                  </div>
+                  <div class="row small" style="margin-top: var(--space-2); column-gap: var(--space-6)">
+                    <span><span class="muted">数值</span> <strong class="num">6.1%</strong><span class="etag etag--n">n=19,733</span></span>
+                    <span><span class="muted">分子</span> <span class="num">1,204</span> 个子体-月</span>
+                    <span><span class="muted">分母</span> <span class="num">19,733</span> 个有标签的子体-月</span>
+                    <span><span class="muted">预警阈值</span> <span class="num">10%</span></span>
+                  </div>
+                  <div class="list__desc" style="margin-top: var(--space-2)">子体月销量是第三方估算；低于亚马逊"过去一个月 x+ 购买"标签的下界，说明估算偏低。</div>
+                  <details class="small" style="margin-top: var(--space-3)">
+                    <summary>样例 5 条</summary>
+                    <div class="table-wrap" style="margin-top: var(--space-2)">
+                      <table class="table">
+                        <thead>
+                          <tr><th scope="col">子 ASIN</th><th scope="col">月份</th><th class="t-num" scope="col">子体月销量<span class="etag">估算</span></th><th scope="col">标签</th><th class="t-num" scope="col">标签下界</th><th class="t-num" scope="col">低于下界<span class="etag">推导</span></th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td class="mono">B0DB6YH2KM</td><td class="num">2027-03</td><td class="t-num">7 件</td><td class="mono">50+ bought in past month</td><td class="t-num">50</td><td class="t-num">86%</td></tr>
+                          <tr><td class="mono">B0D1KW8F5S</td><td class="num">2027-04</td><td class="t-num">12 件</td><td class="mono">50+ bought in past month</td><td class="t-num">50</td><td class="t-num">76%</td></tr>
+                          <tr><td class="mono">B0CXP4M2TR</td><td class="num">2027-04</td><td class="t-num">31 件</td><td class="mono">100+ bought in past month</td><td class="t-num">100</td><td class="t-num">69%</td></tr>
+                          <tr><td class="mono">B0D4ZL9C3Q</td><td class="num">2027-02</td><td class="t-num">64 件</td><td class="mono">200+ bought in past month</td><td class="t-num">200</td><td class="t-num">68%</td></tr>
+                          <tr><td class="mono">B0C8RT3N6V</td><td class="num">2027-03</td><td class="t-num">140 件</td><td class="mono">300+ bought in past month</td><td class="t-num">300</td><td class="t-num">53%</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                </div>
+              </li>
+
+              <li class="list__item">
+                <svg class="icon list__icon list__icon--ok"><use href="#ph-check-circle"/></svg>
+                <div class="list__body">
+                  <div class="row">
+                    <span class="list__title">4 · 各属性维度"未知"占比</span>
+                    <span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span>
+                  </div>
+                  <div class="row small" style="margin-top: var(--space-2); column-gap: var(--space-6)">
+                    <span><span class="muted">分母</span> <span class="num">41,325</span> 个子体（C4 属性标签）</span>
+                    <span><span class="muted">预警阈值</span> 每个维度 <span class="num">40%</span></span>
+                  </div>
+                  <div class="hbars" style="margin-top: var(--space-5); max-width: 640px" role="img" aria-label="未知占比：形态 18.2%，安装方式 21.5%，柜体材质 9.8%，元素 38.9%；阈值 40%">
+                    <span class="hbar__label">形态</span>
+                    <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:36.4%" tabindex="0" data-tip="18.2%|7,521 / 41,325 个子体"></span><span class="hbar__ref" style="left:80%"><span class="hbar__ref-label">阈值 40%</span></span></span>
+                    <span class="hbar__value">18.2%<span class="etag etag--n">n=41,325</span></span>
+                    <span class="hbar__label">安装方式</span>
+                    <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:43%" tabindex="0" data-tip="21.5%|8,885 / 41,325 个子体"></span><span class="hbar__ref" style="left:80%"></span></span>
+                    <span class="hbar__value">21.5%<span class="etag etag--n">n=41,325</span></span>
+                    <span class="hbar__label">柜体材质</span>
+                    <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:19.6%" tabindex="0" data-tip="9.8%|4,050 / 41,325 个子体"></span><span class="hbar__ref" style="left:80%"></span></span>
+                    <span class="hbar__value">9.8%<span class="etag etag--n">n=41,325</span></span>
+                    <span class="hbar__label">元素</span>
+                    <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:77.8%" tabindex="0" data-tip="38.9%|16,075 / 41,325 个子体|接近阈值 40%"></span><span class="hbar__ref" style="left:80%"></span></span>
+                    <span class="hbar__value">38.9%<span class="etag etag--n">n=41,325</span></span>
+                  </div>
+                  <div class="list__desc" style="margin-top: var(--space-3)">"未知"的子体归入该维度的"未知"档，不进入具体细分。元素已接近阈值，细分加入元素维度前建议先补标签。</div>
+                  <details class="small" style="margin-top: var(--space-3)">
+                    <summary>样例 5 条（按 2027-04 销量从高到低）</summary>
+                    <div class="table-wrap" style="margin-top: var(--space-2)">
+                      <table class="table">
+                        <thead>
+                          <tr><th scope="col">子 ASIN</th><th scope="col">品牌</th><th scope="col">"未知"的维度</th><th scope="col">证据状态</th><th class="t-num" scope="col">2027-04 销量<span class="etag">估算</span></th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td class="mono">B0CQ9MV4XS</td><td>VOWNER</td><td>元素</td><td>冲突：标题写 Shaker，五点写平板门</td><td class="t-num">412 件</td></tr>
+                          <tr><td class="mono">B0D7HN3K2W</td><td>Puluomis</td><td>元素、安装方式</td><td>信息不足</td><td class="t-num">268 件</td></tr>
+                          <tr><td class="mono">B0DA2LT8PE</td><td>Fine Fixtures</td><td>形态</td><td>信息不足</td><td class="t-num">197 件</td></tr>
+                          <tr><td class="mono">B0D5RC7Y1H</td><td>Water Creation</td><td>柜体材质</td><td>冲突：标题写实木，五点写 MDF</td><td class="t-num">153 件</td></tr>
+                          <tr><td class="mono">B0CZ6KF3JN</td><td>Eviva</td><td>安装方式、元素</td><td>信息不足</td><td class="t-num">121 件</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                </div>
+              </li>
+
+              <li class="list__item">
+                <svg class="icon list__icon list__icon--ok"><use href="#ph-check-circle"/></svg>
+                <div class="list__body">
+                  <div class="row">
+                    <span class="list__title">5 · 跨月父 ASIN 发生变化的子体数</span>
+                    <span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span>
+                  </div>
+                  <div class="row small" style="margin-top: var(--space-2); column-gap: var(--space-6)">
+                    <span><span class="muted">数值</span> <strong class="num">137</strong> 个子体，占 <span class="num">0.5%</span><span class="etag etag--n">n=28,604</span></span>
+                    <span><span class="muted">分母</span> <span class="num">28,604</span> 个出现在 2 个月以上的子体</span>
+                    <span><span class="muted">预警阈值</span> <span class="num">300</span> 个子体</span>
+                  </div>
+                  <div class="list__desc" style="margin-top: var(--space-2)">子体换了父体，可能影响 SPU 归并和类型属性的父体回填。</div>
+                  <details class="small" style="margin-top: var(--space-3)">
+                    <summary>样例 5 条（最近变化的在前）</summary>
+                    <div class="table-wrap" style="margin-top: var(--space-2)">
+                      <table class="table">
+                        <thead>
+                          <tr><th scope="col">子 ASIN</th><th scope="col">品牌</th><th scope="col">变化月份</th><th scope="col">原父 ASIN</th><th scope="col">新父 ASIN</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td class="mono">B0DM1RT8QX</td><td>SOLIDEE</td><td class="num">2027-04</td><td class="mono">B0DM1RT6KZ</td><td class="mono">B0DK7QW3M0</td></tr>
+                          <tr><td class="mono">B0DC3VN7HY</td><td>Bellemave</td><td class="num">2027-04</td><td class="mono">B0DC3VM1QT</td><td class="mono">B0DR8KT5WA</td></tr>
+                          <tr><td class="mono">B0CV2LR9JD</td><td>ARIEL</td><td class="num">2027-03</td><td class="mono">B0CV2LQ4MB</td><td class="mono">B0DJ8RK2TC</td></tr>
+                          <tr><td class="mono">B0D8XM5S2G</td><td>KEIKI</td><td class="num">2027-02</td><td class="mono">B0D8XM1F7N</td><td class="mono">B0DQ4PZ1VE</td></tr>
+                          <tr><td class="mono">B0CN6QT3PB</td><td>Modway</td><td class="num">2027-01</td><td class="mono">B0CN6QR8ZD</td><td class="mono">B0DM3CF2KL</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                </div>
+              </li>
+
+              <li class="list__item">
+                <svg class="icon list__icon list__icon--ok"><use href="#ph-check-circle"/></svg>
+                <div class="list__body">
+                  <div class="row">
+                    <span class="list__title">6 · 主键重复数</span>
+                    <span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span>
+                  </div>
+                  <div class="row small" style="margin-top: var(--space-2); column-gap: var(--space-6)">
+                    <span><span class="muted">数值</span> <strong class="num">0</strong> 行</span>
+                    <span><span class="muted">分母</span> <span class="num">665,504</span> 行（7 个文件，按各自主键检查）</span>
+                    <span><span class="muted">预警阈值</span> 出现 1 行即预警</span>
+                  </div>
+                  <div class="list__desc" style="margin-top: var(--space-2)">7 个文件都没有重复主键，没有样例。</div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:3" aria-labelledby="fp-title">
+          <div class="section__head">
+            <h2 class="section__title" id="fp-title">指纹比对</h2>
+            <span class="section__note">体检完成后重新计算只读副本的 SHA-256，与导入时逐个文件比对</span>
+          </div>
+          <div class="panel">
+            <div class="panel__body">
+              <div class="banner banner--ok">
+                <svg class="icon"><use href="#ph-fingerprint"/></svg>
+                <div class="banner__body">
+                  <div class="banner__title">导入时与当前 7 个文件指纹全部一致</div>
+                  <div>体检没有修改数据包 P-0008 的只读副本。比对时间 2027-05-08 09:19。</div>
+                </div>
+              </div>
+            </div>
+            <div class="table-wrap table-wrap--flush">
+              <table class="table">
+                <thead>
+                  <tr><th scope="col">文件</th><th scope="col">导入时（09:14）</th><th scope="col">体检完成后（09:19）</th><th scope="col">结果</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>C1 月度类目商品</td><td class="fp">2b7e41c95a10…d3f0</td><td class="fp">2b7e41c95a10…d3f0</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>一致</span></td></tr>
+                  <tr><td>C2 新品清单</td><td class="fp">8d03f6a2c419…7b2e</td><td class="fp">8d03f6a2c419…7b2e</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>一致</span></td></tr>
+                  <tr><td>C3 新品月度轨迹</td><td class="fp">e5194b703d8a…01c5</td><td class="fp">e5194b703d8a…01c5</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>一致</span></td></tr>
+                  <tr><td>C4 属性标签</td><td class="fp">47c2d8e19f06…a8d3</td><td class="fp">47c2d8e19f06…a8d3</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>一致</span></td></tr>
+                  <tr><td>C5 关键词月度</td><td class="fp">b90a3f56e271…4c19</td><td class="fp">b90a3f56e271…4c19</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>一致</span></td></tr>
+                  <tr><td>C6 评论痛点</td><td class="fp">13fd7c840b5e…e67a</td><td class="fp">13fd7c840b5e…e67a</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>一致</span></td></tr>
+                  <tr><td>C7 自家立项</td><td class="fp">6ae25d0b71c3…902f</td><td class="fp">6ae25d0b71c3…902f</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check"/></svg>一致</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <p class="page-foot">数据包 P-0008 · 品类配置 v2（预警阈值）· 字段约定 v7 · 体检只读取只读副本，不修改源数据</p>
+
+        <div class="modal" id="ack-modal" role="dialog" aria-modal="true" aria-labelledby="ack-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="ack-title">标为已知晓</h2>
+                <p class="modal__sub">体检项 1 · 数据包 P-0008 · 操作人 wen</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <div class="modal__body stack">
+              <dl class="kv">
+                <dt>体检项</dt><dd>首次评分日期早于上架日期超过 7 天的子体占比</dd>
+                <dt>数值</dt><dd>23.4%<span class="etag etag--n">n=9,906</span>（2,318 个子体）</dd>
+                <dt>预警阈值</dt><dd>20%（品类配置 v2）</dd>
+              </dl>
+              <div class="field">
+                <label class="field__label" for="ack-note">说明<span class="req">*</span></label>
+                <textarea class="textarea" id="ack-note" required aria-describedby="ack-hint" placeholder="写明为什么可以接受，或已经怎么处理。例：首评日期按父体共享口径处理，字段约定 v3 起只用于疑似重新上架提示。"></textarea>
+                <div class="field__error" id="ack-error" style="display: none"><svg class="icon"><use href="#ph-warning-octagon"/></svg>请填写说明，说明会和操作人、时间一起记录</div>
+                <span class="field__hint" id="ack-hint">标为已知晓后，首页不再提示本项。只对数据包 P-0008 有效，下一个数据包重新体检时超过阈值会再次提示。</span>
+              </div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="button" id="ack-confirm">标为已知晓</button>
+            </div>
+          </div>
+        </div>
+        <script>
+          (function () {
+            var note = document.getElementById('ack-note');
+            var err = document.getElementById('ack-error');
+            document.getElementById('ack-confirm').addEventListener('click', function () {
+              var text = note.value.trim();
+              if (!text) {
+                err.style.display = '';
+                note.setAttribute('aria-invalid', 'true');
+                note.focus();
+                return;
+              }
+              var item = document.getElementById('check-1');
+              var badge = item.querySelector('[data-ack-badge]');
+              badge.className = 'badge badge--ack';
+              badge.innerHTML = '<svg class="icon"><use href="#ph-seal-check"/></svg>已知晓';
+              var shown = item.querySelector('[data-ack-note]');
+              shown.textContent = '已知晓 · wen · 刚刚 · 说明：' + text;
+              shown.hidden = false;
+              item.querySelector('[data-ack-action]').style.display = 'none';
+              document.getElementById('warn-banner').style.display = 'none';
+              window.oppoClose('#ack-modal');
+              window.oppoToast('已标为已知晓，首页不再提示这项预警');
+            });
+            note.addEventListener('input', function () {
+              if (note.value.trim()) { err.style.display = 'none'; note.removeAttribute('aria-invalid'); }
+            });
+          })();
+        </script>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F12-01">
+  <title>导出报告 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html" aria-current="page"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <!-- 背景：本月排序（简化），弹窗打开时位于遮罩之下 -->
+        <div class="page-head">
+          <div>
+            <h1>本月排序</h1>
+            <p class="page-head__sub">2027-05 · 数据至 2027-04 · 历史口径 · <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>判定卡 v4 已达标</span></p>
+            <p class="page-head__sub">参照人群：起量新品（任一月父体月销 ≥ 60 件） · <span class="lock"><svg class="icon"><use href="#ph-lock-simple"/></svg>本月快照已保存（第 1 版）· 2027-05-08 10:46</span></p>
+          </div>
+          <div class="page-head__actions">
+            <span class="btn" aria-hidden="true"><svg class="icon"><use href="#ph-export"/></svg><span>导出报告</span></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="t-num" scope="col">排名</th>
+                <th scope="col">细分</th>
+                <th class="t-num" scope="col">得分</th>
+                <th scope="col">预期命中率（90% 区间）</th>
+                <th class="t-num" scope="col">样本量</th>
+                <th scope="col">锦囊动作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="t-num">1</td><td class="t-nowrap"><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></td><td class="t-num">0.81</td><td class="t-nowrap"><span class="ibar"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="72" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="96" cy="10" r="4"/></svg></span><span class="ibar-text">36%（27–46%）</span><span class="etag etag--n">n=47</span></td><td class="t-num">47</td><td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span> <span class="mono muted">R-012</span></td></tr>
+              <tr><td class="t-num">2</td><td class="t-nowrap"><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></td><td class="t-num">0.74</td><td class="t-nowrap"><span class="ibar"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="56" y="7" width="58.7" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="82.7" cy="10" r="4"/></svg></span><span class="ibar-text">31%（21–43%）</span><span class="etag etag--n">n=29</span></td><td class="t-num">29</td><td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span> <span class="mono muted">R-012</span></td></tr>
+              <tr><td class="t-num">3</td><td class="t-nowrap"><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></td><td class="t-num">0.66</td><td class="t-nowrap"><span class="ibar"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="48" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="72" cy="10" r="4"/></svg></span><span class="ibar-text">27%（18–38%）</span><span class="etag etag--n">n=33</span></td><td class="t-num">33</td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span> <span class="mono muted">R-015</span></td></tr>
+              <tr><td class="t-num">4</td><td class="t-nowrap"><span class="segname"><span>≤30″</span><span>落地式</span><span>&lt;$500</span></span></td><td class="t-num">0.58</td><td class="t-nowrap"><span class="ibar"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="42.7" y="7" width="34.7" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="58.7" cy="10" r="4"/></svg></span><span class="ibar-text">22%（16–29%）</span><span class="etag etag--n">n=88</span></td><td class="t-num">88</td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span> <span class="mono muted">R-015</span></td></tr>
+              <tr><td class="t-num">5</td><td class="t-nowrap"><span class="segname"><span>30–48″</span><span>落地式</span><span>&lt;$500</span></span></td><td class="t-num">0.52</td><td class="t-nowrap"><span class="ibar"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="34.7" y="7" width="37.3" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="50.7" cy="10" r="4"/></svg></span><span class="ibar-text">19%（13–27%）</span><span class="etag etag--n">n=61</span></td><td class="t-num">61</td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span> <span class="mono muted">R-015</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="modal" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" data-open-on-load data-close-href="PAGE-F09-01.html">
+          <div class="modal__dialog modal__dialog--wide">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="export-title">导出报告</h2>
+                <p class="modal__sub">2027-05 · 快照第 1 版 · Excel 与网页报告</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+
+            <div class="tabs" role="tablist" aria-label="导出步骤" style="margin: 0; padding: var(--space-1) var(--space-5) 0">
+              <a class="tab" href="#exp-confirm" role="tab" aria-selected="false" aria-controls="exp-confirm">1 确认内容</a>
+              <a class="tab" href="#exp-running" role="tab" aria-selected="false" aria-controls="exp-running">2 生成中</a>
+              <a class="tab" href="#exp-result" role="tab" aria-selected="true" aria-controls="exp-result">3 结果</a>
+            </div>
+
+            <!-- 第 1 步：确认内容 -->
+            <div id="exp-confirm" role="tabpanel" hidden style="min-height: 0; overflow-y: auto">
+              <div class="modal__body stack-lg">
+                <dl class="kv">
+                  <dt>排序月份</dt><dd>2027-05（数据至 2027-04）</dd>
+                  <dt>快照</dt><dd><span class="lock"><svg class="icon"><use href="#ph-lock-simple"/></svg>第 1 版 · 2027-05-08 10:46 保存，不可修改</span></dd>
+                  <dt>判定卡</dt><dd>v4 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span> · 回测 BT-0031 · 倍数 2.24×</dd>
+                  <dt>口径</dt><dd>历史（判定卡状态以历史口径为准）</dd>
+                  <dt>参照人群</dt><dd>起量新品（任一月父体月销 ≥ 60 件）</dd>
+                  <dt>版本</dt><dd>数据包 P-0008 · 字段约定 v7 · 品类配置 v2</dd>
+                </dl>
+                <div class="panel">
+                  <ul class="list">
+                    <li class="list__item">
+                      <svg class="icon icon--lg list__icon"><use href="#ph-file-xls"/></svg>
+                      <div class="list__body">
+                        <div class="list__title">Excel · 9 张工作表</div>
+                        <div class="list__desc">首页、细分排序、锦囊、判定卡版本、回测摘要、台账（快照、立项记录、对账）、版本信息</div>
+                      </div>
+                    </li>
+                    <li class="list__item">
+                      <svg class="icon icon--lg list__icon"><use href="#ph-file-html"/></svg>
+                      <div class="list__body">
+                        <div class="list__title">网页报告 · 单个 HTML 文件</div>
+                        <div class="list__desc">结论在首屏，依据可展开；结果接收方不装系统、不联网也能打开</div>
+                      </div>
+                    </li>
+                    <li class="list__item">
+                      <svg class="icon icon--lg list__icon"><use href="#ph-folder-simple"/></svg>
+                      <div class="list__body">
+                        <div class="list__title">保存到</div>
+                        <div class="list__desc fp">D:\机会判定台\导出\2027-05\</div>
+                      </div>
+                    </li>
+                    <li class="list__item">
+                      <svg class="icon icon--lg list__icon"><use href="#ph-archive"/></svg>
+                      <div class="list__body">
+                        <div class="list__title">导出后自动备份</div>
+                        <div class="list__desc">台账、策略库、字段约定、品类配置和全部确认记录 → <span class="fp">D:\机会判定台备份\</span></div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <p class="small muted">两个文件的首页都写明判定卡版本与状态、口径和参照人群。</p>
+              </div>
+              <div class="modal__foot">
+                <button class="btn" type="button" data-close>取消</button>
+                <button class="btn btn--primary" type="button" data-simulate="导出完成，已自动备份" data-loading-text="导出中…"><svg class="icon"><use href="#ph-export"/></svg><span>开始导出</span></button>
+              </div>
+            </div>
+
+            <!-- 第 2 步：生成中 -->
+            <div id="exp-running" role="tabpanel" hidden style="min-height: 0; overflow-y: auto">
+              <div class="modal__body stack-lg">
+                <div>
+                  <div class="row"><span class="strong">正在生成</span><span class="spacer"></span><span class="small muted num">57% · 已用 18 秒</span></div>
+                  <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="57" aria-label="导出进度 57%"><i style="width:57%"></i></div>
+                </div>
+                <div class="panel">
+                  <ul class="list">
+                    <li class="list__item">
+                      <svg class="icon list__icon list__icon--ok"><use href="#ph-check-circle"/></svg>
+                      <div class="list__body"><div class="list__title">读取快照 2027-05 第 1 版</div><div class="list__desc">已完成 · 内容指纹与保存时一致</div></div>
+                    </li>
+                    <li class="list__item">
+                      <svg class="icon list__icon spin"><use href="#ph-circle-notch"/></svg>
+                      <div class="list__body"><div class="list__title">写入 Excel</div><div class="list__desc">第 4 / 9 张工作表：判定卡版本</div></div>
+                    </li>
+                    <li class="list__item">
+                      <svg class="icon list__icon"><use href="#ph-clock"/></svg>
+                      <div class="list__body"><div class="list__title">生成网页报告</div><div class="list__desc">等待</div></div>
+                    </li>
+                    <li class="list__item">
+                      <svg class="icon list__icon"><use href="#ph-clock"/></svg>
+                      <div class="list__body"><div class="list__title">自动备份</div><div class="list__desc">等待 · 导出完成后开始</div></div>
+                    </li>
+                  </ul>
+                </div>
+                <p class="small muted">可以关闭此窗口，导出在后台继续，进度显示在顶栏，完成后提示。</p>
+              </div>
+              <div class="modal__foot">
+                <button class="btn" type="button" data-close>在后台继续</button>
+              </div>
+            </div>
+
+            <!-- 第 3 步：结果 -->
+            <div id="exp-result" role="tabpanel" style="min-height: 0; overflow-y: auto">
+              <div class="modal__body stack-lg">
+                <div class="banner banner--ok">
+                  <svg class="icon"><use href="#ph-check-circle"/></svg>
+                  <div class="banner__body">
+                    <div class="banner__title">导出完成 · 2027-05-08 11:32</div>
+                    <div>2027-05 快照第 1 版 · 判定卡 v4 已达标 · 历史口径。快照已标为"已导出"，对账用本月最后一次导出的快照。</div>
+                  </div>
+                </div>
+
+                <section aria-labelledby="exp-files-title">
+                  <div class="section__head">
+                    <h3 id="exp-files-title">文件</h3>
+                    <button class="btn btn--sm" type="button" data-toast="已在资源管理器中打开 D:\机会判定台\导出\2027-05\"><svg class="icon"><use href="#ph-folder-open"/></svg><span>打开所在文件夹</span></button>
+                  </div>
+                  <div class="panel">
+                    <ul class="list">
+                      <li class="list__item">
+                        <svg class="icon icon--lg list__icon"><use href="#ph-file-xls"/></svg>
+                        <div class="list__body">
+                          <div class="list__title">Excel · 9 张工作表 · 86 KB</div>
+                          <div class="list__desc fp">D:\机会判定台\导出\2027-05\浴室柜_机会判定_2027-05_快照1.xlsx</div>
+                        </div>
+                      </li>
+                      <li class="list__item">
+                        <svg class="icon icon--lg list__icon"><use href="#ph-file-html"/></svg>
+                        <div class="list__body">
+                          <div class="list__title">网页报告 · 单个文件，离线可打开 · 83 KB</div>
+                          <div class="list__desc fp">D:\机会判定台\导出\2027-05\浴室柜_机会判定_2027-05_快照1.html</div>
+                        </div>
+                        <a class="btn btn--sm list__action" href="PAGE-F12-02.html"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>打开网页报告</span></a>
+                      </li>
+                    </ul>
+                  </div>
+                </section>
+
+                <section aria-labelledby="exp-backup-title">
+                  <div class="section__head">
+                    <h3 id="exp-backup-title">自动备份</h3>
+                    <a class="small" href="PAGE-F10-03.html">备份与恢复</a>
+                  </div>
+                  <div class="panel">
+                    <ul class="list">
+                      <li class="list__item">
+                        <svg class="icon list__icon list__icon--ok"><use href="#ph-check-circle"/></svg>
+                        <div class="list__body">
+                          <div class="list__title">备份完成 · 2027-05-08 11:33 · 38.6 MB</div>
+                          <div class="list__desc">台账、策略库、字段约定、品类配置和全部确认记录，附数据包指纹清单</div>
+                          <div class="list__desc fp">D:\机会判定台备份\备份_20270508_1133\</div>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                </section>
+              </div>
+              <div class="modal__foot">
+                <button class="btn" type="button" data-close>完成</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

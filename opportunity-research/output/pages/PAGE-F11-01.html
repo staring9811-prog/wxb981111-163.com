@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F11-01">
+  <title>策略库 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html" aria-current="page"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>策略库</h1>
+            <p class="page-head__sub">规则有版本、有验证状态 · 任何修改都生成新版本 · 改了条件或动作的新版本回到"未验证经验"</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn btn--primary" href="PAGE-F11-02.html"><svg class="icon"><use href="#ph-plus"/></svg><span>新增经验规则</span></a>
+          </div>
+        </div>
+
+        <div class="stats enter" style="--i:1">
+          <div class="stat">
+            <div class="stat__label"><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已验证</span></div>
+            <div class="stat__value">1<span class="stat__unit">条</span></div>
+            <div class="stat__meta">历史观察规则在台账对账中命中率倍数 ≥ 2，记录对账月份</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label"><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></div>
+            <div class="stat__value">6<span class="stat__unit">条</span></div>
+            <div class="stat__meta">由达标的回测生成，或人工规则进入回测并达标</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></div>
+            <div class="stat__value">11<span class="stat__unit">条</span></div>
+            <div class="stat__meta">人工新增，或修改了条件、动作后重置</div>
+          </div>
+        </div>
+
+        <section class="section enter" style="--i:2" aria-labelledby="rules-title" data-filter-scope="#rule-table">
+          <div class="section__head">
+            <h2 class="section__title" id="rules-title">规则</h2>
+            <span class="section__note">当前显示 <span data-filter-count>18</span> 条 · 共 18 条 · 点击一行查看版本历史或修改</span>
+          </div>
+          <div class="filters" role="group" aria-label="规则筛选">
+            <span class="filters__label">状态</span>
+            <button class="chip" type="button" data-filter="status:all" aria-pressed="true">全部 <span class="count">18</span></button>
+            <button class="chip" type="button" data-filter="status:verified" aria-pressed="false">已验证 <span class="count">1</span></button>
+            <button class="chip" type="button" data-filter="status:observed" aria-pressed="false">历史观察 <span class="count">8</span></button>
+            <button class="chip" type="button" data-filter="status:unverified" aria-pressed="false">未验证经验 <span class="count">9</span></button>
+            <span class="filters__sep" aria-hidden="true"></span>
+            <span class="filters__label">来源</span>
+            <button class="chip" type="button" data-filter="source:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="source:manual" aria-pressed="false">人工 <span class="count">8</span></button>
+            <button class="chip" type="button" data-filter="source:backtest" aria-pressed="false">回测 <span class="count">10</span></button>
+            <span class="spacer"></span>
+            <label class="search"><svg class="icon"><use href="#ph-magnifying-glass"/></svg><span class="visually-hidden">搜索</span><input class="input" type="search" placeholder="规则编号、条件或理由"></label>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="rule-table">
+              <thead>
+                <tr>
+                  <th scope="col">规则</th>
+                  <th scope="col">条件</th>
+                  <th scope="col">动作</th>
+                  <th scope="col">状态</th>
+                  <th scope="col"><button class="th-sort" type="button" aria-sort="descending">最近修改<svg class="icon"><use href="#ph-caret-down"/></svg></button></th>
+                  <th scope="col">依据</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-href="PAGE-F11-02.html" data-status="observed" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-015 · v2</div><div class="cell-sub">回测生成</div></td>
+                  <td>需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</td>
+                  <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                  <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                  <td class="t-nowrap" data-sort="202705081044">2027-05-08 10:44<div class="cell-sub">系统 · 回测 BT-0031</div></td>
+                  <td><a class="tlink" href="PAGE-F07-01.html">回测 BT-0031</a><div class="cell-sub">批次 2025-04–2026-11 · 样本 182</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="observed" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-009 · v2</div><div class="cell-sub">回测生成</div></td>
+                  <td>新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</td>
+                  <td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td>
+                  <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                  <td class="t-nowrap" data-sort="202705081044">2027-05-08 10:44<div class="cell-sub">系统 · 回测 BT-0031</div></td>
+                  <td><a class="tlink" href="PAGE-F07-01.html">回测 BT-0031</a><div class="cell-sub">批次 2025-04–2026-11 · 样本 97</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="verified" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-012 · v3</div><div class="cell-sub">回测生成</div></td>
+                  <td>需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</td>
+                  <td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span></td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已验证</span></td>
+                  <td class="t-nowrap" data-sort="202705081007">2027-05-08 10:07<div class="cell-sub">系统 · 到期对账</div></td>
+                  <td><a class="tlink" href="PAGE-F10-05.html">对账 2026-11 快照</a><div class="cell-sub">倍数 2.07×<button class="etag etag--n" type="button" data-pop-title="2026-11 快照对账" data-pop="前 20% 细分=4 / 9 = 44.4%;全类目=6 / 28 = 21.4%;倍数=2.07×;回测预期区间=27–46%（落在区间内）;对账日期=2027-05-08">n=28</button></div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="unverified" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-016 · v2</div><div class="cell-sub">回测生成，v2 人工修改</div></td>
+                  <td>需求在涨 ≥ +20% 且 形态 = 悬浮式 且 结构类痛点占比 ≥ 10%</td>
+                  <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                  <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                  <td class="t-nowrap" data-sort="202704021420">2027-04-02 14:20<div class="cell-sub">wen</div></td>
+                  <td>人工修改条件<div class="cell-sub">需求在涨阈值 +15% → +20%，状态由历史观察重置</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="unverified" data-source="manual">
+                  <td class="t-nowrap"><div class="cell-title mono">R-018 · v1</div><div class="cell-sub">人工新增</div></td>
+                  <td>台面材质 = 岩板 且 宽度档 = ≥48″</td>
+                  <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub">先观察两个月的新品命中再决定</div></td>
+                  <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                  <td class="t-nowrap" data-sort="202703201605">2027-03-20 16:05<div class="cell-sub">wen</div></td>
+                  <td>人工判断<div class="cell-sub">2027-03 立项评审时的供应链判断</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="unverified" data-source="manual">
+                  <td class="t-nowrap"><div class="cell-title mono">R-017 · v1</div><div class="cell-sub">人工新增</div></td>
+                  <td>台盆材质 = 树脂 且 价格带 = &lt;$500</td>
+                  <td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td>
+                  <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                  <td class="t-nowrap" data-sort="202703081512">2027-03-08 15:12<div class="cell-sub">wen</div></td>
+                  <td>人工判断<div class="cell-sub">树脂盆低价款的差评集中在开裂、发黄</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="unverified" data-source="manual">
+                  <td class="t-nowrap"><div class="cell-title mono">R-014 · v1</div><div class="cell-sub">人工新增</div></td>
+                  <td>台面形态 = 一体盆 且 形态 = 落地式</td>
+                  <td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span></td>
+                  <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                  <td class="t-nowrap" data-sort="202702161140">2027-02-16 11:40<div class="cell-sub">wen</div></td>
+                  <td>人工判断<div class="cell-sub">一体盆清洁方便，评论里好评集中</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="unverified" data-source="manual">
+                  <td class="t-nowrap"><div class="cell-title mono">R-002 · v2</div><div class="cell-sub">人工新增</div></td>
+                  <td>台面材质 = 石英石 且 价格带 = $500–900</td>
+                  <td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span></td>
+                  <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                  <td class="t-nowrap" data-sort="202701151722">2027-01-15 17:22<div class="cell-sub">wen</div></td>
+                  <td>人工修改条件<div class="cell-sub">价格带由 ≥$900 改为 $500–900：石英石台面在中价位更常见</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="observed" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-013 · v1</div><div class="cell-sub">回测生成</div></td>
+                  <td>高销低评占比 ≥ 8% 且 价格带 = $500–900</td>
+                  <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                  <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                  <td class="t-nowrap" data-sort="202612041550">2026-12-04 15:50<div class="cell-sub">系统 · 回测 BT-0016</div></td>
+                  <td><span class="mono">回测 BT-0016</span><div class="cell-sub">批次 2025-04–2026-06 · 样本 64</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="observed" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-011 · v1</div><div class="cell-sub">回测生成</div></td>
+                  <td>需求在涨 ≤ −5%</td>
+                  <td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td>
+                  <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                  <td class="t-nowrap" data-sort="202611101652">2026-11-10 16:52<div class="cell-sub">系统 · 回测 BT-0012</div></td>
+                  <td><span class="mono">回测 BT-0012</span><div class="cell-sub">批次 2025-04–2026-05 · 样本 121</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="observed" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-010 · v1</div><div class="cell-sub">回测生成</div></td>
+                  <td>结构类痛点占比 ≥ 15% 且 需求在涨 ≥ +5%</td>
+                  <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                  <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                  <td class="t-nowrap" data-sort="202611101652">2026-11-10 16:52<div class="cell-sub">系统 · 回测 BT-0012</div></td>
+                  <td><span class="mono">回测 BT-0012</span><div class="cell-sub">批次 2025-04–2026-05 · 样本 58</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="unverified" data-source="manual">
+                  <td class="t-nowrap"><div class="cell-title mono">R-008 · v1</div><div class="cell-sub">人工新增</div></td>
+                  <td>单位 ASIN 贡献 ≥ 40 件<span class="etag etag--cand">候选</span> 且 属性溢价 ≥ +10%<span class="etag etag--cand">候选</span></td>
+                  <td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span></td>
+                  <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                  <td class="t-nowrap" data-sort="202611091803">2026-11-09 18:03<div class="cell-sub">wen</div></td>
+                  <td>人工判断<div class="cell-sub">现用指标经验：单品承接量大且有溢价</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="unverified" data-source="manual">
+                  <td class="t-nowrap"><div class="cell-title mono">R-007 · v1</div><div class="cell-sub">人工新增</div></td>
+                  <td>安装方式 = 壁挂 且 宽度档 = ≤30″</td>
+                  <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                  <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                  <td class="t-nowrap" data-sort="202611091746">2026-11-09 17:46<div class="cell-sub">wen</div></td>
+                  <td>人工判断<div class="cell-sub">小户型壁挂需求，来自 2026 年初人工研究报告</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="observed" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-004 · v1</div><div class="cell-sub">回测生成（截面）</div></td>
+                  <td>需求在涨 ≥ +15%<span class="etag etag--cross">截面</span></td>
+                  <td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span></td>
+                  <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                  <td class="t-nowrap" data-sort="202610291012">2026-10-29 10:12<div class="cell-sub">系统 · 回测 BT-0007</div></td>
+                  <td><span class="mono">回测 BT-0007</span><div class="cell-sub">截面口径 · 检验组 2026-07–2026-09 · 新品-月 96</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="observed" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-006 · v1</div><div class="cell-sub">回测生成（截面）</div></td>
+                  <td>需求在涨 &lt; +5%<span class="etag etag--cross">截面</span></td>
+                  <td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td>
+                  <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                  <td class="t-nowrap" data-sort="202610291012">2026-10-29 10:12<div class="cell-sub">系统 · 回测 BT-0007</div></td>
+                  <td><span class="mono">回测 BT-0007</span><div class="cell-sub">截面口径 · 检验组 2026-07–2026-09 · 新品-月 40</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="observed" data-source="backtest">
+                  <td class="t-nowrap"><div class="cell-title mono">R-005 · v1</div><div class="cell-sub">回测生成（截面）</div></td>
+                  <td>需求在涨 ≥ +5% 且 需求在涨 &lt; +15%<span class="etag etag--cross">截面</span></td>
+                  <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                  <td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td>
+                  <td class="t-nowrap" data-sort="202610291012">2026-10-29 10:12<div class="cell-sub">系统 · 回测 BT-0007</div></td>
+                  <td><span class="mono">回测 BT-0007</span><div class="cell-sub">截面口径 · 检验组 2026-07–2026-09 · 新品-月 78</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="unverified" data-source="manual">
+                  <td class="t-nowrap"><div class="cell-title mono">R-003 · v1</div><div class="cell-sub">人工新增</div></td>
+                  <td>价格带 = &lt;$500 且 高销低评占比 ≥ 10%</td>
+                  <td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td>
+                  <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                  <td class="t-nowrap" data-sort="202610281712">2026-10-28 17:12<div class="cell-sub">wen</div></td>
+                  <td>人工判断<div class="cell-sub">低价段差评集中，难靠改款翻身</div></td>
+                </tr>
+                <tr data-href="PAGE-F11-02.html" data-status="unverified" data-source="manual">
+                  <td class="t-nowrap"><div class="cell-title mono">R-001 · v1</div><div class="cell-sub">人工新增</div></td>
+                  <td>柜体材质 = 实木 且 价格带 = ≥$900</td>
+                  <td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span></td>
+                  <td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td>
+                  <td class="t-nowrap" data-sort="202610281705">2026-10-28 17:05<div class="cell-sub">wen</div></td>
+                  <td>人工判断<div class="cell-sub">实木高端款退货率低、口碑稳定（2026 年初人工研究报告）</div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <p class="page-foot">判定卡 v4 的锦囊引用 R-012、R-015、R-009、R-018 · 规则只追加版本、不删除 · 系统写入的版本记为"系统"，并注明触发它的回测或对账</p>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

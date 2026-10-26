@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F01-01">
+  <title>数据包 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html" aria-current="page"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>数据包</h1>
+            <p class="page-head__sub">导入后只读保存并计算每个文件的指纹，后续计算只读取这份副本 · 当前历史数据包 P-0008，截面数据包 P-0001</p>
+          </div>
+        </div>
+
+        <section class="panel enter" style="--i:1" aria-labelledby="import-title">
+          <div class="panel__head">
+            <h2 class="panel__title" id="import-title">导入数据包</h2>
+            <span class="section__note">按清单文件声明的类型校验：历史数据包用约定 v1，截面数据包用约定 v1.1</span>
+          </div>
+          <div class="panel__body stack">
+            <div class="dropzone">
+              <svg class="icon"><use href="#ph-file-zip"/></svg>
+              <div style="flex:1; min-width:0">
+                <div class="strong">把 zip 或数据包文件夹拖到这里</div>
+                <div class="small muted">根目录需有清单文件，写明类型（历史 / 截面）、品类、站点、覆盖月份和文件列表</div>
+              </div>
+              <label class="btn">选择 zip<input class="visually-hidden" type="file" accept=".zip"></label>
+              <label class="btn">选择文件夹<input class="visually-hidden" type="file" webkitdirectory></label>
+            </div>
+
+            <div class="stack" aria-labelledby="preview-title">
+              <div class="row">
+                <svg class="icon"><use href="#ph-file-zip"/></svg>
+                <h3 id="preview-title">浴室柜_数据包_202704.zip</h3>
+                <span class="small muted">386.4 MB · 11:16 读取清单文件</span>
+              </div>
+              <div class="banner" role="status">
+                <svg class="icon"><use href="#ph-info"/></svg>
+                <div class="banner__body">
+                  <div class="banner__title">该数据包已导入</div>
+                  <div>7 个文件的指纹与 P-0008（2027-05-08 09:14 导入）完全相同，没有新建版本。</div>
+                </div>
+                <div class="banner__actions">
+                  <a class="btn btn--sm" href="PAGE-F01-02.html">查看 P-0008</a>
+                </div>
+              </div>
+              <div class="grid-2" style="align-items: start">
+                <dl class="kv">
+                  <dt>清单文件</dt><dd>已找到，类型可识别</dd>
+                  <dt>类型</dt><dd>历史数据包 · 按约定 v1 校验</dd>
+                  <dt>品类</dt><dd>浴室柜（类目节点 6810202011）</dd>
+                  <dt>站点</dt><dd>亚马逊美国</dd>
+                  <dt>覆盖月份</dt><dd>2024-10–2027-04 · 31 个月</dd>
+                  <dt>文件</dt><dd>7 个：C1–C6 必需文件齐全，另有可选的 C7</dd>
+                  <dt>指纹比对</dt><dd>7 个文件与已有版本 P-0008 全部相同</dd>
+                </dl>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">清单中的文件</th>
+                        <th scope="col">约定</th>
+                        <th class="t-num" scope="col">行数</th>
+                        <th scope="col">指纹（前 8 位）</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>C1 月度类目商品</td><td class="small">必需</td><td class="t-num">412,806</td><td class="fp">2b7e41c9</td></tr>
+                      <tr><td>C2 新品清单</td><td class="small">必需</td><td class="t-num">2,214</td><td class="fp">8d03f6a2</td></tr>
+                      <tr><td>C3 新品月度轨迹</td><td class="small">必需</td><td class="t-num">15,870</td><td class="fp">e5194b70</td></tr>
+                      <tr><td>C4 属性标签</td><td class="small">必需</td><td class="t-num">41,325</td><td class="fp">47c2d8e1</td></tr>
+                      <tr><td>C5 关键词月度</td><td class="small">必需</td><td class="t-num">9,833</td><td class="fp">b90a3f56</td></tr>
+                      <tr><td>C6 评论痛点</td><td class="small">必需</td><td class="t-num">183,452</td><td class="fp">13fd7c84</td></tr>
+                      <tr><td>C7 自家立项</td><td class="small muted">可选</td><td class="t-num">4</td><td class="fp">6ae25d0b</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="row">
+                <span class="spacer"></span>
+                <button class="btn btn--ghost" type="button">重新选择</button>
+                <button class="btn btn--primary" type="button" aria-disabled="true" data-tip="该数据包已导入|没有新建版本，无需再导入"><span>开始导入并校验</span></button>
+              </div>
+            </div>
+
+            <details class="small">
+              <summary>数据包需要哪些文件</summary>
+              <div class="grid-2" style="margin-top: var(--space-2); align-items: start">
+                <dl class="kv">
+                  <dt>历史 · 约定 v1</dt><dd>C1 月度类目商品、C2 新品清单、C3 新品月度轨迹、C4 属性标签、C5 关键词月度、C6 评论痛点为必需；C7 自家立项可选</dd>
+                </dl>
+                <dl class="kv">
+                  <dt>截面 · 约定 v1.1</dt><dd>S1 观察期月度类目商品、S2 新品期起量新品、S3 新品观察期月度数据、C4 属性标签为必需；C5–C7 可选，没有 C6 时缺少痛点信号</dd>
+                </dl>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:2" aria-labelledby="list-title" data-filter-scope="#pkg-table">
+          <div class="section__head">
+            <h2 class="section__title" id="list-title">数据包版本</h2>
+            <span class="section__note">共 8 个，新的在上 · 每种类型以最新通过校验的版本为当前</span>
+          </div>
+          <div class="filters" role="group" aria-label="类型筛选">
+            <span class="filters__label">类型</span>
+            <button class="chip" type="button" data-filter="type:all" aria-pressed="true">全部 <span class="count">8</span></button>
+            <button class="chip" type="button" data-filter="type:history" aria-pressed="false">历史 <span class="count">7</span></button>
+            <button class="chip" type="button" data-filter="type:cross" aria-pressed="false">截面 <span class="count">1</span></button>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="pkg-table">
+              <thead>
+                <tr>
+                  <th scope="col">版本</th>
+                  <th scope="col">类型</th>
+                  <th scope="col">覆盖月份</th>
+                  <th scope="col">文件</th>
+                  <th scope="col">导入</th>
+                  <th scope="col">指纹</th>
+                  <th scope="col">校验结论</th>
+                  <th scope="col"><span class="visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-href="PAGE-F01-02.html" data-type="history">
+                  <td class="t-nowrap"><span class="cell-title mono">P-0008</span> <span class="badge"><svg class="icon"><use href="#ph-target"/></svg>当前</span></td>
+                  <td>历史<div class="cell-sub">约定 v1</div></td>
+                  <td class="t-nowrap">2024-10–2027-04<div class="cell-sub">31 个月</div></td>
+                  <td>C1–C7<div class="cell-sub">7 个文件</div></td>
+                  <td class="t-nowrap num">2027-05-08 09:14<div class="cell-sub">wen</div></td>
+                  <td class="fp">9f3c2a7e</td>
+                  <td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>有警告</span><div class="cell-sub">可计算 · 2 个警告，排除 49 行</div></td>
+                  <td class="t-nowrap"><a class="tlink small" href="PAGE-F01-02.html">校验报告</a></td>
+                </tr>
+                <tr data-href="PAGE-F01-02.html" data-type="history">
+                  <td class="t-nowrap"><span class="cell-title mono">P-0007</span></td>
+                  <td>历史<div class="cell-sub">约定 v1</div></td>
+                  <td class="t-nowrap">2024-10–2027-03<div class="cell-sub">30 个月</div></td>
+                  <td>C1–C7<div class="cell-sub">7 个文件</div></td>
+                  <td class="t-nowrap num">2027-04-08 11:53<div class="cell-sub">wen</div></td>
+                  <td class="fp">51ab08d4</td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td>
+                  <td class="t-nowrap"><a class="tlink small" href="PAGE-F01-02.html">校验报告</a></td>
+                </tr>
+                <tr data-href="PAGE-F01-02.html" data-type="history">
+                  <td class="t-nowrap"><span class="cell-title mono">P-0006</span></td>
+                  <td>历史<div class="cell-sub">约定 v1</div></td>
+                  <td class="t-nowrap">2024-10–2027-02<div class="cell-sub">29 个月</div></td>
+                  <td>C1–C7<div class="cell-sub">7 个文件</div></td>
+                  <td class="t-nowrap num">2027-03-05 12:59<div class="cell-sub">wen</div></td>
+                  <td class="fp">c07e91f2</td>
+                  <td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>有警告</span><div class="cell-sub">可计算 · 1 个警告</div></td>
+                  <td class="t-nowrap"><a class="tlink small" href="PAGE-F01-02.html">校验报告</a></td>
+                </tr>
+                <tr data-href="PAGE-F01-02.html" data-type="history">
+                  <td class="t-nowrap"><span class="cell-title mono">P-0005</span></td>
+                  <td>历史<div class="cell-sub">约定 v1</div></td>
+                  <td class="t-nowrap">2024-10–2027-01<div class="cell-sub">28 个月</div></td>
+                  <td>C1–C7<div class="cell-sub">7 个文件</div></td>
+                  <td class="t-nowrap num">2027-02-05 09:48<div class="cell-sub">wen</div></td>
+                  <td class="fp">3d6f4b19</td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td>
+                  <td class="t-nowrap"><a class="tlink small" href="PAGE-F01-02.html">校验报告</a></td>
+                </tr>
+                <tr data-href="PAGE-F01-02.html" data-type="history">
+                  <td class="t-nowrap"><span class="cell-title mono">P-0004</span></td>
+                  <td>历史<div class="cell-sub">约定 v1</div></td>
+                  <td class="t-nowrap">2024-10–2026-12<div class="cell-sub">27 个月</div></td>
+                  <td>C1–C7<div class="cell-sub">7 个文件</div></td>
+                  <td class="t-nowrap num">2027-01-07 13:21<div class="cell-sub">wen</div></td>
+                  <td class="fp">e84a2c65</td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td>
+                  <td class="t-nowrap"><a class="tlink small" href="PAGE-F01-02.html">校验报告</a></td>
+                </tr>
+                <tr data-href="PAGE-F01-02.html" data-type="history">
+                  <td class="t-nowrap"><span class="cell-title mono">P-0003</span></td>
+                  <td>历史<div class="cell-sub">约定 v1</div></td>
+                  <td class="t-nowrap">2024-10–2026-11<div class="cell-sub">26 个月</div></td>
+                  <td>C1–C7<div class="cell-sub">7 个文件</div></td>
+                  <td class="t-nowrap num">2026-12-04 12:08<div class="cell-sub">wen</div></td>
+                  <td class="fp">7b19d0ae</td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td>
+                  <td class="t-nowrap"><a class="tlink small" href="PAGE-F01-02.html">校验报告</a></td>
+                </tr>
+                <tr data-href="PAGE-F01-02.html" data-type="history">
+                  <td class="t-nowrap"><span class="cell-title mono">P-0002</span></td>
+                  <td>历史<div class="cell-sub">约定 v1</div></td>
+                  <td class="t-nowrap">2024-10–2026-10<div class="cell-sub">25 个月</div></td>
+                  <td>C1–C7<div class="cell-sub">7 个文件</div></td>
+                  <td class="t-nowrap num">2026-11-06 10:40<div class="cell-sub">wen · 首个真实数据包</div></td>
+                  <td class="fp">0c5e7f31</td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td>
+                  <td class="t-nowrap"><a class="tlink small" href="PAGE-F01-02.html">校验报告</a></td>
+                </tr>
+                <tr data-href="PAGE-F01-02.html" data-type="cross">
+                  <td class="t-nowrap"><span class="cell-title mono">P-0001</span> <span class="badge"><svg class="icon"><use href="#ph-target"/></svg>当前</span></td>
+                  <td><span class="badge badge--cross"><svg class="icon"><use href="#ph-intersect"/></svg>截面</span><div class="cell-sub">约定 v1.1</div></td>
+                  <td class="t-nowrap">2026-06–2026-09<div class="cell-sub">4 个月</div></td>
+                  <td>S1–S3、C4<div class="cell-sub">4 个文件 · 无 C6，缺少痛点信号</div></td>
+                  <td class="t-nowrap num">2026-10-28 16:02<div class="cell-sub">wen · 样例包</div></td>
+                  <td class="fp">a4d2e6b8</td>
+                  <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td>
+                  <td class="t-nowrap"><a class="tlink small" href="PAGE-F01-02.html">校验报告</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <p class="page-foot">只读副本保存在 D:\机会判定台\数据包\ · 指纹为 SHA-256，列表显示前 8 位 · 数据包原件不进入备份，恢复后需要时重新导入，指纹会自动识别</p>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

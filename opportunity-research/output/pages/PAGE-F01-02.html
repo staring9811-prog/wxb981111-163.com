@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F01-02">
+  <title>校验报告 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html" aria-current="page"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <nav class="crumbs" aria-label="面包屑"><a href="PAGE-F01-01.html">数据包</a><span aria-hidden="true">/</span><span>P-0008</span></nav>
+            <h1>校验报告 · P-0008</h1>
+            <p class="page-head__sub">历史数据包 · 按约定 v1 校验 · 覆盖 2024-10–2027-04 · 2027-05-08 09:14 由 wen 导入，09:18 校验完成</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span></a>
+            <a class="btn btn--primary" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>去确认字段约定</span></a>
+          </div>
+        </div>
+
+        <div class="banner banner--warn enter" style="--i:1" role="status">
+          <svg class="icon"><use href="#ph-warning"/></svg>
+          <div class="banner__body">
+            <div class="banner__title">有警告 · 可以计算</div>
+            <div>没有阻断项。2 个文件共 49 行无法解析，都不超过所在文件总行数的 1%，已在后续计算中排除。P-0008 已成为当前历史数据包。</div>
+          </div>
+        </div>
+
+        <div class="stats enter" style="--i:1; margin-top: var(--space-4)">
+          <div class="stat">
+            <div class="stat__label">文件</div>
+            <div class="stat__value">7<span class="stat__unit">/ 7</span></div>
+            <div class="stat__meta">必需 6 个齐全，可选 C7 已提供</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">总行数</div>
+            <div class="stat__value">665,504</div>
+            <div class="stat__meta">7 个文件合计</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">阻断项</div>
+            <div class="stat__value">0</div>
+            <div class="stat__meta">可以启动计算</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">警告项</div>
+            <div class="stat__value">2</div>
+            <div class="stat__meta">排除 49 行（C1 37 行，C6 12 行）</div>
+          </div>
+        </div>
+
+        <section class="section enter" style="--i:2" aria-labelledby="matrix-title">
+          <div class="section__head">
+            <h2 class="section__title" id="matrix-title">逐项检查</h2>
+            <span class="section__note">每格为检查结果与受影响行数 · 无法解析的行 ≤ 该文件 1% 记为警告并排除，超过 1% 记为阻断</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">文件</th>
+                  <th class="t-num" scope="col">行数</th>
+                  <th scope="col">必需文件</th>
+                  <th scope="col">必需字段</th>
+                  <th scope="col">主键唯一</th>
+                  <th scope="col">日期与数值解析</th>
+                  <th scope="col">月份覆盖</th>
+                </tr>
+              </thead>
+              <tbody>
+                  <tr>
+                    <td><div class="cell-title">C1 月度类目商品</div><div class="cell-sub">主键：站点 × 子 ASIN × 月份</div></td>
+                    <td class="t-num">412,806</td>
+                    <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">已提供</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">14 / 14 个 · 0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行重复</div></td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>警告</span><div class="cell-sub">37 行 · 上架日期</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">2024-10–2027-04</div></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-title">C2 新品清单</div><div class="cell-sub">主键：子 ASIN</div></td>
+                    <td class="t-num">2,214</td>
+                    <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">已提供</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">7 / 7 个 · 0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行重复</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">上架日 2024-04-02 起</div></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-title">C3 新品月度轨迹</div><div class="cell-sub">主键：子 ASIN × 月份</div></td>
+                    <td class="t-num">15,870</td>
+                    <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">已提供</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">5 / 5 个 · 0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行重复</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">每个新品 ≥ 6 个月或至 2027-04</div></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-title">C4 属性标签</div><div class="cell-sub">主键：子 ASIN</div></td>
+                    <td class="t-num">41,325</td>
+                    <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">已提供</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">21 / 21 个 · 0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行重复</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">覆盖 C1、C2 全部子 ASIN</div></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-title">C5 关键词月度</div><div class="cell-sub">主键：关键词 × 月份</div></td>
+                    <td class="t-num">9,833</td>
+                    <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">已提供</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">4 / 4 个 · 0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行重复</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">2023-12–2027-04</div></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-title">C6 评论痛点</div><div class="cell-sub">主键：评论 ID</div></td>
+                    <td class="t-num">183,452</td>
+                    <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">已提供</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">8 / 8 个 · 0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行重复</div></td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>警告</span><div class="cell-sub">12 行 · 星级</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">评论至 2027-04-30</div></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-title">C7 自家立项</div><div class="cell-sub">可选文件 · 主键：立项名称</div></td>
+                    <td class="t-num">4</td>
+                    <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">可选 · 已提供</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">3 / 3 个 · 0 行</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行重复</div></td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span><div class="cell-sub">0 行</div></td><td><span class="small muted">不适用</span></td>
+                  </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:3" aria-labelledby="issue-title">
+          <div class="section__head">
+            <h2 class="section__title" id="issue-title">问题明细</h2>
+            <span class="section__note">阻断项给出文件、字段和不超过 5 个示例行号 · 警告项列出全部被排除的行号</span>
+          </div>
+          <div class="tabs" role="tablist" aria-label="问题类型">
+            <a class="tab" href="#panel-block" role="tab" id="tab-block" aria-controls="panel-block" aria-selected="false">阻断 <span class="count">0</span></a>
+            <a class="tab" href="#panel-warn" role="tab" id="tab-warn" aria-controls="panel-warn" aria-selected="true">警告 <span class="count">2</span></a>
+          </div>
+          <div role="tabpanel" id="panel-block" aria-labelledby="tab-block" hidden>
+            <div class="panel">
+              <div class="empty">
+                <svg class="icon"><use href="#ph-check-circle"/></svg>
+                <div class="empty__title">没有阻断项</div>
+                <div class="empty__desc">必需文件、必需字段、主键和月份覆盖都满足约定 v1，可以启动计算。</div>
+              </div>
+            </div>
+          </div>
+          <div role="tabpanel" id="panel-warn" aria-labelledby="tab-warn">
+            <div class="panel">
+              <ul class="list">
+                <li class="list__item">
+                  <svg class="icon list__icon list__icon--warn"><use href="#ph-warning"/></svg>
+                  <div class="list__body">
+                    <div class="list__title">C1 月度类目商品 · 上架日期：37 行无法解析，已在计算中排除</div>
+                    <div class="list__desc">占该文件 0.009%<span class="etag etag--n">n=412,806</span>，未超过 1% · 示例值 31/07/2025、2025年7月31日，约定格式为 YYYY-MM-DD</div>
+                    <details class="small" style="margin-top: var(--space-2)">
+                      <summary>被排除的 37 个行号</summary>
+                      <p class="mono" style="margin-top: var(--space-2); color: var(--fg-2)">18,204、18,205、77,931、77,932、77,940、102,517、133,086、133,087、133,091、156,442、171,309、171,310、198,775、204,113、204,118、231,560、245,902、259,014、259,015、268,337、281,746、290,021、290,022、290,025、301,458、315,870、322,004、337,619、337,620、349,183、356,702、368,911、371,450、380,067、392,338、401,725、409,954</p>
+                    </details>
+                  </div>
+                </li>
+                <li class="list__item">
+                  <svg class="icon list__icon list__icon--warn"><use href="#ph-warning"/></svg>
+                  <div class="list__body">
+                    <div class="list__title">C6 评论痛点 · 星级：12 行无法解析，已在计算中排除</div>
+                    <div class="list__desc">占该文件 0.007%<span class="etag etag--n">n=183,452</span>，未超过 1% · 示例值 4,0、五星，约定为 1–5 的整数</div>
+                    <details class="small" style="margin-top: var(--space-2)">
+                      <summary>被排除的 12 个行号</summary>
+                      <p class="mono" style="margin-top: var(--space-2); color: var(--fg-2)">6,318、6,319、24,770、51,092、51,093、88,416、102,555、119,804、133,271、150,968、167,390、179,005</p>
+                    </details>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:4" aria-labelledby="field-title">
+          <div class="section__head">
+            <h2 class="section__title" id="field-title">必需字段逐项结果</h2>
+            <span class="section__note">共 62 个必需字段，60 个通过，2 个警告</span>
+          </div>
+          <div class="tabs" role="tablist" aria-label="按文件查看">
+                <a class="tab" href="#panel-C1" role="tab" id="tab-C1" aria-controls="panel-C1" aria-selected="true">C1 <span class="count">14</span></a>
+                <a class="tab" href="#panel-C2" role="tab" id="tab-C2" aria-controls="panel-C2" aria-selected="false">C2 <span class="count">7</span></a>
+                <a class="tab" href="#panel-C3" role="tab" id="tab-C3" aria-controls="panel-C3" aria-selected="false">C3 <span class="count">5</span></a>
+                <a class="tab" href="#panel-C4" role="tab" id="tab-C4" aria-controls="panel-C4" aria-selected="false">C4 <span class="count">21</span></a>
+                <a class="tab" href="#panel-C5" role="tab" id="tab-C5" aria-controls="panel-C5" aria-selected="false">C5 <span class="count">4</span></a>
+                <a class="tab" href="#panel-C6" role="tab" id="tab-C6" aria-controls="panel-C6" aria-selected="false">C6 <span class="count">8</span></a>
+                <a class="tab" href="#panel-C7" role="tab" id="tab-C7" aria-controls="panel-C7" aria-selected="false">C7 <span class="count">3</span></a>
+          </div>
+              <div role="tabpanel" id="panel-C1" aria-labelledby="tab-C1">
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr><th scope="col">C1 月度类目商品 · 必需字段</th><th scope="col">格式</th><th scope="col">结果</th><th class="t-num" scope="col">受影响行数</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="cell-title">月份</td><td class="small">月份 YYYYMM</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">子 ASIN</td><td class="small">文本 · 10 位</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">当月父 ASIN</td><td class="small">文本 · 10 位</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">品牌</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">卖家</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">标题</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">上架日期</td><td class="small">日期 YYYY-MM-DD</td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>警告</span></td><td class="t-num">37</td><td class="small">已排除；示例值 31/07/2025</td></tr>
+                      <tr><td class="cell-title">子体月销量</td><td class="small">整数</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">子体月销售额</td><td class="small">金额 · 美元</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">父体月销量</td><td class="small">整数</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">小类 BSR</td><td class="small">整数</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">类目节点</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">配送方式</td><td class="small">FBA / FBM / AMZ</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">变体数</td><td class="small">整数</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">可选字段 5 个已提供：首次评分日期、SPU 编号、过去一个月购买、当月价格、当月评分。约定外字段 2 个：Prime价格、优惠券，交给字段约定确认。</p>
+              </div>
+              <div role="tabpanel" id="panel-C2" aria-labelledby="tab-C2" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr><th scope="col">C2 新品清单 · 必需字段</th><th scope="col">格式</th><th scope="col">结果</th><th class="t-num" scope="col">受影响行数</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="cell-title">子 ASIN</td><td class="small">文本 · 10 位</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">父 ASIN</td><td class="small">文本 · 10 位</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">品牌</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">标题</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">上架日期</td><td class="small">日期 YYYY-MM-DD</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">配送方式</td><td class="small">FBA / FBM / AMZ</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">变体数</td><td class="small">整数</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">可选字段 2 个已提供：首次评分日期、SPU 编号。</p>
+              </div>
+              <div role="tabpanel" id="panel-C3" aria-labelledby="tab-C3" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr><th scope="col">C3 新品月度轨迹 · 必需字段</th><th scope="col">格式</th><th scope="col">结果</th><th class="t-num" scope="col">受影响行数</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="cell-title">月份</td><td class="small">月份 YYYYMM</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">子 ASIN</td><td class="small">文本 · 10 位</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">子体月销量</td><td class="small">整数</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">子体月销售额</td><td class="small">金额 · 美元</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">小类 BSR</td><td class="small">整数</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">可选字段 1 个已提供：父体月销量。</p>
+              </div>
+              <div role="tabpanel" id="panel-C4" aria-labelledby="tab-C4" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr><th scope="col">C4 属性标签 · 必需字段</th><th scope="col">格式</th><th scope="col">结果</th><th class="t-num" scope="col">受影响行数</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="cell-title">子 ASIN</td><td class="small">文本 · 10 位</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">宽度</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">宽度 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">形态</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">形态 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">安装方式</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">安装方式 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">元素</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">元素 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">台面形态</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">台面形态 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">柜体材质</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">柜体材质 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">台面材质</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">台面材质 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">台盆材质</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">台盆材质 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">颜色</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">颜色 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">盆数</td><td class="small">标签值 · 按品类配置取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">盆数 证据状态</td><td class="small">子体确认 / 父体回填 / 父体候选 / 信息不足 / 冲突</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">可选字段 1 个已提供：证据原文。</p>
+              </div>
+              <div role="tabpanel" id="panel-C5" aria-labelledby="tab-C5" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr><th scope="col">C5 关键词月度 · 必需字段</th><th scope="col">格式</th><th scope="col">结果</th><th class="t-num" scope="col">受影响行数</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="cell-title">关键词</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">月份</td><td class="small">月份 YYYYMM</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">月搜索量</td><td class="small">整数</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">关键词属性标签</td><td class="small">标签值 · 按映射规则取值</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">可选字段 1 个已提供：月购买量。</p>
+              </div>
+              <div role="tabpanel" id="panel-C6" aria-labelledby="tab-C6" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr><th scope="col">C6 评论痛点 · 必需字段</th><th scope="col">格式</th><th scope="col">结果</th><th class="t-num" scope="col">受影响行数</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="cell-title">评论 ID</td><td class="small">文本或内容指纹</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">子 ASIN 或父 ASIN</td><td class="small">文本 · 10 位</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">归属级别</td><td class="small">子体 / 父体</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">评论日期</td><td class="small">日期 YYYY-MM-DD</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">星级</td><td class="small">整数 1–5</td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>警告</span></td><td class="t-num">12</td><td class="small">已排除；示例值 4,0、五星</td></tr>
+                      <tr><td class="cell-title">痛点事件代码</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">是否结构类痛点</td><td class="small">是 / 否</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">标注版本</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">可选字段 1 个已提供：评论原文。</p>
+              </div>
+              <div role="tabpanel" id="panel-C7" aria-labelledby="tab-C7" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr><th scope="col">C7 自家立项 · 必需字段</th><th scope="col">格式</th><th scope="col">结果</th><th class="t-num" scope="col">受影响行数</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="cell-title">立项名称</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">立项日期</td><td class="small">日期 YYYY-MM-DD</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                      <tr><td class="cell-title">关联细分或属性</td><td class="small">文本</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td><td class="t-num">0</td><td class="small muted">存在，全部可解析</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">可选字段 5 个已提供：上架日期、对应 ASIN 或 SPU、上架后月销量、上架后月销售额、上架后小类 BSR。</p>
+              </div>
+        </section>
+
+        <a class="card-link section" href="PAGE-F02-01.html">
+          <div class="row">
+            <svg class="icon"><use href="#ph-list-checks"/></svg>
+            <span class="strong">下一步：确认字段约定</span>
+            <span class="spacer"></span>
+            <svg class="icon"><use href="#ph-arrow-right"/></svg>
+          </div>
+          <p class="small muted" style="margin-top: var(--space-1)">P-0008 比 P-0007 多 2 个字段（C1 的 Prime价格、优惠券），其余 78 个沿用原约定。目前还有 1 个待确认：优惠券。未确认的字段不参与计算。</p>
+        </a>
+
+        <p class="page-foot">校验报告生成于 2027-05-08 09:18 · 只读副本 D:\机会判定台\数据包\P-0008\ · 数据包指纹 9f3c2a7e</p>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

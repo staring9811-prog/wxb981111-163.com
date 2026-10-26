@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F10-03">
+  <title>备份与恢复 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html" aria-current="page"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>备份与恢复</h1>
+            <p class="page-head__sub">导出本月报告后自动备份 · 每份备份包含台账、策略库、字段约定、品类配置和全部确认记录，并附数据包指纹清单</p>
+          </div>
+        </div>
+
+        <div id="restore-done" hidden>
+          <div class="banner banner--ok" role="status" style="margin-bottom: var(--space-6)">
+            <svg class="icon"><use href="#ph-check-circle"/></svg>
+            <div class="banner__body">
+              <div class="banner__title">已恢复到 <span data-done-time>2027-04-08 15:06</span> 的备份</div>
+              <div>恢复于 2027-05-08 11:24 · 台账、策略库、字段约定、品类配置和确认记录已与该备份逐条核对一致 · 恢复前的状态已自动备份为 2027-05-08 11:23，需要撤回时从它恢复。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2 enter" style="--i:1">
+          <section class="panel" aria-labelledby="last-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="last-title">最近一次备份</h2>
+              <span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>成功</span>
+            </div>
+            <div class="panel__body">
+              <dl class="kv">
+                <dt>时间</dt><dd class="num" data-last="time">2027-04-08 15:06</dd>
+                <dt>触发</dt><dd data-last="trigger">导出 2027-04 第 2 版后自动备份</dd>
+                <dt>大小</dt><dd class="num" data-last="size">38.2 MB</dd>
+                <dt>位置</dt><dd class="fp" data-last="folder">D:\机会判定台备份\备份_20270408_1506\</dd>
+                <dt>下次</dt><dd>导出 2027-05 报告后自动备份（本月尚未导出）</dd>
+              </dl>
+            </div>
+            <div class="panel__foot">备份失败时，这里显示失败原因和上次成功备份的时间；已有备份不会被删除或改动。</div>
+          </section>
+
+          <section class="panel" aria-labelledby="dir-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="dir-title">备份目录</h2>
+              <span class="section__note">导出前必须设置</span>
+            </div>
+            <div class="panel__body stack">
+              <div class="field">
+                <label class="field__label" for="bk-dir">备份目录 <span class="req">*</span></label>
+                <input class="input" id="bk-dir" value="D:\机会判定台备份\" spellcheck="false" aria-describedby="bk-dir-result">
+                <span class="field__hint" id="bk-dir-result"><span class="badge badge--ok"><svg class="icon"><use href="#ph-check"/></svg>可以写入</span> 可用空间 186.4 GB · 检测于 2027-05-08 09:12</span>
+              </div>
+              <div class="row">
+                <button class="btn" type="button" data-simulate="可以写入：D:\机会判定台备份\ · 可用空间 186.4 GB" data-loading-text="检测中…"><svg class="icon"><use href="#ph-folder-open"/></svg><span>检测能否写入</span></button>
+                <button class="btn" type="button" data-toast="备份目录已保存：D:\机会判定台备份\">保存目录</button>
+              </div>
+              <p class="small muted">建议选本机另一块磁盘或移动硬盘上的文件夹。保存前会先检测一次能否写入，不能写入时不保存并显示原因。数据包原件较大且你手里都有，不进入备份。</p>
+            </div>
+          </section>
+        </div>
+
+        <section class="section enter" style="--i:2" aria-labelledby="list-title">
+          <div class="section__head">
+            <h2 class="section__title" id="list-title">备份列表</h2>
+            <span class="section__note">共 <span data-bk-count>6</span> 份 · 新的在上 · 点"数据包指纹"查看清单，恢复后重新导入数据包时按指纹识别</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="backup-table">
+              <thead>
+                <tr>
+                  <th scope="col">备份时间</th>
+                  <th scope="col">触发</th>
+                  <th scope="col">内容范围</th>
+                  <th scope="col">数据包指纹</th>
+                  <th class="t-num" scope="col">大小</th>
+                  <th scope="col"><span class="visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title num">2027-04-08 15:06</div><div class="cell-sub mono">备份_20270408_1506</div></td>
+                  <td>导出 2027-04 第 2 版</td>
+                  <td>台账：快照 9 · 立项记录 5 · 策略库：规则 18 条<div class="cell-sub">字段约定 v6 · 品类配置 v2 · 确认记录 1,286 条</div></td>
+                  <td><button class="etag" type="button" data-pop-title="数据包指纹清单（前 8 位）" data-pop="P-0007=51ab08d4;P-0006=c07e91f2;P-0005=3d6f4b19;P-0004=e84a2c65;P-0003=7b19d0ae;P-0002=0c5e7f31;P-0001=a4d2e6b8（截面）"><svg class="icon"><use href="#ph-fingerprint"/></svg>7 个</button></td>
+                  <td class="t-num">38.2 MB</td>
+                  <td class="t-nowrap"><button class="btn btn--danger btn--sm" type="button" data-open="#restore-modal" data-restore data-time="2027-04-08 15:06" data-size="38.2 MB" data-folder="备份_20270408_1506" data-ledger="快照 9 · 立项记录 5" data-rules="18 条 · 最近修改 2027-04-08" data-conv="v6" data-cfg="v2" data-conf="1,286 条"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>恢复</span></button></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title num">2027-03-05 15:44</div><div class="cell-sub mono">备份_20270305_1544</div></td>
+                  <td>导出 2027-03 第 1 版</td>
+                  <td>台账：快照 7 · 立项记录 4 · 策略库：规则 16 条<div class="cell-sub">字段约定 v5 · 品类配置 v2 · 确认记录 1,174 条</div></td>
+                  <td><button class="etag" type="button" data-pop-title="数据包指纹清单（前 8 位）" data-pop="P-0006=c07e91f2;P-0005=3d6f4b19;P-0004=e84a2c65;P-0003=7b19d0ae;P-0002=0c5e7f31;P-0001=a4d2e6b8（截面）"><svg class="icon"><use href="#ph-fingerprint"/></svg>6 个</button></td>
+                  <td class="t-num">36.9 MB</td>
+                  <td class="t-nowrap"><button class="btn btn--danger btn--sm" type="button" data-open="#restore-modal" data-restore data-time="2027-03-05 15:44" data-size="36.9 MB" data-folder="备份_20270305_1544" data-ledger="快照 7 · 立项记录 4" data-rules="16 条 · 最近修改 2027-03-05" data-conv="v5" data-cfg="v2" data-conf="1,174 条"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>恢复</span></button></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title num">2027-02-05 14:16</div><div class="cell-sub mono">备份_20270205_1416</div></td>
+                  <td>导出 2027-02 第 1 版</td>
+                  <td>台账：快照 6 · 立项记录 2 · 策略库：规则 13 条<div class="cell-sub">字段约定 v4 · 品类配置 v2 · 确认记录 1,032 条</div></td>
+                  <td><button class="etag" type="button" data-pop-title="数据包指纹清单（前 8 位）" data-pop="P-0005=3d6f4b19;P-0004=e84a2c65;P-0003=7b19d0ae;P-0002=0c5e7f31;P-0001=a4d2e6b8（截面）"><svg class="icon"><use href="#ph-fingerprint"/></svg>5 个</button></td>
+                  <td class="t-num">35.1 MB</td>
+                  <td class="t-nowrap"><button class="btn btn--danger btn--sm" type="button" data-open="#restore-modal" data-restore data-time="2027-02-05 14:16" data-size="35.1 MB" data-folder="备份_20270205_1416" data-ledger="快照 6 · 立项记录 2" data-rules="13 条 · 最近修改 2027-02-05" data-conv="v4" data-cfg="v2" data-conf="1,032 条"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>恢复</span></button></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title num">2027-01-07 16:29</div><div class="cell-sub mono">备份_20270107_1629</div></td>
+                  <td>导出 2027-01 第 1 版</td>
+                  <td>台账：快照 5 · 立项记录 2 · 策略库：规则 12 条<div class="cell-sub">字段约定 v3 · 品类配置 v2 · 确认记录 911 条</div></td>
+                  <td><button class="etag" type="button" data-pop-title="数据包指纹清单（前 8 位）" data-pop="P-0004=e84a2c65;P-0003=7b19d0ae;P-0002=0c5e7f31;P-0001=a4d2e6b8（截面）"><svg class="icon"><use href="#ph-fingerprint"/></svg>4 个</button></td>
+                  <td class="t-num">33.4 MB</td>
+                  <td class="t-nowrap"><button class="btn btn--danger btn--sm" type="button" data-open="#restore-modal" data-restore data-time="2027-01-07 16:29" data-size="33.4 MB" data-folder="备份_20270107_1629" data-ledger="快照 5 · 立项记录 2" data-rules="12 条 · 最近修改 2026-12-10" data-conv="v3" data-cfg="v2" data-conf="911 条"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>恢复</span></button></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title num">2026-12-04 15:58</div><div class="cell-sub mono">备份_20261204_1558</div></td>
+                  <td>导出 2026-12 第 1 版</td>
+                  <td>台账：快照 4 · 立项记录 2 · 策略库：规则 12 条<div class="cell-sub">字段约定 v2 · 品类配置 v2 · 确认记录 806 条</div></td>
+                  <td><button class="etag" type="button" data-pop-title="数据包指纹清单（前 8 位）" data-pop="P-0003=7b19d0ae;P-0002=0c5e7f31;P-0001=a4d2e6b8（截面）"><svg class="icon"><use href="#ph-fingerprint"/></svg>3 个</button></td>
+                  <td class="t-num">31.8 MB</td>
+                  <td class="t-nowrap"><button class="btn btn--danger btn--sm" type="button" data-open="#restore-modal" data-restore data-time="2026-12-04 15:58" data-size="31.8 MB" data-folder="备份_20261204_1558" data-ledger="快照 4 · 立项记录 2" data-rules="12 条 · 最近修改 2026-11-10" data-conv="v2" data-cfg="v2" data-conf="806 条"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>恢复</span></button></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title num">2026-11-10 17:11</div><div class="cell-sub mono">备份_20261110_1711</div></td>
+                  <td>导出 2026-11 第 2 版（首跑）</td>
+                  <td>台账：快照 3 · 立项记录 2 · 策略库：规则 12 条<div class="cell-sub">字段约定 v1 · 品类配置 v1 · 确认记录 655 条</div></td>
+                  <td><button class="etag" type="button" data-pop-title="数据包指纹清单（前 8 位）" data-pop="P-0002=0c5e7f31;P-0001=a4d2e6b8（截面）"><svg class="icon"><use href="#ph-fingerprint"/></svg>2 个</button></td>
+                  <td class="t-num">29.6 MB</td>
+                  <td class="t-nowrap"><button class="btn btn--danger btn--sm" type="button" data-open="#restore-modal" data-restore data-time="2026-11-10 17:11" data-size="29.6 MB" data-folder="备份_20261110_1711" data-ledger="快照 3 · 立项记录 2" data-rules="12 条 · 最近修改 2026-11-10" data-conv="v1" data-cfg="v1" data-conf="655 条"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>恢复</span></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <p class="page-foot">数据目录 D:\机会判定台\ · 备份目录 D:\机会判定台备份\ · 备份只写入你指定的目录，不上传、不调用外部服务 · 有计算任务运行时不能恢复</p>
+
+        <template id="pre-restore-row">
+          <tr class="is-selected">
+            <td class="t-nowrap"><div class="cell-title num">2027-05-08 11:23</div><div class="cell-sub mono">备份_20270508_1123</div></td>
+            <td>恢复前自动备份</td>
+            <td>台账：快照 10 · 立项记录 6 · 策略库：规则 18 条<div class="cell-sub">字段约定 v7 · 品类配置 v2 · 确认记录 1,342 条</div></td>
+            <td><button class="etag" type="button" data-pop-title="数据包指纹清单（前 8 位）" data-pop="P-0008=9f3c2a7e;P-0007=51ab08d4;P-0006=c07e91f2;P-0005=3d6f4b19;P-0004=e84a2c65;P-0003=7b19d0ae;P-0002=0c5e7f31;P-0001=a4d2e6b8（截面）"><svg class="icon"><use href="#ph-fingerprint"/></svg>8 个</button></td>
+            <td class="t-num">40.1 MB</td>
+            <td class="t-nowrap"><button class="btn btn--danger btn--sm" type="button" data-restore data-time="2027-05-08 11:23" data-size="40.1 MB" data-folder="备份_20270508_1123" data-ledger="快照 10 · 立项记录 6" data-rules="18 条 · 最近修改 2027-05-08" data-conv="v7" data-cfg="v2" data-conf="1,342 条"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>恢复</span></button></td>
+          </tr>
+        </template>
+
+        <div class="modal" id="restore-modal" role="dialog" aria-modal="true" aria-labelledby="restore-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="restore-title">恢复到 <span data-fill="time">2027-04-08 15:06</span> 的备份？</h2>
+                <p class="modal__sub mono">D:\机会判定台备份\<span data-fill="folder">备份_20270408_1506</span>\ · <span data-fill="size">38.2 MB</span></p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <div class="modal__body stack-lg">
+              <div class="banner banner--warn">
+                <svg class="icon"><use href="#ph-warning"/></svg>
+                <div class="banner__body">
+                  <div class="banner__title">将覆盖当前的台账、策略库、字段约定、品类配置和确认记录</div>
+                  <div>该备份之后新增或修改的内容会被替换，例如之后生成的快照、立项记录、规则版本和确认记录。</div>
+                </div>
+              </div>
+
+              <section aria-labelledby="restore-diff-title">
+                <div class="section__head">
+                  <h3 id="restore-diff-title">当前 → 恢复后</h3>
+                  <span class="section__note">数据包原件不在备份中，不受影响</span>
+                </div>
+                <div class="diff" id="restore-diff">
+                  <span class="diff__key">台账</span><span class="diff__old">快照 10 · 立项记录 6</span><span class="diff__new">快照 9 · 立项记录 5</span>
+                  <span class="diff__key">策略库</span><span class="diff__old">18 条 · 最近修改 2027-05-08</span><span class="diff__new">18 条 · 最近修改 2027-04-08</span>
+                  <span class="diff__key">字段约定</span><span class="diff__old">v7</span><span class="diff__new">v6</span>
+                  <span class="diff__key">品类配置</span><span class="muted">v2</span><span class="muted">不变</span>
+                  <span class="diff__key">确认记录</span><span class="diff__old">1,342 条</span><span class="diff__new">1,286 条</span>
+                </div>
+              </section>
+
+              <section aria-labelledby="restore-steps-title">
+                <h3 id="restore-steps-title">确认后系统会</h3>
+                <ol class="small" style="margin-top: var(--space-2)">
+                  <li>先把当前状态自动备份到 D:\机会判定台备份\，这一步不能跳过，需要撤回时从它恢复。</li>
+                  <li>用所选备份覆盖上面 5 类内容，并逐条核对与备份一致。</li>
+                  <li>完成后在本页显示所恢复备份的时间。字段约定或品类配置与当前结果所用版本不同时，相关结果标为需重算。</li>
+                </ol>
+              </section>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--danger" type="button" id="restore-confirm"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>确认恢复</span></button>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          /* 恢复确认：按所选备份填写弹窗，确认后显示所恢复备份的时间，并在列表顶部加入恢复前的自动备份 */
+          (function () {
+            var modal = document.getElementById('restore-modal');
+            var diff = document.getElementById('restore-diff');
+            var keys = [['ledger', '台账'], ['rules', '策略库'], ['conv', '字段约定'], ['cfg', '品类配置'], ['conf', '确认记录']];
+            var current = { ledger: '快照 10 · 立项记录 6', rules: '18 条 · 最近修改 2027-05-08', conv: 'v7', cfg: 'v2', conf: '1,342 条' };
+            var picked = null;
+            function span(cls, text) {
+              var s = document.createElement('span');
+              s.className = cls;
+              s.textContent = text;
+              return s;
+            }
+            function pick(btn) {
+              picked = {};
+              ['time', 'size', 'folder', 'ledger', 'rules', 'conv', 'cfg', 'conf'].forEach(function (k) { picked[k] = btn.getAttribute('data-' + k); });
+              modal.querySelectorAll('[data-fill]').forEach(function (el) { el.textContent = picked[el.getAttribute('data-fill')]; });
+              while (diff.firstChild) diff.removeChild(diff.firstChild);
+              keys.forEach(function (k) {
+                var same = current[k[0]] === picked[k[0]];
+                diff.appendChild(span('diff__key', k[1]));
+                diff.appendChild(span(same ? 'muted' : 'diff__old', current[k[0]]));
+                diff.appendChild(span(same ? 'muted' : 'diff__new', same ? '不变' : picked[k[0]]));
+              });
+            }
+            document.querySelectorAll('[data-restore]').forEach(function (btn) {
+              btn.addEventListener('click', function () { pick(btn); });
+            });
+            var confirmBtn = document.getElementById('restore-confirm');
+            confirmBtn.addEventListener('click', function () {
+              if (!picked || confirmBtn.classList.contains('is-loading')) return;
+              var label = confirmBtn.querySelector('span');
+              confirmBtn.classList.add('is-loading');
+              label.textContent = '恢复中…';
+              window.setTimeout(function () {
+                confirmBtn.classList.remove('is-loading');
+                label.textContent = '确认恢复';
+                window.oppoClose('#restore-modal');
+                var tbody = document.querySelector('#backup-table tbody');
+                if (!document.querySelector('#backup-table [data-time="2027-05-08 11:23"]')) {
+                  tbody.insertBefore(document.getElementById('pre-restore-row').content.cloneNode(true), tbody.firstChild);
+                  var fresh = tbody.firstElementChild.querySelector('[data-restore]');
+                  fresh.addEventListener('click', function () { pick(fresh); window.oppoOpen('#restore-modal'); });
+                  document.querySelector('[data-bk-count]').textContent = String(tbody.rows.length);
+                }
+                document.querySelector('[data-last="time"]').textContent = '2027-05-08 11:23';
+                document.querySelector('[data-last="trigger"]').textContent = '恢复前自动备份';
+                document.querySelector('[data-last="size"]').textContent = '40.1 MB';
+                document.querySelector('[data-last="folder"]').textContent = 'D:\\机会判定台备份\\备份_20270508_1123\\';
+                document.querySelector('[data-done-time]').textContent = picked.time;
+                document.getElementById('restore-done').hidden = false;
+                ['ledger', 'rules', 'conv', 'cfg', 'conf'].forEach(function (k) { current[k] = picked[k]; });
+                window.oppoToast('已恢复到 ' + picked.time + ' 的备份');
+                window.scrollTo(0, 0);
+              }, 1600);
+            });
+          })();
+        </script>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

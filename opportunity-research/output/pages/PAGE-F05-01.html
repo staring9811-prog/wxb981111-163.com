@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F05-01">
+  <title>SPU 成败明细 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html" aria-current="page"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <!-- 历史口径 -->
+        <div data-mode-only="history">
+          <div class="page-head enter" style="--i:0">
+            <div>
+              <nav class="crumbs" aria-label="面包屑"><a href="PAGE-F04-01.html">新品与 SPU</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>SPU-2611-007</span></nav>
+              <h1>SPU-2611-007 · SOLIDEE <span class="badge badge--hit"><svg class="icon"><use href="#ph-check-circle"/></svg>命中</span></h1>
+              <p class="page-head__sub">36" Bathroom Vanity with Sintered Stone Top and Ceramic Sink, Fluted Doors</p>
+            </div>
+            <div class="page-head__actions">
+              <a class="btn" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>归并记录</span></a>
+            </div>
+          </div>
+
+          <div class="banner banner--ok enter" style="--i:1">
+            <svg class="icon"><use href="#ph-check-circle"/></svg>
+            <div class="banner__body">
+              <div class="banner__title">命中：第 3 个月（2027-01）SPU 销售额 $112,400<span class="etag">估算</span> ≥ $100,000</div>
+              <div>这是窗口内首次达到成功线的月份。小类 BSR 窗口内最好为 63<span class="etag">实测</span>（第 3 个月，B0DK7QW3M1），未达到 ≤ 50。</div>
+            </div>
+          </div>
+
+          <section class="panel section enter" style="--i:2" aria-labelledby="facts-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="facts-title">判定依据</h2>
+              <span class="section__note">历史口径 · 成功线（配置 v2）：上架 6 个月内任一子 ASIN 小类 BSR ≤ 50，或 SPU 任一月销售额 ≥ $100,000</span>
+            </div>
+            <div class="panel__body grid-2">
+              <dl class="kv">
+                <dt>SPU 上架日</dt><dd><span class="num">2026-11-03</span> · 来自子 ASIN <span class="mono">B0DK7QW3M1</span><div class="cell-sub">取全部子体上架日的最早值；同日上架的另有 4 个子体</div></dd>
+                <dt>批次</dt><dd>2026-11</dd>
+                <dt>子体</dt><dd>6 个，其中新变体 1 个（不计为新品）</dd>
+                <dt>疑似重新上架</dt><dd>否 · 最早首评 2026-11-21，晚于上架日</dd>
+              </dl>
+              <dl class="kv">
+                <dt>判定窗口</dt><dd>2026-11 至 2027-04（第 1–6 个月，已结束）</dd>
+                <dt>起量</dt><dd>是 · 2026-12 父体 <span class="mono">B0DK7QS5J2</span> 月销 71 件<span class="etag">估算</span> ≥ 60 件</dd>
+                <dt>首次达成</dt><dd>第 3 个月 · SPU 月销售额</dd>
+                <dt>归并来源</dt><dd>已确认建议 <a href="PAGE-F04-02.html">MS-0098</a>（批量确认）</dd>
+              </dl>
+            </div>
+          </section>
+
+          <section class="section enter" style="--i:3" aria-labelledby="grid-title">
+            <div class="section__head">
+              <h2 class="section__title" id="grid-title">月龄 1–6</h2>
+              <span class="section__note">上架当月为第 1 个月 · 达成成功线的格子高亮 · 第 5 个月缺小类 BSR，不影响判定（第 3 个月已命中）</span>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">指标</th>
+                    <th class="t-num" scope="col">第 1 个月<div class="cell-sub">2026-11</div></th>
+                    <th class="t-num" scope="col">第 2 个月<div class="cell-sub">2026-12</div></th>
+                    <th class="t-num" scope="col">第 3 个月<div class="cell-sub">2027-01</div></th>
+                    <th class="t-num" scope="col">第 4 个月<div class="cell-sub">2027-02</div></th>
+                    <th class="t-num" scope="col">第 5 个月<div class="cell-sub">2027-03</div></th>
+                    <th class="t-num" scope="col">第 6 个月<div class="cell-sub">2027-04</div></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="cell-title">最好小类 BSR</span><span class="etag">实测</span><div class="cell-sub">阈值 ≤ 50 · 及对应子 ASIN</div></td>
+                    <td class="t-num">214<div class="cell-sub mono">B0DK7QW3M1</div></td>
+                    <td class="t-num">97<div class="cell-sub mono">B0DK7QW3M1</div></td>
+                    <td class="t-num">63<div class="cell-sub mono">B0DK7QW3M1</div></td>
+                    <td class="t-num">68<div class="cell-sub mono">B0DK7QW3M1</div></td>
+                    <td class="t-num"><span class="etag etag--nodata">无数据</span></td>
+                    <td class="t-num">81<div class="cell-sub mono">B0DK7QW5R3</div></td>
+                  </tr>
+                  <tr>
+                    <td><span class="cell-title">SPU 月销售额</span><div class="cell-sub">阈值 ≥ $100,000 · 子体合计</div></td>
+                    <td class="t-num">$18,600<span class="etag">估算</span></td>
+                    <td class="t-num">$64,900<span class="etag">估算</span></td>
+                    <td class="t-num" style="background: var(--success-tint)">
+                      <span class="strong">$112,400</span><span class="etag">估算</span>
+                      <div style="margin-top: var(--space-1)"><span class="badge badge--hit"><svg class="icon"><use href="#ph-check-circle"/></svg>达成</span></div>
+                    </td>
+                    <td class="t-num">$98,700<span class="etag">估算</span></td>
+                    <td class="t-num">$86,200<span class="etag">估算</span></td>
+                    <td class="t-num">$79,500<span class="etag">估算</span></td>
+                  </tr>
+                  <tr>
+                    <td><span class="cell-title">父体月销量</span><span class="etag">估算</span><div class="cell-sub mono">B0DK7QS5J2</div></td>
+                    <td class="t-num">22 件</td>
+                    <td class="t-num">71 件</td>
+                    <td class="t-num">126 件</td>
+                    <td class="t-num">104 件</td>
+                    <td class="t-num">92 件</td>
+                    <td class="t-num">85 件</td>
+                  </tr>
+                  <tr>
+                    <td><span class="cell-title">父体月销量</span><span class="etag">估算</span><div class="cell-sub mono">B0DK7RA4N6</div></td>
+                    <td class="t-num">6 件</td>
+                    <td class="t-num">24 件</td>
+                    <td class="t-num">43 件</td>
+                    <td class="t-num">45 件</td>
+                    <td class="t-num">41 件</td>
+                    <td class="t-num">39 件</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section enter" style="--i:4" aria-labelledby="kids-title">
+            <div class="section__head">
+              <h2 class="section__title" id="kids-title">子体</h2>
+              <span class="section__note">6 个子 ASIN · 类型属性依次为形态、安装方式、台面形态、元素 · 月销量与销售额为第 3 个月（2027-01，命中月）</span>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">子 ASIN</th>
+                    <th scope="col">父 ASIN</th>
+                    <th scope="col">颜色 · 尺寸</th>
+                    <th scope="col">上架日</th>
+                    <th scope="col">首评日</th>
+                    <th scope="col">标记</th>
+                    <th scope="col"><span tabindex="0" data-tip="类型属性|依次为形态 · 安装方式 · 台面形态 · 元素|子体无确认值时用父体候选值，并标回填">类型属性</span></th>
+                    <th class="t-num" scope="col">月销量</th>
+                    <th class="t-num" scope="col">月销售额</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">B0DK7QW3M1</td>
+                    <td class="mono muted">B0DK7QS5J2</td>
+                    <td class="t-nowrap">白色 · 36″</td>
+                    <td class="t-nowrap">2026-11-03<div class="cell-sub">SPU 上架日来源</div></td>
+                    <td class="t-nowrap">2026-11-21</td>
+                    <td></td>
+                    <td>落地式 · 落地安装 · 台下盆 · 凹槽门</td>
+                    <td class="t-num">58 件<span class="etag">估算</span></td>
+                    <td class="t-num">$39,880<span class="etag">估算</span></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">B0DK7QW5R3</td>
+                    <td class="mono muted">B0DK7QS5J2</td>
+                    <td class="t-nowrap">灰色 · 36″</td>
+                    <td class="t-nowrap">2026-11-03</td>
+                    <td class="t-nowrap">2026-11-26</td>
+                    <td></td>
+                    <td>落地式 · 落地安装 · 台下盆 · 凹槽门<button class="etag etag--fill" type="button" data-pop-title="父体回填" data-pop="属性=元素;子体确认值=无;父体候选值=凹槽门;父 ASIN=B0DK7QS5J2;证据状态=父体回填;来源=C4 属性标签（P-0008）">元素回填</button></td>
+                    <td class="t-num">41 件<span class="etag">估算</span></td>
+                    <td class="t-num">$28,190<span class="etag">估算</span></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">B0DK7QX1T6</td>
+                    <td class="mono muted">B0DK7QS5J2</td>
+                    <td class="t-nowrap">橡木色 · 36″</td>
+                    <td class="t-nowrap">2026-11-03</td>
+                    <td class="t-nowrap">2026-12-09</td>
+                    <td></td>
+                    <td>落地式 · 落地安装 · 台下盆 · 凹槽门<button class="etag etag--fill" type="button" data-pop-title="父体回填" data-pop="属性=形态;子体确认值=无;父体候选值=落地式;父 ASIN=B0DK7QS5J2;证据状态=父体回填;来源=C4 属性标签（P-0008）">形态回填</button></td>
+                    <td class="t-num">27 件<span class="etag">估算</span></td>
+                    <td class="t-num">$18,560<span class="etag">估算</span></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">B0DK7RB2D9</td>
+                    <td class="mono muted">B0DK7RA4N6</td>
+                    <td class="t-nowrap">墨绿色 · 36″</td>
+                    <td class="t-nowrap">2026-11-03</td>
+                    <td class="t-nowrap">2026-11-30</td>
+                    <td></td>
+                    <td>落地式 · 落地安装 · 台下盆 · 凹槽门</td>
+                    <td class="t-num">26 件<span class="etag">估算</span></td>
+                    <td class="t-num">$15,560<span class="etag">估算</span></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">B0DK7RB8F3</td>
+                    <td class="mono muted">B0DK7RA4N6</td>
+                    <td class="t-nowrap">海军蓝 · 36″</td>
+                    <td class="t-nowrap">2026-11-03</td>
+                    <td class="t-nowrap">2026-12-14</td>
+                    <td></td>
+                    <td>落地式 · 落地安装 · 台下盆 · 凹槽门<button class="etag etag--fill" type="button" data-pop-title="父体回填" data-pop="属性=台面形态;子体确认值=无;父体候选值=台下盆;父 ASIN=B0DK7RA4N6;证据状态=父体回填;来源=C4 属性标签（P-0008）">台面形态回填</button></td>
+                    <td class="t-num">17 件<span class="etag">估算</span></td>
+                    <td class="t-num">$10,210<span class="etag">估算</span></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">B0DQ2N5K7P</td>
+                    <td class="mono muted">B0DK7RA4N6</td>
+                    <td class="t-nowrap">白色 · 48″</td>
+                    <td class="t-nowrap">2027-02-11</td>
+                    <td class="t-nowrap">2027-03-06</td>
+                    <td><span class="badge" tabindex="0" data-tip="新变体|上架日 2027-02-11 晚于 SPU 上架日 2026-11-03|不计为新 SPU，销量计入本 SPU"><svg class="icon"><use href="#ph-plus"/></svg>新变体</span></td>
+                    <td>落地式 · 落地安装 · 台下盆 · 凹槽门<button class="etag etag--fill" type="button" data-pop-title="父体回填" data-pop="属性=形态、安装方式;子体确认值=无;父体候选值=落地式、落地安装;父 ASIN=B0DK7RA4N6;证据状态=父体回填;来源=C4 属性标签（P-0008）">形态、安装方式回填</button></td>
+                    <td class="t-num small muted">当月未上架</td>
+                    <td class="t-num small muted">当月未上架</td>
+                  </tr>
+                  <tr>
+                    <td class="strong" colspan="7">第 3 个月合计（= SPU 月销售额）</td>
+                    <td class="t-num strong">169 件<span class="etag">估算</span></td>
+                    <td class="t-num strong">$112,400<span class="etag">估算</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="grid-2 section enter" style="--i:5">
+            <section class="panel" aria-labelledby="merge-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="merge-title">归并来源</h2>
+                <a class="small" href="PAGE-F04-02.html">在合并建议中查看</a>
+              </div>
+              <div class="panel__body">
+                <dl class="kv">
+                  <dt>来源</dt><dd>已确认建议 <span class="mono">MS-0098</span></dd>
+                  <dt>匹配依据</dt><dd>标题主干相同<div class="cell-sub mono">solidee bathroom vanity sintered stone top ceramic sink fluted doors</div></dd>
+                  <dt>涉及父 ASIN</dt><dd><span class="mono">B0DK7QS5J2</span>（子 3）、<span class="mono">B0DK7RA4N6</span>（子 3，含新变体）</dd>
+                  <dt>确认</dt><dd>批量确认 · wen · 2026-12-04 09:52</dd>
+                  <dt>修改记录</dt><dd class="muted">未修改</dd>
+                </dl>
+              </div>
+            </section>
+
+            <section class="panel" aria-labelledby="trace-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="trace-title">追溯</h2>
+                <span class="section__note">判定计算于 2027-05-08 10:07</span>
+              </div>
+              <div class="panel__body">
+                <dl class="kv">
+                  <dt>版本</dt><dd>数据包 P-0008（<span class="fp">9f3c2a7e</span>）· 字段约定 v7 · 品类配置 v2</dd>
+                  <dt>上架日</dt><dd class="fp">C2 新品清单 · B0DK7QW3M1</dd>
+                  <dt>命中金额</dt><dd><span class="fp">C3 新品月度轨迹 · 202701</span><button class="etag etag--n" type="button" data-pop-title="命中金额的来源记录" data-pop="文件=C3 新品月度轨迹;主键 1=202701 · B0DK7QW3M1;主键 2=202701 · B0DK7QW5R3;主键 3=202701 · B0DK7QX1T6;主键 4=202701 · B0DK7RB2D9;主键 5=202701 · B0DK7RB8F3;合计=$112,400（子体月销售额，估算）">5 条记录</button></dd>
+                  <dt>最好 BSR</dt><dd class="fp">C3 新品月度轨迹 · 202701 · B0DK7QW3M1</dd>
+                  <dt>起量</dt><dd class="fp">C1 月度类目商品 · US · B0DK7QW3M1 · 202612</dd>
+                  <dt>类型属性</dt><dd class="fp">C4 属性标签 · 6 个子 ASIN</dd>
+                </dl>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- 截面口径（简化） -->
+        <div data-mode-only="cross" hidden>
+          <div class="page-head">
+            <div>
+              <nav class="crumbs" aria-label="面包屑"><a href="PAGE-F04-01.html">新品与 SPU</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>SPU-2603-006</span></nav>
+              <h1>SPU-2603-006 · ARS Concepts <span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>截面未命中</span></h1>
+              <p class="page-head__sub">36" Freestanding Bathroom Vanity with Marble Top</p>
+            </div>
+          </div>
+
+          <div class="banner banner--cross">
+            <svg class="icon"><use href="#ph-intersect"/></svg>
+            <div class="banner__body">
+              <div class="banner__title">截面口径（近似成功线）</div>
+              <div>数据包 P-0001（观察月 2026-06–09）。只用新品期第 1–6 个月里的观察月判断；结论待历史回测确认，以历史口径为准。</div>
+            </div>
+          </div>
+          <div class="banner">
+            <svg class="icon"><use href="#ph-minus"/></svg>
+            <div class="banner__body">
+              <div class="banner__title">截面未命中：新品期已结束，观察到的第 4–6 个月均未达到成功线水平</div>
+              <div>第 4–6 个月（2026-06–08）都有数据，小类 BSR 最好 118<span class="etag">实测</span>，SPU 月销售额最高 $41,600<span class="etag">估算</span>。未观察到的月龄：第 1–3 个月（2026-03–05，早于观察期）。</div>
+            </div>
+          </div>
+
+          <section class="panel section" aria-labelledby="cross-facts-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="cross-facts-title">判定依据</h2>
+              <span class="section__note">截面成功线：新品期观察月任一子 ASIN 小类 BSR ≤ 50，或 SPU 当月销售额 ≥ $100,000</span>
+            </div>
+            <div class="panel__body grid-2">
+              <dl class="kv">
+                <dt>SPU 上架日</dt><dd><span class="num">2026-03-12</span> · 来自子 ASIN <span class="mono">B0D8RT5K2W</span></dd>
+                <dt>子体</dt><dd>3 个，无新变体</dd>
+                <dt>疑似重新上架</dt><dd>否 · 最早首评 2026-03-29</dd>
+              </dl>
+              <dl class="kv">
+                <dt>观察月</dt><dd>2026-06–09 = 第 4–7 个月；新品期内为第 4–6 个月</dd>
+                <dt>起量</dt><dd>是 · 2026-07 父体月销 66 件<span class="etag">估算</span> ≥ 60 件</dd>
+                <dt>新品期外</dt><dd>2026-09 为第 7 个月，不参与截面判定</dd>
+              </dl>
+            </div>
+          </section>
+
+          <section class="section" aria-labelledby="cross-grid-title">
+            <div class="section__head">
+              <h2 class="section__title" id="cross-grid-title">月龄 1–6</h2>
+              <span class="section__note">截面口径 · 早于观察期的月龄写"未观察"，不当作缺数据</span>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">指标</th>
+                    <th class="t-num" scope="col">第 1 个月<div class="cell-sub">2026-03</div></th>
+                    <th class="t-num" scope="col">第 2 个月<div class="cell-sub">2026-04</div></th>
+                    <th class="t-num" scope="col">第 3 个月<div class="cell-sub">2026-05</div></th>
+                    <th class="t-num" scope="col">第 4 个月<div class="cell-sub">2026-06</div></th>
+                    <th class="t-num" scope="col">第 5 个月<div class="cell-sub">2026-07</div></th>
+                    <th class="t-num" scope="col">第 6 个月<div class="cell-sub">2026-08</div></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="cell-title">最好小类 BSR</span><span class="etag">实测</span><div class="cell-sub">阈值 ≤ 50</div></td>
+                    <td class="t-num small muted">未观察</td>
+                    <td class="t-num small muted">未观察</td>
+                    <td class="t-num small muted">未观察</td>
+                    <td class="t-num">132<div class="cell-sub mono">B0D8RT5K2W</div></td>
+                    <td class="t-num">118<div class="cell-sub mono">B0D8RT5K2W</div></td>
+                    <td class="t-num">141<div class="cell-sub mono">B0D8RT6M4Y</div></td>
+                  </tr>
+                  <tr>
+                    <td><span class="cell-title">SPU 月销售额</span><div class="cell-sub">阈值 ≥ $100,000</div></td>
+                    <td class="t-num small muted">未观察</td>
+                    <td class="t-num small muted">未观察</td>
+                    <td class="t-num small muted">未观察</td>
+                    <td class="t-num">$38,200<span class="etag">估算</span><span class="etag etag--cross">截面</span></td>
+                    <td class="t-num">$41,600<span class="etag">估算</span><span class="etag etag--cross">截面</span></td>
+                    <td class="t-num">$36,900<span class="etag">估算</span><span class="etag etag--cross">截面</span></td>
+                  </tr>
+                  <tr>
+                    <td><span class="cell-title">父体月销量</span><span class="etag">估算</span><div class="cell-sub mono">B0D8RS9X7E</div></td>
+                    <td class="t-num small muted">未观察</td>
+                    <td class="t-num small muted">未观察</td>
+                    <td class="t-num small muted">未观察</td>
+                    <td class="t-num">61 件</td>
+                    <td class="t-num">66 件</td>
+                    <td class="t-num">58 件</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <p class="page-foot">数据包 P-0001（截面，<span class="fp">a4d2e6b8</span>）· 字段约定 v7 · 品类配置 v2 · 来源记录：S2 新品期起量新品 · B0D8RT5K2W；S3 新品观察期月度数据 · 202606–202608 × 3 个子 ASIN</p>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

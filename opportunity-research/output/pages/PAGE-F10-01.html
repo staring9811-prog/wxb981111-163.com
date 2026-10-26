@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F10-01">
+  <title>台账 · 月度快照 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html" aria-current="page"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>台账</h1>
+            <p class="page-head__sub">月度快照、立项决定与到期对账 · 记录只追加，保存后不可修改</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn" type="button" data-cols-toggle="#snap-wrap" aria-pressed="false"><svg class="icon"><use href="#ph-columns"/></svg><span>列</span></button>
+            <a class="btn" href="PAGE-F12-01.html"><svg class="icon"><use href="#ph-export"/></svg><span>导出本月报告</span></a>
+          </div>
+        </div>
+        <nav class="tabs enter" style="--i:1" aria-label="台账">
+          <a class="tab" href="PAGE-F10-01.html" aria-current="page">月度快照 <span class="count">10</span></a>
+          <a class="tab" href="PAGE-F10-04.html">立项记录 <span class="count">6</span></a>
+          <a class="tab" href="PAGE-F10-05.html">到期对账 <span class="count">2</span></a>
+        </nav>
+
+        <div class="banner enter" style="--i:2">
+          <svg class="icon"><use href="#ph-lock-simple"/></svg>
+          <div class="banner__body">
+            <div class="banner__title">快照保存后不可修改</div>
+            <div>每次生成排序都会自动保存一份快照（月份 + 第 n 版），连同锦囊和判定卡版本号一起封存。同月重算会另存新版本，旧版本保留。<strong>对账用当月最后一次导出的那版</strong>；当月从未导出时，用当月最后一版。</div>
+          </div>
+        </div>
+
+        <section class="section enter" style="--i:3" aria-labelledby="snap-title" data-filter-scope="#snap-table">
+          <div class="section__head">
+            <h2 class="section__title" id="snap-title">月度快照</h2>
+            <span class="section__note">当前显示 <span data-filter-count>10</span> 个 · 共 10 个，覆盖 2026-10 至 2027-05 · 新的在上</span>
+          </div>
+          <div class="filters" role="group" aria-label="快照筛选">
+            <span class="filters__label">对账状态</span>
+            <button class="chip" type="button" data-filter="recon:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="recon:pending" aria-pressed="false">未到期 <span class="count">6</span></button>
+            <button class="chip" type="button" data-filter="recon:done" aria-pressed="false">已对账 <span class="count">2</span></button>
+            <button class="chip" type="button" data-filter="recon:unused" aria-pressed="false">不用于对账 <span class="count">2</span></button>
+            <span class="filters__sep" aria-hidden="true"></span>
+            <span class="filters__label">口径</span>
+            <button class="chip" type="button" data-filter="caliber:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="caliber:history" aria-pressed="false">历史 <span class="count">9</span></button>
+            <button class="chip" type="button" data-filter="caliber:cross" aria-pressed="false">截面 <span class="count">1</span></button>
+          </div>
+          <div class="table-wrap" id="snap-wrap">
+            <table class="table" id="snap-table">
+              <thead>
+                <tr>
+                  <th scope="col">快照</th>
+                  <th scope="col">判定卡</th>
+                  <th scope="col">口径</th>
+                  <th scope="col">生成时间</th>
+                  <th scope="col">导出</th>
+                  <th scope="col">对账状态</th>
+                  <th class="col-2" scope="col">内容指纹</th>
+                  <th scope="col"><span class="visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                  <tr data-recon="pending" data-caliber="history">
+                    <td class="t-nowrap"><div class="cell-title">2027-05 · 第 1 版</div><div class="cell-sub">本月 · 当前最后一版</div></td>
+                    <td class="t-nowrap">v4 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></td>
+                    <td class="t-nowrap">历史</td>
+                    <td class="t-nowrap num">2027-05-08 10:46</td>
+                    <td class="t-nowrap"><span class="muted">未导出</span></td>
+                    <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>未到期</span><div class="cell-sub">预计 2027-11 · 导出后以导出版为准</div></td>
+                    <td class="col-2"><span class="fp">94710559</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2705-1"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+                  <tr data-recon="pending" data-caliber="history">
+                    <td class="t-nowrap"><div class="cell-title">2027-04 · 第 2 版</div><div class="cell-sub">同月最后导出的版本</div></td>
+                    <td class="t-nowrap">v3 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></td>
+                    <td class="t-nowrap">历史</td>
+                    <td class="t-nowrap num">2027-04-08 15:02</td>
+                    <td class="t-nowrap"><svg class="icon"><use href="#ph-export"/></svg> 已导出</td>
+                    <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>未到期</span><div class="cell-sub">预计 2027-10</div></td>
+                    <td class="col-2"><span class="fp">99e2440d</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2704-2"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+                  <tr data-recon="unused" data-caliber="history">
+                    <td class="t-nowrap"><div class="cell-title">2027-04 · 第 1 版</div></td>
+                    <td class="t-nowrap">v3 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></td>
+                    <td class="t-nowrap">历史</td>
+                    <td class="t-nowrap num">2027-04-08 13:31</td>
+                    <td class="t-nowrap"><span class="muted">未导出</span></td>
+                    <td class="t-nowrap"><span class="badge badge--old"><svg class="icon"><use href="#ph-prohibit"/></svg>不用于对账</span><div class="cell-sub">同月第 2 版已导出</div></td>
+                    <td class="col-2"><span class="fp">598c8fde</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2704-1"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+                  <tr data-recon="pending" data-caliber="history">
+                    <td class="t-nowrap"><div class="cell-title">2027-03 · 第 1 版</div></td>
+                    <td class="t-nowrap">v3 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></td>
+                    <td class="t-nowrap">历史</td>
+                    <td class="t-nowrap num">2027-03-05 15:40</td>
+                    <td class="t-nowrap"><svg class="icon"><use href="#ph-export"/></svg> 已导出</td>
+                    <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>未到期</span><div class="cell-sub">预计 2027-09</div></td>
+                    <td class="col-2"><span class="fp">5c1d486c</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2703-1"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+                  <tr data-recon="pending" data-caliber="history">
+                    <td class="t-nowrap"><div class="cell-title">2027-02 · 第 1 版</div></td>
+                    <td class="t-nowrap">v2 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></td>
+                    <td class="t-nowrap">历史</td>
+                    <td class="t-nowrap num">2027-02-05 14:12</td>
+                    <td class="t-nowrap"><svg class="icon"><use href="#ph-export"/></svg> 已导出</td>
+                    <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>未到期</span><div class="cell-sub">预计 2027-08</div></td>
+                    <td class="col-2"><span class="fp">6d92c117</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2702-1"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+                  <tr data-recon="pending" data-caliber="history">
+                    <td class="t-nowrap"><div class="cell-title">2027-01 · 第 1 版</div></td>
+                    <td class="t-nowrap">v2 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></td>
+                    <td class="t-nowrap">历史</td>
+                    <td class="t-nowrap num">2027-01-07 16:25</td>
+                    <td class="t-nowrap"><svg class="icon"><use href="#ph-export"/></svg> 已导出</td>
+                    <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>未到期</span><div class="cell-sub">预计 2027-07</div></td>
+                    <td class="col-2"><span class="fp">94d825cb</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2701-1"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+                  <tr data-recon="pending" data-caliber="history">
+                    <td class="t-nowrap"><div class="cell-title">2026-12 · 第 1 版</div><div class="cell-sub">配置 v2 后的首份快照</div></td>
+                    <td class="t-nowrap">v2 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></td>
+                    <td class="t-nowrap">历史</td>
+                    <td class="t-nowrap num">2026-12-04 15:55</td>
+                    <td class="t-nowrap"><svg class="icon"><use href="#ph-export"/></svg> 已导出</td>
+                    <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>未到期</span><div class="cell-sub">预计 2027-06</div></td>
+                    <td class="col-2"><span class="fp">06da8ec8</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2612-1"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+                  <tr data-recon="done" data-caliber="history">
+                    <td class="t-nowrap"><div class="cell-title">2026-11 · 第 2 版</div><div class="cell-sub">首跑 · 同月最后导出的版本</div></td>
+                    <td class="t-nowrap">v1 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></td>
+                    <td class="t-nowrap">历史</td>
+                    <td class="t-nowrap num">2026-11-10 17:08</td>
+                    <td class="t-nowrap"><svg class="icon"><use href="#ph-export"/></svg> 已导出</td>
+                    <td class="t-nowrap"><span class="badge badge--ok"><svg class="icon"><use href="#ph-seal-check"/></svg>已对账</span><div class="cell-sub"><a href="PAGE-F10-05.html">2027-05-08 · 倍数 2.07×</a></div></td>
+                    <td class="col-2"><span class="fp">fec184b5</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2611-2"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+                  <tr data-recon="unused" data-caliber="history">
+                    <td class="t-nowrap"><div class="cell-title">2026-11 · 第 1 版</div><div class="cell-sub">首跑</div></td>
+                    <td class="t-nowrap">v1 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></td>
+                    <td class="t-nowrap">历史</td>
+                    <td class="t-nowrap num">2026-11-10 16:54</td>
+                    <td class="t-nowrap"><span class="muted">未导出</span></td>
+                    <td class="t-nowrap"><span class="badge badge--old"><svg class="icon"><use href="#ph-prohibit"/></svg>不用于对账</span><div class="cell-sub">同月第 2 版已导出</div></td>
+                    <td class="col-2"><span class="fp">b9c119d7</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2611-1"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+                  <tr data-recon="done" data-caliber="cross">
+                    <td class="t-nowrap"><div class="cell-title">2026-10 · 第 1 版</div><div class="cell-sub">样例包 · 截面口径</div></td>
+                    <td class="t-nowrap">截面 v1 <span class="badge badge--cross"><svg class="icon"><use href="#ph-intersect"/></svg>达标（截面）</span></td>
+                    <td class="t-nowrap"><span class="badge badge--cross"><svg class="icon"><use href="#ph-intersect"/></svg>截面</span></td>
+                    <td class="t-nowrap num">2026-10-29 10:15</td>
+                    <td class="t-nowrap"><svg class="icon"><use href="#ph-export"/></svg> 已导出</td>
+                    <td class="t-nowrap"><span class="badge badge--cross"><svg class="icon"><use href="#ph-intersect"/></svg>已对账（截面）</span><div class="cell-sub"><a href="PAGE-F10-05.html">2027-04-08 · 倍数 2.18×</a></div></td>
+                    <td class="col-2"><span class="fp">5bf4011a</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-2610-1"><svg class="icon"><use href="#ph-eye"/></svg><span>查看快照</span></button></td>
+                  </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <p class="page-foot">快照存于本机 D:\机会判定台\ · 每次导出后随台账自动备份到 D:\机会判定台备份\（上次 2027-04-08 15:06）· 预计可对账月份 = 快照月份 + 6 个月的月更</p>
+
+        <aside class="drawer" id="snap-2705-1" role="dialog" aria-modal="true" aria-labelledby="snap-2705-1-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2705-1-title">2027-05 · 第 1 版</h2>
+              <p class="drawer__sub">月度快照 · 历史口径 · 生成于 2027-05-08 10:46 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">94710559</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=947105593a1f13db687db57445089d2be808d60525e2008daa49782f98008473;封存内容=排序 18 个细分、锦囊 4 条、判定卡 v4 与版本号;保存时间=2027-05-08 10:46"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2705-1-ver">
+              <h3 id="snap-2705-1-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>v4 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></dd>
+                <dt>数据包</dt><dd>P-0008（数据至 2027-04）</dd>
+                <dt>字段约定</dt><dd>v7</dd>
+                <dt>品类配置</dt><dd>v2（3 个维度：宽度档 × 形态 × 价格带）</dd>
+                <dt>导出</dt><dd>未导出</dd>
+                <dt>对账</dt><dd>未到期 · 预计 2027-11 月更可对账（对应批次 2027-05）。本月尚未导出：导出后以导出的那版为准；本月若再重算，将另存第 2 版。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2705-1-rank">
+              <div class="section__head">
+                <h3 id="snap-2705-1-rank">排序</h3>
+                <span class="section__note">18 个细分：有效 8、样本不足 10 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 17.2%<span class="etag etag--n">n=186</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 36%，90% 区间 27–46%" data-tip="36%|90% 区间 27–46% · 样本 47|竖线：全类目平均 17.2%（n=186）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="72" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="96" cy="10" r="4"/></svg></span><span class="ibar-text">27–46%</span><span class="etag etag--n">n=47</span></div></td>
+                      <td class="t-num">0.81</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 31%，90% 区间 21–43%" data-tip="31%|90% 区间 21–43% · 样本 29|竖线：全类目平均 17.2%（n=186）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="56" y="7" width="58.7" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="82.7" cy="10" r="4"/></svg></span><span class="ibar-text">21–43%</span><span class="etag etag--n">n=29</span></div></td>
+                      <td class="t-num">0.74</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 27%，90% 区间 18–38%" data-tip="27%|90% 区间 18–38% · 样本 33|竖线：全类目平均 17.2%（n=186）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="48" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="72" cy="10" r="4"/></svg></span><span class="ibar-text">18–38%</span><span class="etag etag--n">n=33</span></div></td>
+                      <td class="t-num">0.66</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 22%，90% 区间 16–29%" data-tip="22%|90% 区间 16–29% · 样本 88|竖线：全类目平均 17.2%（n=186）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="42.7" y="7" width="34.7" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="58.7" cy="10" r="4"/></svg></span><span class="ibar-text">16–29%</span><span class="etag etag--n">n=88</span></div></td>
+                      <td class="t-num">0.58</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 19%，90% 区间 13–27%" data-tip="19%|90% 区间 13–27% · 样本 61|竖线：全类目平均 17.2%（n=186）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="34.7" y="7" width="37.3" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="50.7" cy="10" r="4"/></svg></span><span class="ibar-text">13–27%</span><span class="etag etag--n">n=61</span></div></td>
+                      <td class="t-num">0.52</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 14%，90% 区间 8–23%" data-tip="14%|90% 区间 8–23% · 样本 42|竖线：全类目平均 17.2%（n=186）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="21.3" y="7" width="40" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="37.3" cy="10" r="4"/></svg></span><span class="ibar-text">8–23%</span><span class="etag etag--n">n=42</span></div></td>
+                      <td class="t-num">0.41</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 13%，90% 区间 6–25%" data-tip="13%|90% 区间 6–25% · 样本 24|竖线：全类目平均 17.2%（n=186）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="16" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="34.7" cy="10" r="4"/></svg></span><span class="ibar-text">6–25%</span><span class="etag etag--n">n=24</span></div></td>
+                      <td class="t-num">0.37</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">8</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 9%，90% 区间 4–19%" data-tip="9%|90% 区间 4–19% · 样本 31|竖线：全类目平均 17.2%（n=186）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="40" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="24" cy="10" r="4"/></svg></span><span class="ibar-text">4–19%</span><span class="etag etag--n">n=31</span></div></td>
+                      <td class="t-num">0.29</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 10 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2705-1-tips">
+              <div class="section__head">
+                <h3 id="snap-2705-1-tips">锦囊</h3>
+                <span class="section__note">4 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-012</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已验证</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div>
+                      <div class="list__desc">预期命中率 27–46% · 依据 2025-04–2026-11 · 样本 76</div><div class="list__desc">依据对账 2027-05：2026-11 快照倍数 2.07×</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-015</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div>
+                      <div class="list__desc">预期命中率 16–38% · 依据 2025-04–2026-11 · 样本 182</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-009</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div>
+                      <div class="list__desc">预期命中率 4–25% · 依据 2025-04–2026-11 · 样本 97</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-018</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">台面材质为岩板 且 宽度 ≥ 48″</div>
+                      <div class="list__desc">预期命中率 <span class="etag etag--nodata">无数据</span> · 未经回测</div><div class="list__desc">wen 手动新增（2027-03-20）· 先观察两个月的新品命中再决定</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <a class="btn" href="PAGE-F12-01.html"><svg class="icon"><use href="#ph-export"/></svg><span>导出本月报告</span></a>
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+        <aside class="drawer" id="snap-2704-2" role="dialog" aria-modal="true" aria-labelledby="snap-2704-2-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2704-2-title">2027-04 · 第 2 版</h2>
+              <p class="drawer__sub">月度快照 · 历史口径 · 生成于 2027-04-08 15:02 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">99e2440d</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=99e2440ddba81659860f681acacad061399a8cbc3f1e2e99b91050157140bf50;封存内容=排序 18 个细分、锦囊 4 条、判定卡 v3 与版本号;保存时间=2027-04-08 15:02"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2704-2-ver">
+              <h3 id="snap-2704-2-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>v3 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></dd>
+                <dt>数据包</dt><dd>P-0007（数据至 2027-03）</dd>
+                <dt>字段约定</dt><dd>v6</dd>
+                <dt>品类配置</dt><dd>v2（3 个维度：宽度档 × 形态 × 价格带）</dd>
+                <dt>导出</dt><dd>已导出</dd>
+                <dt>对账</dt><dd>未到期 · 预计 2027-10 月更可对账（对应批次 2027-04）。本版是 2027-04 最后一次导出的版本，到期后用它对账。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2704-2-rank">
+              <div class="section__head">
+                <h3 id="snap-2704-2-rank">排序</h3>
+                <span class="section__note">18 个细分：有效 8、样本不足 10 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 17.0%<span class="etag etag--n">n=181</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 35%，90% 区间 26–45%" data-tip="35%|90% 区间 26–45% · 样本 44|竖线：全类目平均 17.0%（n=181）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="69.3" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="45.3" y1="3" x2="45.3" y2="17"/><circle class="ibar__dot" cx="93.3" cy="10" r="4"/></svg></span><span class="ibar-text">26–45%</span><span class="etag etag--n">n=44</span></div></td>
+                      <td class="t-num">0.79</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 30%，90% 区间 20–42%" data-tip="30%|90% 区间 20–42% · 样本 27|竖线：全类目平均 17.0%（n=181）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="53.3" y="7" width="58.7" height="6" rx="3"/><line class="ibar__avg" x1="45.3" y1="3" x2="45.3" y2="17"/><circle class="ibar__dot" cx="80" cy="10" r="4"/></svg></span><span class="ibar-text">20–42%</span><span class="etag etag--n">n=27</span></div></td>
+                      <td class="t-num">0.72</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 26%，90% 区间 17–37%" data-tip="26%|90% 区间 17–37% · 样本 31|竖线：全类目平均 17.0%（n=181）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="45.3" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="45.3" y1="3" x2="45.3" y2="17"/><circle class="ibar__dot" cx="69.3" cy="10" r="4"/></svg></span><span class="ibar-text">17–37%</span><span class="etag etag--n">n=31</span></div></td>
+                      <td class="t-num">0.65</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 22%，90% 区间 15–29%" data-tip="22%|90% 区间 15–29% · 样本 85|竖线：全类目平均 17.0%（n=181）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="40" y="7" width="37.3" height="6" rx="3"/><line class="ibar__avg" x1="45.3" y1="3" x2="45.3" y2="17"/><circle class="ibar__dot" cx="58.7" cy="10" r="4"/></svg></span><span class="ibar-text">15–29%</span><span class="etag etag--n">n=85</span></div></td>
+                      <td class="t-num">0.57</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 19%，90% 区间 13–27%" data-tip="19%|90% 区间 13–27% · 样本 58|竖线：全类目平均 17.0%（n=181）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="34.7" y="7" width="37.3" height="6" rx="3"/><line class="ibar__avg" x1="45.3" y1="3" x2="45.3" y2="17"/><circle class="ibar__dot" cx="50.7" cy="10" r="4"/></svg></span><span class="ibar-text">13–27%</span><span class="etag etag--n">n=58</span></div></td>
+                      <td class="t-num">0.51</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 14%，90% 区间 8–23%" data-tip="14%|90% 区间 8–23% · 样本 40|竖线：全类目平均 17.0%（n=181）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="21.3" y="7" width="40" height="6" rx="3"/><line class="ibar__avg" x1="45.3" y1="3" x2="45.3" y2="17"/><circle class="ibar__dot" cx="37.3" cy="10" r="4"/></svg></span><span class="ibar-text">8–23%</span><span class="etag etag--n">n=40</span></div></td>
+                      <td class="t-num">0.42</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 13%，90% 区间 6–26%" data-tip="13%|90% 区间 6–26% · 样本 22|竖线：全类目平均 17.0%（n=181）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="16" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="45.3" y1="3" x2="45.3" y2="17"/><circle class="ibar__dot" cx="34.7" cy="10" r="4"/></svg></span><span class="ibar-text">6–26%</span><span class="etag etag--n">n=22</span></div></td>
+                      <td class="t-num">0.36</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">8</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 10%，90% 区间 4–20%" data-tip="10%|90% 区间 4–20% · 样本 29|竖线：全类目平均 17.0%（n=181）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="42.7" height="6" rx="3"/><line class="ibar__avg" x1="45.3" y1="3" x2="45.3" y2="17"/><circle class="ibar__dot" cx="26.7" cy="10" r="4"/></svg></span><span class="ibar-text">4–20%</span><span class="etag etag--n">n=29</span></div></td>
+                      <td class="t-num">0.30</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 10 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2704-2-tips">
+              <div class="section__head">
+                <h3 id="snap-2704-2-tips">锦囊</h3>
+                <span class="section__note">4 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-012</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div>
+                      <div class="list__desc">预期命中率 26–45% · 依据 2025-04–2026-10 · 样本 71</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-015</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div>
+                      <div class="list__desc">预期命中率 16–39% · 依据 2025-04–2026-10 · 样本 175</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-009</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div>
+                      <div class="list__desc">预期命中率 4–26% · 依据 2025-04–2026-10 · 样本 93</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-018</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">台面材质为岩板 且 宽度 ≥ 48″</div>
+                      <div class="list__desc">预期命中率 <span class="etag etag--nodata">无数据</span> · 未经回测</div><div class="list__desc">wen 手动新增（2027-03-20）· 先观察两个月的新品命中再决定</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+        <aside class="drawer" id="snap-2704-1" role="dialog" aria-modal="true" aria-labelledby="snap-2704-1-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2704-1-title">2027-04 · 第 1 版</h2>
+              <p class="drawer__sub">月度快照 · 历史口径 · 生成于 2027-04-08 13:31 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">598c8fde</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=598c8fde5fc3ebe28856a1f19975eea900837f51ed7595a0a19cc586c39d7be8;封存内容=排序 18 个细分、锦囊 4 条、判定卡 v3 与版本号;保存时间=2027-04-08 13:31"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2704-1-ver">
+              <h3 id="snap-2704-1-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>v3 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></dd>
+                <dt>数据包</dt><dd>P-0007（数据至 2027-03）</dd>
+                <dt>字段约定</dt><dd>v6</dd>
+                <dt>品类配置</dt><dd>v2（3 个维度：宽度档 × 形态 × 价格带）</dd>
+                <dt>导出</dt><dd>未导出</dd>
+                <dt>对账</dt><dd>不用于对账：同日 15:02 重算后另存第 2 版，第 2 版已导出。本版保留，可随时查看。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2704-1-rank">
+              <div class="section__head">
+                <h3 id="snap-2704-1-rank">排序</h3>
+                <span class="section__note">18 个细分：有效 8、样本不足 10 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 17.1%<span class="etag etag--n">n=184</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 35%，90% 区间 26–45%" data-tip="35%|90% 区间 26–45% · 样本 45|竖线：全类目平均 17.1%（n=184）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="69.3" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="93.3" cy="10" r="4"/></svg></span><span class="ibar-text">26–45%</span><span class="etag etag--n">n=45</span></div></td>
+                      <td class="t-num">0.78</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 28%，90% 区间 18–40%" data-tip="28%|90% 区间 18–40% · 样本 32|竖线：全类目平均 17.1%（n=184）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="48" y="7" width="58.7" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="74.7" cy="10" r="4"/></svg></span><span class="ibar-text">18–40%</span><span class="etag etag--n">n=32</span></div></td>
+                      <td class="t-num">0.67</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 29%，90% 区间 18–42%" data-tip="29%|90% 区间 18–42% · 样本 28|竖线：全类目平均 17.1%（n=184）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="48" y="7" width="64" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="77.3" cy="10" r="4"/></svg></span><span class="ibar-text">18–42%</span><span class="etag etag--n">n=28</span></div></td>
+                      <td class="t-num">0.66</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 22%，90% 区间 15–29%" data-tip="22%|90% 区间 15–29% · 样本 86|竖线：全类目平均 17.1%（n=184）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="40" y="7" width="37.3" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="58.7" cy="10" r="4"/></svg></span><span class="ibar-text">15–29%</span><span class="etag etag--n">n=86</span></div></td>
+                      <td class="t-num">0.57</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 18%，90% 区间 12–26%" data-tip="18%|90% 区间 12–26% · 样本 59|竖线：全类目平均 17.1%（n=184）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="32" y="7" width="37.3" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="48" cy="10" r="4"/></svg></span><span class="ibar-text">12–26%</span><span class="etag etag--n">n=59</span></div></td>
+                      <td class="t-num">0.50</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 14%，90% 区间 8–23%" data-tip="14%|90% 区间 8–23% · 样本 41|竖线：全类目平均 17.1%（n=184）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="21.3" y="7" width="40" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="37.3" cy="10" r="4"/></svg></span><span class="ibar-text">8–23%</span><span class="etag etag--n">n=41</span></div></td>
+                      <td class="t-num">0.42</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 10%，90% 区间 4–20%" data-tip="10%|90% 区间 4–20% · 样本 30|竖线：全类目平均 17.1%（n=184）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="42.7" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="26.7" cy="10" r="4"/></svg></span><span class="ibar-text">4–20%</span><span class="etag etag--n">n=30</span></div></td>
+                      <td class="t-num">0.31</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">8</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 12%，90% 区间 5–26%" data-tip="12%|90% 区间 5–26% · 样本 23|竖线：全类目平均 17.1%（n=184）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="13.3" y="7" width="56" height="6" rx="3"/><line class="ibar__avg" x1="45.6" y1="3" x2="45.6" y2="17"/><circle class="ibar__dot" cx="32" cy="10" r="4"/></svg></span><span class="ibar-text">5–26%</span><span class="etag etag--n">n=23</span></div></td>
+                      <td class="t-num">0.30</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 10 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2704-1-tips">
+              <div class="section__head">
+                <h3 id="snap-2704-1-tips">锦囊</h3>
+                <span class="section__note">4 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-012</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div>
+                      <div class="list__desc">预期命中率 26–45% · 依据 2025-04–2026-10 · 样本 71</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-015</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div>
+                      <div class="list__desc">预期命中率 16–39% · 依据 2025-04–2026-10 · 样本 175</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-009</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div>
+                      <div class="list__desc">预期命中率 4–26% · 依据 2025-04–2026-10 · 样本 93</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-018</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">台面材质为岩板 且 宽度 ≥ 48″</div>
+                      <div class="list__desc">预期命中率 <span class="etag etag--nodata">无数据</span> · 未经回测</div><div class="list__desc">wen 手动新增（2027-03-20）· 先观察两个月的新品命中再决定</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+        <aside class="drawer" id="snap-2703-1" role="dialog" aria-modal="true" aria-labelledby="snap-2703-1-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2703-1-title">2027-03 · 第 1 版</h2>
+              <p class="drawer__sub">月度快照 · 历史口径 · 生成于 2027-03-05 15:40 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">5c1d486c</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=5c1d486cd51a9665727b56158519e461a5aaca108cf17d7b4eeaf7fc4605f4a1;封存内容=排序 18 个细分、锦囊 3 条、判定卡 v3 与版本号;保存时间=2027-03-05 15:40"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2703-1-ver">
+              <h3 id="snap-2703-1-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>v3 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></dd>
+                <dt>数据包</dt><dd>P-0006（数据至 2027-02）</dd>
+                <dt>字段约定</dt><dd>v5</dd>
+                <dt>品类配置</dt><dd>v2（3 个维度：宽度档 × 形态 × 价格带）</dd>
+                <dt>导出</dt><dd>已导出</dd>
+                <dt>对账</dt><dd>未到期 · 预计 2027-09 月更可对账（对应批次 2027-03）。立项记录 D-0005 对应本快照。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2703-1-rank">
+              <div class="section__head">
+                <h3 id="snap-2703-1-rank">排序</h3>
+                <span class="section__note">18 个细分：有效 8、样本不足 10 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 16.8%<span class="etag etag--n">n=176</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 35%，90% 区间 26–46%" data-tip="35%|90% 区间 26–46% · 样本 42|竖线：全类目平均 16.8%（n=176）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="69.3" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="44.8" y1="3" x2="44.8" y2="17"/><circle class="ibar__dot" cx="93.3" cy="10" r="4"/></svg></span><span class="ibar-text">26–46%</span><span class="etag etag--n">n=42</span></div></td>
+                      <td class="t-num">0.80</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 30%，90% 区间 19–43%" data-tip="30%|90% 区间 19–43% · 样本 26|竖线：全类目平均 16.8%（n=176）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="50.7" y="7" width="64" height="6" rx="3"/><line class="ibar__avg" x1="44.8" y1="3" x2="44.8" y2="17"/><circle class="ibar__dot" cx="80" cy="10" r="4"/></svg></span><span class="ibar-text">19–43%</span><span class="etag etag--n">n=26</span></div></td>
+                      <td class="t-num">0.73</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 25%，90% 区间 16–37%" data-tip="25%|90% 区间 16–37% · 样本 29|竖线：全类目平均 16.8%（n=176）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="42.7" y="7" width="56" height="6" rx="3"/><line class="ibar__avg" x1="44.8" y1="3" x2="44.8" y2="17"/><circle class="ibar__dot" cx="66.7" cy="10" r="4"/></svg></span><span class="ibar-text">16–37%</span><span class="etag etag--n">n=29</span></div></td>
+                      <td class="t-num">0.63</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 21%，90% 区间 15–29%" data-tip="21%|90% 区间 15–29% · 样本 82|竖线：全类目平均 16.8%（n=176）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="40" y="7" width="37.3" height="6" rx="3"/><line class="ibar__avg" x1="44.8" y1="3" x2="44.8" y2="17"/><circle class="ibar__dot" cx="56" cy="10" r="4"/></svg></span><span class="ibar-text">15–29%</span><span class="etag etag--n">n=82</span></div></td>
+                      <td class="t-num">0.56</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 18%，90% 区间 12–26%" data-tip="18%|90% 区间 12–26% · 样本 55|竖线：全类目平均 16.8%（n=176）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="32" y="7" width="37.3" height="6" rx="3"/><line class="ibar__avg" x1="44.8" y1="3" x2="44.8" y2="17"/><circle class="ibar__dot" cx="48" cy="10" r="4"/></svg></span><span class="ibar-text">12–26%</span><span class="etag etag--n">n=55</span></div></td>
+                      <td class="t-num">0.50</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 14%，90% 区间 8–24%" data-tip="14%|90% 区间 8–24% · 样本 38|竖线：全类目平均 16.8%（n=176）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="21.3" y="7" width="42.7" height="6" rx="3"/><line class="ibar__avg" x1="44.8" y1="3" x2="44.8" y2="17"/><circle class="ibar__dot" cx="37.3" cy="10" r="4"/></svg></span><span class="ibar-text">8–24%</span><span class="etag etag--n">n=38</span></div></td>
+                      <td class="t-num">0.43</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 12%，90% 区间 5–26%" data-tip="12%|90% 区间 5–26% · 样本 21|竖线：全类目平均 16.8%（n=176）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="13.3" y="7" width="56" height="6" rx="3"/><line class="ibar__avg" x1="44.8" y1="3" x2="44.8" y2="17"/><circle class="ibar__dot" cx="32" cy="10" r="4"/></svg></span><span class="ibar-text">5–26%</span><span class="etag etag--n">n=21</span></div></td>
+                      <td class="t-num">0.35</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">8</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 10%，90% 区间 4–21%" data-tip="10%|90% 区间 4–21% · 样本 27|竖线：全类目平均 16.8%（n=176）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="45.3" height="6" rx="3"/><line class="ibar__avg" x1="44.8" y1="3" x2="44.8" y2="17"/><circle class="ibar__dot" cx="26.7" cy="10" r="4"/></svg></span><span class="ibar-text">4–21%</span><span class="etag etag--n">n=27</span></div></td>
+                      <td class="t-num">0.31</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 10 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2703-1-tips">
+              <div class="section__head">
+                <h3 id="snap-2703-1-tips">锦囊</h3>
+                <span class="section__note">3 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-012</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div>
+                      <div class="list__desc">预期命中率 26–46% · 依据 2025-04–2026-09 · 样本 67</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-015</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div>
+                      <div class="list__desc">预期命中率 16–39% · 依据 2025-04–2026-09 · 样本 168</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-009</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div>
+                      <div class="list__desc">预期命中率 4–26% · 依据 2025-04–2026-09 · 样本 90</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+        <aside class="drawer" id="snap-2702-1" role="dialog" aria-modal="true" aria-labelledby="snap-2702-1-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2702-1-title">2027-02 · 第 1 版</h2>
+              <p class="drawer__sub">月度快照 · 历史口径 · 生成于 2027-02-05 14:12 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">6d92c117</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=6d92c1173aed280ff37c5eabb249c88f21336c3b6d81d9d8a4e2fac85d9f066b;封存内容=排序 18 个细分、锦囊 3 条、判定卡 v2 与版本号;保存时间=2027-02-05 14:12"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2702-1-ver">
+              <h3 id="snap-2702-1-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>v2 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></dd>
+                <dt>数据包</dt><dd>P-0005（数据至 2027-01）</dd>
+                <dt>字段约定</dt><dd>v4</dd>
+                <dt>品类配置</dt><dd>v2（3 个维度：宽度档 × 形态 × 价格带）</dd>
+                <dt>导出</dt><dd>已导出</dd>
+                <dt>对账</dt><dd>未到期 · 预计 2027-08 月更可对账（对应批次 2027-02）。立项记录 D-0003、D-0004 对应本快照。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2702-1-rank">
+              <div class="section__head">
+                <h3 id="snap-2702-1-rank">排序</h3>
+                <span class="section__note">18 个细分：有效 8、样本不足 10 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 16.5%<span class="etag etag--n">n=170</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 34%，90% 区间 25–45%" data-tip="34%|90% 区间 25–45% · 样本 40|竖线：全类目平均 16.5%（n=170）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="66.7" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="44" y1="3" x2="44" y2="17"/><circle class="ibar__dot" cx="90.7" cy="10" r="4"/></svg></span><span class="ibar-text">25–45%</span><span class="etag etag--n">n=40</span></div></td>
+                      <td class="t-num">0.78</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 29%，90% 区间 18–43%" data-tip="29%|90% 区间 18–43% · 样本 24|竖线：全类目平均 16.5%（n=170）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="48" y="7" width="66.7" height="6" rx="3"/><line class="ibar__avg" x1="44" y1="3" x2="44" y2="17"/><circle class="ibar__dot" cx="77.3" cy="10" r="4"/></svg></span><span class="ibar-text">18–43%</span><span class="etag etag--n">n=24</span></div></td>
+                      <td class="t-num">0.70</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 26%，90% 区间 16–38%" data-tip="26%|90% 区间 16–38% · 样本 28|竖线：全类目平均 16.5%（n=170）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="42.7" y="7" width="58.7" height="6" rx="3"/><line class="ibar__avg" x1="44" y1="3" x2="44" y2="17"/><circle class="ibar__dot" cx="69.3" cy="10" r="4"/></svg></span><span class="ibar-text">16–38%</span><span class="etag etag--n">n=28</span></div></td>
+                      <td class="t-num">0.64</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 21%，90% 区间 14–29%" data-tip="21%|90% 区间 14–29% · 样本 79|竖线：全类目平均 16.5%（n=170）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="37.3" y="7" width="40" height="6" rx="3"/><line class="ibar__avg" x1="44" y1="3" x2="44" y2="17"/><circle class="ibar__dot" cx="56" cy="10" r="4"/></svg></span><span class="ibar-text">14–29%</span><span class="etag etag--n">n=79</span></div></td>
+                      <td class="t-num">0.56</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 18%，90% 区间 12–26%" data-tip="18%|90% 区间 12–26% · 样本 52|竖线：全类目平均 16.5%（n=170）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="32" y="7" width="37.3" height="6" rx="3"/><line class="ibar__avg" x1="44" y1="3" x2="44" y2="17"/><circle class="ibar__dot" cx="48" cy="10" r="4"/></svg></span><span class="ibar-text">12–26%</span><span class="etag etag--n">n=52</span></div></td>
+                      <td class="t-num">0.49</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 14%，90% 区间 7–24%" data-tip="14%|90% 区间 7–24% · 样本 36|竖线：全类目平均 16.5%（n=170）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="18.7" y="7" width="45.3" height="6" rx="3"/><line class="ibar__avg" x1="44" y1="3" x2="44" y2="17"/><circle class="ibar__dot" cx="37.3" cy="10" r="4"/></svg></span><span class="ibar-text">7–24%</span><span class="etag etag--n">n=36</span></div></td>
+                      <td class="t-num">0.42</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 10%，90% 区间 4–21%" data-tip="10%|90% 区间 4–21% · 样本 26|竖线：全类目平均 16.5%（n=170）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="45.3" height="6" rx="3"/><line class="ibar__avg" x1="44" y1="3" x2="44" y2="17"/><circle class="ibar__dot" cx="26.7" cy="10" r="4"/></svg></span><span class="ibar-text">4–21%</span><span class="etag etag--n">n=26</span></div></td>
+                      <td class="t-num">0.32</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">8</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 12%，90% 区间 4–27%" data-tip="12%|90% 区间 4–27% · 样本 20|竖线：全类目平均 16.5%（n=170）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="61.3" height="6" rx="3"/><line class="ibar__avg" x1="44" y1="3" x2="44" y2="17"/><circle class="ibar__dot" cx="32" cy="10" r="4"/></svg></span><span class="ibar-text">4–27%</span><span class="etag etag--n">n=20</span></div></td>
+                      <td class="t-num">0.31</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 10 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2702-1-tips">
+              <div class="section__head">
+                <h3 id="snap-2702-1-tips">锦囊</h3>
+                <span class="section__note">3 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-012</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div>
+                      <div class="list__desc">预期命中率 25–45% · 依据 2025-04–2026-08 · 样本 63</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-015</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div>
+                      <div class="list__desc">预期命中率 15–39% · 依据 2025-04–2026-08 · 样本 160</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-009</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div>
+                      <div class="list__desc">预期命中率 4–27% · 依据 2025-04–2026-08 · 样本 86</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+        <aside class="drawer" id="snap-2701-1" role="dialog" aria-modal="true" aria-labelledby="snap-2701-1-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2701-1-title">2027-01 · 第 1 版</h2>
+              <p class="drawer__sub">月度快照 · 历史口径 · 生成于 2027-01-07 16:25 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">94d825cb</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=94d825cbf052cb2631369d0e40fdade2769b879678315e27444e8699add51c6f;封存内容=排序 18 个细分、锦囊 3 条、判定卡 v2 与版本号;保存时间=2027-01-07 16:25"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2701-1-ver">
+              <h3 id="snap-2701-1-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>v2 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></dd>
+                <dt>数据包</dt><dd>P-0004（数据至 2026-12）</dd>
+                <dt>字段约定</dt><dd>v3</dd>
+                <dt>品类配置</dt><dd>v2（3 个维度：宽度档 × 形态 × 价格带）</dd>
+                <dt>导出</dt><dd>已导出</dd>
+                <dt>对账</dt><dd>未到期 · 预计 2027-07 月更可对账（对应批次 2027-01）。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2701-1-rank">
+              <div class="section__head">
+                <h3 id="snap-2701-1-rank">排序</h3>
+                <span class="section__note">18 个细分：有效 7、样本不足 11 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 16.3%<span class="etag etag--n">n=164</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 33%，90% 区间 24–44%" data-tip="33%|90% 区间 24–44% · 样本 38|竖线：全类目平均 16.3%（n=164）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="64" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="43.5" y1="3" x2="43.5" y2="17"/><circle class="ibar__dot" cx="88" cy="10" r="4"/></svg></span><span class="ibar-text">24–44%</span><span class="etag etag--n">n=38</span></div></td>
+                      <td class="t-num">0.76</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 27%，90% 区间 17–39%" data-tip="27%|90% 区间 17–39% · 样本 27|竖线：全类目平均 16.3%（n=164）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="45.3" y="7" width="58.7" height="6" rx="3"/><line class="ibar__avg" x1="43.5" y1="3" x2="43.5" y2="17"/><circle class="ibar__dot" cx="72" cy="10" r="4"/></svg></span><span class="ibar-text">17–39%</span><span class="etag etag--n">n=27</span></div></td>
+                      <td class="t-num">0.66</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 28%，90% 区间 16–43%" data-tip="28%|90% 区间 16–43% · 样本 22|竖线：全类目平均 16.3%（n=164）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="42.7" y="7" width="72" height="6" rx="3"/><line class="ibar__avg" x1="43.5" y1="3" x2="43.5" y2="17"/><circle class="ibar__dot" cx="74.7" cy="10" r="4"/></svg></span><span class="ibar-text">16–43%</span><span class="etag etag--n">n=22</span></div></td>
+                      <td class="t-num">0.65</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 21%，90% 区间 14–29%" data-tip="21%|90% 区间 14–29% · 样本 76|竖线：全类目平均 16.3%（n=164）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="37.3" y="7" width="40" height="6" rx="3"/><line class="ibar__avg" x1="43.5" y1="3" x2="43.5" y2="17"/><circle class="ibar__dot" cx="56" cy="10" r="4"/></svg></span><span class="ibar-text">14–29%</span><span class="etag etag--n">n=76</span></div></td>
+                      <td class="t-num">0.55</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 18%，90% 区间 11–27%" data-tip="18%|90% 区间 11–27% · 样本 50|竖线：全类目平均 16.3%（n=164）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="29.3" y="7" width="42.7" height="6" rx="3"/><line class="ibar__avg" x1="43.5" y1="3" x2="43.5" y2="17"/><circle class="ibar__dot" cx="48" cy="10" r="4"/></svg></span><span class="ibar-text">11–27%</span><span class="etag etag--n">n=50</span></div></td>
+                      <td class="t-num">0.49</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 14%，90% 区间 7–24%" data-tip="14%|90% 区间 7–24% · 样本 34|竖线：全类目平均 16.3%（n=164）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="18.7" y="7" width="45.3" height="6" rx="3"/><line class="ibar__avg" x1="43.5" y1="3" x2="43.5" y2="17"/><circle class="ibar__dot" cx="37.3" cy="10" r="4"/></svg></span><span class="ibar-text">7–24%</span><span class="etag etag--n">n=34</span></div></td>
+                      <td class="t-num">0.41</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 10%，90% 区间 4–21%" data-tip="10%|90% 区间 4–21% · 样本 25|竖线：全类目平均 16.3%（n=164）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="45.3" height="6" rx="3"/><line class="ibar__avg" x1="43.5" y1="3" x2="43.5" y2="17"/><circle class="ibar__dot" cx="26.7" cy="10" r="4"/></svg></span><span class="ibar-text">4–21%</span><span class="etag etag--n">n=25</span></div></td>
+                      <td class="t-num">0.32</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 11 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2701-1-tips">
+              <div class="section__head">
+                <h3 id="snap-2701-1-tips">锦囊</h3>
+                <span class="section__note">3 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-012</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div>
+                      <div class="list__desc">预期命中率 24–44% · 依据 2025-04–2026-07 · 样本 58</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-015</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div>
+                      <div class="list__desc">预期命中率 15–40% · 依据 2025-04–2026-07 · 样本 152</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-009</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div>
+                      <div class="list__desc">预期命中率 4–27% · 依据 2025-04–2026-07 · 样本 81</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+        <aside class="drawer" id="snap-2612-1" role="dialog" aria-modal="true" aria-labelledby="snap-2612-1-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2612-1-title">2026-12 · 第 1 版</h2>
+              <p class="drawer__sub">月度快照 · 历史口径 · 生成于 2026-12-04 15:55 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">06da8ec8</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=06da8ec804339cd98612fbcac5ef824708d1e064b04cc70deb9940195efd187e;封存内容=排序 18 个细分、锦囊 3 条、判定卡 v2 与版本号;保存时间=2026-12-04 15:55"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2612-1-ver">
+              <h3 id="snap-2612-1-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>v2 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></dd>
+                <dt>数据包</dt><dd>P-0003（数据至 2026-11）</dd>
+                <dt>字段约定</dt><dd>v3</dd>
+                <dt>品类配置</dt><dd>v2（3 个维度：宽度档 × 形态 × 价格带）</dd>
+                <dt>导出</dt><dd>已导出</dd>
+                <dt>对账</dt><dd>未到期 · 预计 2027-06 月更可对账（对应批次 2026-12，判定窗口到 2027-05）。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2612-1-rank">
+              <div class="section__head">
+                <h3 id="snap-2612-1-rank">排序</h3>
+                <span class="section__note">18 个细分：有效 7、样本不足 11 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 16.1%<span class="etag etag--n">n=158</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 32%，90% 区间 23–43%" data-tip="32%|90% 区间 23–43% · 样本 36|竖线：全类目平均 16.1%（n=158）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="61.3" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="42.9" y1="3" x2="42.9" y2="17"/><circle class="ibar__dot" cx="85.3" cy="10" r="4"/></svg></span><span class="ibar-text">23–43%</span><span class="etag etag--n">n=36</span></div></td>
+                      <td class="t-num">0.74</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 27%，90% 区间 17–40%" data-tip="27%|90% 区间 17–40% · 样本 26|竖线：全类目平均 16.1%（n=158）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="45.3" y="7" width="61.3" height="6" rx="3"/><line class="ibar__avg" x1="42.9" y1="3" x2="42.9" y2="17"/><circle class="ibar__dot" cx="72" cy="10" r="4"/></svg></span><span class="ibar-text">17–40%</span><span class="etag etag--n">n=26</span></div></td>
+                      <td class="t-num">0.67</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 27%，90% 区间 15–43%" data-tip="27%|90% 区间 15–43% · 样本 21|竖线：全类目平均 16.1%（n=158）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="40" y="7" width="74.7" height="6" rx="3"/><line class="ibar__avg" x1="42.9" y1="3" x2="42.9" y2="17"/><circle class="ibar__dot" cx="72" cy="10" r="4"/></svg></span><span class="ibar-text">15–43%</span><span class="etag etag--n">n=21</span></div></td>
+                      <td class="t-num">0.60</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 22%，90% 区间 15–30%" data-tip="22%|90% 区间 15–30% · 样本 73|竖线：全类目平均 16.1%（n=158）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="40" y="7" width="40" height="6" rx="3"/><line class="ibar__avg" x1="42.9" y1="3" x2="42.9" y2="17"/><circle class="ibar__dot" cx="58.7" cy="10" r="4"/></svg></span><span class="ibar-text">15–30%</span><span class="etag etag--n">n=73</span></div></td>
+                      <td class="t-num">0.57</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 18%，90% 区间 11–27%" data-tip="18%|90% 区间 11–27% · 样本 47|竖线：全类目平均 16.1%（n=158）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="29.3" y="7" width="42.7" height="6" rx="3"/><line class="ibar__avg" x1="42.9" y1="3" x2="42.9" y2="17"/><circle class="ibar__dot" cx="48" cy="10" r="4"/></svg></span><span class="ibar-text">11–27%</span><span class="etag etag--n">n=47</span></div></td>
+                      <td class="t-num">0.48</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 13%，90% 区间 7–23%" data-tip="13%|90% 区间 7–23% · 样本 32|竖线：全类目平均 16.1%（n=158）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="18.7" y="7" width="42.7" height="6" rx="3"/><line class="ibar__avg" x1="42.9" y1="3" x2="42.9" y2="17"/><circle class="ibar__dot" cx="34.7" cy="10" r="4"/></svg></span><span class="ibar-text">7–23%</span><span class="etag etag--n">n=32</span></div></td>
+                      <td class="t-num">0.40</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 10%，90% 区间 4–22%" data-tip="10%|90% 区间 4–22% · 样本 24|竖线：全类目平均 16.1%（n=158）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="48" height="6" rx="3"/><line class="ibar__avg" x1="42.9" y1="3" x2="42.9" y2="17"/><circle class="ibar__dot" cx="26.7" cy="10" r="4"/></svg></span><span class="ibar-text">4–22%</span><span class="etag etag--n">n=24</span></div></td>
+                      <td class="t-num">0.33</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 11 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2612-1-tips">
+              <div class="section__head">
+                <h3 id="snap-2612-1-tips">锦囊</h3>
+                <span class="section__note">3 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-012</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div>
+                      <div class="list__desc">预期命中率 23–43% · 依据 2025-04–2026-06 · 样本 54</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-015</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div>
+                      <div class="list__desc">预期命中率 15–40% · 依据 2025-04–2026-06 · 样本 145</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-009</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div>
+                      <div class="list__desc">预期命中率 3–27% · 依据 2025-04–2026-06 · 样本 77</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+        <aside class="drawer" id="snap-2611-2" role="dialog" aria-modal="true" aria-labelledby="snap-2611-2-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2611-2-title">2026-11 · 第 2 版</h2>
+              <p class="drawer__sub">月度快照 · 历史口径 · 生成于 2026-11-10 17:08 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">fec184b5</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=fec184b518669a50819ed166ee59dc3411cafbc311330413f5ab945dc7b89433;封存内容=排序 72 个细分、锦囊 3 条、判定卡 v1 与版本号;保存时间=2026-11-10 17:08"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2611-2-ver">
+              <h3 id="snap-2611-2-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>v1 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></dd>
+                <dt>数据包</dt><dd>P-0002（数据至 2026-10）</dd>
+                <dt>字段约定</dt><dd>v2</dd>
+                <dt>品类配置</dt><dd>v1（5 个维度：宽度档 × 形态 × 柜体材质 × 风格元素 × 价格带）</dd>
+                <dt>导出</dt><dd>已导出</dd>
+                <dt>对账</dt><dd>已对账（2027-05-08）：对应批次 2026-11，前 20% 细分（前 2 名）实际命中率 44.4%，倍数 2.07×，落在回测预期 27–46% 内。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2611-2-rank">
+              <div class="section__head">
+                <h3 id="snap-2611-2-rank">排序</h3>
+                <span class="section__note">72 个细分：有效 9、样本不足 63 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 17.4%<span class="etag etag--n">n=168</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>实木</span><span>现代</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 38%，90% 区间 27–51%" data-tip="38%|90% 区间 27–51% · 样本 23|竖线：全类目平均 17.4%（n=168）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="72" y="7" width="64" height="6" rx="3"/><line class="ibar__avg" x1="46.4" y1="3" x2="46.4" y2="17"/><circle class="ibar__dot" cx="101.3" cy="10" r="4"/></svg></span><span class="ibar-text">27–51%</span><span class="etag etag--n">n=23</span></div></td>
+                      <td class="t-num">0.77</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>实木</span><span>现代</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 33%，90% 区间 21–48%" data-tip="33%|90% 区间 21–48% · 样本 21|竖线：全类目平均 17.4%（n=168）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="56" y="7" width="72" height="6" rx="3"/><line class="ibar__avg" x1="46.4" y1="3" x2="46.4" y2="17"/><circle class="ibar__dot" cx="88" cy="10" r="4"/></svg></span><span class="ibar-text">21–48%</span><span class="etag etag--n">n=21</span></div></td>
+                      <td class="t-num">0.71</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 23%，90% 区间 15–33%" data-tip="23%|90% 区间 15–33% · 样本 52|竖线：全类目平均 17.4%（n=168）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="40" y="7" width="48" height="6" rx="3"/><line class="ibar__avg" x1="46.4" y1="3" x2="46.4" y2="17"/><circle class="ibar__dot" cx="61.3" cy="10" r="4"/></svg></span><span class="ibar-text">15–33%</span><span class="etag etag--n">n=52</span></div></td>
+                      <td class="t-num">0.60</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>人造板</span><span>现代</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 25%，90% 区间 14–39%" data-tip="25%|90% 区间 14–39% · 样本 24|竖线：全类目平均 17.4%（n=168）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="37.3" y="7" width="66.7" height="6" rx="3"/><line class="ibar__avg" x1="46.4" y1="3" x2="46.4" y2="17"/><circle class="ibar__dot" cx="66.7" cy="10" r="4"/></svg></span><span class="ibar-text">14–39%</span><span class="etag etag--n">n=24</span></div></td>
+                      <td class="t-num">0.57</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>人造板</span><span>乡村</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 19%，90% 区间 11–30%" data-tip="19%|90% 区间 11–30% · 样本 33|竖线：全类目平均 17.4%（n=168）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="29.3" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="46.4" y1="3" x2="46.4" y2="17"/><circle class="ibar__dot" cx="50.7" cy="10" r="4"/></svg></span><span class="ibar-text">11–30%</span><span class="etag etag--n">n=33</span></div></td>
+                      <td class="t-num">0.50</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 14%，90% 区间 6–26%" data-tip="14%|90% 区间 6–26% · 样本 26|竖线：全类目平均 17.4%（n=168）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="16" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="46.4" y1="3" x2="46.4" y2="17"/><circle class="ibar__dot" cx="37.3" cy="10" r="4"/></svg></span><span class="ibar-text">6–26%</span><span class="etag etag--n">n=26</span></div></td>
+                      <td class="t-num">0.42</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 15%，90% 区间 8–25%" data-tip="15%|90% 区间 8–25% · 样本 41|竖线：全类目平均 17.4%（n=168）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="21.3" y="7" width="45.3" height="6" rx="3"/><line class="ibar__avg" x1="46.4" y1="3" x2="46.4" y2="17"/><circle class="ibar__dot" cx="40" cy="10" r="4"/></svg></span><span class="ibar-text">8–25%</span><span class="etag etag--n">n=41</span></div></td>
+                      <td class="t-num">0.40</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">8</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>人造板</span><span>现代</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 12%，90% 区间 4–27%" data-tip="12%|90% 区间 4–27% · 样本 20|竖线：全类目平均 17.4%（n=168）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="61.3" height="6" rx="3"/><line class="ibar__avg" x1="46.4" y1="3" x2="46.4" y2="17"/><circle class="ibar__dot" cx="32" cy="10" r="4"/></svg></span><span class="ibar-text">4–27%</span><span class="etag etag--n">n=20</span></div></td>
+                      <td class="t-num">0.35</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">9</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 9%，90% 区间 3–21%" data-tip="9%|90% 区间 3–21% · 样本 22|竖线：全类目平均 17.4%（n=168）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="8" y="7" width="48" height="6" rx="3"/><line class="ibar__avg" x1="46.4" y1="3" x2="46.4" y2="17"/><circle class="ibar__dot" cx="24" cy="10" r="4"/></svg></span><span class="ibar-text">3–21%</span><span class="etag etag--n">n=22</span></div></td>
+                      <td class="t-num">0.29</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 63 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2611-2-tips">
+              <div class="section__head">
+                <h3 id="snap-2611-2-tips">锦囊</h3>
+                <span class="section__note">3 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-012</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div>
+                      <div class="list__desc">预期命中率 27–46% · 依据 2025-04–2026-05 · 样本 52</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-015</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div>
+                      <div class="list__desc">预期命中率 16–40% · 依据 2025-04–2026-05 · 样本 138</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-009</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div>
+                      <div class="list__desc">预期命中率 3–28% · 依据 2025-04–2026-05 · 样本 72</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <a class="btn" href="PAGE-F10-05.html"><svg class="icon"><use href="#ph-scales"/></svg><span>在到期对账中查看</span></a>
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+        <aside class="drawer" id="snap-2611-1" role="dialog" aria-modal="true" aria-labelledby="snap-2611-1-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2611-1-title">2026-11 · 第 1 版</h2>
+              <p class="drawer__sub">月度快照 · 历史口径 · 生成于 2026-11-10 16:54 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">b9c119d7</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=b9c119d7db1a04d09929468848c8633e9921ec9a420259a485b9261902b7d453;封存内容=排序 72 个细分、锦囊 3 条、判定卡 v1 与版本号;保存时间=2026-11-10 16:54"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2611-1-ver">
+              <h3 id="snap-2611-1-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>v1 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已达标</span></dd>
+                <dt>数据包</dt><dd>P-0002（数据至 2026-10）</dd>
+                <dt>字段约定</dt><dd>v2</dd>
+                <dt>品类配置</dt><dd>v1（5 个维度：宽度档 × 形态 × 柜体材质 × 风格元素 × 价格带）</dd>
+                <dt>导出</dt><dd>未导出</dd>
+                <dt>对账</dt><dd>不用于对账：同日 17:08 另存第 2 版并导出，对账用第 2 版。本版前 20% 与第 2 版不同（第 2 名为观察细分），保留供对照。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2611-1-rank">
+              <div class="section__head">
+                <h3 id="snap-2611-1-rank">排序</h3>
+                <span class="section__note">72 个细分：有效 9、样本不足 63 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 17.5%<span class="etag etag--n">n=171</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>实木</span><span>现代</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 37%，90% 区间 26–50%" data-tip="37%|90% 区间 26–50% · 样本 24|竖线：全类目平均 17.5%（n=171）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="69.3" y="7" width="64" height="6" rx="3"/><line class="ibar__avg" x1="46.7" y1="3" x2="46.7" y2="17"/><circle class="ibar__dot" cx="98.7" cy="10" r="4"/></svg></span><span class="ibar-text">26–50%</span><span class="etag etag--n">n=24</span></div></td>
+                      <td class="t-num">0.75</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 24%，90% 区间 16–34%" data-tip="24%|90% 区间 16–34% · 样本 54|竖线：全类目平均 17.5%（n=171）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="42.7" y="7" width="48" height="6" rx="3"/><line class="ibar__avg" x1="46.7" y1="3" x2="46.7" y2="17"/><circle class="ibar__dot" cx="64" cy="10" r="4"/></svg></span><span class="ibar-text">16–34%</span><span class="etag etag--n">n=54</span></div></td>
+                      <td class="t-num">0.62</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>实木</span><span>现代</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 32%，90% 区间 19–48%" data-tip="32%|90% 区间 19–48% · 样本 22|竖线：全类目平均 17.5%（n=171）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="50.7" y="7" width="77.3" height="6" rx="3"/><line class="ibar__avg" x1="46.7" y1="3" x2="46.7" y2="17"/><circle class="ibar__dot" cx="85.3" cy="10" r="4"/></svg></span><span class="ibar-text">19–48%</span><span class="etag etag--n">n=22</span></div></td>
+                      <td class="t-num">0.61</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-012</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>人造板</span><span>现代</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 25%，90% 区间 14–39%" data-tip="25%|90% 区间 14–39% · 样本 25|竖线：全类目平均 17.5%（n=171）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="37.3" y="7" width="66.7" height="6" rx="3"/><line class="ibar__avg" x1="46.7" y1="3" x2="46.7" y2="17"/><circle class="ibar__dot" cx="66.7" cy="10" r="4"/></svg></span><span class="ibar-text">14–39%</span><span class="etag etag--n">n=25</span></div></td>
+                      <td class="t-num">0.56</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>人造板</span><span>乡村</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 19%，90% 区间 11–30%" data-tip="19%|90% 区间 11–30% · 样本 35|竖线：全类目平均 17.5%（n=171）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="29.3" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="46.7" y1="3" x2="46.7" y2="17"/><circle class="ibar__dot" cx="50.7" cy="10" r="4"/></svg></span><span class="ibar-text">11–30%</span><span class="etag etag--n">n=35</span></div></td>
+                      <td class="t-num">0.49</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-015</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 14%，90% 区间 6–26%" data-tip="14%|90% 区间 6–26% · 样本 27|竖线：全类目平均 17.5%（n=171）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="16" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="46.7" y1="3" x2="46.7" y2="17"/><circle class="ibar__dot" cx="37.3" cy="10" r="4"/></svg></span><span class="ibar-text">6–26%</span><span class="etag etag--n">n=27</span></div></td>
+                      <td class="t-num">0.43</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 15%，90% 区间 8–25%" data-tip="15%|90% 区间 8–25% · 样本 43|竖线：全类目平均 17.5%（n=171）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="21.3" y="7" width="45.3" height="6" rx="3"/><line class="ibar__avg" x1="46.7" y1="3" x2="46.7" y2="17"/><circle class="ibar__dot" cx="40" cy="10" r="4"/></svg></span><span class="ibar-text">8–25%</span><span class="etag etag--n">n=43</span></div></td>
+                      <td class="t-num">0.39</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">8</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>人造板</span><span>现代</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 12%，90% 区间 4–27%" data-tip="12%|90% 区间 4–27% · 样本 21|竖线：全类目平均 17.5%（n=171）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="10.7" y="7" width="61.3" height="6" rx="3"/><line class="ibar__avg" x1="46.7" y1="3" x2="46.7" y2="17"/><circle class="ibar__dot" cx="32" cy="10" r="4"/></svg></span><span class="ibar-text">4–27%</span><span class="etag etag--n">n=21</span></div></td>
+                      <td class="t-num">0.34</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">9</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 9%，90% 区间 3–21%" data-tip="9%|90% 区间 3–21% · 样本 23|竖线：全类目平均 17.5%（n=171）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="8" y="7" width="48" height="6" rx="3"/><line class="ibar__avg" x1="46.7" y1="3" x2="46.7" y2="17"/><circle class="ibar__dot" cx="24" cy="10" r="4"/></svg></span><span class="ibar-text">3–21%</span><span class="etag etag--n">n=23</span></div></td>
+                      <td class="t-num">0.28</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-009</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 63 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2611-1-tips">
+              <div class="section__head">
+                <h3 id="snap-2611-1-tips">锦囊</h3>
+                <span class="section__note">3 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-012</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div>
+                      <div class="list__desc">预期命中率 27–46% · 依据 2025-04–2026-05 · 样本 52</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-015</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div>
+                      <div class="list__desc">预期命中率 16–40% · 依据 2025-04–2026-05 · 样本 138</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-009</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge"><svg class="icon"><use href="#ph-flask"/></svg>历史观察</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div>
+                      <div class="list__desc">预期命中率 3–28% · 依据 2025-04–2026-05 · 样本 72</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+        <aside class="drawer" id="snap-2610-1" role="dialog" aria-modal="true" aria-labelledby="snap-2610-1-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="snap-2610-1-title">2026-10 · 第 1 版</h2>
+              <p class="drawer__sub">月度快照 · 截面口径 · 生成于 2026-10-29 10:15 · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+          </div>
+          <div class="drawer__body stack-lg">
+            <div class="banner">
+              <svg class="icon"><use href="#ph-lock-simple"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">5bf4011a</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值=5bf4011a7c3fade8d4e50d2b6cab82e5df75a33803b63283cc96e9f6d841504c;封存内容=排序 72 个细分、锦囊 3 条、判定卡 截面 v1 与版本号;保存时间=2026-10-29 10:15"><svg class="icon"><use href="#ph-fingerprint"/></svg>SHA-256</button></div>
+              </div>
+            </div>
+            <div class="banner banner--cross">
+              <svg class="icon"><use href="#ph-intersect"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">截面口径，待历史回测确认</div>
+                <div>本快照来自截面回测 BT-0007（数据包 P-0001，2026-06–09）。截面卡 v1 已被历史结论取代，以历史口径为准。</div>
+              </div>
+            </div>
+
+            <section aria-labelledby="snap-2610-1-ver">
+              <h3 id="snap-2610-1-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>截面 v1 <span class="badge badge--cross"><svg class="icon"><use href="#ph-intersect"/></svg>达标（截面）</span></dd>
+                <dt>数据包</dt><dd>P-0001（数据至 2026-09）</dd>
+                <dt>字段约定</dt><dd>v1</dd>
+                <dt>品类配置</dt><dd>v1（5 个维度：宽度档 × 形态 × 柜体材质 × 风格元素 × 价格带）</dd>
+                <dt>导出</dt><dd>已导出</dd>
+                <dt>对账</dt><dd>已对账（截面口径，2027-04-08）：对应批次 2026-10，前 20% 细分实际命中率 37.5%，倍数 2.18×，落在截面预期 22–49% 内。截面对账仅作参考，不改变规则状态。</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="snap-2610-1-rank">
+              <div class="section__head">
+                <h3 id="snap-2610-1-rank">排序</h3>
+                <span class="section__note">72 个细分：有效 7、样本不足 65 · 前 20% 为前 2 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 16.4%<span class="etag etag--n">新品-月 n=135</span><span class="etag etag--cross">截面</span></p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-num">1</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>实木</span><span>现代</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 35%，90% 区间 22–51%" data-tip="35%|90% 区间 22–51% · 样本 31|竖线：全类目平均 16.4%（新品-月 n=135）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="58.7" y="7" width="77.3" height="6" rx="3"/><line class="ibar__avg" x1="43.7" y1="3" x2="43.7" y2="17"/><circle class="ibar__dot" cx="93.3" cy="10" r="4"/></svg></span><span class="ibar-text">22–51%</span><span class="etag etag--n">n=31</span><span class="etag etag--cross">截面</span></div></td>
+                      <td class="t-num">0.72</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-004</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">2</td>
+                      <td><div><span class="segname"><span>≥48″</span><span>落地式</span><span>实木</span><span>现代</span><span>≥$900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 31%，90% 区间 18–48%" data-tip="31%|90% 区间 18–48% · 样本 24|竖线：全类目平均 16.4%（新品-月 n=135）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="48" y="7" width="80" height="6" rx="3"/><line class="ibar__avg" x1="43.7" y1="3" x2="43.7" y2="17"/><circle class="ibar__dot" cx="82.7" cy="10" r="4"/></svg></span><span class="ibar-text">18–48%</span><span class="etag etag--n">n=24</span><span class="etag etag--cross">截面</span></div></td>
+                      <td class="t-num">0.66</td>
+                      <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><div class="cell-sub mono">R-004</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">3</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>悬浮式</span><span>人造板</span><span>现代</span><span>$500–900</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 25%，90% 区间 13–41%" data-tip="25%|90% 区间 13–41% · 样本 26|竖线：全类目平均 16.4%（新品-月 n=135）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="34.7" y="7" width="74.7" height="6" rx="3"/><line class="ibar__avg" x1="43.7" y1="3" x2="43.7" y2="17"/><circle class="ibar__dot" cx="66.7" cy="10" r="4"/></svg></span><span class="ibar-text">13–41%</span><span class="etag etag--n">n=26</span><span class="etag etag--cross">截面</span></div></td>
+                      <td class="t-num">0.58</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-005</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">4</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>落地式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 21%，90% 区间 13–32%" data-tip="21%|90% 区间 13–32% · 样本 58|竖线：全类目平均 16.4%（新品-月 n=135）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="34.7" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="43.7" y1="3" x2="43.7" y2="17"/><circle class="ibar__dot" cx="56" cy="10" r="4"/></svg></span><span class="ibar-text">13–32%</span><span class="etag etag--n">n=58</span><span class="etag etag--cross">截面</span></div></td>
+                      <td class="t-num">0.52</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-005</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">5</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>人造板</span><span>乡村</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 18%，90% 区间 9–31%" data-tip="18%|90% 区间 9–31% · 样本 34|竖线：全类目平均 16.4%（新品-月 n=135）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="24" y="7" width="58.7" height="6" rx="3"/><line class="ibar__avg" x1="43.7" y1="3" x2="43.7" y2="17"/><circle class="ibar__dot" cx="48" cy="10" r="4"/></svg></span><span class="ibar-text">9–31%</span><span class="etag etag--n">n=34</span><span class="etag etag--cross">截面</span></div></td>
+                      <td class="t-num">0.44</td>
+                      <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><div class="cell-sub mono">R-005</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">6</td>
+                      <td><div><span class="segname"><span>≤30″</span><span>悬浮式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 13%，90% 区间 5–27%" data-tip="13%|90% 区间 5–27% · 样本 28|竖线：全类目平均 16.4%（新品-月 n=135）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="13.3" y="7" width="58.7" height="6" rx="3"/><line class="ibar__avg" x1="43.7" y1="3" x2="43.7" y2="17"/><circle class="ibar__dot" cx="34.7" cy="10" r="4"/></svg></span><span class="ibar-text">5–27%</span><span class="etag etag--n">n=28</span><span class="etag etag--cross">截面</span></div></td>
+                      <td class="t-num">0.36</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-006</div></td>
+                    </tr>
+                    <tr>
+                      <td class="t-num">7</td>
+                      <td><div><span class="segname"><span>30–48″</span><span>落地式</span><span>人造板</span><span>现代</span><span>&lt;$500</span></span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 12%，90% 区间 5–24%" data-tip="12%|90% 区间 5–24% · 样本 40|竖线：全类目平均 16.4%（新品-月 n=135）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="13.3" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="43.7" y1="3" x2="43.7" y2="17"/><circle class="ibar__dot" cx="32" cy="10" r="4"/></svg></span><span class="ibar-text">5–24%</span><span class="etag etag--n">n=40</span><span class="etag etag--cross">截面</span></div></td>
+                      <td class="t-num">0.31</td>
+                      <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><div class="cell-sub mono">R-006</div></td>
+                    </tr>
+                    <tr class="table__divider"><td colspan="4">样本不足 65 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="snap-2610-1-tips">
+              <div class="section__head">
+                <h3 id="snap-2610-1-tips">锦囊</h3>
+                <span class="section__note">3 条 · 状态为快照保存时的状态</span>
+              </div>
+              <div class="panel">
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-flag"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-004</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="badge badge--cross"><svg class="icon"><use href="#ph-intersect"/></svg>截面口径</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 ≥ +15%</div>
+                      <div class="list__desc">预期命中率 22–49%<span class="etag etag--cross">截面</span> · 依据 截面检验组 2026-07–2026-09 · 样本 新品-月 96</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-eye"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-005</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span><span class="badge badge--cross"><svg class="icon"><use href="#ph-intersect"/></svg>截面口径</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 +5% 至 +15%</div>
+                      <div class="list__desc">预期命中率 12–35%<span class="etag etag--cross">截面</span> · 依据 截面检验组 2026-07–2026-09 · 样本 新品-月 78</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon"><use href="#ph-prohibit"/></svg>
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">R-006</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span><span class="badge badge--cross"><svg class="icon"><use href="#ph-intersect"/></svg>截面口径</span></div>
+                      <div class="list__desc" style="color: var(--fg-2)">需求在涨 &lt; +5%</div>
+                      <div class="list__desc">预期命中率 3–20%<span class="etag etag--cross">截面</span> · 依据 截面检验组 2026-07–2026-09 · 样本 新品-月 40</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+          <div class="drawer__foot">
+            <a class="btn" href="PAGE-F10-05.html"><svg class="icon"><use href="#ph-scales"/></svg><span>在到期对账中查看</span></a>
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

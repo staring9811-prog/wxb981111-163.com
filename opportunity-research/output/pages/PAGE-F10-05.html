@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F10-05">
+  <title>台账 · 到期对账 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html" aria-current="page"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>台账</h1>
+            <p class="page-head__sub">月度快照、立项决定与到期对账 · 记录只追加，保存后不可修改</p>
+          </div>
+          <div class="page-head__actions">
+          </div>
+        </div>
+        <nav class="tabs enter" style="--i:1" aria-label="台账">
+          <a class="tab" href="PAGE-F10-01.html">月度快照 <span class="count">10</span></a>
+          <a class="tab" href="PAGE-F10-04.html">立项记录 <span class="count">6</span></a>
+          <a class="tab" href="PAGE-F10-05.html" aria-current="page">到期对账 <span class="count">2</span></a>
+        </nav>
+
+        <div class="stats enter" style="--i:2">
+          <div class="stat">
+            <div class="stat__label">已对账快照</div>
+            <div class="stat__value">2<span class="stat__unit">个</span></div>
+            <div class="stat__meta">历史 1 · 截面 1</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">最近一次对账倍数</div>
+            <div class="stat__value">2.07×<span class="etag">推导</span></div>
+            <div class="stat__meta">2026-11 快照 · 2027-05-08 对账</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">下次到期</div>
+            <div class="stat__value">2027-06</div>
+            <div class="stat__meta">2026-12 · 第 1 版 · 批次已判定 4 / 28</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">自家立项</div>
+            <div class="stat__value">4<span class="stat__unit">个</span></div>
+            <div class="stat__meta">已上架 1（未命中）· 未上架 3</div>
+          </div>
+        </div>
+
+        <section class="section enter" style="--i:3" aria-labelledby="recon-title">
+          <div class="section__head">
+            <h2 class="section__title" id="recon-title">竞品新品对账</h2>
+            <span class="section__note">快照对应批次的新 SPU 全部完成 6 个月判定后自动生成 · 每月只用最后一次导出的那版</span>
+          </div>
+          <div class="banner banner--ok" style="margin-bottom: var(--space-3)">
+            <svg class="icon"><use href="#ph-seal-check"/></svg>
+            <div class="banner__body">
+              <div class="banner__title">R-012 已由"历史观察"升为"已验证"</div>
+              <div>2026-11 快照的前 20% 细分（前 2 名，锦囊均为 R-012 立项候选）实际命中率 44.4%，是全类目 21.4% 的 2.07 倍，达到 2 倍；且落在回测预期 27–46% 内。依据对账月份：2027-05。</div>
+            </div>
+            <div class="banner__actions"><a class="btn btn--sm" href="PAGE-F11-01.html">查看策略库</a></div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">快照与对应批次</th>
+                  <th class="t-num" scope="col">前 20% 细分实际命中率</th>
+                  <th class="t-num" scope="col">全类目平均</th>
+                  <th class="t-num" scope="col">倍数</th>
+                  <th scope="col">实际与回测预期区间</th>
+                  <th scope="col">结论</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title">2026-11 · 第 2 版</div><div class="cell-sub">判定卡 v1 · 批次 2026-11</div><div class="cell-sub">2027-05-08 对账</div></td>
+                  <td class="t-num">44.4%<span class="etag etag--n">n=9</span><div class="cell-sub">前 2 名 · 命中 4 / 9</div></td>
+                  <td class="t-num">21.4%<span class="etag etag--n">n=28</span><div class="cell-sub">命中 6 / 28</div></td>
+                  <td class="t-num"><span class="strong">2.07×</span><span class="etag">推导</span></td>
+                  <td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="实际命中率 44.4%（4/9），回测预期区间 27–46%，全类目实际 21.4%（6/28）" data-tip="实际 44.4%（4/9）|回测预期区间 27–46%|竖线：全类目实际 21.4%（6/28）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="72" y="7" width="50.7" height="6" rx="3"/><line class="ibar__avg" x1="57.1" y1="3" x2="57.1" y2="17"/><circle class="ibar__dot" cx="118.4" cy="10" r="4"/></svg></span><span class="ibar-text">预期 27–46%</span></td>
+                  <td style="min-width: 150px"><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>落在区间内</span><div class="cell-sub"><a href="PAGE-F11-01.html">R-012 升为已验证</a></div></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title">2026-10 · 第 1 版<span class="etag etag--cross">截面</span></div><div class="cell-sub">截面卡 v1 · 批次 2026-10</div><div class="cell-sub">2027-04-08 对账</div></td>
+                  <td class="t-num">37.5%<span class="etag etag--n">n=8</span><div class="cell-sub">前 2 名 · 命中 3 / 8</div></td>
+                  <td class="t-num">17.2%<span class="etag etag--n">n=29</span><div class="cell-sub">命中 5 / 29</div></td>
+                  <td class="t-num"><span class="strong">2.18×</span><span class="etag">推导</span></td>
+                  <td class="t-nowrap"><span class="ibar" tabindex="0" aria-label="实际命中率 37.5%（3/8），截面预期区间 22–49%，全类目实际 17.2%（5/29）" data-tip="实际 37.5%（3/8）|截面预期区间 22–49%|竖线：全类目实际 17.2%（5/29）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="58.7" y="7" width="72" height="6" rx="3"/><line class="ibar__avg" x1="45.9" y1="3" x2="45.9" y2="17"/><circle class="ibar__dot" cx="100" cy="10" r="4"/></svg></span><span class="ibar-text">预期 22–49%</span><span class="etag etag--cross">截面</span></td>
+                  <td style="min-width: 150px"><span class="badge badge--cross"><svg class="icon"><use href="#ph-check-circle"/></svg>落在区间内（截面）</span><div class="cell-sub">截面对账仅作参考，不改变规则状态</div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted" style="margin-top: var(--space-2)">浅蓝带为快照保存时回测给出的预期区间，圆点为实际命中率，竖线为全类目实际平均。参照人群：起量新品（任一月父体月销 ≥ 60 件）。</p>
+          <details class="small" style="margin-top: var(--space-3)">
+            <summary>前 20% 细分明细（两份快照都按当时的品类配置 v1 划分细分）</summary>
+            <div class="table-wrap" style="margin-top: var(--space-2)">
+              <table class="table">
+                <thead>
+                  <tr><th scope="col">快照</th><th class="t-num" scope="col">当时排名</th><th scope="col">细分（配置 v1）</th><th scope="col">当时锦囊</th><th class="t-num" scope="col">新 SPU</th><th class="t-num" scope="col">命中</th><th class="t-num" scope="col">实际命中率</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td class="t-nowrap">2026-11 · 第 2 版</td><td class="t-num">1</td><td class="t-nowrap"><span class="segname"><span>30–48″</span><span>落地式</span><span>实木</span><span>现代</span><span>$500–900</span></span></td><td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span> <span class="mono small">R-012</span></td><td class="t-num">5</td><td class="t-num">3</td><td class="t-num">60.0%<span class="etag etag--n">n=5</span></td></tr>
+                    <tr><td class="t-nowrap">2026-11 · 第 2 版</td><td class="t-num">2</td><td class="t-nowrap"><span class="segname"><span>≥48″</span><span>落地式</span><span>实木</span><span>现代</span><span>≥$900</span></span></td><td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span> <span class="mono small">R-012</span></td><td class="t-num">4</td><td class="t-num">1</td><td class="t-num">25.0%<span class="etag etag--n">n=4</span></td></tr>
+                    <tr><td class="t-nowrap">2026-10 · 第 1 版</td><td class="t-num">1</td><td class="t-nowrap"><span class="segname"><span>30–48″</span><span>落地式</span><span>实木</span><span>现代</span><span>$500–900</span></span></td><td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span> <span class="mono small">R-004</span></td><td class="t-num">5</td><td class="t-num">2</td><td class="t-num">40.0%<span class="etag etag--n">n=5</span></td></tr>
+                    <tr><td class="t-nowrap">2026-10 · 第 1 版</td><td class="t-num">2</td><td class="t-nowrap"><span class="segname"><span>≥48″</span><span>落地式</span><span>实木</span><span>现代</span><span>≥$900</span></span></td><td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span> <span class="mono small">R-004</span></td><td class="t-num">3</td><td class="t-num">1</td><td class="t-num">33.3%<span class="etag etag--n">n=3</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </section>
+
+        <section class="section enter" style="--i:4" aria-labelledby="due-title">
+          <div class="section__head">
+            <h2 class="section__title" id="due-title">未到期快照</h2>
+            <span class="section__note">预计可对账 = 快照月份 + 6 个月的月更（对应批次判定窗口结束后的下一个月）</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th scope="col">快照</th><th scope="col">对应批次</th><th scope="col">批次判定进度</th><th scope="col">判定窗口结束</th><th scope="col">预计可对账</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title">2026-12 · 第 1 版</div><div class="cell-sub">判定卡 v2 · 已导出</div></td>
+                  <td class="t-nowrap">2026-12<div class="cell-sub">起量新 SPU 28<span class="etag etag--n">n=28</span></div></td>
+                  <td style="min-width: 180px"><div class="row" style="gap: var(--space-2)"><span class="num">已判定 4 / 28</span></div><div class="meter" style="margin-top: var(--space-1); max-width: 160px" role="meter" aria-valuemin="0" aria-valuemax="28" aria-valuenow="4" aria-label="批次 2026-12 已判定 4 / 28"><i style="width:14.3%"></i></div><div class="cell-sub">命中 4 · 观察中 24</div></td>
+                  <td class="t-nowrap num">2027-05</td>
+                  <td class="t-nowrap num"><span class="strong">2027-06</span> <span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>下一个</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title">2027-01 · 第 1 版</div><div class="cell-sub">判定卡 v2 · 已导出</div></td>
+                  <td class="t-nowrap">2027-01<div class="cell-sub">起量新 SPU 33<span class="etag etag--n">n=33</span></div></td>
+                  <td style="min-width: 180px"><div class="row" style="gap: var(--space-2)"><span class="num">已判定 3 / 33</span></div><div class="meter" style="margin-top: var(--space-1); max-width: 160px" role="meter" aria-valuemin="0" aria-valuemax="33" aria-valuenow="3" aria-label="批次 2027-01 已判定 3 / 33"><i style="width:9.1%"></i></div><div class="cell-sub">命中 3 · 观察中 30</div></td>
+                  <td class="t-nowrap num">2027-06</td>
+                  <td class="t-nowrap num"><span class="strong">2027-07</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title">2027-02 · 第 1 版</div><div class="cell-sub">判定卡 v2 · 已导出</div></td>
+                  <td class="t-nowrap">2027-02<div class="cell-sub">起量新 SPU 26<span class="etag etag--n">n=26</span></div></td>
+                  <td style="min-width: 180px"><div class="row" style="gap: var(--space-2)"><span class="num">已判定 1 / 26</span></div><div class="meter" style="margin-top: var(--space-1); max-width: 160px" role="meter" aria-valuemin="0" aria-valuemax="26" aria-valuenow="1" aria-label="批次 2027-02 已判定 1 / 26"><i style="width:3.8%"></i></div><div class="cell-sub">命中 1 · 观察中 25</div></td>
+                  <td class="t-nowrap num">2027-07</td>
+                  <td class="t-nowrap num"><span class="strong">2027-08</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title">2027-03 · 第 1 版</div><div class="cell-sub">判定卡 v3 · 已导出</div></td>
+                  <td class="t-nowrap">2027-03<div class="cell-sub">起量新 SPU 29<span class="etag etag--n">n=29</span></div></td>
+                  <td style="min-width: 180px"><div class="row" style="gap: var(--space-2)"><span class="num">已判定 0 / 29</span></div><div class="meter" style="margin-top: var(--space-1); max-width: 160px" role="meter" aria-valuemin="0" aria-valuemax="29" aria-valuenow="0" aria-label="批次 2027-03 已判定 0 / 29"><i style="width:0%"></i></div><div class="cell-sub">观察中 29</div></td>
+                  <td class="t-nowrap num">2027-08</td>
+                  <td class="t-nowrap num"><span class="strong">2027-09</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title">2027-04 · 第 2 版</div><div class="cell-sub">判定卡 v3 · 已导出</div></td>
+                  <td class="t-nowrap">2027-04<div class="cell-sub">起量新 SPU 22<span class="etag etag--n">n=22</span></div></td>
+                  <td style="min-width: 180px"><div class="row" style="gap: var(--space-2)"><span class="num">已判定 0 / 22</span></div><div class="meter" style="margin-top: var(--space-1); max-width: 160px" role="meter" aria-valuemin="0" aria-valuemax="22" aria-valuenow="0" aria-label="批次 2027-04 已判定 0 / 22"><i style="width:0%"></i></div><div class="cell-sub">观察中 22</div></td>
+                  <td class="t-nowrap num">2027-09</td>
+                  <td class="t-nowrap num"><span class="strong">2027-10</span></td>
+                </tr>
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title">2027-05 · 第 1 版</div><div class="cell-sub">判定卡 v4 · 未导出，导出后以导出版为准</div></td>
+                  <td class="t-nowrap">2027-05<div class="cell-sub">本月批次</div></td>
+                  <td style="min-width: 180px"><span class="etag etag--nodata">无数据</span><div class="cell-sub">本月上架的新品，下月起才有数据</div></td>
+                  <td class="t-nowrap num">2027-10</td>
+                  <td class="t-nowrap num"><span class="strong">2027-11</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted" style="margin-top: var(--space-2)">2027-04 · 第 1 版与 2026-11 · 第 1 版不用于对账：同月第 2 版已导出。<a href="PAGE-F10-01.html">在月度快照中查看全部版本</a></p>
+        </section>
+
+        <section class="section enter" style="--i:5" aria-labelledby="own-title">
+          <div class="section__head">
+            <h2 class="section__title" id="own-title">自家立项对账</h2>
+            <span class="section__note">按立项日期排列 · 与竞品新品用同一条成功线（配置 v2）：上架当月起 6 个月内小类 BSR ≤ 50，或 SPU 任一月销售额 ≥ $100,000</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th scope="col">立项与关联细分</th><th scope="col">当时的排序与锦囊</th><th scope="col">上架</th><th scope="col">自家结果</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="min-width: 260px"><div class="cell-title"><span class="mono">D-0001</span> · 36″ 岩板一体盆落地柜（ZR-2026-03）</div><div class="cell-sub"><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></div><div class="cell-sub">补录 · 立项 2026-03-18</div></td>
+                  <td>无对应快照（补录）<div class="cell-sub">当时依据：2026 年初人工研究报告</div></td>
+                  <td class="t-nowrap">2026-09<div class="cell-sub">窗口 2026-09 至 2027-02 · 6 个月齐全</div><div class="cell-sub"><a href="PAGE-F10-06.html">录入上架数据</a></div></td>
+                  <td style="min-width: 220px"><span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>未命中</span><div class="cell-sub">最好 BSR 112<button class="etag" type="button" data-pop-title="自家上架数据" data-pop="来源=手工录入（wen）;性质=自家实际数据;上架月=2026-09;窗口=2026-09 至 2027-02">实测</button> · 最高月销售额 $46,800<button class="etag" type="button" data-pop-title="自家上架数据" data-pop="来源=手工录入（wen）;性质=自家实际数据;上架月=2026-09;窗口=2026-09 至 2027-02">实测</button></div><div class="cell-sub">两项都未达标，判为未命中</div></td>
+                </tr>
+                <tr>
+                  <td style="min-width: 260px"><div class="cell-title"><span class="mono">D-0002</span> · 30″ 悬浮式双抽柜（ZR-2026-07）</div><div class="cell-sub"><span class="segname"><span>≤30″</span><span>悬浮式</span><span>$500–900</span></span></div><div class="cell-sub">补录 · 立项 2026-07-02</div></td>
+                  <td>无对应快照（补录）<div class="cell-sub">当时依据：2026 年初人工研究报告</div></td>
+                  <td class="t-nowrap">未上架<div class="cell-sub">在研</div><div class="cell-sub"><a href="PAGE-F10-06.html">录入上架数据</a></div></td>
+                  <td style="min-width: 220px"><span class="muted">未上架，暂不判定</span></td>
+                </tr>
+                <tr>
+                  <td style="min-width: 260px"><div class="cell-title"><span class="mono">D-0004</span> · 36″ 岩板一体盆落地柜二代</div><div class="cell-sub"><span class="segname"><span>30–48″</span><span>落地式</span><span>$500–900</span></span></div><div class="cell-sub">记录（更正 D-0003）· 立项 2027-02-14</div></td>
+                  <td><div>2027-02 · 第 1 版 · 第 1 名</div><div class="row" style="gap: var(--space-2); margin-top: 2px"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="mono small">R-012</span><span class="small muted">当时为"历史观察"</span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 34%，90% 区间 25–45%" data-tip="34%|90% 区间 25–45% · 样本 40|竖线：全类目平均 16.5%（2027-02 快照）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="66.7" y="7" width="53.3" height="6" rx="3"/><line class="ibar__avg" x1="44" y1="3" x2="44" y2="17"/><circle class="ibar__dot" cx="90.7" cy="10" r="4"/></svg></span><span class="ibar-text">25–45%</span><span class="etag etag--n">n=40</span></div></td>
+                  <td class="t-nowrap">未上架<div class="cell-sub">在研</div><div class="cell-sub"><a href="PAGE-F10-06.html">录入上架数据</a></div></td>
+                  <td style="min-width: 220px"><span class="muted">未上架，暂不判定</span></td>
+                </tr>
+                <tr>
+                  <td style="min-width: 260px"><div class="cell-title"><span class="mono">D-0005</span> · 48″ 胡桃木 Shaker 落地柜</div><div class="cell-sub"><span class="segname"><span>≥48″</span><span>落地式</span><span>≥$900</span></span></div><div class="cell-sub">记录 · 立项 2027-03-12</div></td>
+                  <td><div>2027-03 · 第 1 版 · 第 2 名</div><div class="row" style="gap: var(--space-2); margin-top: 2px"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span><span class="mono small">R-012</span><span class="small muted">当时为"历史观察"</span></div><div class="t-nowrap" style="margin-top: 2px"><span class="ibar" tabindex="0" aria-label="预期命中率 30%，90% 区间 19–43%" data-tip="30%|90% 区间 19–43% · 样本 26|竖线：全类目平均 16.8%（2027-03 快照）"><svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true"><line class="ibar__track" x1="0" y1="10" x2="160" y2="10"/><rect class="ibar__band" x="50.7" y="7" width="64" height="6" rx="3"/><line class="ibar__avg" x1="44.8" y1="3" x2="44.8" y2="17"/><circle class="ibar__dot" cx="80" cy="10" r="4"/></svg></span><span class="ibar-text">19–43%</span><span class="etag etag--n">n=26</span></div></td>
+                  <td class="t-nowrap">未上架<div class="cell-sub">在研</div><div class="cell-sub"><a href="PAGE-F10-06.html">录入上架数据</a></div></td>
+                  <td style="min-width: 220px"><span class="muted">未上架，暂不判定</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted" style="margin-top: var(--space-2)">D-0003 已由 D-0004 更正，按 D-0004 对账；D-0006 为不立项，不参与自家对账。<a href="PAGE-F10-04.html">查看全部立项记录</a></p>
+        </section>
+
+        <p class="page-foot">数据包 P-0008（数据至 2027-04）· 品类配置 v2 · 对账在每月计算成败后自动更新 · 规则状态变化同步写入策略库</p>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

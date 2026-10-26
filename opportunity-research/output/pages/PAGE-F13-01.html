@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F13-01">
+  <title>品类配置 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-mode="history">
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F03-01.html"><svg class="icon"><use href="#ph-house"/></svg><span>本月工作台</span></a>
+        <div class="nav__group">数据准备</div>
+        <a class="nav__item" href="PAGE-F01-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>数据包</span></a>
+        <a class="nav__item" href="PAGE-F02-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>字段约定</span><em class="nav__count" aria-label="1 个待确认">1</em></a>
+        <a class="nav__item" href="PAGE-F03-02.html"><svg class="icon"><use href="#ph-heartbeat"/></svg><span>数据体检</span><em class="nav__count" aria-label="1 项预警">1</em></a>
+        <div class="nav__group">新品</div>
+        <a class="nav__item" href="PAGE-F04-01.html"><svg class="icon"><use href="#ph-cube"/></svg><span>新品与 SPU</span></a>
+        <a class="nav__item" href="PAGE-F04-02.html"><svg class="icon"><use href="#ph-git-merge"/></svg><span>合并建议</span><em class="nav__count" aria-label="6 条待审">6</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F06-01.html"><svg class="icon"><use href="#ph-chart-line-up"/></svg><span>信号</span></a>
+        <a class="nav__item" href="PAGE-F07-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>回测</span></a>
+        <a class="nav__item" href="PAGE-F08-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>判定卡</span></a>
+        <a class="nav__item" href="PAGE-F08-02.html"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>立项锦囊</span></a>
+        <a class="nav__item" href="PAGE-F09-01.html"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>本月排序</span></a>
+        <div class="nav__group">沉淀</div>
+        <a class="nav__item" href="PAGE-F10-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>台账</span></a>
+        <a class="nav__item" href="PAGE-F11-01.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F13-01.html" aria-current="page"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+        <a class="nav__item" href="PAGE-F10-03.html"><svg class="icon"><use href="#ph-database"/></svg><span>备份与恢复</span></a>
+        <a class="nav__item" href="PAGE-F14-01.html"><svg class="icon"><use href="#ph-timer"/></svg><span>运行记录</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">亚马逊美国 · 浴室柜</span>
+        <div class="seg" role="group" aria-label="口径">
+          <button class="seg__opt" type="button" data-mode="history" aria-pressed="true">历史</button>
+          <button class="seg__opt" type="button" data-mode="cross" aria-pressed="false">截面</button>
+        </div>
+        <div class="versions">
+          <a class="version" href="PAGE-F01-01.html"><span data-mode-only="history">数据包 P-0008</span><span data-mode-only="cross" hidden>数据包 P-0001</span></a>
+          <a class="version" href="PAGE-F02-01.html">约定 v7</a>
+          <a class="version version--optional" href="PAGE-F13-01.html">配置 v2</a>
+          <a class="version version--optional" href="PAGE-F08-01.html"><span data-mode-only="history">判定卡 v4</span><span data-mode-only="cross" hidden>截面卡 v1</span></a>
+        </div>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen</span>
+      </header>
+
+      <main class="content" id="main">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>品类配置</h1>
+            <p class="page-head__sub">亚马逊美国 · 浴室柜 · 当前 <span data-cur-version>v2</span> · 换品类只改配置，不改程序</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn" type="button" data-open="#new-cat-modal"><svg class="icon"><use href="#ph-plus"/></svg><span>新建品类</span></button>
+            <button class="btn" type="button" data-open="#save-modal"><svg class="icon"><use href="#ph-check"/></svg><span>保存为新版本</span></button>
+          </div>
+        </div>
+
+        <div id="draft-banner">
+          <div class="banner banner--warn enter" style="--i:1">
+            <svg class="icon"><use href="#ph-note-pencil"/></svg>
+            <div class="banner__body">
+              <div class="banner__title">草稿：1 处修改尚未保存为新版本</div>
+              <div>基于 v2 · 2027-05-08 11:12 改动 · 草稿存在本机，离开页面不会丢失；保存为新版本后才用于计算。</div>
+            </div>
+            <div class="banner__actions"><button class="btn btn--sm" type="button" data-open="#save-modal">查看变动</button></div>
+          </div>
+        </div>
+        <div id="stale-banner" hidden>
+          <div class="banner banner--stale" role="status">
+            <svg class="icon"><use href="#ph-arrows-clockwise"/></svg>
+            <div class="banner__body">
+              <div class="banner__title">需重算：品类配置已保存为 v3</div>
+              <div>依赖 v2 的成败判定、信号和回测结果已标为需重算，旧结果仍可查看。到工作台点"全部重算"后按 v3 重新计算。</div>
+            </div>
+            <div class="banner__actions"><a class="btn btn--sm" href="PAGE-F03-01.html">去工作台</a></div>
+          </div>
+        </div>
+
+        <div class="grid-main-side section">
+          <form class="panel enter" style="--i:2" id="cfg-form" data-guard aria-labelledby="form-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="form-title">配置项</h2>
+              <span class="section__note">全部必填 · 修改先存为草稿，保存为新版本后才用于计算</span>
+            </div>
+            <div class="panel__body stack-lg">
+
+              <section aria-labelledby="g-basic">
+                <div class="section__head"><h3 id="g-basic">基本</h3><span class="section__note">商品身份 = 平台 + 站点 + ASIN</span></div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label class="field__label" for="f-site">站点 <span class="req">*</span></label>
+                    <select class="select" id="f-site" data-key="站点" data-was="US">
+                      <option value="US" selected>US · 美国</option>
+                      <option value="CA">CA · 加拿大</option>
+                      <option value="UK">UK · 英国</option>
+                      <option value="DE">DE · 德国</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="f-node">类目节点 <span class="req">*</span></label>
+                    <input class="input" id="f-node" value="6810202011" inputmode="numeric" data-key="类目节点" data-was="6810202011">
+                    <span class="field__hint">数据包 C1 的类目节点要与此一致</span>
+                  </div>
+                </div>
+              </section>
+
+              <section aria-labelledby="g-success">
+                <div class="section__head"><h3 id="g-success">成功线</h3><span class="section__note">满足其一即命中</span></div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label class="field__label" for="f-bsr">小类 BSR 阈值（≤）<span class="req">*</span></label>
+                    <input class="input input--num" id="f-bsr" value="50" inputmode="numeric" data-key="BSR 阈值" data-was="50">
+                    <span class="field__hint">窗口内任一子 ASIN 任一月小类 BSR ≤ 50</span>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="f-gmv">月度 GMV 阈值（美元，≥）<span class="req">*</span></label>
+                    <input class="input input--num" id="f-gmv" value="100,000" inputmode="numeric" data-key="月度 GMV 阈值" data-was="100,000" data-unit="美元">
+                    <span class="field__hint">SPU 窗口内任一月销售额 ≥ $100,000</span>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="f-window">判定窗口（个月）<span class="req">*</span></label>
+                    <input class="input input--num" id="f-window" value="6" inputmode="numeric" data-key="判定窗口" data-was="6" data-unit="个月">
+                    <span class="field__hint">上架当月起连续 6 个自然月；截面口径的新品期同此</span>
+                  </div>
+                </div>
+              </section>
+
+              <section aria-labelledby="g-crowd">
+                <div class="section__head"><h3 id="g-crowd">参照人群</h3><span class="section__note">命中率的分母</span></div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label class="field__label" for="f-ramp">起量门槛（件/月，≥）<span class="req">*</span></label>
+                    <input class="input input--num" id="f-ramp" value="60" inputmode="numeric" data-key="起量门槛" data-was="60" data-unit="件/月">
+                    <span class="field__hint">上架后任一月父体月销 ≥ 60 件的新品才进分母；未起量的单独计数，60 件本身不算成功</span>
+                  </div>
+                </div>
+              </section>
+
+              <section aria-labelledby="g-seg">
+                <div class="section__head"><h3 id="g-seg">细分维度与分档</h3><span class="section__note">当前 3 个维度 · 18 个细分 · 每个维度另有"未知"档</span></div>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">属性</th>
+                        <th class="t-center" scope="col">细分维度</th>
+                        <th scope="col">分档</th>
+                        <th scope="col">类型属性（缺失时父体回填）</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="cell-title">宽度<div class="cell-sub">取自尺寸</div></td>
+                        <td class="t-center"><label class="check"><input type="checkbox" checked data-key="细分维度 · 宽度" data-was="true"><span class="visually-hidden">宽度用作细分维度</span></label></td>
+                        <td><input class="input" value="≤30″ / 30–48″ / ≥48″" aria-label="宽度分档" data-key="宽度分档" data-was="≤30″ / 30–48″ / ≥48″"></td>
+                        <td><label class="check"><input type="checkbox" data-key="尺寸 · 父体回填" data-was="false">可回填</label></td>
+                      </tr>
+                      <tr>
+                        <td class="cell-title">形态</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" checked data-key="细分维度 · 形态" data-was="true"><span class="visually-hidden">形态用作细分维度</span></label></td>
+                        <td><input class="input" value="落地式 / 悬浮式" aria-label="形态分档" data-key="形态分档" data-was="落地式 / 悬浮式"></td>
+                        <td><label class="check"><input type="checkbox" checked data-key="形态 · 父体回填" data-was="true">可回填</label></td>
+                      </tr>
+                      <tr>
+                        <td class="cell-title">价格带<div class="cell-sub">月销售额 ÷ 月销量</div></td>
+                        <td class="t-center"><label class="check"><input type="checkbox" checked data-key="细分维度 · 价格带" data-was="true"><span class="visually-hidden">价格带用作细分维度</span></label></td>
+                        <td><input class="input" value="&lt;$500 / $500–900 / ≥$900" aria-label="价格带分档" data-key="价格带分档" data-was="&lt;$500 / $500–900 / ≥$900"></td>
+                        <td class="small muted">不适用：由销售数据计算</td>
+                      </tr>
+                      <tr>
+                        <td>安装方式</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" data-key="细分维度 · 安装方式" data-was="false"><span class="visually-hidden">安装方式用作细分维度</span></label></td>
+                        <td class="small muted">未用作细分维度</td>
+                        <td><label class="check"><input type="checkbox" checked data-key="安装方式 · 父体回填" data-was="true">可回填</label></td>
+                      </tr>
+                      <tr>
+                        <td>元素</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" data-key="细分维度 · 元素" data-was="false"><span class="visually-hidden">元素用作细分维度</span></label></td>
+                        <td class="small muted">未用作细分维度</td>
+                        <td><label class="check"><input type="checkbox" checked data-key="元素 · 父体回填" data-was="true">可回填</label></td>
+                      </tr>
+                      <tr>
+                        <td>台面形态</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" data-key="细分维度 · 台面形态" data-was="false"><span class="visually-hidden">台面形态用作细分维度</span></label></td>
+                        <td class="small muted">未用作细分维度</td>
+                        <td><label class="check"><input type="checkbox" checked data-key="台面形态 · 父体回填" data-was="true">可回填</label></td>
+                      </tr>
+                      <tr>
+                        <td>柜体材质</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" data-key="细分维度 · 柜体材质" data-was="false"><span class="visually-hidden">柜体材质用作细分维度</span></label></td>
+                        <td class="small muted">未用作细分维度</td>
+                        <td><label class="check"><input type="checkbox" checked data-key="柜体材质 · 父体回填" data-was="true">可回填</label></td>
+                      </tr>
+                      <tr>
+                        <td>台面材质</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" data-key="细分维度 · 台面材质" data-was="false"><span class="visually-hidden">台面材质用作细分维度</span></label></td>
+                        <td class="small muted">未用作细分维度</td>
+                        <td><label class="check"><input type="checkbox" checked data-key="台面材质 · 父体回填" data-was="true">可回填</label></td>
+                      </tr>
+                      <tr>
+                        <td>台盆材质</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" data-key="细分维度 · 台盆材质" data-was="false"><span class="visually-hidden">台盆材质用作细分维度</span></label></td>
+                        <td class="small muted">未用作细分维度</td>
+                        <td><label class="check"><input type="checkbox" checked data-key="台盆材质 · 父体回填" data-was="true">可回填</label></td>
+                      </tr>
+                      <tr>
+                        <td>颜色</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" data-key="细分维度 · 颜色" data-was="false"><span class="visually-hidden">颜色用作细分维度</span></label></td>
+                        <td class="small muted">未用作细分维度</td>
+                        <td><label class="check"><input type="checkbox" data-key="颜色 · 父体回填" data-was="false">可回填</label></td>
+                      </tr>
+                      <tr>
+                        <td>盆数</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" data-key="细分维度 · 盆数" data-was="false"><span class="visually-hidden">盆数用作细分维度</span></label></td>
+                        <td class="small muted">未用作细分维度</td>
+                        <td><label class="check"><input type="checkbox" data-key="盆数 · 父体回填" data-was="false">可回填</label></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="field__hint" style="margin-top: var(--space-2)">勾选"可回填"的是类型属性：子体没有确认值、但父体有候选值时用父体值，并标"父体回填"。颜色、尺寸、盆数随变体变化，不回填，缺失时归入"未知"档。</p>
+              </section>
+
+              <section aria-labelledby="g-kw">
+                <div class="section__head"><h3 id="g-kw">关键词映射规则</h3><span class="section__note">把关键词归入细分，用于"需求在涨"</span></div>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">细分维度</th>
+                        <th scope="col">分档</th>
+                        <th scope="col">对应的关键词属性标签取值</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="t-nowrap" rowspan="3">宽度档<div class="cell-sub">标签：尺寸</div></td>
+                        <td class="t-nowrap">≤30″</td>
+                        <td><input class="input" value="尺寸 ≤ 30 英寸" aria-label="≤30″ 对应的关键词取值" data-key="关键词映射 · ≤30″" data-was="尺寸 ≤ 30 英寸"></td>
+                      </tr>
+                      <tr>
+                        <td class="t-nowrap">30–48″</td>
+                        <td><input class="input" value="尺寸大于 30、小于 48 英寸" aria-label="30–48″ 对应的关键词取值" data-key="关键词映射 · 30–48″" data-was="尺寸大于 30、小于 48 英寸"></td>
+                      </tr>
+                      <tr>
+                        <td class="t-nowrap">≥48″</td>
+                        <td><input class="input" value="尺寸 ≥ 48 英寸" aria-label="≥48″ 对应的关键词取值" data-key="关键词映射 · ≥48″" data-was="尺寸 ≥ 48 英寸"></td>
+                      </tr>
+                      <tr>
+                        <td class="t-nowrap" rowspan="2">形态<div class="cell-sub">标签：形态</div></td>
+                        <td class="t-nowrap">悬浮式</td>
+                        <td><input class="input" value="floating、wall mounted" aria-label="悬浮式对应的关键词取值" data-key="关键词映射 · 悬浮式" data-was="floating、wall mounted"></td>
+                      </tr>
+                      <tr>
+                        <td class="t-nowrap">落地式</td>
+                        <td><input class="input" value="freestanding、floor standing" aria-label="落地式对应的关键词取值" data-key="关键词映射 · 落地式" data-was="freestanding、floor standing"></td>
+                      </tr>
+                      <tr>
+                        <td class="t-nowrap">价格带</td>
+                        <td class="t-nowrap muted">全部</td>
+                        <td class="small muted">不映射：关键词不带价格，计入其余维度一致的各价格带</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="field__hint" style="margin-top: var(--space-2)">没有映射到任何细分维度的关键词（如泛词 bathroom vanity）不计入细分信号。</p>
+              </section>
+
+              <section aria-labelledby="g-window">
+                <div class="section__head"><h3 id="g-window">信号窗口与回看期</h3><span class="section__note">第 T 月的信号只用早于 T 月的数据</span></div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label class="field__label row" for="f-mom">需求动量窗口（个月）<span class="req">*</span><span class="badge" data-modified><svg class="icon"><use href="#ph-pencil-simple"/></svg>已修改</span></label>
+                    <input class="input input--num" id="f-mom" value="6" inputmode="numeric" data-key="需求动量窗口" data-was="4" data-unit="个月">
+                    <span class="field__hint"><span data-modified>v2 为 4 个月。</span>第 T−6 至 T−1 月搜索量合计，对比上年同期</span>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="f-look">新品进得去回看（个月）<span class="req">*</span></label>
+                    <input class="input input--num" id="f-look" value="6" inputmode="numeric" data-key="新品回看期" data-was="6" data-unit="个月">
+                    <span class="field__hint">上架月 T−12 至 T−7；终点随判定窗口，保证窗口在 T 月前已结束</span>
+                  </div>
+                </div>
+              </section>
+
+              <section aria-labelledby="g-split">
+                <div class="section__head"><h3 id="g-split">回测切分比例</h3><span class="section__note">按上架月份排序已判定批次</span></div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label class="field__label" for="f-split">定规则组 : 检验组 <span class="req">*</span></label>
+                    <select class="select" id="f-split" data-key="回测切分比例" data-was="2/3 : 1/3">
+                      <option value="2/3 : 1/3" selected>2/3 : 1/3</option>
+                      <option value="3/4 : 1/4">3/4 : 1/4</option>
+                      <option value="1/2 : 1/2">1/2 : 1/2</option>
+                    </select>
+                    <span class="field__hint">不能整除时检验组向下取整、至少 1 个批次；当前 20 个已判定批次 → 14 : 6</span>
+                  </div>
+                </div>
+              </section>
+
+              <section aria-labelledby="g-health">
+                <div class="section__head"><h3 id="g-health">体检预警阈值</h3><span class="section__note">超过阈值在工作台持续提示，直到标为已知晓</span></div>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">体检项</th>
+                        <th class="t-num" scope="col">预警阈值（超过即预警）</th>
+                        <th class="t-num" scope="col">P-0008 当前值</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>首次评分早于上架超过 7 天的子体占比</td>
+                        <td class="t-num"><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><input class="input input--num" style="width:84px" value="20" aria-label="阈值（%）" data-key="体检阈值 · 首评早于上架" data-was="20" data-unit="%"><span class="small muted">%</span></div></td>
+                        <td class="t-num">23.4%<span class="etag etag--n">n=9,906</span> <span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>预警</span></td>
+                      </tr>
+                      <tr>
+                        <td>同一父体内子体上架跨度超过 180 天的家族占比</td>
+                        <td class="t-num"><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><input class="input input--num" style="width:84px" value="25" aria-label="阈值（%）" data-key="体检阈值 · 上架跨度" data-was="25" data-unit="%"><span class="small muted">%</span></div></td>
+                        <td class="t-num">20.8%<span class="etag etag--n">n=1,977</span></td>
+                      </tr>
+                      <tr>
+                        <td>子体月销量低于"过去一个月购买"标签下界的比例</td>
+                        <td class="t-num"><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><input class="input input--num" style="width:84px" value="10" aria-label="阈值（%）" data-key="体检阈值 · 低于购买标签" data-was="10" data-unit="%"><span class="small muted">%</span></div></td>
+                        <td class="t-num">6.1%<span class="etag etag--n">n=19,733</span></td>
+                      </tr>
+                      <tr>
+                        <td>各属性维度"未知"占比（逐个维度比较）</td>
+                        <td class="t-num"><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><input class="input input--num" style="width:84px" value="40" aria-label="阈值（%）" data-key="体检阈值 · 未知占比" data-was="40" data-unit="%"><span class="small muted">%</span></div></td>
+                        <td class="t-num">最高 38.9%（元素）<span class="etag etag--n">n=41,325</span></td>
+                      </tr>
+                      <tr>
+                        <td>跨月父 ASIN 发生变化的子体数</td>
+                        <td class="t-num"><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><input class="input input--num" style="width:84px" value="300" aria-label="阈值（个）" data-key="体检阈值 · 父 ASIN 变化" data-was="300" data-unit="个"><span class="small muted">个</span></div></td>
+                        <td class="t-num">137 个</td>
+                      </tr>
+                      <tr>
+                        <td>主键重复数</td>
+                        <td class="t-num"><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><input class="input input--num" style="width:84px" value="0" aria-label="阈值（条）" data-key="体检阈值 · 主键重复" data-was="0" data-unit="条"><span class="small muted">条</span></div></td>
+                        <td class="t-num">0 条</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </form>
+
+          <aside class="stack-lg enter" style="--i:3;position:sticky;top:calc(var(--topbar-h) + var(--space-4))" aria-label="品类与版本">
+            <section class="panel" aria-labelledby="cat-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="cat-title">亚马逊美国 · 浴室柜</h2>
+              </div>
+              <div class="panel__body">
+                <dl class="kv">
+                  <dt>负责人</dt><dd><svg class="icon"><use href="#ph-user-circle"/></svg> wen</dd>
+                  <dt>当前版本</dt><dd><span class="strong" data-cur-version>v2</span> · <span data-cur-saved>2026-12-03 16:20 保存</span></dd>
+                  <dt>站点与节点</dt><dd>US · <span class="mono">6810202011</span></dd>
+                  <dt>细分</dt><dd>宽度档 × 形态 × 价格带，18 个</dd>
+                </dl>
+              </div>
+            </section>
+
+            <section class="panel" aria-labelledby="dep-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="dep-title" data-dep-title>依赖 v2 的结果</h2>
+              </div>
+              <ul class="list">
+                <li class="list__item">
+                  <svg class="icon list__icon"><use href="#ph-cube"/></svg>
+                  <div class="list__body"><div class="list__title">成败判定</div><div class="list__desc">736 个起量新 SPU</div></div>
+                </li>
+                <li class="list__item">
+                  <svg class="icon list__icon"><use href="#ph-chart-line-up"/></svg>
+                  <div class="list__body"><div class="list__title">信号</div><div class="list__desc">截至 2027-05 · 18 个细分</div></div>
+                </li>
+                <li class="list__item">
+                  <svg class="icon list__icon"><use href="#ph-flask"/></svg>
+                  <div class="list__body"><div class="list__title">回测</div><div class="list__desc">BT-0031，生成判定卡 v4</div></div>
+                </li>
+              </ul>
+              <div class="panel__foot" data-dep-foot>保存为新版本后，以上结果标为需重算，旧结果仍可查看。</div>
+            </section>
+
+            <section class="panel" aria-labelledby="ver-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="ver-title">版本历史</h2>
+                <span class="section__note">只追加，可回看</span>
+              </div>
+              <ol class="list" id="ver-list">
+                <li class="list__item">
+                  <svg class="icon list__icon list__icon--ok" data-ver-mark><use href="#ph-check-circle"/></svg>
+                  <div class="list__body">
+                    <div class="list__title">v2<span data-ver-current> · 当前</span></div>
+                    <div class="list__desc">2026-12-03 16:20 · wen · 细分改为宽度档 × 形态 × 价格带：v1 的 5 个维度太细，回测时多数细分样本不足</div>
+                    <details class="small" style="margin-top: var(--space-2)">
+                      <summary>与 v1 对比</summary>
+                      <div class="diff" style="margin-top: var(--space-2)">
+                        <span class="diff__key">细分维度</span><span class="diff__old">宽度档 × 形态 × 柜体材质 × 元素 × 价格带</span><span class="diff__new">宽度档 × 形态 × 价格带</span>
+                      </div>
+                    </details>
+                  </div>
+                </li>
+                <li class="list__item">
+                  <svg class="icon list__icon"><use href="#ph-clock-counter-clockwise"/></svg>
+                  <div class="list__body">
+                    <div class="list__title">v1</div>
+                    <div class="list__desc">2026-10-28 15:48 · wen · 浴室柜模板默认值（首跑）</div>
+                  </div>
+                </li>
+              </ol>
+            </section>
+          </aside>
+        </div>
+
+        <p class="page-foot">品类配置 v2 · 浴室柜默认：美国站、节点 6810202011、BSR 50、月度 GMV $100,000、起量门槛 60 件/月、判定窗口 6 个月</p>
+
+        <template id="v3-item">
+          <li class="list__item">
+            <svg class="icon list__icon list__icon--ok"><use href="#ph-check-circle"/></svg>
+            <div class="list__body">
+              <div class="list__title">v3 · 当前</div>
+              <div class="list__desc">2027-05-08 11:20 · wen · <span data-v3-note>未填写修改说明</span></div>
+              <div class="diff" data-v3-diff style="margin-top: var(--space-2)"></div>
+            </div>
+          </li>
+        </template>
+
+        <div class="modal" id="save-modal" role="dialog" aria-modal="true" aria-labelledby="save-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="save-title">保存为新版本 v3</h2>
+                <p class="modal__sub">亚马逊美国 · 浴室柜 · 与当前 v2 对比</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <div class="modal__body stack-lg">
+              <section aria-labelledby="save-diff-title">
+                <h3 id="save-diff-title">变动摘要</h3>
+                <div class="diff" id="save-diff" style="margin-top: var(--space-3)">
+                  <span class="diff__key">需求动量窗口</span><span class="diff__old">4 个月</span><span class="diff__new">6 个月</span>
+                </div>
+                <p class="small muted" id="save-none" hidden>与 v2 相比没有修改，不需要保存新版本。</p>
+              </section>
+              <div class="banner banner--stale">
+                <svg class="icon"><use href="#ph-arrows-clockwise"/></svg>
+                <div class="banner__body">
+                  <div class="banner__title">保存后，依赖 v2 的结果将标为需重算</div>
+                  <div>成败判定（736 个起量新 SPU）、信号（截至 2027-05，18 个细分）、回测 BT-0031。旧结果仍可查看；系统不会自动重算，到工作台点"全部重算"后按 v3 计算。</div>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field__label" for="save-note">修改说明</label>
+                <textarea class="textarea" id="save-note" placeholder="写下为什么改，会显示在版本历史里"></textarea>
+                <span class="field__hint">选填 · 操作人与时间自动记录</span>
+              </div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="button" id="save-confirm" data-save>保存为 v3</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal" id="new-cat-modal" role="dialog" aria-modal="true" aria-labelledby="new-cat-title" aria-hidden="true">
+          <div class="modal__dialog modal__dialog--wide">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="new-cat-title">新建品类</h2>
+                <p class="modal__sub">全部配置项都填写后才能保存为 v1；可以复制浴室柜配置作为起点</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+            </div>
+            <div class="modal__body stack-lg">
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field__label" for="nc-name">品类名称 <span class="req">*</span></label>
+                  <input class="input" id="nc-name" placeholder="例如：浴室镜柜">
+                </div>
+                <div class="field">
+                  <label class="field__label" for="nc-owner">负责人</label>
+                  <input class="input" id="nc-owner" value="wen" readonly>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="nc-site">站点 <span class="req">*</span></label>
+                  <select class="select" id="nc-site">
+                    <option selected>US · 美国</option>
+                    <option>CA · 加拿大</option>
+                    <option>UK · 英国</option>
+                    <option>DE · 德国</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="nc-node">类目节点 <span class="req">*</span></label>
+                  <input class="input" id="nc-node" inputmode="numeric" placeholder="亚马逊类目节点编号">
+                </div>
+              </div>
+              <section aria-labelledby="nc-tpl-title">
+                <h3 id="nc-tpl-title">起点</h3>
+                <div class="choice-group" style="margin-top: var(--space-3)">
+                  <label class="choice"><input type="radio" name="nc-tpl" checked><svg class="icon"><use href="#ph-copy"/></svg>复制浴室柜配置 v2</label>
+                  <label class="choice"><input type="radio" name="nc-tpl">从空白开始</label>
+                </div>
+                <p class="field__hint" style="margin-top: var(--space-2)">复制的是配置项的取值，不复制数据包、结果、台账和规则。</p>
+              </section>
+              <section aria-labelledby="nc-need-title">
+                <h3 id="nc-need-title">创建后要逐项填写或核对</h3>
+                <p class="small" style="margin-top: var(--space-2)">成功线、参照人群、细分维度与分档（含类型属性）、关键词映射规则、信号窗口与回看期、回测切分比例、体检预警阈值。复制模板时这些项会带入浴室柜的取值，按新品类改好后保存为 v1；任一项为空都不能保存。</p>
+              </section>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="button" data-close data-toast="已创建品类草稿，逐项填写后保存为 v1"><svg class="icon"><use href="#ph-plus"/></svg><span>创建草稿</span></button>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          /* 保存为新版本：按草稿与 v2 的差异生成变动摘要；确认后显示需重算横幅（离开拦截沿用 app.js 的 form[data-guard]） */
+          (function () {
+            var form = document.getElementById('cfg-form');
+            var diff = document.getElementById('save-diff');
+            var none = document.getElementById('save-none');
+            var confirmBtn = document.getElementById('save-confirm');
+            function now(el) { return el.type === 'checkbox' ? String(el.checked) : el.value.trim(); }
+            function show(el, v) {
+              if (el.type === 'checkbox') return v === 'true' ? '是' : '否';
+              return v + (el.getAttribute('data-unit') ? ' ' + el.getAttribute('data-unit') : '');
+            }
+            function span(cls, text) {
+              var s = document.createElement('span');
+              s.className = cls;
+              s.textContent = text;
+              return s;
+            }
+            function build() {
+              while (diff.firstChild) diff.removeChild(diff.firstChild);
+              var n = 0;
+              form.querySelectorAll('[data-was]').forEach(function (el) {
+                var was = el.getAttribute('data-was');
+                var cur = now(el);
+                if (cur === was) return;
+                n += 1;
+                diff.appendChild(span('diff__key', el.getAttribute('data-key')));
+                diff.appendChild(span('diff__old', show(el, was)));
+                diff.appendChild(span('diff__new', show(el, cur)));
+              });
+              none.hidden = n > 0;
+              confirmBtn.disabled = n === 0;
+            }
+            form.addEventListener('submit', function (e) { e.preventDefault(); });
+            document.querySelectorAll('[data-open="#save-modal"]').forEach(function (b) { b.addEventListener('click', build); });
+            confirmBtn.addEventListener('click', function () {
+              if (confirmBtn.disabled) return;
+              window.oppoClose('#save-modal');
+              document.querySelectorAll('[data-modified]').forEach(function (el) { el.remove(); });
+              document.querySelectorAll('[data-cur-version]').forEach(function (el) { el.textContent = 'v3'; });
+              var top = document.querySelector('a.version[href="PAGE-F13-01.html"]');
+              if (top) top.textContent = '配置 v3';
+              var item = document.getElementById('v3-item').content.cloneNode(true);
+              var note = document.getElementById('save-note').value.trim();
+              if (note) item.querySelector('[data-v3-note]').textContent = note;
+              var box = item.querySelector('[data-v3-diff]');
+              Array.prototype.slice.call(diff.children).forEach(function (c) { box.appendChild(c.cloneNode(true)); });
+              var list = document.getElementById('ver-list');
+              list.insertBefore(item, list.firstElementChild);
+              var cur = document.querySelector('[data-ver-current]');
+              if (cur) cur.remove();
+              var mark = document.querySelector('[data-ver-mark]');
+              if (mark) mark.setAttribute('class', 'icon list__icon');
+              document.querySelector('[data-cur-saved]').textContent = '2027-05-08 11:20 保存';
+              document.querySelector('[data-dep-title]').textContent = '需重算的结果（依赖 v2）';
+              document.querySelector('[data-dep-foot]').textContent = '已标为需重算，旧结果仍可查看；到工作台点"全部重算"后按 v3 计算。';
+              form.querySelectorAll('[data-was]').forEach(function (el) { el.setAttribute('data-was', now(el)); });
+              document.getElementById('draft-banner').hidden = true;
+              document.getElementById('stale-banner').hidden = false;
+              window.oppoToast('已保存为品类配置 v3，依赖 v2 的结果已标为需重算');
+              window.scrollTo(0, 0);
+            });
+          })();
+        </script>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

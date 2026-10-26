@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T14:22:40Z",
+  "last_updated_at_utc": "2026-10-26T15:47:15Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -54,7 +54,7 @@
     "REQ-F13-01"
   ],
   "current_stage": "design",
-  "current_substep": "stage2-page-list",
+  "current_substep": "stage3-delivery",
   "completed_stages": [
     "0",
     "1",
@@ -71,8 +71,8 @@
     "3"
   ],
   "next_action": {
-    "type": "agent_work",
-    "description": "蓝图已确认；按设计流程阶段 II 产出页面清单、DESIGN.md + tokens.css、26 个本期页面 MD/HTML、串联与链接扫描、技术方案、设计追溯矩阵"
+    "type": "user_decision",
+    "description": "设计交付前请用户确认 3 个需求层面歧义：AC-F11-03 观察/放弃规则的对账升级口径；截面回测缺部分现用指标时的达标判断（AC-F07-10/11）；合并依据 3 所需的五点描述字段（约定 §10.4）。确认后回 PRD 升 revision，再同步设计并进入 TDD"
   },
   "open_questions": [],
   "key_decisions_made": [
@@ -319,6 +319,28 @@
       "status": "confirmed",
       "confirmed_at_utc": "2026-10-26T14:22:40Z",
       "source": "用户选择“确认，开始出页面（推荐）”；DEC-006 用当月最后导出的那版；DEC-007 不能改、追加更正；DEC-015 离线安装包"
+    },
+    "deliverables": {
+      "blueprint": "output/设计决策蓝图.md",
+      "page_list": "output/页面清单.md",
+      "design_system": [
+        "output/DESIGN.md",
+        "output/tokens.css",
+        "output/pages/assets/app.css",
+        "output/pages/assets/app.js",
+        "output/pages/assets/icons.js"
+      ],
+      "pages": "output/pages/PAGE-*.md + .html（本期 26 页）",
+      "tech_plan": "output/技术方案.md",
+      "trace_matrix": "output/设计追溯矩阵.md"
+    },
+    "link_scan": {
+      "run_at": "2026-10-26T15:47:15Z",
+      "local_links": 1038,
+      "missing_targets": 0,
+      "pages_without_inbound": 0,
+      "script_errors": 0,
+      "h_overflow_1440_1366": 0
     }
   }
 }
