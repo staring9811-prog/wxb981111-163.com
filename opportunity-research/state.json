@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T16:06:15Z",
+  "last_updated_at_utc": "2026-10-26T16:23:20Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -40,8 +40,8 @@
     "REQ-F07-03",
     "REQ-F11-01"
   ],
-  "current_stage": "design",
-  "current_substep": "design-delivered-rev5",
+  "current_stage": "tdd",
+  "current_substep": "contract-delivered",
   "completed_stages": [
     "0",
     "1",
@@ -52,14 +52,16 @@
     "4.4",
     "4.5",
     "4.6",
-    "5"
+    "5",
+    "design",
+    "tdd"
   ],
   "skipped_stages": [
     "3"
   ],
   "next_action": {
-    "type": "agent",
-    "description": "进入 tdd-master：基于 requirements revision 5 与设计产物生成 output/tests/TDD验收契约.md 并运行 check_delivery_contract.py"
+    "type": "user",
+    "description": "在同一项目的 Code 模式新建对话，发送完整 /goal 命令（https://200w.liurun.vip/skill/goal.html），按 output/tests/TDD验收契约.md 开发与验收"
   },
   "open_questions": [],
   "key_decisions_made": [
@@ -257,7 +259,8 @@
     "prd_summary": null,
     "prd_dev": null,
     "ppt_outline": null,
-    "ppt_pages": []
+    "ppt_pages": [],
+    "tdd_contract": "output/tests/TDD验收契约.md"
   },
   "validation": {
     "check_evidence": "pass",
@@ -377,6 +380,42 @@
         "PAGE-F10-02"
       ],
       "trace_rows": 128
+    }
+  },
+  "tdd": {
+    "entry_check": {
+      "status": "passed",
+      "at_utc": "2026-10-26T16:23:20Z",
+      "inputs": [
+        "output/requirements.md@rev5（128 条 active，全部 required）",
+        "output/设计追溯矩阵.md（128 行 covered，revision 一致）",
+        "output/页面清单.md（第一期 26 页，MD/HTML 唯一匹配）",
+        "output/PRD详细版.md@v5",
+        "output/技术方案.md",
+        "output/设计决策蓝图.md"
+      ],
+      "design_fixes_before_contract": [
+        "PAGE-F11-01 状态计数卡改为 1/8/9，与表格和筛选一致",
+        "17/44 的 Wilson 90% 区间改为 27.6–51.0%（F07-01、F08-01、F12-02 及对应 MD）"
+      ]
+    },
+    "contract": "output/tests/TDD验收契约.md",
+    "rows": {
+      "SMOKE": 3,
+      "FLOW": 19,
+      "RULE": 9,
+      "DESIGN": 26,
+      "total": 57
+    },
+    "validation": {
+      "validator": "tdd-master/validators/check_delivery_contract.py",
+      "result": "pass",
+      "required_sources": 128,
+      "scope_pages": 26,
+      "warnings": [
+        "行为/风险验收 28 条（体量提示）"
+      ],
+      "run_at": "2026-10-26T16:23:20Z"
     }
   }
 }
