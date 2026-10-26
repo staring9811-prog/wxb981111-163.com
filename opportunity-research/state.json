@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T13:54:41Z",
+  "last_updated_at_utc": "2026-10-26T14:04:05Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -28,7 +28,7 @@
       "source": "D-8（分三期，第一期做透浴室柜）、D-15–D-19；proposal-v1.md §9 记录"
     }
   },
-  "contract_revision": 3,
+  "contract_revision": 4,
   "source_ids_changed": [
     "AC-F01-06",
     "AC-F03-04",
@@ -36,6 +36,8 @@
     "AC-F05-06",
     "AC-F05-07",
     "AC-F05-08",
+    "AC-F05-11",
+    "AC-F05-12",
     "AC-F06-11",
     "AC-F06-12",
     "AC-F07-09",
@@ -51,8 +53,8 @@
     "REQ-F07-03",
     "REQ-F13-01"
   ],
-  "current_stage": "5",
-  "current_substep": "revision-2",
+  "current_stage": "design",
+  "current_substep": "blueprint",
   "completed_stages": [
     "0",
     "1",
@@ -62,32 +64,17 @@
     "4.3",
     "4.4",
     "4.5",
-    "4.6"
+    "4.6",
+    "5"
   ],
   "skipped_stages": [
     "3"
   ],
   "next_action": {
-    "type": "user_decision",
-    "description": "需求 revision 3（成功线月度口径 + 截面月龄对齐）已写入；等待 wen 回答 OQ-20（补导全部新品的交付时间）以关闭 RA-020，随后回到 Design",
-    "question_ids": [
-      "OQ-20"
-    ]
+    "type": "agent_work",
+    "description": "PRD revision 4 校验通过；回到 Design 写设计决策蓝图并请用户确认（导航、视觉、屏幕、报告已确认 DD-1–DD-4）"
   },
-  "open_questions": [
-    {
-      "id": "OQ-20",
-      "title": "截面数据包（近 12 个月上架的全部新品含低销量 + 6–9 月月度数据）的交付时间",
-      "kind": "fact",
-      "category": "system_dependency",
-      "priority": "P1",
-      "depends_on": [],
-      "owner": "wen",
-      "status": "pending_user",
-      "evidence_needed": "wen 承诺的交付日期",
-      "acceptance_threshold": "前置能力表可写为 committed（负责人 + 截止时间）"
-    }
-  ],
+  "open_questions": [],
   "key_decisions_made": [
     {
       "id": "D-1",
@@ -97,7 +84,7 @@
     },
     {
       "id": "D-2",
-      "decision": "成功线：上架6个月内满足其一——小类BSR前50（ASIN层），或SPU任一月销售额≥$20万（2026-10-26 用户更正为月度口径，见 D-24）",
+      "decision": "成功线：上架6个月内满足其一——小类BSR前50（ASIN层），或SPU任一月销售额≥$10万（见 D-24、D-25）",
       "stage": "solution",
       "source": "解题方案书 §2"
     },
@@ -232,6 +219,18 @@
       "decision": "成功线 GMV 条件更正为月度口径：SPU 任一月销售额 ≥ $20 万（不是 6 个月累计）；截面模式按 SPU 上架月龄对齐新品周期",
       "stage": "PRD 变更",
       "source": "用户原话（2026-10-26）"
+    },
+    {
+      "id": "D-25",
+      "decision": "成功线月度 GMV 阈值为 10 万美元：BSR 保持前 50，月 SPU 销售额 ≥ $10 万即算成功",
+      "stage": "PRD 变更",
+      "source": "用户原话（2026-10-26）"
+    },
+    {
+      "id": "D-26",
+      "decision": "参照人群只用起量新品（任一月父体月销 ≥ 60 件），历史与截面两种模式一致；未起量新品不进分母",
+      "stage": "PRD 变更",
+      "source": "用户选择“只用起量新品”（2026-10-26）；两种模式统一为 AI 依据同一理由推论"
     }
   ],
   "category": "generic",
@@ -259,7 +258,9 @@
     "check_evidence": "pass",
     "check_format": "pass",
     "check_consistency": "pass",
-    "check_requirements_contract": "fail: P1 unresolved 1 (RA-020 截面数据包交付日期)"
+    "check_requirements_contract": "pass",
+    "run_at": "2026-10-26T14:04:05Z",
+    "revision": 4
   },
   "design": {
     "entry_check": {
