@@ -108,7 +108,7 @@
             <svg class="icon"><use href="#ph-seal-check"/></svg>
             <div class="banner__body">
               <div class="banner__title">R-012 已由"历史观察"升为"已验证"</div>
-              <div>2026-11 快照的前 20% 细分（前 2 名，锦囊均为 R-012 立项候选）实际命中率 44.4%，是全类目 21.4% 的 2.07 倍，达到 2 倍；且落在回测预期 27–46% 内。依据对账月份：2027-05。</div>
+              <div>R-012（立项候选）在 2026-11 快照中适用前 2 名细分，起量新 SPU 实际命中 4 / 9 = 44.4%，是同批次全类目 21.4% 的 2.07 倍，达到立项候选的验证条件（≥ 2 倍）。依据对账月份：2027-05。</div>
             </div>
             <div class="banner__actions"><a class="btn btn--sm" href="PAGE-F11-01.html">查看策略库</a></div>
           </div>
@@ -161,6 +161,58 @@
               </table>
             </div>
           </details>
+        </section>
+
+        <section class="section enter" style="--i:4" aria-labelledby="rule-recon-title">
+          <div class="section__head">
+            <h2 class="section__title" id="rule-recon-title">规则对账 · 2026-11 快照</h2>
+            <span class="section__note">快照锦囊引用的"历史观察"规则 · 规则倍数 = 适用细分的实际命中率 ÷ 同批次全类目 21.4%（6 / 28）</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">规则</th>
+                  <th scope="col">动作</th>
+                  <th class="t-num" scope="col">适用细分</th>
+                  <th class="t-num" scope="col">实际命中率</th>
+                  <th class="t-num" scope="col">规则倍数</th>
+                  <th scope="col">验证条件</th>
+                  <th scope="col">结果</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><a class="tlink mono" href="PAGE-F11-01.html">R-012</a><div class="cell-sub">需求在涨 ≥ +10% 且 新品进得去 ≥ 25%</div></td>
+                  <td class="t-nowrap"><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>立项候选</span></td>
+                  <td class="t-num">2 个<div class="cell-sub">前 2 名</div></td>
+                  <td class="t-num">44.4%<span class="etag etag--n">n=9</span><div class="cell-sub">命中 4 / 9</div></td>
+                  <td class="t-num"><span class="strong">2.07×</span><span class="etag">推导</span></td>
+                  <td class="t-nowrap">≥ 2 倍</td>
+                  <td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>升为已验证</span><div class="cell-sub">生成 R-012 · v3</div></td>
+                </tr>
+                <tr>
+                  <td><a class="tlink mono" href="PAGE-F11-01.html">R-015</a><div class="cell-sub">需求在涨 ≥ +10% 且 新品进得去 &lt; 25%</div></td>
+                  <td class="t-nowrap"><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td>
+                  <td class="t-num">2 个</td>
+                  <td class="t-num">16.7%<span class="etag etag--n">n=6</span><div class="cell-sub">命中 1 / 6</div></td>
+                  <td class="t-num"><span class="strong">0.78×</span><span class="etag">推导</span></td>
+                  <td class="t-nowrap">只记录</td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-clipboard-text"/></svg>已记录</span><div class="cell-sub">观察规则不升级，状态不变</div></td>
+                </tr>
+                <tr>
+                  <td><a class="tlink mono" href="PAGE-F11-01.html">R-009</a><div class="cell-sub">新品进得去 &lt; 15% 且 结构类痛点占比 &lt; 8%</div></td>
+                  <td class="t-nowrap"><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td>
+                  <td class="t-num">3 个</td>
+                  <td class="t-num">12.5%<span class="etag etag--n">n=8</span><div class="cell-sub">命中 1 / 8</div></td>
+                  <td class="t-num"><span class="strong">0.58×</span><span class="etag">推导</span></td>
+                  <td class="t-nowrap">≤ 0.5 倍</td>
+                  <td class="t-nowrap"><span class="badge"><svg class="icon"><use href="#ph-minus"/></svg>未达条件</span><div class="cell-sub">状态不变，仍为历史观察</div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted" style="margin-top: var(--space-2)">立项候选规则倍数 ≥ 2、放弃规则倍数 ≤ 0.5 时升为"已验证"并生成新版本；观察规则只记录倍数和对账月份。截面快照的规则对账只作参考，不改变规则状态。</p>
         </section>
 
         <section class="section enter" style="--i:4" aria-labelledby="due-title">

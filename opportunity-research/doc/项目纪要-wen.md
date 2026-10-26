@@ -9,8 +9,8 @@
 - ✅ 已完成：
   - 解题方案书：output/解题方案书.md。
   - PRD v5 与需求契约 revision 5：output/PRD详细版.md、requirements.md、requirements-analysis.md，四项校验通过。
-  - 设计（revision 4 版）：页面清单、设计规范、26 页原型、技术方案、追溯矩阵。
-- ▶️ 进行中：按 output/change-impact.md 把设计同步到 revision 5（F07-01、F04-02、F10-05、F11-01/02 等页面，技术方案 §4.5，追溯矩阵新增 AC-F07-14、AC-F11-06），然后写 TDD 验收契约。
+  - 设计（已同步 revision 5）：页面清单、设计规范、26 页原型、技术方案、追溯矩阵（128 条 covered）、change-impact.md；链接扫描 0 缺失，26 页 0 脚本错误、0 横向溢出。
+- ▶️ 进行中：TDD 验收契约（output/tests/TDD验收契约.md）。
 - ⏸️ 待办：
   - TDD 验收契约完成并校验后，给 /goal 开发指引。
   - wen 在 2026-11-06 前提供第一期真实数据包（约定 v1）；在此之前用 2026.06–09 样例包跑通。

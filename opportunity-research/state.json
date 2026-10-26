@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T15:55:08Z",
+  "last_updated_at_utc": "2026-10-26T16:06:15Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -41,7 +41,7 @@
     "REQ-F11-01"
   ],
   "current_stage": "design",
-  "current_substep": "revision5-sync",
+  "current_substep": "design-delivered-rev5",
   "completed_stages": [
     "0",
     "1",
@@ -59,7 +59,7 @@
   ],
   "next_action": {
     "type": "agent",
-    "description": "按 output/change-impact.md 同步设计产物到 revision 5（页面、技术方案、追溯矩阵），再进入 TDD 验收契约"
+    "description": "进入 tdd-master：基于 requirements revision 5 与设计产物生成 output/tests/TDD验收契约.md 并运行 check_delivery_contract.py"
   },
   "open_questions": [],
   "key_decisions_made": [
@@ -337,15 +337,46 @@
       ],
       "pages": "output/pages/PAGE-*.md + .html（本期 26 页）",
       "tech_plan": "output/技术方案.md",
-      "trace_matrix": "output/设计追溯矩阵.md"
+      "trace_matrix": "output/设计追溯矩阵.md",
+      "change_impact": "output/change-impact.md"
     },
     "link_scan": {
-      "run_at": "2026-10-26T15:47:15Z",
-      "local_links": 1038,
+      "run_at": "2026-10-26T16:06:15Z",
+      "local_links": 1043,
       "missing_targets": 0,
       "pages_without_inbound": 0,
       "script_errors": 0,
       "h_overflow_1440_1366": 0
+    },
+    "revision5_sync": {
+      "status": "done",
+      "at_utc": "2026-10-26T16:06:15Z",
+      "changed_sources": [
+        "AC-F07-03",
+        "AC-F07-10",
+        "AC-F07-11",
+        "AC-F07-14",
+        "AC-F11-03",
+        "AC-F11-06",
+        "REQ-F07-01",
+        "REQ-F07-03",
+        "REQ-F11-01"
+      ],
+      "pages_updated": [
+        "PAGE-F04-02",
+        "PAGE-F07-01",
+        "PAGE-F08-01",
+        "PAGE-F08-02",
+        "PAGE-F10-05",
+        "PAGE-F11-01",
+        "PAGE-F11-02",
+        "PAGE-F12-01",
+        "PAGE-F12-02",
+        "PAGE-F06-02",
+        "PAGE-F10-01",
+        "PAGE-F10-02"
+      ],
+      "trace_rows": 128
     }
   }
 }
