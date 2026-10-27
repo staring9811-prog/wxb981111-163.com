@@ -14,7 +14,7 @@ import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261027-v6'
+VERSION='bathroom-vanity-tagger-20261027-v7'
 # 2026-10-27 user: vanity widths are essentially standard sizes.
 STANDARD_WIDTHS=(12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84)
 STD_WIDTH_TOLERANCE=0.8
@@ -121,6 +121,7 @@ class Tagger:
             ('悬浮式',r'\b(?:floating|wall[ -]mount(?:ed)?|wall[ -]hung)\b'),
             ('落地式',r'\b(?:freestanding|free[ -]standing|floor[ -]mount(?:ed)?)\b'),
             ('开放式',r'\bconsole\s+(?:vanity|sink|table)\b'),
+            ('转角式',r'\bcorner\s+(?:bathroom\s+)?(?:vanity|cabinet|sink)\b'),
             ('柱状盆',r'\bpedestal\s+(?:sink|basin)(?!\s+(?:storage|cabinet))\b')],lambda f:f!='商品尺寸'))
         c=[]
         for s in self.sources:
@@ -622,7 +623,17 @@ class Tagger:
 
     def run(self):
         self.structure();self.colors();self.materials();self.dimensions();self.parent_dimensions();self.snap_width();self.included(HEADERS[12],'mirror');self.included(HEADERS[13],'faucet')
-        # User 2026-10-27: mirror/faucet without an explicit "with"/included are 无.
+        # User 2026-10-27 defaults: no explicit form -> 落地式; no assembled/pre-assembled -> 拆装;
+        # no "double" -> 单盆 (double only plausible at width >= 48in).
+        if self.accessory_default:
+            for h,val,rule in ((HEADERS[0],'落地式','FORM-DEFAULT-FREESTANDING'),(HEADERS[1],'拆装','ASSEMBLY-DEFAULT-RTA'),(HEADERS[2],'单盆','BASIN-DEFAULT-SINGLE')):
+                if self.tags.get(h)==UNKNOWN:
+                    self.tags[h]=val;self.evidence[h]={'status':'business_default','selected':[],'ruleID':rule,'basisType':'business_default','note':'文本未明确，按用户规则默认'}
+            width=self.tags.get(HEADERS[9])
+            if self.tags.get(HEADERS[2],'').startswith('双盆') and width is not None and width<48:
+                self.conflicts.append(HEADERS[2]+'：文本写双盆但宽度%s<48in，待核验'%width)
+            dflt=[h for h in HEADERS[:3] if self.evidence[h].get('status')=='business_default']
+            if dflt:self.notes.append('按用户规则默认：'+'、'.join('%s=%s'%(h,self.tags[h]) for h in dflt))
         if self.accessory_default:
             for h in (HEADERS[12],HEADERS[13]):
                 if self.tags.get(h)==UNKNOWN:

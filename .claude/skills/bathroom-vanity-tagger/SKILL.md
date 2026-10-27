@@ -5,7 +5,7 @@ description: 浴室柜整柜商品属性打标，并回答“哪些字段现有�
 
 # 浴室柜商品打标
 
-下次说“浴室柜打标”直接从本技能开始。输入位置与项目历史见[references/current-project.md](references/current-project.md)；输出16列见[references/output-schema.md](references/output-schema.md)；可行性代码与尺寸规则见[references/feasibility-and-dimension-rules.md](references/feasibility-and-dimension-rules.md)。同一已确认结构直接复用，不重复询问。
+下次说“浴室柜打标”直接从本技能开始。输入位置与项目历史见[references/current-project.md](references/current-project.md)；输出16列见[references/output-schema.md](references/output-schema.md)；可行性代码与尺寸规则见[references/feasibility-and-dimension-rules.md](references/feasibility-and-dimension-rules.md)；全部字段规则现状见[references/all-field-rules.md](references/all-field-rules.md)。同一已确认结构直接复用，不重复询问。
 
 **台面/台盆：** D8拆为台面材质、台盆材质。执行前读[references/surface-basin-rules.md](references/surface-basin-rules.md)。大理石分支Carrara/Calacatta统一卡拉拉大理石，其余未明确细分marble归岗石；明确石英石、岩板、树脂、Cultured Marble优先。业务归类与推导须记JSON方法和来源，不作为天然材质鉴定。
 
@@ -18,7 +18,7 @@ description: 浴室柜整柜商品属性打标，并回答“哪些字段现有�
 - 柜体、台面、盆材质按部件判断。台面：solid wood单独出现是柜体不是台面，wood/marble texture直接接top才是木板台面；未细分stone top归岗石；一体盆台（<材质> sink top、integrated sink、D4一体盆）台面=盆材。engineered wood无MDF证据时为工程木材（未细分）；solid wood frame不自动补成实木框架+MDF；SMC/亚克力归树脂业务组并保留细分。纹理/仿色不证明天然石材；图片不能证明内部板材。
 - 元素先文本；无可靠文本线索标待图片核验。用户2026-10-27：看图先不做。实际看过对应子体图片才可写图片核验，链接存在不等于看过图。
 - 否定、排除与部件范围先于关键词。镜子/龙头：用户2026-10-27确认，文本未明确with/included的默认“无”（status=business_default，--no-accessory-default关闭）；明确含/单卖/不含的文本仍优先；无盆不推出无龙头；“faucets and mirror are not included”“excluding faucets”这类列表排除要识别；pre-drilled faucet hole、Single Hole Faucet不代表含龙头。
-- 盆数只认明确数量词（single/double/dual/two + 可带vessel、boat、rectangular等修饰 + sink），不凭宽度强推；single/double vanity行业用语只在没有其他盆数证据时使用。
+- 盆数先认明确数量词（single/double/dual/two + 可带修饰 + sink）；single/double vanity行业用语次之；都没有时按用户2026-10-27规则默认单盆，写双盆但宽度<48in标冲突。产品形态没写floating/corner/pedestal等默认落地式；安装方式没写assembled/pre-assembled默认拆装。默认值JSON记business_default。
 - 尺寸：优先SKU宽度，再用带方向标记的子体尺寸/标题。宽度基本是标准尺寸（用户2026-10-27）：实际值与24/28/30/31/32/36/42/48/60/72等标准宽度相差≤0.8in且唯一最近时归到标准值，原值存JSON rawValue；居中（31.5）或不在列表（37、43）的保留原值。无单位的“3H”不在a×b×c尺寸串里时是3孔龙头位，不是高度。同一来源D/W标签互换（标D≈已选宽度、标W与宽度不符）时深度留空标冲突。
 - 无方向三维数“a x b x c inches”按D×W×H读取（DIM-DWH-ORDER，中间值须与已选宽度相差≤1in）；D/W标反来源取其标W值作深度（DIM-DW-SWAP）。两条规则用户2026-10-27已确认，默认开启，--no-dim-rules 关闭。
 - 文字来源不保证正确。每个标签记录原文片段、来源字段/ASIN、范围、方法、冲突、规则版本。数字空值不转0；自动文本证据可用不等于独立验证准确。
