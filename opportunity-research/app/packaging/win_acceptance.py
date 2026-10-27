@@ -381,9 +381,44 @@ def main() -> int:
             rule05(root, Path(a.fixtures).resolve() / "S-规模", out, res)
     finally:
         res["ended"] = datetime.now().isoformat(timespec="seconds")
+        res["verdict"] = verdict(res)
         (out / "results.json").write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(res, ensure_ascii=False, indent=2))
-    return 0
+    return 0 if all(v["pass"] for v in res["verdict"].values()) else 1
+
+
+def verdict(res: dict) -> dict:
+    """Pass/fail per contract row from the observations above (the job's exit code follows it)."""
+    s, r, f = res.get("SMOKE-03", {}), res.get("RULE-05", {}), res.get("FLOW-17", {})
+    smoke = {
+        "no_python_on_path": s.get("python_on_clean_path") is False,
+        "outbound_blocked_for_package_python": s.get("firewall_block_outbound") is True,
+        "starts_and_answers": s.get("first_start_ok") is True,
+        "listens_on_127_0_0_1_only": s.get("listening") == ["127.0.0.1"],
+        "lan_address_refused": str(s.get("lan_access", "refused")).startswith("refused"),
+        "browser_opened_workbench": any("127.0.0.1:%d" % PORT in p for p in s.get("browser_launch_processes", [])),
+        "workbench_no_console_errors": s.get("workbench_console_errors") == [],
+        "oppo_help_ok": s.get("oppo_help_exit") == 0 and len(s.get("oppo_help_commands", [])) == 10,
+        "second_start_only_opens_browser": "已在运行" in str(s.get("second_start_while_running", "")),
+        "data_kept_after_restart": s.get("restart_ok") is True and s.get("package_listed_after_restart") is True,
+        "data_separate_from_program": s.get("data_separate_from_program") is True,
+    }
+    rule = {
+        "all_steps_exit_0": bool(r.get("steps")) and all(x["exit"] == 0 for x in r["steps"].values()),
+        "no_memory_error": bool(r.get("steps")) and not any(x["memory_error"] for x in r["steps"].values()),
+        "within_30_minutes": r.get("within_30_minutes") is True,
+        "memory_limit_8gb": r.get("job_memory_limit_mb") == 8192.0,
+    }
+    flow = {
+        "cli_month_ok": all(v == 0 for k, v in f.items() if k.startswith("cli_")) and "cli_export" in f,
+        "nine_sheets": len(f.get("sheets", [])) == 9,
+        "chromium_offline_zero_requests": f.get("chromium", {}).get("network_requests") == [],
+        "webkit_offline_zero_requests": f.get("webkit", {}).get("network_requests") == [],
+        "ranking_matches_excel_both_engines": all(f.get(e, {}).get("ranking_matches_excel") for e in ("chromium", "webkit")),
+        "same_text_both_engines": f.get("same_text_in_both_engines") is True,
+    }
+    return {name: {"pass": all(c.values()), "checks": c} for name, c in
+            (("SMOKE-03", smoke), ("RULE-05", rule), ("FLOW-17", flow))}
 
 
 if __name__ == "__main__":

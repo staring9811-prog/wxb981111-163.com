@@ -75,7 +75,20 @@ def month_in_browser(live, page) -> None:  # type: ignore[no-untyped-def]
     _job_done(live, page)
 
 
-def test_smoke02_month_in_browser(live_server, data_dir, page, tmp_path) -> None:  # type: ignore[no-untyped-def]
+def test_smoke02_month_in_browser(live_server, data_dir, page, tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    import socket
+
+    attempts: list[str] = []  # RULE-06: no outbound connection from the app during the whole month
+    real_connect = socket.socket.connect
+
+    def guarded(self, address):  # type: ignore[no-untyped-def]
+        host = address[0] if isinstance(address, tuple) else str(address)
+        if isinstance(address, tuple) and host not in ("127.0.0.1", "::1", "localhost"):
+            attempts.append(str(address))
+            raise OSError("outbound connections are not allowed in this test")
+        return real_connect(self, address)
+
+    monkeypatch.setattr(socket.socket, "connect", guarded)
     live = live_server(data_dir)
     with live.app.engine.begin() as conn:  # precondition: a writable backup directory
         ok, _ = BK.set_directory(conn, str(tmp_path / "备份"), "wen")
@@ -104,3 +117,4 @@ def test_smoke02_month_in_browser(live_server, data_dir, page, tmp_path) -> None
         page.screenshot(path=str(SHOTS / "smoke02_workbench.png"), full_page=True)
     assert not page.js_errors, page.js_errors
     assert not outside, outside
+    assert not attempts, attempts

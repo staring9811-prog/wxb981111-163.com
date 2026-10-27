@@ -18,6 +18,6 @@
 body:has(.modal.is-open, .drawer.is-open) .main .btn--primary:not(.modal .btn--primary):not(.drawer .btn--primary) {
   background: var(--surface); border-color: var(--border-control); color: var(--fg);
 }
-/* interval bar runs past the fixed 0–60 % scale: arrow at the end, the dot drawn hollow when the point itself is beyond it */
+/* interval bar running past the fixed 0–60 % scale: a small arrow at the end of the track (grey on grey bars) */
 .ibar__over { fill: var(--viz-series-1); }
-.ibar__dot--over { fill: var(--surface); stroke: var(--viz-series-1); stroke-width: 2; }
+.ibar--grey .ibar__over, .ibar--muted .ibar__over { fill: var(--muted); }

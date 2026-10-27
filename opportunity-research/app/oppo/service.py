@@ -140,10 +140,15 @@ def compute(app: App, background: bool = False, then: Callable[[Any, Callable], 
         return {"runs": ids}
 
     with app.engine.begin() as conn:
-        for kind in ("history", "cross"):
-            pkg = PK.current_package(conn, cid, kind)
+        current = [PK.current_package(conn, cid, kind) for kind in ("history", "cross")]
+        for pkg in current:
             if pkg and pkg["conclusion"] == "block":
                 raise PermissionError(f"数据包 {pkg['label']} 存在阻断项，不能计算")
+        if not any(current):  # refuse before a job is created (AC-F01-02: API and CLI are refused)
+            last = (PK.list_packages(conn, cid) or [None])[0]
+            if last and last["conclusion"] == "block":
+                raise PermissionError(f"数据包 {last['label']} 存在阻断项，不能计算；请修正后重新导入")
+            raise ValueError("还没有可计算的数据包，请先导入")
     return jobs.run(app.engine, cid, "compute", app.operator, work, background=background)
 
 
@@ -153,6 +158,13 @@ def backtest(app: App, mode: str = "history", background: bool = False) -> int:
     def work(conn: Any, report: Callable[[str, float], None]) -> Any:
         bid = BT.run(conn, cid, app.operator, mode, report)
         return {"backtest": bid}
+
+    with app.engine.begin() as conn:
+        if CMP.latest_run(conn, cid, mode) is None:
+            raise BT.BacktestError("还没有成败与信号结果，请先运行计算")
+        pkg = PK.current_package(conn, cid, mode)
+        if pkg and pkg["conclusion"] == "block":
+            raise PermissionError(f"数据包 {pkg['label']} 存在阻断项，不能回测")
 
     return jobs.run(app.engine, cid, "backtest", app.operator, work, background=background)
 

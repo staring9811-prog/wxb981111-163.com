@@ -367,4 +367,4 @@ details.panel[open] > summary > .icon:first-child { transform: rotate(90deg); }
       .ibar--muted .ibar__band { fill: var(--viz-deemph); }
     .ibar--muted .ibar__dot { fill: var(--muted); }
   .ibar__over { fill: var(--viz-series-1); }
-.ibar__dot--over { fill: var(--surface); stroke: var(--viz-series-1); stroke-width: 2; }
+.ibar--grey .ibar__over, .ibar--muted .ibar__over { fill: var(--muted); }

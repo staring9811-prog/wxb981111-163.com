@@ -311,7 +311,6 @@ def capture(states: Path, only: list[str]) -> list[dict[str, Any]]:
 def capture_reports(states: Path) -> list[dict[str, Any]]:
     """DESIGN-24: the exported single-file report, copied to another folder and opened with the network off."""
     import shutil
-    import sqlite3
 
     tmp = states.parent / "capture_tmp" / "report_copy"
     tmp.mkdir(parents=True, exist_ok=True)
@@ -321,10 +320,16 @@ def capture_reports(states: Path) -> list[dict[str, Any]]:
     with sync_playwright() as pw:
         exe = Path("/opt/pw-browsers/chromium")
         browser = pw.chromium.launch(executable_path=str(exe) if exe.exists() else None)
+        fresh: dict[str, str] = {}
         for state, name, expand in plan:
-            db = sqlite3.connect(f"file:{states / state / 'oppo.sqlite3'}?mode=ro", uri=True)
-            html = db.execute("SELECT html_path FROM export_record ORDER BY id DESC").fetchone()[0]
-            db.close()
+            if state not in fresh:  # export again with the current build so the report is today's code
+                from oppo import service as SV
+
+                d = clone(states / state, tmp.parent / f"report_{state}")
+                app = open_dir(d)
+                fresh[state] = SV.job_result(app, SV.export(app))["result"]["html_path"]
+                close(app)
+            html = fresh[state]
             copy = tmp / f"{state}_{Path(html).name}"
             shutil.copy2(html, copy)
             ctx = browser.new_context(viewport={"width": 1440, "height": 900}, locale="zh-CN", offline=True)
