@@ -10,6 +10,7 @@ from sqlalchemy.engine import Connection
 
 from oppo import clock
 from oppo import db as D
+from oppo.core import adjust as ADJ
 from oppo.core import categories as CAT
 from oppo.core import contract as CT
 from oppo.core import data as DATA
@@ -165,7 +166,7 @@ def _run_mode(conn: Connection, category_id: int, pkg: dict[str, Any], mode: str
     run_id = conn.execute(D.compute_run.insert().values(
         category_id=category_id, mode=mode, package_id=pkg["id"], contract_version_id=uf["version"]["id"],
         config_version_id=cfg_ver["id"], merge_hash=SPU.merge_hash(conn, category_id),
-        excluded_fields_json=D.dumps(uf["excluded"]), rows_used_json=D.dumps(PK.raw_row_counts(conn, pkg["id"])),
+        adjust_hash=ADJ.adjust_hash(conn, pkg["id"]), excluded_fields_json=D.dumps(uf["excluded"]), rows_used_json=D.dumps(PK.raw_row_counts(conn, pkg["id"])),
         latest_month=latest, t_month=T_now, status="running", started_at=clock.now_iso(),
         created_by=operator, created_at=clock.now_iso())).inserted_primary_key[0]
     sig_rows, seg_rows = [], []
@@ -283,6 +284,8 @@ def stale_reasons(conn: Connection, category_id: int, run: dict[str, Any] | None
         out.append(f"品类配置已保存为 v{cfg['version_no']}")
     if SPU.merge_hash(conn, category_id) != run["merge_hash"]:
         out.append("SPU 归并已修改")
+    if ADJ.adjust_hash(conn, run["package_id"]) != (run.get("adjust_hash") or ""):
+        out.append("数据审核的已确认调整有变化")
     pkg = PK.current_package(conn, category_id, run["mode"])
     if pkg and pkg["id"] != run["package_id"]:
         out.append(f"当前数据包已换为 {pkg['label']}")

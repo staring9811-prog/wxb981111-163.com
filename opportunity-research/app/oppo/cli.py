@@ -116,6 +116,57 @@ def cmd_merge(app: SV.App, a: argparse.Namespace) -> int:
     return 1
 
 
+def cmd_adjust(app: SV.App, a: argparse.Namespace) -> int:
+    """数据审核：list / propose / confirm / reject / revoke。propose 读 JSON 文件（items 数组或 {source, items}）。"""
+    from oppo.core import adjust as ADJ
+
+    cid = app.category_id()
+    if a.action == "list":
+        pid = SV.resolve_package(app, a.package)["id"] if a.package else None
+        with app.engine.begin() as conn:
+            rows = ADJ.listing(conn, cid, package_id=pid, status=a.status or None, batch=a.batch or None)
+        for r in rows:
+            month = f"\t{r['month']}" if r["month"] else ""
+            print(f"{r['code']}\t{r['status']}\t{r['file_code']}\t{r['child']}{month}\t{r['field']}\t"
+                  f"{r['old_value'] if r['old_value'] is not None else '空'} → "
+                  f"{r['final_value'] if r['status'] == ADJ.CONFIRMED else r['proposed_value']}\t{r['source']}")
+        return 0
+    if a.action == "propose":
+        if not a.file:
+            raise ADJ.AdjustError("请用 --file 指定 JSON 文件")
+        body = json.loads(Path(a.file).read_text(encoding="utf-8"))
+        items = body.get("items") if isinstance(body, dict) else body
+        source = (body.get("source") if isinstance(body, dict) else None) or a.source or "手工"
+        pkg = SV.resolve_package(app, a.package)
+        _print(SV.adjust_propose(app, pkg["id"], items or [], source))
+        return 0
+    codes = list(a.codes or [])
+    if a.action in ("confirm", "reject") and a.all_pending:
+        pid = SV.resolve_package(app, a.package)["id"] if a.package else None
+        with app.engine.begin() as conn:
+            codes = [r["code"] for r in ADJ.listing(conn, cid, package_id=pid, status=ADJ.PENDING,
+                                                     batch=a.batch or None)]
+    if not codes:
+        raise ADJ.AdjustError("请用 --codes 指定调整编号，或用 --all-pending")
+    if a.action in ("confirm", "reject"):
+        values = {codes[0]: a.value} if a.value is not None and len(codes) == 1 else None
+        r = SV.adjust_decide(app, codes, a.action, values=values, note=a.note or "")
+        print(f"{'确认' if a.action == 'confirm' else '驳回'} {len(r['done'])} 条，跳过 {len(r['skipped'])} 条")
+        return 0
+    if a.action == "revoke":
+        r = SV.adjust_revoke(app, codes, note=a.note or "")
+        print(f"撤销 {len(r['done'])} 条，跳过 {len(r['skipped'])} 条")
+        return 0
+    return 1
+
+
+def cmd_api_token(app: SV.App, a: argparse.Namespace) -> int:
+    print(app.settings.api_token())
+    print(f"（保存在 {app.settings.api_token_path}；接口地址 http://127.0.0.1:{app.settings.port}/api/v1）",
+          file=sys.stderr)
+    return 0
+
+
 def cmd_compute(app: SV.App, a: argparse.Namespace) -> int:
     jid = SV.compute(app)
     print(f"计算完成（任务 {jid}）")
@@ -251,6 +302,20 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--keep", nargs="*")
     s.add_argument("--note")
     s.set_defaults(fn=cmd_merge)
+    s = sub.add_parser("adjust", help="数据审核：list / propose / confirm / reject / revoke（数据包本身不变）")
+    s.add_argument("action", choices=["list", "propose", "confirm", "reject", "revoke"])
+    s.add_argument("--package", help="数据包编号，如 P-0001（默认当前数据包）")
+    s.add_argument("--status", help="list 时按状态筛选：待审核 / 已确认 / 已驳回 / 已撤回 / 已撤销")
+    s.add_argument("--batch", help="批次，如 B-0001")
+    s.add_argument("--codes", nargs="*", help="调整编号，如 A-00001")
+    s.add_argument("--all-pending", action="store_true", help="confirm / reject 全部待审核（可配合 --package、--batch）")
+    s.add_argument("--value", help="confirm 单条时改成这个值再确认")
+    s.add_argument("--file", help="propose 读取的 JSON 文件")
+    s.add_argument("--source", help="propose 的来源名称（默认 手工）")
+    s.add_argument("--note")
+    s.set_defaults(fn=cmd_adjust)
+    s = sub.add_parser("api-token", help="显示本机接口（/api/v1）的令牌，给 Codex 等工具用")
+    s.set_defaults(fn=cmd_api_token)
     s = sub.add_parser("compute", help="运行计算（成败判定 + 信号）")
     s.set_defaults(fn=cmd_compute)
     s = sub.add_parser("recompute", help="全部重算")

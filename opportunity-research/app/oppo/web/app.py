@@ -22,7 +22,16 @@ SAFE = {"GET", "HEAD", "OPTIONS"}
 
 
 async def csrf(request: Request) -> None:
-    """Writes need the per-start token and must not come from another site."""
+    """Writes need the per-start token and must not come from another site. /api/v1 (Codex) instead needs the
+    data folder's API token as a bearer token on every request, reads included."""
+    if request.url.path.startswith("/api/"):
+        auth = request.headers.get("authorization", "")
+        given = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+        if not given or not secrets.compare_digest(given, request.app.state.api_token):
+            raise HTTPException(status_code=401, detail="缺少或无效的 API 令牌（Authorization: Bearer <api_token.txt 里的令牌>）")
+        if request.headers.get("sec-fetch-site") == "cross-site":
+            raise HTTPException(status_code=403, detail="跨来源的请求已拒绝")
+        return
     if request.method in SAFE:
         return
     origin = request.headers.get("origin") or request.headers.get("referer")
@@ -61,12 +70,13 @@ def create_app(svc: SV.App | None = None, token: str | None = None) -> FastAPI:
                   dependencies=[Depends(csrf)])
     app.state.svc = svc
     app.state.token = token or secrets.token_urlsafe(24)
+    app.state.api_token = svc.settings.api_token()
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
     app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 
-    from oppo.web.views import analysis, data_prep, ledger, products, workbench
+    from oppo.web.views import analysis, api, data_prep, ledger, products, review, workbench
 
-    for mod in (workbench, data_prep, products, analysis, ledger):
+    for mod in (workbench, data_prep, products, analysis, ledger, review, api):
         app.include_router(mod.router)
 
     @app.get("/mode/{mode}")
@@ -88,7 +98,7 @@ def create_app(svc: SV.App | None = None, token: str | None = None) -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException):  # type: ignore[no-untyped-def]
-        if request.headers.get("hx-request") or request.method not in SAFE:
+        if request.url.path.startswith("/api/") or request.headers.get("hx-request") or request.method not in SAFE:
             return JSONResponse({"error": exc.detail}, status_code=exc.status_code)
         return HTMLResponse(C.error_page(request, exc.status_code, str(exc.detail)), status_code=exc.status_code)
 

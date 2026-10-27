@@ -11,6 +11,7 @@ from sqlalchemy.engine import Engine
 from oppo import clock
 from oppo import db as D
 from oppo import settings as S
+from oppo.core import adjust as ADJ
 from oppo.core import backtest as BT
 from oppo.core import categories as CAT
 from oppo.core import compute as CMP
@@ -128,6 +129,69 @@ def merge_decide(app: App, ids: list[int], decision: str, source: str = "逐条"
         runs.record_step(conn, cid, "SPU 审核", started, clock.now_iso(), app.operator,
                          result=f"{'确认' if decision == 'confirm' else '拒绝'} {res['done']} 条", link="/spu/merge")
         return res
+
+
+def resolve_package(app: App, ref: str | int | None, mode: str | None = None) -> dict[str, Any]:
+    """A package by label (P-0001), id, or the current one of a mode (default: cross, else history)."""
+    cid = app.category_id()
+    with app.engine.begin() as conn:
+        if ref not in (None, ""):
+            s = str(ref).strip()
+            pkg = PK.by_label(conn, s) or (PK.get(conn, int(s)) if s.isdigit() else None)
+        else:
+            modes = (mode,) if mode in ("history", "cross") else ("cross", "history")
+            pkg = next((p for p in (PK.current_package(conn, cid, m) for m in modes) if p), None)
+        if pkg is None or pkg["category_id"] != cid:
+            raise ADJ.AdjustError(f"找不到数据包“{ref}”" if ref else "还没有导入数据包")
+        return pkg
+
+
+def adjust_propose(app: App, package_id: int, items: list[dict[str, Any]], source: str) -> dict[str, Any]:
+    cid = app.category_id()
+    with app.engine.begin() as conn:
+        return ADJ.propose(conn, cid, package_id, items, source, app.operator)
+
+
+def _after_review(app: App, conn: Any, cid: int, packages: list[int], started: str, result: str) -> None:
+    """Confirmed values changed: refresh the data check of the touched packages and record the step."""
+    from oppo.core import health as H
+
+    for pid in packages:
+        H.run(conn, cid, pid)
+    runs.record_step(conn, cid, "数据体检", started, clock.now_iso(), app.operator, result=result,
+                     link="/review", package_id=packages[0] if packages else None)
+
+
+def adjust_decide(app: App, codes: list[str], decision: str, values: dict[str, Any] | None = None,
+                  note: str = "") -> dict[str, Any]:
+    cid = app.category_id()
+    started = clock.now_iso()
+    with app.engine.begin() as conn:
+        if jobs.running(conn):
+            raise jobs.JobBusy("有计算任务正在运行，完成后再审核")
+        res = ADJ.decide(conn, cid, codes, decision, app.operator, values=values, note=note)
+        if res["done"]:
+            verb = "确认" if decision == "confirm" else "驳回"
+            _after_review(app, conn, cid, res["packages"], started, f"数据审核：{verb} {len(res['done'])} 条")
+        return res
+
+
+def adjust_revoke(app: App, codes: list[str], note: str = "") -> dict[str, Any]:
+    cid = app.category_id()
+    started = clock.now_iso()
+    with app.engine.begin() as conn:
+        if jobs.running(conn):
+            raise jobs.JobBusy("有计算任务正在运行，完成后再撤销")
+        res = ADJ.revoke(conn, cid, codes, app.operator, note=note)
+        if res["done"]:
+            _after_review(app, conn, cid, res["packages"], started, f"数据审核：撤销 {len(res['done'])} 条")
+        return res
+
+
+def adjust_withdraw(app: App, codes: list[str]) -> dict[str, Any]:
+    cid = app.category_id()
+    with app.engine.begin() as conn:
+        return ADJ.withdraw(conn, cid, codes, app.operator)
 
 
 def compute(app: App, background: bool = False, then: Callable[[Any, Callable], Any] | None = None) -> int:

@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}数据审核{% endblock %}
+{% block content %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>数据审核</h1>
+            <p class="page-head__sub">Codex 或手工提交的数据调整在这里确认、改值或驳回 · 导入的数据包本身不变，只有已确认的调整参与体检和计算，随时可撤销</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn" type="button" data-open="#propose-modal"{% if not current_pkgs %} disabled data-tip="还没有导入数据包"{% endif %}>{{ icon('plus') }}<span>手工提交</span></button>
+            <a class="btn" href="/health">{{ icon('heartbeat') }}<span>数据体检</span></a>
+          </div>
+        </div>
+
+        {% if stale %}
+        <div class="banner banner--stale enter" style="--i:1" role="status">
+          {{ icon('arrows-clockwise') }}
+          <div class="banner__body">
+            <div class="banner__title">结果需重算</div>
+            <div>{{ stale|join('；') }}。在工作台点“全部重算”后，成败判定、信号和回测按审核后的数据更新；重算前仍可查看旧结果。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/">去工作台</a></div>
+        </div>
+        {% endif %}
+        {% if busy %}
+        <div class="banner enter" style="--i:1" role="status">{{ icon('circle-notch', 'spin') }}<div class="banner__body">{{ busy }}；确认、驳回和撤销暂不可用。</div></div>
+        {% endif %}
+
+        <div class="stats enter" style="--i:1{% if stale or busy %}; margin-top: var(--space-4){% endif %}">
+          <div class="stat">
+            <div class="stat__label">待审核</div>
+            <div class="stat__value" data-stat="pending">{{ counts['待审核'] }}<span class="stat__unit">条</span></div>
+            <div class="stat__meta">确认前不影响任何结果</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">已确认</div>
+            <div class="stat__value" data-stat="confirmed">{{ counts['已确认'] }}<span class="stat__unit">条</span></div>
+            <div class="stat__meta">正在参与体检与计算</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">已驳回</div>
+            <div class="stat__value" data-stat="rejected">{{ counts['已驳回'] }}<span class="stat__unit">条</span></div>
+            <div class="stat__meta">保留原值</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">已撤回 · 已撤销</div>
+            <div class="stat__value" data-stat="ended">{{ counts['已撤回'] + counts['已撤销'] }}<span class="stat__unit">条</span></div>
+            <div class="stat__meta">被新提议取代、提议方撤回或确认后撤销</div>
+          </div>
+        </div>
+
+        <details class="panel section enter" style="--i:2" data-api-panel>
+          <summary class="small">{{ icon('link-simple') }} Codex 接入：本机接口地址与令牌</summary>
+          <dl class="kv" style="margin-top: var(--space-3)">
+            <dt>接口地址</dt><dd class="mono">{{ api_base }}</dd>
+            <dt>令牌</dt>
+            <dd><span class="mono" data-api-token hidden>{{ api_token }}</span>
+              <button class="btn btn--sm" type="button" data-api-reveal>{{ icon('eye') }}<span>显示</span></button>
+              <button class="btn btn--sm" type="button" data-copy-text="{{ api_token }}">{{ icon('copy') }}<span>复制</span></button>
+              <div class="cell-sub">保存在 <span class="mono">{{ token_path }}</span>，重启不变；删除这个文件后重启会换一个新令牌。</div>
+            </dd>
+            <dt>请求头</dt><dd class="mono small">Authorization: Bearer &lt;令牌&gt;</dd>
+            <dt>能做什么</dt><dd class="small">读取数据包（原值与审核后的值）、提交调整、查看审核结果、撤回自己未审核的提议。<strong>不能确认</strong>，确认只在本页或命令行 <span class="mono">oppo adjust confirm</span> 由人完成。</dd>
+          </dl>
+          <p class="small muted">完整说明与示例见安装目录 <span class="mono">app/docs/Codex接入.md</span>。</p>
+        </details>
+
+        <div class="tabs section enter" style="--i:2" role="tablist" aria-label="调整状态">
+          <a class="tab" id="tab-pending" href="{{ link(tab='pending', page=None) }}" role="tab" aria-selected="{{ 'true' if tab == 'pending' else 'false' }}">待审核 <span class="count">{{ counts['待审核'] }}</span></a>
+          <a class="tab" id="tab-confirmed" href="{{ link(tab='confirmed', page=None) }}" role="tab" aria-selected="{{ 'true' if tab == 'confirmed' else 'false' }}">已确认 <span class="count">{{ counts['已确认'] }}</span></a>
+          <a class="tab" id="tab-other" href="{{ link(tab='other', page=None) }}" role="tab" aria-selected="{{ 'true' if tab == 'other' else 'false' }}">其余记录 <span class="count">{{ counts['已驳回'] + counts['已撤回'] + counts['已撤销'] }}</span></a>
+        </div>
+
+        <form class="filters b-filters" method="get" action="/review" role="search" aria-label="筛选调整">
+          <input type="hidden" name="tab" value="{{ tab }}">
+          {% for key, label in [('package', '数据包'), ('file', '文件'), ('field', '字段'), ('source', '来源'), ('batch', '批次')] %}
+          {% if not loop.first %}<span class="filters__sep" aria-hidden="true"></span>{% endif %}
+          <span class="filters__label">{{ label }}</span>
+          <select class="select b-select" name="{{ key }}" aria-label="{{ label }}" data-b-autosubmit>
+            <option value="">全部</option>
+            {% for o in opts[key] %}<option value="{{ o }}"{% if f[key] == o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+          </select>
+          {% endfor %}
+          <span class="spacer"></span>
+          <label class="search">{{ icon('magnifying-glass') }}<span class="visually-hidden">子 ASIN</span><input class="input mono" type="search" name="child" value="{{ f.child }}" placeholder="子 ASIN"></label>
+          {% if filtered %}<a class="btn btn--sm btn--ghost" href="/review?tab={{ tab }}">清除筛选</a>{% endif %}
+        </form>
+
+        {% if rows %}
+        <div class="table-wrap">
+          <table class="table" id="adj-table">
+            <thead>
+              <tr>
+                {% if tab == 'pending' %}<th class="t-check" scope="col"><label class="check"><input type="checkbox" data-select-all="#adj-table" aria-label="全选本页"></label></th>{% endif %}
+                <th scope="col">编号 · 批次</th>
+                <th scope="col">位置</th>
+                <th scope="col">字段</th>
+                <th scope="col">数据包原值</th>
+                <th scope="col">{{ '提议值' if tab == 'pending' else '提议 → 生效' }}</th>
+                <th scope="col">理由</th>
+                <th scope="col">来源</th>
+                {% if tab != 'pending' %}<th scope="col">状态 · 审核</th>{% endif %}
+                {% if tab != 'other' %}<th scope="col">操作</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rows %}
+              <tr data-code="{{ r.code }}">
+                {% if tab == 'pending' %}<td class="t-check"><label class="check"><input type="checkbox" data-row-check value="{{ r.code }}" aria-label="选择 {{ r.code }}"></label></td>{% endif %}
+                <td class="t-nowrap"><div class="mono">{{ r.code }}</div><div class="cell-sub mono">{{ r.batch or '' }}</div></td>
+                <td class="t-nowrap"><div class="mono">{{ r.child }}</div><div class="cell-sub">{{ r.package }} · {{ r.file_code }}{% if r.file_code in ('C1', 'S1', 'C3', 'S3') %} · {{ r.month or '全部月份' }}{% endif %}</div></td>
+                <td>{{ r.field }}</td>
+                <td class="{{ 'muted' if r.old_value is none else '' }}">{{ r.old_value if r.old_value is not none else '空' }}</td>
+                <td>
+                  {% if tab == 'pending' %}<strong>{{ r.proposed_value if r.proposed_value is not none else '清空' }}</strong>
+                  {% else %}{{ r.proposed_value if r.proposed_value is not none else '清空' }}{% if r.status == '已确认' or r.final_value is not none %} → <strong>{{ r.final_value if r.final_value is not none else '清空' }}</strong>{% endif %}{% endif %}
+                </td>
+                <td class="small">{{ r.reason or '' }}</td>
+                <td class="small t-nowrap">{{ r.source }}<div class="cell-sub">{{ (r.created_at or '')[:16] }}</div></td>
+                {% if tab != 'pending' %}
+                <td class="small">{{ badge(r.status) }}<div class="cell-sub">{{ r.decided_by or '' }} {{ (r.decided_at or '')[:16] }}</div>{% if r.decision_note %}<div class="cell-sub">{{ r.decision_note }}</div>{% endif %}</td>
+                {% endif %}
+                {% if tab == 'pending' %}
+                <td class="t-nowrap">
+                  <button class="btn btn--sm" type="button" data-post="/review/decide" data-arg-codes="{{ r.code }}" data-arg-decision="confirm"{% if busy %} disabled{% endif %}>{{ icon('check') }}<span>确认</span></button>
+                  <button class="btn btn--sm" type="button" data-open="#edit-modal" data-adj-code="{{ r.code }}" data-adj-field="{{ r.field }}" data-adj-value="{{ r.proposed_value or '' }}" data-adj-old="{{ r.old_value if r.old_value is not none else '空' }}"{% if busy %} disabled{% endif %}>{{ icon('pencil-simple') }}<span>改值</span></button>
+                  <button class="btn btn--sm btn--ghost" type="button" data-post="/review/decide" data-arg-codes="{{ r.code }}" data-arg-decision="reject"{% if busy %} disabled{% endif %}>驳回</button>
+                </td>
+                {% elif tab == 'confirmed' %}
+                <td class="t-nowrap"><button class="btn btn--sm btn--ghost" type="button" data-post="/review/revoke" data-arg-codes="{{ r.code }}"{% if busy %} disabled{% endif %}>{{ icon('arrow-left') }}<span>撤销</span></button></td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <span>共 {{ total }} 条{% if pages > 1 %} · 第 {{ page }} / {{ pages }} 页{% endif %}</span>
+          {% if page > 1 %}<a class="btn btn--sm" href="{{ link(page=page - 1) }}">{{ icon('caret-left') }}<span>上一页</span></a>{% endif %}
+          {% if page < pages %}<a class="btn btn--sm" href="{{ link(page=page + 1) }}"><span>下一页</span>{{ icon('caret-right') }}</a>{% endif %}
+        </div>
+        {% if tab == 'pending' %}
+        <div class="filters" style="margin-top: var(--space-3)">
+          <span class="small muted">{{ '按当前筛选' if filtered else '全部' }}待审核 {{ total }} 条：</span>
+          <button class="btn btn--sm" type="button" data-open="#all-modal" data-all-decision="confirm"{% if busy %} disabled{% endif %}>{{ icon('list-checks') }}<span>全部确认</span></button>
+          <button class="btn btn--sm btn--ghost" type="button" data-open="#all-modal" data-all-decision="reject"{% if busy %} disabled{% endif %}>全部驳回</button>
+        </div>
+        <div class="batchbar" data-batchbar="#adj-table" hidden>
+          <span>已选 <strong data-batch-count>0</strong> 条</span>
+          <span class="spacer"></span>
+          <button class="btn btn--sm" type="button" data-batch-clear="#adj-table">取消选择</button>
+          <button class="btn btn--sm btn--ghost" type="button" data-adj-batch="reject"{% if busy %} disabled{% endif %}>驳回所选</button>
+          <button class="btn btn--sm btn--primary" type="button" data-adj-batch="confirm"{% if busy %} disabled{% endif %}>{{ icon('check') }}<span>确认所选</span></button>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="panel"><div class="empty">
+          {{ icon('check-circle') }}
+          <div class="empty__title">{% if filtered %}没有符合筛选的调整{% elif tab == 'pending' %}没有待审核的调整{% elif tab == 'confirmed' %}还没有已确认的调整{% else %}没有其余记录{% endif %}</div>
+          <p class="empty__desc">{% if tab == 'pending' and not filtered %}Codex 通过本机接口提交，或点右上角“手工提交”。确认前，体检和计算只用数据包原值。{% endif %}</p>
+        </div></div>
+        {% endif %}
+{% endblock %}
+{% block overlays %}
+        <!-- 改值后确认 -->
+        <div class="modal" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-title" aria-hidden="true">
+          <form class="modal__dialog" data-ajax action="/review/decide" method="post">
+            <input type="hidden" name="decision" value="confirm">
+            <input type="hidden" name="codes" value="" data-fill-input="code">
+            <input type="hidden" name="next" value="{{ link() }}">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="edit-title">改值后确认 · <span data-fill="code"></span></h2>
+                <p class="modal__sub"><span data-fill="field"></span> · 数据包原值 <span data-fill="old"></span></p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack-lg">
+              <label class="field">
+                <span class="field__label">生效值</span>
+                <input class="input" type="text" name="value_edit" data-fill-input="value" autocomplete="off">
+                <span class="field-error" data-error-for="value_edit"></span>
+                <span class="field__hint">留空表示清空这个值。证据状态只能填 {{ evidence_states|join(' / ') }}；日期 YYYY-MM-DD；月份 YYYYMM。</span>
+              </label>
+              <label class="field">
+                <span class="field__label">说明（选填）</span>
+                <input class="input" type="text" name="note" autocomplete="off">
+              </label>
+              <div class="banner banner--block" data-form-error hidden><div class="banner__body" data-form-error-text></div></div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="submit">{{ icon('check') }}<span>按此值确认</span></button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 按筛选全部确认 / 驳回 -->
+        <div class="modal" id="all-modal" role="dialog" aria-modal="true" aria-labelledby="all-title" aria-hidden="true">
+          <form class="modal__dialog" data-ajax action="/review/decide" method="post">
+            <input type="hidden" name="scope" value="filtered">
+            <input type="hidden" name="decision" value="confirm" data-all-input>
+            {% for k in ['package', 'file', 'field', 'source', 'batch', 'child'] %}<input type="hidden" name="{{ k }}" value="{{ f[k] }}">{% endfor %}
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="all-title"><span data-all-verb>全部确认</span> {{ total }} 条</h2>
+                <p class="modal__sub">{{ '当前筛选下' if filtered else '' }}全部待审核的调整 · 操作人 {{ operator }}</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack">
+              <p class="small">确认后数据体检按新值刷新，成败判定、信号和回测标为需重算。已确认的调整可在“已确认”里逐条撤销，数据包原值不变。</p>
+              <div class="banner banner--block" data-form-error hidden><div class="banner__body" data-form-error-text></div></div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="submit"><span data-all-verb>全部确认</span></button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 手工提交 -->
+        <div class="modal" id="propose-modal" role="dialog" aria-modal="true" aria-labelledby="propose-title" aria-hidden="true">
+          <form class="modal__dialog" data-ajax action="/review/propose" method="post">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="propose-title">手工提交调整</h2>
+                <p class="modal__sub">来源记为“手工”，提交后同样待审核</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack-lg">
+              <label class="field">
+                <span class="field__label">数据包</span>
+                <select class="input" name="package">{% for p in current_pkgs %}<option value="{{ p }}">{{ p }}</option>{% endfor %}</select>
+              </label>
+              <label class="field">
+                <span class="field__label">文件</span>
+                <select class="input" name="file" data-adj-file>
+                  {% for p, files in fields_by_pkg.items() %}{% if loop.first %}{% for fc in files %}<option value="{{ fc }}">{{ fc }}</option>{% endfor %}{% endif %}{% endfor %}
+                </select>
+              </label>
+              <label class="field">
+                <span class="field__label">子 ASIN</span>
+                <input class="input mono" type="text" name="child" autocomplete="off">
+                <span class="field-error" data-error-for="child"></span>
+              </label>
+              <label class="field">
+                <span class="field__label">月份（月度文件选填，不填为全部月份）</span>
+                <input class="input mono" type="text" name="month" placeholder="202606" autocomplete="off">
+                <span class="field-error" data-error-for="month"></span>
+              </label>
+              <label class="field">
+                <span class="field__label">字段</span>
+                <input class="input" type="text" name="field" list="adj-fields" autocomplete="off" placeholder="如 形态、形态证据状态、上架日期">
+                <datalist id="adj-fields">{% for p, files in fields_by_pkg.items() %}{% if loop.first %}{% for fc, fields in files.items() %}{% for fld in fields %}<option value="{{ fld }}">{{ fc }}</option>{% endfor %}{% endfor %}{% endif %}{% endfor %}</datalist>
+                <span class="field-error" data-error-for="field"></span>
+              </label>
+              <label class="field">
+                <span class="field__label">新值</span>
+                <input class="input" type="text" name="value" autocomplete="off">
+                <span class="field-error" data-error-for="value"></span>
+              </label>
+              <label class="field">
+                <span class="field__label">理由</span>
+                <input class="input" type="text" name="reason" autocomplete="off">
+              </label>
+              <div class="banner banner--block" data-form-error hidden><div class="banner__body" data-form-error-text></div></div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="submit">{{ icon('plus') }}<span>提交</span></button>
+            </div>
+          </form>
+        </div>
+{% endblock %}

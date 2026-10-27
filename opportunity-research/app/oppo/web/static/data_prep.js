@@ -332,6 +332,54 @@
     marks();
   }
 
+  /* ── 数据审核：改值弹窗、批量与按筛选处理、接口令牌 ── */
+  $$('[data-adj-code]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var modal = doc.querySelector(btn.getAttribute('data-open'));
+      if (!modal) return;
+      var vals = { code: btn.getAttribute('data-adj-code'), field: btn.getAttribute('data-adj-field'),
+                   old: btn.getAttribute('data-adj-old'), value: btn.getAttribute('data-adj-value') };
+      $$('[data-fill]', modal).forEach(function (el) { el.textContent = vals[el.getAttribute('data-fill')] || ''; });
+      $$('[data-fill-input]', modal).forEach(function (el) { el.value = vals[el.getAttribute('data-fill-input')] || ''; });
+    });
+  });
+  $$('[data-all-decision]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var modal = doc.querySelector(btn.getAttribute('data-open'));
+      if (!modal) return;
+      var d = btn.getAttribute('data-all-decision');
+      $$('[data-all-input]', modal).forEach(function (el) { el.value = d; });
+      $$('[data-all-verb]', modal).forEach(function (el) { el.textContent = d === 'confirm' ? '全部确认' : '全部驳回'; });
+    });
+  });
+  $$('[data-adj-batch]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var codes = $$('#adj-table input[data-row-check]').filter(function (c) { return c.checked; })
+        .map(function (c) { return c.value; });
+      if (!codes.length) return;
+      btn.disabled = true;
+      window.oppoPost('/review/decide', { codes: codes, decision: btn.getAttribute('data-adj-batch'),
+                                          next: location.pathname + location.search }).then(function (res) {
+        btn.disabled = false;
+        if (res.ok) { location.href = res.redirect || location.href; }
+        else if (window.oppoToast) window.oppoToast(res.error || '没有完成');
+      });
+    });
+  });
+  $$('[data-api-reveal]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var t = doc.querySelector('[data-api-token]');
+      if (t) t.hidden = !t.hidden;
+    });
+  });
+  $$('[data-copy-text]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy-text');
+      var done = function () { if (window.oppoToast) window.oppoToast('已复制'); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    });
+  });
+
   /* ── 运行记录：选择月份 ── */
   $$('select[data-nav-select]').forEach(function (sel) {
     sel.addEventListener('change', function () { location.href = sel.value; });

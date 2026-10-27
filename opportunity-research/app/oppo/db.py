@@ -377,6 +377,7 @@ compute_run = Table(
     Column("contract_version_id", Integer),
     Column("config_version_id", Integer),
     Column("merge_hash", String(64)),
+    Column("adjust_hash", String(64)),
     Column("excluded_fields_json", Text),
     Column("excluded_rows", Integer),
     Column("rows_used_json", Text),
@@ -705,6 +706,33 @@ job = Table(
     *_audit(),
 )
 
+# Reviewed adjustments on top of an imported package (the package rows themselves never change). A proposal
+# (from Codex through /api/v1, or typed in by hand) waits as 待审核 until a person confirms, edits or rejects it;
+# only 已确认 rows are applied when the package is read for checks and computing.
+data_adjustment = Table(
+    "data_adjustment", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("category_id", Integer, nullable=False),
+    Column("package_id", Integer, nullable=False),
+    Column("code", String(16), nullable=False, unique=True),
+    Column("batch", String(16)),
+    Column("file_code", String(4), nullable=False),
+    Column("child", String(16), nullable=False),
+    Column("month", String(7)),  # None on monthly files = every month of the child
+    Column("field", String(32), nullable=False),
+    Column("old_value", Text),
+    Column("proposed_value", Text),
+    Column("final_value", Text),
+    Column("reason", Text),
+    Column("source", String(32), nullable=False),
+    Column("status", String(8), nullable=False),  # 待审核 / 已确认 / 已驳回 / 已撤回 / 已撤销
+    Column("decided_by", String(64)),
+    Column("decided_at", String(32)),
+    Column("decision_note", Text),
+    *_audit(),
+)
+Index("ix_data_adjustment_pkg", data_adjustment.c.package_id, data_adjustment.c.status)
+
 run_step = Table(
     "run_step", metadata,
     Column("id", Integer, primary_key=True),
@@ -741,7 +769,7 @@ BACKUP_TABLES = (
     "merge_suggestion", "merge", "health_ack", "change_log",
     "decision_card", "backtest_run", "rule", "rule_version",
     "snapshot", "snapshot_export", "decision_record", "launch_data",
-    "reconciliation", "rule_reconciliation", "export_record", "run_step",
+    "reconciliation", "rule_reconciliation", "export_record", "run_step", "data_adjustment",
 )
 
 

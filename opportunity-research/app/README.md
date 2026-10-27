@@ -20,6 +20,10 @@ uv venv --python 3.14 && uv pip install -e ".[dev]"
 
 试用：在“数据包”页粘贴 `fixtures/packages/H1-A` 的路径导入，然后按工作台的 8 步走完一个月。
 
+## Codex 接入（数据审核）
+
+程序启动后在本机提供 `http://127.0.0.1:8765/api/v1`，Codex 等工具可以读数据包、提交调整提议；提议在「数据审核」页由人确认、改值或驳回后才参与体检和计算，导入的数据包本身不变。令牌在 `data/api_token.txt`（`oppo api-token` 查看），接口与命令行 `oppo adjust` 的说明见 `docs/Codex接入.md`。
+
 ## 测试与验收
 
 ```bash

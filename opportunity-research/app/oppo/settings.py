@@ -42,6 +42,24 @@ class Settings:
     def logs_dir(self) -> Path:
         return self.data_dir / "logs"
 
+    @property
+    def api_token_path(self) -> Path:
+        return self.data_dir / "api_token.txt"
+
+    def api_token(self) -> str:
+        """Token for the local /api/v1 (Codex and other tools). Created once, kept across restarts."""
+        p = self.api_token_path
+        if p.exists():
+            tok = p.read_text(encoding="utf-8").strip()
+            if tok:
+                return tok
+        import secrets
+
+        p.parent.mkdir(parents=True, exist_ok=True)
+        tok = secrets.token_urlsafe(32)
+        p.write_text(tok + "\n", encoding="utf-8")
+        return tok
+
 
 def load() -> Settings:
     data_dir = _default_data_dir()

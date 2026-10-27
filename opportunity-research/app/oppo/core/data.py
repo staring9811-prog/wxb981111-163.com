@@ -52,7 +52,10 @@ def _read(conn: Connection, table: str, package_id: int) -> pd.DataFrame:
 
 
 def load(conn: Connection, package_id: int, confirmed: set[tuple[str, str]] | None) -> Bundle:
-    """confirmed=None loads every field (health checks run before the contract is confirmed)."""
+    """confirmed=None loads every field (health checks run before the contract is confirmed).
+
+    Confirmed data adjustments are layered on top of the imported rows; the package tables are not changed."""
+    from oppo.core import adjust as ADJ
     from oppo.core import packages as PK
 
     pkg = PK.get(conn, package_id)
@@ -61,8 +64,12 @@ def load(conn: Connection, package_id: int, confirmed: set[tuple[str, str]] | No
     dropped: list[str] = []
     has: dict[str, bool] = {}
     for short in ("c1", "c2", "c3", "c5", "c6", "c7"):
-        df = _read(conn, f"raw_{short}", package_id)
-        has[short] = len(df) > 0
+        frames[short] = _read(conn, f"raw_{short}", package_id)
+        has[short] = len(frames[short]) > 0
+    c4 = ADJ.apply(conn, package_id, frames, _read(conn, "raw_c4", package_id))
+    has["c4"] = len(c4) > 0
+    for short in ("c1", "c2", "c3", "c5", "c6", "c7"):
+        df = frames[short]
         if confirmed is not None:
             fmap = FIELD_MAP[short]
             for col, fname in fmap.items():
@@ -73,8 +80,6 @@ def load(conn: Connection, package_id: int, confirmed: set[tuple[str, str]] | No
                         dropped.append(f"{CONTRACT_OF[short]} {fname}")
                     df[col] = None
         frames[short] = df
-    c4 = _read(conn, "raw_c4", package_id)
-    has["c4"] = len(c4) > 0
     if confirmed is not None and len(c4):
         allowed = {f for (fc, f) in confirmed if fc == "C4"}
         if allowed:

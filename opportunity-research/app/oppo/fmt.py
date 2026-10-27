@@ -119,6 +119,8 @@ STATUS_BADGE = {
     "达成": ("hit", "check-circle"), "成功": ("ok", "check-circle"), "失败": ("block", "x-circle"),
     "进行中": ("watch", "hourglass"), "已拒绝": ("old", "x-circle"), "待审": ("warn", "hourglass"),
     "当前": ("", "target"), "本月新增": ("", "plus"),
+    "待审核": ("warn", "hourglass"), "已驳回": ("old", "x-circle"), "已撤回": ("old", "minus"),
+    "已撤销": ("old", "arrow-left"),
 }
 
 

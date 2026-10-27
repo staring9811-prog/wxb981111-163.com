@@ -107,6 +107,7 @@ def build(out: Path, version: str, embed_zip: Path | None) -> Path:
                     "--only-binary=:all:", "-r", str(reqs)], check=True)
     shutil.copytree(APP / "oppo", root / "app" / "oppo",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.egg-info"))
+    shutil.copytree(APP / "docs", root / "app" / "docs")  # Codex 接入说明，数据审核页指向它
     (root / "启动.bat").write_text(START_BAT.replace("\n", "\r\n"), encoding="utf-8")
     (root / "oppo.bat").write_text(OPPO_BAT.replace("\n", "\r\n"), encoding="utf-8")
     (root / "命令行.bat").write_text(CONSOLE_BAT.replace("\n", "\r\n"), encoding="utf-8")

@@ -13,6 +13,7 @@ from sqlalchemy.engine import Connection
 
 from oppo import clock, fmt
 from oppo import db as D
+from oppo.core import adjust as ADJ
 from oppo.core import cards as CARD
 from oppo.core import categories as CAT
 from oppo.core import compute as CMP
@@ -40,6 +41,7 @@ NAV = [
     ("PAGE-F01-01", "/packages", "package", "数据包", None),
     ("PAGE-F02-01", "/fields", "list-checks", "字段约定", "fields"),
     ("PAGE-F03-02", "/health", "heartbeat", "数据体检", "health"),
+    ("PAGE-F15-01", "/review", "note-pencil", "数据审核", "review"),
     ("group", "新品"),
     ("PAGE-F04-01", "/spu", "cube", "新品与 SPU", None),
     ("PAGE-F04-02", "/spu/merge", "git-merge", "合并建议", "merges"),
@@ -84,6 +86,7 @@ def layout(request: Request, conn: Connection, page_id: str) -> dict[str, Any]:
     cv = CT.current_version(conn, cid)
     pending_fields = CT.pending_count(conn, cid)
     pending_merges = len(SPU.suggestions(conn, cid, "pending"))
+    pending_adjust = ADJ.counts(conn, cid)[ADJ.PENDING]
     warns = len(H.open_warnings(conn, cid))
     eff = CARD.effective(conn, cid)
     card_h = CARD.current_card(conn, cid, "history")
@@ -92,7 +95,8 @@ def layout(request: Request, conn: Connection, page_id: str) -> dict[str, Any]:
     category = conn.execute(D.category.select().where(D.category.c.id == cid)).mappings().first()
     return {
         "request": request, "page_id": page_id, "nav": NAV, "nav_active": NAV_PARENT.get(page_id, page_id),
-        "nav_counts": {"fields": pending_fields, "health": warns, "merges": pending_merges},
+        "nav_counts": {"fields": pending_fields, "health": warns, "merges": pending_merges,
+                       "review": pending_adjust},
         "token": request.app.state.token, "operator": app.operator, "cid": cid, "cfg": cfg_ver["config"],
         "cfg_ver": cfg_ver, "category_name": f"亚马逊美国 · {category['name']}" if category else "",
         "mode": mode, "both_modes": hist is not None and cross is not None, "has_cross": cross is not None,
