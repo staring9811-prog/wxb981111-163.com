@@ -15,7 +15,7 @@ description: 浴室柜整柜商品属性打标，并回答“哪些字段现有�
 - 不设月销10/20门槛。保留输入全部行；已核验目标浴室柜填标签，范围外或目标月归属未核验行只标状态，不删除、不挪用销量。
 - 子体标题/SKU/子体详情/卖家精灵导出详细参数（同ASIN）/子体五点优先。子体没有的信息用父体的（用户2026-10-27确认，默认开启）：父体五点与父体详情overviews的值直接填入，不加后缀，JSON状态parent_fill、打标说明写“父体信息补充”；父体overviews不取颜色；父体尺寸只在父体代表变体与子体同宽度时补深/高。--no-parent-fill 恢复“（父体候选）”口径。JSON逐字段记来源ASIN、范围，导出来源另记导出月份与行号。
 - 柜体颜色优先SKU单色和明确柜体描述；组合色未区分柜/盆/五金不硬填。标题与SKU不一致保留SKU值并标冲突。
-- 柜体、台面、盆材质按部件判断。台面：solid wood单独出现是柜体不是台面，wood/marble texture直接接top才是木板台面；未细分stone top归岗石；一体盆台（<材质> sink top、integrated sink、D4一体盆）台面=盆材。engineered/composite wood归MDF（用户2026-10-27）；solid wood frame不自动补成实木框架+MDF；SMC/亚克力归树脂业务组并保留细分。纹理/仿色不证明天然石材；图片不能证明内部板材。
+- 柜体、台面、盆材质按部件判断。柜体多种材料：含实木写实木框架+MDF等，其余用+连接（用户2026-10-27）；一体盆归台上盆。台面：solid wood单独出现是柜体不是台面，wood/marble texture直接接top才是木板台面；未细分stone top归岗石；一体盆台（<材质> sink top、integrated sink、D4一体盆）台面=盆材。engineered/composite wood归MDF（用户2026-10-27）；solid wood frame不自动补成实木框架+MDF；SMC/亚克力归树脂业务组并保留细分。纹理/仿色不证明天然石材；图片不能证明内部板材。
 - 元素先文本；无可靠文本线索标待图片核验。用户2026-10-27：看图先不做。实际看过对应子体图片才可写图片核验，链接存在不等于看过图。
 - 否定、排除与部件范围先于关键词。镜子/龙头：用户2026-10-27确认，文本未明确with/included的默认“无”（status=business_default，--no-accessory-default关闭）；明确含/单卖/不含的文本仍优先；无盆不推出无龙头；“faucets and mirror are not included”“excluding faucets”这类列表排除要识别；pre-drilled faucet hole、Single Hole Faucet不代表含龙头。
 - 盆数先认明确数量词（single/double/dual/two + 可带修饰 + sink）；single/double vanity行业用语次之；都没有时按用户2026-10-27规则默认单盆，写双盆但宽度<48in标冲突。产品形态没写floating/corner/pedestal等默认落地式；安装方式没写assembled/pre-assembled默认拆装。默认值JSON记business_default。

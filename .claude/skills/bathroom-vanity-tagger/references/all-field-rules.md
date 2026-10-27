@@ -1,4 +1,4 @@
-# 各字段打标规则现状（v8，2026-10-27）
+# 各字段打标规则现状（v9，2026-10-27）
 
 通用顺序：SKU属性 → 子体标题 → 子体详情 overviews → 卖家精灵导出详细参数/亮点 → 子体五点 → 商品尺寸 → 父体五点/父体详情（子体没有时直接用，JSON status=parent_fill）→ 用户默认规则（status=business_default）。否定词（no/without/not）先于关键词；SKU 与标题不一致时 SKU 优先并标冲突。
 
@@ -38,7 +38,7 @@ SKU 的盆数优先于标题；写了双盆但宽度 < 48in 的行标冲突待�
 |---|---|
 | vessel sink、above-counter sink | 台上盆 |
 | undermount / undercounter | 台下盆 |
-| integrated / integration sink、one-piece sink/countertop | 一体盆 |
+| integrated / integration sink、one-piece sink/countertop | 台上盆（用户2026-10-27：一体盆归台上盆；原文保留在JSON，用于一体盆台同材推导） |
 | drop-in、top-mount sink | 嵌入盆 |
 | D3 为无盆 | 不适用（无盆） |
 | 以上都没有 | **默认台下盆**（TOPFORM-DEFAULT-UNDERMOUNT） |
@@ -58,7 +58,7 @@ Fluted、Reeded、Shaker（含 recessed panel）、Barn Door、Farmhouse（含 X
 - 按子句绑定最近的部件锚点（cabinet / vanity base / body / frame / doors；top；sink；hardware），距离 ≤48 字符。
 - 板材/木材词默认属于柜体；靠近 top/sink/hardware 时丢弃（除非写成 "X countertop"）。
 - solid wood frame → 实木框架（其余未说明）；与 MDF 同时出现写 实木框架；MDF。
-- 多种材料同时出现保留全部并提示需按证据区分组合与冲突。
+- 多种材料同时出现保留全部；输出格式（用户2026-10-27）：含实木的写 实木框架+MDF / 实木框架+MDF+胶合板+刨花板，其余用 + 连接，顺序 MDF、胶合板、刨花板、竹材；单独 solid wood frame 写 实木框架。
 - 子体没有 → 父体 Material / 五点补充。都没有 → 信息不足。
 - 不做默认值（用户尚未定）。
 

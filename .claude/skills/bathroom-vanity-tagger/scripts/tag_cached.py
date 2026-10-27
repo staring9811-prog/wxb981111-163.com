@@ -14,7 +14,7 @@ import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261027-v8'
+VERSION='bathroom-vanity-tagger-20261027-v9'
 # 2026-10-27 user: vanity widths are essentially standard sizes.
 STANDARD_WIDTHS=(12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84)
 STD_WIDTH_TOLERANCE=0.8
@@ -46,6 +46,19 @@ def role_hint_sink(clause,pos):
     # "wood sink" / "stone basin" right after the word: not a top.
     return bool(match(r'^\s+(?:\w+\s+){0,2}?(?:sinks?|basins?|bowls?)\b',clause[pos:]))
 
+CABINET_ORDER=['MDF','胶合板','刨花板','竹材','玻璃']
+def format_cabinet(value):
+    """User 2026-10-27: several materials incl. solid wood -> 实木框架+<boards>;
+    other combinations joined with '+' in a fixed order."""
+    if not value or value==UNKNOWN:return value
+    suffix=PARENT_SUFFIX if value.endswith(PARENT_SUFFIX) else ''
+    labels=[x for x in value[:len(value)-len(suffix)].split('；') if x]
+    frame=any(x in ('实木','实木框架','实木框架（其余未说明）') for x in labels)
+    boards=[x for x in CABINET_ORDER if x in labels]+[x for x in labels if x not in CABINET_ORDER and x not in ('实木','实木框架','实木框架（其余未说明）')]
+    if frame and boards:return '实木框架+'+'+'.join(boards)+suffix
+    if frame:return ('实木框架' if '实木' not in labels else '实木')+suffix
+    return '+'.join(boards)+suffix
+    
 def export_attributes(text):
     """SellerSprite 详细参数 is 'Key:Value | Key:Value'; values may contain ':'."""
     out=[]
@@ -165,8 +178,9 @@ class Tagger:
         else:self.set(HEADERS[3],self.pattern_candidates([
             ('台上盆',r'\bvessel\s+(?:sink|basin)|\babove[ -]counter\s+(?:sink|basin)\b'),
             ('台下盆',r'\bunder[ -]?(?:mount|counter)(?:ed)?\b'),
-            ('一体盆',r'\bintegrat(?:ed|ion)\s+(?:sink|basin|countertop)|one[ -]piece\s+(?:sink|basin|countertop)'),
+            ('台上盆',r'\bintegrat(?:ed|ion)\s+(?:sink|basin|countertop)|one[ -]piece\s+(?:sink|basin|countertop)'),
             ('嵌入盆',r'\bdrop[ -]in\s+(?:sink|basin)|\btop[ -]mount(?:ed)?\s+(?:sink|basin)')]))
+        self.integrated_sink=any(match(r'\bintegrat(?:ed|ion)\s+(?:sink|basin|countertop)|one[ -]piece\s+(?:sink|basin|countertop)',x['text']) for x in self.sources)
         self.set(HEADERS[4],self.pattern_candidates([
             ('Fluted',r'\bfluted\b'),('Reeded',r'\breeded\b'),('Shaker',r'\bshaker\b|\brecessed panel\b'),
             ('Barn Door',r'\bbarn[ -]door\b'),('Farmhouse',r'\bfarmhouse\b|\bx[ -]design\b'),
@@ -267,8 +281,7 @@ class Tagger:
             if labels & {'MDF','胶合板','刨花板'}:selected=[e for e in selected if e['label']!='工程木材（未细分）']
             return selected
         cab=reduced(buckets['cabinet']);self.set(HEADERS[6],cab,multi=True)
-        if '实木框架（其余未说明）' in self.tags[HEADERS[6]] and 'MDF' in self.tags[HEADERS[6]]:
-            self.tags[HEADERS[6]]=self.tags[HEADERS[6]].replace('实木框架（其余未说明）','实木框架')
+        self.tags[HEADERS[6]]=format_cabinet(self.tags[HEADERS[6]])
         # Distinct sources claiming several homogeneous cabinet materials may be
         # a component combination or a variation conflict; expose ambiguity.
         labs=uniq(e['label'] for e in cab)
@@ -408,7 +421,7 @@ class Tagger:
             for x in self.sources:
                 m=match(r'\b(?:ceramic|porcelain|resin|smc|acrylic|glass|quartz|stone|marble|cultured\s+marble)\s+(?:\w+\s+){0,3}?(?:sink|basin|bowl)s?\s+tops?\b|\bintegrated\s+(?:\w+\s+){0,2}?(?:sink|basin)|\b(?:sink|basin)\s+(?:and|&|/)\s+(?:counter\s*)?top\s+(?:in\s+)?one\b|\bone[ -]piece\s+(?:\w+\s+){0,2}?(?:sink|basin|top)',x['text'])
                 if m:onepiece=(x,m);break
-            if base and (onepiece or self.tags[HEADERS[3]]=='一体盆'):
+            if base and (onepiece or self.integrated_sink):
                 src,m=onepiece if onepiece else (next(s for s in self.sources if s['field']==base['sourceField'] and s['asin']==base['sourceASIN']),None)
                 label=base['label'][:-1] if base['label'].endswith('盆') else base['label']
                 ev=self.ev(src,label,m.group(0) if m else base['quote'],'一体盆台同材推导',{'basisType':'business_inference','ruleID':'M-SINK-TOP-ONEPIECE','basisField':HEADERS[8],'basisMaterialEvidence':base,'materialSubtype':base.get('materialSubtype'),'component':'top'})

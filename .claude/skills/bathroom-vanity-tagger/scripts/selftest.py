@@ -101,6 +101,8 @@ def main():
         x=top([('商品标题',title,'child')],parent_fill=True)
         got=(x.tags[t.HEADERS[7]],x.tags[t.HEADERS[8]])
         if got[0]!=wt or (ws is not None and got[1]!=ws):bad.append(('top',title,got))
+    for v,want in (('MDF；实木','实木框架+MDF'),('实木；胶合板；MDF；刨花板','实木框架+MDF+胶合板+刨花板'),('胶合板；MDF','MDF+胶合板'),('实木框架（其余未说明）','实木框架'),('实木','实木'),('MDF','MDF'),('MDF；实木（父体候选）','实木框架+MDF（父体候选）')):
+        if t.format_cabinet(v)!=want:bad.append(('cabinet-format',v,t.format_cabinet(v)))
     for t_ in bad:print('FAIL',t_)
     print('selftest: %d failure(s)'%len(bad))
     raise SystemExit(1 if bad else 0)
