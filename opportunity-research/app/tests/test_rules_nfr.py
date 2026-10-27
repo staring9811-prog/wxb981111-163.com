@@ -174,11 +174,23 @@ def _dump(d: Path) -> dict[str, object]:
     return out
 
 
-def test_rule02_two_fresh_databases_identical(tmp_path_factory, h1a_done: Path) -> None:  # type: ignore[no-untyped-def]
+def test_rule02_two_fresh_databases_identical(tmp_path_factory, h1a_done: Path, clone) -> None:  # type: ignore[no-untyped-def]
     other = _prepared(tmp_path_factory, "h1a_again", ("import:H1-A", "confirm", "compute", "backtest"))
     a, b = _dump(h1a_done), _dump(other)
     for k in a:
         assert a[k] == b[k], k
+    # the two exported workbooks match cell by cell apart from generation times and their own paths
+    from tests.test_rule04_cli_vs_web import _sheets
+
+    books = []
+    for d in (clone(h1a_done), clone(other)):
+        app = open_dir(d)
+        books.append((SV.job_result(app, SV.export(app))["result"]["xlsx_path"], d))
+        _close(app)
+    sa, sb = _sheets(books[0][0], books[0][1]), _sheets(books[1][0], books[1][1])
+    assert list(sa) == list(sb) and len(sa) == 9
+    for title in sa:
+        assert sa[title] == sb[title], title
 
 
 # ---- RULE-06 local only -----------------------------------------------------------------------------
