@@ -1,8 +1,9 @@
 {
- "url": "https://github.com/staring9811-prog/wxb981111-163.com/actions/runs/40433102624",
- "job_id": 121955283807,
- "head_sha": "97ae3e38d5dce66c07ad75769f26e39e67227308",
+ "url": "https://github.com/staring9811-prog/wxb981111-163.com/actions/runs/40444192625",
+ "job_id": 121991414698,
+ "head_sha": "9376fdecace84412d133bfc6b21d4dbf47111a25",
  "job_exit_code": 0,
  "runner": "windows-latest (Windows 10.0.26100, 4 CPU, 16 GB; RULE-05 inside an 8 GB job-object limit)",
- "artifact_offline_package": 12702469396
+ "artifact_offline_package": 12707871615,
+ "workflow_note": "一次性验收运行；验收结束后工作流已从仓库删除"
 }

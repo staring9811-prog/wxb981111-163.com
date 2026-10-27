@@ -1,5 +1,5 @@
 {
-  "started": "2026-10-27T01:33:46",
+  "started": "2026-10-27T03:28:31",
   "SMOKE-03": {
     "install_dir": "C:\\oppo-acceptance\\机会判定台",
     "zip": "机会判定台-1.0.0-win64.zip",
@@ -98,44 +98,44 @@
     "steps": {
       "import": {
         "exit": 0,
-        "started": "2026-10-27T01:35:13",
-        "ended": "2026-10-27T01:36:16",
-        "seconds": 62.9,
+        "started": "2026-10-27T03:30:06",
+        "ended": "2026-10-27T03:31:09",
+        "seconds": 62.5,
         "memory_error": false,
         "tail": "P-0001 · 历史 · 通过"
       },
       "contract_confirm": {
         "exit": 0,
-        "started": "2026-10-27T01:36:16",
-        "ended": "2026-10-27T01:36:57",
-        "seconds": 41.3,
+        "started": "2026-10-27T03:31:09",
+        "ended": "2026-10-27T03:31:50",
+        "seconds": 41.8,
         "memory_error": false,
         "tail": "已确认 71 个字段，保存为字段约定 v1"
       },
       "compute": {
         "exit": 0,
-        "started": "2026-10-27T01:36:57",
-        "ended": "2026-10-27T01:40:14",
-        "seconds": 197.1,
+        "started": "2026-10-27T03:31:50",
+        "ended": "2026-10-27T03:35:26",
+        "seconds": 215.9,
         "memory_error": false,
         "tail": "计算完成（任务 1）"
       },
       "backtest": {
         "exit": 0,
-        "started": "2026-10-27T01:40:14",
-        "ended": "2026-10-27T01:40:18",
-        "seconds": 3.3,
+        "started": "2026-10-27T03:35:26",
+        "ended": "2026-10-27T03:35:30",
+        "seconds": 3.8,
         "memory_error": false,
         "tail": "BT-0001 · 未达标（信号无区分度）"
       }
     },
-    "peak_job_memory_mb": 1492.5,
-    "peak_process_memory_mb": 1492.5,
+    "peak_job_memory_mb": 1491.7,
+    "peak_process_memory_mb": 1491.7,
     "job_memory_limit_mb": 8192.0,
-    "compute_to_backtest_seconds": 200.4,
+    "compute_to_backtest_seconds": 219.7,
     "within_30_minutes": true
   },
-  "ended": "2026-10-27T01:40:18",
+  "ended": "2026-10-27T03:35:30",
   "verdict": {
     "SMOKE-03": {
       "pass": true,

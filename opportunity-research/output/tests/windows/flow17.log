@@ -30,20 +30,20 @@ $ ['cmd', '/c', 'C:\\oppo-acceptance\\机会判定台\\oppo.bat', 'export']
   "backup": {
     "error": null,
     "id": 1,
-    "last_success": "2026-10-27 01:35:09",
-    "path": "C:\\oppo-acceptance\\backups\\机会判定台备份_20261027_013508.sqlite",
+    "last_success": "2026-10-27 03:30:02",
+    "path": "C:\\oppo-acceptance\\backups\\机会判定台备份_20261027_033001.sqlite",
     "size": 204800,
     "status": "success",
-    "time": "2026-10-27 01:35:09"
+    "time": "2026-10-27 03:30:02"
   },
   "card_status": "已达标",
   "export_id": 1,
   "html_path": "C:\\oppo-acceptance\\机会判定台\\data\\exports\\2026-03\\浴室柜_机会判定_2026-03_快照1.html",
-  "html_size": 69961,
+  "html_size": 69994,
   "month": "2026-03",
   "snapshot": "2026-03 · 第 1 版",
   "snapshot_id": 1,
   "xlsx_path": "C:\\oppo-acceptance\\机会判定台\\data\\exports\\2026-03\\浴室柜_机会判定_2026-03_快照1.xlsx",
-  "xlsx_size": 18500
+  "xlsx_size": 18510
 }
 
