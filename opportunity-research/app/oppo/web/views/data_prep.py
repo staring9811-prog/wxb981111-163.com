@@ -15,7 +15,7 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
 
 from oppo import clock
@@ -61,6 +61,11 @@ def _rbadge(r: str | None) -> str:
 
 
 C.env.globals.update(fp8=_fp8, fp_mid=_fp_mid, FILE_NAMES=S.FILE_NAMES, rlabel=_rlabel)
+
+
+def _invalid(error: str, fields: dict[str, str] | None = None) -> JSONResponse:
+    """A form that did not validate is an answer, not an HTTP error: 200 with ok=false keeps the console clean."""
+    return C.fail(error, fields, status=200)
 
 
 def _app_cid(request: Request) -> tuple[SV.App, int]:
@@ -172,9 +177,9 @@ async def packages_stage(request: Request) -> JSONResponse:
     if path_text:
         src = Path(path_text).expanduser()
         if not src.exists():
-            return C.fail("找不到这个位置", {"path": "找不到这个文件或文件夹，请检查路径"})
+            return _invalid("找不到这个位置", {"path": "找不到这个文件或文件夹，请检查路径"})
         if src.is_file() and src.suffix.lower() != ".zip":
-            return C.fail("请选择 zip 文件或数据包文件夹", {"path": "请选择 zip 文件或数据包文件夹"})
+            return _invalid("请选择 zip 文件或数据包文件夹", {"path": "请选择 zip 文件或数据包文件夹"})
         size = src.stat().st_size if src.is_file() else sum(p.stat().st_size for p in src.iterdir() if p.is_file())
         _write_staged(app, token, {"src": str(src), "name": src.name, "size": size, "read_at": clock.now_iso(),
                                    "kind": "path"})
@@ -210,7 +215,7 @@ async def packages_stage(request: Request) -> JSONResponse:
         _write_staged(app, token, {"src": str(src), "name": src.name, "size": total, "read_at": clock.now_iso(),
                                    "kind": "upload"})
     else:
-        return C.fail("请选择 zip 或数据包文件夹", {"path": "请选择 zip、文件夹，或填写本机路径"})
+        return _invalid("请选择 zip 或数据包文件夹", {"path": "请选择 zip、文件夹，或填写本机路径"})
     _cleanup_staged(app, keep=token)
     return C.ok(redirect=f"/packages?staged={token}")
 
@@ -222,7 +227,7 @@ async def packages_import(request: Request) -> JSONResponse:
     token = str(form.get("staged") or "")
     meta = _staged(app, token)
     if not meta or not Path(meta["src"]).exists():
-        return C.fail("所选的数据包已不在原位置，请重新选择")
+        return _invalid("所选的数据包已不在原位置，请重新选择")
     src = Path(meta["src"])
     settings, operator = app.settings, app.operator
 
@@ -237,7 +242,7 @@ async def packages_import(request: Request) -> JSONResponse:
     try:
         jid = jobs.run(app.engine, cid, "import", app.operator, work, background=True)
     except jobs.JobBusy as exc:
-        return C.fail(str(exc), status=409)
+        return C.fail(str(exc), status=409)  # keep: busy is a conflict
     return C.ok(job=jid, redirect=f"/packages/import-done?job={jid}")
 
 
@@ -516,7 +521,8 @@ def _results_using_contract(conn: Connection, cid: int) -> list[tuple[str, str]]
 def _diff_lines(changes: list[dict[str, Any]]) -> list[tuple[str, str, str, bool]]:
     """(key, old, new, old_is_note) lines for the save modal."""
     lines = []
-    for ch in changes:
+    ordered = sorted(changes, key=lambda c: 0 if (c["after"] or {}).get("status", "confirmed") == "confirmed" else 1)
+    for ch in ordered:
         fc, fname = ch["key"]
         after = ch["after"]
         if ch["new"] or ch["before"] is None:
@@ -613,6 +619,9 @@ def fields_context(conn: Connection, cid: int, open_key: str | None) -> dict[str
         "changed": changed, "snaps": snaps, "snap_dates": snap_dates, "health": health,
         "health_pkg": health_pkg, "draft_pkg": draft_pkg, "changes": changes, "diff": _diff_lines(changes),
         "pending_after": sum(1 for r in rows if r["status"] != "confirmed"), "history": hist,
+        "first_summary": {"confirmed": sum(1 for r in rows if r["status"] == "confirmed"),
+                          "batch": sum(1 for r in rows if r["status"] == "confirmed" and r["source"] == "批量确认"),
+                          "pending": len(pending)} if not cur else None,
         "results": _results_using_contract(conn, cid), "stale": C.stale_reasons(conn, cid),
         "counts": {"all": total, "pending": len(pending), "changed": sum(1 for r in rows if r["change_kind"]),
                    "snap": len(snaps), "rule": sum(1 for r in rows if r["usage"] == "按规则用")},
@@ -651,7 +660,7 @@ async def fields_item(request: Request) -> JSONResponse:
         if values.get("usage") == "按规则用" and not values.get("rule_text"):
             fields_err["rule_text"] = "按规则用时请写明规则"
         if fields_err:
-            return C.fail("请补全后再确认", fields_err)
+            return _invalid("请补全后再确认", fields_err)
     try:
         with app.engine.begin() as conn:
             CT.update_draft(conn, cid, fc, fname, values, confirm=True, source="逐项")
@@ -659,10 +668,10 @@ async def fields_item(request: Request) -> JSONResponse:
                 D.contract_draft_item.c.category_id == cid, D.contract_draft_item.c.file_code == fc,
                 D.contract_draft_item.c.field == fname)).scalar()
     except CT.ContractError as exc:
-        return C.fail(str(exc))
+        return _invalid(str(exc))
     what = "按修改后的内容" if action == "edit" else "按建议"
-    return C.ok(redirect=f"/fields?open=f{rid}#f{rid}",
-                toast=f"已在草稿中{what}确认 {fname}（逐项），保存为新版本后生效")
+    msg = quote(f"已在草稿中{what}确认 {fname}（逐项），保存为新版本后生效")
+    return C.ok(redirect=f"/fields?open=f{rid}&toast={msg}#f{rid}")
 
 
 @router.post("/fields/batch")
@@ -671,12 +680,12 @@ async def fields_batch(request: Request) -> JSONResponse:
     form = await request.form()
     keys = [tuple(str(k).split("|", 1)) for k in form.getlist("keys") if "|" in str(k)]
     if not keys:
-        return C.fail("请先勾选字段")
+        return _invalid("请先勾选字段")
     only = form.get("suggested_only") in ("1", "on", "true")
     with app.engine.begin() as conn:
         n = CT.batch_confirm(conn, cid, keys, suggested_only=only)  # type: ignore[arg-type]
     if n == 0:
-        return C.fail("所选字段都已确认，或没有建议为“直接用”的待确认字段")
+        return _invalid("所选字段都已确认，或没有建议为“直接用”的待确认字段")
     return C.ok(redirect="/fields", toast=f"已按建议确认 {n} 个字段（来源：批量确认），保存为新版本后生效")
 
 
@@ -699,7 +708,7 @@ async def fields_save(request: Request) -> JSONResponse:
                              link="/fields", package_id=pkgs[0]["id"] if pkgs else None)
             stale = bool(C.stale_reasons(conn, cid))
     except CT.ContractError as exc:
-        return C.fail(str(exc))
+        return _invalid(str(exc))
     toast = f"已保存为字段约定 v{no}" + ("；成败、信号、回测和排序已标为需重算" if stale else "")
     return C.ok(redirect="/fields", toast=toast)
 
@@ -839,12 +848,12 @@ async def health_ack(request: Request) -> JSONResponse:
         pid = 0
     item, note = str(form.get("item") or ""), str(form.get("note") or "")
     if not note.strip():
-        return C.fail("请填写说明", {"note": "请填写说明，说明会和操作人、时间一起记录"})
+        return _invalid("请填写说明", {"note": "请填写说明，说明会和操作人、时间一起记录"})
     try:
         with app.engine.begin() as conn:
             H.acknowledge(conn, cid, pid, item, note, app.operator)
     except H.AckError as exc:
-        return C.fail(str(exc), {"note": str(exc)} if "说明" in str(exc) else None)
+        return _invalid(str(exc), {"note": str(exc)} if "说明" in str(exc) else None)
     return C.ok(redirect=f"/health?package={pid}", toast="已标为已知晓，首页不再提示这项预警")
 
 
@@ -886,8 +895,6 @@ def _form_values(form: Any, base: dict[str, Any]) -> dict[str, Any]:
             values[path] = str(form.get(path) or "")
     if "ta_present" in form:
         values["type_attributes"] = "、".join(str(x) for x in form.getlist("ta"))
-        if not values["type_attributes"]:
-            values["type_attributes"] = "、".join(base.get("type_attributes") or []) and ""
     wl = [(k[len("kw.width."):], str(v)) for k, v in form.multi_items() if k.startswith("kw.width.")]
     if wl:
         values["keyword_mapping.width.rule"] = "；".join(f"{k}：{v.strip()}" for k, v in wl if v.strip()) or ""
@@ -946,10 +953,9 @@ def _dependents(conn: Connection, cid: int, cfg_ver_id: int | None) -> list[dict
         if not run_ or run_["config_version_id"] != cfg_ver_id:
             continue
         tag = "（截面）" if mode == "cross" else ""
-        n = conn.execute(select(D.spu.c.id).where(D.spu.c.run_id == run_["id"], D.spu.c.is_new == 1,
-                                                  D.spu.c.rising == 1).with_only_columns(
-            __import__("sqlalchemy").func.count())).scalar() or 0
-        segs = conn.execute(select(__import__("sqlalchemy").func.count(D.signal_value.c.segment_key.distinct())).where(
+        n = conn.execute(select(func.count()).select_from(D.spu).where(
+            D.spu.c.run_id == run_["id"], D.spu.c.is_new == 1, D.spu.c.rising == 1)).scalar() or 0
+        segs = conn.execute(select(func.count(D.signal_value.c.segment_key.distinct())).where(
             D.signal_value.c.run_id == run_["id"], D.signal_value.c.t_month == run_["t_month"])).scalar() or 0
         out.append({"icon": "cube", "title": f"成败判定{tag}", "desc": f"{n:,} 个起量新 SPU"})
         out.append({"icon": "chart-line-up", "title": f"信号{tag}", "desc": f"截至 {run_['t_month']} · {segs} 个细分"})
@@ -1006,6 +1012,8 @@ def category_page(request: Request) -> HTMLResponse:
         "versions": versions, "health": health, "stale": stale, "deps": deps, "decided": decided, "n_test": n_test,
         "n_segments": n_segments, "seg_dims": seg_dims, "missing": missing, "categories": categories, "busy": busy,
         "sites": SITES, "splits": SPLITS, "get_path": CAT.get_path, "width_rules": _width_rules(cfg),
+        "width_was": _width_rules(cur_cfg) if cur_cfg else {},
+        "form_was": (((cur_cfg.get("keyword_mapping") or {}).get("form") or {}).get("map") or {}) if cur_cfg else {},
         "fmt_cfg": _fmt_cfg, "health_labels": CAT.HEALTH_LABELS, "pct_items": H.PCT_ITEMS,
     })
 
@@ -1018,7 +1026,8 @@ async def category_draft(request: Request) -> JSONResponse:
         cid = _target_category(conn, request)
         cfg, errors, cur_cfg, cur_no = _apply(conn, cid, form)
         _store_draft(conn, cid, cfg, cur_cfg, cur_no)
-    return JSONResponse({"ok": True, "fields": errors, "updated_at": clock.now_iso()[:16]})
+        n = len(_diff_rows(cur_cfg, cfg)) if (not cur_cfg or CAT.diff(cur_cfg, cfg)) else 0
+    return JSONResponse({"ok": True, "fields": errors, "updated_at": clock.now_iso()[:16], "n_changes": n})
 
 
 @router.post("/settings/category/preview")
@@ -1031,7 +1040,7 @@ async def category_preview(request: Request) -> JSONResponse:
         _store_draft(conn, cid, cfg, cur_cfg, cur_no)
         busy = jobs.running(conn)
     if errors:
-        return C.fail("有配置项不合法", errors)
+        return _invalid("有配置项不合法", errors)
     missing = CAT.missing_required(cfg)
     diff = _diff_rows(cur_cfg, cfg) if (not cur_cfg or CAT.diff(cur_cfg, cfg)) else []
     return JSONResponse({"ok": True, "diff": diff, "missing": missing,
@@ -1049,26 +1058,14 @@ async def category_save(request: Request) -> JSONResponse:
             draft = CAT.get_draft(conn, cid)
             cur_cfg, cur_no, _ = _cur_cfg(conn, cid)
             if not draft:
-                return C.fail(f"与 v{cur_no} 相比没有修改，不需要保存新版本")
+                return _invalid(f"与 v{cur_no} 相比没有修改，不需要保存新版本")
             no = CAT.save_version(conn, cid, draft["config"], app.operator, note)
             stale = bool(C.stale_reasons(conn, cid))
     except CAT.ConfigError as exc:
-        return C.fail(str(exc))
+        return _invalid(str(exc))
     toast = f"已保存为品类配置 v{no}" + (f"，依赖 v{cur_no} 的结果已标为需重算" if stale else "")
     q = f"?category={cid}&" if request.query_params.get("category") else "?"
     return C.ok(redirect=f"/settings/category{q}saved={no}", toast=toast)
-
-
-@router.post("/settings/category/discard")
-async def category_discard(request: Request) -> JSONResponse:
-    app = C.svc(request)
-    with app.engine.begin() as conn:
-        cid = _target_category(conn, request)
-        _cfg, cur_no, _ = _cur_cfg(conn, cid)
-        if cur_no:
-            CAT.discard_draft(conn, cid)
-    q = f"?category={cid}" if request.query_params.get("category") else ""
-    return C.ok(redirect=f"/settings/category{q}", toast="已放弃草稿，恢复为当前版本的取值")
 
 
 @router.post("/settings/category/new")
@@ -1078,10 +1075,90 @@ async def category_new(request: Request) -> JSONResponse:
     name, site, node = (str(form.get(k) or "").strip() for k in ("name", "site", "node"))
     errs = {k: "必填" for k, v in (("name", name), ("site", site), ("node", node)) if not v}
     if errs:
-        return C.fail("请填写必填项", errs)
+        return _invalid("请填写必填项", errs)
     try:
         with app.engine.begin() as conn:
             cid = CAT.create_category(conn, name, site, node, app.operator, form.get("template") != "blank")
     except CAT.ConfigError as exc:
-        return C.fail(str(exc), {"name": str(exc)} if "同名" in str(exc) else None)
+        return _invalid(str(exc), {"name": str(exc)} if "同名" in str(exc) else None)
     return C.ok(redirect=f"/settings/category?category={cid}", toast=f"已创建品类草稿“{name}”，逐项填写后保存为 v1")
+
+
+# =============================================================================================
+# PAGE-F14-01 运行记录
+# =============================================================================================
+
+STEP_LABEL = {"导入校验": ("导入", "读取清单与校验"), "数据体检": ("体检", "随导入自动运行")}
+
+
+def _hm(mins: int | None) -> str:
+    if mins is None:
+        return "无数据"
+    h, m = divmod(int(mins), 60)
+    return f"{h} 小时 {m:02d} 分" if h else f"{m} 分钟"
+
+
+def _step_result(s: dict[str, Any], conn: Connection, cid: int) -> tuple[str, str]:
+    from oppo import fmt
+
+    text_ = s["result"] or ""
+    parts = [p.strip() for p in text_.split(" · ") if p.strip()]
+    if s["step"] == "数据体检" and s["link"] and "package=" in s["link"]:
+        try:
+            pid = int(s["link"].split("package=")[1])
+            warns = [r for r in H.results(conn, cid, pid) if r["status"] == "warn"]
+            if warns:
+                return f"{len(warns)} 项预警", "、".join(f"{w['label']}" for w in warns[:2]) + "，未标已知晓"
+            return "正常", "6 项均未超过阈值"
+        except (ValueError, IndexError):
+            pass
+    for i, p in enumerate(parts):
+        if p in fmt.STATUS_BADGE or p in fmt.ACTION_BADGE:
+            return p, " · ".join(parts[:i] + parts[i + 1:])
+    return "完成", text_
+
+
+@router.get("/settings/runs", response_class=HTMLResponse)
+def runs_page(request: Request, month: str | None = None) -> HTMLResponse:
+    app, cid = _app_cid(request)
+    with app.engine.begin() as conn:
+        summ = runs.summary(conn, cid)
+        steps = runs.steps(conn, cid)
+        pkg = PK.current_package(conn, cid, "history") or PK.current_package(conn, cid, "cross")
+        cur_month = PK.add_months(pkg["months_to"], 1) if pkg and pkg.get("months_to") else None
+        first = summ["first_run"]
+        first_month = next((s["month"] for s in steps if s["step"] == "导入校验"), None)
+        now = clock.now()
+        monthly = []
+        for m in reversed(summ["monthly"]):
+            rec = dict(m)
+            if rec["import"] is not None and rec["minutes"] is None:
+                rec["live_minutes"] = int((now - rec["import"]).total_seconds() // 60)
+            monthly.append(rec)
+        cur = next((m for m in monthly if m["month"] == cur_month), None)
+        table = [m for m in monthly if m["month"] != first_month and m["import"] is not None]
+        done = [m for m in monthly if m["minutes"] is not None and m["month"] != first_month]
+        last_done = done[0] if done else None
+        months = sorted({s["month"] for s in steps if s["month"]}, reverse=True)
+        sel = month if month in months else (cur_month if cur_month in months else (months[0] if months else None))
+        rows = []
+        for s in steps:
+            if s["month"] != sel:
+                continue
+            mins = None
+            if s["started_at"] and s["ended_at"]:
+                mins = max(0, int((datetime.fromisoformat(s["ended_at"]) - datetime.fromisoformat(s["started_at"]))
+                                  .total_seconds() // 60))
+            badge_text, rest = _step_result(s, conn, cid)
+            name, sub = STEP_LABEL.get(s["step"], (s["step"], ""))
+            rows.append({**s, "name": name, "sub": sub, "mins": mins, "badge": badge_text, "rest": rest})
+    days = sorted({(r["started_at"] or "")[:10] for r in rows})
+    total_mins = sum(r["mins"] or 0 for r in rows)
+    sel_rec = next((m for m in monthly if m["month"] == sel), None)
+    return C.render(request, "pages/F14-01.html", "PAGE-F14-01", {
+        "first": first, "first_month": first_month, "cur_month": cur_month, "cur": cur, "table": table,
+        "done": done, "last_done": last_done, "months": months, "sel": sel, "rows": rows, "days": days,
+        "total_mins": total_mins, "sel_rec": sel_rec, "target": runs.MONTHLY_TARGET_MIN,
+        "first_target": runs.FIRST_RUN_TARGET_DAYS, "hm": _hm, "now": clock.now(),
+        "ok_count": sum(1 for m in done[:5] if m["ok"]), "recent_n": len(done[:5]),
+    })

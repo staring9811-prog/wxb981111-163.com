@@ -8,3 +8,4 @@ tr[data-collapsed], tr[data-page-hidden], tr[data-search-hidden] { display: none
 .field.is-modified > .field__label::after,
 td.is-modified > .row::after { content: "已修改"; margin-left: var(--space-2); font-size: var(--text-xs); color: var(--warn); font-weight: 500; }
 .cat-switch { display: inline-flex; gap: var(--space-2); flex-wrap: wrap; }
+#field-table tr { scroll-margin-top: calc(var(--topbar-h, 56px) + var(--space-4)); }

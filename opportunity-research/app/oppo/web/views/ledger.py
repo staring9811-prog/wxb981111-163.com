@@ -42,8 +42,11 @@ OWN_BADGE = {J.HIT: "hit", J.MISS: "miss", J.WATCH: "watch", J.INCOMPLETE: "inco
 
 
 def _next(form: Any, default: str) -> str:
-    """Only same-site relative paths are accepted as the page to return to."""
-    nxt = str(form.get("next") or "")
+    """Only same-site relative paths are accepted as the page to return to (fragment and modal-opening
+    parameters dropped, so the page reloads with the modal closed)."""
+    nxt = str(form.get("next") or "").split("#", 1)[0]
+    if nxt.startswith("/ledger/decisions") or nxt.startswith("/ledger/reconcile"):
+        nxt = nxt.split("?", 1)[0]
     p = urlparse(nxt)
     if nxt.startswith("/") and not nxt.startswith("//") and not p.netloc:
         return nxt
@@ -267,7 +270,7 @@ async def post_correct(request: Request, code: str) -> JSONResponse:
             new = LG.correct(conn, cid, app.operator, code, **vals)
         except LG.LedgerError as exc:
             return C.fail(str(exc), exc.fields)
-    return C.ok(redirect=_next(form, "/ledger/decisions") + f"#{new.lower()}", toast=f"已追加更正 {new}，{code} 标为已更正")
+    return C.ok(redirect=_next(form, "/ledger/decisions"), toast=f"已追加更正 {new}，{code} 标为已更正")
 
 
 @router.post("/ledger/import-c7")
@@ -530,7 +533,8 @@ def _rule_rows(conn: Connection, cid: int) -> list[dict[str, Any]]:
         d = dict(r)
         hist = RULES.history(conn, r["rule_id"])
         d["versions"] = hist
-        manual_later = [v for v in hist if v["created_by"] != RULES.SYSTEM and v["version_no"] > 1]
+        manual_later = sorted((v for v in hist if not _is_system(v, r) and v["version_no"] > 1),
+                              key=lambda v: v["version_no"])
         if r["origin"] == "回测":
             d["source_text"] = "回测生成" + (f"，v{manual_later[0]['version_no']} 人工修改" if manual_later else "")
         else:
@@ -555,8 +559,15 @@ def _rule_rows(conn: Connection, cid: int) -> list[dict[str, Any]]:
     return rows
 
 
+def _is_system(ver: dict[str, Any], rule: dict[str, Any]) -> bool:
+    """Versions written by a backtest or a reconciliation (older databases stored the operator's name)."""
+    note = ver.get("change_note") or ""
+    return (ver["created_by"] == RULES.SYSTEM or note.startswith("由回测") or ("对账" in note and "升为已验证" in note)
+            or (rule["origin"] == "回测" and ver["version_no"] == 1))
+
+
 def _actor(ver: dict[str, Any], rule: dict[str, Any]) -> str:
-    if ver["created_by"] != RULES.SYSTEM:
+    if not _is_system(ver, rule):
         return ver["created_by"]
     note = ver.get("change_note") or ""
     if "对账" in note:
@@ -597,7 +608,8 @@ def _rule_editor(conn: Connection, cid: int, code: str) -> dict[str, Any] | None
     for i, v in enumerate(hist):
         older = hist[i + 1] if i + 1 < len(hist) else None
         ch, same = _diff(v, older) if older else ([], [])
-        vers.append({**v, "actor": _actor(v, rule), "changes": ch, "same": same, "current": i == 0})
+        vers.append({**v, "actor": _actor(v, rule), "system": _is_system(v, rule), "changes": ch, "same": same,
+                     "current": i == 0})
     keys = {c["key"] for c in rule["conds"]}
     conds = []
     for c in rule["conds"]:

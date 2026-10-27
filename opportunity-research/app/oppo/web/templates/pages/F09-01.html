@@ -72,7 +72,8 @@
         {% set avg = content.average %}
         {% set eff_rows = content.rows|selectattr('effective')|list %}
         {% set short_rows = content.rows|rejectattr('effective')|list %}
-        <section class="enter" style="--i:1" aria-labelledby="rank-title">
+        {% set has_banner = (card and card.status in ('未验证', '达标（截面）')) or (stale and snap) %}
+        <section class="{{ 'section ' if has_banner else '' }}enter" style="--i:1" aria-labelledby="rank-title">
           <div class="section__head">
             <h2 class="section__title" id="rank-title">细分排序 · {{ content.rows|length }} 个</h2>
             <span class="section__note">{% if cross %}按截面卡 {{ card.label.replace('截面 ', '') }} 的上架 6 个月内命中概率从高到低{% else %}按判定卡 {{ card.label }} 得分从高到低{% endif %}；得分相同时按样本量从大到小，再按细分名称排序</span>

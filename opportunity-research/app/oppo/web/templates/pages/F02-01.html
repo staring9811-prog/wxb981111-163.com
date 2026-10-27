@@ -23,7 +23,7 @@
           {{ icon('prohibit') }}
           <div class="banner__body">
             <div class="banner__title">未确认的字段不参与计算</div>
-            <div>当前 {{ pending|length }} 个字段未确认{% if pending|length <= 6 %}：{% for p in pending %}{{ p.field }}（{{ p.file_label }}）{{ '、' if not loop.last }}{% endfor %}{% endif %}。成败、信号和回测都会排除它们，结果页会列出被排除的字段。</div>
+            <div>当前 {{ pending|length }} 个字段未确认：{% for p in pending[:6] %}{{ p.field }}（{{ p.file_label }}）{{ '、' if not loop.last }}{% endfor %}{% if pending|length > 6 %} 等{% endif %}。成败、信号和回测都会排除它们，结果页会列出被排除的字段。</div>
           </div>
         </div>
         {% endif %}
@@ -242,6 +242,9 @@
             <div class="modal__body stack-lg">
               <section aria-labelledby="diff-title">
                 <h3 id="diff-title">变动摘要 · {{ changes|length }} 个字段</h3>
+                {% if first_summary %}
+                <p class="small" style="margin-top: var(--space-2)">首次保存：共 {{ total }} 个字段，已确认 {{ first_summary.confirmed }} 个（批量 {{ first_summary.batch }} 个，逐项 {{ first_summary.confirmed - first_summary.batch }} 个），未确认 {{ first_summary.pending }} 个，未确认的不参与计算。</p>
+                {% endif %}
                 {% if diff %}
                 <div class="diff" style="margin-top: var(--space-3)">
                   {% for k, old, new, note in diff[:40] %}<span class="diff__key">{{ k }}</span>{% if note %}<span class="small muted">{{ old }}</span>{% else %}<span class="diff__old">{{ old }}</span>{% endif %}<span class="diff__new">{{ new }}</span>{% endfor %}

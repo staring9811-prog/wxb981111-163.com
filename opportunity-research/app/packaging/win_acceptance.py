@@ -190,6 +190,7 @@ def smoke03(zip_path: Path, fixtures: Path, out: Path, res: dict) -> Path:
     root = next(p for p in base.iterdir() if p.is_dir())
     py = root / "python" / "python.exe"
     s: dict = {"install_dir": str(root), "zip": zip_path.name, "zip_mb": round(zip_path.stat().st_size / 1e6, 1)}
+    res["SMOKE-03"] = s
     fw = subprocess.run(["netsh", "advfirewall", "firewall", "add", "rule", "name=oppo-offline-block", "dir=out",
                          "action=block", f"program={py}", "enable=yes"], capture_output=True, text=True)
     s["firewall_block_outbound"] = fw.returncode == 0
@@ -202,11 +203,21 @@ def smoke03(zip_path: Path, fixtures: Path, out: Path, res: dict) -> Path:
     s["oppo_help_commands"] = [c for c in ("import", "contract", "health", "merge", "compute", "backtest", "ranking",
                                            "decision", "export", "restore") if c in help_out]
     t0 = time.time()
+    log1 = (out / "server_first.log").open("wb")
     srv = subprocess.Popen(["cmd", "/c", str(root / "启动.bat")], env=env, cwd=str(root),
-                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           stdout=log1, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
     s["first_start_ok"] = wait_http(f"http://127.0.0.1:{PORT}/")
     s["first_start_seconds"] = round(time.time() - t0, 1)
+    s["first_start_process_exit"] = srv.poll()
+    log1.flush()
+    s["first_start_output"] = (out / "server_first.log").read_bytes().decode("utf-8", "replace")[-1500:]
+    if not s["first_start_ok"]:
+        kill_tree(srv.pid)
+        code, diag = run([str(root / "python" / "python.exe"), "-c", "import oppo.web.server, uvicorn; print('import ok')"],
+                         env, root, log, timeout=120)
+        s["diagnose_import"] = diag.strip()[-1500:]
+        return root
     time.sleep(3)
     s["listening"] = listening_addresses(PORT)
     ip = lan_ip()
@@ -225,8 +236,9 @@ def smoke03(zip_path: Path, fixtures: Path, out: Path, res: dict) -> Path:
     s["second_start_while_running"] = again.strip()[-200:]
     kill_tree(srv.pid)
     time.sleep(3)
+    log2 = (out / "server_second.log").open("wb")
     srv2 = subprocess.Popen(["cmd", "/c", str(root / "启动.bat")], env=env, cwd=str(root),
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            stdout=log2, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
     s["restart_ok"] = wait_http(f"http://127.0.0.1:{PORT}/")
     try:
@@ -291,9 +303,16 @@ def main() -> int:
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     res: dict = {"started": datetime.now().isoformat(timespec="seconds")}
+    root = None
     try:
-        root = smoke03(Path(a.zip), Path(a.fixtures), out, res)
-        rule05(root, Path(a.fixtures) / "S-规模", out, res)
+        try:
+            root = smoke03(Path(a.zip), Path(a.fixtures), out, res)
+        except Exception as exc:  # noqa: BLE001 - recorded, RULE-05 still runs
+            res.setdefault("SMOKE-03", {})["error"] = repr(exc)
+            root = next((p for p in (Path(os.environ.get("SystemDrive", "C:") + "\\") / "oppo-acceptance").iterdir()
+                         if p.is_dir()), None)
+        if root is not None:
+            rule05(root, Path(a.fixtures) / "S-规模", out, res)
     finally:
         res["ended"] = datetime.now().isoformat(timespec="seconds")
         (out / "results.json").write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -348,6 +348,18 @@ def launch_status(conn: Connection, category_id: int, decision_id: int) -> dict[
 # ---- reconciliation (AC-F10-04, AC-F11-03, AC-F11-06, SEQ-F10-01) ---------------------------------
 
 
+def upgrade_met(action: str, h: int, n: int, ah: int, an: int) -> bool:
+    """AC-F11-03 verification condition in exact integers: rule multiple (h/n)/(ah/an) ≥ 2 for 立项候选,
+    ≤ 0.5 for 放弃; 观察 and anything else never upgrades. No batch sample or no batch hits → False."""
+    if n == 0 or an == 0 or ah == 0:
+        return False
+    if action == "立项候选":
+        return h * an >= 2 * ah * n
+    if action == "放弃":
+        return 2 * h * an <= ah * n
+    return False
+
+
 def reconcile_all(conn: Connection, category_id: int, operator: str) -> list[int]:
     out = []
     cfg = CAT.current_version(conn, category_id)["config"]
@@ -429,7 +441,7 @@ def _reconcile(conn: Connection, category_id: int, snap: dict[str, Any], spus: A
         elif action == "观察":
             result = "已记录，状态不变"
         else:
-            meets = (h * an >= 2 * ah * n) if action == "立项候选" else (2 * h * an <= ah * n)
+            meets = upgrade_met(action, h, n, ah, an)
             if meets and cur and cur["status"] == "历史观察" and cur["version_no"] == ent["tip"]["version"]:
                 new_no = RULES.upgrade(conn, rule_id, recon_month, multiple or 0.0, snap["label"], operator)
                 result = "升为已验证"

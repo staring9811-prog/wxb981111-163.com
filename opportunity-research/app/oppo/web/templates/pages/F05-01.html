@@ -57,7 +57,6 @@
         {% endif %}
 
         {# ---- 判定说明句 ---- #}
-        {% set best_row = (months_tbl|selectattr('best_bsr')|sort(attribute='best_bsr')|first) if months_tbl else none %}
         {% if status == '命中' or status == '截面命中' %}
         <div class="banner banner--ok enter" style="--i:1" data-verdict="{{ status }}">
           {{ icon('check-circle') }}

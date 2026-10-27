@@ -8,7 +8,7 @@
             <div>
               {% if rule %}
               <h2 class="drawer__title" id="rule-title">编辑规则 {{ rule.code }}</h2>
-              <p class="drawer__sub">当前 v{{ rule.version_no }} · {{ badge(rule.status) }}{% if rule.cross_tag %} {{ etag('截面', 'cross') }}{% endif %} · {{ '由回测 ' ~ (rule.basis or {}).get('backtest', '') ~ ' 生成' if rule.origin == '回测' and (ed.versions[-1].created_by == '系统') else ('回测生成' if rule.origin == '回测' else '人工新增') }}{% if rule.version_no > 1 %}，v{{ rule.version_no }} 由 {{ ed.versions[0].actor }} 于 {{ rule.updated_at[:10] }} {{ '写入' if ed.versions[0].created_by == '系统' else '修改' }}{% endif %}</p>
+              <p class="drawer__sub">当前 v{{ rule.version_no }} · {{ badge(rule.status) }}{% if rule.cross_tag %} {{ etag('截面', 'cross') }}{% endif %} · {{ ed.versions[-1].change_note if rule.origin == '回测' and ed.versions[-1].change_note and ed.versions[-1].change_note.startswith('由回测') else ('回测生成' if rule.origin == '回测' else '人工新增') }}{% if rule.version_no > 1 %}，v{{ rule.version_no }} 由 {{ ed.versions[0].actor }} 于 {{ rule.updated_at[:10] }} {{ '写入' if ed.versions[0].system else '修改' }}{% endif %}</p>
               {% else %}
               <h2 class="drawer__title" id="rule-title">新增经验规则</h2>
               <p class="drawer__sub">保存后为新规则 v1，状态为未验证经验</p>
@@ -99,17 +99,17 @@
                 <ol class="list" data-versions>
                   {% for v in ed.versions %}
                   <li class="list__item" data-version="{{ v.version_no }}">
-                    {{ icon('pencil-simple' if v.created_by != '系统' else ('seal-check' if v.status == '已验证' else 'flask'), 'list__icon') }}
+                    {{ icon('pencil-simple' if not v.system else ('seal-check' if v.status == '已验证' else 'flask'), 'list__icon') }}
                     <div class="list__body">
                       <div class="list__title row">v{{ v.version_no }}{% if v.current %} · 当前{% endif %} {{ badge(v.status) }}</div>
-                      <div class="list__desc">{{ v.created_at[:16] }} · {{ v.actor }} · {% if v.created_by == '系统' %}{{ v.change_note }}{% if v.basis and v.basis.batches %}（批次 {{ v.basis.batches }}，样本 {{ v.basis.n }}）{% endif %}{% else %}理由：{{ v.reason or '—' }}{% endif %}</div>
+                      <div class="list__desc">{{ v.created_at[:16] }} · {{ v.actor }} · {% if v.system %}{{ v.change_note if v.change_note != '新增' else '由回测生成' }}{% if v.basis and v.basis.batches %}（批次 {{ v.basis.batches }}，样本 {{ v.basis.n }}）{% endif %}{% else %}理由：{{ v.reason or '—' }}{% endif %}</div>
                       {% if v.changes %}
                       <div class="diff" style="margin-top: var(--space-3)">
                         {% for k, old, new in v.changes %}<span class="diff__key">{{ k }}</span><span class="diff__old">{{ old }}</span><span class="diff__new">{{ new }}</span>{% endfor %}
                       </div>
                       {% if v.same %}<p class="list__desc" style="margin-top: var(--space-2)">{{ v.same|join('、') }}未改。</p>{% endif %}
                       {% elif not loop.last %}
-                      <p class="list__desc" style="margin-top: var(--space-2)">条件与动作未改{{ '，只改理由' if v.created_by != '系统' else '' }}。</p>
+                      <p class="list__desc" style="margin-top: var(--space-2)">条件与动作未改{{ '，只改理由' if not v.system else '' }}。</p>
                       {% endif %}
                       {% if loop.last %}<p class="small" style="margin-top: var(--space-2)">当 {{ v.cond_text }} → {{ v.action }}</p>{% endif %}
                     </div>

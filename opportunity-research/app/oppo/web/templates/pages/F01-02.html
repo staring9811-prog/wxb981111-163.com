@@ -12,7 +12,7 @@
           <div>
             <nav class="crumbs" aria-label="面包屑"><a href="/packages">数据包</a><span aria-hidden="true">/</span><span>{{ pkg.label }}</span></nav>
             <h1>校验报告 · {{ pkg.label }}</h1>
-            <p class="page-head__sub">{{ kind_label }}数据包 · {{ '按' ~ contract_label ~ '校验' if pkg.kind else '清单无法识别，未选择约定' }}{% if pkg.months_from %} · 覆盖 {{ pkg.months_from }}–{{ pkg.months_to }}{% endif %} · {{ pkg.created_at[:16] }} 由 {{ pkg.created_by }} 导入，{{ (checked_at or '')[11:16] }} 校验完成</p>
+            <p class="page-head__sub">{{ kind_label }}数据包 · {{ '按' ~ contract_label ~ ' 校验' if pkg.kind else '清单无法识别，未选择约定' }}{% if pkg.months_from %} · 覆盖 {{ pkg.months_from }}–{{ pkg.months_to }}{% endif %} · {{ pkg.created_at[:16] }} 由 {{ pkg.created_by }} 导入，{{ (checked_at or '')[11:16] }} 校验完成</p>
           </div>
           <div class="page-head__actions">
             {% if blocked %}

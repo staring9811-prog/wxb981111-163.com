@@ -156,8 +156,8 @@
                 </thead>
                 <tbody>
                   {% for r in items %}
-                  <tr data-href="/spu/{{ r.spu_key|urlencode }}" data-spu="{{ r.spu_key }}" data-status="{{ r.status }}">
-                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|urlencode }}">{{ r.display_id }}</a> · {{ r.brand or '—' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
+                  <tr data-href="/spu/{{ r.spu_key|b_key }}" data-spu="{{ r.spu_key }}" data-status="{{ r.status }}">
+                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|b_key }}">{{ r.display_id }}</a> · {{ r.brand or '—' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
                     <td class="t-num">{{ r.child_count }}{% if r.new_variant_count %} <span class="badge" tabindex="0" data-tip="新变体|上架晚于 SPU 上架日的子体|不计为新 SPU，销量计入本 SPU">含新变体 {{ r.new_variant_count }}</span>{% endif %}</td>
                     <td class="t-nowrap">{{ r.launch_date }}<div class="cell-sub mono">{{ r.launch_child }}</div></td>
                     <td class="t-nowrap">{{ r.batch }}</td>
@@ -249,8 +249,8 @@
                 </thead>
                 <tbody>
                   {% for r in items %}
-                  <tr data-href="/spu/{{ r.spu_key|urlencode }}" data-spu="{{ r.spu_key }}" data-status="{{ r.status }}">
-                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|urlencode }}">{{ r.display_id }}</a> · {{ r.brand or '—' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
+                  <tr data-href="/spu/{{ r.spu_key|b_key }}" data-spu="{{ r.spu_key }}" data-status="{{ r.status }}">
+                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|b_key }}">{{ r.display_id }}</a> · {{ r.brand or '—' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
                     <td>{{ r.batch }}</td><td>{{ r.ages_text }}</td>
                     <td>{{ badge(r.status) }}</td>
                     <td class="small{% if r.status == '老品' %} muted{% endif %}">{{ r.hit_text }}</td>

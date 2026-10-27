@@ -202,11 +202,7 @@
         if (f) f.classList.toggle('is-modified', changed);
       });
       var b = doc.getElementById('draft-banner');
-      if (b) {
-        b.hidden = n === 0;
-        var t = b.querySelector('[data-draft-count]');
-        if (t) t.textContent = String(n);
-      }
+      if (b && n > 0) b.hidden = false;
       return n;
     }
     function clearErrors() {
@@ -229,6 +225,12 @@
         if (res.fields) showErrors(res.fields);
         var at = doc.querySelector('[data-draft-at]');
         if (at && res.updated_at) at.textContent = res.updated_at;
+        var b = doc.getElementById('draft-banner');
+        if (b && typeof res.n_changes === 'number') {
+          b.hidden = res.n_changes === 0;
+          var t = b.querySelector('[data-draft-count]');
+          if (t) t.textContent = String(res.n_changes);
+        }
         return res;
       });
     }

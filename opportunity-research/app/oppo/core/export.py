@@ -30,7 +30,6 @@ from oppo.core import compute as CMP
 from oppo.core import ledger as LG
 from oppo.core import packages as PK
 from oppo.core import ranking as RK
-from oppo.core import rules as RULES
 from oppo.core import runs
 
 SHEETS = ("首页", "细分排序", "锦囊", "判定卡版本", "回测摘要", "台账-快照", "台账-立项记录", "台账-对账", "版本信息")
@@ -235,8 +234,8 @@ def _env() -> Environment:
 
 def render_html(data: dict[str, Any], html_name: str) -> str:
     css = (WEB / "report" / "report.css").read_text(encoding="utf-8")
-    page = _env().get_template("report.html").render(**data, css=Markup(css), sprite=Markup("@@SPRITE@@"),
-                                                    html_name=html_name)
+    page = _env().get_template("report.html").render(**{**data, "html_name": html_name}, css=Markup(css),
+                                                    sprite=Markup("@@SPRITE@@"))
     return page.replace("@@SPRITE@@", _sprite(page), 1)
 
 
@@ -439,6 +438,8 @@ def build_xlsx(data: dict[str, Any], path: Path, report: Report) -> None:
         ws.append([s["label"], s["card_label"], s["card_status"], "截面" if s["mode"] == "cross" else "历史", s["created_at"][:16],
                    "是" if s["exported_at"] else "否", (s["exported_at"] or "")[:16] or None, s["recon_state"], s["due"],
                    s["sha256"]])
+    if not data["ledger"]["snapshots"]:
+        ws.append(["暂无记录"])
 
     # 7 台账-立项记录
     report("写入 Excel：第 7 / 9 张工作表：台账-立项记录", 0.6)
@@ -449,6 +450,8 @@ def build_xlsx(data: dict[str, Any], path: Path, report: Report) -> None:
                    d["date"], "已上架" if d["launch_month"] else ("不适用" if d["decision"] == "不立项" else "在研"),
                    d["launch_month"], d["launch_status"], d["rank"], d["tips"] or None, d["operator"],
                    (d["created_at"] or "")[:16]])
+    if not data["ledger"]["decisions"]:
+        ws.append(["暂无记录"])
 
     # 8 台账-对账
     report("写入 Excel：第 8 / 9 张工作表：台账-对账", 0.68)
@@ -461,6 +464,8 @@ def build_xlsx(data: dict[str, Any], path: Path, report: Report) -> None:
                    {"落在区间内": "是"}.get(r["within"] or "", "否" if r["within"] else "无数据"), r["rules"] or None,
                    (r["created_at"] or "")[:16], CARD.CROSS_LINE_TEXT if r["cross"] else "历史"])
         fmt_cells(ws, ws.max_row, {7: PCT, 10: PCT, 11: MULT})
+    if not data["ledger"]["recons"]:
+        ws.append(["暂无记录"])
 
     # 9 版本信息
     report("写入 Excel：第 9 / 9 张工作表：版本信息", 0.74)
@@ -590,5 +595,3 @@ def _cleanup(paths: list[Path]) -> None:
         except OSError:
             pass
 
-
-_ = RULES

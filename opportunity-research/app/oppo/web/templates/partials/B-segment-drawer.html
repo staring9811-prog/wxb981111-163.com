@@ -156,7 +156,7 @@
                   <thead><tr><th scope="col">SPU</th><th scope="col">批次</th><th scope="col">成败</th></tr></thead>
                   <tbody>
                     {% for x in dz.spus %}
-                    <tr><td><a class="tlink" href="/spu/{{ x.spu_key|urlencode }}">{{ x.display_id }}</a> <span class="cell-sub">{{ x.brand }}</span></td><td>{{ x.batch }}</td><td>{{ badge(x.status) }}</td></tr>
+                    <tr><td><a class="tlink" href="/spu/{{ x.spu_key|b_key }}">{{ x.display_id }}</a> <span class="cell-sub">{{ x.brand }}</span></td><td>{{ x.batch }}</td><td>{{ badge(x.status) }}</td></tr>
                     {% endfor %}
                   </tbody>
                 </table>

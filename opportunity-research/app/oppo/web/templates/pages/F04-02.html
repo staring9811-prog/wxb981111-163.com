@@ -198,7 +198,7 @@
               <tbody>
                 {% for m in active %}
                 <tr data-via="{{ 'batch' if m.via == '批量确认' else 'single' }}" data-edited="{{ 'yes' if m.history else 'no' }}" data-search="{{ (m.code ~ ' ' ~ m.brand ~ ' ' ~ m.parents|join(' '))|lower }}" data-merge="{{ m.code }}">
-                  <td class="t-nowrap"><a class="tlink" href="/spu/{{ m.spu_key|urlencode }}">{{ m.code }}</a><div class="cell-sub">{{ m.brand }}</div></td>
+                  <td class="t-nowrap"><a class="tlink" href="/spu/{{ m.spu_key|b_key }}">{{ m.code }}</a><div class="cell-sub">{{ m.brand }}</div></td>
                   <td class="mono">{{ m.parents|join('<br>'|safe) }}</td>
                   <td class="t-num">{{ m.kids }}</td>
                   <td>{% if m.suggestion %}<div class="mono">{{ m.suggestion.code }}</div><div class="cell-sub">{{ m.suggestion.basis }}</div>{% else %}<span class="muted">—</span>{% endif %}</td>

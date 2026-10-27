@@ -64,7 +64,7 @@
                       {% set r = dc.by_key.get(k) %}
                       <div class="stack" data-ctx-for="{{ k }}"{% if k != preselect %} hidden{% endif %}>
                         {% if r %}
-                        <div class="row" style="gap: var(--space-2)"><span class="strong">{% if r.effective %}本月排第 {{ r.rank }} 名{% else %}本月排第 {{ r.rank }} 名 · 样本不足{% endif %}</span><span class="small muted">从{{ snap.label }}带入 · 有效细分 {{ dc.effective }} 个 · 得分 {{ '%.2f'|format(r.score) if r.score is not none else '无数据' }} · 随快照一起记录</span></div>
+                        <div class="row" style="gap: var(--space-2)"><span class="strong">{% if r.effective %}本月排第 {{ r.rank }} 名{% else %}本月排第 {{ r.rank }} 名 · 样本不足{% endif %}</span><span class="small muted">从本月排序（{{ snap.label }}）带入 · 有效细分 {{ dc.effective }} 个 · 得分 {{ '%.2f'|format(r.score) if r.score is not none else '无数据' }} · 随快照一起记录</span></div>
                         <div class="row" style="gap: var(--space-4)"><span class="t-nowrap">{{ ibar(r.point, r.ci, dc.average.rate, r.sample, grey=dc.card_status == '未验证') }}<span class="ibar-text">{{ ci_text(r.ci) }}</span>{{ etag('n=' ~ r.sample) }}{% if dc.mode == 'cross' %}{{ etag('截面', 'cross') }}{% endif %}</span>
                           {% if r.tips %}{% set t = r.tips[0] %}<span class="row" style="gap: var(--space-2)">{{ badge(t.action) }}<span class="mono small">{{ t.rule }}</span>{{ badge(t.status) }}</span>{% else %}<span class="small muted">没有锦囊</span>{% endif %}</div>
                         {% else %}

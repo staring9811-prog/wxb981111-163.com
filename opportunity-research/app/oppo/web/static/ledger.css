@@ -4,6 +4,9 @@
 .cond-row .select, .cond-row .input { min-width: 0; width: 100%; }
 tr.is-search-hidden { display: none; }
 .launch-grid td { vertical-align: top; }
-.launch-grid .input--num { min-width: 84px; }
+.launch-grid .input--num { width: 100%; min-width: 64px; }
 .launch-grid .field-error { display: block; max-width: 120px; white-space: normal; }
 [data-ctx-for][hidden] { display: none; }
+[data-form-error][hidden], [data-go-only][hidden], [data-submit-for][hidden] { display: none !important; }
+.stack-lg > input[type="hidden"] + *, .stack-lg > [data-form-error][hidden] + *,
+.stack > input[type="hidden"] + *, .stack > [data-form-error][hidden] + * { margin-top: 0; }

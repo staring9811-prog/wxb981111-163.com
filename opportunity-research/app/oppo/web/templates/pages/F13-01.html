@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+{% block title %}品类配置{% endblock %}
+{% macro was(path) -%}{{ fmt_cfg(get_path(cur_cfg, path)) if cur_cfg and get_path(cur_cfg, path) is not none else '' }}{%- endmacro %}
+{% macro val(path) -%}{{ fmt_cfg(get_path(cfgv, path)) if get_path(cfgv, path) is not none else '' }}{%- endmacro %}
+{% macro hint_was(path) -%}{% if cur_cfg and val(path) != was(path) %}<span class="field__hint" data-was-hint>v{{ cur_no }} 为 {{ was(path) or '空' }}。</span>{% endif %}{%- endmacro %}
+{% macro num_field(path, label, hint, unit='') -%}
+                  <div class="field">
+                    <label class="field__label" for="f-{{ path|replace('.', '-') }}">{{ label }} <span class="req">*</span></label>
+                    <input class="input input--num" id="f-{{ path|replace('.', '-') }}" name="{{ path }}" value="{{ val(path) }}" inputmode="numeric" data-was="{{ was(path) }}"{% if unit %} data-unit="{{ unit }}"{% endif %}>
+                    <div class="field-error" data-error-for="{{ path }}"></div>
+                    {{ hint_was(path) }}<span class="field__hint">{{ hint }}</span>
+                  </div>
+{%- endmacro %}
+{% block content %}
+{% set sc = cfgv.success or {} %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>品类配置</h1>
+            <p class="page-head__sub">亚马逊{{ dict(sites).get(category.site, category.site).split(' · ')[-1] }} · {{ category.name }} · {% if cur %}当前 v{{ cur_no }}{% else %}新品类草稿，尚未保存 v1{% endif %} · 换品类只改配置，不改程序</p>
+            {% if categories|length > 1 %}
+            <p class="small cat-switch" style="margin-top: var(--space-2)">品类：{% for c in categories %}<a href="/settings/category?category={{ c.id }}"{% if c.id == cid %} aria-current="page" class="strong"{% endif %}>{{ c.name }}{% if c.is_draft %}（草稿）{% endif %}</a>{% endfor %}</p>
+            {% endif %}
+          </div>
+          <div class="page-head__actions">
+            <button class="btn" type="button" data-open="#new-cat-modal">{{ icon('plus') }}<span>新建品类</span></button>
+            {% if busy %}
+            <button class="btn" type="button" aria-disabled="true" data-tip="{{ job_label }}正在运行，完成后再试">{{ icon('check') }}<span>保存为新版本</span></button>
+            {% else %}
+            <button class="btn" type="button" data-cfg-review>{{ icon('check') }}<span>保存为新版本</span></button>
+            {% endif %}
+          </div>
+        </div>
+        <div id="draft-banner"{% if not draft or not diff_rows %} hidden{% endif %}>
+          <div class="banner banner--warn enter" style="--i:1">
+            {{ icon('note-pencil') }}
+            <div class="banner__body">
+              <div class="banner__title">草稿：<span data-draft-count>{{ diff_rows|length }}</span> 处修改尚未保存为新版本</div>
+              <div>{% if cur %}基于 v{{ cur_no }} · {% endif %}<span data-draft-at>{{ (draft.updated_at if draft else '')[:16] }}</span> 改动 · 草稿存在本机，离开页面不会丢失；保存为新版本后才用于计算。</div>
+            </div>
+            <div class="banner__actions"><button class="btn btn--sm" type="button" data-cfg-review>查看变动</button></div>
+          </div>
+        </div>
+        {% if not cur %}
+        <div class="banner banner--warn enter" style="--i:1" role="status">
+          {{ icon('warning') }}
+          <div class="banner__body">
+            <div class="banner__title">新品类草稿：全部配置项填完才能保存为 v1</div>
+            <div>{% if missing %}还缺：{{ missing|join('、') }}。{% else %}已全部填写，可以保存为 v1。{% endif %}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if stale %}
+        <div id="stale-banner">
+          <div class="banner banner--stale" role="status">
+            {{ icon('arrows-clockwise') }}
+            <div class="banner__body">
+              <div class="banner__title">需重算：{{ stale|join('；') }}</div>
+              <div>依赖旧版本的成败判定、信号和回测结果已标为需重算，旧结果仍可查看。到工作台点“全部重算”后按 v{{ cur_no }} 重新计算。</div>
+            </div>
+            <div class="banner__actions"><a class="btn btn--sm" href="/">去工作台</a></div>
+          </div>
+        </div>
+        {% endif %}
+        <div class="grid-main-side section">
+          <form class="panel enter" style="--i:2" id="cfg-form" data-guard data-category="{{ cid }}" aria-labelledby="form-title" novalidate>
+            <input type="hidden" name="ta_present" value="1">
+            <div class="panel__head">
+              <h2 class="panel__title" id="form-title">配置项</h2>
+              <span class="section__note">全部必填 · 修改先存为草稿，保存为新版本后才用于计算</span>
+            </div>
+            <div class="panel__body stack-lg">
+              <section aria-labelledby="g-basic">
+                <div class="section__head"><h3 id="g-basic">基本</h3><span class="section__note">商品身份 = 平台 + 站点 + ASIN</span></div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label class="field__label" for="f-site">站点 <span class="req">*</span></label>
+                    <select class="select" id="f-site" name="site" data-was="{{ cur_cfg.site or '' }}">
+                      {% for code, label in sites %}<option value="{{ code }}"{% if code == cfgv.site %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                    </select>
+                    <div class="field-error" data-error-for="site"></div>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="f-node">类目节点 <span class="req">*</span></label>
+                    <input class="input" id="f-node" name="node" value="{{ cfgv.node or '' }}" inputmode="numeric" data-was="{{ cur_cfg.node or '' }}">
+                    <div class="field-error" data-error-for="node"></div>
+                    <span class="field__hint">数据包 C1 的类目节点要与此一致</span>
+                  </div>
+                </div>
+              </section>
+              <section aria-labelledby="g-success">
+                <div class="section__head"><h3 id="g-success">成功线</h3><span class="section__note">满足其一即命中</span></div>
+                <div class="form-grid">
+                  {{ num_field('success.bsr_max', '小类 BSR 阈值（≤）', '窗口内任一子 ASIN 任一月小类 BSR ≤ ' ~ (val('success.bsr_max') or '阈值')) }}
+                  {{ num_field('success.gmv_min', '月度 GMV 阈值（美元，≥）', 'SPU 窗口内任一月销售额 ≥ $' ~ (val('success.gmv_min') or '阈值'), '美元') }}
+                  {{ num_field('success.window_months', '判定窗口（个月）', '上架当月起连续 ' ~ (val('success.window_months') or 'n') ~ ' 个自然月；截面口径的新品期同此', '个月') }}
+                </div>
+              </section>
+              <section aria-labelledby="g-crowd">
+                <div class="section__head"><h3 id="g-crowd">参照人群</h3><span class="section__note">命中率的分母</span></div>
+                <div class="form-grid">
+                  {{ num_field('rising_min_parent_units', '起量门槛（件/月，≥）', '上架后任一月父体月销 ≥ ' ~ (val('rising_min_parent_units') or 'n') ~ ' 件的新品才进分母；未起量的单独计数，门槛本身不算成功', '件/月') }}
+                </div>
+              </section>
+              <section aria-labelledby="g-seg">
+                {% set dims = cfgv.segment_dims or [] %}
+                <div class="section__head"><h3 id="g-seg">细分维度与分档</h3><span class="section__note">当前 {{ dims|length }} 个维度 · {{ n_segments }} 个细分 · 每个维度另有“未知”档</span></div>
+                <div class="table-wrap">
+                  <table class="table" id="seg-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">属性</th>
+                        <th class="t-center" scope="col">细分维度</th>
+                        <th scope="col">分档</th>
+                        <th scope="col">类型属性（缺失时父体回填）</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% set ta = cfgv.type_attributes or [] %}
+                      {% set ta_was = cur_cfg.type_attributes or [] %}
+                      {% set dim_attrs = dims|map(attribute='attr')|list %}
+                      {% for d in dims %}
+                      <tr>
+                        <td class="cell-title">{{ d.label }}{% if d.key == 'width' %}<div class="cell-sub">取自{{ d.attr }}</div>{% elif d.key == 'price' %}<div class="cell-sub">月销售额 ÷ 月销量</div>{% endif %}</td>
+                        <td class="t-center"><label class="check"><input type="checkbox" checked disabled><span class="visually-hidden">{{ d.label }}用作细分维度</span></label></td>
+                        <td><input class="input" name="bins.{{ d.key }}" value="{{ val('bins.' ~ d.key) }}" aria-label="{{ d.label }}分档" data-was="{{ was('bins.' ~ d.key) }}"><div class="field-error" data-error-for="bins.{{ d.key }}"></div></td>
+                        <td>{% if d.key == 'price' %}<span class="small muted">不适用：由销售数据计算</span>{% else %}<label class="check"><input type="checkbox" name="ta" value="{{ d.attr }}"{% if d.attr in ta %} checked{% endif %} data-was="{{ 'true' if d.attr in ta_was else 'false' }}">可回填</label>{% endif %}</td>
+                      </tr>
+                      {% endfor %}
+                      {% for a in cfgv.attribute_dims or [] %}{% if a not in dim_attrs %}
+                      <tr>
+                        <td>{{ a }}</td>
+                        <td class="t-center"><label class="check" data-tip="第一期细分维度为宽度档 × 形态 × 价格带"><input type="checkbox" disabled><span class="visually-hidden">{{ a }}用作细分维度</span></label></td>
+                        <td class="small muted">未用作细分维度</td>
+                        <td><label class="check"><input type="checkbox" name="ta" value="{{ a }}"{% if a in ta %} checked{% endif %} data-was="{{ 'true' if a in ta_was else 'false' }}">可回填</label></td>
+                      </tr>
+                      {% endif %}{% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="field-error" data-error-for="type_attributes"></div>
+                <p class="field__hint" style="margin-top: var(--space-2)">勾选“可回填”的是类型属性：子体没有确认值、但父体有候选值时用父体值，并标“父体回填”。颜色、尺寸、盆数随变体变化，不回填，缺失时归入“未知”档。分档之间用“ / ”分隔，不重叠、不留空档。</p>
+              </section>
+              <section aria-labelledby="g-kw">
+                <div class="section__head"><h3 id="g-kw">关键词映射规则</h3><span class="section__note">把关键词归入细分，用于“需求在涨”</span></div>
+                {% set km = cfgv.keyword_mapping or {} %}
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">细分维度</th>
+                        <th scope="col">分档</th>
+                        <th scope="col">对应的关键词属性标签取值</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% set wdim = seg_dims.get('width') %}
+                      {% set wbins = wdim.bins if wdim else [] %}
+                      {% for b in wbins %}
+                      <tr>
+                        {% if loop.first %}<td class="t-nowrap" rowspan="{{ wbins|length }}">宽度档<div class="cell-sub">标签：{{ (km.width or {}).tag or '尺寸' }}</div></td>{% endif %}
+                        <td class="t-nowrap">{{ b.label }}</td>
+                        <td><input class="input" name="kw.width.{{ b.label }}" value="{{ width_rules.get(b.label, '') }}" aria-label="{{ b.label }} 对应的关键词取值" data-was="{{ width_was.get(b.label, '') }}" data-kw></td>
+                      </tr>
+                      {% endfor %}
+                      {% set fdim = seg_dims.get('form') %}
+                      {% set fmap = (km.form or {}).map or {} %}
+                      {% set fbins = fdim.bins if fdim else [] %}
+                      {% for b in fbins %}
+                      <tr>
+                        {% if loop.first %}<td class="t-nowrap" rowspan="{{ fbins|length }}">形态<div class="cell-sub">标签：{{ (km.form or {}).tag or '形态' }}</div></td>{% endif %}
+                        <td class="t-nowrap">{{ b.label }}</td>
+                        <td><input class="input" name="kw.form.{{ b.label }}" value="{{ (fmap.get(b.label) or [])|join('、') }}" aria-label="{{ b.label }}对应的关键词取值" data-was="{{ (form_was.get(b.label) or [])|join('、') }}" data-kw></td>
+                      </tr>
+                      {% endfor %}
+                      <tr>
+                        <td class="t-nowrap">价格带</td>
+                        <td class="t-nowrap muted">全部</td>
+                        <td class="small muted">{{ (km.price or {}).rule or '不映射' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="field-error" data-error-for="keyword_mapping.width.rule"></div>
+                <div class="field-error" data-error-for="keyword_mapping.form.map_text"></div>
+                <p class="field__hint" style="margin-top: var(--space-2)">没有映射到任何细分维度的关键词（如泛词 bathroom vanity）不计入细分信号。</p>
+              </section>
+              <section aria-labelledby="g-window">
+                <div class="section__head"><h3 id="g-window">信号窗口与回看期</h3><span class="section__note">第 T 月的信号只用早于 T 月的数据</span></div>
+                <div class="form-grid">
+                  {{ num_field('signal_windows.demand_months', '需求动量窗口（个月）', '第 T−' ~ (val('signal_windows.demand_months') or 'n') ~ ' 至 T−1 月搜索量合计，对比上年同期', '个月') }}
+                  {{ num_field('signal_windows.entry_lookback_months', '新品进得去回看（个月）', '终点随判定窗口，保证窗口在 T 月前已结束', '个月') }}
+                </div>
+              </section>
+              <section aria-labelledby="g-split">
+                <div class="section__head"><h3 id="g-split">回测切分比例</h3><span class="section__note">按上架月份排序已判定批次</span></div>
+                <div class="form-grid">
+                  <div class="field">
+                    <label class="field__label" for="f-split">定规则组 : 检验组 <span class="req">*</span></label>
+                    <select class="select" id="f-split" name="backtest_split.text" data-was="{{ was('backtest_split.text') }}">
+                      {% for sp in splits %}<option value="{{ sp }}"{% if sp == val('backtest_split.text') %} selected{% endif %}>{{ sp }}</option>{% endfor %}
+                    </select>
+                    <div class="field-error" data-error-for="backtest_split.text"></div>
+                    <span class="field__hint">不能整除时检验组向下取整、至少 1 个批次{% if decided %}；当前 {{ decided }} 个已判定批次 → {{ decided - n_test }} : {{ n_test }}{% endif %}</span>
+                  </div>
+                </div>
+              </section>
+              <section aria-labelledby="g-health" id="g-health-sec">
+                <div class="section__head"><h3 id="g-health">体检预警阈值</h3><span class="section__note">超过阈值在工作台持续提示，直到标为已知晓</span></div>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">体检项</th>
+                        <th class="t-num" scope="col">预警阈值（超过即预警）</th>
+                        <th class="t-num" scope="col">{{ health._pkg.label ~ ' ' if health._pkg else '' }}当前值</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for key, label in health_labels.items() %}
+                      {% set path = 'health_thresholds.' ~ key %}
+                      {% set unit = '%' if key in pct_items else ('个' if key == 'parent_change' else '条') %}
+                      {% set hr = health.get(key) %}
+                      <tr>
+                        <td>{{ label }}</td>
+                        <td class="t-num"><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><input class="input input--num" style="width:84px" name="{{ path }}" value="{{ val(path) }}" aria-label="{{ label }}阈值（{{ unit }}）" data-was="{{ was(path) }}" data-unit="{{ unit }}"><span class="small muted">{{ unit }}</span></div><div class="field-error" data-error-for="{{ path }}"></div></td>
+                        <td class="t-num">{% if hr and hr.value is not none %}{% if key == 'unknown_share' %}最高 {{ '%.1f'|format(hr.value) }}%（{{ (hr.detail or {}).max_dim }}）{% elif key in pct_items %}{{ '%.1f'|format(hr.value) }}%{% else %}{{ num(hr.numerator) }} {{ unit }}{% endif %}{% if hr.denominator and key != 'dup_key' %}{{ etag('n=' ~ num(hr.denominator)) }}{% endif %}{% if hr.status == 'warn' %} {{ badge('预警') }}{% elif hr.status == 'acked' %} {{ badge('已知晓', 'ack', 'seal-check') }}{% endif %}{% else %}<span class="muted">无数据</span>{% endif %}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </form>
+          <aside class="stack-lg enter" style="--i:3;position:sticky;top:calc(var(--topbar-h) + var(--space-4));align-self:start" aria-label="品类与版本">
+            <section class="panel" aria-labelledby="cat-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="cat-title">亚马逊{{ dict(sites).get(category.site, category.site).split(' · ')[-1] }} · {{ category.name }}</h2>
+              </div>
+              <div class="panel__body">
+                <dl class="kv">
+                  <dt>负责人</dt><dd>{{ icon('user-circle') }} {{ category.owner }}</dd>
+                  <dt>当前版本</dt><dd>{% if cur %}<span class="strong">v{{ cur_no }}</span> · {{ cur.created_at[:16] }} 保存{% else %}尚未保存{% endif %}</dd>
+                  <dt>站点与节点</dt><dd>{{ category.site }} · <span class="mono">{{ category.node }}</span></dd>
+                  <dt>细分</dt><dd>{{ (cfgv.segment_dims or [])|map(attribute='label')|join(' × ') }}，{{ n_segments }} 个</dd>
+                </dl>
+              </div>
+            </section>
+            {% if cur %}
+            <section class="panel" aria-labelledby="dep-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="dep-title">依赖 v{{ cur_no }} 的结果</h2>
+              </div>
+              {% if deps %}
+              <ul class="list">
+                {% for d in deps %}
+                <li class="list__item">
+                  {{ icon(d.icon, 'list__icon') }}
+                  <div class="list__body"><div class="list__title">{{ d.title }}</div><div class="list__desc">{{ d.desc }}</div></div>
+                </li>
+                {% endfor %}
+              </ul>
+              <div class="panel__foot">保存为新版本后，以上结果标为需重算，旧结果仍可查看。</div>
+              {% else %}
+              <div class="panel__body"><p class="small muted">{{ '依赖旧版本的结果已标为需重算。' if stale else '还没有按 v' ~ cur_no ~ ' 计算的结果。' }}</p></div>
+              {% endif %}
+            </section>
+            {% endif %}
+            <section class="panel" aria-labelledby="ver-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="ver-title">版本历史</h2>
+                <span class="section__note">只追加，可回看</span>
+              </div>
+              {% if versions %}
+              <ol class="list" id="ver-list">
+                {% for v in versions %}
+                <li class="list__item">
+                  {% if loop.first %}{{ icon('check-circle', 'list__icon list__icon--ok') }}{% else %}{{ icon('clock-counter-clockwise', 'list__icon') }}{% endif %}
+                  <div class="list__body">
+                    <div class="list__title">v{{ v.version_no }}{% if loop.first %} · 当前{% endif %}</div>
+                    <div class="list__desc">{{ v.created_at[:16] }} · {{ v.created_by }} · {{ v.note or '未填写修改说明' }}</div>
+                    {% if v.changes and v.version_no > 1 %}
+                    <details class="small" style="margin-top: var(--space-2)">
+                      <summary>与 v{{ v.version_no - 1 }} 对比</summary>
+                      <div class="diff" style="margin-top: var(--space-2)">
+                        {% for k, a, b in v.changes %}<span class="diff__key">{{ k }}</span><span class="diff__old">{{ a }}</span><span class="diff__new">{{ b }}</span>{% endfor %}
+                      </div>
+                    </details>
+                    {% endif %}
+                  </div>
+                </li>
+                {% endfor %}
+              </ol>
+              {% else %}
+              <div class="panel__body"><p class="small muted">还没有保存的版本。</p></div>
+              {% endif %}
+            </section>
+          </aside>
+        </div>
+        <p class="page-foot">品类配置 {{ ('v' ~ cur_no) if cur else '草稿' }} · 浴室柜默认：美国站、节点 6810202011、BSR 50、月度 GMV $100,000、起量门槛 60 件/月、判定窗口 6 个月</p>
+{% endblock %}
+{% block overlays %}
+        <div class="modal" id="save-modal" role="dialog" aria-modal="true" aria-labelledby="save-title" aria-hidden="true">
+          <form class="modal__dialog" data-ajax action="/settings/category/save{{ '?category=' ~ cid if not is_current else '' }}" method="post">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="save-title">保存为新版本 v{{ cur_no + 1 }}</h2>
+                <p class="modal__sub">{{ category.name }} · {% if cur %}与当前 v{{ cur_no }} 对比{% else %}首个版本{% endif %}</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack-lg">
+              <section aria-labelledby="save-diff-title">
+                <h3 id="save-diff-title">变动摘要</h3>
+                <div class="diff" id="save-diff" style="margin-top: var(--space-3)"></div>
+                <p class="small muted" id="save-none" hidden>与 v{{ cur_no }} 相比没有修改，不需要保存新版本。</p>
+              </section>
+              {% if cur %}
+              <div class="banner banner--stale">
+                {{ icon('arrows-clockwise') }}
+                <div class="banner__body">
+                  <div class="banner__title">保存后，依赖 v{{ cur_no }} 的结果将标为需重算</div>
+                  <div>{% if deps %}{% for d in deps %}{{ d.title }}（{{ d.desc }}）{{ '、' if not loop.last }}{% endfor %}。{% endif %}旧结果仍可查看；系统不会自动重算，到工作台点“全部重算”后按 v{{ cur_no + 1 }} 计算。</div>
+                </div>
+              </div>
+              {% endif %}
+              <div class="field">
+                <label class="field__label" for="save-note">修改说明</label>
+                <textarea class="textarea" id="save-note" name="note" placeholder="写下为什么改，会显示在版本历史里"></textarea>
+                <span class="field__hint">选填 · 操作人与时间自动记录</span>
+              </div>
+              <div class="field-error" data-form-error hidden></div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="submit" id="save-confirm" data-save>保存为 v{{ cur_no + 1 }}</button>
+            </div>
+          </form>
+        </div>
+        <div class="modal" id="new-cat-modal" role="dialog" aria-modal="true" aria-labelledby="new-cat-title" aria-hidden="true">
+          <form class="modal__dialog modal__dialog--wide" data-ajax action="/settings/category/new" method="post" novalidate>
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="new-cat-title">新建品类</h2>
+                <p class="modal__sub">全部配置项都填写后才能保存为 v1；可以复制浴室柜配置作为起点</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack-lg">
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field__label" for="nc-name">品类名称 <span class="req">*</span></label>
+                  <input class="input" id="nc-name" name="name" placeholder="例如：浴室镜柜">
+                  <div class="field-error" data-error-for="name"></div>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="nc-owner">负责人</label>
+                  <input class="input" id="nc-owner" value="{{ operator }}" readonly>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="nc-site">站点 <span class="req">*</span></label>
+                  <select class="select" id="nc-site" name="site">
+                    {% for code, label in sites %}<option value="{{ code }}"{% if loop.first %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                  </select>
+                  <div class="field-error" data-error-for="site"></div>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="nc-node">类目节点 <span class="req">*</span></label>
+                  <input class="input" id="nc-node" name="node" inputmode="numeric" placeholder="亚马逊类目节点编号">
+                  <div class="field-error" data-error-for="node"></div>
+                </div>
+              </div>
+              <section aria-labelledby="nc-tpl-title">
+                <h3 id="nc-tpl-title">起点</h3>
+                <div class="choice-group" style="margin-top: var(--space-3)">
+                  <label class="choice"><input type="radio" name="template" value="copy" checked>{{ icon('copy') }}复制浴室柜配置</label>
+                  <label class="choice"><input type="radio" name="template" value="blank">从空白开始</label>
+                </div>
+                <p class="field__hint" style="margin-top: var(--space-2)">复制的是配置项的取值，不复制数据包、结果、台账和规则。</p>
+              </section>
+              <section aria-labelledby="nc-need-title">
+                <h3 id="nc-need-title">创建后要逐项填写或核对</h3>
+                <p class="small" style="margin-top: var(--space-2)">成功线、参照人群、细分维度与分档（含类型属性）、关键词映射规则、信号窗口与回看期、回测切分比例、体检预警阈值。复制模板时这些项会带入浴室柜的取值，按新品类改好后保存为 v1；任一项为空都不能保存。</p>
+              </section>
+              <div class="field-error" data-form-error hidden></div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="submit">{{ icon('plus') }}<span>创建草稿</span></button>
+            </div>
+          </form>
+        </div>
+{% endblock %}

@@ -114,7 +114,7 @@
           </div>
         </section>
         {% else %}
-        <section class="enter" style="--i:1" aria-labelledby="concl-title">
+        <section class="{{ 'section ' if failed or (stale and report) else '' }}enter" style="--i:1" aria-labelledby="concl-title">
           <div class="section__head">
             <h2 class="section__title" id="concl-title">结论</h2>
             <span class="section__note">达标：检验组前 20% 细分命中率 ≥ 全类目平均 2 倍，且高于每个可计算的现用指标{% if hist and cross %} · 两种口径并列，判定卡状态以历史模式为准{% endif %}</span>

@@ -5,11 +5,11 @@ from __future__ import annotations
 
 import math
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import pandas as pd
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.engine import Connection
 
@@ -98,6 +98,7 @@ def age_range(ages: list[int]) -> str:
 
 
 C.env.filters["b_loads"] = lambda s: D.loads(s, []) or []
+C.env.filters["b_key"] = lambda k: quote(str(k), safe=":")
 C.env.globals.update(b_spct=spct, b_upct=upct, b_spp=spp, b_money=money0, b_int=int0, b_bsr=bsr0,
                      b_age_range=age_range)
 
@@ -459,9 +460,23 @@ def spu_detail(request: Request, spu_key: str) -> HTMLResponse:
                                "pkg_mode": _mode_pkg(conn, cid, mode), "spu": None}
         if run is not None:
             r = _spu_row(conn, run["id"], spu_key)
+            if r is None and ":" not in spu_key:
+                found = _resolve_key(conn, run["id"], spu_key.strip())
+                if found:
+                    return RedirectResponse("/spu/" + quote(found, safe=":"), status_code=303)  # type: ignore[return-value]
             if r is not None:
                 ctx.update(_detail_ctx(conn, cid, run, r, cfg, mode))
     return C.render(request, "pages/F05-01.html", "PAGE-F05-01", ctx)
+
+
+def _resolve_key(conn: Connection, run_id: int, token: str) -> str | None:
+    """An ASIN or a displayed SPU id → the SPU key in this run (lets wen paste a child or parent ASIN)."""
+    raw = conn.connection.driver_connection
+    row = raw.execute("SELECT spu_key FROM spu WHERE run_id = ? AND display_id = ? LIMIT 1", (run_id, token)).fetchone()
+    if row is None:
+        row = raw.execute("SELECT spu_key FROM spu_child WHERE run_id = ? AND (child = ? OR parent = ?) "
+                          "ORDER BY child = ? DESC LIMIT 1", (run_id, token, token, token)).fetchone()
+    return row[0] if row else None
 
 
 def _detail_ctx(conn: Connection, cid: int, run: dict[str, Any], r: dict[str, Any], cfg: dict[str, Any],
@@ -584,6 +599,9 @@ def _detail_ctx(conn: Connection, cid: int, run: dict[str, Any], r: dict[str, An
         "observed_ages": sorted({row.get("age") for row in months_tbl if row.get("age")}),
         "missing_after_hit": [m for m in (D.loads(r.get("missing_months_json"), []) or [])
                               if r.get("hit_month") and m > r["hit_month"]],
+        "best_row": min((row for row in months_tbl if row.get("best_bsr") is not None
+                         and (not cross or 1 <= row.get("age", 0) <= window)),
+                        key=lambda x: (x["best_bsr"], x["month"]), default=None),
         "pkg": pkg, "missing_text": _missing_text(months_tbl, D.loads(r.get("missing_months_json"), []) or []),
     }
 
@@ -712,7 +730,11 @@ def _compare(s: dict[str, Any]) -> list[dict[str, Any]]:
         else:
             rows.append({"label": a, "values": vals, "merged": False, "verdict": "不一致", "ok": False})
     bl = [d.get("bullets") or "无数据" for d in det]
-    if all(b == "无数据" for b in bl):
+    if s.get("basis") == SPU.BASES[2] and "无数据" not in bl:
+        same = len({SPU.bullets_norm(b) for b in bl}) == 1
+        rows.append({"label": "五点摘要", "values": [bl[0]] if same else bl, "merged": same,
+                     "verdict": "相同" if same else "去掉格式后相同", "ok": True, "small": True})
+    elif all(b == "无数据" for b in bl):
         rows.append({"label": "五点摘要", "values": ["无数据"], "merged": True, "verdict": "无法比较（未提供）", "ok": None,
                      "small": True})
     elif len(set(bl)) == 1:
@@ -816,6 +838,8 @@ def _sig_table(conn: Connection, run_id: int, T: str) -> dict[str, dict[str, dic
     for r in sig.to_dict("records"):
         r = {k: (None if isinstance(v, float) and math.isnan(v) else v) for k, v in r.items()}
         r["extra"] = D.loads(r.get("extra_json"), {}) or {}
+        if r.get("cnt") is not None:
+            r["cnt"] = int(r["cnt"])
         out.setdefault(r["segment_key"], {})[r["signal"]] = r
     return out
 
@@ -1017,7 +1041,7 @@ def _drawer_ctx(conn: Connection, cid: int, run: dict[str, Any], cfg: dict[str, 
         "backfill": inf.get("backfill_share"), "backfill_items": bf_items, "child_count": inf.get("child_count"),
         "demand_spark": _spark(demand_pts, spct), "entry_spark": _spark(entry_pts, upct), "trend_rows": trend_rows,
         "trend_from": trend_months[0] if trend_months else None, "trend_to": trend_months[-1] if trend_months else None,
-        "pain_bars": bars, "pain_total": tot_codes, "spus": listed.head(12).to_dict("records"),
-        "spus_more": max(0, len(listed) - 12), "lookback": (lo, hi), "decided_all": decided_all,
+        "pain_bars": bars, "pain_total": tot_codes, "spus": listed.head(6).to_dict("records"),
+        "spus_more": max(0, len(listed) - 6), "lookback": (lo, hi), "decided_all": decided_all,
         "watching": watching, "tips": tips, "adjacent": adj,
     }
