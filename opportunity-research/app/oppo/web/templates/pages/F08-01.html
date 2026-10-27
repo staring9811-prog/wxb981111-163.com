@@ -22,7 +22,7 @@
         <div class="page-head enter" style="--i:0">
           <div>
             <h1>判定卡</h1>
-            <p class="page-head__sub">当前版本 {{ card.label }} · {{ '截面' if cross else '历史' }}口径 · {{ card.created_at[:16] }} 由回测 {{ bt.code if bt else '—' }} 生成{% if snapshot %} · 用于 {{ snapshot.month }} 排序{% endif %}</p>
+            <p class="page-head__sub">当前版本 {{ card.label }} · {{ '截面' if cross else '历史' }}口径 · {{ card.created_at[:16] }} 由回测 {{ bt.code if bt else '（无数据）' }} 生成{% if snapshot %} · 用于 {{ snapshot.month }} 排序{% endif %}</p>
           </div>
           <div class="page-head__actions">
             <a class="btn" href="/backtest">{{ icon('flask') }}<span>回测报告</span></a>
@@ -46,7 +46,7 @@
           {{ icon('intersect') }}
           <div class="banner__body">
             <div class="banner__title">{{ CARD.CROSS_TEXT }}</div>
-            <div>截面回测 {{ bt.code }} · 数据包 {{ card_pkg.label if card_pkg else '—' }}{% if card_pkg %}（观察月 {{ card_pkg.months }}）{% endif %} · 倍数 {{ mult(bt.multiple) }}（90% 区间 {{ P.mult_ci(bt.mult_ci) }}）。{% if superseded %}本品类已有历史结论（判定卡 {{ hist_card.label }} {{ hist_card.status }}），判定卡状态以历史为准，这张截面卡已被历史结论取代。{% else %}历史数据包到位并回测后，以历史结论为准。{% endif %}</div>
+            <div>截面回测 {{ bt.code }} · 数据包 {{ card_pkg.label if card_pkg else '无数据' }}{% if card_pkg %}（观察月 {{ card_pkg.months }}）{% endif %} · 倍数 {{ mult(bt.multiple) }}（90% 区间 {{ P.mult_ci(bt.mult_ci) }}）。{% if superseded %}本品类已有历史结论（判定卡 {{ hist_card.label }} {{ hist_card.status }}），判定卡状态以历史为准，这张截面卡已被历史结论取代。{% else %}历史数据包到位并回测后，以历史结论为准。{% endif %}</div>
           </div>
         </div>
         {% else %}
@@ -54,7 +54,7 @@
           {{ icon('warning') }}
           <div class="banner__body">
             <div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div>
-            <div>未达标：{{ card.basis.reason_class or '—' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。入选信号与依据仍显示，便于排查。</div>
+            <div>未达标：{{ card.basis.reason_class or '原因无数据' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。入选信号与依据仍显示，便于排查。</div>
           </div>
           <div class="banner__actions"><a class="btn btn--sm" href="/backtest">查看回测</a></div>
         </div>
@@ -238,5 +238,5 @@
         </section>
         {% endif %}
 
-        {% if card %}<p class="page-foot">判定卡 {{ card.label }} · 回测 {{ bt.code if bt else '—' }}（种子 {{ bt.seed if bt else '—' }}）· 数据包 {{ card_pkg.label if card_pkg else '—' }} · 字段约定 v{{ bt.contract_no if bt else '—' }} · 品类配置 v{{ bt.config_no if bt else '—' }} · 生成 {{ card.created_at[:16] }} · {{ card.created_by }}</p>{% endif %}
+        {% if card %}<p class="page-foot">判定卡 {{ card.label }} · 回测 {{ bt.code if bt else '无数据' }}（种子 {{ bt.seed if bt else '无数据' }}）· 数据包 {{ card_pkg.label if card_pkg else '无数据' }} · 字段约定 v{{ bt.contract_no if bt else '无数据' }} · 品类配置 v{{ bt.config_no if bt else '无数据' }} · 生成 {{ card.created_at[:16] }} · {{ card.created_by }}</p>{% endif %}
 {% endblock %}

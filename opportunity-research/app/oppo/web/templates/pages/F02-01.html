@@ -41,7 +41,7 @@
         <div class="stats enter" style="--i:1; margin-top: var(--space-4)">
           <div class="stat">
             <div class="stat__label">当前版本</div>
-            <div class="stat__value">{{ ('v' ~ cur.version_no) if cur else '—' }}</div>
+            <div class="stat__value{{ '' if cur else ' stat__value--empty' }}">{{ ('v' ~ cur.version_no) if cur else '未保存' }}</div>
             <div class="stat__meta">{% if cur %}{{ cur.created_at[:16] }} · {{ cur.created_by }} 保存{% else %}确认并保存后生成 v1{% endif %}</div>
           </div>
           <div class="stat">
@@ -200,7 +200,7 @@
                         {% else %}
                         <p class="small muted">无数据{% if r.change_kind == '缺少' %}：本数据包没有这个字段{% endif %}</p>
                         {% endif %}
-                        <p class="small muted">草稿建议：{{ r.grain or '—' }} · {{ r.timing or '—' }} · {{ r.nature or '—' }} · {{ r.usage or '—' }}。{% if r.status != 'confirmed' %}确认前，{{ r.field }} 不参与任何计算。{% endif %}</p>
+                        <p class="small muted">草稿建议：{{ r.grain or '无数据' }} · {{ r.timing or '无数据' }} · {{ r.nature or '无数据' }} · {{ r.usage or '无数据' }}。{% if r.status != 'confirmed' %}确认前，{{ r.field }} 不参与任何计算。{% endif %}</p>
                         <div class="field-error" data-form-error hidden></div>
                         <div class="row">
                           <span class="spacer"></span>
@@ -226,7 +226,7 @@
             <div class="pager__pages" data-pager-pages></div>
           </div>
         </section>
-        <p class="page-foot">字段约定 {{ ('v' ~ cur.version_no) if cur else '—' }}{% if draft_pkg %} · 数据包 {{ draft_pkg.label }}{% endif %} · 每次保存生成新版本，旧版本只追加不覆盖 · 草稿保存在本机，离开页面不丢</p>
+        <p class="page-foot">字段约定 {{ ('v' ~ cur.version_no) if cur else '未保存' }}{% if draft_pkg %} · 数据包 {{ draft_pkg.label }}{% endif %} · 每次保存生成新版本，旧版本只追加不覆盖 · 草稿保存在本机，离开页面不丢</p>
 {% endblock %}
 {% block overlays %}
         {% set next_no = (cur.version_no + 1) if cur else 1 %}
@@ -259,7 +259,7 @@
               <div class="banner banner--stale">
                 {{ icon('arrows-clockwise') }}
                 <div class="banner__body">
-                  <div class="banner__title">依赖 v{{ cur.version_no if cur else '—' }} 的结果将标为“需重算”</div>
+                  <div class="banner__title">依赖{{ (' v' ~ cur.version_no) if cur else '当前版本' }} 的结果将标为“需重算”</div>
                   <div>下列结果用的是当前字段约定，保存后标为“需重算”，旧结果仍可查看。系统不会自动重算，可在工作台点“全部重算”。已保存的月度快照不改动。</div>
                 </div>
               </div>

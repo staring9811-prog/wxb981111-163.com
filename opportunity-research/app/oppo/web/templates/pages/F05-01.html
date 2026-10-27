@@ -13,7 +13,7 @@
           <div>
             <nav class="crumbs" aria-label="面包屑"><a href="/spu" data-b-back>新品与 SPU</a>{{ icon('caret-right') }}<span>{{ spu.display_id if spu else key }}</span></nav>
             {% if spu %}
-            <h1>{{ spu.display_id }} · {{ spu.brand or '—' }}{% if status %} {{ badge(status) }}{% endif %}{% if spu.relaunch %} {{ badge('疑似重新上架', 'warn', 'clock-counter-clockwise') }}{% endif %}{% if stale %} {{ badge('需重算') }}{% endif %}</h1>
+            <h1>{{ spu.display_id }} · {{ spu.brand or '品牌无数据' }}{% if status %} {{ badge(status) }}{% endif %}{% if spu.relaunch %} {{ badge('疑似重新上架', 'warn', 'clock-counter-clockwise') }}{% endif %}{% if stale %} {{ badge('需重算') }}{% endif %}</h1>
             <p class="page-head__sub">{{ spu.title }}</p>
             {% else %}
             <h1>{{ key }}</h1>
@@ -181,8 +181,8 @@
                   {% for c in grid %}
                   {% set has = c.row and c.row.sales is not none %}
                   <td class="t-num{% if c.hit_gmv %} b-hitcell{% endif %}">
-                    {%- if c.hit_gmv -%}<span class="strong">{{ b_money(c.row.sales) }}</span>{{ etag('估算', '') }}<div style="margin-top: var(--space-1)">{{ badge('达成', 'hit', 'check-circle') }}</div>
-                    {%- else -%}{{ cellv(c.state, has, b_money(c.row.sales) if has else '', '当月没有销量与销售额') }}{% if has %}{{ etag('估算', '') }}{% endif %}{%- endif -%}
+                    {%- if c.hit_gmv -%}<span class="strong">{{ b_money(c.row.sales) }}</span>{{ etag('估算', '') }}{% if cross %}{{ etag('截面', 'cross') }}{% endif %}<div style="margin-top: var(--space-1)">{{ badge('达成', 'hit', 'check-circle') }}</div>
+                    {%- else -%}{{ cellv(c.state, has, b_money(c.row.sales) if has else '', '当月没有销量与销售额') }}{% if has %}{{ etag('估算', '') }}{% if cross %}{{ etag('截面', 'cross') }}{% endif %}{% endif %}{%- endif -%}
                   </td>
                   {% endfor %}
                 </tr>
@@ -225,12 +225,12 @@
                 {% for k in kids %}
                 <tr data-child="{{ k.child }}">
                   <td class="mono">{{ k.child }}</td>
-                  <td class="mono muted">{{ k.parent or '—' }}</td>
+                  <td class="mono muted">{{ k.parent or etag('无数据', 'nodata') }}</td>
                   <td class="t-nowrap">{{ k.color or '未知' }} · {{ (k.size ~ '″') if k.size and k.size != '未知' else '未知' }}</td>
-                  <td class="t-nowrap">{{ k.launch_date or '—' }}{% if k.child == spu.launch_child %}<div class="cell-sub">SPU 上架日来源</div>{% endif %}</td>
-                  <td class="t-nowrap">{{ k.first_review or '—' }}</td>
+                  <td class="t-nowrap">{{ k.launch_date or etag('无数据', 'nodata') }}{% if k.child == spu.launch_child %}<div class="cell-sub">SPU 上架日来源</div>{% endif %}</td>
+                  <td class="t-nowrap">{{ k.first_review or etag('无数据', 'nodata') }}</td>
                   <td>{% if k.new_variant %}<span class="badge" tabindex="0" data-new-variant data-tip="新变体|上架日 {{ k.launch_date }} 晚于 SPU 上架日 {{ spu.launch_date }}|不计为新 SPU，销量计入本 SPU">{{ icon('plus') }}新变体</span>{% endif %}</td>
-                  <td>{{ k.tattrs|map(attribute=1)|join(' · ') }}{% if k.backfill %}{% set vals = [] %}{% for d, v, b in k.tattrs if b %}{% set _ = vals.append(v) %}{% endfor %}{{ etag(k.backfill|join('、') ~ '回填', 'fill', {'属性': k.backfill|join('、'), '子体确认值': '无', '父体候选值': vals|join('、'), '父 ASIN': k.parent or '—', '证据状态': '父体回填', '来源': 'C4 属性标签（' ~ versions.package ~ '）'}, '父体回填') }}{% endif %}</td>
+                  <td>{{ k.tattrs|map(attribute=1)|join(' · ') }}{% if k.backfill %}{% set vals = [] %}{% for d, v, b in k.tattrs if b %}{% set _ = vals.append(v) %}{% endfor %}{{ etag(k.backfill|join('、') ~ '回填', 'fill', {'属性': k.backfill|join('、'), '子体确认值': '无', '父体候选值': vals|join('、'), '父 ASIN': k.parent or '无数据', '证据状态': '父体回填', '来源': 'C4 属性标签（' ~ versions.package ~ '）'}, '父体回填') }}{% endif %}</td>
                   {% if k.not_launched %}
                   <td class="t-num small muted">当月未上架</td><td class="t-num small muted">当月未上架</td>
                   {% else %}

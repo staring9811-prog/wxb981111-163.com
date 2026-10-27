@@ -87,7 +87,7 @@
                       {% set wrong = r.corrected_by and r.corrected_by.segment_key != r.segment_key %}
                       {% if wrong %}<span class="diff__old">{{ segname(r.segment_name or '') }}</span> <span class="small muted">误填</span>{% else %}{{ segname(r.segment_name or '') }}{% endif %}
                       <div class="cell-sub">{% if r.snapshot %}快照 <a href="/ledger/snapshots?snap={{ r.snapshot.id }}">{{ r.snapshot.label }}</a>{% else %}无对应快照（补录）{% endif %}</div></td>
-                    <td class="t-nowrap num">{% if r.decision == '不立项' %}<span class="muted">不适用</span>{% elif r.corrected_by and r.corrected_by.project_date != r.project_date %}<span class="diff__old">{{ r.project_date or '—' }}</span>{% else %}{{ r.project_date or '—' }}{% endif %}</td>
+                    <td class="t-nowrap num">{% if r.decision == '不立项' %}<span class="muted">不适用</span>{% elif r.corrected_by and r.corrected_by.project_date != r.project_date %}<span class="diff__old">{{ r.project_date or '无数据' }}</span>{% else %}{{ r.project_date or '无数据' }}{% endif %}</td>
                     <td style="min-width: 190px">
                       {% if r.corrected_by %}{{ badge('已更正') }}<div class="cell-sub"><a href="#{{ r.corrected_by.code|lower }}">见更正记录 {{ r.corrected_by.code }}</a></div>
                       {% elif r.decision == '不立项' %}<span class="muted">不立项，不参与自家对账</span>

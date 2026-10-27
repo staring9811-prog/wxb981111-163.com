@@ -10,10 +10,11 @@ from urllib.parse import quote, urlencode
 import pandas as pd
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from markupsafe import Markup, escape
 from sqlalchemy import select
 from sqlalchemy.engine import Connection
 
-from oppo import clock
+from oppo import clock, fmt
 from oppo import db as D
 from oppo import service as SV
 from oppo.core import categories as CAT
@@ -140,7 +141,7 @@ def _versions(conn: Connection, run: dict[str, Any] | None) -> dict[str, Any]:
     if not run:
         return {}
     pkg = PK.get(conn, run["package_id"])
-    return {"package": pkg["label"] if pkg else "—", "fingerprint": (pkg.get("fingerprint") or "")[:8] if pkg else "",
+    return {"package": pkg["label"] if pkg else "未导入", "fingerprint": (pkg.get("fingerprint") or "")[:8] if pkg else "",
             "pkg_kind": pkg["kind"] if pkg else None, "months_from": pkg["months_from"] if pkg else None,
             "months_to": pkg["months_to"] if pkg else None,
             "contract": _version_row(conn, D.contract_version, run["contract_version_id"]),
@@ -170,15 +171,17 @@ def _missing_text(months: list[dict[str, Any]], missing: list[str]) -> str:
     return "缺 " + "；".join(parts)
 
 
-def _hit_text(r: Any, cross: bool = False) -> str:
+def _hit_text(r: Any, cross: bool = False) -> str | Markup:
     st = r["status"]
-    if st in (J.HIT, J.X_HIT):
+    if st in (J.HIT, J.X_HIT):  # each figure carries its evidence tag (U-01): BSR 实测, amounts 估算
         bits = []
         if _isnum(r.get("hit_bsr")):
-            bits.append(f"BSR · 第 {int(r['hit_age'])} 个月（{r['hit_month']}）· {bsr0(r['hit_bsr'])}")
+            bits.append(escape(f"BSR · 第 {int(r['hit_age'])} 个月（{r['hit_month']}）· {bsr0(r['hit_bsr'])}")
+                        + fmt.etag("实测", ""))
         if _isnum(r.get("hit_amount")):
-            bits.append(f"GMV · 第 {int(r['hit_age'])} 个月（{r['hit_month']}）· {money0(r['hit_amount'])}")
-        return "；".join(bits)
+            bits.append(escape(f"GMV · 第 {int(r['hit_age'])} 个月（{r['hit_month']}）· {money0(r['hit_amount'])}")
+                        + fmt.etag("估算", ""))
+        return Markup("；").join(bits)
     if st == J.WATCH:
         return f"还剩 {int(r['remaining'])} 个月" if _isnum(r.get("remaining")) else "观察中"
     if st == J.INCOMPLETE:
@@ -196,15 +199,15 @@ def _cross_ages(batch: str, first_obs: str, last_obs: str) -> tuple[int, int]:
     return max(1, _age(batch, first_obs)), _age(batch, last_obs)
 
 
-def _cross_text(r: Any, first_obs: str, last_obs: str, window: int) -> str:
+def _cross_text(r: Any, first_obs: str, last_obs: str, window: int) -> str | Markup:
     st = r["status"]
     if st == J.X_HIT:
         bits = []
         if _isnum(r.get("hit_amount")):
-            bits.append(f"SPU 销售额 {money0(r['hit_amount'])}")
+            bits.append(escape(f"SPU 销售额 {money0(r['hit_amount'])}") + fmt.etag("估算", "") + fmt.etag("截面", "cross"))
         if _isnum(r.get("hit_bsr")):
-            bits.append(f"子 ASIN {r['hit_child']} 小类 BSR {bsr0(r['hit_bsr'])}")
-        return f"{r['hit_month']} · 第 {int(r['hit_age'])} 个月 · " + "，".join(bits)
+            bits.append(escape(f"子 ASIN {r['hit_child']} 小类 BSR {bsr0(r['hit_bsr'])}") + fmt.etag("实测", ""))
+        return escape(f"{r['hit_month']} · 第 {int(r['hit_age'])} 个月 · ") + Markup("，").join(bits)
     if st == J.X_MISS:
         un = D.loads(r.get("unobserved_ages_json"), []) or []
         return f"未观察到{age_range(un)}" if un else "新品期观察月都有数据，均未达到"
@@ -219,7 +222,7 @@ def _cross_text(r: Any, first_obs: str, last_obs: str, window: int) -> str:
 def _source_text(r: Any) -> str:
     if r["source"] == "已确认建议":
         return f"已确认建议 {r['merge_code']}" if r.get("merge_code") else "已确认建议"
-    return r["source"] or "—"
+    return r["source"] or "无数据"
 
 
 def _mode_pkg(conn: Connection, cid: int, mode: str) -> dict[str, Any] | None:
@@ -376,7 +379,7 @@ def _cross_list(request: Request, df: pd.DataFrame, rising: pd.DataFrame, exclud
     items = []
     for r in rows.iloc[pg["lo"]:pg["hi"]].to_dict("records"):
         a1, a2 = _cross_ages(r["batch"], first_obs, last_obs)
-        r["ages_text"] = age_range(list(range(a1, a2 + 1))) if a2 >= a1 else "—"
+        r["ages_text"] = age_range(list(range(a1, a2 + 1))) if a2 >= a1 else "无"
         r["hit_text"] = _cross_text(r, first_obs, last_obs, window)
         items.append(r)
     return {"cross_overview": overview, "old_count": int(len(old)), "excluded_count": int(len(excluded)),

@@ -1,4 +1,4 @@
-== 2026-10-27T01:33:48+00:00 干净环境安装（按 pyproject 锁定版本）
+== 2026-10-27T03:10:05+00:00 干净环境安装（按 pyproject 锁定版本）
 warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
 Using CPython 3.14.6
 Creating virtual environment at: /tmp/claude-0/-home-user-wxb981111-163-com/91c136b4-837e-53b2-a718-2bcdbefbd924/scratchpad/cleanenv
@@ -6,11 +6,11 @@ Activate with: source /tmp/claude-0/-home-user-wxb981111-163-com/91c136b4-837e-5
 exit_code=0
 warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
 Using Python 3.14.6 environment at: /tmp/claude-0/-home-user-wxb981111-163-com/91c136b4-837e-53b2-a718-2bcdbefbd924/scratchpad/cleanenv
-Resolved 44 packages in 25ms
+Resolved 44 packages in 26ms
    Building oppo @ file:///home/user/wxb981111-163.com/opportunity-research/app
       Built oppo @ file:///home/user/wxb981111-163.com/opportunity-research/app
-Prepared 1 package in 1.14s
-Installed 44 packages in 132ms
+Prepared 1 package in 1.01s
+Installed 44 packages in 66ms
  + alembic==1.20.1
  + annotated-doc==0.0.5
  + annotated-types==0.8.0
@@ -58,10 +58,10 @@ Installed 44 packages in 132ms
 exit_code=0
 Python 3.14.6
 fastapi 0.162.0 sqlalchemy 2.1.6 pandas 3.0.6 uvicorn 0.54.0 statsmodels 0.15.0
-== 2026-10-27T01:33:55+00:00 静态检查 ruff check .
+== 2026-10-27T03:10:12+00:00 静态检查 ruff check .
 All checks passed!
 exit_code=0
-== 2026-10-27T01:33:55+00:00 oppo --help
+== 2026-10-27T03:10:12+00:00 oppo --help
 usage: oppo [-h] [--data-dir DATA_DIR]
             {import,report,contract,health,merge,compute,recompute,backtest,ranking,export,decision,backup-dir,restore,runs,status,serve} ...
 
@@ -90,7 +90,7 @@ options:
   -h, --help            show this help message and exit
   --data-dir DATA_DIR   数据目录（默认取 OPPO_DATA_DIR 或安装目录下的 data）
 exit_code=0
-== 2026-10-27T01:33:59+00:00 全部自动化测试 pytest
+== 2026-10-27T03:10:15+00:00 全部自动化测试 pytest
 PASSED tests/test_core_flows.py::test_flow05_success_line
 PASSED tests/test_core_flows.py::test_flow04_launch_variant_relaunch
 PASSED tests/test_core_flows.py::test_flow04_suggestion_bases
@@ -122,6 +122,7 @@ PASSED tests/test_e2e_data_prep.py::test_fields_batch_item_and_save
 PASSED tests/test_e2e_data_prep.py::test_fields_changed_package_and_stale
 PASSED tests/test_e2e_data_prep.py::test_health_threshold_ack_and_fingerprints
 PASSED tests/test_e2e_data_prep.py::test_config_required_bins_and_new_version
+PASSED tests/test_e2e_data_prep.py::test_config_segment_dimensions_are_editable
 PASSED tests/test_e2e_data_prep.py::test_new_category_from_template_and_blank
 PASSED tests/test_e2e_data_prep.py::test_runs_first_run_and_monthly
 PASSED tests/test_e2e_data_prep.py::test_runs_match_workbench
@@ -154,6 +155,8 @@ PASSED tests/test_risk_extra.py::test_rule08_readonly_backup_dir_then_restore
 PASSED tests/test_risk_extra.py::test_flow01_blocked_package_is_refused
 PASSED tests/test_risk_extra.py::test_flow04_no_bullets_comparison_shows_nodata
 PASSED tests/test_risk_extra.py::test_rule03_every_result_is_traceable
+PASSED tests/test_risk_extra.py::test_backup_list_survives_a_moved_folder
+PASSED tests/test_risk_extra.py::test_project_date_defaults_to_today
 PASSED tests/test_rule04_cli_vs_web.py::test_rule04_cli_and_web_give_the_same_results
 PASSED tests/test_rules_nfr.py::test_rule01_point_in_time
 PASSED tests/test_rules_nfr.py::test_rule02_two_fresh_databases_identical
@@ -173,11 +176,16 @@ PASSED tests/test_units.py::test_achieved_exactly_two_times
 PASSED tests/test_units.py::test_not_achieved_at_1_99
 PASSED tests/test_units.py::test_not_achieved_when_equal_to_an_indicator
 PASSED tests/test_units.py::test_uncomputable_indicators_are_not_compared
+PASSED tests/test_units.py::test_status_badges_follow_design_md[\u672a\u8fbe\u6807-badge--fail-x-circle]
+PASSED tests/test_units.py::test_status_badges_follow_design_md[\u622a\u9762\u547d\u4e2d-badge--cross-check-circle]
+PASSED tests/test_units.py::test_status_badges_follow_design_md[\u8fbe\u6807\uff08\u622a\u9762\uff09-badge--cross-seal-check]
+PASSED tests/test_units.py::test_status_badges_follow_design_md[\u672a\u9a8c\u8bc1-badge--unverified-seal-question]
+PASSED tests/test_units.py::test_heat_cell_without_observations_says_no_data_once
+PASSED tests/test_units.py::test_reconcile_bar_marks_an_interval_past_the_scale
 PASSED tests/test_web_smoke.py::test_workbench_empty
 PASSED tests/test_web_smoke.py::test_workbench_done
 PASSED tests/test_web_smoke.py::test_write_requires_token
 PASSED tests/test_web_smoke.py::test_data_dir_with_percent_and_chinese
 PASSED tests/test_web_smoke.py::test_workbench_lists_health_warning_with_evidence
 exit_code=0
-== 2026-10-27T01:47:30+00:00 结束
-== junit 汇总（读取 junit.xml）: tests=87 passed=87 failures=0 errors=0 skipped=0 time=802.6s
+== 2026-10-27T03:24:54+00:00 结束

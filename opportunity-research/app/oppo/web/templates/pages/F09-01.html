@@ -13,7 +13,7 @@
         <div class="page-head enter" style="--i:0">
           <div>
             <h1>本月排序</h1>
-            <p class="page-head__sub">{{ T or '—' }} · 数据至 {{ (content.data_to if content else (pkg.months_to if pkg else '—')) }} · {{ '截面' if cross else '历史' }}口径{% if card %} · {{ badge(('判定卡 ' if card.mode == 'history' else '截面卡 ') ~ card.label.replace('截面 ', '') ~ ' ' ~ card.status, fmt.STATUS_BADGE.get(card.status, ('', ''))[0], fmt.STATUS_BADGE.get(card.status, ('', 'info'))[1]) }}{% endif %}</p>
+            <p class="page-head__sub">{{ T or '无数据' }} · 数据至 {{ (content.data_to if content else (pkg.months_to if pkg else '无数据')) }} · {{ '截面' if cross else '历史' }}口径{% if card %} · {{ badge(('判定卡 ' if card.mode == 'history' else '截面卡 ') ~ card.label.replace('截面 ', '') ~ ' ' ~ card.status, fmt.STATUS_BADGE.get(card.status, ('', ''))[0], fmt.STATUS_BADGE.get(card.status, ('', 'info'))[1]) }}{% endif %}</p>
             {% if snap %}
             <p class="page-head__sub">参照人群：{{ content.reference }}{% if cross %} · {{ CARD.CROSS_LINE_TEXT }}{% endif %} · <span class="lock">{{ icon('lock-simple') }}本月快照已保存（第 {{ snap.seq }} 版）· {{ snap.created_at[:16] }} · 保存后不可修改{% if snap.exported_at %} · 已导出 · {{ snap.exported_at[:16] }}{% endif %}</span></p>
             {% endif %}
@@ -36,7 +36,7 @@
           {{ icon('warning') }}
           <div class="banner__body">
             <div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div>
-            <div>判定卡 {{ card.label }} 未达标：{{ card.basis.reason_class or '—' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。排序照常显示，只能作参考。</div>
+            <div>判定卡 {{ card.label }} 未达标：{{ card.basis.reason_class or '原因无数据' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。排序照常显示，只能作参考。</div>
           </div>
           <div class="banner__actions"><a class="btn btn--sm" href="/card">查看判定卡</a></div>
         </div>
@@ -122,7 +122,7 @@
               </tbody>
             </table>
           </div>
-          <p class="small muted" style="margin-top: var(--space-2)">预期命中率来自{% if cross %}截面回测{% else %}回测{% endif %} {{ bt.code if bt else '—' }}（Wilson 90% 区间）；样本量为细分内已判定的起量新 SPU 数。点击一行查看细分详情。</p>
+          <p class="small muted" style="margin-top: var(--space-2)">预期命中率来自{% if cross %}截面回测{% else %}回测{% endif %} {{ bt.code if bt else '（无数据）' }}（Wilson 90% 区间）；样本量为细分内已判定的起量新 SPU 数。点击一行查看细分详情。</p>
         </section>
         {% endif %}
 

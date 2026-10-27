@@ -217,7 +217,7 @@ a:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: v
 }
 .badge .icon { width: 13px; height: 13px; vertical-align: 0; }
 .badge--hit, .badge--pass { background: var(--success-tint); color: var(--success); }
-.badge--miss { background: var(--surface-warm); color: var(--fg-2); border-color: var(--border); }
+.badge--miss, .badge--fail { background: var(--surface-warm); color: var(--fg-2); border-color: var(--border); }
 .badge--watch { background: var(--surface); color: var(--fg-2); border-color: var(--border-control); }
 .badge--unverified { background: var(--warn-tint); color: var(--warn); }
 .badge--insufficient { background: transparent; color: var(--muted); border-color: var(--border-control); border-style: dashed; }
@@ -268,7 +268,7 @@ a:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: v
   background: var(--surface-warm); color: var(--fg); font-size: var(--text-sm);
 }
 .banner > .icon { margin-top: 3px; }
-.banner__body { flex: 1; min-width: 0; }
+.banner__body { flex: 1; min-width: 0; text-wrap: pretty; }
 .banner__title { font-weight: 600; }
 .banner + .banner { margin-top: var(--space-2); }
 .banner--ok { background: var(--success-tint); border-color: color-mix(in oklab, var(--success), white 70%); }

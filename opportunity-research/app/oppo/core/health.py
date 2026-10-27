@@ -29,6 +29,10 @@ def _lower_bound(label: Any) -> float | None:
     return v * 1000 if m.group(2) else v
 
 
+def _text(v: Any) -> str:
+    return "无数据" if v is None or (isinstance(v, float) and pd.isna(v)) or v == "" else str(v)
+
+
 def compute(b: DATA.Bundle, dup_rows: int) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     master = DATA.child_master(b)
@@ -39,21 +43,21 @@ def compute(b: DATA.Bundle, dup_rows: int) -> dict[str, dict[str, Any]]:
         hit = m[m["gap"] > 7].sort_values(["gap", "child"], ascending=[False, True])
         out["first_review_early"] = dict(
             numerator=len(hit), denominator=len(m), value=len(hit) / len(m) * 100,
-            samples=[{"子ASIN": r.child, "父ASIN": r.parent, "上架日期": r.launch_date, "首次评分日期": r.first_review,
-                      "早于上架（天）": int(r.gap)} for r in hit.head(5).itertuples()])
+            samples=[{"子ASIN": r.child, "父ASIN": r.parent, "品牌": _text(r.brand), "上架日期": r.launch_date,
+                      "首次评分日期": r.first_review, "早于上架（天）": int(r.gap)} for r in hit.head(5).itertuples()])
     else:
         out["first_review_early"] = dict(numerator=0, denominator=0, value=None, samples=[], na="数据里没有首次评分日期")
     # 2. family launch span > 180 days
     fam = master.dropna(subset=["parent", "launch_date"]).copy()
     fam["ld"] = pd.to_datetime(fam["launch_date"])
-    g = fam.groupby("parent").agg(n=("child", "count"), lo=("ld", "min"), hi=("ld", "max"))
+    g = fam.groupby("parent").agg(n=("child", "count"), lo=("ld", "min"), hi=("ld", "max"), brand=("brand", "first"))
     g = g[g["n"] >= 2]
     g["span"] = (g["hi"] - g["lo"]).dt.days
     wide = g[g["span"] > 180].sort_values("span", ascending=False)
     out["family_span"] = dict(
         numerator=len(wide), denominator=len(g), value=(len(wide) / len(g) * 100) if len(g) else None,
-        samples=[{"父ASIN": p, "子体数": int(r.n), "最早上架": r.lo.date().isoformat(), "最晚上架": r.hi.date().isoformat(),
-                  "跨度（天）": int(r.span)} for p, r in wide.head(5).iterrows()])
+        samples=[{"父ASIN": p, "品牌": _text(r.brand), "子体数": int(r.n), "最早上架": r.lo.date().isoformat(),
+                  "最晚上架": r.hi.date().isoformat(), "跨度（天）": int(r.span)} for p, r in wide.head(5).iterrows()])
     # 3. child units below the "bought in past month" label lower bound
     c1 = b.c1
     if len(c1) and "bought_label" in c1 and c1["bought_label"].notna().any():
@@ -80,21 +84,36 @@ def compute(b: DATA.Bundle, dup_rows: int) -> dict[str, dict[str, Any]]:
     per_dim.sort(key=lambda d: (-d["占比"], d["维度"]))
     if per_dim:
         top = per_dim[0]
+        brands = master.set_index("child")["brand"] if len(master) else pd.Series(dtype=object)
+        last = (c1[c1["month"] == c1["month"].max()].groupby("child")["child_units"].sum()
+                if len(c1) and "child_units" in c1 else pd.Series(dtype=float))
+        dims = [d["维度"] for d in per_dim]
+        rows = attrs.set_index("child")
+        samples = []
+        for c in top["examples"]:
+            r = rows.loc[c]
+            unknown = [d for d in dims if str(r.get(d) if pd.notna(r.get(d)) else "") in ("", "未知")]
+            samples.append({"子ASIN": c, "品牌": _text(brands.get(c)), "“未知”的维度": "、".join(unknown),
+                            "证据状态": _text(r.get(f"{top['维度']}__status")),
+                            "上月销量": int(last[c]) if c in last.index and pd.notna(last[c]) else None})
         out["unknown_share"] = dict(numerator=top["未知"], denominator=top["子体"], value=top["占比"],
-                                    detail={"dims": per_dim, "max_dim": top["维度"]},
-                                    samples=[{"子ASIN": c, "维度": top["维度"], "标签值": "未知"} for c in top["examples"]])
+                                    detail={"dims": per_dim, "max_dim": top["维度"],
+                                            "last_month": str(c1["month"].max()) if len(c1) else None},
+                                    samples=samples)
     else:
         out["unknown_share"] = dict(numerator=0, denominator=0, value=None, samples=[], na="没有属性标签")
     # 5. children whose parent ASIN changes across months
     if len(c1):
         pc = c1.dropna(subset=["parent"]).groupby("child")["parent"].nunique()
         changed = sorted(pc[pc > 1].index)
+        brands = master.set_index("child")["brand"] if len(master) else pd.Series(dtype=object)
         samples = []
         for ch in changed[:5]:
-            seq = c1[c1["child"] == ch].sort_values("month")
-            seen = list(dict.fromkeys(seq["parent"].dropna()))
-            samples.append({"子ASIN": ch, "父ASIN 变化": " → ".join(seen),
-                            "月份": f"{seq['month'].iloc[0]} 至 {seq['month'].iloc[-1]}"})
+            seq = c1[c1["child"] == ch].dropna(subset=["parent"]).sort_values("month")
+            prev = seq["parent"].shift()
+            first = seq[(prev.notna()) & (seq["parent"] != prev)].iloc[0]
+            samples.append({"子ASIN": ch, "品牌": _text(brands.get(ch)), "变化月份": first["month"],
+                            "原父ASIN": prev[first.name], "新父ASIN": first["parent"]})
         out["parent_change"] = dict(numerator=len(changed), denominator=int(c1["child"].nunique()),
                                     value=float(len(changed)), samples=samples)
     else:
@@ -119,9 +138,11 @@ def run(conn: Connection, category_id: int, package_id: int) -> None:
                             "AND check_name='unique_key'"), {"p": package_id}).scalar() or 0
     res = compute(b, int(dup))
     # dup_key samples: the excluded duplicate line numbers per file
-    rows = conn.execute(text("SELECT file_code, sample_rows_json FROM validation_item WHERE package_id=:p AND "
-                             "check_name='unique_key' AND affected_rows>0"), {"p": package_id}).all()
-    res["dup_key"]["samples"] = [{"文件": fc, "重复行号": ", ".join(map(str, D.loads(s, [])))} for fc, s in rows][:5]
+    rows = conn.execute(text("SELECT file_code, sample_rows_json, affected_note FROM validation_item WHERE package_id=:p "
+                             "AND check_name='unique_key' AND affected_rows>0"), {"p": package_id}).all()
+    keys = {fc: (D.loads(note, {}) or {}).get("keys", {}) if (note or "").startswith("{") else {} for fc, _s, note in rows}
+    res["dup_key"]["samples"] = [{"文件": fc, "主键值": keys[fc].get(str(line), "无数据"), "行号": line}
+                                 for fc, s, _n in rows for line in D.loads(s, [])][:5]
     now = clock.now_iso()
     conn.execute(text("DELETE FROM health_result WHERE package_id=:p"), {"p": package_id})
     for item in ITEMS:

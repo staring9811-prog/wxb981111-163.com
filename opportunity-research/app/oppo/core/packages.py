@@ -226,9 +226,12 @@ def _check_file(fc: FileCheck) -> None:
     dup_mask = keys.duplicated(keep="first")
     dup_rows = set(int(i) for i in dup_mask[dup_mask].index)
     dgrade = _grade(len(dup_rows), total)
+    # the key values of the sample lines, shown next to the line numbers in the 数据体检 samples (PAGE-F03-02)
+    dup_keys = {str(_row_label(i)): " · ".join(v.strip() for v in df.loc[i, key_cols]) for i in sorted(dup_rows)[:5]}
     fc.items.append(dict(
         file_code=fc.code, field="×".join(key_cols), check_name="unique_key", result=dgrade,
-        affected_rows=len(dup_rows), sample_rows_json=D.dumps([_row_label(i) for i in sorted(dup_rows)[:5]]),
+        affected_rows=len(dup_rows), affected_note=D.dumps({"keys": dup_keys}) if dup_rows else None,
+        sample_rows_json=D.dumps([_row_label(i) for i in sorted(dup_rows)[:5]]),
         excluded_rows_json=D.dumps([_row_label(i) for i in sorted(dup_rows)]) if dgrade == "warn" else None,
         message=None if not dup_rows else f"主键重复 {len(dup_rows)} 行（保留首次出现的行）",
     ))

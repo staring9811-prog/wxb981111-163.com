@@ -273,7 +273,8 @@ def heat_table(res: dict[str, Any]) -> dict[str, Any]:
         for a in range(1, 7):
             c = ages.get(a) or ages.get(str(a))
             if not c:
-                cells.append({"cls": "hx", "text": NO, "sub": NO, "tip": f"{NO}|第 {a} 个月：没有观察"})
+                cells.append({"cls": "hx", "text": NO, "sub": "",
+                              "tip": f"{NO}|{seg.replace('|', ' · ')} · 第 {a} 个月|没有被观察到的新 SPU"})
                 continue
             h, n = int(c["hits"]), int(c["n"])
             cls = heat_class(h, n)

@@ -112,7 +112,7 @@ def _decisions(conn: Connection, cid: int) -> list[dict[str, Any]]:
             if launch:
                 state = f"已上架 {launch.get('launch_month')}；自家对账：{launch.get('status')}"
             elif r.get("decision") == "不立项":
-                state = "理由：" + (r.get("reason") or "—")
+                state = "理由：" + (r.get("reason") or "无数据")
             else:
                 state = "在研"
         kind = r.get("kind") or "记录"
@@ -120,7 +120,7 @@ def _decisions(conn: Connection, cid: int) -> list[dict[str, Any]]:
             "code": r["code"], "project": r.get("project_name"), "decision": r.get("decision"),
             "segment": r.get("segment_name") or (r.get("segment_key") or "").replace("|", " · "),
             "reason": r.get("reason"), "snapshot": snap["label"] if snap else None,
-            "snapshot_none": "补录，无当时快照" if kind == "补录" else "—",
+            "snapshot_none": "补录，无当时快照" if kind == "补录" else "无对应快照",
             "source": kind + (f"（{relation}）" if relation and kind == "更正" else ""), "relation": relation,
             "date": r.get("project_date"), "state": state, "launch_status": launch.get("status"),
             "launch_month": launch.get("launch_month"), "rank": row["rank"] if row else None,
@@ -141,7 +141,7 @@ def _recons(conn: Connection, cid: int) -> list[dict[str, Any]]:
         cross = r["mode"] == "cross"
         result = (r["within"] or "无数据") + (f"；{rules}" if rules else "") + (f" · {CARD.CROSS_LINE_TEXT}" if cross else "")
         out.append({
-            "snapshot": snap.get("label", "—"), "batch": r["batch"], "batch_n": (r["all_n"] or 0) + (r["incomplete"] or 0),
+            "snapshot": snap.get("label", "无数据"), "batch": r["batch"], "batch_n": (r["all_n"] or 0) + (r["incomplete"] or 0),
             "k": len(((snap.get("content") or {}).get("top20") or {}).get("segments") or []),
             "top_hits": r["top_hits"], "top_n": r["top_n"], "top_rate": top_rate, "all_hits": r["all_hits"],
             "all_n": r["all_n"], "all_rate": all_rate, "multiple": r["multiple"],
@@ -163,7 +163,7 @@ def _own(decisions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if la.get("max_sales") is not None:
             parts.append(f"最高月销售额 {fmt.money(la['max_sales'])}")
         note = f"关联细分当时排名第 {d['rank']}，锦囊 {d['tips']}" if d["rank"] else "补录，无当时快照"
-        out.append({"code": d["code"], "launch_month": la.get("launch_month"), "status": la.get("status") or "—",
+        out.append({"code": d["code"], "launch_month": la.get("launch_month"), "status": la.get("status") or "无数据",
                     "detail": "，".join(parts) or "无数据", "snapshot_text": d["snapshot"] or "补录，无当时快照",
                     "note": note})
     return out
@@ -255,7 +255,7 @@ def build_xlsx(data: dict[str, Any], path: Path, report: Report) -> None:
     fill = {"warn": "F4EEE6", "cross": "EFECF6", "ok": "E8F1EC"}[kind]
     cat = data["cat"]
     ident = (f"{cat['name']} · 排序月份 {snap['month']} · 快照第 {snap['seq']} 版 · "
-             f"判定卡 {card['label'] if card else '—'} {card['status'] if card else ''}")
+             f"判定卡 {card['label'] if card else '未生成'} {card['status'] if card else ''}")
     PCT, MULT = "0.0%", "0.00"
     wb = Workbook()
     wb.remove(wb.active)
@@ -502,7 +502,7 @@ def _bt_summary(bv: dict[str, Any]) -> list[tuple[str, Any]]:
     out: list[tuple[str, Any]] = [
         ("回测编号", bv["code"]), ("口径", "截面" if bv["cross"] else "历史"),
         ("开始时间与用时", f"{bv['started']} · {bv['duration']}"), ("随机种子", bv["seed"]),
-        ("所用版本", f"数据包 {bv['package']['label'] if bv['package'] else '—'} · 字段约定 v{bv['contract_no']} · "
+        ("所用版本", f"数据包 {bv['package']['label'] if bv['package'] else '无数据'} · 字段约定 v{bv['contract_no']} · "
                  f"品类配置 v{bv['config_no']}"),
         ("已判定批次", f"{len(bv['decided'])} 个（{P.span(bv['decided'])}）"),
     ]
@@ -517,7 +517,7 @@ def _bt_summary(bv: dict[str, Any]) -> list[tuple[str, Any]]:
                 ("全类目平均", f"{bv['all_hits']} / {bv['all_n']} = {fmt.pct(bv['avg'])}"),
                 ("倍数", f"{fmt.mult(bv['multiple'])}（重抽样 90% 区间 {_mci(bv['mult_ci'])}）")]
     out += [("结论", bv["conclusion"]), ("未达标原因与数值", "：".join(x for x in (bv["reason_class"], bv["reason_text"]) if x)
-                                       or "—"), ("样本不足细分数", len(bv["insufficient"]))]
+                                       or "不适用"), ("样本不足细分数", len(bv["insufficient"]))]
     return out
 
 

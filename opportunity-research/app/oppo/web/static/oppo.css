@@ -11,8 +11,10 @@
 .danger-text { color: var(--danger); }
 .step[data-status="running"] .step__dot { color: var(--accent); }
 .step, .step__link { min-width: 0; }
-.step__meta { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: var(--space-2); }
+/* long step states wrap onto a second line (between their “ · ” parts) instead of being cut off with an ellipsis */
+.step__meta { display: block; max-width: 100%; white-space: normal; line-height: 1.5; padding-right: var(--space-2); }
 .step__meta--warn { color: var(--warn); }
+.step__meta .t-nowrap { white-space: nowrap; }
 .kv dd, .fp, .cell-sub { overflow-wrap: anywhere; min-width: 0; }
 /* one emphasis button per screen: while a modal or drawer is open, primary buttons behind it fall back to the default style */
 body:has(.modal.is-open, .drawer.is-open) .main .btn--primary:not(.modal .btn--primary):not(.drawer .btn--primary) {
@@ -21,3 +23,5 @@ body:has(.modal.is-open, .drawer.is-open) .main .btn--primary:not(.modal .btn--p
 /* interval bar running past the fixed 0–60 % scale: a small arrow at the end of the track (grey on grey bars) */
 .ibar__over { fill: var(--viz-series-1); }
 .ibar--grey .ibar__over, .ibar--muted .ibar__over { fill: var(--muted); }
+.stat__value--empty { font-size: var(--text-lg); font-weight: 500; color: var(--muted); }
+.banner__body { text-wrap: pretty; }  /* no single character left alone on the last line */

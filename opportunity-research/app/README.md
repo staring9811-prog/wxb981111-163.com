@@ -4,7 +4,7 @@
 
 ## Windows 离线安装包（给使用者）
 
-1. 从仓库 Actions 的 `windows-acceptance` 运行结果下载 `offline-package`，解压得到 `机会判定台-1.0.0-win64.zip`，再解压到任意目录。
+1. 构建（需联网，任意装有 Python 3.14 的电脑均可）：`python packaging/build_offline.py --out dist`，得到 `dist/机会判定台-1.0.0-win64.zip`；把它解压到使用者电脑的任意目录。
 2. 双击 `启动.bat`：在 `http://127.0.0.1:8765/` 启动并自动打开浏览器；再次双击只打开浏览器。
 3. 双击 `命令行.bat` 使用 `oppo` 命令（`oppo --help`）。数据在 `data\`，升级时保留。运行时不联网。
 
@@ -31,5 +31,5 @@ python -m devtools.capture_visual <目录>               # 真实页面截图 �
 ```
 
 - `packaging/build_offline.py`：构建 Windows 离线安装包（嵌入式 Python + 预装依赖）。
-- `packaging/win_acceptance.py`：在 Windows 上执行 SMOKE-03、RULE-05 与 FLOW-17 的浏览器部分；仓库根目录的 `.github/workflows/windows-acceptance.yml` 只在打包脚本或 `packaging/ci-trigger.txt` 变化时运行。
+- `packaging/win_acceptance.py`：在一台 Windows x64 电脑上执行 SMOKE-03、RULE-05 与 FLOW-17 的浏览器部分（`python packaging/win_acceptance.py --zip <安装包> --fixtures fixtures/packages --out results`）；本期结果与运行环境记录在 `../output/tests/windows/`。
 - 验收结果：`../output/tests/TDD验收结果.md`，校验：`python3 ../tools/check_contract.py --result ../output`。

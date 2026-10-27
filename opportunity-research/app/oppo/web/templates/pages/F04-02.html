@@ -133,7 +133,7 @@
                               {% else %}
                               {% for v in row['values'] %}<td class="{{ 'mono' if row.mono else '' }}{{ ' small' if row.small else '' }}{{ ' muted' if v in ('信息不足', '无数据') else '' }}">{{ v }}</td>{% endfor %}
                               {% endif %}
-                              <td class="small{% if row.ok is not sameas true %} muted{% endif %}">{% if row.ok is sameas true %}{{ icon('check') }} {% endif %}{{ row.verdict }}</td>
+                              <td class="small{% if row.ok is not sameas true %} muted{% endif %}">{% if row.ok is sameas true %}{{ icon('check') }} {% elif row.ok is sameas false %}{{ icon('minus') }} {% endif %}{{ row.verdict }}</td>
                             </tr>
                             {% endfor %}
                           </tbody>
@@ -201,7 +201,7 @@
                   <td class="t-nowrap"><a class="tlink" href="/spu/{{ m.spu_key|b_key }}">{{ m.code }}</a><div class="cell-sub">{{ m.brand }}</div></td>
                   <td class="mono">{{ m.parents|join('<br>'|safe) }}</td>
                   <td class="t-num">{{ m.kids }}</td>
-                  <td>{% if m.suggestion %}<div class="mono">{{ m.suggestion.code }}</div><div class="cell-sub">{{ m.suggestion.basis }}</div>{% else %}<span class="muted">—</span>{% endif %}</td>
+                  <td>{% if m.suggestion %}<div class="mono">{{ m.suggestion.code }}</div><div class="cell-sub">{{ m.suggestion.basis }}</div>{% else %}<span class="small muted">无合并建议</span>{% endif %}</td>
                   <td class="small">{{ m.via }} · {{ m.created_by }}<div class="cell-sub t-nowrap">{{ (m.created_at or '')[:16] }}</div></td>
                   <td class="small">
                     {% if m.history %}

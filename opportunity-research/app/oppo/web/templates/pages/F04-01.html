@@ -157,7 +157,7 @@
                 <tbody>
                   {% for r in items %}
                   <tr data-href="/spu/{{ r.spu_key|b_key }}" data-spu="{{ r.spu_key }}" data-status="{{ r.status }}">
-                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|b_key }}">{{ r.display_id }}</a> · {{ r.brand or '—' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
+                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|b_key }}">{{ r.display_id }}</a> · {{ r.brand or '品牌无数据' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
                     <td class="t-num">{{ r.child_count }}{% if r.new_variant_count %} <span class="badge" tabindex="0" data-tip="新变体|上架晚于 SPU 上架日的子体|不计为新 SPU，销量计入本 SPU">含新变体 {{ r.new_variant_count }}</span>{% endif %}</td>
                     <td class="t-nowrap">{{ r.launch_date }}<div class="cell-sub mono">{{ r.launch_child }}</div></td>
                     <td class="t-nowrap">{{ r.batch }}</td>
@@ -219,7 +219,7 @@
           <section class="section enter" style="--i:3" aria-labelledby="cross-list-title">
             <div class="section__head">
               <h2 class="section__title" id="cross-list-title">新 SPU（截面口径）{% if filters.batch %} · {{ filters.batch }}{% endif %}{% if segment_name %} · {{ segment_name }}{% endif %}</h2>
-              <span class="section__note">共 {{ num(total_rising) }} 个起量新 SPU，其中截面命中 {{ total_xhit }} 个</span>
+              <span class="section__note">共 {{ num(total_rising) }} 个起量新 SPU，其中截面命中 {{ total_xhit }} 个{% if old_count %}；另列老品 {{ num(old_count) }} 个{% endif %}</span>
             </div>
             <form class="filters b-filters" role="search" method="get" action="/spu" aria-label="筛选新 SPU">
               <span class="filters__label">上架月</span>
@@ -250,7 +250,7 @@
                 <tbody>
                   {% for r in items %}
                   <tr data-href="/spu/{{ r.spu_key|b_key }}" data-spu="{{ r.spu_key }}" data-status="{{ r.status }}">
-                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|b_key }}">{{ r.display_id }}</a> · {{ r.brand or '—' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
+                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|b_key }}">{{ r.display_id }}</a> · {{ r.brand or '品牌无数据' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
                     <td>{{ r.batch }}</td><td>{{ r.ages_text }}</td>
                     <td>{{ badge(r.status) }}</td>
                     <td class="small{% if r.status == '老品' %} muted{% endif %}">{{ r.hit_text }}</td>

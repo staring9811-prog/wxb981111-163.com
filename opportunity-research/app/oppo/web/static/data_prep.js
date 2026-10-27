@@ -198,13 +198,53 @@
     var timer = null;
     var cat = cfg.getAttribute('data-category');
     function val(el) { return el.type === 'checkbox' ? String(el.checked) : el.value.trim(); }
+    var curNo = cfg.getAttribute('data-cur-no');
+    var PENCIL = '<svg class="icon" aria-hidden="true"><use href="#ph-pencil-simple"/></svg>';
+    function wasText(el) {
+      var w = el.getAttribute('data-was');
+      if (el.type === 'checkbox') return w === 'true' ? '可回填' : '不回填';
+      if (el.tagName === 'SELECT') {
+        for (var i = 0; i < el.options.length; i++) if (el.options[i].value === w) return el.options[i].textContent.trim();
+      }
+      if (!w) return '空';
+      var u = el.getAttribute('data-unit');
+      return u ? w + (u === '%' ? u : ' ' + u) : w;
+    }
+    function badge() {
+      var b = doc.createElement('span');
+      b.className = 'badge was-badge';
+      b.innerHTML = PENCIL + '已修改';
+      return b;
+    }
+    /* 改过的项：标签旁“已修改”，下方注明当前版本的取值（如“v1 为 4 个月”）；表格单元格把两者放在输入框下方 */
+    function mark(el, changed) {
+      var f = el.closest('.field, td');
+      if (!f) return;
+      f.classList.toggle('is-modified', changed);
+      var note = f.querySelector(':scope > .was-note');
+      var lb = f.matches('.field') ? f.querySelector(':scope > .field__label') : null;
+      var old = lb && lb.querySelector('.was-badge');
+      if (!changed || !curNo) {
+        if (note) note.remove();
+        if (old) old.remove();
+        return;
+      }
+      if (!note) {
+        note = doc.createElement('span');
+        note.className = 'field__hint was-note';
+        var err = f.querySelector(':scope > .field-error');
+        if (lb) f.insertBefore(note, err ? err.nextSibling : el.nextSibling);
+        else f.appendChild(note);
+      }
+      note.textContent = 'v' + curNo + ' 为 ' + wasText(el) + (lb ? '。' : '');
+      if (lb) { if (!old) lb.appendChild(badge()); } else note.insertBefore(badge(), note.firstChild);
+    }
     function marks() {
       var n = 0;
       $$('[data-was]', cfg).forEach(function (el) {
-        var changed = val(el) !== el.getAttribute('data-was');
+        var changed = !el.disabled && val(el) !== el.getAttribute('data-was');
         if (changed) n += 1;
-        var f = el.closest('.field, td');
-        if (f) f.classList.toggle('is-modified', changed);
+        mark(el, changed);
       });
       var b = doc.getElementById('draft-banner');
       if (b && n > 0) b.hidden = false;
@@ -239,6 +279,15 @@
         return res;
       });
     }
+    /* 细分维度：勾选后该行的分档才可填写并参与保存 */
+    $$('[data-segdim]', cfg).forEach(function (box) {
+      box.addEventListener('change', function () {
+        var row = box.closest('tr');
+        var bins = row && row.querySelector('input[name^="bins."]');
+        if (bins) { bins.disabled = !box.checked; if (box.checked) bins.focus(); }
+        if (row) row.classList.toggle('is-off', !box.checked);
+      });
+    });
     cfg.addEventListener('input', function () {
       marks();
       window.clearTimeout(timer);

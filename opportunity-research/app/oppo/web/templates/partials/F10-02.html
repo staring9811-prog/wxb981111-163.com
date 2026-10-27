@@ -30,7 +30,7 @@
                 {% if corr %}
                 <div class="banner">
                   {{ icon('arrows-clockwise') }}
-                  <div class="banner__body"><span class="banner__title">更正 {{ corr.code }}。</span>保存后新增一条来源为"更正"的记录，{{ corr.code }} 标"已更正"并保留，两条记录互相链接；对应快照沿用原记录的 {{ corr.snapshot.label if corr.snapshot else '—' }}。</div>
+                  <div class="banner__body"><span class="banner__title">更正 {{ corr.code }}。</span>保存后新增一条来源为"更正"的记录，{{ corr.code }} 标"已更正"并保留，两条记录互相链接；对应快照沿用原记录的 {{ corr.snapshot.label if corr.snapshot else '无数据' }}。</div>
                 </div>
                 {% elif not snap %}
                 <div class="banner banner--warn">

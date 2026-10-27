@@ -36,11 +36,16 @@ class Context:
     has_c6: bool
     old_children: set[str] = field(default_factory=set)
     months_avail: set[str] = field(default_factory=set)
-    kw_map: dict[str, tuple[str, str] | None] = field(default_factory=dict)
+    kw_map: dict[str, tuple[tuple[str, str], ...] | None] = field(default_factory=dict)
 
 
-def keyword_segments(tags: str | None, cfg: dict[str, Any]) -> tuple[str, str] | None:
-    """Map a keyword's tags to (width label, form label); None for generic keywords."""
+MAPPED_DIMS = ("width", "form")  # dimensions a keyword's attribute tags can name; the others are not mapped
+
+
+def keyword_segments(tags: str | None, cfg: dict[str, Any]) -> tuple[tuple[str, str], ...] | None:
+    """Map a keyword's tags to the labels of the selected mapped dimensions, e.g. (("width", "30–48″"),
+    ("form", "落地式")); None for generic keywords. Unmapped dimensions (价格带 and any other selected attribute)
+    count every bin, as the keyword mapping rules on the config page say."""
     if not tags or str(tags).strip() in ("", "通用"):
         return None
     kv: dict[str, str] = {}
@@ -48,15 +53,29 @@ def keyword_segments(tags: str | None, cfg: dict[str, Any]) -> tuple[str, str] |
         if "=" in part:
             k, v = part.split("=", 1)
             kv[k.strip()] = v.strip()
-    width_dim = next(d for d in cfg["segment_dims"] if d["key"] == "width")
-    size_tag = cfg["keyword_mapping"]["width"].get("tag", "尺寸")
-    w = SEG.bin_numeric(SEG._num(kv.get(size_tag)), width_dim["bins"]) if kv.get(size_tag) else None
-    fmap = cfg["keyword_mapping"]["form"]["map"]
-    raw_form = kv.get(cfg["keyword_mapping"]["form"].get("tag", "形态"), "").lower()
-    f = next((label for label, words in fmap.items() if raw_form in [x.lower() for x in words]), None)
-    if not w or w == SEG.UNKNOWN or not f:
-        return None
-    return w, f
+    km = cfg.get("keyword_mapping") or {}
+    out: list[tuple[str, str]] = []
+    for dim in cfg["segment_dims"]:
+        if dim["key"] == "width":
+            raw = kv.get((km.get("width") or {}).get("tag", "尺寸"))
+            label = SEG.bin_numeric(SEG._num(raw), dim["bins"]) if raw else None
+        elif dim["key"] == "form":
+            raw = kv.get((km.get("form") or {}).get("tag", "形态"), "").lower()
+            fmap = (km.get("form") or {}).get("map") or {}
+            label = next((lab for lab, words in fmap.items() if raw in [x.lower() for x in words]), None)
+        else:
+            continue
+        if not label or label == SEG.UNKNOWN:
+            return None
+        out.append((dim["key"], label))
+    return tuple(out) or None
+
+
+def segment_combo(seg_key: str, cfg: dict[str, Any]) -> tuple[tuple[str, str], ...]:
+    """The mapped-dimension labels of a segment, comparable with keyword_segments()."""
+    parts = seg_key.split("|")
+    return tuple((d["key"], parts[i]) for i, d in enumerate(cfg["segment_dims"])
+                 if d["key"] in MAPPED_DIMS and i < len(parts))
 
 
 def build_context(cfg: dict[str, Any], mode: str, c1: pd.DataFrame, attrs: pd.DataFrame, c5: pd.DataFrame,
@@ -163,17 +182,17 @@ def compute_T(ctx: Context, T: str) -> tuple[list[dict[str, Any]], dict[str, dic
     recent = month_range(add_months(T, -n), prev)
     prior = [add_months(m, -12) for m in recent]
     kw = view.keywords()
-    by_combo: dict[tuple[str, str], list[str]] = {}
+    by_combo: dict[tuple[tuple[str, str], ...], list[str]] = {}
     for k, combo in ctx.kw_map.items():
         if combo:
             by_combo.setdefault(combo, []).append(k)
     pivot = kw.pivot_table(index="keyword", columns="month", values="volume", aggfunc="sum") if len(kw) else None
     for s in seg_keys:
-        w, f = s.split("|")[0], s.split("|")[1]
         if not ctx.has_c5:
             rows.append(_row(s, "demand", None, flag=NO_DATA, reason="数据包不含关键词（C5）"))
             continue
-        kws = by_combo.get((w, f), [])
+        combo = segment_combo(s, cfg)
+        kws = by_combo.get(combo, []) if combo else []
         need = recent + prior
         ok = []
         if pivot is not None:
@@ -181,7 +200,9 @@ def compute_T(ctx: Context, T: str) -> tuple[list[dict[str, Any]], dict[str, dic
                 if k in pivot.index and all(m in pivot.columns and pd.notna(pivot.at[k, m]) for m in need):
                     ok.append(k)
         if not ok:
-            rows.append(_row(s, "demand", None, flag=NO_DATA, reason="所需月份的关键词数据缺失" if kws else "没有映射到该细分的关键词"))
+            reason = ("所需月份的关键词数据缺失" if kws else "没有映射到该细分的关键词" if combo
+                      else "细分维度里没有宽度档或形态，关键词无法归入细分")
+            rows.append(_row(s, "demand", None, flag=NO_DATA, reason=reason))
             continue
         num = float(pivot.loc[ok, recent].to_numpy().sum())
         den = float(pivot.loc[ok, prior].to_numpy().sum())
@@ -271,7 +292,9 @@ def compute_T(ctx: Context, T: str) -> tuple[list[dict[str, Any]], dict[str, dic
             rows.append(_row(s, "hslr", num / den if den else None, num, den, len(low)))
 
     # ---- current indicators (REQ-F06-06; cross mode uses old products only, AC-F06-12)
-    width_of = {s: s.split("|")[0] for s in seg_keys}
+    # 属性溢价 compares with the same 宽度档; without a width dimension the whole category is the baseline
+    wi = next((i for i, d in enumerate(cfg["segment_dims"]) if d["key"] == "width"), None)
+    width_of = {s: s.split("|")[wi] if wi is not None else "" for s in seg_keys}
     base_rows = mprev_cur
     for s in seg_keys:
         g = base_rows[base_rows["seg"] == s]
@@ -288,7 +311,8 @@ def compute_T(ctx: Context, T: str) -> tuple[list[dict[str, Any]], dict[str, dic
             if w == SEG.UNKNOWN:
                 rows.append(_row(s, "premium", None, flag=NO_DATA, reason="宽度档未知", **cur_note))
             else:
-                same_w = base_rows[base_rows["seg"].map(lambda x, w=w: isinstance(x, str) and x.split("|")[0] == w)]
+                same_w = base_rows[base_rows["seg"].map(
+                    lambda x, w=w: isinstance(x, str) and x.split("|")[wi] == w)] if wi is not None else base_rows
                 sp_ = float(g["child_sales"].sum()) / units
                 wu = float(same_w["child_units"].sum())
                 wp = float(same_w["child_sales"].sum()) / wu if wu else None

@@ -205,6 +205,8 @@ def test_spu_cross_mode(live_server, clone, x1_done, page):  # type: ignore[no-u
     assert page.locator("#cross-batch-table").count() == 1 and page.locator("#batch-table").count() == 0
     note = page.locator("#cross-batch-title").locator("xpath=..").inner_text()
     assert "老品 40 个" in note
+    # the list header counts rising new SPUs and names the 老品 the pager also counts (PAGE-F04-01)
+    assert page.get_by_text("另列老品 40 个").count() == 1
     # P: 截面命中 2026-07 at age 5 ($100,000); Q: 截面未命中, unobserved ages 1–5; old products are labelled
     page.goto(live.u("/spu?result=xhit&batch=2026-03"))
     hits = page.locator("#cross-table tbody tr").all_inner_texts()
@@ -221,6 +223,9 @@ def test_spu_cross_mode(live_server, clone, x1_done, page):  # type: ignore[no-u
     t = page.locator("[data-verdict]").inner_text()
     assert "截面未命中" in t and "第 1–5 个月" in t
     assert page.locator("#age-grid").get_by_text("未观察").count() >= 10  # ages 1–5 × every metric row
+    # cross-section amounts carry the 截面 evidence tag next to 估算 (PAGE-F05-01 证据小标签)
+    tags = page.locator("#age-grid .etag--cross").all_inner_texts()
+    assert tags and set(tags) == {"截面"}
     assert not page.js_errors
 
 

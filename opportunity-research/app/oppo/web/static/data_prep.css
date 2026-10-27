@@ -5,9 +5,14 @@ tr[data-collapsed], tr[data-page-hidden], tr[data-search-hidden] { display: none
 .dz-path { margin-top: var(--space-2); flex-wrap: nowrap; }
 .dz-path .input { flex: 1; min-width: 0; }
 #import-panel.is-focus { box-shadow: 0 0 0 2px var(--accent); }
-.field.is-modified > .field__label::after,
-td.is-modified > .row::after { content: "已修改"; margin-left: var(--space-2); font-size: var(--text-xs); color: var(--warn); font-weight: 500; }
+/* 品类配置：改过的项标“已修改”，下方注明当前版本的取值（PAGE-F13-01 §5.1） */
+.was-badge { margin-left: var(--space-2); font-weight: 500; }
+.was-note { display: block; margin-top: var(--space-1); color: var(--fg-2); }
+td .was-note { font-size: var(--text-xs); line-height: 1.5; }
+td .was-note .badge { margin: 0 var(--space-1) 0 0; }
 .cat-switch { display: inline-flex; gap: var(--space-2); flex-wrap: wrap; }
 #field-table tr { scroll-margin-top: calc(var(--topbar-h, 56px) + var(--space-4)); }
 /* the drop zone stays above the preview so 选择 zip / 选择文件夹 remain available after a file is chosen */
 .dropzone--compact { margin-bottom: var(--space-4); }
+#seg-table tr.is-off .cell-title { color: var(--fg-2); font-weight: 400; }
+#seg-table .input:disabled { background: var(--surface-warm); color: var(--muted); cursor: not-allowed; }

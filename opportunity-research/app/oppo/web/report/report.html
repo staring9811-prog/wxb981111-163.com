@@ -37,7 +37,7 @@
     {{ icon('warning') }}
     <div class="banner__body">
       <div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div>
-      <div>判定卡 {{ card.label }} 未达标：{{ card.basis.reason_class or '—' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。下面的排序只能作参考。</div>
+      <div>判定卡 {{ card.label }} 未达标：{{ card.basis.reason_class or '原因无数据' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。下面的排序只能作参考。</div>
     </div>
   </div>
   {% elif card.status == '达标（截面）' %}
@@ -45,7 +45,7 @@
     {{ icon('intersect') }}
     <div class="banner__body">
       <div class="banner__title">{{ CARD.CROSS_TEXT }}</div>
-      <div>截面回测 {{ bt.code if bt else '—' }}{% if bt and bt.test_batches %}（检验组 {{ P.span(bt.test_batches) }}，新品-月 {{ bt.model_rows.test }} 行）{% endif %}中，按截面模型排名前 20% 的细分截面命中率 {{ P.pct1(bt.rate) if bt else '无数据' }}，是全类目平均 {{ P.pct1(bt.avg) if bt else '无数据' }} 的 {{ '%.2f'|format(bt.multiple) if bt and bt.multiple is not none else '—' }} 倍。成败与命中率为{{ CARD.CROSS_LINE_TEXT }}；历史数据包到位并回测后，以历史结论为准。</div>
+      <div>截面回测 {{ bt.code if bt else '（无数据）' }}{% if bt and bt.test_batches %}（检验组 {{ P.span(bt.test_batches) }}，新品-月 {{ bt.model_rows.test }} 行）{% endif %}中，按截面模型排名前 20% 的细分截面命中率 {{ P.pct1(bt.rate) if bt else '无数据' }}，是全类目平均 {{ P.pct1(bt.avg) if bt else '无数据' }} 的 {{ '%.2f'|format(bt.multiple) if bt and bt.multiple is not none else '无数据' }} 倍。成败与命中率为{{ CARD.CROSS_LINE_TEXT }}；历史数据包到位并回测后，以历史结论为准。</div>
     </div>
   </div>
   {% else %}
@@ -154,7 +154,7 @@
     </details>
 
     <details class="panel">
-      {{ summary_head('回测摘要 · ' ~ (bt.code if bt else '—'), '切分、倍数与区间、控制干扰因素前后、局限') }}
+      {{ summary_head('回测摘要 · ' ~ (bt.code if bt else '无数据'), '切分、倍数与区间、控制干扰因素前后、局限') }}
       {% if bt %}
       <div class="panel__body stack-lg">
         <div class="grid-2">
@@ -222,7 +222,7 @@
           <dt>局限</dt><dd>{{ bt.limitation }}</dd>
           <dt>未进入回测</dt><dd>{% if bt.rejected %}{{ bt.rejected|map(attribute='field')|join('、') }}（采集时快照）{% else %}没有被标为快照的已确认字段{% endif %}</dd>
           {% if other_bt %}
-          <dt>{{ '历史结论' if cross else '截面结论' }}</dt><dd>{{ other_bt.code }}（{{ '截面' if other_bt.cross else '历史' }}数据包 {{ other_bt.package.label if other_bt.package else '—' }}，{{ other_bt.started[:10] }}）：{{ other_bt.conclusion }}，倍数 {{ mult(other_bt.multiple) }}（90% 区间 {{ P.mult_ci(other_bt.mult_ci) }}）{% if other_bt.cross %}{{ etag('截面', 'cross') }}{% endif %}{% if other_bt.test_batches %}，检验组 {{ P.span(other_bt.test_batches) }}{% if other_bt.cross %}，新品-月 {{ other_bt.model_rows.test }} 行{% endif %}{% endif %}。{% if other_bt.cross %}{{ CARD.CROSS_LINE_TEXT }}，已被历史结论取代，以历史为准{% else %}判定卡状态以历史结论为准{% endif %}</dd>
+          <dt>{{ '历史结论' if cross else '截面结论' }}</dt><dd>{{ other_bt.code }}（{{ '截面' if other_bt.cross else '历史' }}数据包 {{ other_bt.package.label if other_bt.package else '无数据' }}，{{ other_bt.started[:10] }}）：{{ other_bt.conclusion }}，倍数 {{ mult(other_bt.multiple) }}（90% 区间 {{ P.mult_ci(other_bt.mult_ci) }}）{% if other_bt.cross %}{{ etag('截面', 'cross') }}{% endif %}{% if other_bt.test_batches %}，检验组 {{ P.span(other_bt.test_batches) }}{% if other_bt.cross %}，新品-月 {{ other_bt.model_rows.test }} 行{% endif %}{% endif %}。{% if other_bt.cross %}{{ CARD.CROSS_LINE_TEXT }}，已被历史结论取代，以历史为准{% else %}判定卡状态以历史结论为准{% endif %}</dd>
           {% endif %}
         </dl>
       </div>
@@ -258,7 +258,7 @@
               <thead><tr><th scope="col">编号</th><th scope="col">立项</th><th scope="col">决定</th><th scope="col">关联细分</th><th scope="col">对应快照</th><th scope="col">来源</th><th scope="col">立项日期</th><th scope="col">状态</th></tr></thead>
               <tbody>
                 {% for d in ledger.decisions %}
-                <tr><td class="mono t-nowrap">{{ d.code }}</td><td>{{ d.project or '—' }}</td><td class="t-nowrap">{{ d.decision or '—' }}</td><td>{{ d.segment or '—' }}</td><td class="t-nowrap">{% if d.snapshot %}{{ d.snapshot }}{% else %}<span class="muted">{{ d.snapshot_none }}</span>{% endif %}</td><td class="t-nowrap">{{ d.source }}</td><td class="t-nowrap num">{% if d.date %}{{ d.date }}{% else %}<span class="muted">不适用</span>{% endif %}</td><td>{{ d.state }}</td></tr>
+                <tr><td class="mono t-nowrap">{{ d.code }}</td><td>{{ d.project or '无数据' }}</td><td class="t-nowrap">{{ d.decision or '无数据' }}</td><td>{{ d.segment or '无数据' }}</td><td class="t-nowrap">{% if d.snapshot %}{{ d.snapshot }}{% else %}<span class="muted">{{ d.snapshot_none }}</span>{% endif %}</td><td class="t-nowrap">{{ d.source }}</td><td class="t-nowrap num">{% if d.date %}{{ d.date }}{% else %}<span class="muted">不适用</span>{% endif %}</td><td>{{ d.state }}</td></tr>
                 {% else %}
                 <tr><td colspan="8" class="muted">暂无记录</td></tr>
                 {% endfor %}
@@ -287,15 +287,15 @@
     </details>
 
     <details class="panel">
-      {{ summary_head('版本信息', '数据包 ' ~ (vinfo.package.label if vinfo.package else '—') ~ ' · 约定 ' ~ (content.versions.contract or '—') ~ ' · 配置 ' ~ content.versions.config ~ ' · 判定卡 ' ~ card.label) }}
+      {{ summary_head('版本信息', '数据包 ' ~ (vinfo.package.label if vinfo.package else '无数据') ~ ' · 约定 ' ~ (content.versions.contract or '无数据') ~ ' · 配置 ' ~ content.versions.config ~ ' · 判定卡 ' ~ card.label) }}
       <div class="panel__body">
         <dl class="kv">
           <dt>品类</dt><dd>亚马逊{{ '美国' if cat.site == 'US' else cat.site }} · {{ cat.name }}（类目节点 {{ cat.node }}）· 负责人 {{ cat.owner }}</dd>
           <dt>数据包</dt><dd>{% if vinfo.package %}{{ vinfo.package.label }} · {{ '截面' if vinfo.package.kind == 'cross' else '历史' }} · 覆盖 {{ vinfo.package.months }} · 导入 {{ (vinfo.package.created_at or '')[:16] }} · 指纹 <span class="fp">{{ vinfo.package.fp_short }}</span>{% else %}—{% endif %}</dd>
-          <dt>字段约定</dt><dd>{{ content.versions.contract or '—' }}{% if vinfo.contract %} · {{ vinfo.contract.created_at[:16] }} 保存{% endif %}</dd>
+          <dt>字段约定</dt><dd>{{ content.versions.contract or '无数据' }}{% if vinfo.contract %} · {{ vinfo.contract.created_at[:16] }} 保存{% endif %}</dd>
           <dt>品类配置</dt><dd>{{ content.versions.config }}{% if vinfo.config %} · {{ vinfo.config.created_at[:16] }} 保存{% endif %}</dd>
-          <dt>判定卡</dt><dd>{{ card.label }} · {{ card.created_at[:16] }} 由回测 {{ bt.code if bt else '—' }} 生成</dd>
-          <dt>回测</dt><dd>{{ bt.code if bt else '—' }} · 随机种子 <span class="fp">{{ bt.seed if bt else '—' }}</span></dd>
+          <dt>判定卡</dt><dd>{{ card.label }} · {{ card.created_at[:16] }} 由回测 {{ bt.code if bt else '（无数据）' }} 生成</dd>
+          <dt>回测</dt><dd>{{ bt.code if bt else '无数据' }} · 随机种子 <span class="fp">{{ bt.seed if bt else '无数据' }}</span></dd>
           <dt>快照</dt><dd>{{ snap.month }} 第 {{ snap.seq }} 版 · {{ snap.created_at[:16] }} 保存 · 内容指纹 <span class="fp">{{ snap.sha256[:12] }}</span></dd>
           <dt>生成</dt><dd>{{ generated }} · 操作人 {{ operator }}</dd>
           <dt>文件</dt><dd><span class="fp">{{ html_name }}</span>，与同名 Excel 内容一致</dd>

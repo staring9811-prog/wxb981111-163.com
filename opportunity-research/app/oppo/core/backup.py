@@ -97,8 +97,10 @@ def _package_fps(conn: Connection) -> list[dict[str, Any]]:
     return [{"label": r[0], "fingerprint": r[1], "kind": r[2]} for r in rows]
 
 
-def run_backup(db_path: Path, conn: Connection, trigger: str, operator: str, category_id: int | None) -> dict[str, Any]:
-    """Write a backup file. `conn` is used only to read settings and record the outcome."""
+def run_backup(db_path: Path, conn: Connection, trigger: str, operator: str, category_id: int | None,
+               label: str | None = None) -> dict[str, Any]:
+    """Write a backup file. `conn` is used only to read settings and record the outcome. `label` (e.g. "导出 2026-03
+    第 2 版") is kept inside the file, so the backup list can still name it after a restore replaced the records."""
     st = setting(conn)
     now = clock.now()
     fps = _package_fps(conn)
@@ -129,6 +131,8 @@ def run_backup(db_path: Path, conn: Connection, trigger: str, operator: str, cat
                 dst.execute("INSERT INTO backup_meta VALUES ('created_at', ?)", (now.isoformat(sep=" "),))
                 dst.execute("INSERT INTO backup_meta VALUES ('package_fingerprints', ?)", (D.dumps(fps),))
                 dst.execute("INSERT INTO backup_meta VALUES ('trigger', ?)", (trigger,))
+                if label:
+                    dst.execute("INSERT INTO backup_meta VALUES ('trigger_label', ?)", (label,))
                 dst.commit()
                 dst.execute("VACUUM")
             finally:
@@ -164,20 +168,24 @@ def _record(conn: Connection, category_id: int | None, path: str | None, size: i
 def list_files(conn: Connection) -> list[dict[str, Any]]:
     """Backups found in the directory (newest first) joined with their records."""
     st = setting(conn)
-    recs = {r["path"]: r for r in records(conn) if r["path"]}
+    # matched by file name (timestamped, unique): the directory may have been moved or copied since
+    recs = {Path(r["path"]).name: r for r in records(conn) if r["path"]}
     out = []
     if st and st["directory"] and Path(st["directory"]).is_dir():
         for f in sorted(Path(st["directory"]).glob(f"{PREFIX}*.sqlite"), reverse=True):
-            r = recs.get(str(f))
-            created = None
+            r = recs.get(f.name)
+            meta: dict[str, str] = {}
             try:
                 c = sqlite3.connect(f"file:{f}?mode=ro", uri=True)
-                created = c.execute("SELECT value FROM backup_meta WHERE key='created_at'").fetchone()[0]
+                meta = dict(c.execute("SELECT key, value FROM backup_meta").fetchall())
                 c.close()
             except sqlite3.Error:
                 pass
-            out.append({"path": str(f), "name": f.name, "size": f.stat().st_size, "created_at": created,
-                        "trigger": r["trigger"] if r else "—", "fps": r["fps"] if r else []})
+            # the backup carries its own trigger and fingerprint list; the record is used when it exists
+            out.append({"path": str(f), "name": f.name, "size": f.stat().st_size, "created_at": meta.get("created_at"),
+                        "record": r, "trigger": r["trigger"] if r else meta.get("trigger"),
+                        "label": meta.get("trigger_label"),
+                        "fps": r["fps"] if r else D.loads(meta.get("package_fingerprints"), [])})
     return out
 
 

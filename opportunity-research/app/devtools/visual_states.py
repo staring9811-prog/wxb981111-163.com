@@ -20,6 +20,7 @@ from oppo.core import backup as BK
 from oppo.core import categories as CAT
 from oppo.core import ledger as LG
 from oppo.core import ranking as RK
+from oppo.core import rules as RULES
 
 APP = Path(__file__).resolve().parents[1]
 FIX = APP / "fixtures" / "packages"
@@ -76,9 +77,7 @@ def backup_dir(app: SV.App, d: Path) -> None:
         assert ok, msg
 
 
-def s1(base: Path) -> Path:
-    """H1-A month done in the order of SMOKE-02, exported with an automatic backup."""
-    d = base / "s1"
+def _h1a_month(d: Path, export: bool) -> Path:
     app = fresh(d)
     backup_dir(app, d)
     SV.import_package(app, FIX / "H1-A")
@@ -86,9 +85,20 @@ def s1(base: Path) -> Path:
     SV.merge_confirm_basis(app, "标题主干相同")
     SV.compute(app)
     SV.backtest(app)
-    SV.export(app)
+    if export:
+        SV.export(app)
     close(app)
     return d
+
+
+def s1(base: Path) -> Path:
+    """H1-A month done in the order of SMOKE-02, exported with an automatic backup."""
+    return _h1a_month(base / "s1", export=True)
+
+
+def s_ready(base: Path) -> Path:
+    """DESIGN-01: the same month just before the export (step 8 待导出, 导出本月报告 is the primary button)."""
+    return _h1a_month(base / "s_ready", export=False)
 
 
 def s1x(base: Path) -> Path:
@@ -154,16 +164,16 @@ def s_ledger(base: Path) -> Path:
         snap = RK.latest_snapshot(conn, cid, "history")
         rows = snap["content"]["rows"]
         a = LG.record_decision(conn, cid, "wen", "立项", rows[0]["segment_key"], rows[0]["segment"],
-                               "需求在涨 +20%，前 20% 细分，样本 44", snap["id"], project_name="甲 · 36 寸落地浴室柜")
+                               "需求在涨 +20%，前 20% 细分，样本 44", snap["id"], "2026-03-04", "甲 · 36 寸落地浴室柜")
         b = LG.record_decision(conn, cid, "wen", "立项", rows[1]["segment_key"], rows[1]["segment"],
-                               "需求在涨 +20%，与第 1 名同宽度档", snap["id"], project_name="乙 · 42 寸低价落地款")
+                               "需求在涨 +20%，与第 1 名同宽度档", snap["id"], "2026-03-04", "乙 · 42 寸低价落地款")
         c = LG.record_decision(conn, cid, "wen", "不立项", rows[4]["segment_key"], rows[4]["segment"],
                                "需求在跌，锦囊为放弃", snap["id"])
         LG.correct(conn, cid, "wen", c, reason="需求在跌 −6%，锦囊为放弃；补充：头部品牌集中")
         e = LG.record_backfill(conn, cid, "wen", "丙 · 30 寸悬浮款", "2025-12-10", rows[3]["segment_key"],
                                rows[3]["segment"], "补录系统上线前已立项的在研项目")
         f = LG.record_decision(conn, cid, "wen", "立项", rows[2]["segment_key"], rows[2]["segment"],
-                               "观察类细分里样本最多", snap["id"], project_name="丁 · 24 寸落地款")
+                               "观察类细分里样本最多", snap["id"], "2026-03-18", "丁 · 24 寸落地款")
     SV.import_package(app, FIX / "H1-B")
     SV.contract_confirm(app)
     SV.compute(app)
@@ -213,6 +223,8 @@ def s_timing(base: Path) -> Path:
         SV.import_package(app, FIX / "H1-B")
         at("2026-12-07 09:25:00")
         SV.contract_confirm(app)
+        at("2026-12-07 09:40:00")
+        SV.merge_confirm_basis(app, "标题主干相同")
         at("2026-12-07 09:50:00")
         SV.compute(app)
         at("2026-12-07 11:20:00")
@@ -228,8 +240,33 @@ def s_timing(base: Path) -> Path:
     return d
 
 
+def s_fields(base: Path) -> Path:
+    """DESIGN-04: s1 plus H1-字段变化 imported, so changed fields wait for confirmation (the 未确认 banner)."""
+    d = clone(base / "s1", base / "s_fields")
+    app = open_dir(d)
+    SV.import_package(app, FIX / "H1-字段变化")
+    close(app)
+    return d
+
+
+def s_kits(base: Path) -> Path:
+    """DESIGN-13: s_ledger (one rule upgraded to 已验证 by reconciliation) plus a hand-added 未验证经验 rule."""
+    d = clone(base / "s_ledger", base / "s_kits")
+    app = open_dir(d)
+    with app.engine.begin() as conn:
+        cid = app.category_id()
+        cfg = CAT.current_version(conn, cid)
+        conds, errs = RULES.check_conds([{"kind": "signal", "key": "demand", "op": ">=", "value": "15"},
+                                         {"kind": "dim", "key": "form", "op": "=", "value": "悬浮式"}],
+                                        cfg["config"], cfg["version_no"])
+        assert not errs, errs
+        RULES.add(conn, cid, conds, "观察", "悬浮式需求在涨，但安装门槛高、退货多，先观察一个月再定", "wen")
+    close(app)
+    return d
+
+
 STATES = {"s1": s1, "s1x": s1x, "s_cross_only": s_cross_only, "s_unverified": s_unverified, "s_block": s_block,
-          "s_ledger": s_ledger, "s_timing": s_timing}
+          "s_ledger": s_ledger, "s_timing": s_timing, "s_fields": s_fields, "s_kits": s_kits, "s_ready": s_ready}
 
 
 def main() -> None:

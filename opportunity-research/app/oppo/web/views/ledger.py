@@ -71,9 +71,12 @@ def recon_bar(rate: float | None, lo: float | None, hi: float | None, avg: float
              f'<rect class="ibar__band" x="{band_x}" y="7" width="{band_w}" height="6" rx="3"/>']
     if avg is not None:
         parts.append(f'<line class="ibar__avg" x1="{x(avg)}" y1="3" x2="{x(avg)}" y2="17"/>')
+    over = hi > fmt.SCALE_MAX
+    if over and x(rate) < 149:  # same rule as fmt.ibar: an arrow marks an interval running past the 60 % scale
+        parts.append('<path class="ibar__over" d="M154 6 L160 10 L154 14 Z"/>')
     parts.append(f'<circle class="ibar__dot" cx="{x(rate)}" cy="10" r="4"/>')
     kind = "截面预期区间" if cross else "回测预期区间"
-    exp = fmt.ci_text([lo, hi])
+    exp = fmt.ci_text([lo, hi]) + ("（上限超出 60% 刻度）" if over else "")
     label = f"实际命中率 {top_txt}，{kind} {exp}，全类目实际 {avg_txt}"
     tip = f"实际 {top_txt}|{kind} {exp}|竖线：全类目实际 {avg_txt}"
     from html import escape
@@ -84,7 +87,7 @@ def recon_bar(rate: float | None, lo: float | None, hi: float | None, avg: float
 
 
 def own_pop(st: dict[str, Any]) -> dict[str, str]:
-    return {"来源": st.get("source") or "手工录入", "录入人": st.get("created_by") or "—",
+    return {"来源": st.get("source") or "手工录入", "录入人": st.get("created_by") or "无数据",
             "性质": "自家实际数据", "上架月": st["launch_month"],
             "窗口": f"{st['launch_month']} 至 {st['window_end']}", "上次保存": (st.get("created_at") or "")[:16]}
 
@@ -167,7 +170,7 @@ def snapshot_states(conn: Connection, cid: int) -> list[dict[str, Any]]:
 
 
 def _card_text(snap: dict[str, Any]) -> str:
-    lab = snap.get("card_label") or "—"
+    lab = snap.get("card_label") or "无数据"
     return lab
 
 
@@ -580,8 +583,8 @@ def _diff(new: dict[str, Any], old: dict[str, Any]) -> tuple[list[tuple[str, str
     changes, same = [], []
     nc, oc = new["conds"], old["conds"]
     for i in range(max(len(nc), len(oc))):
-        a = RULES.cond_text([oc[i]]) if i < len(oc) else "—"
-        b = RULES.cond_text([nc[i]]) if i < len(nc) else "—"
+        a = RULES.cond_text([oc[i]]) if i < len(oc) else "（无）"
+        b = RULES.cond_text([nc[i]]) if i < len(nc) else "（无）"
         if a != b:
             changes.append((f"条件 {i + 1}", a, b))
         else:
@@ -701,20 +704,21 @@ def _fmt_stats(st: dict[str, Any] | None) -> dict[str, str]:
         return {k: "无数据" for k in ("ledger", "rules", "conv", "cfg", "conf")}
     return {"ledger": f"快照 {st['snapshots']} · 立项记录 {st['decisions']}",
             "rules": f"{st['rules']} 条" + (f" · 最近修改 {st['rule_updated']}" if st["rule_updated"] else ""),
-            "conv": f"v{st['contract']}" if st["contract"] else "—", "cfg": f"v{st['config']}" if st["config"] else "—",
+            "conv": f"v{st['contract']}" if st["contract"] else "未保存", "cfg": f"v{st['config']}" if st["config"] else "未保存",
             "conf": f"{st['confirmations']:,} 条"}
 
 
-def _trigger_text(conn: Connection, rec: dict[str, Any] | None) -> str:
-    if not rec:
-        return "—"
-    if rec["trigger"] == "导出后自动":
+def _trigger_text(conn: Connection, rec: dict[str, Any] | None, trigger: str | None = None,
+                  label: str | None = None) -> str:
+    if rec and rec["trigger"] == "导出后自动":
         ex = conn.execute(select(D.export_record).where(D.export_record.c.backup_id == rec["id"])).mappings().first()
         if ex:
             snap = RK.get_snapshot(conn, ex["snapshot_id"])
             return f"导出 {snap['label'].replace(' · ', ' ')}" if snap else f"导出 {ex['month']}"
-        return "导出后自动备份"
-    return {"恢复前": "恢复前自动备份", "手动重试": "手动重试备份"}.get(rec["trigger"], rec["trigger"])
+    if label:  # written into the backup file itself (still known after a restore replaced the records)
+        return label
+    t = rec["trigger"] if rec else trigger
+    return {"导出后自动": "导出后自动备份", "恢复前": "恢复前自动备份", "手动重试": "手动重试备份"}.get(t or "", t or "无记录")
 
 
 @router.get("/settings/backup", response_class=HTMLResponse)
@@ -724,13 +728,10 @@ def backup_page(request: Request) -> HTMLResponse:
         cid = app.category_id()
         st = BK.setting(conn)
         recs = BK.records(conn)
-        by_path = {r["path"]: r for r in recs if r["path"]}
         files = BK.list_files(conn)
         cur = _fmt_stats(BK.current_stats(conn))
         for f in files:
-            rec = by_path.get(f["path"])
-            f["record"] = rec
-            f["trigger_text"] = _trigger_text(conn, rec)
+            f["trigger_text"] = _trigger_text(conn, f["record"], f["trigger"], f.get("label"))
             f["stats"] = _fmt_stats(BK.file_stats(f["path"]))
             f["folder"] = Path(f["path"]).name
         last = BK.last_attempt(conn)

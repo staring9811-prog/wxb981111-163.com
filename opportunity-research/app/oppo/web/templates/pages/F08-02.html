@@ -56,7 +56,7 @@
           {{ icon('seal-check') }}
           <div class="banner__body">
             <div class="banner__title">已达标 · 判定卡 {{ card.label }}（历史口径）</div>
-            <div>回测得出的锦囊，预期命中率区间来自回测 {{ bt.code if bt else '—' }}{% if bt and bt.test_batches %}（检验组 {{ P.span(bt.test_batches) }}，起量新 SPU {{ bt.test_counts.spus }} 个）{% endif %}。参照人群：{{ reference }}。</div>
+            <div>回测得出的锦囊，预期命中率区间来自回测 {{ bt.code if bt else '（无数据）' }}{% if bt and bt.test_batches %}（检验组 {{ P.span(bt.test_batches) }}，起量新 SPU {{ bt.test_counts.spus }} 个）{% endif %}。参照人群：{{ reference }}。</div>
           </div>
           <div class="banner__actions"><a class="btn btn--sm" href="/card">查看判定卡</a></div>
         </div>
@@ -65,7 +65,7 @@
           {{ icon('intersect') }}
           <div class="banner__body">
             <div class="banner__title">{{ CARD.CROSS_TEXT }}</div>
-            <div>区间来自截面回测 {{ bt.code if bt else '—' }}{% if bt and bt.model_rows %}（检验组新品-月 {{ bt.model_rows.test }} 行）{% endif %}，{{ CARD.CROSS_LINE_TEXT }}。参照人群：{{ reference }}。</div>
+            <div>区间来自截面回测 {{ bt.code if bt else '（无数据）' }}{% if bt and bt.model_rows %}（检验组新品-月 {{ bt.model_rows.test }} 行）{% endif %}，{{ CARD.CROSS_LINE_TEXT }}。参照人群：{{ reference }}。</div>
           </div>
           <div class="banner__actions"><a class="btn btn--sm" href="/card">查看判定卡</a></div>
         </div>
@@ -74,7 +74,7 @@
           {{ icon('warning') }}
           <div class="banner__body">
             <div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div>
-            <div>判定卡 {{ card.label }} 未达标（{{ card.basis.reason_class or '—' }}）；卡片照常显示，便于排查。</div>
+            <div>判定卡 {{ card.label }} 未达标（{{ card.basis.reason_class or '原因无数据' }}）；卡片照常显示，便于排查。</div>
           </div>
           <div class="banner__actions"><a class="btn btn--sm" href="/card">查看判定卡</a></div>
         </div>
@@ -107,6 +107,6 @@
           </div>
           {% endfor %}
         </section>
-        <p class="page-foot">判定卡 {{ card.label }} · 回测 {{ bt.code if bt else '—' }}{% if bt %}（{{ bt.started[:10] }}）{% endif %} · {{ P.footer(vers, False).split(' · 判定卡')[0] }} · 全部规则见策略库</p>
+        <p class="page-foot">判定卡 {{ card.label }} · 回测 {{ bt.code if bt else '无数据' }}{% if bt %}（{{ bt.started[:10] }}）{% endif %} · {{ P.footer(vers, False).split(' · 判定卡')[0] }} · 全部规则见策略库</p>
         {% endif %}
 {% endblock %}

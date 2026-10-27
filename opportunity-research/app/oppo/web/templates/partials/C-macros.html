@@ -58,7 +58,7 @@
   <dt>回测</dt><dd><span class="mono">{{ v.code }}</span> · {{ '截面' if v.cross else '历史' }}口径 · 操作人 {{ v.operator }}</dd>
   <dt>开始</dt><dd class="num">{{ v.started }} · 用时 {{ v.duration }}</dd>
   <dt>随机种子</dt><dd class="fp">{{ v.seed }}</dd>
-  <dt>版本</dt><dd>数据包 {{ v.package.label if v.package else '—' }}{% if v.package %}（<span class="fp">{{ v.package.fp_short }}</span>）{% endif %} · 字段约定 v{{ v.contract_no }} · 品类配置 v{{ v.config_no }}</dd>
+  <dt>版本</dt><dd>数据包 {{ v.package.label if v.package else '无数据' }}{% if v.package %}（<span class="fp">{{ v.package.fp_short }}</span>）{% endif %} · 字段约定 v{{ v.contract_no }} · 品类配置 v{{ v.config_no }}</dd>
   <dt>产出</dt><dd>{{ out_text }}</dd>
 </dl>
 {% endmacro %}

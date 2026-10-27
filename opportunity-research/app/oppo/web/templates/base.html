@@ -45,10 +45,10 @@
           <a class="seg__opt" href="/mode/cross?next={{ full_path|urlencode }}" data-mode="cross" aria-pressed="{{ 'true' if mode == 'cross' else 'false' }}"{% if not pkg_cross %} aria-disabled="true" data-tip="还没有截面数据包"{% endif %}>截面</a>
         </div>
         <div class="versions">
-          <a class="version" href="/packages">数据包 {{ pkg.label if pkg else '—' }}</a>
-          <a class="version" href="/fields">约定 {{ ('v' ~ contract_ver.version_no) if contract_ver else '—' }}</a>
+          <a class="version" href="/packages">数据包 {{ pkg.label if pkg else '未导入' }}</a>
+          <a class="version" href="/fields">约定 {{ ('v' ~ contract_ver.version_no) if contract_ver else '未确认' }}</a>
           <a class="version version--optional" href="/settings/category">配置 v{{ cfg_ver.version_no }}</a>
-          <a class="version version--optional" href="/card">{% if card_mode %}{{ '判定卡 ' ~ card_mode.label if mode == 'history' else '截面卡 ' ~ card_mode.label.replace('截面 ', '') }}{% else %}判定卡 —{% endif %}</a>
+          <a class="version version--optional" href="/card">{% if card_mode %}{{ '判定卡 ' ~ card_mode.label if mode == 'history' else '截面卡 ' ~ card_mode.label.replace('截面 ', '') }}{% else %}判定卡 未生成{% endif %}</a>
         </div>
         <span class="spacer"></span>
         <span class="job" id="job-indicator"{% if not job %} hidden{% endif %} role="status" aria-live="polite">{{ icon('circle-notch', 'spin') }}<span data-job-label>{{ job_label or '' }}正在运行</span><span class="job__bar"><i style="width:0%"></i></span></span>

@@ -4,7 +4,7 @@
         <div class="page-head enter" style="--i:0">
           <div>
             <h1>数据包</h1>
-            <p class="page-head__sub">导入后只读保存并计算每个文件的指纹，后续计算只读取这份副本 · 当前历史数据包 {{ hist.label if hist else '—' }}，截面数据包 {{ cross.label if cross else '—' }}</p>
+            <p class="page-head__sub">导入后只读保存并计算每个文件的指纹，后续计算只读取这份副本 · 当前历史数据包 {{ hist.label if hist else '未导入' }}，截面数据包 {{ cross.label if cross else '无数据' }}</p>
           </div>
         </div>
 
@@ -76,7 +76,7 @@
                 {{ icon('warning-octagon') }}
                 <div class="banner__body">
                   <div class="banner__title">清单中的品类或站点与当前品类配置不一致</div>
-                  <div>清单：{{ pv.category or '—' }} · {{ pv.site or '—' }}；当前品类配置：{{ pv.config.name }} · {{ pv.config.site }}。导入会记为阻断，请切换品类或检查数据包。</div>
+                  <div>清单：{{ pv.category or '无数据' }} · {{ pv.site or '无数据' }}；当前品类配置：{{ pv.config.name }} · {{ pv.config.site }}。导入会记为阻断，请切换品类或检查数据包。</div>
                 </div>
               </div>
               {% elif pv.error == 'unreadable' %}
@@ -90,8 +90,8 @@
                 <dl class="kv">
                   <dt>清单文件</dt><dd>{{ '已找到，类型可识别' if pv.kind else '已找到，类型无法识别' }}</dd>
                   <dt>类型</dt><dd>{% if pv.kind == 'history' %}历史数据包 · 按约定 v1 校验{% elif pv.kind == 'cross' %}截面数据包 · 按约定 v1.1 校验{% else %}无法识别{% endif %}</dd>
-                  <dt>品类</dt><dd>{{ pv.category or '—' }}{% if pv.node %}（类目节点 {{ pv.node }}）{% endif %}</dd>
-                  <dt>站点</dt><dd>{{ {'US': '亚马逊美国'}.get(pv.site, pv.site or '—') }}</dd>
+                  <dt>品类</dt><dd>{{ pv.category or etag('无数据', 'nodata') }}{% if pv.node %}（类目节点 {{ pv.node }}）{% endif %}</dd>
+                  <dt>站点</dt><dd>{{ {'US': '亚马逊美国'}.get(pv.site, pv.site or '无数据') }}</dd>
                   <dt>覆盖月份</dt><dd>{% if pv.months_from %}{{ pv.months_from }}–{{ pv.months_to }} · {{ pv.months_n }} 个月{% else %}无数据{% endif %}</dd>
                   <dt>文件</dt><dd>{{ pv.files|selectattr('present')|list|length }} 个：{% if pv.missing_required %}缺少必需文件 {{ pv.missing_required|join('、') }}{% else %}{{ '、'.join(pv.files|selectattr('required')|map(attribute='code')) }} 必需文件齐全{% endif %}{% if pv.optional_present %}，另有可选的 {{ pv.optional_present|join('、') }}{% endif %}</dd>
                   <dt>指纹比对</dt><dd>{% if pv.duplicate %}全部文件与已有版本 {{ pv.duplicate.label }} 相同{% else %}与已有版本不同，导入后生成新版本{% endif %}</dd>
@@ -111,7 +111,7 @@
                       <tr>
                         <td>{{ f.label }}{% if not f.present %}<div class="cell-sub">{{ '缺失' if f.required else '未提供' }}</div>{% endif %}</td>
                         <td class="small{% if not f.required %} muted{% endif %}">{{ '必需' if f.required else '可选' }}</td>
-                        <td class="t-num">{{ num(f.rows) if f.rows is not none else '—' }}</td>
+                        <td class="t-num">{{ num(f.rows) if f.rows is not none else etag('无数据', 'nodata') }}</td>
                         <td class="fp">{{ fp8(f.sha) }}</td>
                       </tr>
                       {% endfor %}

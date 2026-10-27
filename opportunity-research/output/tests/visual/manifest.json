@@ -1,6 +1,19 @@
 [
  {
   "design": "DESIGN-01",
+  "file": "tests/visual/DESIGN-01_0_workbench_before_export.png",
+  "state": "s_ready",
+  "url": "/",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-01",
   "file": "tests/visual/DESIGN-01_1_workbench.png",
   "state": "s1",
   "url": "/",
@@ -55,7 +68,7 @@
   "design": "DESIGN-02",
   "file": "tests/visual/DESIGN-02_1_packages_zip_selected.png",
   "state": "s1",
-  "url": "/packages?staged=24800fd72e9948e3",
+  "url": "/packages?staged=9a0bbc11b723ccdc",
   "viewport": [
    1440,
    900
@@ -68,7 +81,7 @@
   "design": "DESIGN-02",
   "file": "tests/visual/DESIGN-02_2_packages_duplicate.png",
   "state": "s1",
-  "url": "/packages?staged=9bd9c6080279e84e",
+  "url": "/packages?staged=f4bbd0a96d7398a7",
   "viewport": [
    1440,
    900
@@ -156,6 +169,32 @@
   "ok": true
  },
  {
+  "design": "DESIGN-04",
+  "file": "tests/visual/DESIGN-04_5_fields_pending.png",
+  "state": "s_fields",
+  "url": "/fields",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-04",
+  "file": "tests/visual/DESIGN-04_6_save_modal_with_changes.png",
+  "state": "s_fields",
+  "url": "/fields",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
   "design": "DESIGN-05",
   "file": "tests/visual/DESIGN-05_1_health_sample_open.png",
   "state": "s1",
@@ -184,7 +223,7 @@
  {
   "design": "DESIGN-06",
   "file": "tests/visual/DESIGN-06_1_spu_history.png",
-  "state": "s1x",
+  "state": "s1",
   "url": "/spu",
   "viewport": [
    1440,
@@ -507,6 +546,19 @@
   "ok": true
  },
  {
+  "design": "DESIGN-13",
+  "file": "tests/visual/DESIGN-13_5_kits_statuses.png",
+  "state": "s_kits",
+  "url": "/kits",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
   "design": "DESIGN-14",
   "file": "tests/visual/DESIGN-14_1_ranking.png",
   "state": "s1",
@@ -601,7 +653,7 @@
   "design": "DESIGN-17",
   "file": "tests/visual/DESIGN-17_3_restored.png",
   "state": "s_ledger",
-  "url": "/settings/backup?restored=1&toast=%E5%B7%B2%E6%81%A2%E5%A4%8D%E5%88%B0%202026-10-27%2000%3A46%20%E7%9A%84%E5%A4%87%E4%BB%BD",
+  "url": "/settings/backup?restored=1&toast=%E5%B7%B2%E6%81%A2%E5%A4%8D%E5%88%B0%202026-10-27%2003%3A10%20%E7%9A%84%E5%A4%87%E4%BB%BD",
   "viewport": [
    1440,
    900

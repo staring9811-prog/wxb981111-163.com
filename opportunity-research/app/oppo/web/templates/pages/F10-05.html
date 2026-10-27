@@ -24,7 +24,7 @@
             <div class="stat__value">{{ mult(latest.multiple) }}<span class="etag">推导</span></div>
             <div class="stat__meta">{{ latest.batch }} 快照{% if latest.mode == 'cross' %}（截面）{% endif %} · {{ latest.created_at[:10] }} 对账</div>
             {% else %}
-            <div class="stat__value">—</div>
+            <div class="stat__value stat__value--empty">暂无</div>
             <div class="stat__meta">还没有到期的快照</div>
             {% endif %}
           </div>
@@ -34,7 +34,7 @@
             <div class="stat__value">{{ next_due.expected }}</div>
             <div class="stat__meta">{{ next_due.label }}{% if next_due.progress %} · 批次已判定 {{ next_due.progress.decided }} / {{ next_due.progress.total }}{% endif %}</div>
             {% else %}
-            <div class="stat__value">—</div>
+            <div class="stat__value stat__value--empty">暂无</div>
             <div class="stat__meta">没有未到期的快照</div>
             {% endif %}
           </div>
@@ -83,8 +83,8 @@
                 {% set top_txt = pct(top_rate) ~ '（' ~ r.top_hits ~ '/' ~ r.top_n ~ '）' %}
                 {% set all_txt = pct(all_rate) ~ '（' ~ r.all_hits ~ '/' ~ r.all_n ~ '）' %}
                 <tr id="recon-{{ r.id }}"{% if focus == r.id %} class="is-selected"{% endif %} data-recon-row="{{ r.id }}">
-                  <td class="t-nowrap"><div class="cell-title">{{ r.snapshot.label if r.snapshot else r.batch }}{% if cross %}{{ etag('截面', 'cross') }}{% endif %}</div><div class="cell-sub">{{ '截面卡 ' ~ r.snapshot.card_label.replace('截面 ', '') if cross and r.snapshot else '判定卡 ' ~ (r.snapshot.card_label if r.snapshot else '—') }} · 批次 {{ r.batch }}</div><div class="cell-sub">{{ r.created_at[:10] }} 对账 · 对账月份 {{ r.recon_month }}</div></td>
-                  <td class="t-num">{{ pct(top_rate) }}{{ etag('n=' ~ r.top_n) }}<div class="cell-sub">前 {{ r.snapshot.content.top20.segments|length if r.snapshot else '—' }} 名 · 命中 {{ r.top_hits }} / {{ r.top_n }}</div></td>
+                  <td class="t-nowrap"><div class="cell-title">{{ r.snapshot.label if r.snapshot else r.batch }}{% if cross %}{{ etag('截面', 'cross') }}{% endif %}</div><div class="cell-sub">{{ '截面卡 ' ~ r.snapshot.card_label.replace('截面 ', '') if cross and r.snapshot else '判定卡 ' ~ (r.snapshot.card_label if r.snapshot else '无数据') }} · 批次 {{ r.batch }}</div><div class="cell-sub">{{ r.created_at[:10] }} 对账 · 对账月份 {{ r.recon_month }}</div></td>
+                  <td class="t-num">{{ pct(top_rate) }}{{ etag('n=' ~ r.top_n) }}<div class="cell-sub">前 {{ r.snapshot.content.top20.segments|length if r.snapshot else '无数据' }} 名 · 命中 {{ r.top_hits }} / {{ r.top_n }}</div></td>
                   <td class="t-num">{{ pct(all_rate) }}{{ etag('n=' ~ r.all_n) }}<div class="cell-sub">命中 {{ r.all_hits }} / {{ r.all_n }}{% if r.incomplete %}，{{ r.incomplete }} 个数据不全不计入分母{% endif %}</div></td>
                   <td class="t-num"><span class="strong">{{ mult(r.multiple) }}</span><span class="etag">推导</span></td>
                   <td class="t-nowrap">{{ recon_bar(top_rate, r.exp_lo, r.exp_hi, all_rate, top_txt, all_txt, cross) }}<span class="ibar-text">预期 {{ ci_text([r.exp_lo, r.exp_hi]) }}</span>{% if cross %}{{ etag('截面', 'cross') }}{% endif %}</td>
@@ -109,7 +109,7 @@
                 </thead>
                 <tbody>
                   {% for t in top_rows %}
-                  <tr><td class="t-nowrap">{{ t.rec.snapshot.label if t.rec.snapshot else t.rec.batch }}</td><td class="t-num">{{ t.rank }}</td><td class="t-nowrap">{{ segname(t.segment) }}</td><td class="t-nowrap">{% if t.tips %}{% set parts = t.tips[0].split(' ') %}{{ badge(parts[0]) }} <span class="mono small">{{ parts[1:]|join(' ') }}</span>{% else %}<span class="muted">—</span>{% endif %}</td><td class="t-num">{{ t.n }}</td><td class="t-num">{{ t.hits }}</td><td class="t-num">{{ pct(t.hits / t.n if t.n else none) }}{{ etag('n=' ~ t.n) }}</td></tr>
+                  <tr><td class="t-nowrap">{{ t.rec.snapshot.label if t.rec.snapshot else t.rec.batch }}</td><td class="t-num">{{ t.rank }}</td><td class="t-nowrap">{{ segname(t.segment) }}</td><td class="t-nowrap">{% if t.tips %}{% set parts = t.tips[0].split(' ') %}{{ badge(parts[0]) }} <span class="mono small">{{ parts[1:]|join(' ') }}</span>{% else %}<span class="small muted">无适用锦囊</span>{% endif %}</td><td class="t-num">{{ t.n }}</td><td class="t-num">{{ t.hits }}</td><td class="t-num">{{ pct(t.hits / t.n if t.n else none) }}{{ etag('n=' ~ t.n) }}</td></tr>
                   {% endfor %}
                 </tbody>
               </table>
@@ -222,7 +222,7 @@
                 {% for r in own %}
                 {% set st = r.launch %}
                 <tr id="own-{{ r.code|lower }}" data-own="{{ r.code }}">
-                  <td style="min-width: 260px"><div class="cell-title"><span class="mono">{{ r.code }}</span> · {{ r.project_name or r.segment_name }}</div><div class="cell-sub">{{ segname(r.segment_name or '') }}</div><div class="cell-sub">{{ r.kind }}{% if r.corrects %}（更正 {{ r.corrects.code }}）{% endif %} · 立项 {{ r.project_date or '—' }}</div></td>
+                  <td style="min-width: 260px"><div class="cell-title"><span class="mono">{{ r.code }}</span> · {{ r.project_name or r.segment_name }}</div><div class="cell-sub">{{ segname(r.segment_name or '') }}</div><div class="cell-sub">{{ r.kind }}{% if r.corrects %}（更正 {{ r.corrects.code }}）{% endif %} · 立项 {{ r.project_date or '无数据' }}</div></td>
                   <td>
                     {% if not r.snapshot %}无对应快照（补录）<div class="cell-sub">当时依据：{{ r.basis_note or '未填写' }}</div>
                     {% elif r.snap_row %}{% set sr = r.snap_row %}

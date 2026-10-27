@@ -4,7 +4,7 @@
 {%- if r == 'pass' -%}{{ badge('通过', 'pass', 'check-circle') }}{%- elif r == 'warn' -%}{{ badge('警告', 'warn', 'warning') }}{%- elif r == 'block' -%}{{ badge('阻断', 'block', 'warning-octagon') }}{%- else -%}<span class="small muted">{{ text or '不适用' }}</span>{%- endif -%}
 {%- endmacro %}
 {% macro cell(c) -%}
-{%- if c -%}{%- if c[0] in ('pass', 'warn', 'block') -%}{{ rb(c[0]) }}<div class="cell-sub">{{ c[1] }}</div>{%- else -%}<span class="small muted">{{ c[1] or '不适用' }}</span>{%- endif -%}{%- else -%}<span class="small muted">—</span>{%- endif -%}
+{%- if c -%}{%- if c[0] in ('pass', 'warn', 'block') -%}{{ rb(c[0]) }}<div class="cell-sub">{{ c[1] }}</div>{%- else -%}<span class="small muted">{{ c[1] or '不适用' }}</span>{%- endif -%}{%- else -%}<span class="small muted">未检查</span>{%- endif -%}
 {%- endmacro %}
 {% block content %}
 {% set pkg = report_pkg %}
@@ -101,7 +101,7 @@
                 {% for m in matrix %}
                 <tr data-file="{{ m.code }}">
                   <td><div class="cell-title">{{ m.label }}</div><div class="cell-sub">{% if m.optional %}可选文件 · {% endif %}主键：{{ m.key }}</div></td>
-                  <td class="t-num">{{ num(m.rows) if m.rows is not none else '—' }}</td>
+                  <td class="t-num">{{ num(m.rows) if m.rows is not none else etag('无数据', 'nodata') }}</td>
                   <td>{{ cell(m.cells.file) }}</td>
                   <td>{{ cell(m.cells.fields) }}</td>
                   <td>{{ cell(m.cells.unique) }}</td>
@@ -175,7 +175,7 @@
                     {% endif %}
                     {% else %}
                     <div class="list__title">{{ e.file_label }} · 月份覆盖：{{ it.message }}</div>
-                    <div class="list__desc">约定：{{ it.affected_note or '—' }}；不排除任何行，只提示影响。</div>
+                    <div class="list__desc">约定：{{ it.affected_note or '无数据' }}；不排除任何行，只提示影响。</div>
                     {% endif %}
                   </div>
                 </li>

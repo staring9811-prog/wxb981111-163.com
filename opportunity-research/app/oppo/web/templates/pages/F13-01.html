@@ -2,13 +2,12 @@
 {% block title %}品类配置{% endblock %}
 {% macro was(path) -%}{{ fmt_cfg(get_path(cur_cfg, path)) if cur_cfg and get_path(cur_cfg, path) is not none else '' }}{%- endmacro %}
 {% macro val(path) -%}{{ fmt_cfg(get_path(cfgv, path)) if get_path(cfgv, path) is not none else '' }}{%- endmacro %}
-{% macro hint_was(path) -%}{% if cur_cfg and val(path) != was(path) %}<span class="field__hint" data-was-hint>v{{ cur_no }} 为 {{ was(path) or '空' }}。</span>{% endif %}{%- endmacro %}
 {% macro num_field(path, label, hint, unit='') -%}
                   <div class="field">
                     <label class="field__label" for="f-{{ path|replace('.', '-') }}">{{ label }} <span class="req">*</span></label>
                     <input class="input input--num" id="f-{{ path|replace('.', '-') }}" name="{{ path }}" value="{{ val(path) }}" inputmode="numeric" data-was="{{ was(path) }}"{% if unit %} data-unit="{{ unit }}"{% endif %}>
                     <div class="field-error" data-error-for="{{ path }}"></div>
-                    {{ hint_was(path) }}<span class="field__hint">{{ hint }}</span>
+                    <span class="field__hint">{{ hint }}</span>
                   </div>
 {%- endmacro %}
 {% block content %}
@@ -62,7 +61,7 @@
         </div>
         {% endif %}
         <div class="grid-main-side section">
-          <form class="panel enter" style="--i:2" id="cfg-form" data-guard data-category="{{ cid }}" aria-labelledby="form-title" novalidate>
+          <form class="panel enter" style="--i:2" id="cfg-form" data-guard data-category="{{ cid }}" data-cur-no="{{ cur_no if cur else '' }}" aria-labelledby="form-title" novalidate>
             <input type="hidden" name="ta_present" value="1">
             <div class="panel__head">
               <h2 class="panel__title" id="form-title">配置项</h2>
@@ -117,28 +116,22 @@
                     <tbody>
                       {% set ta = cfgv.type_attributes or [] %}
                       {% set ta_was = cur_cfg.type_attributes or [] %}
-                      {% set dim_attrs = dims|map(attribute='attr')|list %}
-                      {% for d in dims %}
-                      <tr>
+                      {% set cur_keys = (cur_cfg.segment_dims or [])|map(attribute='key')|list %}
+                      {% for d in dim_rows %}
+                      <tr data-dim-row{% if not d.on %} class="is-off"{% endif %}>
                         <td class="cell-title">{{ d.label }}{% if d.key == 'width' %}<div class="cell-sub">取自{{ d.attr }}</div>{% elif d.key == 'price' %}<div class="cell-sub">月销售额 ÷ 月销量</div>{% endif %}</td>
-                        <td class="t-center"><label class="check"><input type="checkbox" checked disabled><span class="visually-hidden">{{ d.label }}用作细分维度</span></label></td>
-                        <td><input class="input" name="bins.{{ d.key }}" value="{{ val('bins.' ~ d.key) }}" aria-label="{{ d.label }}分档" data-was="{{ was('bins.' ~ d.key) }}"><div class="field-error" data-error-for="bins.{{ d.key }}"></div></td>
+                        <td class="t-center"><label class="check"><input type="checkbox" name="segdim" value="{{ d.key }}"{% if d.on %} checked{% endif %} data-was="{{ 'true' if (d.key in cur_keys if cur_cfg else d.on) else 'false' }}" data-segdim><span class="visually-hidden">{{ d.label }}用作细分维度</span></label></td>
+                        <td><input class="input" name="bins.{{ d.key }}" value="{{ val('bins.' ~ d.key) if d.on else d.default_bins }}" placeholder="{{ d.hint }}" aria-label="{{ d.label }}分档" data-was="{{ was('bins.' ~ d.key) }}"{% if not d.on %} disabled{% endif %}><div class="field-error" data-error-for="bins.{{ d.key }}"></div></td>
                         <td>{% if d.key == 'price' %}<span class="small muted">不适用：由销售数据计算</span>{% else %}<label class="check"><input type="checkbox" name="ta" value="{{ d.attr }}"{% if d.attr in ta %} checked{% endif %} data-was="{{ 'true' if d.attr in ta_was else 'false' }}">可回填</label>{% endif %}</td>
                       </tr>
                       {% endfor %}
-                      {% for a in cfgv.attribute_dims or [] %}{% if a not in dim_attrs %}
-                      <tr>
-                        <td>{{ a }}</td>
-                        <td class="t-center"><label class="check" data-tip="第一期细分维度为宽度档 × 形态 × 价格带"><input type="checkbox" disabled><span class="visually-hidden">{{ a }}用作细分维度</span></label></td>
-                        <td class="small muted">未用作细分维度</td>
-                        <td><label class="check"><input type="checkbox" name="ta" value="{{ a }}"{% if a in ta %} checked{% endif %} data-was="{{ 'true' if a in ta_was else 'false' }}">可回填</label></td>
-                      </tr>
-                      {% endif %}{% endfor %}
                     </tbody>
                   </table>
                 </div>
+                <input type="hidden" name="segdim_present" value="1">
+                <div class="field-error" data-error-for="segment_dims.selected"></div>
                 <div class="field-error" data-error-for="type_attributes"></div>
-                <p class="field__hint" style="margin-top: var(--space-2)">勾选“可回填”的是类型属性：子体没有确认值、但父体有候选值时用父体值，并标“父体回填”。颜色、尺寸、盆数随变体变化，不回填，缺失时归入“未知”档。分档之间用“ / ”分隔，不重叠、不留空档。</p>
+                <p class="field__hint" style="margin-top: var(--space-2)">勾选“细分维度”的属性组合成细分（细分数 = 各维度分档数相乘，维度越多每个细分的样本越少）；属性维度的分档写属性取值。勾选“可回填”的是类型属性：子体没有确认值、但父体有候选值时用父体值，并标“父体回填”。颜色、尺寸、盆数随变体变化，不回填，缺失时归入“未知”档。分档之间用“ / ”分隔，不重叠、不留空档。</p>
               </section>
               <section aria-labelledby="g-kw">
                 <div class="section__head"><h3 id="g-kw">关键词映射规则</h3><span class="section__note">把关键词归入细分，用于“需求在涨”</span></div>
@@ -172,11 +165,13 @@
                         <td><input class="input" name="kw.form.{{ b.label }}" value="{{ (fmap.get(b.label) or [])|join('、') }}" aria-label="{{ b.label }}对应的关键词取值" data-was="{{ (form_was.get(b.label) or [])|join('、') }}" data-kw></td>
                       </tr>
                       {% endfor %}
+                      {% for d in cfgv.segment_dims or [] %}{% if d.key not in ('width', 'form') %}
                       <tr>
-                        <td class="t-nowrap">价格带</td>
+                        <td class="t-nowrap">{{ d.label }}</td>
                         <td class="t-nowrap muted">全部</td>
-                        <td class="small muted">{{ (km.price or {}).rule or '不映射' }}</td>
+                        <td class="small muted">{{ (km.price or {}).rule if d.key == 'price' and (km.price or {}).rule else '不映射：关键词不带' ~ d.label ~ '，计入其余维度一致的各分档' }}</td>
                       </tr>
+                      {% endif %}{% endfor %}
                     </tbody>
                   </table>
                 </div>

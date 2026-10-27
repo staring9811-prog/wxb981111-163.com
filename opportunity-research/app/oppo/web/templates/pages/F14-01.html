@@ -25,7 +25,7 @@
             {% endif %}
             {% else %}
             <div class="stat__label">首跑</div>
-            <div class="stat__value">—</div>
+            <div class="stat__value stat__value--empty">未开始</div>
             <div class="stat__meta">导入第一个数据包后开始计时</div>
             {% endif %}
           </div>
@@ -38,7 +38,7 @@
             <div class="stat__meta">{{ cur.import.strftime('%H:%M') }} 导入起，{% if cur.minutes is none %}截至 {{ now.strftime('%H:%M') }} · {% endif %}目标 ≤ 4 小时，{% if mins > target %}已超出目标 {{ mins - target }} 分钟{% else %}已用 {{ (mins / target * 100)|round|int }}%{% endif %}{% if cur.minutes is none %} · 待导出{% endif %}</div>
             {% else %}
             <div class="stat__label">本月{{ ' ' ~ cur_month if cur_month else '' }}</div>
-            <div class="stat__value">—</div>
+            <div class="stat__value stat__value--empty">未开始</div>
             <div class="stat__meta">本月还没有导入</div>
             {% endif %}
           </div>
@@ -50,7 +50,7 @@
             <div class="stat__meta">目标 ≤ 4 小时，{% if last_done.ok %}已用 {{ (last_done.minutes / target * 100)|round|int }}%{% else %}未达标 · 超出 {{ last_done.over }} 分钟{% endif %}</div>
             {% else %}
             <div class="stat__label">最近完成的月更</div>
-            <div class="stat__value">—</div>
+            <div class="stat__value stat__value--empty">暂无</div>
             <div class="stat__meta">还没有完成的月更（导入到导出）</div>
             {% endif %}
           </div>
@@ -84,7 +84,7 @@
                   <td class="t-nowrap{% if m.minutes is none %} muted{% else %} num{% endif %}">{{ m.export.strftime('%Y-%m-%d %H:%M') if m.minutes is not none else '尚未导出' }}</td>
                   <td class="t-num">{{ hm(mins) }}{% if m.minutes is none %}<div class="cell-sub">截至 {{ now.strftime('%H:%M') }}</div>{% endif %}</td>
                   <td>{{ meter(mins, target, (mins ~ ' 分钟') ~ ('，超出目标 ' ~ (mins - target) ~ ' 分钟' if mins > target else ''), 180) }}</td>
-                  <td>{% if m.minutes is none %}{{ badge('进行中') }}{% elif m.ok %}{{ badge('达标', 'pass', 'check') }}{% else %}{{ badge('未达标 · 超出 ' ~ m.over ~ ' 分钟', 'block', 'warning-octagon') }}{% endif %}</td>
+                  <td>{% if m.minutes is none %}{{ badge('进行中') }}{% elif m.ok %}{{ badge('达标') }}{% else %}{{ badge('未达标 · 超出 ' ~ m.over ~ ' 分钟', 'fail', 'x-circle') }}{% endif %}</td>
                 </tr>
                 {% endfor %}
                 {% if first %}
@@ -95,7 +95,7 @@
                   <td class="t-nowrap{% if first.end %} num{% else %} muted{% endif %}">{{ first.end.strftime('%Y-%m-%d %H:%M') if first.end else '还没有回测报告' }}</td>
                   <td class="t-num">{% if first.days is not none %}{{ first.days }} 个工作日<div class="cell-sub">至首次回测报告 {{ first.end.strftime('%Y-%m-%d %H:%M') }}</div>{% else %}进行中{% endif %}</td>
                   <td>{% if first.days is not none %}{{ meter(first.days, first_target, first.days ~ ' 个工作日，目标 ' ~ first_target ~ ' 个工作日', 180) }}{% endif %}</td>
-                  <td>{% if first.days is none %}{{ badge('进行中') }}{% elif first.ok %}{{ badge('达标（≤ ' ~ first_target ~ ' 个工作日）', 'pass', 'check') }}{% else %}{{ badge('未达标 · ' ~ first.days ~ ' 个工作日', 'block', 'warning-octagon') }}{% endif %}</td>
+                  <td>{% if first.days is none %}{{ badge('进行中') }}{% elif first.ok %}{{ badge('达标（≤ ' ~ first_target ~ ' 个工作日）', 'pass', 'seal-check') }}{% else %}{{ badge('未达标 · ' ~ first.days ~ ' 个工作日', 'fail', 'x-circle') }}{% endif %}</td>
                 </tr>
                 {% endif %}
               </tbody>
@@ -106,7 +106,7 @@
           <div class="section__head">
             <h2 class="section__title" id="steps-title">步骤明细{{ ' · ' ~ sel if sel else '' }}</h2>
             <div class="row">
-              {% if rows %}<span class="section__note">{{ '均在 ' ~ days[0] if days|length == 1 else days[0] ~ ' 至 ' ~ days[-1] }} · 已记录 {{ rows|length }} 步，合计 {{ total_mins }} 分钟{% if sel_rec and sel_rec.import and sel_rec.minutes is none %}；导入至今 {{ hm(sel_rec.live_minutes) }}{% elif sel_rec and sel_rec.minutes is not none %}；导入至导出 {{ hm(sel_rec.minutes) }}{% endif %}</span>{% endif %}
+              {% if rows %}<span class="section__note">{{ '均在 ' ~ days[0] if days|length == 1 else days[0] ~ ' 至 ' ~ days[-1] }} · 已记录 {{ rows|length }} 步，合计 {{ total_mins ~ ' 分钟' if total_mins else '不到 1 分钟' }}{% if sel_rec and sel_rec.import and sel_rec.minutes is none %}；导入至今 {{ hm(sel_rec.live_minutes) }}{% elif sel_rec and sel_rec.minutes is not none %}；导入至导出 {{ hm(sel_rec.minutes) }}{% endif %}</span>{% endif %}
               {% if months %}
               <label><span class="visually-hidden">选择月份</span>
                 <select class="select" style="width:auto" data-nav-select>
@@ -136,7 +136,7 @@
                   <td>{% if r.link %}<a class="tlink" href="{{ r.link }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}{% if r.sub %}<div class="cell-sub">{{ r.sub }}</div>{% endif %}</td>
                   <td class="num">{{ r.started_at[11:16] if same else r.started_at[5:16] }}</td>
                   <td class="num">{{ (r.ended_at or '')[11:16] if same else (r.ended_at or '')[5:16] }}</td>
-                  <td class="t-num">{{ (r.mins ~ ' 分钟') if r.mins is not none and r.mins >= 1 else ('不到 1 分钟' if r.mins is not none else '—') }}</td>
+                  <td class="t-num">{{ (r.mins ~ ' 分钟') if r.mins is not none and r.mins >= 1 else ('不到 1 分钟' if r.mins is not none else '进行中') }}</td>
                   <td>{{ r.created_by }}</td>
                   <td>{{ badge(r.badge, 'ok' if r.badge == '完成' else ('warn' if '预警' in r.badge else None), 'check-circle' if r.badge == '完成' else ('warning' if '预警' in r.badge else None)) }} <span class="small muted">{{ r.rest }}</span></td>
                 </tr>

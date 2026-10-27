@@ -81,11 +81,11 @@
                     <div class="table-wrap" style="margin-top: var(--space-2)">
                       <table class="table">
                         <thead>
-                          <tr>{% for c in it.cols %}<th{% if c in ('早于上架（天）', '子体数', '跨度（天）', '子体月销量', '标签下界', '低于下界') %} class="t-num"{% endif %} scope="col">{{ c.replace('（天）', '') }}{% if c == '子体月销量' %}<span class="etag">估算</span>{% elif c == '低于下界' %}<span class="etag">推导</span>{% endif %}</th>{% endfor %}</tr>
+                          <tr>{% for c in it.cols %}<th{% if c in it.num_cols %} class="t-num"{% endif %} scope="col">{{ c.replace('（天）', '') }}{% if c in it.col_tag %}<span class="etag">{{ it.col_tag[c] }}</span>{% endif %}</th>{% endfor %}</tr>
                         </thead>
                         <tbody>
                           {% for row in it.sample_rows %}
-                          <tr>{% for c, v in row %}<td class="{% if c in ('早于上架（天）', '子体数', '跨度（天）', '子体月销量', '标签下界', '低于下界') %}t-num{% elif c in ('子ASIN', '父ASIN', '父ASIN 变化', '标签', '重复行号') %}mono{% elif c in ('上架日期', '首次评分日期', '最早上架', '最晚上架', '月份') %}num{% endif %}">{{ v }}</td>{% endfor %}</tr>
+                          <tr>{% for c, v in row %}<td class="{% if c in it.num_cols %}t-num{% elif c in it.mono_cols %}mono{% elif c in it.date_cols %}num{% endif %}">{{ v }}</td>{% endfor %}</tr>
                           {% endfor %}
                         </tbody>
                       </table>
@@ -151,7 +151,7 @@
         </section>
         {% endif %}
 
-        <p class="page-foot">数据包 {{ hpkg.label if hpkg else '—' }} · 品类配置 v{{ cfg_no }}（预警阈值）· 字段约定 {{ ('v' ~ cv.version_no) if cv else '—' }} · 体检只读取只读副本，不修改源数据</p>
+        <p class="page-foot">数据包 {{ hpkg.label if hpkg else '未导入' }} · 品类配置 v{{ cfg_no }}（预警阈值）· 字段约定 {{ ('v' ~ cv.version_no) if cv else '未保存' }} · 体检只读取只读副本，不修改源数据</p>
 {% endblock %}
 {% block overlays %}
 {% for it in warn %}

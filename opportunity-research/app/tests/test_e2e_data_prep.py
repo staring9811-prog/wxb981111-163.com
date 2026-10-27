@@ -255,6 +255,16 @@ def test_health_threshold_ack_and_fingerprints(live_server, clone, h1a_done, pag
     fam = page.locator("li[data-check=family_span]").inner_text()
     assert "1 个家族" in fam
     assert page.locator("#warn-banner").inner_text().startswith("2 项预警待知晓")
+    # sample columns follow PAGE-F03-02 §5 (brand included; duplicate keys show the key value and line number)
+    def heads(check: str) -> list[str]:
+        return [h.strip() for h in page.locator(f"li[data-check={check}] thead th").all_text_contents()]
+    assert heads("first_review_early") == ["子ASIN", "父ASIN", "品牌", "上架日期", "首次评分日期", "早于上架"]
+    assert heads("family_span") == ["父ASIN", "品牌", "子体数", "最早上架", "最晚上架", "跨度"]
+    assert heads("dup_key") == ["文件", "主键值", "行号"]
+    dup = [c.strip() for c in page.locator("li[data-check=dup_key] tbody tr").first.locator("td").all_text_contents()]
+    assert dup[0].startswith("C") and "·" in dup[1] and dup[2].isdigit()
+    assert all(c.strip() not in ("", "—", "无数据") for c in
+               page.locator("li[data-check=first_review_early] tbody td:nth-child(3)").all_text_contents())
     with live.app.engine.begin() as conn:  # the workbench's 待处理 list (PAGE-F03-01 reads the same function)
         todo = [t for t in VM.todo_items(conn, live.app.category_id(), "history") if t["kind"] == "health"]
     assert len(todo) == 2
@@ -290,6 +300,14 @@ def test_health_threshold_ack_and_fingerprints(live_server, clone, h1a_done, pag
 def test_config_required_bins_and_new_version(live_server, clone, h1a_done, page):  # type: ignore[no-untyped-def]
     live = live_server(clone(h1a_done))
     page.goto(live.u("/settings/category"))
+    v1_price = page.locator("input[name='bins.price']").input_value()
+    # an edited field is marked 已修改 with the current version's value beneath it; undoing the edit removes both
+    win = page.locator(".field:has(> input[name='success.window_months'])")
+    page.fill("input[name='success.window_months']", "5")
+    assert "已修改" in win.locator(".field__label .was-badge").inner_text()
+    assert win.locator(".was-note").inner_text() == "v1 为 6 个月。"
+    page.fill("input[name='success.window_months']", "6")
+    assert win.locator(".was-badge").count() == 0 and win.locator(".was-note").count() == 0
     for name, value in (("success.bsr_max", "50"), ("success.gmv_min", "100,000"), ("success.window_months", "6"),
                         ("rising_min_parent_units", "60"), ("node", "6810202011")):
         assert page.locator(f"#cfg-form [name='{name}']").input_value() == value
@@ -308,6 +326,8 @@ def test_config_required_bins_and_new_version(live_server, clone, h1a_done, page
     page.reload()
     assert page.locator("input[name='bins.price']").input_value() == "<$400 / $400–900 / ≥$900"
     assert page.locator("#draft-banner").is_visible()
+    cell = page.locator("td:has(> input[name='bins.price'])")  # table cells carry the mark too, after a reload
+    assert cell.locator(".was-note").inner_text() == f"已修改v1 为 {v1_price}"
     page.click("[data-cfg-review]")
     page.wait_for_selector("#save-modal.is-open")
     diff = page.locator("#save-diff").inner_text()
@@ -323,6 +343,47 @@ def test_config_required_bins_and_new_version(live_server, clone, h1a_done, page
     assert "需重算" in page.locator("#stale-banner").inner_text()
     page.goto(live.u("/"))
     assert "品类配置已保存为 v2" in page.locator(".banner--stale").inner_text()
+    assert not page.js_errors
+
+
+def test_config_segment_dimensions_are_editable(live_server, clone, h1a_done, page):  # type: ignore[no-untyped-def]
+    """PAGE-F13-01 F-02 / REQ-F13-01: the segment dimensions themselves can be changed, not only their bins."""
+    live = live_server(clone(h1a_done))
+    page.goto(live.u("/settings/category"))
+    bins = page.locator("input[name='bins.柜体材质']")
+    assert bins.is_disabled() and "如：" in (bins.get_attribute("placeholder") or "")
+    page.check("input[name=segdim][value='柜体材质']")
+    assert bins.is_enabled()
+    page.click("[data-cfg-review]")  # a newly selected dimension needs its bins
+    page.wait_for_selector("[data-error-for='bins.柜体材质']:not(:empty)")
+    bins.fill("橡胶木 / MDF / 竹 / 实木")
+    page.uncheck("input[name=segdim][value='form']")
+    assert page.locator("input[name='bins.form']").is_disabled()
+    page.wait_for_timeout(800)
+    page.click("[data-cfg-review]")
+    page.wait_for_selector("#save-modal.is-open")
+    diff = page.locator("#save-diff").inner_text()
+    assert "宽度档 × 价格带 × 柜体材质" in diff and "橡胶木 / MDF / 竹 / 实木" in diff
+    page.fill("#save-note", "细分加柜体材质、去掉形态")
+    page.click("#save-confirm")
+    assert "已保存为品类配置 v2" in _toast(page, "已保存为品类配置 v2")
+    app = live.app
+    with app.engine.begin() as conn:
+        dims = CAT.current_version(conn, app.category_id())["config"]["segment_dims"]
+    assert [d["key"] for d in dims] == ["width", "price", "柜体材质"]
+    assert SV.job_result(app, SV.compute(app))["status"] == "success"
+    with app.engine.begin() as conn:
+        run_ = CMP.latest_run(conn, app.category_id(), "history")
+        keys = [r[0] for r in conn.execute(text("SELECT DISTINCT segment_key FROM signal_value WHERE run_id=:r"),
+                                           {"r": run_["id"]})]
+        demand = conn.execute(text("SELECT COUNT(*) FROM signal_value WHERE run_id=:r AND signal='demand' "
+                                   "AND value IS NOT NULL"), {"r": run_["id"]}).scalar()
+    assert keys and all(len(k.split("|")) == 3 for k in keys)
+    assert {k.split("|")[2] for k in keys} <= {"橡胶木", "MDF", "竹", "实木", "未知"}
+    assert demand > 0  # keywords still map through 宽度档; 价格带 and 柜体材质 count every bin
+    assert SV.job_result(app, SV.backtest(app))["status"] == "success"
+    page.goto(live.u("/signals"))
+    assert "柜体材质" in page.locator("main").inner_text() or "橡胶木" in page.locator("main").inner_text()
     assert not page.js_errors
 
 

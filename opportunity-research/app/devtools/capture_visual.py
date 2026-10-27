@@ -135,6 +135,7 @@ def shots(tmp: Path) -> list[Shot]:
     X = "30–48″|落地式|$500–900"
     return [
         # PAGE-F03-01 本月工作台
+        Shot("DESIGN-01", "0_workbench_before_export", "s_ready", "/"),
         Shot("DESIGN-01", "1_workbench", "s1", "/"),
         Shot("DESIGN-01", "2_workbench_1366", "s1", "/", width=1366, height=768),
         Shot("DESIGN-01", "3_workbench_1920", "s1", "/", width=1920, height=1080),
@@ -152,12 +153,15 @@ def shots(tmp: Path) -> list[Shot]:
         Shot("DESIGN-04", "3_save_modal", "s1", "/fields", [click('button[data-open="#save-modal"]')], full=False),
         Shot("DESIGN-04", "4_history_drawer", "s1", "/fields", [click('button[data-open="#history-drawer"]')],
              full=False),
+        Shot("DESIGN-04", "5_fields_pending", "s_fields", "/fields"),
+        Shot("DESIGN-04", "6_save_modal_with_changes", "s_fields", "/fields", [click('button[data-open="#save-modal"]')],
+             full=False),
         # PAGE-F03-02 数据体检
         Shot("DESIGN-05", "1_health_sample_open", "s1", "/health",
              [run_js("document.querySelectorAll('li[data-check=first_review_early] details').forEach(d => d.open = true)")]),
         Shot("DESIGN-05", "2_ack_modal", "s1", "/health", [click('button[data-open^="#ack-modal-"]')], full=False),
         # PAGE-F04-01 新品与 SPU
-        Shot("DESIGN-06", "1_spu_history", "s1x", "/spu", mode="history"),
+        Shot("DESIGN-06", "1_spu_history", "s1", "/spu", mode="history"),
         Shot("DESIGN-06", "2_spu_cross", "s1x", "/spu", mode="cross"),
         # PAGE-F04-02 合并建议
         Shot("DESIGN-07", "1_merge_expanded", "s1", "/spu/merge",
@@ -205,6 +209,7 @@ def shots(tmp: Path) -> list[Shot]:
         Shot("DESIGN-13", "2_kits_candidate", "s1", "/kits", [click('[role="tab"]:has-text("立项候选")')]),
         Shot("DESIGN-13", "3_kits_watch", "s1", "/kits", [click('[role="tab"]:has-text("观察")')]),
         Shot("DESIGN-13", "4_kits_drop", "s1", "/kits", [click('[role="tab"]:has-text("放弃")')]),
+        Shot("DESIGN-13", "5_kits_statuses", "s_kits", "/kits"),
         # PAGE-F09-01 本月排序
         Shot("DESIGN-14", "1_ranking", "s1", "/ranking"),
         # PAGE-F10-01 台账 · 月度快照
@@ -292,6 +297,9 @@ def capture(states: Path, only: list[str]) -> list[dict[str, Any]]:
                 for act in sh.actions:
                     act(page, srv)
                 hscroll = page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth")
+                if sh.full and page.evaluate("!document.querySelector('.is-open')"):
+                    page.evaluate("window.scrollTo(0, 0)")  # a fill may have scrolled; the sticky top bar stays on top
+                    page.wait_for_timeout(200)
                 page.screenshot(path=str(OUT / sh.file), full_page=sh.full)
                 results.append({"design": sh.design, "file": f"tests/visual/{sh.file}", "state": sh.state,
                                 "url": page.url.replace(srv.url(""), ""), "viewport": [sh.width, sh.height],

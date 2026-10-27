@@ -8,7 +8,7 @@
             <div class="modal__head">
               <div>
                 <h2 class="modal__title" id="launch-title">录入自家上架数据</h2>
-                <p class="modal__sub"><span class="mono">{{ launch.code }}</span> · {{ launch.project_name or launch.segment_name }} · {{ segname(launch.segment_name or launch.segment_key or '') }} · {{ launch.kind }} · 立项 {{ launch.project_date or '—' }}</p>
+                <p class="modal__sub"><span class="mono">{{ launch.code }}</span> · {{ launch.project_name or launch.segment_name }} · {{ segname(launch.segment_name or launch.segment_key or '') }} · {{ launch.kind }} · 立项 {{ launch.project_date or '无数据' }}</p>
               </div>
               <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
             </div>
@@ -36,7 +36,7 @@
                 <div class="table-wrap">
                   <table class="table launch-grid">
                     <thead>
-                      <tr><th scope="col">指标</th>{% for i in range(1, 7) %}{% set mm = add_months(lm, i - 1) if lm else '' %}<th class="t-num" scope="col">第 {{ i }} 个月<div class="cell-sub" data-month-label="{{ i }}">{{ mm or '—' }}</div></th>{% endfor %}</tr>
+                      <tr><th scope="col">指标</th>{% for i in range(1, 7) %}{% set mm = add_months(lm, i - 1) if lm else '' %}<th class="t-num" scope="col">第 {{ i }} 个月<div class="cell-sub" data-month-label="{{ i }}">{{ mm or '无数据' }}</div></th>{% endfor %}</tr>
                     </thead>
                     <tbody>
                       {% for key, label, mode in [('units', '月销量（件）', 'numeric'), ('sales', '月销售额（$）', 'decimal'), ('bsr', '小类 BSR', 'numeric')] %}

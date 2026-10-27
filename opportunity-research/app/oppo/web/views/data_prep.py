@@ -15,7 +15,7 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.engine import Connection
 
 from oppo import clock
@@ -44,11 +44,11 @@ FILE_SHORT = {k: v.split(" ", 1)[1] for k, v in S.FILE_NAMES.items()}
 
 
 def _fp8(sha: str | None) -> str:
-    return (sha or "")[:8] or "—"
+    return (sha or "")[:8] or "无数据"
 
 
 def _fp_mid(sha: str | None) -> str:
-    return f"{sha[:12]}…{sha[-4:]}" if sha else "—"
+    return f"{sha[:12]}…{sha[-4:]}" if sha else "无数据"
 
 
 def _rlabel(r: str | None) -> str:
@@ -130,7 +130,7 @@ def _package_row(conn: Connection, p: dict[str, Any], cur_ids: set[int]) -> dict
     note = []
     if p["kind"] == "cross" and "C6" not in codes:
         note.append("无 C6，缺少痛点信号")
-    return {**p, "codes_text": PK.file_codes_text(codes) if codes else "—", "n_files": len(files),
+    return {**p, "codes_text": PK.file_codes_text(codes) if codes else "无文件", "n_files": len(files),
             "files_note": " · ".join(note), "months_n": months, "is_current": p["id"] in cur_ids,
             "conclusion_label": CONCLUSION.get(p["conclusion"], p["conclusion"]), "conclusion_sub": sub,
             "kind_label": KIND_LABEL.get(p["kind"] or "", "无法识别"), "contract_label": CONTRACT_LABEL.get(p["kind"] or "", "")}
@@ -450,7 +450,7 @@ def _attr_text(attr: str, value: Any) -> str:
     if attr == "status":
         return "已确认" if value == "confirmed" else "未确认"
     if value in (None, ""):
-        return "—"
+        return "空"
     return str(value)
 
 
@@ -477,7 +477,7 @@ def _evidence_cell(key: tuple[str, str], it: dict[str, Any], ev: dict[str, Any] 
             text_ = f"低于购买标签下界 {_pct1(h['value'])}"
         st = {"warn": "预警，未标已知晓", "acked": "预警，已知晓", "normal": "正常"}.get(h["status"], "不适用")
         pop = {"体检项": label, "分子": f"{int(h['numerator'] or 0):,}", "分母": f"{int(h['denominator'] or 0):,}",
-               "预警阈值": f"{h['threshold']:g}{'%' if hk in H.PCT_ITEMS else ' 个'}" if h["threshold"] is not None else "—",
+               "预警阈值": f"{h['threshold']:g}{'%' if hk in H.PCT_ITEMS else ' 个'}" if h["threshold"] is not None else "无数据",
                "状态": st, "数据包": pkg_label}
         return {"text": text_, "n": int(h["denominator"] or 0), "popd": pop}
     if not ev:
@@ -489,7 +489,7 @@ def _evidence_cell(key: tuple[str, str], it: dict[str, Any], ev: dict[str, Any] 
         pop["各月取值相同"] = f"{ev['same_all_months_share'] * 100:.1f}%（{ev.get('same_all_months_n', 0):,} 个子体）"
     if ev.get("example"):
         pop["示例值"] = ev["example"]
-    pop["类型"] = ev.get("dtype") or "—"
+    pop["类型"] = ev.get("dtype") or "无数据"
     pop["数据包"] = pkg_label
     if it.get("timing") == "快照" and ev.get("same_all_months_share") is not None:
         return {"text": f"各月取值相同 {ev['same_all_months_share'] * 100:.1f}%", "n": int(ev.get("same_all_months_n") or 0),
@@ -571,7 +571,7 @@ def fields_context(conn: Connection, cid: int, open_key: str | None) -> dict[str
     items = CT.draft_items(conn, cid)
     cur = CT.current_version(conn, cid)
     pkg_ids = sorted({i["package_id"] for i in items if i["package_id"]})
-    labels = {pid: (PK.get(conn, pid) or {}).get("label", "—") for pid in pkg_ids}
+    labels = {pid: (PK.get(conn, pid) or {}).get("label", "无数据") for pid in pkg_ids}
     evs = {pid: CT.evidence(conn, pid) for pid in pkg_ids}
     health_pkg = PK.current_package(conn, cid, "history") or PK.current_package(conn, cid, "cross")
     health = _health_by_item(conn, cid, health_pkg["id"] if health_pkg else None)
@@ -593,7 +593,7 @@ def fields_context(conn: Connection, cid: int, open_key: str | None) -> dict[str
             views.append("rule")
         rid = f"f{it['id']}"
         rows.append({**it, "rid": rid, "views": " ".join(views), "ev": _evidence_cell(
-            key, it, ev, health, labels.get(it["package_id"], "—")), "key": f"{it['file_code']}|{it['field']}",
+            key, it, ev, health, labels.get(it["package_id"], "无数据")), "key": f"{it['file_code']}|{it['field']}",
             "file_label": S.FILE_NAMES.get(it["file_code"], it["file_code"]),
             "grains": GRAINS if it["grain"] in GRAINS else GRAINS + (it["grain"],)})
     if open_key:
@@ -716,17 +716,19 @@ async def fields_save(request: Request) -> JSONResponse:
 # PAGE-F03-02 数据体检
 # =============================================================================================
 
+# sample columns per health item, as listed in PAGE-F03-02 §5
 SAMPLE_COLS = {
-    "first_review_early": ["子ASIN", "父ASIN", "上架日期", "首次评分日期", "早于上架（天）"],
-    "family_span": ["父ASIN", "子体数", "最早上架", "最晚上架", "跨度（天）"],
+    "first_review_early": ["子ASIN", "父ASIN", "品牌", "上架日期", "首次评分日期", "早于上架（天）"],
+    "family_span": ["父ASIN", "品牌", "子体数", "最早上架", "最晚上架", "跨度（天）"],
     "below_bought": ["子ASIN", "月份", "子体月销量", "标签", "标签下界", "低于下界"],
-    "unknown_share": ["子ASIN", "维度", "标签值"],
-    "parent_change": ["子ASIN", "月份", "父ASIN 变化"],
-    "dup_key": ["文件", "重复行号"],
+    "unknown_share": ["子ASIN", "品牌", "“未知”的维度", "证据状态", "上月销量"],
+    "parent_change": ["子ASIN", "品牌", "变化月份", "原父ASIN", "新父ASIN"],
+    "dup_key": ["文件", "主键值", "行号"],
 }
-NUM_COLS = {"早于上架（天）", "子体数", "跨度（天）", "子体月销量", "标签下界", "低于下界"}
-MONO_COLS = {"子ASIN", "父ASIN", "父ASIN 变化", "标签"}
-COL_TAG = {"子体月销量": "估算", "低于下界": "推导"}
+NUM_COLS = {"早于上架（天）", "子体数", "跨度（天）", "子体月销量", "标签下界", "低于下界", "上月销量", "行号"}
+MONO_COLS = {"子ASIN", "父ASIN", "原父ASIN", "新父ASIN", "标签", "主键值"}
+DATE_COLS = {"上架日期", "首次评分日期", "最早上架", "最晚上架", "月份", "变化月份"}
+COL_TAG = {"子体月销量": "估算", "上月销量": "估算", "低于下界": "推导"}
 HEALTH_DESC = {
     "first_review_early": "首评日期可能是父体共享口径：新子体挂在老父体下，会带上父体早年的评论。最早首评早于上架超过 7 天的 SPU 会标“疑似重新上架”。相关字段：C1、C2 的首次评分日期。",
     "family_span": "跨度大多是老父体陆续挂上新子体，或上架日期取的是最早时间。晚于 SPU 上架日的子体按“新变体”处理，不计为新品。",
@@ -770,13 +772,15 @@ def _health_item_view(r: dict[str, Any], total_rows: int) -> dict[str, Any]:
     elif item == "dup_key" and float(th) == 0:
         th_text = "出现 1 行即预警"
     else:
-        th_text = f"{th:g} {'个子体' if item == 'parent_change' else '条'}"
+        th_text = f"{th:g} {'个子体' if item == 'parent_change' else '行'}"
     if th is None:
         th_short = "未设置"
     elif item in H.PCT_ITEMS:
         th_short = f"{th:g}%"
+    elif item == "dup_key" and float(th) == 0:
+        th_short = "0 行（出现 1 行即预警）"
     else:
-        th_short = f"{th:g} {'个子体' if item == 'parent_change' else '条'}"
+        th_short = f"{th:g} {'个子体' if item == 'parent_change' else '行'}"
     samples = []
     cols = SAMPLE_COLS[item]
     from oppo.core.health import _lower_bound
@@ -785,15 +789,18 @@ def _health_item_view(r: dict[str, Any], total_rows: int) -> dict[str, Any]:
         row = dict(s)
         if item == "below_bought":
             lb = _lower_bound(row.get("标签"))
-            row["标签下界"] = f"{lb:g}" if lb else "—"
+            row["标签下界"] = f"{lb:g}" if lb else "无数据"
             units = row.get("子体月销量")
-            row["低于下界"] = f"{(1 - units / lb) * 100:.0f}%" if lb and units is not None else "—"
-            row["子体月销量"] = f"{units:,} 件" if units is not None else "—"
+            row["低于下界"] = f"{(1 - units / lb) * 100:.0f}%" if lb and units is not None else "无数据"
+            row["子体月销量"] = f"{units:,} 件" if units is not None else "无数据"
         if "早于上架（天）" in row:
             row["早于上架（天）"] = f"{row['早于上架（天）']:,} 天"
         if "跨度（天）" in row:
             row["跨度（天）"] = f"{row['跨度（天）']:,} 天"
-        samples.append([(c, row.get(c, "—")) for c in cols])
+        if item == "unknown_share":
+            u = row.get("上月销量")
+            row["上月销量"] = f"{u:,} 件" if u is not None else "无数据"
+        samples.append([(c, row.get(c, "无数据")) for c in cols])
     dims = []
     if item == "unknown_share":
         all_dims = (r.get("detail") or {}).get("dims") or []
@@ -808,6 +815,7 @@ def _health_item_view(r: dict[str, Any], total_rows: int) -> dict[str, Any]:
     else:
         ref = None
     return {**r, "parts": parts, "th_text": th_text, "th_short": th_short, "cols": cols, "sample_rows": samples, "dims": dims, "ref": ref,
+            "num_cols": NUM_COLS, "mono_cols": MONO_COLS, "date_cols": DATE_COLS, "col_tag": COL_TAG,
             "desc": HEALTH_DESC[item]}
 
 
@@ -868,7 +876,7 @@ FIELD_LABEL = {path: label for _g, path, label, _k in CAT.CONFIG_FIELDS}
 
 def _fmt_cfg(v: Any) -> str:
     if v is None or v == "":
-        return "—"
+        return "空"
     if isinstance(v, float) and v == int(v):
         v = int(v)
     if isinstance(v, int) and abs(v) >= 1000:
@@ -892,6 +900,11 @@ def _form_values(form: Any, base: dict[str, Any]) -> dict[str, Any]:
     for _g, path, _l, _k in CAT.CONFIG_FIELDS:
         if path in form:
             values[path] = str(form.get(path) or "")
+    for k in form.keys():  # one bins field per selected segment dimension
+        if k.startswith("bins."):
+            values[k] = str(form.get(k) or "")
+    if "segdim_present" in form:
+        values["segment_dims.selected"] = "、".join(str(x) for x in form.getlist("segdim"))
     if "ta_present" in form:
         values["type_attributes"] = "、".join(str(x) for x in form.getlist("ta"))
     wl = [(k[len("kw.width."):], str(v)) for k, v in form.multi_items() if k.startswith("kw.width.")]
@@ -936,8 +949,23 @@ def _store_draft(conn: Connection, cid: int, cfg: dict[str, Any], cur_cfg: dict[
 
 def _diff_rows(old: dict[str, Any], new: dict[str, Any]) -> list[list[str]]:
     if not old:
-        return [["全部配置项", "—", "新建，保存为 v1"]]
+        return [["全部配置项", "（无）", "新建，保存为 v1"]]
     return [[label, _fmt_cfg(a), _fmt_cfg(b)] for label, a, b in CAT.diff(old, new)]
+
+
+def _attr_examples(conn: Connection, cid: int) -> dict[str, list[str]]:
+    """The most frequent values of each attribute in the current data package (bins placeholders)."""
+    pkg = PK.current_package(conn, cid, "history") or PK.current_package(conn, cid, "cross")
+    if not pkg:
+        return {}
+    rows = conn.execute(text("SELECT dim, value, COUNT(*) AS n FROM raw_c4 WHERE package_id=:p AND value IS NOT NULL "
+                             "AND value NOT IN ('', '未知') GROUP BY dim, value ORDER BY dim, n DESC"),
+                        {"p": pkg["id"]}).all()
+    out: dict[str, list[str]] = {}
+    for dim, value, _n in rows:
+        if len(out.setdefault(dim, [])) < 4:
+            out[dim].append(str(value))
+    return out
 
 
 def _health_now(conn: Connection, cid: int) -> dict[str, dict[str, Any]]:
@@ -997,7 +1025,13 @@ def category_page(request: Request) -> HTMLResponse:
         categories = [dict(r) for r in conn.execute(select(D.category.c.id, D.category.c.name, D.category.c.is_draft)
                                                     .order_by(D.category.c.id)).mappings().all()]
         busy = jobs.running(conn)
+        examples = _attr_examples(conn, cid) if cid == current_cid else {}
     seg_dims = {d["key"]: d for d in (cfg.get("segment_dims") or [])}
+    dim_rows = []
+    for d in CAT.dim_candidates(cfg or CAT.BATHROOM_TEMPLATE):
+        ex = examples.get(d["attr"], [])
+        dim_rows.append({**d, "on": d["key"] in seg_dims, "default_bins": " / ".join(b["label"] for b in d["bins"]),
+                         "hint": ("如：" + " / ".join(ex)) if ex else "勾选后填写取值，用“ / ”分隔"})
     n_segments = 1
     for d in seg_dims.values():
         n_segments *= max(1, len(d.get("bins") or []))
@@ -1009,7 +1043,7 @@ def category_page(request: Request) -> HTMLResponse:
         "category": category, "cid": cid, "is_current": cid == current_cid, "cfgv": cfg, "cur_cfg": cur_cfg,
         "cur_no": cur_no, "cur": cur, "draft": draft, "diff_rows": diff_rows, "modified": modified,
         "versions": versions, "health": health, "stale": stale, "deps": deps, "decided": decided, "n_test": n_test,
-        "n_segments": n_segments, "seg_dims": seg_dims, "missing": missing, "categories": categories, "busy": busy,
+        "n_segments": n_segments, "seg_dims": seg_dims, "dim_rows": dim_rows, "missing": missing, "categories": categories, "busy": busy,
         "sites": SITES, "splits": SPLITS, "get_path": CAT.get_path, "width_rules": _width_rules(cfg),
         "width_was": _width_rules(cur_cfg) if cur_cfg else {},
         "form_was": (((cur_cfg.get("keyword_mapping") or {}).get("form") or {}).get("map") or {}) if cur_cfg else {},

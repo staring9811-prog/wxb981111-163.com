@@ -64,9 +64,8 @@ CONFIG_FIELDS: list[tuple[str, str, str, str]] = [
     ("成功线", "success.gmv_min", "月度 GMV 阈值（美元，≥）", "posnum"),
     ("成功线", "success.window_months", "判定窗口（个月）", "posint"),
     ("参照人群", "rising_min_parent_units", "起量门槛（件/月，≥）", "posnum"),
-    ("细分维度与分档", "bins.width", "宽度档（取自尺寸）", "bins"),
-    ("细分维度与分档", "bins.form", "形态", "bins"),
-    ("细分维度与分档", "bins.price", "价格带", "bins"),
+    ("细分维度与分档", "segment_dims.selected", "细分维度", "dims"),
+    # the bins of each selected dimension are inserted here by config_fields(cfg)
     ("细分维度与分档", "type_attributes", "类型属性（缺失时可父体回填）", "list"),
     ("关键词映射规则", "keyword_mapping.width.rule", "宽度档 ← 尺寸标签", "text"),
     ("关键词映射规则", "keyword_mapping.form.map_text", "形态 ← 形态标签", "text"),
@@ -81,6 +80,42 @@ CONFIG_FIELDS: list[tuple[str, str, str, str]] = [
     ("体检预警阈值", "health_thresholds.parent_change", HEALTH_LABELS["parent_change"] + "（个）", "count"),
     ("体检预警阈值", "health_thresholds.dup_key", HEALTH_LABELS["dup_key"] + "（条）", "count"),
 ]
+
+
+BIN_FIELD_LABELS = {"width": "宽度档（取自尺寸）", "form": "形态", "price": "价格带"}
+NUMERIC_DIMS = ("width", "price")  # bins are numeric ranges; every other dimension lists attribute values
+
+
+def dim_candidates(cfg: dict[str, Any]) -> list[dict[str, Any]]:
+    """Rows of the 细分维度与分档 table in their fixed order: 宽度档 (from 尺寸), 形态, 价格带, then every other
+    attribute of the data package; any of them can be a segment dimension (PAGE-F13-01 F-02, REQ-F13-01)."""
+    out = [copy.deepcopy(d) for d in BATHROOM_TEMPLATE["segment_dims"]]
+    used = {d["attr"] for d in out}
+    for a in cfg.get("attribute_dims") or []:
+        if a not in used:
+            out.append({"key": a, "label": a, "attr": a, "kind": "category", "bins": []})
+    return out
+
+
+def config_fields(cfg: dict[str, Any]) -> list[tuple[str, str, str, str]]:
+    """CONFIG_FIELDS plus one bins field per selected segment dimension."""
+    out: list[tuple[str, str, str, str]] = []
+    for f in CONFIG_FIELDS:
+        out.append(f)
+        if f[1] == "segment_dims.selected":
+            out += [("细分维度与分档", f"bins.{d['key']}", BIN_FIELD_LABELS.get(d["key"], f"{d['label']}分档"), "bins")
+                    for d in cfg.get("segment_dims") or []]
+    return out
+
+
+def _fields_of(*cfgs: dict[str, Any]) -> list[tuple[str, str, str, str]]:
+    seen, out = set(), []
+    for c in cfgs:
+        for f in config_fields(c):
+            if f[1] not in seen:
+                seen.add(f[1])
+                out.append(f)
+    return out
 
 
 def bins_text(cfg: dict[str, Any], key: str) -> str:
@@ -99,6 +134,9 @@ def form_map_text(cfg: dict[str, Any]) -> str:
 
 
 def get_path(cfg: dict[str, Any], path: str) -> Any:
+    if path == "segment_dims.selected":
+        dims = cfg.get("segment_dims") or []
+        return " × ".join(d["label"] for d in dims) if dims else None
     if path.startswith("bins."):
         return bins_text(cfg, path.split(".", 1)[1])
     if path == "keyword_mapping.form.map_text":
@@ -118,7 +156,9 @@ def get_path(cfg: dict[str, Any], path: str) -> Any:
 
 def _parse_bins(key: str, text_value: str) -> list[dict[str, Any]]:
     labels = [p.strip() for p in text_value.split("/") if p.strip()]
-    if key == "form":
+    if key not in NUMERIC_DIMS:  # attribute values, one bin each
+        if len(set(labels)) != len(labels):
+            raise ValueError("分档有重复取值")
         return [{"label": lab, "values": [lab]} for lab in labels]
     bins: list[dict[str, Any]] = []
     import re
@@ -153,6 +193,14 @@ def _parse_bins(key: str, text_value: str) -> list[dict[str, Any]]:
 
 
 def set_path(cfg: dict[str, Any], path: str, value: Any) -> None:
+    if path == "segment_dims.selected":
+        keys = [x.strip() for x in str(value).replace(",", "、").split("、") if x.strip()]
+        have = {d["key"]: d for d in cfg.get("segment_dims") or []}
+        dims = [have.get(c["key"], c) for c in dim_candidates(cfg) if c["key"] in keys]
+        if not dims:
+            raise ValueError("至少选择一个细分维度")
+        cfg["segment_dims"] = dims
+        return
     if path.startswith("bins."):
         key = path.split(".", 1)[1]
         for dim in cfg["segment_dims"]:
@@ -211,23 +259,29 @@ def apply_form(base: dict[str, Any], form: dict[str, Any]) -> tuple[dict[str, An
     """Apply submitted form values to a copy of base; return (config, errors by path)."""
     cfg = copy.deepcopy(base)
     errors: dict[str, str] = {}
-    for _group, path, _label, kind in CONFIG_FIELDS:
-        if path not in form:
-            continue
-        val, err = validate_value(kind, form[path])
-        if err:
-            errors[path] = err
-            continue
-        try:
-            set_path(cfg, path, val)
-        except ValueError as exc:
-            errors[path] = str(exc)
+
+    def apply(fields: list[tuple[str, str, str, str]]) -> None:
+        for _group, path, _label, kind in fields:
+            if path not in form:
+                continue
+            val, err = validate_value(kind, form[path])
+            if err:
+                errors[path] = err
+                continue
+            try:
+                set_path(cfg, path, val)
+            except ValueError as exc:
+                errors[path] = str(exc)
+
+    # the dimension choice first, so that the bins of a newly selected dimension are read as well
+    apply([f for f in CONFIG_FIELDS if f[1] == "segment_dims.selected"])
+    apply([f for f in config_fields(cfg) if f[1] != "segment_dims.selected"])
     return cfg, errors
 
 
 def missing_required(cfg: dict[str, Any]) -> list[str]:
     out = []
-    for _group, path, label, _kind in CONFIG_FIELDS:
+    for _group, path, label, _kind in config_fields(cfg):
         v = get_path(cfg, path)
         if v is None or (isinstance(v, str) and v.strip() == ""):
             out.append(label)
@@ -236,7 +290,7 @@ def missing_required(cfg: dict[str, Any]) -> list[str]:
 
 def diff(old: dict[str, Any], new: dict[str, Any]) -> list[tuple[str, Any, Any]]:
     out = []
-    for _group, path, label, _kind in CONFIG_FIELDS:
+    for _group, path, label, _kind in _fields_of(old, new):
         a, b = get_path(old, path), get_path(new, path)
         if a != b:
             out.append((label, a, b))

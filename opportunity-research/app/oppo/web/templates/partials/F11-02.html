@@ -102,7 +102,7 @@
                     {{ icon('pencil-simple' if not v.system else ('seal-check' if v.status == '已验证' else 'flask'), 'list__icon') }}
                     <div class="list__body">
                       <div class="list__title row">v{{ v.version_no }}{% if v.current %} · 当前{% endif %} {{ badge(v.status) }}</div>
-                      <div class="list__desc">{{ v.created_at[:16] }} · {{ v.actor }} · {% if v.system %}{{ v.change_note if v.change_note != '新增' else '由回测生成' }}{% if v.basis and v.basis.batches %}（批次 {{ v.basis.batches }}，样本 {{ v.basis.n }}）{% endif %}{% else %}理由：{{ v.reason or '—' }}{% endif %}</div>
+                      <div class="list__desc">{{ v.created_at[:16] }} · {{ v.actor }} · {% if v.system %}{{ v.change_note if v.change_note != '新增' else '由回测生成' }}{% if v.basis and v.basis.batches %}（批次 {{ v.basis.batches }}，样本 {{ v.basis.n }}）{% endif %}{% else %}理由：{{ v.reason or '无数据' }}{% endif %}</div>
                       {% if v.changes %}
                       <div class="diff" style="margin-top: var(--space-3)">
                         {% for k, old, new in v.changes %}<span class="diff__key">{{ k }}</span><span class="diff__old">{{ old }}</span><span class="diff__new">{{ new }}</span>{% endfor %}

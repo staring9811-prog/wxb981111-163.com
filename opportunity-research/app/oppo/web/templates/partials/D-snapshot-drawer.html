@@ -28,9 +28,9 @@
               <h3 id="{{ dom }}-ver">版本与对账</h3>
               <dl class="kv" style="margin-top: var(--space-3)">
                 <dt>判定卡</dt><dd>{{ s.card_label }} {{ badge(s.card_status) if s.card_status else '' }}</dd>
-                <dt>数据包</dt><dd>{{ ct.versions.package or '—' }}（数据至 {{ ct.data_to or '—' }}）</dd>
-                <dt>字段约定</dt><dd>{{ ct.versions.contract or '—' }}</dd>
-                <dt>品类配置</dt><dd>{{ ct.versions.config or '—' }}（细分按快照当时的配置划分）</dd>
+                <dt>数据包</dt><dd>{{ ct.versions.package or '无数据' }}（数据至 {{ ct.data_to or '无数据' }}）</dd>
+                <dt>字段约定</dt><dd>{{ ct.versions.contract or etag('无数据', 'nodata') }}</dd>
+                <dt>品类配置</dt><dd>{{ ct.versions.config or '无数据' }}（细分按快照当时的配置划分）</dd>
                 <dt>导出</dt><dd>{{ ('已导出 · ' ~ s.exported_at[:16]) if s.exported_at else '未导出' }}</dd>
                 <dt>对账</dt><dd>
                   {% if s.recon == 'done' %}{% set rr = s.recon_rec %}已对账 · {{ rr.created_at[:10] }}（对账月份 {{ rr.recon_month }}）· 前 20% {{ rr.top_hits }}/{{ rr.top_n }}，全类目 {{ rr.all_hits }}/{{ rr.all_n }}，倍数 {{ mult(rr.multiple) }}
@@ -59,7 +59,7 @@
                       <td class="t-num">{{ r.rank }}</td>
                       <td><div>{{ segname(r.segment) }}</div><div class="t-nowrap" style="margin-top: 2px">{{ ibar(r.point, r.ci, avg.rate, r.sample, grey=s.card_status == '未验证') }}<span class="ibar-text">{{ ci_text(r.ci) }}</span>{{ etag('n=' ~ r.sample) }}{% if s.mode == 'cross' %}{{ etag('截面', 'cross') }}{% endif %}</div></td>
                       <td class="t-num">{{ '%.2f'|format(r.score) if r.score is not none else '无数据' }}</td>
-                      <td class="t-nowrap">{% if r.tips %}{{ badge(r.tips[0].action) }}<div class="cell-sub mono">{{ r.tips|map(attribute='rule')|join('、') }}</div>{% else %}<span class="muted">—</span>{% endif %}</td>
+                      <td class="t-nowrap">{% if r.tips %}{{ badge(r.tips[0].action) }}<div class="cell-sub mono">{{ r.tips|map(attribute='rule')|join('、') }}</div>{% else %}<span class="small muted">无适用锦囊</span>{% endif %}</td>
                     </tr>
                     {% endfor %}
                     {% if ct.insufficient %}
@@ -85,7 +85,7 @@
                       <div class="row"><span class="list__title mono">{{ t.rule }}</span>{{ badge(t.action) }}{{ badge(t.status) }}{% if s.mode == 'cross' %}{{ etag('截面', 'cross') }}{% endif %}</div>
                       <div class="list__desc" style="color: var(--fg-2)">{{ t.cond }}{% if t.attr_note %}（{{ t.attr_note }}）{% endif %}</div>
                       {% if t.ci and t.ci[0] is not none %}
-                      <div class="list__desc">预期命中率 {{ ci_text(t.ci) }} · 依据 {{ t.batches or '—' }} · 样本 {{ t.n }}{% if t.backtest %} · 回测 {{ t.backtest }}{% endif %}</div>
+                      <div class="list__desc">预期命中率 {{ ci_text(t.ci) }} · 依据 {{ t.batches or '无数据' }} · 样本 {{ t.n }}{% if t.backtest %} · 回测 {{ t.backtest }}{% endif %}</div>
                       {% else %}
                       <div class="list__desc">预期命中率 {{ etag('无数据', 'nodata') }} · 未经回测</div>
                       {% endif %}

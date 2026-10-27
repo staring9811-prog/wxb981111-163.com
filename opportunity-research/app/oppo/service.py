@@ -203,7 +203,9 @@ def export(app: App, month: str | None = None, mode: str = "history", background
         from oppo.core import backup as BK
 
         with app.engine.begin() as conn:
-            bk = BK.run_backup(app.settings.db_path, conn, "导出后自动", app.operator, cid)
+            label = (f"导出 {result['snapshot'].replace(' · ', ' ')}"
+                     if isinstance(result, dict) and result.get("snapshot") else None)
+            bk = BK.run_backup(app.settings.db_path, conn, "导出后自动", app.operator, cid, label)
             if isinstance(result, dict) and result.get("export_id"):
                 conn.execute(D.export_record.update().where(D.export_record.c.id == result["export_id"])
                              .values(backup_id=bk["id"]))

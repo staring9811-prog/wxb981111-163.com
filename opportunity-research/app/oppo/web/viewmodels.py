@@ -196,7 +196,7 @@ def workbench_summary(conn: Connection, app: Any, mode: str = "history") -> dict
         decided = [x for x in SPU.suggestions(conn, cid) if x["status"] in ("confirmed", "rejected")
                    and x.get("package_id") in (None, pkg["id"])]
         if decided:  # the review has been done this month; the rest stays listed in 待处理
-            add("done", f"已审核 · {len(sugg)} 条待审", warn=True)
+            add("done", f"已审 {len(decided)} 条 · 待审 {len(sugg)} 条", warn=True)
         else:
             add("attention", f"{len(sugg)} 条建议待审")
     else:

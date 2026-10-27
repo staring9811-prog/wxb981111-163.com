@@ -54,7 +54,7 @@
                     {% set p = s.pain %}
                     <tr data-sig="pain">
                       <td>结构类痛点占比<div class="cell-sub">评论日期早于 {{ T }}</div></td>
-                      <td class="t-num">{% if p and p.value is not none %}{{ b_upct(p.value) }}{{ etag('人工', '', {'分子': num(p.num) ~ ' 条结构类痛点评论', '分母': num(p.den) ~ ' 条评论', '去重规则': '父体级评论只计入上月销量最大的子体所在细分', '来源文件': 'C6 评论痛点', '性质': '人工标注（标注版本 ' ~ ((p.extra or {}).get('label_versions') or ['—'])|join('、') ~ '）'}, '结构类痛点占比') }}{% else %}<span class="etag etag--nodata"{% if p and (p.extra or {}).reason %} tabindex="0" data-tip="无数据|{{ p.extra.reason }}"{% endif %}>无数据</span>{% endif %}</td>
+                      <td class="t-num">{% if p and p.value is not none %}{{ b_upct(p.value) }}{{ etag('人工', '', {'分子': num(p.num) ~ ' 条结构类痛点评论', '分母': num(p.den) ~ ' 条评论', '去重规则': '父体级评论只计入上月销量最大的子体所在细分', '来源文件': 'C6 评论痛点', '性质': '人工标注（标注版本 ' ~ ((p.extra or {}).get('label_versions') or ['无数据'])|join('、') ~ '）'}, '结构类痛点占比') }}{% else %}<span class="etag etag--nodata"{% if p and (p.extra or {}).reason %} tabindex="0" data-tip="无数据|{{ p.extra.reason }}"{% endif %}>无数据</span>{% endif %}</td>
                       <td class="small">{% if p and p.den %}{{ num(p.num) }} / {{ num(p.den) }} 条评论{% endif %}</td>
                     </tr>
                     {% set h = s.hslr %}
@@ -148,7 +148,7 @@
             <section aria-labelledby="spu-title">
               <div class="section__head">
                 <h3 id="spu-title">细分内新 SPU</h3>
-                <span class="section__note">{% if cross %}截面已判定 {{ dz.spus|length + dz.spus_more }} 个{% else %}回看期（{{ dz.lookback[0] }}–{{ dz.lookback[1] }} 上架）已判定 {{ dz.spus|length + dz.spus_more }} 个，命中 {{ (dz.spus|selectattr('status', 'equalto', '命中')|list|length) if not dz.spus_more else ((s.entry.num|int) if s.entry and s.entry.num is not none else '—') }}{% endif %}</span>
+                <span class="section__note">{% if cross %}截面已判定 {{ dz.spus|length + dz.spus_more }} 个{% else %}回看期（{{ dz.lookback[0] }}–{{ dz.lookback[1] }} 上架）已判定 {{ dz.spus|length + dz.spus_more }} 个，命中 {{ (dz.spus|selectattr('status', 'equalto', '命中')|list|length) if not dz.spus_more else ((s.entry.num|int) if s.entry and s.entry.num is not none else '无数据') }}{% endif %}</span>
               </div>
               {% if dz.spus %}
               <div class="table-wrap">

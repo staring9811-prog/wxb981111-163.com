@@ -105,10 +105,10 @@ def etag(text: str, kind: str = "n", pop: dict[str, Any] | None = None, title: s
 ACTION_BADGE = {"立项候选": ("hit", "flag"), "观察": ("watch", "eye"), "放弃": ("miss", "prohibit")}
 STATUS_BADGE = {
     "命中": ("hit", "check-circle"), "未命中": ("miss", "minus"), "观察中": ("watch", "hourglass"),
-    "数据不全": ("incomplete", "warning"), "截面命中": ("cross", "intersect"), "截面未命中": ("miss", "minus"),
+    "数据不全": ("incomplete", "warning"), "截面命中": ("cross", "check-circle"), "截面未命中": ("miss", "minus"),
     "老品": ("old", "archive"), "已验证": ("pass", "seal-check"), "历史观察": ("", "clock-counter-clockwise"),
     "未验证经验": ("unverified", "seal-question"), "已达标": ("pass", "seal-check"), "达标": ("pass", "seal-check"),
-    "达标（截面）": ("cross", "intersect"), "未验证": ("unverified", "warning"), "未达标": ("warn", "warning"),
+    "达标（截面）": ("cross", "seal-check"), "未验证": ("unverified", "seal-question"), "未达标": ("fail", "x-circle"),
     "样本不足": ("insufficient", "info"), "需重算": ("stale", "arrows-clockwise"), "通过": ("pass", "check-circle"),
     "有警告": ("warn", "warning"), "阻断": ("block", "warning-octagon"), "预警": ("warn", "warning"),
     "已知晓": ("ack", "check"), "正常": ("ok", "check-circle"), "不适用": ("nodata", "minus"),

@@ -26,7 +26,7 @@
                   {{ icon('warning') }}
                   <div class="banner__body">
                     <div class="banner__title">判定卡未验证，不可作为立项结论</div>
-                    <div>未达标：{{ card.basis.reason_class or '—' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。导出文件首页将显示“{{ CARD.UNVERIFIED_TEXT }}”。</div>
+                    <div>未达标：{{ card.basis.reason_class or '原因无数据' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。导出文件首页将显示“{{ CARD.UNVERIFIED_TEXT }}”。</div>
                   </div>
                 </div>
                 {% elif card and card.status == '达标（截面）' %}

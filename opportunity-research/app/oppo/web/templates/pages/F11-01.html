@@ -90,10 +90,10 @@
                       <a class="tlink" href="{{ ('/ledger/reconcile/' ~ rc.reconciliation_id) if rc else '/ledger/reconcile' }}">对账 {{ rc.rec.batch if rc and rc.rec else b.recon_snapshot }} 快照</a>
                       <div class="cell-sub">对账月份 {{ b.recon_month }} · 规则倍数 {{ mult(b.rule_multiple) }}{% if rc %}{{ etag('n=' ~ rc.n, 'n', {'动作': rc.action ~ '（验证条件 ' ~ ({'立项候选': '≥ 2 倍', '放弃': '≤ 0.5 倍'}.get(rc.action, '只记录')) ~ '）', '适用细分': (rc.segments.with_batch|length) ~ ' 个', '起量新 SPU': rc.hits ~ ' / ' ~ rc.n ~ ' = ' ~ pct(rc.hits / rc.n if rc.n else none), '同批次全类目': ((rc.rec.all_hits ~ ' / ' ~ rc.rec.all_n ~ ' = ') if rc.rec else '') ~ pct(rc.batch_avg), '规则倍数': mult(rc.multiple), '对账日期': rc.created_at[:10]}, (rc.rec.batch if rc.rec else '') ~ ' 快照 · 规则对账') }}{% endif %}</div>
                     {% elif r.status == '历史观察' %}
-                      {% if b.backtest %}<a class="tlink" href="/backtest">回测 {{ b.backtest }}</a><div class="cell-sub">批次 {{ b.batches or '—' }} · 样本 {{ b.n }}</div>{% else %}<span class="muted">回测依据无数据</span>{% endif %}
+                      {% if b.backtest %}<a class="tlink" href="/backtest">回测 {{ b.backtest }}</a><div class="cell-sub">批次 {{ b.batches or '无数据' }} · 样本 {{ b.n }}</div>{% else %}<span class="muted">回测依据无数据</span>{% endif %}
                       {% if rc %}<div class="cell-sub"><a href="/ledger/reconcile/{{ rc.reconciliation_id }}">对账 {{ rc.rec.batch if rc.rec else '' }}</a> · 规则倍数 {{ mult(rc.multiple) }}{{ '，只记录' if rc.action == '观察' else ('，未达 ≤ 0.5' if rc.action == '放弃' and rc.result != '升为已验证' else ('，未达 ≥ 2' if rc.action == '立项候选' and rc.result != '升为已验证' else '')) }}{{ etag('n=' ~ rc.n, 'n', {'动作': rc.action, '起量新 SPU': rc.hits ~ ' / ' ~ rc.n, '同批次全类目': pct(rc.batch_avg), '规则倍数': mult(rc.multiple), '结果': rc.result, '对账日期': rc.created_at[:10]}, '规则对账') }}</div>{% endif %}
                     {% else %}
-                      {{ '人工修改条件' if r.version_no > 1 else '人工判断' }}<div class="cell-sub">{{ r.reason or '—' }}</div>
+                      {{ '人工修改条件' if r.version_no > 1 else '人工判断' }}<div class="cell-sub">{{ r.reason or '理由无数据' }}</div>
                     {% endif %}
                   </td>
                 </tr>

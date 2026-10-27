@@ -67,6 +67,8 @@ def record_decision(conn: Connection, category_id: int, operator: str, decision:
         fields["decision"] = MSG_DECISION
     if decision == "立项" and project_date and not _date_ok(project_date):
         fields["project_date"] = MSG_DATE
+    if decision == "立项" and not project_date:
+        project_date = clock.now().date().isoformat()  # PAGE-F10-04: 立项日期 defaults to today
     if not (reason or "").strip():
         fields["reason"] = MSG_REASON
     _raise(fields)

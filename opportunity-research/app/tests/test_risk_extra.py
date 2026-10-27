@@ -174,3 +174,45 @@ def test_rule03_every_result_is_traceable(h1a_done: Path) -> None:
             basis = json.loads(rv["basis_json"])
             assert basis.get("backtest") == bt["code"] and basis.get("n"), tip
     db.close()
+
+
+def test_backup_list_survives_a_moved_folder(clone, h1a_done, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """DESIGN-17: the list shows each backup's trigger and fingerprint list even after the folder was moved
+    (records are matched by file name; the backup file carries both itself)."""
+    import shutil
+
+    d = clone(h1a_done)
+    app = open_dir(d)
+    first = tmp_path / "备份A"
+    with app.engine.begin() as conn:
+        assert BK.set_directory(conn, str(first), "wen")[0]
+    assert SV.job_result(app, SV.export(app))["result"]["backup"]["status"] == "success"
+    moved = tmp_path / "备份B"
+    shutil.copytree(first, moved)
+    with app.engine.begin() as conn:
+        assert BK.set_directory(conn, str(moved), "wen")[0]
+        files = BK.list_files(conn)
+    assert files and files[0]["trigger"] == "导出后自动" and files[0]["record"] is not None
+    assert files[0]["fps"] and files[0]["fps"][0]["fingerprint"]
+    with app.engine.begin() as conn:  # a backup with no record at all (copied in from elsewhere) still reads its own
+        conn.execute(text("DELETE FROM backup_record"))
+        files = BK.list_files(conn)
+    assert files[0]["record"] is None and files[0]["trigger"] == "导出后自动" and files[0]["fps"]
+    assert files[0]["label"].startswith("导出 ") and "版" in files[0]["label"]  # names the export, as the list shows it
+    _close(app)
+
+
+def test_project_date_defaults_to_today(clone, h1a_done) -> None:  # type: ignore[no-untyped-def]
+    """PAGE-F10-04 §8: a 立项 decision records a 立项日期 (today unless given); 不立项 has none."""
+    from oppo import clock
+
+    app = open_dir(clone(h1a_done))
+    with app.engine.begin() as conn:
+        cid = app.category_id()
+        snap = RK.latest_snapshot(conn, cid, "history")
+        row = snap["content"]["rows"][0]
+        a = LG.record_decision(conn, cid, "wen", "立项", row["segment_key"], row["segment"], "理由", snap["id"])
+        b = LG.record_decision(conn, cid, "wen", "不立项", row["segment_key"], row["segment"], "理由", snap["id"])
+        dates = dict(conn.execute(text("SELECT code, project_date FROM decision_record")).all())
+    assert dates[a] == clock.now().date().isoformat() and dates[b] is None
+    _close(app)

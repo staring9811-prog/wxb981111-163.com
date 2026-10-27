@@ -52,3 +52,29 @@ def test_uncomputable_indicators_are_not_compared() -> None:
     cur = {"unit_asin": _cur(10, 100), "low_score": {"computable": False, "top_hits": 0, "top_n": 0, "rate": None}}
     ok, _ = BT.achieved(_card(40, 100, 20, 100), cur)
     assert ok
+
+
+@pytest.mark.parametrize("word, cls, icon", [("未达标", "badge--fail", "x-circle"), ("截面命中", "badge--cross", "check-circle"),
+                                             ("达标（截面）", "badge--cross", "seal-check"),
+                                             ("未验证", "badge--unverified", "seal-question")])
+def test_status_badges_follow_design_md(word: str, cls: str, icon: str) -> None:
+    """DESIGN.md 状态词与徽章对照: pages may not pick another icon or style."""
+    from oppo import fmt
+
+    html = str(fmt.badge(word))
+    assert cls in html and f"#ph-{icon}" in html and html.endswith(f"{word}</span>")
+
+
+def test_heat_cell_without_observations_says_no_data_once() -> None:
+    from oppo.web.report import present as P
+
+    t = P.heat_table({"age_table": {"a|b": {"1": {"hits": 1, "n": 6}}}, "probs": {}, "effective": [], "k": 0})
+    empty = t["rows"][0]["cells"][1]
+    assert empty["text"] == "无数据" and empty["sub"] == "" and "没有被观察到的新 SPU" in empty["tip"]
+
+
+def test_reconcile_bar_marks_an_interval_past_the_scale() -> None:
+    from oppo.web.views import ledger as LV
+
+    assert "ibar__over" in str(LV.recon_bar(0.444, 0.46, 0.63, 0.214, "44.4%", "21.4%"))
+    assert "ibar__over" not in str(LV.recon_bar(0.30, 0.20, 0.40, 0.214, "30%", "21.4%"))

@@ -46,7 +46,7 @@
     <dl class="kv">
       {% if cross %}
       <dt>口径</dt><dd><span class="etag etag--cross" style="margin-left: 0">截面</span> {{ CARD.CROSS_TEXT }}</dd>
-      <dt>数据包</dt><dd>{{ cross_pkg.label if cross_pkg else '—' }}{% if cross_pkg %}（观察月 {{ cross_pkg.months }}）{% endif %}</dd>
+      <dt>数据包</dt><dd>{{ cross_pkg.label if cross_pkg else etag('无数据', 'nodata') }}{% if cross_pkg %}（观察月 {{ cross_pkg.months }}）{% endif %}</dd>
       {% if v.test_batches %}<dt>检验组</dt><dd>{{ v.test_batches|length }} 个批次（{{ P.span(v.test_batches) }}）· 新品-月 {{ v.model_rows.test }} 行</dd>{% endif %}
       {% endif %}
       {% if v.rate is not none %}
@@ -61,7 +61,7 @@
       {% if cross %}<dt>局限</dt><dd>{{ v.limitation }}</dd>{% endif %}
     </dl>
   </div>
-  <div class="panel__foot">{% if cross %}{{ v.bt.created_at[:10] }} 生成截面卡 {{ (v.card_label or '').replace('截面 ', '') }}{% if other %} · 同时有历史结论时，判定卡状态由 {{ other.code }} 决定{% endif %}{% else %}数据包 {{ v.package.label if v.package else '—' }} · {{ v.started }} · 判定卡 {{ v.card_label }} 由本次回测生成{% endif %}</div>
+  <div class="panel__foot">{% if cross %}{{ v.bt.created_at[:10] }} 生成截面卡 {{ (v.card_label or '').replace('截面 ', '') }}{% if other %} · 同时有历史结论时，判定卡状态由 {{ other.code }} 决定{% endif %}{% else %}数据包 {{ v.package.label if v.package else '无数据' }} · {{ v.started }} · 判定卡 {{ v.card_label }} 由本次回测生成{% endif %}</div>
 </section>
 {% endmacro %}
 {% block content %}
@@ -175,7 +175,7 @@
           <div class="grid-main-side section enter" style="--i:4">
             <section class="panel" aria-labelledby="insuf-title">
               <div class="panel__head">
-                <h2 class="panel__title" id="insuf-title">样本不足的细分 {{ badge(v.insufficient|length ~ ' 个', 'insufficient', 'warning') }}</h2>
+                <h2 class="panel__title" id="insuf-title">样本不足的细分 {{ badge(v.insufficient|length ~ ' 个', 'insufficient', 'info') }}</h2>
                 <span class="section__note">检验组新 SPU 少于 20 个，不参与达标评估</span>
               </div>
               {% if v.insufficient %}
@@ -257,7 +257,7 @@
             {{ icon('intersect') }}
             <div class="banner__body">
               <div class="banner__title">{{ CARD.CROSS_TEXT }}</div>
-              <div>{{ v.code }} · 数据包 {{ cross_pkg.label if cross_pkg else '—' }}{% if cross_pkg %}（观察月 {{ cross_pkg.months }}）{% endif %}。{% if hist %}本品类已有历史结论 {{ hist.code }}，判定卡状态以历史为准，这里的截面结果只作对照。{% else %}历史数据包到位并回测后，以历史结论为准。{% endif %}</div>
+              <div>{{ v.code }} · 数据包 {{ cross_pkg.label if cross_pkg else '无数据' }}{% if cross_pkg %}（观察月 {{ cross_pkg.months }}）{% endif %}。{% if hist %}本品类已有历史结论 {{ hist.code }}，判定卡状态以历史为准，这里的截面结果只作对照。{% else %}历史数据包到位并回测后，以历史结论为准。{% endif %}</div>
             </div>
           </div>
 
@@ -294,7 +294,7 @@
                 </thead>
                 <tbody>
                   {% for r in v.heat.rows %}
-                  <tr><th scope="row">{{ segname(r.segment) }}{% if r.top %}<div class="cell-sub">前 20%</div>{% endif %}</th>{% for c in r.cells %}<td class="{{ c.cls }}" tabindex="0" data-tip="{{ c.tip }}">{{ c.text }}<span>{{ c.sub }}</span></td>{% endfor %}<td class="{{ 'hx' if r.all_few or r.prob is none else '' }}">{% if r.all_few %}样本不足{% elif r.prob is none %}{{ M.nodata() }}{% else %}<strong>{{ P.pct1(r.prob) }}</strong>{% endif %}</td></tr>
+                  <tr><th scope="row">{{ segname(r.segment) }}{% if r.top %}<div class="cell-sub">前 20%</div>{% endif %}</th>{% for c in r.cells %}<td class="{{ c.cls }}" tabindex="0" data-tip="{{ c.tip }}">{{ c.text }}{% if c.sub %}<span>{{ c.sub }}</span>{% endif %}</td>{% endfor %}<td class="{{ 'hx' if r.all_few or r.prob is none else '' }}">{% if r.all_few %}样本不足{% elif r.prob is none %}{{ M.nodata() }}{% else %}<strong>{{ P.pct1(r.prob) }}</strong>{% endif %}</td></tr>
                   {% endfor %}
                 </tbody>
               </table>

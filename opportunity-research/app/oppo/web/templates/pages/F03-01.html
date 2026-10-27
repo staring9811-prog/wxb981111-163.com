@@ -6,7 +6,7 @@
           <div>
             <h1>本月工作台</h1>
             {% if vm.has_package %}
-            <p class="page-head__sub">{{ vm.month or '—' }} 月更 · 数据至 {{ vm.data_to or '—' }} · {{ '历史' if mode == 'history' else '截面' }}口径{% if vm.card %} · {{ badge(('判定卡 ' ~ vm.card.label ~ ' ' ~ vm.card.status) if mode == 'history' else ('截面卡 ' ~ vm.card.label.replace('截面 ', '') ~ ' ' ~ vm.card.status), fmt.STATUS_BADGE.get(vm.card.status, ('', ''))[0], fmt.STATUS_BADGE.get(vm.card.status, ('', 'info'))[1]) }}{% endif %}</p>
+            <p class="page-head__sub">{{ vm.month or '无数据' }} 月更 · 数据至 {{ vm.data_to or '无数据' }} · {{ '历史' if mode == 'history' else '截面' }}口径{% if vm.card %} · {{ badge(('判定卡 ' ~ vm.card.label ~ ' ' ~ vm.card.status) if mode == 'history' else ('截面卡 ' ~ vm.card.label.replace('截面 ', '') ~ ' ' ~ vm.card.status), fmt.STATUS_BADGE.get(vm.card.status, ('', ''))[0], fmt.STATUS_BADGE.get(vm.card.status, ('', 'info'))[1]) }}{% endif %}</p>
             {% else %}
             <p class="page-head__sub">还没有数据包 · 按下面 8 步完成第一次月更</p>
             {% endif %}
@@ -74,7 +74,7 @@
             <a class="step__link" href="{{ s.href }}"{% if s.status == 'current' %} aria-current="step"{% endif %}>
               <span class="step__dot">{% if s.warn %}{{ icon('warning') }}{% elif s.status in st_icon %}{{ icon(st_icon[s.status], 'spin' if s.status == 'running' else '') }}{% else %}{{ s.no }}{% endif %}</span>
               <span class="step__name">{{ s.name }}</span>
-              <span class="step__meta{% if s.warn %} step__meta--warn{% endif %}" title="{{ s.meta }}"{% if s.status == 'running' %} data-job-step{% endif %}>{{ s.meta }}</span>
+              <span class="step__meta{% if s.warn %} step__meta--warn{% endif %}" title="{{ s.meta }}"{% if s.status == 'running' %} data-job-step{% endif %}>{% for part in s.meta.split(' · ') %}<span class="t-nowrap">{{ part }}</span>{{ ' · ' if not loop.last }}{% endfor %}</span>
             </a>
           </li>
           {% endfor %}
@@ -144,7 +144,7 @@
                       <td class="t-num">{{ r.rank }}</td>
                       <td>{{ segname(r.segment) }}{% if vm.top_meta.cross %} {{ etag('截面', 'cross') }}{% endif %}</td>
                       <td class="t-nowrap">{{ ibar(r.point, r.ci, vm.top_meta.average.rate, r.sample, grey=vm.card_status == '未验证') }}<span class="ibar-text">{{ ci_text(r.ci) }}</span>{{ etag('n=' ~ r.sample) }}</td>
-                      <td>{% if r.tips %}{{ badge(r.tips[0].action) }}{% else %}<span class="muted">—</span>{% endif %}</td>
+                      <td>{% if r.tips %}{{ badge(r.tips[0].action) }}{% else %}<span class="small muted">无适用锦囊</span>{% endif %}</td>
                     </tr>
                     {% endfor %}
                   </tbody>
@@ -177,7 +177,7 @@
                   <div class="meter{% if ratio > 1 %} meter--danger{% elif ratio > 0.8 %} meter--warn{% endif %}" role="meter" aria-valuemin="0" aria-valuemax="{{ tm.target }}" aria-valuenow="{{ tm.month_minutes }}" aria-label="本次月更已用 {{ tm.month_minutes }} 分钟，目标 {{ tm.target }} 分钟"><i style="width:{{ [ratio * 100, 100]|min|round(1) }}%"></i></div>
                   <div class="stat__meta">目标 ≤ 4 小时，{% if ratio > 1 %}已超出目标 {{ tm.month_minutes - tm.target }} 分钟{% else %}已用 {{ (ratio * 100)|round|int }}%{% endif %}{% if tm.exported %}（已导出）{% endif %}</div>
                   {% else %}
-                  <div class="stat__value">—</div>
+                  <div class="stat__value stat__value--empty">未开始</div>
                   {% endif %}
                 </div>
                 <div>
@@ -187,7 +187,7 @@
                   <div class="stat__value">{{ fr.days }}<span class="stat__unit">个工作日</span></div>
                   <div class="meter{% if fr.days > tm.first_target %} meter--danger{% endif %}" role="meter" aria-valuemin="0" aria-valuemax="{{ tm.first_target }}" aria-valuenow="{{ fr.days }}" aria-label="首跑 {{ fr.days }} 个工作日，目标 {{ tm.first_target }} 个工作日"><i style="width:{{ [fr.days / tm.first_target * 100, 100]|min|round(1) }}%"></i></div>
                   {% else %}
-                  <div class="stat__value">{{ '进行中' if fr else '—' }}</div>
+                  <div class="stat__value">{{ '进行中' if fr else '未开始' }}</div>
                   {% endif %}
                   <div class="stat__meta">目标 ≤ 5 个工作日</div>
                 </div>
@@ -241,7 +241,7 @@
               <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
             </div>
             <div class="modal__body stack">
-              <p>原因：{{ vm.stale|join('；') or '—' }}</p>
+              <p>原因：{{ vm.stale|join('；') or '无数据' }}</p>
               <dl class="kv">
                 <dt>将重算</dt><dd>成败判定、信号、排序（用当前判定卡）</dd>
                 <dt>不改动</dt><dd>已保存的月度快照、台账、判定卡与策略库</dd>
