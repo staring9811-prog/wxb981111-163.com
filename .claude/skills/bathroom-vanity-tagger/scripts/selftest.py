@@ -11,6 +11,7 @@ def tagger(sources,row=None,**kw):
     x=t.Tagger.__new__(t.Tagger)
     x.row=row or {};x.asin='X';x.provenance={};x.tags={};x.evidence={};x.conflicts=[];x.notes=[]
     x.rejected_dims=[];x.enable_dim_rules=kw.get('enable_dim_rules',False)
+    x.parent_fill=kw.get('parent_fill',False);x.std_width=kw.get('std_width',False);x.parent_detail=kw.get('parent_detail',{})
     x.sources=[{'field':f,'text':txt,'scope':scope,'asin':'X'} for f,txt,scope in sources]
     return x
 
@@ -59,6 +60,16 @@ def main():
     if (x.tags['D9深(in)'],x.tags['D9高(in)'])!=(22,34.5):bad.append(('dwh-enabled',x.tags))
     x=tagger([('SKU属性','Size: 36 Inch','child'),('商品尺寸','36 x 22 x 34.5 inches','child')],enable_dim_rules=True);x.dimensions()
     if x.tags['D9深(in)'] is not None:bad.append(('dwh-no-crosscheck',x.tags))
+    # Standard widths: 23.6 -> 24, 31.5 (tie 31/32) and 37 stay raw.
+    for raw,want in ((23.6,24),(47.2,48),(29.3,30),(31.5,31.5),(37,37)):
+        x=tagger([('子体详情.overviews.Product Dimensions','18"D x %s"W x 34"H'%raw,'child')],std_width=True);x.dimensions();x.snap_width()
+        if x.tags['D9宽(in)']!=want:bad.append(('std-width',raw,x.tags['D9宽(in)']))
+    # Parent fill: no suffix, status parent_fill; parent dims only for the same width.
+    x=tagger([('五点描述','Fully assembled cabinet','parent')],parent_fill=True);x.set('K',[x.ev(x.sources[0],'整装','q')])
+    if x.tags['K']!='整装' or x.evidence['K']['status']!='parent_fill':bad.append(('parent-fill',x.tags))
+    for pw,want in (('47.2',18.1),('60',None)):
+        x=tagger([('SKU属性','Size: 48 Inch','child')],row={'核验父ASIN':'P'},parent_fill=True,parent_detail={'dimensions':'18.1"D x %s"W x 35"H'%pw});x.dimensions();x.parent_dimensions()
+        if x.tags['D9深(in)']!=want:bad.append(('parent-dims',pw,x.tags))
     for t_ in bad:print('FAIL',t_)
     print('selftest: %d failure(s)'%len(bad))
     raise SystemExit(1 if bad else 0)

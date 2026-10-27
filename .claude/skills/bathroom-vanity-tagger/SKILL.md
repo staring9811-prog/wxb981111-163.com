@@ -13,21 +13,21 @@ description: 浴室柜整柜商品属性打标，并回答“哪些字段现有�
 
 - 粒度为子ASIN×目标月份；属性是证据快照，不是历史月末属性。可复用同一子ASIN相同文本快照，但保留原月份行、证据指纹、冲突和父体来源。不得对多月记录取最后一条覆盖。
 - 不设月销10/20门槛。保留输入全部行；已核验目标浴室柜填标签，范围外或目标月归属未核验行只标状态，不删除、不挪用销量。
-- 子体标题/SKU/子体详情/卖家精灵导出详细参数（同ASIN）/子体五点优先。父体回填五点与父体详情overviews只作父体候选，结果标“（父体候选）”；父体overviews不取颜色、尺寸。JSON逐字段记来源ASIN、范围，导出来源另记导出月份与行号。
+- 子体标题/SKU/子体详情/卖家精灵导出详细参数（同ASIN）/子体五点优先。子体没有的信息用父体的（用户2026-10-27确认，默认开启）：父体五点与父体详情overviews的值直接填入，不加后缀，JSON状态parent_fill、打标说明写“父体信息补充”；父体overviews不取颜色；父体尺寸只在父体代表变体与子体同宽度时补深/高。--no-parent-fill 恢复“（父体候选）”口径。JSON逐字段记来源ASIN、范围，导出来源另记导出月份与行号。
 - 柜体颜色优先SKU单色和明确柜体描述；组合色未区分柜/盆/五金不硬填。标题与SKU不一致保留SKU值并标冲突。
 - 柜体、台面、盆材质按部件判断。engineered wood无MDF证据时为工程木材（未细分）；solid wood frame不自动补成实木框架+MDF；SMC/亚克力归树脂业务组并保留细分。纹理/仿色不证明天然石材；图片不能证明内部板材。
-- 元素先文本；无可靠文本线索标待图片核验。实际看过对应子体图片才可写图片核验，链接存在不等于看过图。
+- 元素先文本；无可靠文本线索标待图片核验。用户2026-10-27：看图先不做。实际看过对应子体图片才可写图片核验，链接存在不等于看过图。
 - 否定、排除与部件范围先于关键词：无镜/无龙头需明确证据，未提及不填无；无盆不推出无龙头；“faucets and mirror are not included”“excluding faucets”这类列表排除要识别；pre-drilled faucet hole、Single Hole Faucet不代表含龙头。
 - 盆数只认明确数量词（single/double/dual/two + 可带vessel、boat、rectangular等修饰 + sink），不凭宽度强推；single/double vanity行业用语只在没有其他盆数证据时使用。
-- 尺寸：优先SKU宽度，再用带方向标记的子体尺寸/标题；保留实际数值和单位，不把37寸改36寸。无单位的“3H”不在a×b×c尺寸串里时是3孔龙头位，不是高度。同一来源D/W标签互换（标D≈已选宽度、标W与宽度不符）时深度留空标冲突。
-- 无方向三维数“a x b x c inches”默认不猜宽深高。DIM-DWH-ORDER、DIM-DW-SWAP只在用户确认后用 --enable-dim-rules 启用；未启用时只给候选。
+- 尺寸：优先SKU宽度，再用带方向标记的子体尺寸/标题。宽度基本是标准尺寸（用户2026-10-27）：实际值与24/28/30/31/32/36/42/48/60/72等标准宽度相差≤0.8in且唯一最近时归到标准值，原值存JSON rawValue；居中（31.5）或不在列表（37、43）的保留原值。无单位的“3H”不在a×b×c尺寸串里时是3孔龙头位，不是高度。同一来源D/W标签互换（标D≈已选宽度、标W与宽度不符）时深度留空标冲突。
+- 无方向三维数“a x b x c inches”按D×W×H读取（DIM-DWH-ORDER，中间值须与已选宽度相差≤1in）；D/W标反来源取其标W值作深度（DIM-DW-SWAP）。两条规则用户2026-10-27已确认，默认开启，--no-dim-rules 关闭。
 - 文字来源不保证正确。每个标签记录原文片段、来源字段/ASIN、范围、方法、冲突、规则版本。数字空值不转0；自动文本证据可用不等于独立验证准确。
 
 ## 执行
 
 1. 读用户当前文件及同名analysis.json/README，先复用缓存，核对范围、字段和文件版本。新结构按table-schema-confirmation确认；已确认16列见输出规范。不要为了打标调用在线采集接口。
 2. 打标（无网络）：
-   `python3 -I scripts/tag_cached.py --data-root <规范化数据目录> --out-dir <输出目录>`
+   `python3 -I scripts/tag_cached.py --data-root <规范化数据目录> --out-dir <输出目录>`（默认开启尺寸规则、标准宽度、父体补充；对应关闭开关 --no-dim-rules / --no-std-width / --no-parent-fill）
    数据目录需含sales_payload.json、collected_details.json、step1_macro_audit.json、feature_field_provenance.json，可选input_rows.json（卖家精灵导出逐行）。输出tagging_matrix/evidence/summary/work_queues四个JSON。其他项目须先明确映射字段和纳入标记，不能把缺少_eligible当作全量范围。不要运行旧tag_vanity_v3.py。
 3. 写Excel（只改16个标签列，其余单元格原样）：
    `python3 -I scripts/write_workbook.py --base <源或上一版xlsx> --matrix <输出目录>/tagging_matrix.json --out <新xlsx>`

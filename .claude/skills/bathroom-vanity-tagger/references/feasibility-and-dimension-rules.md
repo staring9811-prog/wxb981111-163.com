@@ -8,7 +8,8 @@
 |---|---|---|
 | A | 可打标：子体文本证据 | status为text_supported或derived |
 | A2 | 可打标：按已确认业务规则归类/推导 | business_mapping、business_inference、business_assumption、order_inference |
-| B | 仅父体候选：需子体证据确认 | parent_candidate |
+| A3 | 可打标：子体缺失，按用户规则用父体信息补充 | parent_fill（默认） |
+| B | 仅父体候选：需子体证据确认 | parent_candidate（--no-parent-fill时） |
 | C | 有冲突：需人工核验 | conflict（D/W互换且有纠正候选的归D） |
 | D | 现有数据可补：需确认新规则后启用 | 缺失但有orderInferenceCandidate，或D/W互换有swapCorrectedCandidate |
 | E | 现阶段不行：缺子体详情，需补采asin_detail | 非外观字段缺失，且该子ASIN既无子体详情也无卖家精灵导出 |
@@ -30,7 +31,7 @@
 - 字母在前的尺寸（W36Inch、H 34in）须带单位；'24"W 18"D'这种字母属于前一个数字，不按字母在前解析。
 - D/W互换保护：同一来源标W与已选宽度相差>2.5in、而标D与已选宽度相差≤1in时，判为该来源D/W标反。其标W不再算宽度冲突；深度优先取标签一致的来源；若只有该来源，深度留空并标冲突，候选写swapCorrectedCandidate。
 
-需用户确认后用 --enable-dim-rules 启用：
+用户2026-10-27已确认，默认启用（--no-dim-rules关闭）：
 - DIM-DWH-ORDER：“商品尺寸”列无方向“a x b x c inches/cm”按D×W×H读取，仅当b与已选宽度相差≤1in。2026-10-27在本项目已有带标签深/高的行上交叉核对：深度1,937/1,959一致，高度1,923/1,942一致（约99%）。不一致多为不同快照或W×D×H顺序。
 - DIM-DW-SWAP：上面判为D/W标反的来源，取其标W值作深度。
 
@@ -43,3 +44,10 @@
 - 包含：名词前出现includes、including、comes with、package includes、complete with，且之间无否定、名词前不是for/fits/compatible with/drilled for。
 - 两者都触达时取距离近的一方。
 - 子体标题直接列出Faucet/Mirror视为含；名词后接hole/holes/mount holes/finish/compatible/ready，或前面是Single Hole、3-Hole、widespread、centerset时不算。
+
+## 2026-10-27 用户追加规则（v4，默认开启）
+
+- DIM-STD-WIDTH：宽度基本是标准尺寸（24 28 30 31 32 36 42 48 60 72等）。列表STANDARD_WIDTHS=12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84；实际宽度与某个标准值相差≤0.8in且该标准值唯一最近时归为标准值，原值存D9宽evidence.rawValue。31.5（31/32居中）、37、43、59、49等保留原值并标nonStandardWidth。本项目归档179行。
+- 父体补充：子体没有的信息用父体的。set()在无子体证据时直接取父体候选值，不加“（父体候选）”，status=parent_fill，可行性A3；打标说明写“父体信息补充：字段…”。整行状态不再因父体补充记为部分信息不足。
+- DIM-PARENT-SAME-WIDTH：父体详情dimensions是代表变体的，只有其W与子体宽度相差≤1in或归同一标准宽度时，才用其D/H补子体缺失的深/高（本项目54行）。
+- 看图（元素）先不做：D5维持文本线索/待图片核验，imageReviewQueue保留备用。

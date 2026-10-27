@@ -8,13 +8,23 @@ v3 (2026-10-27): SellerSprite export 详细参数/亮点 as child evidence, pare
 overview materials as candidates, 3H faucet-hole fix, list-style mirror/faucet
 inclusion, more explicit single/double sink wording, D/W label-swap guard,
 D×W×H order and swap-correction candidates (filled only with
---enable-dim-rules), per-field feasibility classes and work queues.
+--no-dim-rules to disable); v4: standard widths, parent fill, per-field feasibility classes and work queues.
 """
 import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261027-v3'
+VERSION='bathroom-vanity-tagger-20261027-v4'
+# 2026-10-27 user: vanity widths are essentially standard sizes.
+STANDARD_WIDTHS=(12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84)
+STD_WIDTH_TOLERANCE=0.8
+PARENT_SUFFIX='（父体候选）'
+
+def standard_width(v):
+    # Nearest standard width within tolerance; ties (e.g. 31.5 between 31/32) stay raw.
+    d=sorted((abs(v-w),w) for w in STANDARD_WIDTHS)
+    if d[0][0]<=STD_WIDTH_TOLERANCE and (len(d)<2 or d[1][0]-d[0][0]>1e-9):return d[0][1]
+    return None
 HEADERS=['D1产品形态','D2安装方式','D3盆数','D4台面形态','D5元素','D6柜体颜色','D7柜体材质','D8台面材质','D8台盆材质','D9宽(in)','D9深(in)','D9高(in)','D10镜子','D11龙头','打标状态','打标说明']
 UNKNOWN='信息不足'
 def clean(s):return re.sub(r'\s+',' ',html.unescape(str(s or ''))).strip()
@@ -41,9 +51,9 @@ def export_attributes(text):
     return out
 
 class Tagger:
-    def __init__(self,row,details,feature_provenance=None,export_rows=None,enable_dim_rules=False):
+    def __init__(self,row,details,feature_provenance=None,export_rows=None,enable_dim_rules=True,parent_fill=True,std_width=True):
         self.row=row;self.asin=row['子ASIN'];self.sources=[];self.notes=[];self.conflicts=[];self.tags={};self.evidence={}
-        self.rejected_dims=[];self.enable_dim_rules=enable_dim_rules
+        self.rejected_dims=[];self.enable_dim_rules=enable_dim_rules;self.parent_fill=parent_fill;self.std_width=std_width
         def add(field,text,scope='child',a=None,**meta):
             if clean(text):self.sources.append({'field':field,'text':clean(text),'scope':scope,'asin':a or self.asin,**meta})
         add('SKU属性',row.get('SKU属性'));add('商品标题',row.get('商品标题'))
@@ -64,6 +74,7 @@ class Tagger:
         elif row.get('五点来源')=='父体详情填充':add('五点描述',row.get('五点描述'),'parent',row.get('五点来源ASIN'))
         parent=row.get('核验父ASIN')
         pd=(details.get(parent) or {}).get('data') or {} if parent and parent!=self.asin else {}
+        self.parent_detail=pd if pd.get('asin')==parent else {}
         if pd.get('asin')==parent:
             for k,v in overviews(pd).items():
                 if k.lower() not in PARENT_OVERVIEW_SKIP:add('父体详情.overviews.'+k,clean(v),'parent',parent)
@@ -87,9 +98,10 @@ class Tagger:
             self.conflicts.append(key+'文本证据不一致：'+' / '.join(labels))
         value='；'.join(labels) if multi else labels[0]
         parent=not bool(direct)
-        if parent:value+='（父体候选）'
+        # User 2026-10-27: child lacks it -> use the parent's value (marked in JSON/notes).
+        if parent and not self.parent_fill:value+=PARENT_SUFFIX
         self.tags[key]=value
-        self.evidence[key]={'status':'parent_candidate' if parent else 'conflict' if len(labels)>1 and not multi else 'text_supported','selected':selected,'otherParentCandidates':[e for e in candidates if e['sourceScope']=='parent'] if direct else []}
+        self.evidence[key]={'status':('parent_fill' if self.parent_fill else 'parent_candidate') if parent else 'conflict' if len(labels)>1 and not multi else 'text_supported','selected':selected,'otherParentCandidates':[e for e in candidates if e['sourceScope']=='parent'] if direct else []}
     def pattern_candidates(self,patterns,fields=None):
         out=[]
         for s in self.sources:
@@ -375,8 +387,8 @@ class Tagger:
                 scope='child' if child and all(e['sourceScope']=='child' for e in selected) else 'parent'
                 combined=dict(src);combined['scope']=scope
                 ev=self.ev(combined,'陶瓷盆',m.group(),'用户配套经验推导',{'basisType':'business_assumption','ruleID':'M-STONE-CERAMIC','basisField':HEADERS[7],'basisMaterialEvidence':selected,'includedBasinEvidence':self.ev(src,'含盆',m.group())})
-                self.tags[HEADERS[8]]='陶瓷盆'+('（父体候选）' if scope=='parent' else '')
-                self.evidence[HEADERS[8]]={'status':'parent_candidate' if scope=='parent' else 'business_assumption','selected':[ev]}
+                self.tags[HEADERS[8]]='陶瓷盆'+(PARENT_SUFFIX if scope=='parent' and not self.parent_fill else '')
+                self.evidence[HEADERS[8]]={'status':('parent_fill' if self.parent_fill else 'parent_candidate') if scope=='parent' else 'business_assumption','selected':[ev]}
         for key in keys.values():
             if key==HEADERS[8] and any(e['label'] not in ('陶瓷盆','树脂盆','Cultured Marble盆','玻璃盆','不适用（不含盆）') for e in self.evidence[key].get('selected',[])):
                 self.conflicts.append(key+'出现常规业务组外盆材，保留原词候选待核验')
@@ -484,6 +496,35 @@ class Tagger:
         if self.enable_dim_rules and any(self.evidence[k].get('status')=='order_inference' for k in HEADERS[10:12]):
             self.notes.append('D9深/高按无方向商品尺寸D×W×H顺序推断，宽度已交叉核对')
 
+    def parent_dimensions(self):
+        # Parent detail is one representative variant: its depth/height apply only
+        # when that variant has the same (standard) width as this child.
+        width=self.tags.get(HEADERS[9])
+        if not self.parent_fill or width is None or (self.tags[HEADERS[10]] is not None and self.tags[HEADERS[11]] is not None):return
+        text=clean(self.parent_detail.get('dimensions'))
+        lab={ax:float(v) for v,ax in re.findall(r'(\d{1,3}(?:\.\d+)?)\s*["″]?\s*([DWH])\b',text)}
+        if 'W' not in lab:return
+        pw=lab['W'];cw=width
+        same=abs(pw-cw)<=1.0 or (standard_width(pw) is not None and standard_width(pw)==standard_width(cw))
+        if not same or ('D' in lab and abs(lab['D']-cw)<=1.0 and abs(pw-cw)>2.5):return
+        src={'field':'父体详情.dimensions','text':text,'scope':'parent','asin':self.row.get('核验父ASIN')}
+        for key,ax in ((HEADERS[10],'D'),(HEADERS[11],'H')):
+            if self.tags[key] is not None or ax not in lab or not 1<lab[ax]<150:continue
+            ev=self.ev(src,lab[ax],text,'父体代表变体同宽度尺寸补充',{'ruleID':'DIM-PARENT-SAME-WIDTH','parentWidth':pw})
+            self.tags[key]=lab[ax];self.evidence[key].update({'status':'parent_fill','selected':[ev]})
+
+    def snap_width(self):
+        w=self.tags.get(HEADERS[9])
+        if not self.std_width or w is None:return
+        sw=standard_width(w)
+        ev=self.evidence[HEADERS[9]]
+        if sw is None:
+            ev['nonStandardWidth']=True;return
+        if abs(sw-w)>1e-9:
+            ev.update({'rawValue':w,'standardWidthRule':'DIM-STD-WIDTH'})
+            self.tags[HEADERS[9]]=sw
+            self.notes.append('D9宽实际%s按标准宽度归为%s'%(w,sw))
+
     def included(self,key,kind):
         c=[]
         word=kind
@@ -539,18 +580,18 @@ class Tagger:
         return None
 
     def run(self):
-        self.structure();self.colors();self.materials();self.dimensions();self.included(HEADERS[12],'mirror');self.included(HEADERS[13],'faucet')
+        self.structure();self.colors();self.materials();self.dimensions();self.parent_dimensions();self.snap_width();self.included(HEADERS[12],'mirror');self.included(HEADERS[13],'faucet')
         for h in HEADERS[:14]:
             related=[s for s in self.conflicts if s.startswith(h)]
             if related and h in self.evidence:
                 self.evidence[h]['status']='conflict';self.evidence[h]['conflicts']=related
         unknown=[h for h in HEADERS[:14] if self.tags.get(h) in (None,UNKNOWN,'待图片核验')]
-        parent=[h for h in HEADERS[:14] if '父体候选' in str(self.tags.get(h,''))]
+        parent=[h for h in HEADERS[:14] if self.evidence.get(h,{}).get('status') in ('parent_candidate','parent_fill')]
         if self.conflicts:state='存在冲突待核验'
-        elif unknown or parent:state='部分信息不足'
+        elif unknown or (parent and not self.parent_fill):state='部分信息不足'
         else:state='文本证据可用'
         notes=[]
-        if parent:notes.append('父体候选：'+'、'.join(parent))
+        if parent:notes.append(('父体信息补充：' if self.parent_fill else '父体候选：')+'、'.join(parent))
         if unknown:notes.append('缺少充分文本证据：'+'、'.join(unknown))
         notes.extend(uniq(self.conflicts+self.notes))
         if self.tags[HEADERS[4]]=='待图片核验':notes.append('元素图片尚未人工核验')
@@ -562,6 +603,7 @@ class Tagger:
 FEASIBILITY={
     'A':'可打标：子体文本证据',
     'A2':'可打标：按已确认业务规则归类/推导',
+    'A3':'可打标：子体缺失，按用户规则用父体信息补充',
     'B':'仅父体候选：需子体证据确认',
     'C':'有冲突：需人工核验',
     'D':'现有数据可补：需确认新规则后启用',
@@ -575,6 +617,7 @@ def feasibility(field,ev,has_child_text):
     status=(ev or {}).get('status','missing')
     if status in ('text_supported','derived'):return 'A'
     if status in ('business_mapping','business_inference','business_assumption','order_inference'):return 'A2'
+    if status=='parent_fill':return 'A3'
     if status=='parent_candidate':return 'B'
     if (ev or {}).get('swapCorrectedCandidate') and status=='conflict':return 'D'
     if status=='conflict':return 'C'
@@ -593,7 +636,10 @@ def main():
     ap.add_argument('--data-root',required=True,help='项目规范化数据目录（含sales_payload.json等）')
     ap.add_argument('--out-dir',required=True)
     ap.add_argument('--export-rows',help='卖家精灵导出逐行JSON（asin/month/attributes/features）；默认<data-root>/input_rows.json')
-    ap.add_argument('--enable-dim-rules',action='store_true',help='启用DIM-DWH-ORDER（无方向商品尺寸按D×W×H）与DIM-DW-SWAP（D/W标签互换纠正）；需用户确认后才用')
+    # 2026-10-27 user confirmed: dimension rules, standard widths, parent fill all on by default.
+    ap.add_argument('--no-dim-rules',action='store_true',help='关闭DIM-DWH-ORDER与DIM-DW-SWAP')
+    ap.add_argument('--no-parent-fill',action='store_true',help='子体缺失时不用父体值填，只标（父体候选）')
+    ap.add_argument('--no-std-width',action='store_true',help='宽度保留实际值，不归标准宽度')
     args=ap.parse_args()
     root=Path(args.data_root);out=Path(args.out_dir);out.mkdir(parents=True,exist_ok=True)
     p=load(root/'sales_payload.json');details=load(root/'collected_details.json')
@@ -610,18 +656,18 @@ def main():
         else:
             textkey=hashlib.sha256(json.dumps({h:r.get(h) for h in ['子ASIN','SKU属性','商品标题','商品尺寸','五点描述','五点来源','五点来源ASIN','核验父ASIN']},ensure_ascii=False,sort_keys=True).encode()).hexdigest()
             if textkey not in snapshots:
-                t=Tagger(r,details,fp.get((month,a)),exports.get(a),args.enable_dim_rules)
+                t=Tagger(r,details,fp.get((month,a)),exports.get(a),not args.no_dim_rules,not args.no_parent_fill,not args.no_std_width)
                 res=t.run();child_text=t.has_child_detail or t.has_export
                 snapshots[textkey]=res+({h:feasibility(h,res[1].get(h),child_text) for h in HEADERS[:14]},{'childDetail':t.has_child_detail,'sellerSpriteExport':t.has_export,'parentFeatures':r.get('五点来源')=='父体详情填充'})
             tags,e,conflicts,feas,sourcesUsed=snapshots[textkey];values=[tags[h] for h in HEADERS];target_rows.append((a,month,tags,e,feas,sourcesUsed,r))
         matrix.append(values);states[values[-2]]+=1
         evidence_rows.append({'excelRow':i,'marketplace':r['站点'],'month':month,'childASIN':a,'verifiedParentASIN':r.get('核验父ASIN'),'includeInBathroomAnalysis':bool(r.get('_eligible')) and a not in excluded,'tags':dict(zip(HEADERS,values)),'fields':e,'feasibility':feas,'textSources':sourcesUsed,'conflicts':conflicts,'originalRecordIDs':r.get('关联原始记录ID'),'featureSource':r.get('五点来源'),'featureSourceASIN':r.get('五点来源ASIN')})
     months=sorted({x[1] for x in target_rows})
-    summary={'ruleVersion':VERSION,'dimensionRulesEnabled':args.enable_dim_rules,'allRowsRetained':len(matrix),'taggedTargetRows':len(target_rows),'uniqueTargetASINs':len({x[0] for x in target_rows}),'distinctTextSnapshots':len(snapshots),'rowStates':dict(states),'dimensions':{},'feasibilityLegend':FEASIBILITY,'feasibility':{},'textSourceCoverage':{},'newAPICalls':0,'imagesIndependentlyReviewed':0,'imageNote':'本轮是已有文本证据打标，元素待图片核验/文本线索均明确标注，不宣称已看图','monthly':[]}
+    summary={'ruleVersion':VERSION,'dimensionRulesEnabled':not args.no_dim_rules,'parentFill':not args.no_parent_fill,'standardWidth':not args.no_std_width,'allRowsRetained':len(matrix),'taggedTargetRows':len(target_rows),'uniqueTargetASINs':len({x[0] for x in target_rows}),'distinctTextSnapshots':len(snapshots),'rowStates':dict(states),'dimensions':{},'feasibilityLegend':FEASIBILITY,'feasibility':{},'textSourceCoverage':{},'newAPICalls':0,'imagesIndependentlyReviewed':0,'imageNote':'本轮是已有文本证据打标，元素待图片核验/文本线索均明确标注，不宣称已看图','monthly':[]}
     for h in HEADERS[:14]:
         vals=[x[2][h] for x in target_rows]
         present=sum(v not in (None,UNKNOWN,'待图片核验') for v in vals)
-        summary['dimensions'][h]={'textOrCandidatePresentRows':present,'insufficientRows':sum(v in (None,UNKNOWN,'待图片核验') for v in vals),'parentCandidateRows':sum('父体候选' in str(v) for v in vals),'fieldEvidenceStates':dict(Counter(x[3].get(h,{}).get('status','component_specific') for x in target_rows)),'distribution':dict(Counter(str(v) if v is not None else '空白' for v in vals))}
+        summary['dimensions'][h]={'textOrCandidatePresentRows':present,'insufficientRows':sum(v in (None,UNKNOWN,'待图片核验') for v in vals),'parentCandidateRows':sum(x[3].get(h,{}).get('status') in ('parent_candidate','parent_fill') for x in target_rows),'fieldEvidenceStates':dict(Counter(x[3].get(h,{}).get('status','component_specific') for x in target_rows)),'distribution':dict(Counter(str(v) if v is not None else '空白' for v in vals))}
         rows_by=Counter(x[4][h] for x in target_rows)
         asins_by={k:len({x[0] for x in target_rows if x[4][h]==k}) for k in rows_by}
         summary['feasibility'][h]={'rows':{k:rows_by.get(k,0) for k in FEASIBILITY},'uniqueASINs':{k:asins_by.get(k,0) for k in FEASIBILITY}}

@@ -36,7 +36,7 @@ FIELD_NOTES={
 }
 
 def verdict(r,n):
-    tagged=r['A']+r['A2']
+    tagged=r['A']+r['A2']+r.get('A3',0)
     if tagged>=0.75*n:return '可打标'
     if tagged+r['D']>=0.75*n:return '确认规则后可打标'
     if tagged>=0.35*n:return '部分可打标'
@@ -70,17 +70,18 @@ def main():
     wb=Workbook()
 
     ws=wb.active;ws.title='字段结论'
-    ws.append(['字段','现阶段结论','可打标行(子体证据+业务规则)','占比','仅父体候选','有冲突','确认规则后可补','缺子体详情需补采','需看图','子体文本未写','可打标唯一子ASIN','启用尺寸规则后可打标占比','主要数据源','卡点与下一步'])
+    ws.append(['字段','现阶段结论','可打标行(子体证据+业务规则+父体补充)','占比','其中父体补充','仅父体候选','有冲突','确认规则后可补','缺子体详情需补采','需看图','子体文本未写','可打标唯一子ASIN','对照目录可打标占比','主要数据源','卡点与下一步'])
     lines=[]
     for h in FIELDS:
         r=summary['feasibility'][h]['rows'];u=summary['feasibility'][h]['uniqueASINs']
         after=''
         if dim:
-            d=dim['feasibility'][h]['rows'];after=pct(d['A']+d['A2'],n)
+            d=dim['feasibility'][h]['rows'];after=pct(d['A']+d['A2']+d.get('A3',0),n)
         v=verdict(r,n);src,nxt=FIELD_NOTES[h]
-        ws.append([h,v,r['A']+r['A2'],pct(r['A']+r['A2'],n),r['B'],r['C'],r['D'],r['E'],r['F'],r['G'],u['A']+u['A2'],after,src,nxt])
+        tg=r['A']+r['A2']+r.get('A3',0)
+        ws.append([h,v,tg,pct(tg,n),r.get('A3',0),r['B'],r['C'],r['D'],r['E'],r['F'],r['G'],u['A']+u['A2']+u.get('A3',0),after,src,nxt])
         lines.append((h,v,r,after,nxt))
-    style(ws,[12,16,14,8,10,8,12,14,9,11,12,14,46,52],(13,14))
+    style(ws,[12,16,14,8,10,10,8,12,14,9,11,12,14,46,52],(14,15))
 
     ws=wb.create_sheet('数据源覆盖')
     cov=summary['textSourceCoverage']
@@ -144,7 +145,7 @@ def main():
     ws=wb.create_sheet('图例与口径')
     ws.append(['代码','含义'])
     for k,v in FEASIBILITY.items():ws.append([k,v])
-    for t in ['A/A2计入“可打标”；A2是用户已确认的业务归类或推导（如marble归岗石、石英石台面配盆推陶瓷盆），不是接口直接返回。',
+    for t in ['A/A2/A3计入“可打标”；A3是子体缺失时按用户2026-10-27规则用父体信息补充；A2是用户已确认的业务归类或推导（如marble归岗石、石英石台面配盆推陶瓷盆），不是接口直接返回。',
               'D5/D1/D3/D4/D6这类外观字段，文本没写时归“需看图”；材质、尺寸、包含关系文本没写时，有子体详情归“子体文本未写”，没有子体详情归“需补采”。',
               '范围：只统计includeInBathroomAnalysis=true的%d行/%d个唯一子ASIN；另有目标月归属待核验%d行、不纳入%d行，按口径不打标，不是数据问题。'%(n,asins,summary['rowStates'].get('目标月归属待核验',0),summary['rowStates'].get('不纳入浴室柜分析',0)),
               '可打标≠已验证准确：没有独立真值集，不报告准确率；属性是当前采集快照，不代表各月月末属性。',
@@ -155,10 +156,11 @@ def main():
 
     md=['# 浴室柜打标可行性（%s）'%summary['ruleVersion'],'',
         '范围：%d 行子ASIN×月份，%d 个唯一子ASIN。规则版本 %s；新增接口调用 0；独立看图 0。'%(n,asins,summary['ruleVersion']),'',
-        '| 字段 | 现阶段结论 | 可打标 | 仅父体候选 | 冲突 | 确认规则可补 | 需补采 | 需看图 | 文本未写 |'+(' 启用尺寸规则后 |' if dim else ''),
+        '| 字段 | 现阶段结论 | 可打标 | 其中父体补充 | 冲突 | 确认规则可补 | 需补采 | 需看图 | 文本未写 |'+(' 对照目录 |' if dim else ''),
         '|---|---|---|---|---|---|---|---|---|'+('---|' if dim else '')]
     for h,v,r,after,nxt in lines:
-        md.append('| %s | %s | %s (%s) | %s | %s | %s | %s | %s | %s |%s'%(h,v,r['A']+r['A2'],pct(r['A']+r['A2'],n),r['B'],r['C'],r['D'],r['E'],r['F'],r['G'],(' %s |'%after) if dim else ''))
+        tg=r['A']+r['A2']+r.get('A3',0)
+        md.append('| %s | %s | %s (%s) | %s | %s | %s | %s | %s | %s |%s'%(h,v,tg,pct(tg,n),r.get('A3',0),r['C'],r['D'],r['E'],r['F'],r['G'],(' %s |'%after) if dim else ''))
     md+=['','## 卡点与下一步','']+['- **%s**：%s'%(h,nxt) for h,v,r,after,nxt in lines]
     md+=['','## 工作队列','','- 需补采子体详情（asin_detail）：%d 个子ASIN'%len(queues['recollectChildDetailASINs']),'- 需看图核验：%d 个子ASIN（主图链接可访问，未执行）'%len(queues['imageReviewQueue'])]
     if changes:
