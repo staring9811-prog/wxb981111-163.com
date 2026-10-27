@@ -26,6 +26,8 @@ description: 浴室柜整柜商品属性打标，并回答“哪些字段现有�
 ## 执行
 
 1. 读用户当前文件及同名analysis.json/README，先复用缓存，核对范围、字段和文件版本。新结构按table-schema-confirmation确认；已确认16列见输出规范。不要为了打标调用在线采集接口。
+一键本地运行（依赖 Python 3.10+ 与 openpyxl）：`python3 -I scripts/run_pipeline.py --data-root <数据目录> --base-xlsx <上一版或未打标xlsx> --out-dir <输出目录> [--base-analysis 上一版analysis.json] [--base-evidence 上一版tags.json] [--name 文件名]`，依次执行下面 2–6 步并校验。分步：
+
 2. 打标（无网络）：
    `python3 -I scripts/tag_cached.py --data-root <规范化数据目录> --out-dir <输出目录>`（默认开启尺寸规则、标准宽度、父体补充；对应关闭开关 --no-dim-rules / --no-std-width / --no-parent-fill / --no-accessory-default / --no-price-rules）
    数据目录需含sales_payload.json、collected_details.json、step1_macro_audit.json、feature_field_provenance.json，可选input_rows.json（卖家精灵导出逐行）。输出tagging_matrix/evidence/summary/work_queues四个JSON。其他项目须先明确映射字段和纳入标记，不能把缺少_eligible当作全量范围。不要运行旧tag_vanity_v3.py。
