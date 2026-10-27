@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -I /tmp/claude-0/-home-user-wxb981111-163-com/91c136b4-837e-53b2-a718-2bcdbefbd924/scratchpad/tddm/x/tdd-master/validators/check_delivery_contract.py:*)"
+    ]
+  }
+}
