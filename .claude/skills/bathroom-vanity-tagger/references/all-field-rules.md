@@ -1,4 +1,4 @@
-# 各字段打标规则现状（v9，2026-10-27）
+# 各字段打标规则现状（v10，2026-10-27）
 
 通用顺序：SKU属性 → 子体标题 → 子体详情 overviews → 卖家精灵导出详细参数/亮点 → 子体五点 → 商品尺寸 → 父体五点/父体详情（子体没有时直接用，JSON status=parent_fill）→ 用户默认规则（status=business_default）。否定词（no/without/not）先于关键词；SKU 与标题不一致时 SKU 优先并标冲突。
 
@@ -20,6 +20,8 @@
 | partially / partly assembled、some components pre-assembled | 部分预装 |
 | no assembly (required)、fully / pre-assembled、comes / arrives assembled | 整装 |
 | assembly required、ready-to-assemble、RTA、easy / quick assembly | 拆装 |
+
+父体五点可代表全部子体（用户2026-10-27：一个链接里基本只有整装或拆装一种）。
 | 以上都没有 | **默认拆装**（ASSEMBLY-DEFAULT-RTA） |
 
 ## D3 盆数
@@ -60,6 +62,8 @@ Fluted、Reeded、Shaker（含 recessed panel）、Barn Door、Farmhouse（含 X
 - solid wood frame → 实木框架（其余未说明）；与 MDF 同时出现写 实木框架；MDF。
 - 多种材料同时出现保留全部；输出格式（用户2026-10-27）：含实木的写 实木框架+MDF / 实木框架+MDF+胶合板+刨花板，其余用 + 连接，顺序 MDF、胶合板、刨花板、竹材；单独 solid wood frame 写 实木框架。
 - 子体没有 → 父体 Material / 五点补充。都没有 → 信息不足。
+- solid wood legs / feet / handles / knobs 只描述部件，不作柜体实木证据。
+- **实木复核（CAB-SOLIDWOOD-PRICE，v10）**：文本只给出 实木 或 实木框架 时，结合 D2 与同宽度价格：整装且价格 ≥ 同宽度 MDF 中位数 × 1.5 → 实木 / 实木框架+实木；拆装或价格不足 → 实木框架+MDF；整装但该宽度无 ≥10 个 MDF 参照 → 保留文本标签。逐行执行（价格按行），依据写入 JSON（assembly、price、width、sameWidthMDFMedian、priceRatio、decision）。--no-price-rules 关闭。
 - 不做默认值（用户尚未定）。
 
 ## D8 台面材质
@@ -81,7 +85,7 @@ Fluted、Reeded、Shaker（含 recessed panel）、Barn Door、Farmhouse（含 X
 ## D9 宽 / 深 / 高（英寸）
 1. 宽：SKU Size（去掉 "-3H" 孔位码）> 标题 "30 Inch Vanity" > 带 W 标签的详情尺寸。
 2. 深/高：带 D/H 标签的详情尺寸；同一来源 D/W 标反时取其 W 值作深（DIM-DW-SWAP）；无标签 a×b×c 按 深×宽×高（DIM-DWH-ORDER，中间值须与宽度相差 ≤1in）；父体代表变体同宽度时补父体尺寸。
-3. 宽度与标准尺寸（12…84，含 24/28/30/31/32/36/42/48/60/72）相差 ≤0.8in 且唯一最近 → 归标准值，原值存 JSON；31.5/37/43 等保留。
+3. 宽度与标准尺寸（12…84，含 24/28/30/31/32/36/42/48/60/72）相差 ≤0.8in 且唯一最近 → 归标准值，原值存 JSON；31.5/37/43/49/55/61/73 等保留原值，不合并（用户2026-10-27确认）。
 4. 无单位 "3H" 不是高度；cm 自动换算；来源差异 >2.5in 标冲突。
 5. 无默认值。
 

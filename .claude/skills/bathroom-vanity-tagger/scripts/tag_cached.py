@@ -14,7 +14,9 @@ import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261027-v9'
+VERSION='bathroom-vanity-tagger-20261027-v10'
+# Solid-wood claims are checked against assembly and same-width MDF price (user 2026-10-27).
+SOLID_WOOD_PRICE_RATIO=1.5
 # 2026-10-27 user: vanity widths are essentially standard sizes.
 STANDARD_WIDTHS=(12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84)
 STD_WIDTH_TOLERANCE=0.8
@@ -248,6 +250,9 @@ class Tagger:
                         if label=='大理石（天然性未核实）' and match(r'faux|marble[ -]?(?:look|pattern|texture|grain)|imitation|marble-like',nearby):continue
                         prefix=clause[max(0,m.start()-25):m.start()]
                         if match(r'not\s+(?:made\s+of\s+)?$|without\s+$|no\s+$',prefix):continue
+                        # "solid wood legs / feet / handles" describe a part, not the cabinet.
+                        if label=='实木' and match(r'^\s*(?:legs?|feet|foot|handles?|knobs?|trim|edges?|accents?|pulls?)\b',clause[m.end():]):
+                            self.notes.append('D7：solid wood仅指腿/脚/把手，不作柜体材质');continue
                         hits.append((m.start(),m.end(),label))
                 anchors=[(m.start(),m.end(),role) for role,pat in roles.items() for m in re.finditer(pat,clause,re.I)]
                 for a,b,label in hits:
@@ -697,6 +702,43 @@ def feasibility(field,ev,has_child_text):
     if field in VISUAL:return 'F'
     return 'G' if has_child_text else 'E'
 
+def apply_solid_wood_price_rule(target_rows,matrix,evidence_rows):
+    """User 2026-10-27: a bare 'solid wood' / 'solid wood frame' claim is only
+    believed for an assembled vanity priced well above same-width MDF ones
+    (>= SOLID_WOOD_PRICE_RATIO x the MDF median). Otherwise it is the usual
+    MDF cabinet with a solid-wood frame. Applied per row (price is per row)."""
+    import statistics
+    D7,D2,W=HEADERS[6],HEADERS[1],HEADERS[9]
+    def price(r):
+        try:return float(r.get('商品价格'))
+        except (TypeError,ValueError):return None
+    ref={}
+    for a,m,tags,e,feas,src,r,idx in target_rows:
+        if tags[D7]=='MDF' and tags[W] is not None and price(r):ref.setdefault(tags[W],[]).append(price(r))
+    med={w:statistics.median(v) for w,v in ref.items() if len(v)>=10}
+    for a,m,tags,e,feas,src,r,idx in target_rows:
+        cur=tags[D7]
+        if cur not in ('实木','实木框架'):continue
+        pr=price(r);w=tags[W];asm=tags[D2]
+        ratio=(pr/med[w]) if (pr and w in med) else None
+        expensive=ratio is not None and ratio>=SOLID_WOOD_PRICE_RATIO
+        if asm=='整装' and expensive:new='实木' if cur=='实木' else '实木框架+实木';why='整装且价格≥同宽MDF中位%.1f倍'%SOLID_WOOD_PRICE_RATIO
+        elif asm=='整装' and ratio is None:new=cur;why='整装但无同宽MDF价格参照，保留文本标签'
+        else:new='实木框架+MDF';why='拆装或价格未达同宽MDF中位%.1f倍，按实木框架+MDF'%SOLID_WOOD_PRICE_RATIO
+        base=e.get(D7,{})
+        newev=dict(base);newev.update({'status':'business_mapping' if new!=cur else base.get('status'),'ruleID':'CAB-SOLIDWOOD-PRICE','basisType':'business_mapping','textLabel':cur,'assembly':asm,'price':pr,'width':w,'sameWidthMDFMedian':med.get(w),'priceRatio':round(ratio,2) if ratio else None,'decision':why})
+        matrix[idx][6]=new
+        ev=evidence_rows[idx];ev['tags']=dict(ev['tags']);ev['tags'][D7]=new
+        ev['fields']=dict(ev['fields']);ev['fields'][D7]=newev
+        ev['feasibility']=dict(ev['feasibility']);ev['feasibility'][D7]=feasibility(D7,newev,True) if new!=cur else ev['feasibility'][D7]
+        note='；D7实木复核：'+why+('（%s→%s）'%(cur,new) if new!=cur else '')
+        matrix[idx][15]=(matrix[idx][15] or '')+note;ev['tags'][HEADERS[15]]=matrix[idx][15]
+    # Summary counts use per-row tags: refresh from matrix.
+    for i,(a,m,tags,e,feas,src,r,idx) in enumerate(target_rows):
+        if tags[D7] in ('实木','实木框架'):
+            t2=dict(tags);t2[D7]=matrix[idx][6];e2=dict(e);e2[D7]=evidence_rows[idx]['fields'][D7];f2=dict(feas);f2[D7]=evidence_rows[idx]['feasibility'][D7]
+            target_rows[i]=(a,m,t2,e2,f2,src,r,idx)
+
 def load_export_rows(path):
     rows={}
     if path and Path(path).exists():
@@ -713,6 +755,7 @@ def main():
     ap.add_argument('--no-parent-fill',action='store_true',help='子体缺失时不用父体值填，只标（父体候选）')
     ap.add_argument('--no-std-width',action='store_true',help='宽度保留实际值，不归标准宽度')
     ap.add_argument('--no-accessory-default',action='store_true',help='镜子/龙头未提及时保留信息不足，不默认无')
+    ap.add_argument('--no-price-rules',action='store_true',help='关闭实木/实木框架的整装+价格复核（CAB-SOLIDWOOD-PRICE）')
     args=ap.parse_args()
     root=Path(args.data_root);out=Path(args.out_dir);out.mkdir(parents=True,exist_ok=True)
     p=load(root/'sales_payload.json');details=load(root/'collected_details.json')
@@ -732,11 +775,12 @@ def main():
                 t=Tagger(r,details,fp.get((month,a)),exports.get(a),not args.no_dim_rules,not args.no_parent_fill,not args.no_std_width,not args.no_accessory_default)
                 res=t.run();child_text=t.has_child_detail or t.has_export
                 snapshots[textkey]=res+({h:feasibility(h,res[1].get(h),child_text) for h in HEADERS[:14]},{'childDetail':t.has_child_detail,'sellerSpriteExport':t.has_export,'parentFeatures':r.get('五点来源')=='父体详情填充'})
-            tags,e,conflicts,feas,sourcesUsed=snapshots[textkey];values=[tags[h] for h in HEADERS];target_rows.append((a,month,tags,e,feas,sourcesUsed,r))
+            tags,e,conflicts,feas,sourcesUsed=snapshots[textkey];values=[tags[h] for h in HEADERS];target_rows.append((a,month,tags,e,feas,sourcesUsed,r,len(matrix)))
         matrix.append(values);states[values[-2]]+=1
         evidence_rows.append({'excelRow':i,'marketplace':r['站点'],'month':month,'childASIN':a,'verifiedParentASIN':r.get('核验父ASIN'),'includeInBathroomAnalysis':bool(r.get('_eligible')) and a not in excluded,'tags':dict(zip(HEADERS,values)),'fields':e,'feasibility':feas,'textSources':sourcesUsed,'conflicts':conflicts,'originalRecordIDs':r.get('关联原始记录ID'),'featureSource':r.get('五点来源'),'featureSourceASIN':r.get('五点来源ASIN')})
+    if not args.no_price_rules:apply_solid_wood_price_rule(target_rows,matrix,evidence_rows)
     months=sorted({x[1] for x in target_rows})
-    summary={'ruleVersion':VERSION,'dimensionRulesEnabled':not args.no_dim_rules,'parentFill':not args.no_parent_fill,'standardWidth':not args.no_std_width,'accessoryDefaultNone':not args.no_accessory_default,'allRowsRetained':len(matrix),'taggedTargetRows':len(target_rows),'uniqueTargetASINs':len({x[0] for x in target_rows}),'distinctTextSnapshots':len(snapshots),'rowStates':dict(states),'dimensions':{},'feasibilityLegend':FEASIBILITY,'feasibility':{},'textSourceCoverage':{},'newAPICalls':0,'imagesIndependentlyReviewed':0,'imageNote':'本轮是已有文本证据打标，元素待图片核验/文本线索均明确标注，不宣称已看图','monthly':[]}
+    summary={'ruleVersion':VERSION,'dimensionRulesEnabled':not args.no_dim_rules,'parentFill':not args.no_parent_fill,'standardWidth':not args.no_std_width,'accessoryDefaultNone':not args.no_accessory_default,'solidWoodPriceRule':not args.no_price_rules,'allRowsRetained':len(matrix),'taggedTargetRows':len(target_rows),'uniqueTargetASINs':len({x[0] for x in target_rows}),'distinctTextSnapshots':len(snapshots),'rowStates':dict(states),'dimensions':{},'feasibilityLegend':FEASIBILITY,'feasibility':{},'textSourceCoverage':{},'newAPICalls':0,'imagesIndependentlyReviewed':0,'imageNote':'本轮是已有文本证据打标，元素待图片核验/文本线索均明确标注，不宣称已看图','monthly':[]}
     for h in HEADERS[:14]:
         vals=[x[2][h] for x in target_rows]
         present=sum(v not in (None,UNKNOWN,'待图片核验') for v in vals)

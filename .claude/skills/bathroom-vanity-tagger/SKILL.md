@@ -15,7 +15,7 @@ description: 浴室柜整柜商品属性打标，并回答“哪些字段现有�
 - 不设月销10/20门槛。保留输入全部行；已核验目标浴室柜填标签，范围外或目标月归属未核验行只标状态，不删除、不挪用销量。
 - 子体标题/SKU/子体详情/卖家精灵导出详细参数（同ASIN）/子体五点优先。子体没有的信息用父体的（用户2026-10-27确认，默认开启）：父体五点与父体详情overviews的值直接填入，不加后缀，JSON状态parent_fill、打标说明写“父体信息补充”；父体overviews不取颜色；父体尺寸只在父体代表变体与子体同宽度时补深/高。--no-parent-fill 恢复“（父体候选）”口径。JSON逐字段记来源ASIN、范围，导出来源另记导出月份与行号。
 - 柜体颜色优先SKU单色和明确柜体描述；组合色未区分柜/盆/五金不硬填。标题与SKU不一致保留SKU值并标冲突。
-- 柜体、台面、盆材质按部件判断。柜体多种材料：含实木写实木框架+MDF等，其余用+连接（用户2026-10-27）；一体盆归台上盆。台面：solid wood单独出现是柜体不是台面，wood/marble texture直接接top才是木板台面；未细分stone top归岗石；一体盆台（<材质> sink top、integrated sink、D4一体盆）台面=盆材。engineered/composite wood归MDF（用户2026-10-27）；solid wood frame不自动补成实木框架+MDF；SMC/亚克力归树脂业务组并保留细分。纹理/仿色不证明天然石材；图片不能证明内部板材。
+- 柜体、台面、盆材质按部件判断。实木/实木框架只凭文本不信：整装且价格≥同宽MDF中位1.5倍才算实木，否则实木框架+MDF（用户2026-10-27，CAB-SOLIDWOOD-PRICE）；solid wood legs/feet不算柜体。柜体多种材料：含实木写实木框架+MDF等，其余用+连接（用户2026-10-27）；一体盆归台上盆。台面：solid wood单独出现是柜体不是台面，wood/marble texture直接接top才是木板台面；未细分stone top归岗石；一体盆台（<材质> sink top、integrated sink、D4一体盆）台面=盆材。engineered/composite wood归MDF（用户2026-10-27）；solid wood frame不自动补成实木框架+MDF；SMC/亚克力归树脂业务组并保留细分。纹理/仿色不证明天然石材；图片不能证明内部板材。
 - 元素先文本；无可靠文本线索标待图片核验。用户2026-10-27：看图先不做。实际看过对应子体图片才可写图片核验，链接存在不等于看过图。
 - 否定、排除与部件范围先于关键词。镜子/龙头：用户2026-10-27确认，文本未明确with/included的默认“无”（status=business_default，--no-accessory-default关闭）；明确含/单卖/不含的文本仍优先；无盆不推出无龙头；“faucets and mirror are not included”“excluding faucets”这类列表排除要识别；pre-drilled faucet hole、Single Hole Faucet不代表含龙头。
 - 盆数先认明确数量词（single/double/dual/two + 可带修饰 + sink）；single/double vanity行业用语次之；都没有时按用户2026-10-27规则默认单盆，写双盆但宽度<48in标冲突。产品形态没写floating/corner/pedestal等默认落地式；安装方式没写assembled/pre-assembled默认拆装。默认值JSON记business_default。
@@ -27,7 +27,7 @@ description: 浴室柜整柜商品属性打标，并回答“哪些字段现有�
 
 1. 读用户当前文件及同名analysis.json/README，先复用缓存，核对范围、字段和文件版本。新结构按table-schema-confirmation确认；已确认16列见输出规范。不要为了打标调用在线采集接口。
 2. 打标（无网络）：
-   `python3 -I scripts/tag_cached.py --data-root <规范化数据目录> --out-dir <输出目录>`（默认开启尺寸规则、标准宽度、父体补充；对应关闭开关 --no-dim-rules / --no-std-width / --no-parent-fill / --no-accessory-default）
+   `python3 -I scripts/tag_cached.py --data-root <规范化数据目录> --out-dir <输出目录>`（默认开启尺寸规则、标准宽度、父体补充；对应关闭开关 --no-dim-rules / --no-std-width / --no-parent-fill / --no-accessory-default / --no-price-rules）
    数据目录需含sales_payload.json、collected_details.json、step1_macro_audit.json、feature_field_provenance.json，可选input_rows.json（卖家精灵导出逐行）。输出tagging_matrix/evidence/summary/work_queues四个JSON。其他项目须先明确映射字段和纳入标记，不能把缺少_eligible当作全量范围。不要运行旧tag_vanity_v3.py。
 3. 写Excel（只改16个标签列，其余单元格原样）：
    `python3 -I scripts/write_workbook.py --base <源或上一版xlsx> --matrix <输出目录>/tagging_matrix.json --out <新xlsx>`
