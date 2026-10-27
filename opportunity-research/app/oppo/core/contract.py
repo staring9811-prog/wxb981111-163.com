@@ -109,10 +109,23 @@ def on_import(conn: Connection, category_id: int, package_id: int, operator: str
             item = {a: prev.get(a) for a in ATTRS}
             item.update(confirmed_in=prev.get("confirmed_in"), change_kind=prev.get("change_kind"))
         wanted[key] = item
+    # Draft fields that only exist in a package of the other type (e.g. C6 when a cross-section package is
+    # imported before the history contract is saved) stay in the draft with their own package and evidence.
+    kinds = dict(conn.execute(select(D.package.c.id, D.package.c.kind).where(D.package.c.category_id == category_id)).all())
+    for key, ex in existing.items():
+        if key in wanted:
+            continue
+        if key[0] not in present_files or kinds.get(ex["package_id"]) != kind:
+            item = {a: ex.get(a) for a in ATTRS}
+            item.update(confirmed_in=ex.get("confirmed_in"), change_kind=ex.get("change_kind"), _pkg=ex["package_id"],
+                        _updated=ex.get("updated_at"))
+            wanted[key] = item
     conn.execute(text("DELETE FROM contract_draft_item WHERE category_id=:c"), {"c": category_id})
     for (fc, fname), item in wanted.items():
+        pkg_of = item.pop("_pkg", package_id)
+        updated = item.pop("_updated", None) or now
         conn.execute(D.contract_draft_item.insert().values(
-            category_id=category_id, file_code=fc, field=fname, package_id=package_id, updated_at=now, **item))
+            category_id=category_id, file_code=fc, field=fname, package_id=pkg_of, updated_at=updated, **item))
     return changes
 
 

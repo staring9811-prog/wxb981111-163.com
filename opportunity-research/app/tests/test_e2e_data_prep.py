@@ -162,7 +162,7 @@ def test_fields_batch_item_and_save(live_server, clone, h1a_imported, page):  # 
     assert "来源：批量确认" in _toast(page, "来源：批量确认")
     # after reading them, the 按规则用 fields are confirmed as suggested too (the rule fields feed 成败与信号)
     page.click(".chip[data-filter='view:rule']")
-    page.locator("[data-select-all='#field-table']").check()
+    page.locator("[data-select-all='#field-table']").click()  # selects the rows the filter shows
     page.click("[data-batchbar] button[data-open='#batch-modal']")
     page.locator("#batch-modal input[name=suggested_only]").uncheck()
     page.click("#batch-modal button[type=submit]")
@@ -292,7 +292,7 @@ def test_config_required_bins_and_new_version(live_server, clone, h1a_done, page
     page.goto(live.u("/settings/category"))
     for name, value in (("success.bsr_max", "50"), ("success.gmv_min", "100,000"), ("success.window_months", "6"),
                         ("rising_min_parent_units", "60"), ("node", "6810202011")):
-        assert page.locator(f"[name='{name}']").input_value() == value
+        assert page.locator(f"#cfg-form [name='{name}']").input_value() == value
     page.fill("input[name='success.gmv_min']", "")
     page.click("[data-cfg-review]")
     page.wait_for_selector("[data-error-for='success.gmv_min']:not(:empty)")
@@ -339,7 +339,7 @@ def test_new_category_from_template_and_blank(live_server, data_dir, page):  # t
     assert "浴室镜柜" in page.locator(".page-head__sub").inner_text()
     for name, value in (("site", "US"), ("success.bsr_max", "50"), ("success.gmv_min", "100,000"),
                         ("success.window_months", "6"), ("rising_min_parent_units", "60")):
-        assert page.locator(f"[name='{name}']").input_value() == value
+        assert page.locator(f"#cfg-form [name='{name}']").input_value() == value
     page.click("[data-cfg-review]")
     page.wait_for_selector("#save-modal.is-open")
     page.click("#save-confirm")
@@ -350,7 +350,7 @@ def test_new_category_from_template_and_blank(live_server, data_dir, page):  # t
     page.fill("#nc-node", "7654321")
     page.check("#new-cat-modal input[value=blank]")
     page.click("#new-cat-modal button[type=submit]")
-    page.wait_for_url(re.compile(r"category=\d+"))
+    page.wait_for_selector(".page-head__sub:has-text('淋浴房')")
     assert page.locator("input[name='success.gmv_min']").input_value() == ""
     page.click("[data-cfg-review]")
     page.wait_for_selector("[data-error-for='success.gmv_min']:not(:empty)")

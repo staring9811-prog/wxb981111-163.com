@@ -11,3 +11,5 @@
 .danger-text { color: var(--danger); }
 .step[data-status="running"] .step__dot { color: var(--accent); }
 .step__meta { display: block; overflow: hidden; text-overflow: ellipsis; padding-right: var(--space-2); }
+.step__meta--warn { color: var(--warn); }
+.step__meta--warn .icon { width: 12px; height: 12px; vertical-align: -1px; margin-right: 2px; }

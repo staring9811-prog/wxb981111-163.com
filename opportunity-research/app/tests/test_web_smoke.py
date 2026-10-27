@@ -38,3 +38,11 @@ def test_write_requires_token(live_server, data_dir):  # type: ignore[no-untyped
     live = live_server(data_dir)
     assert _post(live, "/jobs/compute", {}) == 403
     assert _post(live, "/jobs/compute", {"X-Oppo-Token": live.token, "Origin": "http://evil.example"}) == 403
+
+
+def test_data_dir_with_percent_and_chinese(tmp_path):  # type: ignore[no-untyped-def]
+    """Windows URLs carry %5C; a data path with % or Chinese must still migrate (found on the Windows runner)."""
+    from tests.conftest import open_dir
+
+    app = open_dir(tmp_path / "机会判定台 100%" / "data")
+    assert app.category_id() > 0

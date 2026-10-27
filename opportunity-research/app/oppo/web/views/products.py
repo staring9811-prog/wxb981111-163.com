@@ -489,6 +489,7 @@ def _detail_ctx(conn: Connection, cid: int, run: dict[str, Any], r: dict[str, An
     raw = conn.connection.driver_connection
     kids = pd.read_sql_query("SELECT * FROM spu_child WHERE run_id = ? AND spu_key = ? ORDER BY launch_date, child",
                              raw, params=(run["id"], r["spu_key"]))
+    kids = kids.astype(object).where(kids.notna(), None)
     parents = D.loads(r["parents_json"], []) or []
     months_tbl = _months_rows(r.get("months_json"))
     batch = r["batch"]

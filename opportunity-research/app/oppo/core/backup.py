@@ -246,44 +246,53 @@ def restore(app: Any, backup_path: Path, confirm: bool) -> dict[str, Any]:
     if pre["status"] != "success":
         raise RestoreError(f"恢复前备份当前状态失败，未恢复：{pre['error']}")
     checked = 0
+    # One explicit SQLite transaction on the driver connection: dropping and recreating the append-only
+    # triggers, replacing the tables, the row-by-row check and the restore record either all happen or none do.
     with app.engine.connect() as conn:
-        conn.exec_driver_sql("ATTACH DATABASE ? AS bk", (str(backup_path),))
-        conn.commit()
+        raw = conn.connection.driver_connection
+        old_level = raw.isolation_level
+        raw.isolation_level = None
+        raw.execute("ATTACH DATABASE ? AS bk", (str(backup_path),))
         try:
-            with conn.begin():
-                raw = conn.connection.driver_connection
+            raw.execute("BEGIN IMMEDIATE")
+            try:
+                raw.execute("PRAGMA defer_foreign_keys=ON")  # references are checked once, at COMMIT
                 for stmt in D.drop_trigger_sql():
-                    conn.exec_driver_sql(stmt)
+                    raw.execute(stmt)
                 for t in D.BACKUP_TABLES:
                     cols = [r[1] for r in raw.execute(f'PRAGMA bk.table_info("{t}")')]
-                    conn.exec_driver_sql(f'DELETE FROM main."{t}"')
+                    raw.execute(f'DELETE FROM main."{t}"')
                     if cols:
                         collist = ", ".join(f'"{c}"' for c in cols)
-                        conn.exec_driver_sql(f'INSERT INTO main."{t}" ({collist}) SELECT {collist} FROM bk."{t}"')
+                        raw.execute(f'INSERT INTO main."{t}" ({collist}) SELECT {collist} FROM bk."{t}"')
                 for t in D.BACKUP_TABLES:  # NFR-002: check row by row before declaring success
                     cols = [r[1] for r in raw.execute(f'PRAGMA bk.table_info("{t}")')]
                     if not cols:
                         continue
                     collist = ", ".join(f'"{c}"' for c in cols)
-                    n_main = conn.exec_driver_sql(f'SELECT count(*) FROM main."{t}"').scalar()
-                    n_bk = conn.exec_driver_sql(f'SELECT count(*) FROM bk."{t}"').scalar()
-                    diff = conn.exec_driver_sql(
-                        f'SELECT count(*) FROM (SELECT {collist} FROM main."{t}" EXCEPT SELECT {collist} FROM bk."{t}")'
-                    ).scalar()
-                    diff2 = conn.exec_driver_sql(
-                        f'SELECT count(*) FROM (SELECT {collist} FROM bk."{t}" EXCEPT SELECT {collist} FROM main."{t}")'
-                    ).scalar()
+                    n_main = raw.execute(f'SELECT count(*) FROM main."{t}"').fetchone()[0]
+                    n_bk = raw.execute(f'SELECT count(*) FROM bk."{t}"').fetchone()[0]
+                    diff = raw.execute(f'SELECT count(*) FROM (SELECT {collist} FROM main."{t}" EXCEPT '
+                                       f'SELECT {collist} FROM bk."{t}")').fetchone()[0]
+                    diff2 = raw.execute(f'SELECT count(*) FROM (SELECT {collist} FROM bk."{t}" EXCEPT '
+                                        f'SELECT {collist} FROM main."{t}")').fetchone()[0]
                     if n_main != n_bk or diff or diff2:
                         raise RestoreError(f"恢复后核对不一致（{t}），已撤销恢复，当前数据保持恢复前的状态")
                     checked += n_bk
                 for stmt in D.trigger_sql():
-                    conn.exec_driver_sql(stmt)
-                conn.execute(D.restore_record.insert().values(
-                    backup_path=str(backup_path), backup_time=created, pre_backup_id=pre["id"],
-                    created_by=app.operator, created_at=clock.now_iso()))
+                    raw.execute(stmt)
+                raw.execute("INSERT INTO restore_record (backup_path, backup_time, pre_backup_id, created_by, created_at)"
+                            " VALUES (?, ?, ?, ?, ?)",
+                            (str(backup_path), created, pre["id"], app.operator, clock.now_iso()))
+                raw.execute("COMMIT")
+            except Exception as exc:
+                raw.execute("ROLLBACK")
+                if isinstance(exc, RestoreError):
+                    raise
+                raise RestoreError(f"恢复失败，已撤销，当前数据保持恢复前的状态：{exc}") from exc
         finally:
-            conn.exec_driver_sql("DETACH DATABASE bk")
-            conn.commit()
+            raw.execute("DETACH DATABASE bk")
+            raw.isolation_level = old_level
     return {"restored_from": str(backup_path), "backup_time": created, "pre_backup": pre, "checked_rows": checked}
 
 

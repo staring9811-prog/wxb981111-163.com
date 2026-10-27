@@ -35,7 +35,7 @@
         <div class="banner enter" style="--i:1" role="status">{{ icon('circle-notch', 'spin') }}<div class="banner__body">{{ busy }}；确认、拒绝和修改暂不可用。</div></div>
         {% endif %}
 
-        <div class="stats enter" style="--i:1">
+        <div class="stats enter" style="--i:1{% if no_field_unconfirmed or stale or busy %}; margin-top: var(--space-4){% endif %}">
           <div class="stat">
             <div class="stat__label">待审</div>
             <div class="stat__value" data-stat="pending">{{ pending|length }}<span class="stat__unit">条</span></div>

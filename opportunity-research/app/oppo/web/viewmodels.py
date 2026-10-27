@@ -158,9 +158,10 @@ def workbench_summary(conn: Connection, app: Any, mode: str = "history") -> dict
 
     st: list[dict[str, Any]] = []
 
-    def add(status: str, meta: str) -> None:
+    def add(status: str, meta: str, warn: bool = False) -> None:
         i = len(st)
-        st.append({"no": i + 1, "name": STEP_NAMES[i], "href": STEP_LINKS[i], "status": status, "meta": meta})
+        st.append({"no": i + 1, "name": STEP_NAMES[i], "href": STEP_LINKS[i], "status": status, "meta": meta,
+                   "warn": warn})
 
     # 1 导入校验
     if pkg is None:
@@ -184,14 +185,20 @@ def workbench_summary(conn: Connection, app: Any, mode: str = "history") -> dict
     if pkg is None:
         add("todo", "导入后自动体检")
     elif warns:
-        add("attention", f"{len(warns)} 项预警待知晓")
+        # the check itself is done (it runs on import); open warnings stay visible here and in 待处理
+        add("done", f"已完成 · {len(warns)} 项预警待知晓", warn=True)
     else:
-        add("done", "没有未知晓的预警")
+        add("done", "已完成 · 没有未知晓的预警")
     # 4 SPU 归并
     if pkg is None or cv is None:
         add("todo", "确认字段后生成建议")
     elif sugg:
-        add("attention", f"{len(sugg)} 条建议待审")
+        decided = [x for x in SPU.suggestions(conn, cid) if x["status"] in ("confirmed", "rejected")
+                   and x.get("package_id") in (None, pkg["id"])]
+        if decided:  # the review has been done this month; the rest stays listed in 待处理
+            add("done", f"已审核 · {len(sugg)} 条待审", warn=True)
+        else:
+            add("attention", f"{len(sugg)} 条建议待审")
     else:
         add("done", f"已合并 {len(SPU.active_merges(conn, cid))} 组")
     # 5 成败与信号

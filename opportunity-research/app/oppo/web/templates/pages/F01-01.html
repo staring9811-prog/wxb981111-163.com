@@ -41,7 +41,7 @@
             {% set pv = preview %}
             <div class="stack" aria-labelledby="preview-title">
               <div class="row">
-                {{ icon('file-zip' if pv.source_name.lower().endswith('.zip') else 'folder') }}
+                {{ icon('file-zip' if pv.source_name.lower().endswith('.zip') else 'folder-simple') }}
                 <h3 id="preview-title">{{ pv.source_name }}</h3>
                 <span class="small muted">{% if pv.size is not none %}{{ '%.1f'|format(pv.size / 1048576) }} MB · {% endif %}{{ (meta.read_at or '')[11:16] }} 读取清单文件</span>
               </div>

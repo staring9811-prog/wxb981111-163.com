@@ -74,7 +74,7 @@
             <a class="step__link" href="{{ s.href }}"{% if s.status == 'current' %} aria-current="step"{% endif %}>
               <span class="step__dot">{% if s.status in st_icon %}{{ icon(st_icon[s.status], 'spin' if s.status == 'running' else '') }}{% else %}{{ s.no }}{% endif %}</span>
               <span class="step__name">{{ s.name }}</span>
-              <span class="step__meta" title="{{ s.meta }}"{% if s.status == 'running' %} data-job-step{% endif %}>{{ s.meta }}</span>
+              <span class="step__meta{% if s.warn %} step__meta--warn{% endif %}" title="{{ s.meta }}"{% if s.status == 'running' %} data-job-step{% endif %}>{% if s.warn %}{{ icon('warning') }}{% endif %}{{ s.meta }}</span>
             </a>
           </li>
           {% endfor %}

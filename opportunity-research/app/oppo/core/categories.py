@@ -91,8 +91,11 @@ def bins_text(cfg: dict[str, Any], key: str) -> str:
 
 
 def form_map_text(cfg: dict[str, Any]) -> str:
+    """Canonical text (in the form dimension's bin order) so that re-ordering is not seen as a change."""
     m = cfg["keyword_mapping"]["form"]["map"]
-    return "；".join(f"{k}：{'、'.join(v)}" for k, v in m.items())
+    order = [b["label"] for d in cfg.get("segment_dims") or [] if d["key"] == "form" for b in d["bins"]]
+    keys = [k for k in order if k in m] + [k for k in m if k not in order]
+    return "；".join(f"{k}：{'、'.join(m[k])}" for k in keys)
 
 
 def get_path(cfg: dict[str, Any], path: str) -> Any:

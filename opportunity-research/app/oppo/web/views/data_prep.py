@@ -397,7 +397,7 @@ def report_context(conn: Connection, pkg: dict[str, Any], settings: Any) -> dict
                                  PK.current_package(conn, pkg["category_id"], "cross")) if p}
     no_c6 = kind == "cross" and not any(m["code"] == "C6" and not m["missing"] for m in matrix)
     return {
-        "pkg": pkg, "kind_label": KIND_LABEL.get(kind or "", "无法识别"),
+        "report_pkg": pkg, "kind_label": KIND_LABEL.get(kind or "", "无法识别"),
         "contract_label": CONTRACT_LABEL.get(kind or "", "无法选择约定"),
         "months_n": len(PK.month_range(pkg["months_from"], pkg["months_to"])) if pkg["months_from"] and pkg["months_to"] else None,
         "matrix": matrix, "tabs": tabs, "warn_list": warn_list, "block_list": block_list,
@@ -824,7 +824,7 @@ def health_page(request: Request, package: int | None = None) -> HTMLResponse:
         if pkg and pkg["conclusion"] != "block":
             total_rows = sum(int(f["row_count"] or 0) for f in PK.files(conn, pkg["id"]) if f["row_count"])
             rows = H.results(conn, cid, pkg["id"])
-            ctx["items"] = [_health_item_view(r, total_rows) for r in rows]
+            ctx["items"] = [_health_item_view(r, total_rows) | {"no": i} for i, r in enumerate(rows, start=1)]
             ctx["fps"] = [f for f in H.fingerprint_rows(conn, pkg["id"])]
             step = conn.execute(select(D.run_step.c.started_at, D.run_step.c.ended_at).where(
                 D.run_step.c.step == "数据体检", D.run_step.c.link == f"/health?package={pkg['id']}")

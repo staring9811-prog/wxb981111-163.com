@@ -114,6 +114,7 @@
         <p class="page-foot">{% if c7.package %}数据包 {{ c7.package.label }} {{ ('含 C7 自家立项 ' ~ c7.rows|length ~ ' 行') if has_c7 else '没有 C7 自家立项' }}{% else %}还没有历史数据包{% endif %} · 品类配置 v{{ cfg_no }} · 自家立项与竞品新品用同一条成功线：上架当月起 {{ cfg.success.window_months }} 个月内小类 BSR ≤ {{ cfg.success.bsr_max|int }}，或 SPU 任一月销售额 ≥ {{ money(cfg.success.gmv_min) }}</p>
 {% endblock %}
 {% block overlays %}
+{% set has_c7 = c7.rows|length > 0 %}
 {% include "partials/F10-02.html" %}
 {% if launch %}{% set close_href = '/ledger/decisions' %}{% include "partials/F10-06.html" %}{% endif %}
 {% if has_c7 and (c7.new or c7.launch) %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}校验报告 · {{ pkg.label }}{% endblock %}
+{% block title %}校验报告 · {{ report_pkg.label }}{% endblock %}
 {% macro rb(r, text) -%}
 {%- if r == 'pass' -%}{{ badge('通过', 'pass', 'check-circle') }}{%- elif r == 'warn' -%}{{ badge('警告', 'warn', 'warning') }}{%- elif r == 'block' -%}{{ badge('阻断', 'block', 'warning-octagon') }}{%- else -%}<span class="small muted">{{ text or '不适用' }}</span>{%- endif -%}
 {%- endmacro %}
@@ -7,6 +7,7 @@
 {%- if c -%}{%- if c[0] in ('pass', 'warn', 'block') -%}{{ rb(c[0]) }}<div class="cell-sub">{{ c[1] }}</div>{%- else -%}<span class="small muted">{{ c[1] or '不适用' }}</span>{%- endif -%}{%- else -%}<span class="small muted">—</span>{%- endif -%}
 {%- endmacro %}
 {% block content %}
+{% set pkg = report_pkg %}
 {% set blocked = pkg.conclusion == 'block' %}
         <div class="page-head enter" style="--i:0">
           <div>

@@ -79,12 +79,19 @@ def contract_confirm(app: App, keys: list[tuple[str, str]] | None = None, sugges
         n = CT.batch_confirm(conn, cid, keys, suggested_only=suggested_only)
         no = None
         if save:
-            no = CT.save_version(conn, cid, app.operator, note)
+            cur = CT.current_version(conn, cid)
             pkg = PK.current_package(conn, cid, "history") or PK.current_package(conn, cid, "cross")
-            if pkg:
-                SPU.refresh_suggestions(conn, cid, pkg["id"], app.operator)
+            if cur is not None and not CT.draft_changes(conn, cid):
+                # nothing changed in this month's package: keep the current version, still record the step (F14)
+                no = cur["version_no"]
+                result = f"无变化，沿用 v{no}"
+            else:
+                no = CT.save_version(conn, cid, app.operator, note)
+                result = f"保存为 v{no}"
+                if pkg:
+                    SPU.refresh_suggestions(conn, cid, pkg["id"], app.operator)
             runs.record_step(conn, cid, "字段确认", started, clock.now_iso(), app.operator,
-                             result=f"保存为 v{no}", link="/fields", package_id=pkg["id"] if pkg else None)
+                             result=result, link="/fields", package_id=pkg["id"] if pkg else None)
         return {"confirmed": n, "version": no}
 
 

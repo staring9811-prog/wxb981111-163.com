@@ -134,6 +134,11 @@
     if (timing) { timing.addEventListener('change', sync); sync(); }
   });
   var table = doc.getElementById('field-table');
+  doc.addEventListener('click', function (e) {
+    if (!e.target.closest('[data-open="#batch-modal"]') || !table) return;
+    var n = table.querySelectorAll('input[data-row-check]:checked').length;
+    $$('#batch-modal [data-batch-count]').forEach(function (el) { el.textContent = String(n); });
+  });
   if (table) {
     var PAGE = 50;
     var page = 1;

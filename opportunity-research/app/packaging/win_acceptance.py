@@ -300,19 +300,19 @@ def main() -> int:
     ap.add_argument("--fixtures", required=True)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
-    out = Path(a.out)
+    out = Path(a.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
     res: dict = {"started": datetime.now().isoformat(timespec="seconds")}
     root = None
     try:
         try:
-            root = smoke03(Path(a.zip), Path(a.fixtures), out, res)
+            root = smoke03(Path(a.zip).resolve(), Path(a.fixtures).resolve(), out, res)
         except Exception as exc:  # noqa: BLE001 - recorded, RULE-05 still runs
             res.setdefault("SMOKE-03", {})["error"] = repr(exc)
             root = next((p for p in (Path(os.environ.get("SystemDrive", "C:") + "\\") / "oppo-acceptance").iterdir()
                          if p.is_dir()), None)
         if root is not None:
-            rule05(root, Path(a.fixtures) / "S-规模", out, res)
+            rule05(root, Path(a.fixtures).resolve() / "S-规模", out, res)
     finally:
         res["ended"] = datetime.now().isoformat(timespec="seconds")
         (out / "results.json").write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")

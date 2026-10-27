@@ -476,7 +476,7 @@ def import_package(conn: Connection, settings: Any, category_id: int, src: Path,
         if conclusion != "block":
             hstart = clock.now_iso()
             health.run(conn, category_id, pid)
-            runs.record_step(conn, category_id, "数据体检", hstart, clock.now_iso(), "系统",
+            runs.record_step(conn, category_id, "数据体检", hstart, clock.now_iso(), operator,
                              result="完成", link=f"/health?package={pid}", package_id=pid)
         return result
 

@@ -62,7 +62,7 @@
                     <span><span class="muted">预警阈值</span> <span class="num">{{ it.th_text }}</span></span>
                   </div>
                   {% if it.dims %}
-                  <div class="hbars" style="margin-top: var(--space-5); max-width: 640px" role="img" aria-label="未知占比：{% for d in it.dims %}{{ d['维度'] }} {{ '%.1f'|format(d['占比']) }}%{{ '，' if not loop.last }}{% endfor %}；阈值 {{ it.th_text }}">
+                  <div class="hbars" style="margin-top: var(--space-6); max-width: 640px" role="img" aria-label="未知占比：{% for d in it.dims %}{{ d['维度'] }} {{ '%.1f'|format(d['占比']) }}%{{ '，' if not loop.last }}{% endfor %}；阈值 {{ it.th_text }}">
                     {% for d in it.dims %}
                     <span class="hbar__label">{{ d['维度'] }}</span>
                     <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:{{ d.width }}%" tabindex="0" data-tip="{{ '%.1f'|format(d['占比']) }}%|{{ num(d['未知']) }} / {{ num(d['子体']) }} 个子体{% if d.over %}|超过阈值{% elif d.near %}|接近阈值{% endif %}"></span><span class="hbar__ref" style="left:{{ it.ref }}%">{% if loop.first %}<span class="hbar__ref-label">阈值 {{ it.th_text.replace('（每个维度）', '') }}</span>{% endif %}</span></span>
@@ -161,7 +161,7 @@
             <div class="modal__head">
               <div>
                 <h2 class="modal__title" id="ack-title-{{ it.item }}">标为已知晓</h2>
-                <p class="modal__sub">体检项 {{ loop.index }} · 数据包 {{ hpkg.label }} · 操作人 {{ operator }}</p>
+                <p class="modal__sub">体检项 {{ it.no }} · 数据包 {{ hpkg.label }} · 操作人 {{ operator }}</p>
               </div>
               <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
             </div>

@@ -168,7 +168,7 @@ def test_backfill_then_correction_keeps_original(live_server, clone, h1a_done, p
     expect(orig).to_contain_text("补录")
     expect(orig).to_contain_text("无对应快照（补录）")
     expect(orig).to_contain_text("2025-12-10")
-    orig.get_by_role("link", name="更正").click()
+    orig.get_by_role("link", name="更正", exact=True).click()
     modal = page.locator("#decision-modal")
     expect(modal).to_contain_text("更正立项记录")
     modal.locator("#b-seg").select_option("≤30″|悬浮式|$500–900")
@@ -180,7 +180,7 @@ def test_backfill_then_correction_keeps_original(live_server, clone, h1a_done, p
     expect(page.locator("#d-0001")).to_contain_text("已更正")
     expect(page.locator("#d-0001")).to_contain_text("见更正记录 D-0002")
     expect(page.locator("#d-0002")).to_contain_text("更正 D-0001")
-    assert page.locator("#d-0001").get_by_role("link", name="更正").count() == 0
+    assert page.locator("#d-0001").get_by_role("link", name="更正", exact=True).count() == 0
     rows = _rows(live.app.settings.data_dir, "SELECT code, kind, segment_key, corrects_id FROM decision_record ORDER BY id")
     assert rows[0] == ("D-0001", "补录", "≤30″|悬浮式|<$500", None)
     assert rows[1][1] == "更正" and rows[1][2] == "≤30″|悬浮式|$500–900" and rows[1][3] == 1
@@ -335,7 +335,9 @@ def test_rules_add_validation_and_versions(live_server, clone, h1a_done, page: P
     vers = _rows(live.app.settings.data_dir, "SELECT version_no, status, condition_json FROM rule_version v JOIN rule r "
                  "ON r.id = v.rule_id WHERE r.code='R-001' ORDER BY version_no")
     assert [v[1] for v in vers] == ["历史观察", "未验证经验"]
-    assert '"value": 0.2' in vers[1][2] and '"kind": "signal"' in vers[1][2]
+    import json
+
+    assert json.loads(vers[1][2])["conds"] == [{"kind": "signal", "key": "demand", "op": ">=", "value": 0.2}]
     _ok(page)
 
 
@@ -383,4 +385,24 @@ def test_backup_directory_check_and_restore(live_server, clone, h1a_done, tmp_pa
     expect(page.locator("#backup-table tbody tr").first).to_contain_text("恢复前自动备份")
     assert _rows(d, "SELECT count(*) FROM decision_record")[0][0] == 0
     assert _rows(d, "SELECT count(*) FROM restore_record")[0][0] == 1
+    _ok(page)
+
+
+def test_c7_import_lists_then_adds_backfills_once(live_server, clone, h1a_done, page: Page) -> None:  # type: ignore[no-untyped-def]
+    d = clone(h1a_done)
+    live = live_server(d)
+    page.goto(live.u("/ledger/decisions"))
+    page.get_by_role("button", name="从数据包导入自家立项").click()
+    modal = page.locator("#c7-modal")
+    expect(modal).to_contain_text("将新增的补录记录 · 2 条")
+    expect(modal).to_contain_text("36寸落地双门实木款")
+    modal.get_by_role("button", name="确认导入").click()
+    page.wait_for_url(re.compile("toast="))
+    expect(page.locator("#decision-table tbody tr")).to_have_count(2)
+    rows = _rows(d, "SELECT kind, source, segment_key, project_date FROM decision_record ORDER BY id")
+    assert rows[0] == ("补录", "数据包", "30–48″|落地式|$500–900", "2025-11-20")
+    # everything is in the ledger now: the button only reports that
+    page.get_by_role("button", name="从数据包导入自家立项").click()
+    expect(page.locator(".toast").last).to_contain_text("都已在台账中")
+    assert _rows(d, "SELECT count(*) FROM decision_record")[0][0] == 2
     _ok(page)
