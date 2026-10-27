@@ -1,0 +1,46 @@
+
+$ where python
+[exit 1]
+INFO: Could not find files for the given pattern(s).
+
+
+$ ['cmd', '/c', 'C:\\oppo-acceptance\\机会判定台\\oppo.bat', '--help']
+[exit 0]
+usage: oppo [-h] [--data-dir DATA_DIR]
+            {import,report,contract,health,merge,compute,recompute,backtest,ranking,export,decision,backup-dir,restore,runs,status,serve} ...
+
+品类机会判定台 · 命令行（与网页调用同一套服务函数）
+
+positional arguments:
+  {import,report,contract,health,merge,compute,recompute,backtest,ranking,export,decision,backup-dir,restore,runs,status,serve}
+    import              导入数据包（zip 或文件夹）并校验
+    report              查看校验报告
+    contract            字段约定：show / confirm
+    health              体检结果；--ack 项 --note 说明 标为已知晓
+    merge               SPU 合并建议：list / confirm / reject / revise
+    compute             运行计算（成败判定 + 信号）
+    recompute           全部重算
+    backtest            运行回测
+    ranking             查看排序
+    export              导出当月 Excel 与网页报告，随后自动备份
+    decision            立项记录：add / backfill / correct
+    backup-dir          设置备份目录
+    restore             从备份恢复
+    runs                运行记录与用时
+    status              工作台汇总
+    serve               启动本机网页服务（只监听 127.0.0.1）
+
+options:
+  -h, --help            show this help message and exit
+  --data-dir DATA_DIR   数据目录（默认取 OPPO_DATA_DIR 或安装目录下的 data）
+
+
+$ ['cmd', '/c', 'C:\\oppo-acceptance\\机会判定台\\oppo.bat', 'import', 'D:\\a\\wxb981111-163.com\\wxb981111-163.com\\opportunity-research\\app\\fixtures\\packages\\H1-A']
+[exit 0]
+P-0001 · 历史 · 有警告
+
+
+$ ['cmd', '/c', 'C:\\oppo-acceptance\\机会判定台\\启动.bat', '--no-browser']
+[exit 0]
+品类机会判定台已在运行：http://127.0.0.1:8765/（已打开浏览器）
+

@@ -1,0 +1,177 @@
+{
+  "started": "2026-10-27T01:33:46",
+  "SMOKE-03": {
+    "install_dir": "C:\\oppo-acceptance\\机会判定台",
+    "zip": "机会判定台-1.0.0-win64.zip",
+    "zip_mb": 93.4,
+    "firewall_block_outbound": true,
+    "python_on_clean_path": false,
+    "python_on_clean_path_output": "INFO: Could not find files for the given pattern(s).",
+    "oppo_help_exit": 0,
+    "oppo_help_commands": [
+      "import",
+      "contract",
+      "health",
+      "merge",
+      "compute",
+      "backtest",
+      "ranking",
+      "decision",
+      "export",
+      "restore"
+    ],
+    "first_start_ok": true,
+    "first_start_seconds": 5.3,
+    "first_start_process_exit": null,
+    "first_start_output": "品类机会判定台已启动：http://127.0.0.1:8765/（只在本机访问；关闭此窗口即停止）\r\n",
+    "listening": [
+      "127.0.0.1"
+    ],
+    "lan_access": "refused (URLError)",
+    "browser_launch_processes": [
+      "msedge.exe :: \"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --single-argument http://127.0.0.1:8765/",
+      "powershell.exe :: powershell -NoProfile -Command \"Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*127.0.0.1:8765*' } | ForEach-Object { $_.Name + ' :: ' + $_.CommandLine }\""
+    ],
+    "workbench_console_errors": [],
+    "import_exit": 0,
+    "import_output": "P-0001 · 历史 · 有警告",
+    "second_start_while_running": "品类机会判定台已在运行：http://127.0.0.1:8765/（已打开浏览器）",
+    "restart_ok": true,
+    "package_listed_after_restart": true,
+    "restart_console_errors": [],
+    "data_dir_files": [
+      "exports",
+      "logs",
+      "oppo.sqlite3",
+      "oppo.sqlite3-shm",
+      "oppo.sqlite3-wal",
+      "packages",
+      "tmp"
+    ],
+    "program_dirs": [
+      "app",
+      "data",
+      "python",
+      "site-packages"
+    ],
+    "data_separate_from_program": true
+  },
+  "FLOW-17": {
+    "cli_contract": 0,
+    "cli_merge": 0,
+    "cli_compute": 0,
+    "cli_backtest": 0,
+    "cli_backup-dir": 0,
+    "cli_export": 0,
+    "report_copy": "C:\\oppo-acceptance\\report-copy\\浴室柜_机会判定_2026-03_快照1.html",
+    "backup": "success",
+    "sheets": [
+      "首页",
+      "细分排序",
+      "锦囊",
+      "判定卡版本",
+      "回测摘要",
+      "台账-快照",
+      "台账-立项记录",
+      "台账-对账",
+      "版本信息"
+    ],
+    "chromium": {
+      "network_requests": [],
+      "ranking_rows": 13,
+      "ranking_matches_excel": true
+    },
+    "webkit": {
+      "network_requests": [],
+      "ranking_rows": 13,
+      "ranking_matches_excel": true
+    },
+    "same_text_in_both_engines": true
+  },
+  "RULE-05": {
+    "machine": {
+      "cpu_count": 4,
+      "platform": "win32",
+      "total_memory_gb": 16.0,
+      "windows": "Microsoft Windows [Version 10.0.26100.33650]"
+    },
+    "steps": {
+      "import": {
+        "exit": 0,
+        "started": "2026-10-27T01:35:13",
+        "ended": "2026-10-27T01:36:16",
+        "seconds": 62.9,
+        "memory_error": false,
+        "tail": "P-0001 · 历史 · 通过"
+      },
+      "contract_confirm": {
+        "exit": 0,
+        "started": "2026-10-27T01:36:16",
+        "ended": "2026-10-27T01:36:57",
+        "seconds": 41.3,
+        "memory_error": false,
+        "tail": "已确认 71 个字段，保存为字段约定 v1"
+      },
+      "compute": {
+        "exit": 0,
+        "started": "2026-10-27T01:36:57",
+        "ended": "2026-10-27T01:40:14",
+        "seconds": 197.1,
+        "memory_error": false,
+        "tail": "计算完成（任务 1）"
+      },
+      "backtest": {
+        "exit": 0,
+        "started": "2026-10-27T01:40:14",
+        "ended": "2026-10-27T01:40:18",
+        "seconds": 3.3,
+        "memory_error": false,
+        "tail": "BT-0001 · 未达标（信号无区分度）"
+      }
+    },
+    "peak_job_memory_mb": 1492.5,
+    "peak_process_memory_mb": 1492.5,
+    "job_memory_limit_mb": 8192.0,
+    "compute_to_backtest_seconds": 200.4,
+    "within_30_minutes": true
+  },
+  "ended": "2026-10-27T01:40:18",
+  "verdict": {
+    "SMOKE-03": {
+      "pass": true,
+      "checks": {
+        "no_python_on_path": true,
+        "outbound_blocked_for_package_python": true,
+        "starts_and_answers": true,
+        "listens_on_127_0_0_1_only": true,
+        "lan_address_refused": true,
+        "browser_opened_workbench": true,
+        "workbench_no_console_errors": true,
+        "oppo_help_ok": true,
+        "second_start_only_opens_browser": true,
+        "data_kept_after_restart": true,
+        "data_separate_from_program": true
+      }
+    },
+    "RULE-05": {
+      "pass": true,
+      "checks": {
+        "all_steps_exit_0": true,
+        "no_memory_error": true,
+        "within_30_minutes": true,
+        "memory_limit_8gb": true
+      }
+    },
+    "FLOW-17": {
+      "pass": true,
+      "checks": {
+        "cli_month_ok": true,
+        "nine_sheets": true,
+        "chromium_offline_zero_requests": true,
+        "webkit_offline_zero_requests": true,
+        "ranking_matches_excel_both_engines": true,
+        "same_text_both_engines": true
+      }
+    }
+  }
+}

@@ -5,6 +5,7 @@ Every test gets its own data directory (a copy of a prepared one), so tests neve
 
 from __future__ import annotations
 
+import os
 import shutil
 import socket
 import sqlite3
@@ -157,15 +158,62 @@ def browser():  # type: ignore[no-untyped-def]
 
 
 @pytest.fixture
-def page(browser):  # type: ignore[no-untyped-def]
+def page(browser, request):  # type: ignore[no-untyped-def]
     ctx = browser.new_context(viewport={"width": 1440, "height": 900}, locale="zh-CN")
     p = ctx.new_page()
     errors: list[str] = []
     p.on("pageerror", lambda e: errors.append(str(e)))
     p.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
     p.js_errors = errors  # type: ignore[attr-defined]
+    rec = _Recorder(ctx, p) if os.environ.get("OPPO_RECORD_VIDEO") else None
     yield p
+    if rec:
+        rec.save(Path(os.environ["OPPO_RECORD_VIDEO"]) / f"{request.node.name}.webm")
     ctx.close()
+
+
+class _Recorder:
+    """Whole-session browser recording (SMOKE-02 evidence): Chrome's screencast frames, encoded to WebM with the
+    ffmpeg that ships with the preinstalled Playwright browsers, held for their real duration."""
+
+    FPS = 4
+
+    def __init__(self, ctx, page) -> None:  # type: ignore[no-untyped-def]
+        import base64
+
+        self.frames: list[tuple[float, bytes]] = []
+        self.cdp = ctx.new_cdp_session(page)
+
+        def on_frame(e):  # type: ignore[no-untyped-def]
+            self.frames.append((float(e["metadata"]["timestamp"]), base64.b64decode(e["data"])))
+            self.cdp.send("Page.screencastFrameAck", {"sessionId": e["sessionId"]})
+
+        self.cdp.on("Page.screencastFrame", on_frame)
+        self.cdp.send("Page.startScreencast", {"format": "jpeg", "quality": 70, "maxWidth": 1440, "maxHeight": 900})
+        self.started = time.time()
+
+    def save(self, target: Path) -> None:
+        import subprocess
+
+        try:
+            self.cdp.send("Page.stopScreencast")
+        except Exception:  # noqa: BLE001 - the page may already be gone
+            pass
+        if not self.frames:
+            return
+        end = time.time()
+        stream = bytearray()
+        for i, (t, data) in enumerate(self.frames):
+            nxt = self.frames[i + 1][0] if i + 1 < len(self.frames) else end
+            stream += data * max(1, round((nxt - t) * self.FPS))
+        target.parent.mkdir(parents=True, exist_ok=True)
+        raw = target.with_suffix(".mjpg")
+        raw.write_bytes(bytes(stream))
+        ffmpeg = next(Path("/opt/pw-browsers").glob("ffmpeg-*/ffmpeg-linux"), None)
+        if ffmpeg:
+            subprocess.run([str(ffmpeg), "-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", str(self.FPS),
+                            "-c:v", "mjpeg", "-i", str(raw), "-c:v", "vp8", "-b:v", "600k", str(target)], check=True)
+            raw.unlink()
 
 
 def wait_job(live: Live, timeout: float = 300) -> dict:

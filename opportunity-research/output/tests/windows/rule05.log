@@ -1,0 +1,20 @@
+
+$ ['C:\\oppo-acceptance\\机会判定台\\python\\python.exe', '-m', 'oppo.cli', 'import', 'D:\\a\\wxb981111-163.com\\wxb981111-163.com\\opportunity-research\\app\\fixtures\\packages\\S-规模']
+[exit 0] 62.9s
+P-0001 · 历史 · 通过
+
+
+$ ['C:\\oppo-acceptance\\机会判定台\\python\\python.exe', '-m', 'oppo.cli', 'contract', 'confirm']
+[exit 0] 41.3s
+已确认 71 个字段，保存为字段约定 v1
+
+
+$ ['C:\\oppo-acceptance\\机会判定台\\python\\python.exe', '-m', 'oppo.cli', 'compute']
+[exit 0] 197.1s
+计算完成（任务 1）
+
+
+$ ['C:\\oppo-acceptance\\机会判定台\\python\\python.exe', '-m', 'oppo.cli', 'backtest']
+[exit 0] 3.3s
+BT-0001 · 未达标（信号无区分度）
+

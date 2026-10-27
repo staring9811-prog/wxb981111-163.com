@@ -1,0 +1,825 @@
+[
+ {
+  "design": "DESIGN-01",
+  "file": "tests/visual/DESIGN-01_1_workbench.png",
+  "state": "s1",
+  "url": "/",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-01",
+  "file": "tests/visual/DESIGN-01_2_workbench_1366.png",
+  "state": "s1",
+  "url": "/",
+  "viewport": [
+   1366,
+   768
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-01",
+  "file": "tests/visual/DESIGN-01_3_workbench_1920.png",
+  "state": "s1",
+  "url": "/",
+  "viewport": [
+   1920,
+   1080
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-01",
+  "file": "tests/visual/DESIGN-01_4_workbench_unverified.png",
+  "state": "s_unverified",
+  "url": "/",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-02",
+  "file": "tests/visual/DESIGN-02_1_packages_zip_selected.png",
+  "state": "s1",
+  "url": "/packages?staged=24800fd72e9948e3",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-02",
+  "file": "tests/visual/DESIGN-02_2_packages_duplicate.png",
+  "state": "s1",
+  "url": "/packages?staged=9bd9c6080279e84e",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-03",
+  "file": "tests/visual/DESIGN-03_1_report_warn.png",
+  "state": "s1",
+  "url": "/packages/1/report",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-03",
+  "file": "tests/visual/DESIGN-03_2_report_block.png",
+  "state": "s_block",
+  "url": "/packages/1/report",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-04",
+  "file": "tests/visual/DESIGN-04_1_fields.png",
+  "state": "s1",
+  "url": "/fields",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-04",
+  "file": "tests/visual/DESIGN-04_2_batch_modal.png",
+  "state": "s1",
+  "url": "/fields",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-04",
+  "file": "tests/visual/DESIGN-04_3_save_modal.png",
+  "state": "s1",
+  "url": "/fields",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-04",
+  "file": "tests/visual/DESIGN-04_4_history_drawer.png",
+  "state": "s1",
+  "url": "/fields",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-05",
+  "file": "tests/visual/DESIGN-05_1_health_sample_open.png",
+  "state": "s1",
+  "url": "/health",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-05",
+  "file": "tests/visual/DESIGN-05_2_ack_modal.png",
+  "state": "s1",
+  "url": "/health",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-06",
+  "file": "tests/visual/DESIGN-06_1_spu_history.png",
+  "state": "s1x",
+  "url": "/spu",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-06",
+  "file": "tests/visual/DESIGN-06_2_spu_cross.png",
+  "state": "s1x",
+  "url": "/spu",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-07",
+  "file": "tests/visual/DESIGN-07_1_merge_expanded.png",
+  "state": "s1",
+  "url": "/spu/merge",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-07",
+  "file": "tests/visual/DESIGN-07_2_batch_modal.png",
+  "state": "s1",
+  "url": "/spu/merge",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-07",
+  "file": "tests/visual/DESIGN-07_3_edit_modal.png",
+  "state": "s1",
+  "url": "/spu/merge?tab=active",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-07",
+  "file": "tests/visual/DESIGN-07_4_split_modal.png",
+  "state": "s1",
+  "url": "/spu/merge?tab=active",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-08",
+  "file": "tests/visual/DESIGN-08_1_spu_hit.png",
+  "state": "s1",
+  "url": "/spu/P:B05QSTPZ02",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-08",
+  "file": "tests/visual/DESIGN-08_2_spu_cross_miss.png",
+  "state": "s1x",
+  "url": "/spu/P:B0ZKQDMRSJ",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-09",
+  "file": "tests/visual/DESIGN-09_1_signals_history.png",
+  "state": "s1x",
+  "url": "/signals?month=2026-03",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-09",
+  "file": "tests/visual/DESIGN-09_2_signals_cross.png",
+  "state": "s1x",
+  "url": "/signals",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-09",
+  "file": "tests/visual/DESIGN-09_3_signals_history_all_columns.png",
+  "state": "s1x",
+  "url": "/signals?month=2026-03",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-09",
+  "file": "tests/visual/DESIGN-09_4_signals_cross_all_columns.png",
+  "state": "s1x",
+  "url": "/signals",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-10",
+  "file": "tests/visual/DESIGN-10_1_segment_drawer.png",
+  "state": "s1",
+  "url": "/signals?month=2026-03&segment=30%E2%80%9348%E2%80%B3%7C%E8%90%BD%E5%9C%B0%E5%BC%8F%7C%24500%E2%80%93900",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-10",
+  "file": "tests/visual/DESIGN-10_3_drawer_middle.png",
+  "state": "s1",
+  "url": "/signals?month=2026-03&segment=30%E2%80%9348%E2%80%B3%7C%E8%90%BD%E5%9C%B0%E5%BC%8F%7C%24500%E2%80%93900",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-10",
+  "file": "tests/visual/DESIGN-10_4_drawer_bottom.png",
+  "state": "s1",
+  "url": "/signals?month=2026-03&segment=30%E2%80%9348%E2%80%B3%7C%E8%90%BD%E5%9C%B0%E5%BC%8F%7C%24500%E2%80%93900",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-10",
+  "file": "tests/visual/DESIGN-10_2_after_esc.png",
+  "state": "s1",
+  "url": "/signals?month=2026-03",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-11",
+  "file": "tests/visual/DESIGN-11_1_backtest_history.png",
+  "state": "s1x",
+  "url": "/backtest",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-11",
+  "file": "tests/visual/DESIGN-11_2_backtest_cross.png",
+  "state": "s1x",
+  "url": "/backtest",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-12",
+  "file": "tests/visual/DESIGN-12_1_card_pass.png",
+  "state": "s1",
+  "url": "/card",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-12",
+  "file": "tests/visual/DESIGN-12_2_card_unverified.png",
+  "state": "s_unverified",
+  "url": "/card",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-12",
+  "file": "tests/visual/DESIGN-12_3_card_cross_only.png",
+  "state": "s_cross_only",
+  "url": "/card",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-13",
+  "file": "tests/visual/DESIGN-13_1_kits_all.png",
+  "state": "s1",
+  "url": "/kits",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-13",
+  "file": "tests/visual/DESIGN-13_2_kits_candidate.png",
+  "state": "s1",
+  "url": "/kits",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-13",
+  "file": "tests/visual/DESIGN-13_3_kits_watch.png",
+  "state": "s1",
+  "url": "/kits",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-13",
+  "file": "tests/visual/DESIGN-13_4_kits_drop.png",
+  "state": "s1",
+  "url": "/kits",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-14",
+  "file": "tests/visual/DESIGN-14_1_ranking.png",
+  "state": "s1",
+  "url": "/ranking",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-15",
+  "file": "tests/visual/DESIGN-15_1_snapshots.png",
+  "state": "s_ledger",
+  "url": "/ledger/snapshots",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-15",
+  "file": "tests/visual/DESIGN-15_2_snapshot_drawer_reconciled.png",
+  "state": "s_ledger",
+  "url": "/ledger/snapshots?snap=2",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-16",
+  "file": "tests/visual/DESIGN-16_1_decision_modal.png",
+  "state": "s1",
+  "url": "/ranking",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-16",
+  "file": "tests/visual/DESIGN-16_2_backfill_tab.png",
+  "state": "s1",
+  "url": "/ranking",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-17",
+  "file": "tests/visual/DESIGN-17_1_backup_page.png",
+  "state": "s_ledger",
+  "url": "/settings/backup",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-17",
+  "file": "tests/visual/DESIGN-17_2_restore_confirm.png",
+  "state": "s_ledger",
+  "url": "/settings/backup",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-17",
+  "file": "tests/visual/DESIGN-17_3_restored.png",
+  "state": "s_ledger",
+  "url": "/settings/backup?restored=1&toast=%E5%B7%B2%E6%81%A2%E5%A4%8D%E5%88%B0%202026-10-27%2000%3A46%20%E7%9A%84%E5%A4%87%E4%BB%BD",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-18",
+  "file": "tests/visual/DESIGN-18_1_decisions.png",
+  "state": "s_ledger",
+  "url": "/ledger/decisions",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-19",
+  "file": "tests/visual/DESIGN-19_1_reconcile.png",
+  "state": "s_ledger",
+  "url": "/ledger/reconcile",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-20",
+  "file": "tests/visual/DESIGN-20_1_launch_modal_jia.png",
+  "state": "s_ledger",
+  "url": "/ledger/decisions?launch=D-0001",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-21",
+  "file": "tests/visual/DESIGN-21_0_rules.png",
+  "state": "s_ledger",
+  "url": "/rules",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-21",
+  "file": "tests/visual/DESIGN-21_1_rules_basis_popover.png",
+  "state": "s_ledger",
+  "url": "/rules",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-22",
+  "file": "tests/visual/DESIGN-22_1_rule_edit_threshold.png",
+  "state": "s_ledger",
+  "url": "/rules?rule=R-003",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-23",
+  "file": "tests/visual/DESIGN-23_1_export_confirm.png",
+  "state": "s1",
+  "url": "/ranking?export=1",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-23",
+  "file": "tests/visual/DESIGN-23_2_export_running.png",
+  "state": "s1",
+  "url": "/ranking?export=1",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-23",
+  "file": "tests/visual/DESIGN-23_3_export_result.png",
+  "state": "s1",
+  "url": "/ranking?export=1&done=2",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-23",
+  "file": "tests/visual/DESIGN-23_4_export_confirm_unverified.png",
+  "state": "s_unverified",
+  "url": "/ranking?export=1",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-25",
+  "file": "tests/visual/DESIGN-25_0_config_edited_page.png",
+  "state": "s1",
+  "url": "/settings/category",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-25",
+  "file": "tests/visual/DESIGN-25_1_config_edited_save_modal.png",
+  "state": "s1",
+  "url": "/settings/category",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-25",
+  "file": "tests/visual/DESIGN-25_2_new_category_modal.png",
+  "state": "s1",
+  "url": "/settings/category",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-26",
+  "file": "tests/visual/DESIGN-26_1_runs.png",
+  "state": "s_timing",
+  "url": "/settings/runs",
+  "viewport": [
+   1440,
+   900
+  ],
+  "console_errors": [],
+  "horizontal_scroll": false,
+  "ok": true
+ },
+ {
+  "design": "DESIGN-24",
+  "file": "tests/visual/DESIGN-24_1_report_all_sections_open.png",
+  "state": "s1",
+  "url": "s1_浴室柜_机会判定_2026-03_快照1_2.html",
+  "offline": true,
+  "requests": [],
+  "console_errors": [],
+  "ok": true
+ },
+ {
+  "design": "DESIGN-24",
+  "file": "tests/visual/DESIGN-24_2_report_first_screen.png",
+  "state": "s1",
+  "url": "s1_浴室柜_机会判定_2026-03_快照1_2.html",
+  "offline": true,
+  "requests": [],
+  "console_errors": [],
+  "ok": true
+ },
+ {
+  "design": "DESIGN-24",
+  "file": "tests/visual/DESIGN-24_3_report_unverified_first_screen.png",
+  "state": "s_unverified",
+  "url": "s_unverified_浴室柜_机会判定_2026-03_快照1_2.html",
+  "offline": true,
+  "requests": [],
+  "console_errors": [],
+  "ok": true
+ }
+]

@@ -1,0 +1,35 @@
+# 品类机会判定台（第一期）
+
+本机运行的网页应用 + 命令行，网页与命令行调用同一套服务函数。技术栈与版本见 `pyproject.toml` 和 `../output/技术方案.md`。
+
+## Windows 离线安装包（给使用者）
+
+1. 从仓库 Actions 的 `windows-acceptance` 运行结果下载 `offline-package`，解压得到 `机会判定台-1.0.0-win64.zip`，再解压到任意目录。
+2. 双击 `启动.bat`：在 `http://127.0.0.1:8765/` 启动并自动打开浏览器；再次双击只打开浏览器。
+3. 双击 `命令行.bat` 使用 `oppo` 命令（`oppo --help`）。数据在 `data\`，升级时保留。运行时不联网。
+
+## 开发环境
+
+```bash
+cd app
+uv venv --python 3.14 && uv pip install -e ".[dev]"
+.venv/bin/python -m fixtures.build_samples          # 生成样例包（H1-A、H1-B、X1 与各变体）到 fixtures/packages
+.venv/bin/oppo serve                                  # 本机服务 127.0.0.1:8765
+.venv/bin/oppo --help                                 # 命令行
+```
+
+试用：在“数据包”页粘贴 `fixtures/packages/H1-A` 的路径导入，然后按工作台的 8 步走完一个月。
+
+## 测试与验收
+
+```bash
+.venv/bin/ruff check .
+.venv/bin/python -m pytest            # 单元、服务层、浏览器端到端（Playwright + 本机 Chromium）
+.venv/bin/python -m fixtures.build_scale              # S-规模样例包（约 66.8 万行，不入库）
+python -m devtools.visual_states <目录>                # 视觉验收用的数据状态
+python -m devtools.capture_visual <目录>               # 真实页面截图 → ../output/tests/visual/
+```
+
+- `packaging/build_offline.py`：构建 Windows 离线安装包（嵌入式 Python + 预装依赖）。
+- `packaging/win_acceptance.py`：在 Windows 上执行 SMOKE-03、RULE-05 与 FLOW-17 的浏览器部分；仓库根目录的 `.github/workflows/windows-acceptance.yml` 只在打包脚本或 `packaging/ci-trigger.txt` 变化时运行。
+- 验收结果：`../output/tests/TDD验收结果.md`，校验：`python3 ../tools/check_contract.py --result ../output`。

@@ -1,0 +1,183 @@
+== 2026-10-27T01:33:48+00:00 干净环境安装（按 pyproject 锁定版本）
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+Using CPython 3.14.6
+Creating virtual environment at: /tmp/claude-0/-home-user-wxb981111-163-com/91c136b4-837e-53b2-a718-2bcdbefbd924/scratchpad/cleanenv
+Activate with: source /tmp/claude-0/-home-user-wxb981111-163-com/91c136b4-837e-53b2-a718-2bcdbefbd924/scratchpad/cleanenv/bin/activate
+exit_code=0
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+Using Python 3.14.6 environment at: /tmp/claude-0/-home-user-wxb981111-163-com/91c136b4-837e-53b2-a718-2bcdbefbd924/scratchpad/cleanenv
+Resolved 44 packages in 25ms
+   Building oppo @ file:///home/user/wxb981111-163.com/opportunity-research/app
+      Built oppo @ file:///home/user/wxb981111-163.com/opportunity-research/app
+Prepared 1 package in 1.14s
+Installed 44 packages in 132ms
+ + alembic==1.20.1
+ + annotated-doc==0.0.5
+ + annotated-types==0.8.0
+ + anyio==4.15.1
+ + click==8.5.0
+ + et-xmlfile==2.0.0
+ + fastapi==0.162.0
+ + formulaic==1.2.2
+ + greenlet==3.5.6
+ + h11==0.16.0
+ + idna==3.20
+ + iniconfig==2.3.1
+ + interface-meta==2.0.1
+ + jinja2==3.1.6
+ + mako==1.4.3
+ + markupsafe==3.0.4
+ + narwhals==2.27.1
+ + numpy==2.5.4
+ + openpyxl==3.1.5
+ + opentelemetry-api==1.45.1
+ + oppo==1.0.0 (from file:///home/user/wxb981111-163.com/opportunity-research/app)
+ + packaging==26.3
+ + pandas==3.0.6
+ + patsy==1.0.3
+ + playwright==1.64.1
+ + pluggy==1.7.0
+ + pydantic==2.14.1
+ + pydantic-core==2.50.1
+ + pyee==14.0.0
+ + pygments==2.21.0
+ + pytest==9.1.1
+ + python-dateutil==3.0.0
+ + python-multipart==0.0.32
+ + ruff==0.14.0
+ + scipy==1.18.1
+ + six==1.17.0
+ + sqlalchemy==2.1.6
+ + starlette==1.10.0
+ + statsmodels==0.15.0
+ + typing-extensions==4.16.0
+ + typing-inspection==0.4.4
+ + tzdata==2026.5
+ + uvicorn==0.54.0
+ + wrapt==2.5.1
+exit_code=0
+Python 3.14.6
+fastapi 0.162.0 sqlalchemy 2.1.6 pandas 3.0.6 uvicorn 0.54.0 statsmodels 0.15.0
+== 2026-10-27T01:33:55+00:00 静态检查 ruff check .
+All checks passed!
+exit_code=0
+== 2026-10-27T01:33:55+00:00 oppo --help
+usage: oppo [-h] [--data-dir DATA_DIR]
+            {import,report,contract,health,merge,compute,recompute,backtest,ranking,export,decision,backup-dir,restore,runs,status,serve} ...
+
+品类机会判定台 · 命令行（与网页调用同一套服务函数）
+
+positional arguments:
+  {import,report,contract,health,merge,compute,recompute,backtest,ranking,export,decision,backup-dir,restore,runs,status,serve}
+    import              导入数据包（zip 或文件夹）并校验
+    report              查看校验报告
+    contract            字段约定：show / confirm
+    health              体检结果；--ack 项 --note 说明 标为已知晓
+    merge               SPU 合并建议：list / confirm / reject / revise
+    compute             运行计算（成败判定 + 信号）
+    recompute           全部重算
+    backtest            运行回测
+    ranking             查看排序
+    export              导出当月 Excel 与网页报告，随后自动备份
+    decision            立项记录：add / backfill / correct
+    backup-dir          设置备份目录
+    restore             从备份恢复
+    runs                运行记录与用时
+    status              工作台汇总
+    serve               启动本机网页服务（只监听 127.0.0.1）
+
+options:
+  -h, --help            show this help message and exit
+  --data-dir DATA_DIR   数据目录（默认取 OPPO_DATA_DIR 或安装目录下的 data）
+exit_code=0
+== 2026-10-27T01:33:59+00:00 全部自动化测试 pytest
+PASSED tests/test_core_flows.py::test_flow05_success_line
+PASSED tests/test_core_flows.py::test_flow04_launch_variant_relaunch
+PASSED tests/test_core_flows.py::test_flow04_suggestion_bases
+PASSED tests/test_core_flows.py::test_flow04_variants_spu_numbers_and_no_bullets
+PASSED tests/test_core_flows.py::test_flow07_signals_x
+PASSED tests/test_core_flows.py::test_flow09_history_backtest
+PASSED tests/test_core_flows.py::test_flow09_rules_are_history_observation
+PASSED tests/test_core_flows.py::test_flow12_ranking_order_and_repeatability
+PASSED tests/test_core_flows.py::test_flow06_cross_judgment
+PASSED tests/test_core_flows.py::test_flow08_cross_signals
+PASSED tests/test_core_flows.py::test_flow11_cross_backtest
+PASSED tests/test_core_flows.py::test_flow10_unverified_reasons[H1-\u4e24\u6279\u6b21-history-\u672a\u8fbe\u6807-\u6570\u636e\u4e0d\u8db3]
+PASSED tests/test_core_flows.py::test_flow10_unverified_reasons[H1-\u6709\u65484-history-\u672a\u8fbe\u6807-\u7ec6\u5206\u6837\u672c\u4e0d\u8db3]
+PASSED tests/test_core_flows.py::test_flow10_unverified_reasons[H1-\u65e0\u533a\u5206\u5ea6-history-\u672a\u8fbe\u6807-\u4fe1\u53f7\u65e0\u533a\u5206\u5ea6]
+PASSED tests/test_core_flows.py::test_flow10_unverified_reasons[X1-\u65e0\u8001\u54c1-cross-\u672a\u8fbe\u6807-\u6570\u636e\u4e0d\u8db3]
+PASSED tests/test_core_flows.py::test_flow10_sample_19_vs_20
+PASSED tests/test_e2e_analysis.py::test_backtest_page_history
+PASSED tests/test_e2e_analysis.py::test_card_and_kits
+PASSED tests/test_e2e_analysis.py::test_ranking_order
+PASSED tests/test_e2e_analysis.py::test_export_from_ranking
+PASSED tests/test_e2e_analysis.py::test_export_without_backup_dir_reports_failure
+PASSED tests/test_e2e_analysis.py::test_unverified_everywhere
+PASSED tests/test_e2e_analysis.py::test_cross_backtest_and_report
+PASSED tests/test_e2e_analysis.py::test_backtest_job_from_page
+PASSED tests/test_e2e_data_prep.py::test_import_by_path_then_duplicate_zip
+PASSED tests/test_e2e_data_prep.py::test_stage_errors_and_missing_manifest_preview
+PASSED tests/test_e2e_data_prep.py::test_package_list_and_reports
+PASSED tests/test_e2e_data_prep.py::test_fields_batch_item_and_save
+PASSED tests/test_e2e_data_prep.py::test_fields_changed_package_and_stale
+PASSED tests/test_e2e_data_prep.py::test_health_threshold_ack_and_fingerprints
+PASSED tests/test_e2e_data_prep.py::test_config_required_bins_and_new_version
+PASSED tests/test_e2e_data_prep.py::test_new_category_from_template_and_blank
+PASSED tests/test_e2e_data_prep.py::test_runs_first_run_and_monthly
+PASSED tests/test_e2e_data_prep.py::test_runs_match_workbench
+PASSED tests/test_e2e_data_prep.py::test_cli_and_page_share_import_records
+PASSED tests/test_e2e_ledger.py::test_snapshots_versions_drawer_and_filters
+PASSED tests/test_e2e_ledger.py::test_record_decision_requires_reason_then_saves_with_snapshot
+PASSED tests/test_e2e_ledger.py::test_backfill_then_correction_keeps_original
+PASSED tests/test_e2e_ledger.py::test_launch_data_rejects_non_numbers_and_keeps_blanks_missing
+PASSED tests/test_e2e_ledger.py::test_reconcile_page_numbers_rules_and_own_results
+PASSED tests/test_e2e_ledger.py::test_rules_add_validation_and_versions
+PASSED tests/test_e2e_ledger.py::test_backup_directory_check_and_restore
+PASSED tests/test_e2e_ledger.py::test_c7_import_lists_then_adds_backfills_once
+PASSED tests/test_e2e_products.py::test_spu_list_history_overview_and_filters
+PASSED tests/test_e2e_products.py::test_spu_detail_flow05_judgments
+PASSED tests/test_e2e_products.py::test_spu_detail_launch_variant_relaunch
+PASSED tests/test_e2e_products.py::test_merge_batch_confirm_reject_split_and_stale
+PASSED tests/test_e2e_products.py::test_merge_writes_need_token
+PASSED tests/test_e2e_products.py::test_spu_cross_mode
+PASSED tests/test_e2e_products.py::test_signals_cross_mode
+PASSED tests/test_e2e_products.py::test_signals_history_values_and_drawer
+PASSED tests/test_e2e_products.py::test_signals_empty_then_compute
+PASSED tests/test_e2e_smoke02.py::test_smoke02_month_in_browser
+PASSED tests/test_ledger_timing.py::test_flow19_first_run_and_monthly_timing
+PASSED tests/test_ledger_timing.py::test_flow14_reconciliation_uses_last_exported_version
+PASSED tests/test_ledger_timing.py::test_flow14_upgrade_boundaries[2-10-1-10-\u7acb\u9879\u5019\u9009-True]
+PASSED tests/test_ledger_timing.py::test_flow14_upgrade_boundaries[199-1000-1-10-\u7acb\u9879\u5019\u9009-False]
+PASSED tests/test_ledger_timing.py::test_flow14_upgrade_boundaries[1-20-1-10-\u653e\u5f03-True]
+PASSED tests/test_ledger_timing.py::test_flow14_upgrade_boundaries[51-1000-1-10-\u653e\u5f03-False]
+PASSED tests/test_risk_extra.py::test_rule08_readonly_backup_dir_then_restore
+PASSED tests/test_risk_extra.py::test_flow01_blocked_package_is_refused
+PASSED tests/test_risk_extra.py::test_flow04_no_bullets_comparison_shows_nodata
+PASSED tests/test_risk_extra.py::test_rule03_every_result_is_traceable
+PASSED tests/test_rule04_cli_vs_web.py::test_rule04_cli_and_web_give_the_same_results
+PASSED tests/test_rules_nfr.py::test_rule01_point_in_time
+PASSED tests/test_rules_nfr.py::test_rule02_two_fresh_databases_identical
+PASSED tests/test_rules_nfr.py::test_rule06_listen_host_token_origin
+PASSED tests/test_rules_nfr.py::test_rule07_append_only_tables
+PASSED tests/test_rules_nfr.py::test_rule09_single_job_and_rollback
+PASSED tests/test_units.py::test_split_rounding[4-1]
+PASSED tests/test_units.py::test_split_rounding[9-3]
+PASSED tests/test_units.py::test_split_rounding[10-3]
+PASSED tests/test_units.py::test_split_rounding[3-1]
+PASSED tests/test_units.py::test_top_20_percent_rounding[10-2]
+PASSED tests/test_units.py::test_top_20_percent_rounding[11-3]
+PASSED tests/test_units.py::test_top_20_percent_rounding[5-1]
+PASSED tests/test_units.py::test_top_20_percent_rounding[1-1]
+PASSED tests/test_units.py::test_wilson_90
+PASSED tests/test_units.py::test_achieved_exactly_two_times
+PASSED tests/test_units.py::test_not_achieved_at_1_99
+PASSED tests/test_units.py::test_not_achieved_when_equal_to_an_indicator
+PASSED tests/test_units.py::test_uncomputable_indicators_are_not_compared
+PASSED tests/test_web_smoke.py::test_workbench_empty
+PASSED tests/test_web_smoke.py::test_workbench_done
+PASSED tests/test_web_smoke.py::test_write_requires_token
+PASSED tests/test_web_smoke.py::test_data_dir_with_percent_and_chinese
+PASSED tests/test_web_smoke.py::test_workbench_lists_health_warning_with_evidence
+exit_code=0
+== 2026-10-27T01:47:30+00:00 结束
+== junit 汇总（读取 junit.xml）: tests=87 passed=87 failures=0 errors=0 skipped=0 time=802.6s
