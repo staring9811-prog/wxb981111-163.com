@@ -1,1 +1,9 @@
-/* PAGE styles owned by the ledger group */
+/* 台账、策略库与备份页面（只用 tokens 中的颜色） */
+.cond-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) 72px 120px 28px; gap: var(--space-2); align-items: center; }
+.cond-row__error { grid-column: 2 / -1; }
+.cond-row .select, .cond-row .input { min-width: 0; width: 100%; }
+tr.is-search-hidden { display: none; }
+.launch-grid td { vertical-align: top; }
+.launch-grid .input--num { min-width: 84px; }
+.launch-grid .field-error { display: block; max-width: 120px; white-space: normal; }
+[data-ctx-for][hidden] { display: none; }

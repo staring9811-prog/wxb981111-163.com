@@ -12,3 +12,5 @@ a.b-rowlink:hover { text-decoration: underline; }
 .b-unobserved { color: var(--muted); }
 .b-spu-list a { color: inherit; }
 .b-pre { white-space: pre-wrap; }
+.b-search-hidden { display: none !important; }
+.b-filters--sub { margin-top: calc(-1 * var(--space-1)); }

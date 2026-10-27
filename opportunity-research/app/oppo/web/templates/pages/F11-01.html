@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}策略库{% endblock %}
+{% block content %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>策略库</h1>
+            <p class="page-head__sub">规则有版本、有验证状态 · 任何修改都生成新版本 · 改了条件或动作的新版本回到"未验证经验"</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn btn--primary" href="/rules?rule=new">{{ icon('plus') }}<span>新增经验规则</span></a>
+          </div>
+        </div>
+
+        {% if missing_rule %}
+        <div class="banner banner--warn enter" style="--i:1" role="alert">{{ icon('warning') }}<div class="banner__body"><div class="banner__title">规则 {{ missing_rule }} 不存在</div><div>可能编号写错了，或它属于另一个品类。</div></div></div>
+        {% endif %}
+
+        <div class="stats enter" style="--i:1">
+          <div class="stat">
+            <div class="stat__label">{{ badge('已验证') }}</div>
+            <div class="stat__value">{{ counts['已验证'] }}<span class="stat__unit">条</span></div>
+            <div class="stat__meta">历史观察规则对账达到验证条件：立项候选规则倍数 ≥ 2，放弃 ≤ 0.5；观察规则只记录</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">{{ badge('历史观察') }}</div>
+            <div class="stat__value">{{ counts['历史观察'] }}<span class="stat__unit">条</span></div>
+            <div class="stat__meta">由达标的回测生成，或人工规则进入回测并达标</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">{{ badge('未验证经验') }}</div>
+            <div class="stat__value">{{ counts['未验证经验'] }}<span class="stat__unit">条</span></div>
+            <div class="stat__meta">人工新增，或修改了条件、动作后重置</div>
+          </div>
+        </div>
+
+        {% if not rows %}
+        <section class="panel section enter" style="--i:2">
+          <div class="empty">
+            {{ icon('stack') }}
+            <div class="empty__title">还没有规则</div>
+            <p class="empty__desc">还没有规则。回测达标后会自动生成历史观察规则；也可以先把你的经验写成规则。</p>
+            <a class="btn btn--primary" href="/rules?rule=new">{{ icon('plus') }}<span>新增经验规则</span></a>
+          </div>
+        </section>
+        {% else %}
+        <section class="section enter" style="--i:2" aria-labelledby="rules-title" data-filter-scope="#rule-table">
+          <div class="section__head">
+            <h2 class="section__title" id="rules-title">规则</h2>
+            <span class="section__note">当前显示 <span data-filter-count>{{ rows|length }}</span> 条 · 共 {{ rows|length }} 条 · 点击一行查看版本历史或修改</span>
+          </div>
+          <div class="filters" role="group" aria-label="规则筛选">
+            <span class="filters__label">状态</span>
+            <button class="chip" type="button" data-filter="status:all" aria-pressed="true">全部 <span class="count">{{ rows|length }}</span></button>
+            <button class="chip" type="button" data-filter="status:verified" aria-pressed="false">已验证 <span class="count">{{ counts['已验证'] }}</span></button>
+            <button class="chip" type="button" data-filter="status:observed" aria-pressed="false">历史观察 <span class="count">{{ counts['历史观察'] }}</span></button>
+            <button class="chip" type="button" data-filter="status:unverified" aria-pressed="false">未验证经验 <span class="count">{{ counts['未验证经验'] }}</span></button>
+            <span class="filters__sep" aria-hidden="true"></span>
+            <span class="filters__label">来源</span>
+            <button class="chip" type="button" data-filter="source:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="source:manual" aria-pressed="false">人工 <span class="count">{{ origin_counts['人工'] }}</span></button>
+            <button class="chip" type="button" data-filter="source:backtest" aria-pressed="false">回测 <span class="count">{{ origin_counts['回测'] }}</span></button>
+            <span class="spacer"></span>
+            <label class="search">{{ icon('magnifying-glass') }}<span class="visually-hidden">搜索</span><input class="input" type="search" placeholder="规则编号、条件或理由" data-table-search="#rule-table"></label>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="rule-table">
+              <thead>
+                <tr>
+                  <th scope="col">规则</th>
+                  <th scope="col">条件</th>
+                  <th scope="col">动作</th>
+                  <th scope="col">状态</th>
+                  <th scope="col"><button class="th-sort" type="button" aria-sort="descending">最近修改{{ icon('caret-down') }}</button></th>
+                  <th scope="col">依据</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in rows %}
+                {% set b = r.basis or {} %}
+                {% set rc = r.recon %}
+                <tr data-href="/rules?rule={{ r.code }}" data-status="{{ r.status_key }}" data-source="{{ 'manual' if r.origin == '人工' else 'backtest' }}" data-search="{{ r.search }}" data-rule="{{ r.code }}"{% if focus_code == r.code %} class="is-selected"{% endif %}>
+                  <td class="t-nowrap"><div class="cell-title mono">{{ r.code }} · v{{ r.version_no }}</div><div class="cell-sub">{{ r.source_text }}</div></td>
+                  <td>{% for c in r.conds %}{{ ' 且 ' if not loop.first }}{{ RULES_cond([c]) }}{% if c.kind == 'signal' and c.key in CANDIDATE_SIGNALS %} {{ etag('候选') }}{% endif %}{% endfor %}{% if r.cross %} {{ etag('截面', 'cross') }}{% endif %}</td>
+                  <td>{{ badge(r.action) }}{% if r.origin == '人工' and r.status == '未验证经验' and r.reason and r.version_no == 1 %}{% endif %}</td>
+                  <td>{{ badge(r.status) }}</td>
+                  <td class="t-nowrap" data-sort="{{ r.updated_at|replace('-', '')|replace(' ', '')|replace(':', '') }}">{{ r.updated_at[:16] }}<div class="cell-sub">{{ r.actor }}</div></td>
+                  <td>
+                    {% if r.status == '已验证' %}
+                      <a class="tlink" href="{{ ('/ledger/reconcile/' ~ rc.reconciliation_id) if rc else '/ledger/reconcile' }}">对账 {{ rc.rec.batch if rc and rc.rec else b.recon_snapshot }} 快照</a>
+                      <div class="cell-sub">对账月份 {{ b.recon_month }} · 规则倍数 {{ mult(b.rule_multiple) }}{% if rc %}{{ etag('n=' ~ rc.n, 'n', {'动作': rc.action ~ '（验证条件 ' ~ ({'立项候选': '≥ 2 倍', '放弃': '≤ 0.5 倍'}.get(rc.action, '只记录')) ~ '）', '适用细分': (rc.segments.with_batch|length) ~ ' 个', '起量新 SPU': rc.hits ~ ' / ' ~ rc.n ~ ' = ' ~ pct(rc.hits / rc.n if rc.n else none), '同批次全类目': ((rc.rec.all_hits ~ ' / ' ~ rc.rec.all_n ~ ' = ') if rc.rec else '') ~ pct(rc.batch_avg), '规则倍数': mult(rc.multiple), '对账日期': rc.created_at[:10]}, (rc.rec.batch if rc.rec else '') ~ ' 快照 · 规则对账') }}{% endif %}</div>
+                    {% elif r.status == '历史观察' %}
+                      {% if b.backtest %}<a class="tlink" href="/backtest">回测 {{ b.backtest }}</a><div class="cell-sub">批次 {{ b.batches or '—' }} · 样本 {{ b.n }}</div>{% else %}<span class="muted">回测依据无数据</span>{% endif %}
+                      {% if rc %}<div class="cell-sub"><a href="/ledger/reconcile/{{ rc.reconciliation_id }}">对账 {{ rc.rec.batch if rc.rec else '' }}</a> · 规则倍数 {{ mult(rc.multiple) }}{{ '，只记录' if rc.action == '观察' else ('，未达 ≤ 0.5' if rc.action == '放弃' and rc.result != '升为已验证' else ('，未达 ≥ 2' if rc.action == '立项候选' and rc.result != '升为已验证' else '')) }}{{ etag('n=' ~ rc.n, 'n', {'动作': rc.action, '起量新 SPU': rc.hits ~ ' / ' ~ rc.n, '同批次全类目': pct(rc.batch_avg), '规则倍数': mult(rc.multiple), '结果': rc.result, '对账日期': rc.created_at[:10]}, '规则对账') }}</div>{% endif %}
+                    {% else %}
+                      {{ '人工修改条件' if r.version_no > 1 else '人工判断' }}<div class="cell-sub">{{ r.reason or '—' }}</div>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div class="empty" data-filter-empty hidden>
+              <div class="empty__title">没有符合条件的规则</div>
+              <button class="btn btn--sm" type="button" data-filter-clear="#rule-table">清除筛选</button>
+            </div>
+          </div>
+        </section>
+        {% endif %}
+
+        <p class="page-foot">{% if card %}判定卡 {{ card.label }} 的锦囊引用 {{ used|join('、') if used else '无规则' }}{% else %}还没有判定卡{% endif %} · 规则只追加版本、不删除 · 系统写入的版本记为"系统"，并注明触发它的回测或对账</p>
+{% endblock %}
+{% block overlays %}
+{% if editor %}{% include "partials/F11-02.html" %}{% endif %}
+{% endblock %}

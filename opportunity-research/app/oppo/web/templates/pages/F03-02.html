@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}数据体检{% endblock %}
+{% block content %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>数据体检</h1>
+            <p class="page-head__sub">{% if hpkg %}数据包 {{ hpkg.label }} · 校验通过后自动运行{% if ran %}，{{ ran[0][:16] }}–{{ (ran[1] or '')[11:16] }}{% endif %} · {% endif %}预警阈值来自品类配置 v{{ cfg_no }} · 体检只提示，不修改源数据</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="/settings/category#g-health">{{ icon('sliders-horizontal') }}<span>预警阈值设置</span></a>
+          </div>
+        </div>
+
+        {% if not hpkg %}
+        <section class="panel section enter" style="--i:1">
+          <div class="empty">
+            {{ icon('heartbeat') }}
+            <div class="empty__title">还没有数据包</div>
+            <p class="empty__desc">导入数据包并通过校验后，系统自动运行 6 项体检。</p>
+            <a class="btn btn--primary" href="/packages?import=1">{{ icon('upload-simple') }}<span>导入数据包</span></a>
+          </div>
+        </section>
+        {% elif hpkg.conclusion == 'block' %}
+        <div class="banner banner--block enter" style="--i:1" role="alert">
+          {{ icon('warning-octagon') }}
+          <div class="banner__body">
+            <div class="banner__title">数据包 {{ hpkg.label }} 有阻断项，没有运行体检</div>
+            <div>体检在通过校验后运行。修好数据包后重新导入。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/packages/{{ hpkg.id }}/report">看校验报告</a></div>
+        </div>
+        {% else %}
+        {% if warn %}
+        <div class="banner banner--warn enter" style="--i:1" id="warn-banner" role="status">
+          {{ icon('warning') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ warn|length }} 项预警待知晓</div>
+            <div>{% for w in warn %}{{ w.label }} {{ w.parts[0][1] }}{% if w.parts[0][2] %}{{ etag('n=' ~ num(w.parts[0][2])) }}{% endif %}，超过阈值 {{ w.th_short }}{{ '；' if not loop.last else '。' }}{% endfor %}标为已知晓并填写说明之前，首页会一直提示。</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <section class="section enter" style="--i:2" aria-labelledby="checks-title">
+          <div class="section__head">
+            <h2 class="section__title" id="checks-title">体检项</h2>
+            <span class="section__note">{{ items|length }} 项 · 正常 {{ n_normal }} · 预警 {{ warn|length }} · 样例按偏离程度从大到小取前 5 条</span>
+          </div>
+          <div class="panel">
+            <ul class="list">
+              {% for it in items %}
+              <li class="list__item" id="check-{{ loop.index }}" data-check="{{ it.item }}" data-status="{{ it.status }}">
+                {% if it.status == 'warn' %}{{ icon('warning', 'list__icon list__icon--warn') }}{% elif it.status == 'acked' %}{{ icon('seal-check', 'list__icon list__icon--ok') }}{% elif it.status == 'na' %}{{ icon('minus', 'list__icon') }}{% else %}{{ icon('check-circle', 'list__icon list__icon--ok') }}{% endif %}
+                <div class="list__body">
+                  <div class="row">
+                    <span class="list__title">{{ loop.index }} · {{ it.label }}</span>
+                    {% if it.status == 'warn' %}{{ badge('预警') }}{% elif it.status == 'acked' %}{{ badge('已知晓', 'ack', 'seal-check') }}{% elif it.status == 'na' %}{{ badge('不适用') }}{% else %}{{ badge('正常') }}{% endif %}
+                  </div>
+                  <div class="row small" style="margin-top: var(--space-2); column-gap: var(--space-6)">
+                    {% for label, text, n in it.parts %}
+                    <span><span class="muted">{{ label }}</span> {% if loop.first %}<strong class="num">{{ text }}</strong>{% else %}<span class="num">{{ text }}</span>{% endif %}{% if n %}{{ etag('n=' ~ num(n)) }}{% endif %}</span>
+                    {% endfor %}
+                    <span><span class="muted">预警阈值</span> <span class="num">{{ it.th_text }}</span></span>
+                  </div>
+                  {% if it.dims %}
+                  <div class="hbars" style="margin-top: var(--space-5); max-width: 640px" role="img" aria-label="未知占比：{% for d in it.dims %}{{ d['维度'] }} {{ '%.1f'|format(d['占比']) }}%{{ '，' if not loop.last }}{% endfor %}；阈值 {{ it.th_text }}">
+                    {% for d in it.dims %}
+                    <span class="hbar__label">{{ d['维度'] }}</span>
+                    <span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:{{ d.width }}%" tabindex="0" data-tip="{{ '%.1f'|format(d['占比']) }}%|{{ num(d['未知']) }} / {{ num(d['子体']) }} 个子体{% if d.over %}|超过阈值{% elif d.near %}|接近阈值{% endif %}"></span><span class="hbar__ref" style="left:{{ it.ref }}%">{% if loop.first %}<span class="hbar__ref-label">阈值 {{ it.th_text.replace('（每个维度）', '') }}</span>{% endif %}</span></span>
+                    <span class="hbar__value">{{ '%.1f'|format(d['占比']) }}%{{ etag('n=' ~ num(d['子体'])) }}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                  <div class="list__desc" style="margin-top: var(--space-2)">{{ it.desc }}{% if it.na %} {{ it.na }}。{% endif %}</div>
+                  {% if it.ack %}
+                  <p class="small" data-ack-note>已知晓 · {{ it.ack.created_by }} · {{ it.ack.created_at[:16] }} · 说明：{{ it.ack.note }}</p>
+                  {% endif %}
+                  {% if it.sample_rows %}
+                  <details class="small" style="margin-top: var(--space-3)"{% if it.status == 'warn' and loop.first %} open{% endif %}>
+                    <summary>样例 {{ it.sample_rows|length }} 条</summary>
+                    <div class="table-wrap" style="margin-top: var(--space-2)">
+                      <table class="table">
+                        <thead>
+                          <tr>{% for c in it.cols %}<th{% if c in ('早于上架（天）', '子体数', '跨度（天）', '子体月销量', '标签下界', '低于下界') %} class="t-num"{% endif %} scope="col">{{ c.replace('（天）', '') }}{% if c == '子体月销量' %}<span class="etag">估算</span>{% elif c == '低于下界' %}<span class="etag">推导</span>{% endif %}</th>{% endfor %}</tr>
+                        </thead>
+                        <tbody>
+                          {% for row in it.sample_rows %}
+                          <tr>{% for c, v in row %}<td class="{% if c in ('早于上架（天）', '子体数', '跨度（天）', '子体月销量', '标签下界', '低于下界') %}t-num{% elif c in ('子ASIN', '父ASIN', '父ASIN 变化', '标签', '重复行号') %}mono{% elif c in ('上架日期', '首次评分日期', '最早上架', '最晚上架', '月份') %}num{% endif %}">{{ v }}</td>{% endfor %}</tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                  {% elif it.status != 'na' %}
+                  <p class="small muted" style="margin-top: var(--space-2)">没有超出的记录，没有样例。</p>
+                  {% endif %}
+                </div>
+                {% if it.status == 'warn' %}
+                <div class="list__action" style="align-self: flex-start" data-ack-action>
+                  <button class="btn btn--sm" type="button" data-open="#ack-modal-{{ it.item }}">{{ icon('seal-check') }}<span>标为已知晓</span></button>
+                </div>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:3" aria-labelledby="fp-title">
+          <div class="section__head">
+            <h2 class="section__title" id="fp-title">指纹比对</h2>
+            <span class="section__note">体检完成后重新计算只读副本的 SHA-256，与导入时逐个文件比对</span>
+          </div>
+          <div class="panel">
+            <div class="panel__body">
+              {% if fp_ok %}
+              <div class="banner banner--ok">
+                {{ icon('fingerprint') }}
+                <div class="banner__body">
+                  <div class="banner__title">导入时与当前 {{ fps|length }} 个文件指纹全部一致</div>
+                  <div>体检没有修改数据包 {{ hpkg.label }} 的只读副本。比对时间 {{ (fps[0].created_at or '')[:16] }}。</div>
+                </div>
+              </div>
+              {% elif fps %}
+              <div class="banner banner--block" role="alert">
+                {{ icon('warning-octagon') }}
+                <div class="banner__body">
+                  <div class="banner__title">{{ fps|rejectattr('ok')|list|length }} 个文件指纹与导入时不一致</div>
+                  <div>只读副本被改动过，数据包 {{ hpkg.label }} 已记为阻断，不能计算。请重新导入原数据包。</div>
+                </div>
+              </div>
+              {% else %}
+              <p class="muted">还没有比对记录。</p>
+              {% endif %}
+            </div>
+            {% if fps %}
+            <div class="table-wrap table-wrap--flush">
+              <table class="table" id="fp-table">
+                <thead>
+                  <tr><th scope="col">文件</th><th scope="col">导入时（{{ (import_at or '')[11:16] }}）</th><th scope="col">体检完成后（{{ (fps[0].created_at or '')[11:16] }}）</th><th scope="col">结果</th></tr>
+                </thead>
+                <tbody>
+                  {% for f in fps %}
+                  <tr><td>{{ FILE_NAMES.get(f.file_code, '清单文件' if f.file_code == '清单' else f.file_code) }}</td><td class="fp">{{ fp_mid(f.sha_import) }}</td><td class="fp">{{ fp_mid(f.sha_now) }}</td><td>{% if f.ok %}{{ badge('一致', 'pass', 'check') }}{% else %}{{ badge('不一致', 'block', 'x-circle') }}{% endif %}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% endif %}
+          </div>
+        </section>
+        {% endif %}
+
+        <p class="page-foot">数据包 {{ hpkg.label if hpkg else '—' }} · 品类配置 v{{ cfg_no }}（预警阈值）· 字段约定 {{ ('v' ~ cv.version_no) if cv else '—' }} · 体检只读取只读副本，不修改源数据</p>
+{% endblock %}
+{% block overlays %}
+{% for it in warn %}
+        <div class="modal" id="ack-modal-{{ it.item }}" role="dialog" aria-modal="true" aria-labelledby="ack-title-{{ it.item }}" aria-hidden="true">
+          <form class="modal__dialog" data-ajax action="/health/ack" method="post" novalidate>
+            <input type="hidden" name="package_id" value="{{ hpkg.id }}">
+            <input type="hidden" name="item" value="{{ it.item }}">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="ack-title-{{ it.item }}">标为已知晓</h2>
+                <p class="modal__sub">体检项 {{ loop.index }} · 数据包 {{ hpkg.label }} · 操作人 {{ operator }}</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack">
+              <dl class="kv">
+                <dt>体检项</dt><dd>{{ it.label }}</dd>
+                <dt>数值</dt><dd>{{ it.parts[0][1] }}{% if it.parts[0][2] %}{{ etag('n=' ~ num(it.parts[0][2])) }}{% endif %}</dd>
+                <dt>预警阈值</dt><dd>{{ it.th_text }}（品类配置 v{{ cfg_no }}）</dd>
+              </dl>
+              <div class="field">
+                <label class="field__label" for="ack-note-{{ it.item }}">说明<span class="req">*</span></label>
+                <textarea class="textarea" id="ack-note-{{ it.item }}" name="note" required aria-describedby="ack-hint-{{ it.item }}" placeholder="写明为什么可以接受，或已经怎么处理。"></textarea>
+                <div class="field-error" data-error-for="note"></div>
+                <span class="field__hint" id="ack-hint-{{ it.item }}">标为已知晓后，首页不再提示本项。只对数据包 {{ hpkg.label }} 有效，下一个数据包重新体检时超过阈值会再次提示。</span>
+              </div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="submit">标为已知晓</button>
+            </div>
+          </form>
+        </div>
+{% endfor %}
+{% endblock %}

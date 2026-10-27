@@ -1,0 +1,13 @@
+<select class="select" name="cond_field" aria-label="维度或信号" data-cond-field>
+  <option value=""{% if not fk %} selected{% endif %} disabled>选择维度或信号</option>
+  <optgroup label="信号">
+    {% for k, l in opts.signals %}<option value="signal:{{ k }}"{% if fk == 'signal:' ~ k %} selected{% endif %}>{{ l }}{{ '（同比，窗口按品类配置）' if k == 'demand' else '' }}</option>{% endfor %}
+  </optgroup>
+  <optgroup label="候选信号">
+    {% for k, l in opts.candidates %}<option value="signal:{{ k }}"{% if fk == 'signal:' ~ k %} selected{% endif %}>{{ l }}</option>{% endfor %}
+  </optgroup>
+  <optgroup label="维度与属性">
+    {% for k, l, _v in opts.dims %}<option value="dim:{{ k }}"{% if fk == 'dim:' ~ k %} selected{% endif %}>{{ l }}</option>{% endfor %}
+    {% for a in opts.attrs %}<option value="attr:{{ a }}"{% if fk == 'attr:' ~ a %} selected{% endif %}>{{ a }}</option>{% endfor %}
+  </optgroup>
+</select>

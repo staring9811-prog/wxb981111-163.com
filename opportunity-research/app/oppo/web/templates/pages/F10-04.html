@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}台账 · 立项记录{% endblock %}
+{% block content %}
+{% set ledger_tab = 'decisions' %}
+{% set has_c7 = c7.rows|length > 0 %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>台账</h1>
+            <p class="page-head__sub">月度快照、立项决定与到期对账 · 记录只追加，保存后不可修改</p>
+          </div>
+          <div class="page-head__actions">
+            {% if not has_c7 %}
+            <button class="btn" type="button" aria-disabled="true" data-tip="当前数据包没有 C7 自家立项">{{ icon('upload-simple') }}<span>从数据包导入自家立项</span></button>
+            {% elif c7.new or c7.launch %}
+            <button class="btn" type="button" data-open="#c7-modal" data-tip="数据包 {{ c7.package.label }} 含 C7 自家立项（{{ c7.rows|length }} 行）|导入前会先列出将新增的补录记录和上架数据">{{ icon('upload-simple') }}<span>从数据包导入自家立项</span></button>
+            {% else %}
+            <button class="btn" type="button" data-post="/ledger/import-c7" data-loading-text="读取中…" data-tip="数据包 {{ c7.package.label }} 含 C7 自家立项（{{ c7.rows|length }} 行）|都已在台账中">{{ icon('upload-simple') }}<span>从数据包导入自家立项</span></button>
+            {% endif %}
+            <button class="btn" type="button" data-open="#decision-modal" data-tab="backfill">{{ icon('clock-counter-clockwise') }}<span>补录在研立项</span></button>
+            <button class="btn btn--primary" type="button" data-open="#decision-modal" data-tab="decide">{{ icon('note-pencil') }}<span>记录决定</span></button>
+          </div>
+        </div>
+{% include "partials/D-tabs.html" %}
+
+        <div class="banner enter" style="--i:2">
+          {{ icon('lock-simple') }}
+          <div class="banner__body">
+            <div class="banner__title">立项记录保存后不可修改</div>
+            <div>录错时追加一条更正记录，原记录标"已更正"并保留，两条记录互相链接。操作人和时间在保存时自动记录。</div>
+          </div>
+        </div>
+
+        {% if not recs %}
+        <section class="panel section enter" style="--i:3">
+          <div class="empty">
+            {{ icon('note-pencil') }}
+            <div class="empty__title">还没有立项记录</div>
+            <p class="empty__desc">还没有立项记录。立项评审后记录决定，或补录系统启用前已在研的立项。</p>
+            <div class="row">
+              <button class="btn" type="button" data-open="#decision-modal" data-tab="backfill">{{ icon('clock-counter-clockwise') }}<span>补录在研立项</span></button>
+              <button class="btn btn--primary" type="button" data-open="#decision-modal" data-tab="decide">{{ icon('note-pencil') }}<span>记录决定</span></button>
+            </div>
+          </div>
+        </section>
+        {% else %}
+        <section class="section enter" style="--i:3" aria-labelledby="decision-title-h" data-filter-scope="#decision-table">
+          <div class="section__head">
+            <h2 class="section__title" id="decision-title-h">立项记录</h2>
+            <span class="section__note">当前显示 <span data-filter-count>{{ recs|length }}</span> 条 · 共 {{ recs|length }} 条：立项 {{ counts.go }}、不立项 {{ counts.nogo }} · 新的在上</span>
+          </div>
+          <div class="filters" role="group" aria-label="立项记录筛选">
+            <span class="filters__label">决定</span>
+            <button class="chip" type="button" data-filter="decision:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="decision:go" aria-pressed="false">立项 <span class="count">{{ counts.go }}</span></button>
+            <button class="chip" type="button" data-filter="decision:nogo" aria-pressed="false">不立项 <span class="count">{{ counts.nogo }}</span></button>
+            <span class="filters__sep" aria-hidden="true"></span>
+            <span class="filters__label">来源</span>
+            <button class="chip" type="button" data-filter="source:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="source:record" aria-pressed="false">记录 <span class="count">{{ counts.record }}</span></button>
+            <button class="chip" type="button" data-filter="source:backfill" aria-pressed="false">补录 <span class="count">{{ counts.backfill }}</span></button>
+            <button class="chip" type="button" data-filter="source:correction" aria-pressed="false">更正 <span class="count">{{ counts.correction }}</span></button>
+            <span class="spacer"></span>
+            <button class="btn btn--sm" type="button" data-cols-toggle="#decision-wrap" aria-pressed="false">{{ icon('columns') }}<span>列</span></button>
+          </div>
+          <div class="table-wrap" id="decision-wrap">
+            <table class="table" id="decision-table">
+              <thead>
+                <tr>
+                  <th scope="col">编号 · 立项</th>
+                  <th scope="col">决定 · 来源</th>
+                  <th scope="col">关联细分 · 对应快照</th>
+                  <th scope="col">立项日期</th>
+                  <th scope="col">状态与自家对账</th>
+                  <th class="col-2" scope="col">记录时间与操作人</th>
+                  <th scope="col"><span class="visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in recs %}
+                {% set kind_key = {'记录': 'record', '补录': 'backfill', '更正': 'correction'}[r.kind] %}
+                {% set st = r.launch %}
+                  <tr id="{{ r.code|lower }}" data-decision="{{ 'go' if r.decision == '立项' else 'nogo' }}" data-source="{{ kind_key }}" data-code="{{ r.code }}">
+                    <td style="min-width: 240px"><div class="cell-title"><span class="mono">{{ r.code }}</span> · {{ r.project_name or r.segment_name }}</div>
+                      {% if r.kind == '补录' %}<div class="cell-sub">当时依据：{{ r.basis_note or '未填写' }}</div>{% elif r.reason %}<div class="cell-sub">理由：{{ r.reason }}</div>{% endif %}</td>
+                    <td class="t-nowrap">{{ badge(r.decision, '', 'flag' if r.decision == '立项' else 'prohibit') }}<div style="margin-top: var(--space-1)">{{ badge(r.kind, '', {'记录': 'note-pencil', '补录': 'clock-counter-clockwise', '更正': 'arrows-clockwise'}[r.kind]) }}</div>{% if r.corrects %}<div class="cell-sub"><a href="#{{ r.corrects.code|lower }}">更正 {{ r.corrects.code }}</a></div>{% endif %}</td>
+                    <td class="t-nowrap">
+                      {% set wrong = r.corrected_by and r.corrected_by.segment_key != r.segment_key %}
+                      {% if wrong %}<span class="diff__old">{{ segname(r.segment_name or '') }}</span> <span class="small muted">误填</span>{% else %}{{ segname(r.segment_name or '') }}{% endif %}
+                      <div class="cell-sub">{% if r.snapshot %}快照 <a href="/ledger/snapshots?snap={{ r.snapshot.id }}">{{ r.snapshot.label }}</a>{% else %}无对应快照（补录）{% endif %}</div></td>
+                    <td class="t-nowrap num">{% if r.decision == '不立项' %}<span class="muted">不适用</span>{% elif r.corrected_by and r.corrected_by.project_date != r.project_date %}<span class="diff__old">{{ r.project_date or '—' }}</span>{% else %}{{ r.project_date or '—' }}{% endif %}</td>
+                    <td style="min-width: 190px">
+                      {% if r.corrected_by %}{{ badge('已更正') }}<div class="cell-sub"><a href="#{{ r.corrected_by.code|lower }}">见更正记录 {{ r.corrected_by.code }}</a></div>
+                      {% elif r.decision == '不立项' %}<span class="muted">不立项，不参与自家对账</span>
+                      {% elif st %}
+                        {% set pop = own_pop(st) %}
+                        <div class="row" style="gap: var(--space-2)">已上架 {{ st.launch_month }} {{ badge(st.status, OWN_BADGE.get(st.status)) }}</div>
+                        <div class="cell-sub">{% if st.best_bsr is not none %}最好 BSR {{ st.best_bsr|int }}{{ etag('实测', '', pop, '自家上架数据') }}{% else %}BSR 无数据{% endif %} · {% if st.max_sales is not none %}最高月销售额 {{ money(st.max_sales) }}{{ etag('实测', '', pop, '自家上架数据') }}{% else %}销售额无数据{% endif %}{% if st.status == '观察中' %} · 还剩 {{ st.remaining }} 个月{% elif st.status == '数据不全' %} · 缺 {{ st.missing|join('、') }}{% endif %} · <a href="/ledger/reconcile#own-{{ r.code|lower }}">看对账</a></div>
+                      {% else %}未上架<div class="cell-sub">在研</div>{% endif %}
+                    </td>
+                    <td class="col-2 t-nowrap num">{{ r.created_at[:16] }}<div class="cell-sub">{{ r.created_by }}{% if r.source == '数据包' %} · 数据包 C7{% endif %}</div></td>
+                    <td class="t-nowrap" style="text-align: right">{% if not r.corrected_by %}{% if r.decision == '立项' %}<a class="btn btn--sm" href="/ledger/decisions?launch={{ r.code }}">录入上架数据</a> {% endif %}<a class="btn btn--sm btn--ghost" href="/ledger/decisions?correct={{ r.code }}" data-tip="追加一条更正记录|原记录保留，标为已更正">更正</a>{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div class="empty" data-filter-empty hidden>
+              <div class="empty__title">没有符合条件的立项记录</div>
+              <button class="btn btn--sm" type="button" data-filter-clear="#decision-table">清除筛选</button>
+            </div>
+          </div>
+        </section>
+        {% endif %}
+
+        <p class="page-foot">{% if c7.package %}数据包 {{ c7.package.label }} {{ ('含 C7 自家立项 ' ~ c7.rows|length ~ ' 行') if has_c7 else '没有 C7 自家立项' }}{% else %}还没有历史数据包{% endif %} · 品类配置 v{{ cfg_no }} · 自家立项与竞品新品用同一条成功线：上架当月起 {{ cfg.success.window_months }} 个月内小类 BSR ≤ {{ cfg.success.bsr_max|int }}，或 SPU 任一月销售额 ≥ {{ money(cfg.success.gmv_min) }}</p>
+{% endblock %}
+{% block overlays %}
+{% include "partials/F10-02.html" %}
+{% if launch %}{% set close_href = '/ledger/decisions' %}{% include "partials/F10-06.html" %}{% endif %}
+{% if has_c7 and (c7.new or c7.launch) %}
+        <div class="modal" id="c7-modal" role="dialog" aria-modal="true" aria-labelledby="c7-title" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="c7-title">从数据包导入自家立项</h2>
+                <p class="modal__sub">数据包 {{ c7.package.label }} · C7 自家立项 {{ c7.rows|length }} 行 · 按立项名称和立项日期匹配，已在台账中的不重复新增</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack">
+              {% if c7.new %}
+              <h3>将新增的补录记录 · {{ c7.new|length }} 条</h3>
+              <ul class="small">{% for r in c7.new %}<li>{{ r.name }} · 立项 {{ r.project_date }} · {{ r.segment_or_attr }}</li>{% endfor %}</ul>
+              {% endif %}
+              {% if c7.launch %}
+              <h3>将写入的上架数据 · {{ c7.launch|length }} 条</h3>
+              <ul class="small">{% for r in c7.launch %}<li>{{ r.name }} · 上架 {{ r.launch_month }}{% if r.asin %} · {{ r.asin }}{% endif %}（来自 C7）</li>{% endfor %}</ul>
+              {% endif %}
+              <p class="small muted">新立项按"补录"写入，来源记为数据包；保存后不可修改。</p>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="button" data-post="/ledger/import-c7">确认导入</button>
+            </div>
+          </div>
+        </div>
+{% endif %}
+{% endblock %}

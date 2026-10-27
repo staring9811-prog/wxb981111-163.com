@@ -1,0 +1,145 @@
+{# PAGE-F11-02 规则编辑 drawer. Context: editor (views.ledger._rule_editor). #}
+{% set ed = editor %}
+{% set rule = ed.rule %}
+{% set opts = ed.opts %}
+{% set next_no = (rule.version_no + 1) if rule else 1 %}
+        <aside class="drawer" id="rule-drawer" role="dialog" aria-modal="true" aria-labelledby="rule-title" data-open-on-load data-close-href="/rules" data-rule-drawer data-rule-key="{{ rule.code if rule else 'new' }}">
+          <div class="drawer__head">
+            <div>
+              {% if rule %}
+              <h2 class="drawer__title" id="rule-title">编辑规则 {{ rule.code }}</h2>
+              <p class="drawer__sub">当前 v{{ rule.version_no }} · {{ badge(rule.status) }}{% if rule.cross_tag %} {{ etag('截面', 'cross') }}{% endif %} · {{ '由回测 ' ~ (rule.basis or {}).get('backtest', '') ~ ' 生成' if rule.origin == '回测' and (ed.versions[-1].created_by == '系统') else ('回测生成' if rule.origin == '回测' else '人工新增') }}{% if rule.version_no > 1 %}，v{{ rule.version_no }} 由 {{ ed.versions[0].actor }} 于 {{ rule.updated_at[:10] }} {{ '写入' if ed.versions[0].created_by == '系统' else '修改' }}{% endif %}</p>
+              {% else %}
+              <h2 class="drawer__title" id="rule-title">新增经验规则</h2>
+              <p class="drawer__sub">保存后为新规则 v1，状态为未验证经验</p>
+              {% endif %}
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+          </div>
+
+          <div class="drawer__body stack-lg">
+            <form class="stack-lg" id="rule-form" data-guard data-ajax action="{{ ('/rules/' ~ rule.code) if rule else '/rules' }}" aria-label="规则内容" novalidate>
+              {% if rule %}<input type="hidden" name="expected_version" value="{{ rule.version_no }}">{% endif %}
+              <div class="banner banner--block" data-form-error hidden role="alert">{{ icon('warning-octagon') }}<div class="banner__body" data-form-error-text></div></div>
+              <section aria-labelledby="cond-title">
+                <div class="section__head">
+                  <h3 id="cond-title">条件<span class="field__label"><span class="req">*</span></span></h3>
+                  <span class="section__note">全部满足时触发 · 回测按同一口径执行</span>
+                </div>
+                <div class="stack" id="cond-list">
+                  {% for c in ed.conds %}
+                  {% set fk = (c.kind ~ ':' ~ c.key) if c.kind else '' %}
+                  <div data-cond class="cond-row">
+                    <span class="small muted" data-join>{{ '当' if loop.first else '且' }}</span>
+                    {% include "partials/D-cond-field.html" %}
+                    <select class="select" name="cond_op" aria-label="条件 {{ loop.index }} · 比较" data-cond-op>
+                      {% set ops = [('>=', '≥'), ('>', '>'), ('<=', '≤'), ('<', '<')] if c.kind == 'signal' else ([('=', '='), ('!=', '≠')] if c.kind else [('>=', '≥'), ('>', '>'), ('<=', '≤'), ('<', '<'), ('=', '='), ('!=', '≠')]) %}
+                      {% for v, l in ops %}<option value="{{ v }}"{% if v == c.op %} selected{% endif %}>{{ l }}</option>{% endfor %}
+                    </select>
+                    <span data-cond-value-slot>
+                    {% if c.kind in ('dim', 'attr') %}
+                      <select class="select" name="cond_value" aria-label="条件 {{ loop.index }} · 值">
+                        {% for v in opts['values'].get(fk, []) %}<option{% if v == c.value %} selected{% endif %}>{{ v }}</option>{% endfor %}
+                        {% if c.value not in opts['values'].get(fk, []) %}<option selected>{{ c.value }}</option>{% endif %}
+                      </select>
+                    {% else %}
+                      <input class="input input--num" name="cond_value" value="{{ c.value }}" aria-label="条件 {{ loop.index }} · 值" placeholder="如 +15%">
+                    {% endif %}
+                    </span>
+                    <button class="btn btn--ghost btn--sm btn--icon" type="button" data-remove aria-label="删除条件 {{ loop.index }}">{{ icon('x') }}</button>
+                    <span class="field-error cond-row__error" data-error-for="cond_{{ loop.index }}"></span>
+                  </div>
+                  {% endfor %}
+                </div>
+                <span class="field-error" data-error-for="cond"></span>
+                <div class="row" style="margin-top: var(--space-3)">
+                  <button class="btn btn--sm" type="button" id="cond-add">{{ icon('plus') }}<span>添加条件</span></button>
+                  <span class="field__hint">维度取值来自品类配置 v{{ opts.cfg_no }} 的分档；信号按第 T 月只用早于 T 月数据的口径计算。</span>
+                </div>
+              </section>
+
+              <section aria-labelledby="act-title">
+                <h3 id="act-title">动作<span class="field__label"><span class="req">*</span></span></h3>
+                <div class="choice-group" role="radiogroup" aria-labelledby="act-title" style="margin-top: var(--space-3)">
+                  {% for a, ic in [('立项候选', 'flag'), ('观察', 'eye'), ('放弃', 'prohibit')] %}
+                  <label class="choice"><input type="radio" name="action" value="{{ a }}"{% if rule and rule.action == a %} checked{% endif %}>{{ icon(ic) }}{{ a }}</label>
+                  {% endfor %}
+                </div>
+                <span class="field-error" data-error-for="action"></span>
+                <p class="field__hint" style="margin-top: var(--space-2)">条件或动作一改，保存后的新版本就是"未验证经验"，要重新经过回测才能回到"历史观察"。</p>
+              </section>
+
+              {% if rule %}
+              <div id="reset-hint" hidden>
+                <div class="banner banner--unverified" role="status">
+                  {{ icon('seal-question') }}
+                  <div class="banner__body">
+                    <div class="banner__title">保存后状态将变为未验证经验</div>
+                    <div>你改了条件或动作。保存后生成 v{{ next_no }}，状态为"未验证经验"；v{{ rule.version_no }} 保留原状态，可在版本历史里回看。</div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <div class="field">
+                <label class="field__label" for="rule-reason">{{ '修改理由' if rule else '理由' }} <span class="req">*</span></label>
+                <textarea class="textarea" id="rule-reason" name="reason" required placeholder="{{ '写明为什么改，例如依据哪次评审、哪批数据' if rule else '写明这条经验从哪来，例如立项评审时的供应链判断' }}"></textarea>
+                <span class="field-error" data-error-for="reason"></span>
+                <span class="field__hint">每次保存都要填写，随版本保留，连同操作人和时间一起记录。</span>
+              </div>
+            </form>
+
+            {% if ed.versions %}
+            <section aria-labelledby="ver-title">
+              <div class="section__head">
+                <h3 id="ver-title">版本历史</h3>
+                <span class="section__note">只追加，不覆盖 · 旧版本保留原状态</span>
+              </div>
+              <div class="panel">
+                <ol class="list" data-versions>
+                  {% for v in ed.versions %}
+                  <li class="list__item" data-version="{{ v.version_no }}">
+                    {{ icon('pencil-simple' if v.created_by != '系统' else ('seal-check' if v.status == '已验证' else 'flask'), 'list__icon') }}
+                    <div class="list__body">
+                      <div class="list__title row">v{{ v.version_no }}{% if v.current %} · 当前{% endif %} {{ badge(v.status) }}</div>
+                      <div class="list__desc">{{ v.created_at[:16] }} · {{ v.actor }} · {% if v.created_by == '系统' %}{{ v.change_note }}{% if v.basis and v.basis.batches %}（批次 {{ v.basis.batches }}，样本 {{ v.basis.n }}）{% endif %}{% else %}理由：{{ v.reason or '—' }}{% endif %}</div>
+                      {% if v.changes %}
+                      <div class="diff" style="margin-top: var(--space-3)">
+                        {% for k, old, new in v.changes %}<span class="diff__key">{{ k }}</span><span class="diff__old">{{ old }}</span><span class="diff__new">{{ new }}</span>{% endfor %}
+                      </div>
+                      {% if v.same %}<p class="list__desc" style="margin-top: var(--space-2)">{{ v.same|join('、') }}未改。</p>{% endif %}
+                      {% elif not loop.last %}
+                      <p class="list__desc" style="margin-top: var(--space-2)">条件与动作未改{{ '，只改理由' if v.created_by != '系统' else '' }}。</p>
+                      {% endif %}
+                      {% if loop.last %}<p class="small" style="margin-top: var(--space-2)">当 {{ v.cond_text }} → {{ v.action }}</p>{% endif %}
+                    </div>
+                  </li>
+                  {% endfor %}
+                </ol>
+              </div>
+            </section>
+            {% endif %}
+          </div>
+
+          <div class="drawer__foot">
+            <span class="small muted" data-dirty-hint hidden>有未保存的修改</span>
+            <span class="spacer"></span>
+            <button class="btn" type="button" data-close>取消</button>
+            <button class="btn btn--primary" type="submit" form="rule-form" data-save>{{ icon('check') }}<span>{{ ('保存为 v' ~ next_no) if rule else '保存' }}</span></button>
+          </div>
+
+          <template id="cond-tpl">
+            <div data-cond class="cond-row">
+              <span class="small muted" data-join>且</span>
+              {% set c = {'kind': '', 'key': ''} %}{% set fk = '' %}
+              {% include "partials/D-cond-field.html" %}
+              <select class="select" name="cond_op" aria-label="比较" data-cond-op>
+                <option value=">=">≥</option><option value=">">&gt;</option><option value="<=">≤</option><option value="<">&lt;</option><option value="=">=</option><option value="!=">≠</option>
+              </select>
+              <span data-cond-value-slot><input class="input input--num" name="cond_value" aria-label="值" placeholder="值"></span>
+              <button class="btn btn--ghost btn--sm btn--icon" type="button" data-remove aria-label="删除这条条件">{{ icon('x') }}</button>
+              <span class="field-error cond-row__error" data-error-for=""></span>
+            </div>
+          </template>
+          <script type="application/json" id="rule-values">{{ opts['values']|tojson }}</script>
+        </aside>

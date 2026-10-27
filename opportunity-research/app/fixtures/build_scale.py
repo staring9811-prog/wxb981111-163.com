@@ -101,13 +101,13 @@ def build(out: Path) -> dict[str, int]:
     kd["fulfillment"] = np.where(rng.random(len(kd)) < 0.8, "FBA", "FBM")
     kd["variants"] = kd.groupby("parent")["child"].transform("count")
     kd["first_review"] = [(pd.Timestamp(lc) + pd.Timedelta(days=int(d))).strftime("%Y-%m-%d")
-                          for lc, d in zip(kd["launch"], rng.integers(10, 60, len(kd)))]
+                          for lc, d in zip(kd["launch"], rng.integers(10, 60, len(kd)), strict=False)]
 
     # ---- monthly trajectories
     rows = []
     old = kd.iloc[:n_old_kids]
     base_units = rng.lognormal(2.9, 0.7, n_old_kids)
-    for mi, m in enumerate(MONTHS):
+    for _mi, m in enumerate(MONTHS):
         keep = rng.random(n_old_kids) > 0.02
         units = np.maximum(1, (base_units * rng.uniform(0.8, 1.25, n_old_kids)).astype(int))
         rows.append(pd.DataFrame({"month": m, "child": old["child"].to_numpy()[keep], "units": units[keep]}))
@@ -157,8 +157,8 @@ def build(out: Path) -> dict[str, int]:
         c4[f"{d}证据状态"] = "子体确认"
     c4_df = pd.DataFrame(c4)[C4_COLS]
     kw = []
-    for wi, (w, sizes) in enumerate(WIDTHS):
-        for fi, (f, en, _cn) in enumerate(FORMS):
+    for _w, sizes in WIDTHS:
+        for _f, en, _cn in FORMS:
             for k in range(50):
                 size = sizes[k % 2]
                 term = f"{size} inch {en} bathroom vanity {['', 'with sink', 'cabinet', 'set', 'modern'][k % 5]} {k}".strip()
@@ -180,7 +180,7 @@ def build(out: Path) -> dict[str, int]:
                           "痛点事件代码": np.where(structural, "S03", "N12"),
                           "是否结构类痛点": np.where(structural, "是", "否"), "标注版本": "v3"})
     par = c6_df["归属级别"] == "父体"
-    c6_df.loc[par, "ASIN"] = c6_df.loc[par, "ASIN"].map(dict(zip(kd["child"], kd["parent"])))
+    c6_df.loc[par, "ASIN"] = c6_df.loc[par, "ASIN"].map(dict(zip(kd["child"], kd["parent"], strict=False)))
     c7_df = pd.DataFrame([{"立项名称": "规模测试立项", "立项日期": "2025-12-10", "关联细分或属性": "30–48″ · 落地式 · $500–900"}],
                          columns=C7_COLS)
 

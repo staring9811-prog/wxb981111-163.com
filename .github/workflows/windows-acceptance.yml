@@ -1,0 +1,54 @@
+# 验收专用：在 Windows x64 运行器上构建离线安装包并执行 SMOKE-03（离线启动）与 RULE-05（S-规模 8 GB 内计时）。
+# 只在验收触发文件或打包脚本变化时运行，不是产品的持续集成（技术方案 §7.4 第一期不启用托管 CI）。
+name: windows-acceptance
+
+on:
+  push:
+    branches: [claude/tdd-delivery-contract-fia58p]
+    paths:
+      - opportunity-research/app/packaging/**
+      - .github/workflows/windows-acceptance.yml
+  workflow_dispatch:
+
+jobs:
+  offline-package:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: opportunity-research/app
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Driver tools (test driver only, not part of the package)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy==2.5.4 pandas==3.0.6 playwright==1.64.1
+          python -m playwright install chromium
+      - name: Build sample packages (H1-A … S-规模)
+        run: python -m fixtures.build_samples --out fixtures/packages --with-scale
+      - name: Build offline package
+        run: python packaging/build_offline.py --out dist
+      - name: SMOKE-03 and RULE-05
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem dist -Filter *.zip | Select-Object -First 1
+          python packaging/win_acceptance.py --zip $zip.FullName --fixtures fixtures/packages --out results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-acceptance-results
+          path: |
+            opportunity-research/app/results/**
+            opportunity-research/app/dist/机会判定台/依赖锁定清单.txt
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: offline-package
+          path: opportunity-research/app/dist/*.zip
+          retention-days: 30

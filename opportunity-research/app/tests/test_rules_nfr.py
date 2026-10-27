@@ -165,7 +165,7 @@ def _dump(d: Path) -> dict[str, object]:
         out["backtest"] = (bt["conclusion"], D.dumps(bt["result"]))
         out["card"] = [(r["label"], r["status"], r["signals_json"], r["basis_json"]) for r in
                        conn.execute(text("SELECT * FROM decision_card ORDER BY id")).mappings()]
-        out["rules"] = [(r["code"], r["version_no"], r["action"], r["status"], r["conds_json"], r["basis_json"]) for r in
+        out["rules"] = [(r["code"], r["version_no"], r["action"], r["status"], r["condition_json"], r["basis_json"]) for r in
                         conn.execute(text("SELECT r.code, v.* FROM rule r JOIN rule_version v ON v.rule_id=r.id "
                                           "ORDER BY r.code, v.version_no")).mappings()]
         snap = RK.latest_snapshot(conn, cid, "history")
@@ -206,6 +206,31 @@ def _lan_ip() -> str | None:
     return ip if ip and not ip.startswith("127.") else None
 
 
+def _listening(port: int) -> list[str]:
+    """Local addresses in LISTEN state for `port`, read from /proc/net/tcp{,6}."""
+    import ipaddress
+
+    out = []
+    for name, v6 in (("/proc/net/tcp", False), ("/proc/net/tcp6", True)):
+        try:
+            lines = Path(name).read_text().splitlines()[1:]
+        except OSError:
+            continue
+        for ln in lines:
+            parts = ln.split()
+            local, state = parts[1], parts[3]
+            host, p = local.split(":")
+            if state != "0A" or int(p, 16) != port:
+                continue
+            raw = bytes.fromhex(host)
+            if v6:
+                raw = b"".join(raw[i:i + 4][::-1] for i in range(0, 16, 4))
+                out.append(str(ipaddress.IPv6Address(raw)))
+            else:
+                out.append(str(ipaddress.IPv4Address(raw[::-1])))
+    return out
+
+
 def _http(url: str, method: str = "GET", headers: dict[str, str] | None = None, data: bytes | None = None) -> int:
     req = urllib.request.Request(url, method=method, headers=headers or {}, data=data)
     try:
@@ -228,9 +253,8 @@ def test_rule06_listen_host_token_origin(tmp_path: Path) -> None:
             except OSError:
                 time.sleep(0.1)
         assert _http(f"http://127.0.0.1:{port}/") == 200
-        listen = subprocess.run(["ss", "-ltn"], capture_output=True, text=True).stdout
-        lines = [ln for ln in listen.splitlines() if f":{port} " in ln]
-        assert lines and all("127.0.0.1:" in ln for ln in lines), lines
+        addrs = _listening(port)
+        assert addrs == ["127.0.0.1"], addrs
         lan = _lan_ip()
         if lan:
             with pytest.raises(OSError):
@@ -259,7 +283,8 @@ def test_rule07_append_only_tables(clone, h1a_done: Path) -> None:  # type: igno
         from oppo.core import ledger as LG
 
         snap = RK.latest_snapshot(conn, cid, "history")
-        LG.record_decision(conn, cid, "wen", "立项", snap["content"]["rows"][0]["segment_key"], "需求在涨最高", snap["id"])
+        top = snap["content"]["rows"][0]
+        LG.record_decision(conn, cid, "wen", "立项", top["segment_key"], top["segment"], "需求在涨最高", snap["id"])
     _close(app)
     db = sqlite3.connect(str(d / "oppo.sqlite3"))
     sha_before = db.execute("SELECT sha256, content_json FROM snapshot ORDER BY id").fetchall()

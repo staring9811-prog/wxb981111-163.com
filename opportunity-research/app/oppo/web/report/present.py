@@ -49,6 +49,14 @@ def span(batches: list[str] | None, sep: str = "–") -> str:
     return batches[0] if len(batches) == 1 else f"{batches[0]}{sep}{batches[-1]}"
 
 
+def size_text(n: Any) -> str:
+    if n is None:
+        return NO
+    if n >= 1024 * 1024:
+        return f"{n / 1024 / 1024:.1f} MB"
+    return f"{max(1, round(n / 1024))} KB"
+
+
 def duration(a: str | None, b: str | None) -> str:
     if not a or not b:
         return NO

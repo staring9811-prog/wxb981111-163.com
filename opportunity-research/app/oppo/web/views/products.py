@@ -97,6 +97,7 @@ def age_range(ages: list[int]) -> str:
     return "第 " + "、".join(parts) + " 个月"
 
 
+C.env.filters["b_loads"] = lambda s: D.loads(s, []) or []
 C.env.globals.update(b_spct=spct, b_upct=upct, b_spp=spp, b_money=money0, b_int=int0, b_bsr=bsr0,
                      b_age_range=age_range)
 
@@ -583,7 +584,7 @@ def _detail_ctx(conn: Connection, cid: int, run: dict[str, Any], r: dict[str, An
         "observed_ages": sorted({row.get("age") for row in months_tbl if row.get("age")}),
         "missing_after_hit": [m for m in (D.loads(r.get("missing_months_json"), []) or [])
                               if r.get("hit_month") and m > r["hit_month"]],
-        "pkg": pkg,
+        "pkg": pkg, "missing_text": _missing_text(months_tbl, D.loads(r.get("missing_months_json"), []) or []),
     }
 
 

@@ -304,6 +304,24 @@ details.panel[open] > summary { border-bottom: 1px solid var(--border-soft); bor
 details.panel > summary > .icon:first-child { color: var(--muted); transition: transform var(--motion-fast) var(--ease-standard); }
 details.panel[open] > summary > .icon:first-child { transform: rotate(90deg); }
 
+/* ─── States not shown in the prototype's 已达标 example (same rules as the app stylesheet) ─── */
+.badge--ok { background: var(--success-tint); color: var(--success); }
+.badge--incomplete, .badge--warn, .badge--stale { background: var(--warn-tint); color: var(--warn); }
+.badge--block { background: var(--danger-tint); color: var(--danger); }
+.badge--cross { background: var(--cross-tint); color: var(--cross); }
+.badge--old, .badge--ack, .badge--nodata { background: transparent; color: var(--muted); border-color: var(--border-control); border-style: dashed; }
+.etag--snap { background: var(--warn-tint); color: var(--warn); border-color: color-mix(in oklab, var(--warn), white 55%); }
+.etag--cand { border-style: dotted; border-color: var(--border-control); }
+.ibar--muted .ibar__band, .ibar--grey .ibar__band { fill: var(--viz-deemph); }
+.ibar--muted .ibar__dot, .ibar--grey .ibar__dot { fill: var(--muted); }
+.banner--unverified, .banner--stale, .banner--warn { background: var(--warn-tint); border-color: color-mix(in oklab, var(--warn), white 70%); }
+.banner--unverified > .icon, .banner--stale > .icon, .banner--warn > .icon { color: var(--warn); }
+.banner--cross { background: var(--cross-tint); border-color: color-mix(in oklab, var(--cross), white 70%); }
+.banner--cross > .icon { color: var(--cross); }
+.banner--block { background: var(--danger-tint); border-color: color-mix(in oklab, var(--danger), white 70%); }
+.banner--block > .icon { color: var(--danger); }
+.banner--unverified .banner__title { font-weight: 700; }
+
 /* ── 手机（375 宽单列） ── */
 @media (max-width: 767px) {
   main { padding: var(--space-4) var(--container-gutter-phone) var(--space-8); }

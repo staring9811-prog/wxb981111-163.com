@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}信号{% endblock %}
+{% macro nodata(cell) -%}
+{%- set reason = (cell.extra or {}).get('reason') if cell else '' -%}
+<span class="etag etag--nodata"{% if reason %} tabindex="0" data-tip="无数据|{{ reason }}"{% endif %}>无数据</span>
+{%- endmacro %}
+{% macro sortv(v, scale=100) -%}{{ (v * scale)|round(2) if v is not none else -999 }}{%- endmacro %}
+{% block content %}
+{% set cross = mode == 'cross' %}
+{% set ver = versions %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>信号</h1>
+            <p class="page-head__sub">细分 × 月份 · {{ n_segments or 0 }} 个细分（品类配置 v{{ ver.config or cfg_ver.version_no }}：{{ dims|join(' × ') }}）· 第 T 月只用早于 T 月第一天的数据</p>
+          </div>
+          <div class="page-head__actions">
+            {% if run %}
+            <label class="row small"><span class="muted">月份 T</span>
+              <select class="select" style="width: 112px" aria-label="月份 T" data-b-nav="/signals?month=">
+                {% for m in months %}<option value="{{ m }}"{% if m == T %} selected{% endif %}>{{ m }}</option>{% endfor %}
+              </select>
+            </label>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if stale and run %}
+        <div class="banner banner--stale enter" style="--i:1" role="status">
+          {{ icon('arrows-clockwise') }}
+          <div class="banner__body">
+            <div class="banner__title">信号需重算</div>
+            <div>{{ stale|join('；') }}。下表仍是上次计算的结果。</div>
+          </div>
+          <div class="banner__actions">
+            {% if busy %}<button class="btn btn--sm" type="button" aria-disabled="true" data-tip="计算正在运行，完成后再试">重新计算</button>
+            {% elif blocked %}<button class="btn btn--sm" type="button" aria-disabled="true" data-tip="数据包有阻断项，不能计算">重新计算</button>
+            {% else %}<button class="btn btn--sm" type="button" data-job-start="/jobs/compute">重新计算</button>{% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if not run %}
+        <section class="panel section enter" style="--i:2">
+          <div class="empty">
+            {{ icon('chart-line-up') }}
+            <div class="empty__title">还没有信号结果</div>
+            <p class="empty__desc">确认字段约定、审核合并建议后运行计算。</p>
+            {% if busy %}<button class="btn btn--primary" type="button" aria-disabled="true" data-tip="计算正在运行，完成后再试">{{ icon('play') }}<span>运行计算</span></button>
+            {% elif blocked or not pkg_mode %}<button class="btn btn--primary" type="button" aria-disabled="true" data-tip="{{ '数据包有阻断项，不能计算' if blocked else '还没有数据包' }}">{{ icon('play') }}<span>运行计算</span></button>
+            {% else %}<button class="btn btn--primary" type="button" data-job-start="/jobs/compute">{{ icon('play') }}<span>运行计算</span></button>{% endif %}
+          </div>
+        </section>
+        {% else %}
+
+        {% if cross %}
+        <div class="banner banner--cross enter" style="--i:1">
+          {{ icon('intersect') }}
+          <div class="banner__body">
+            <div class="banner__title">截面口径 · 数据包 {{ ver.package }}（观察月 {{ ver.months_from }}–{{ ver.months_to }}）· T = {{ T }}，只用 {{ t_first }} 之前的数据</div>
+            <div>新品结果与信号在同一观察期，“新品进得去”截面模式不适用；4 个候选信号只用老品计算（老品共 {{ num(old_spus) }} 个）。{% if not has_c6 %}{{ ver.package }} 不含评论痛点（C6），结构类痛点占比、高销低评、低分高销为无数据；{% endif %}{% if trend_na %}属性趋势需要 6 个月，观察期不足 6 个月，为无数据。{% endif %}结论待历史回测确认。</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="banner enter" style="--i:1" data-banner="asof">
+          {{ icon('calendar-blank') }}
+          <div class="banner__body">
+            <div class="banner__title">T = {{ T }}：只用 {{ t_first }} 之前的数据</div>
+            <div>评论按评论日期、关键词按统计月份、月度商品数据按所属月份截断；数据包 {{ ver.package }} 覆盖至 {{ ver.months_to }}。</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if excluded %}
+        <div class="banner banner--warn enter" style="--i:1" data-banner="excluded">
+          {{ icon('list-checks') }}
+          <div class="banner__body">
+            <div class="banner__title">本次计算排除的未确认字段：{% for f in excluded %}{{ f.field }}（{{ f.file_label }}）{{ '、' if not loop.last }}{% endfor %}</div>
+            <div>未确认的字段不参与任何计算。确认后需重算才会用到它。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/fields">去确认</a></div>
+        </div>
+        {% endif %}
+
+        <section class="section enter" style="--i:2" aria-labelledby="sig-title">
+          <div class="section__head">
+            <h2 class="section__title" id="sig-title">细分信号 · {{ '截面 · ' if cross }}T = {{ T }}</h2>
+            <div class="row">
+              <span class="section__note">{% if cross %}{{ '本次计算没有未确认字段 · ' if not excluded }}点一行看细分详情{% else %}{{ '按本月排序名次排列' if snapshot_T else '按样本量排列' }} · 点表头排序 · 点一行看细分详情{% endif %}</span>
+              <button class="btn btn--sm" type="button" data-cols-toggle="#sig-wrap" aria-pressed="false">{{ icon('columns') }}<span>候选信号列</span></button>
+            </div>
+          </div>
+          {% set tw = recent[0] ~ '–' ~ recent[-1][5:] %}
+          {% set pw = prior[0] ~ '–' ~ prior[-1][5:] %}
+          <div class="table-wrap" id="sig-wrap">
+            <table class="table" id="sig-table">
+              <thead>
+                <tr>
+                  <th scope="col">细分</th>
+                  {% if cross %}
+                  <th class="t-num" scope="col"><button class="th-sort" type="button" data-tip="样本量|细分内的起量新 SPU 数|老品 n：参与候选信号计算的老品数">样本量</button></th>
+                  <th class="t-num" scope="col"><button class="th-sort" type="button" data-tip="需求在涨|T−{{ recent|length }} 至 T−1 月（{{ tw }}）关键词搜索量合计，对比上一年同期|只计映射到细分的关键词，泛词不计">需求在涨</button></th>
+                  <th class="t-num" scope="col"><span tabindex="0" data-tip="新品进得去|截面模式下新品结果与信号在同一观察期，不计算">新品进得去</span></th>
+                  {% else %}
+                  <th class="t-num" scope="col"><button class="th-sort" type="button" data-tip="样本量|细分内已判定的起量新 SPU 数（全部已判定批次）|少于 20 个为样本不足">样本量</button></th>
+                  <th class="t-num" scope="col"><button class="th-sort" type="button" data-tip="需求在涨|T−{{ recent|length }} 至 T−1 月（{{ tw }}）关键词搜索量合计，对比上一年同期|只计映射到细分的关键词，泛词不计">需求在涨</button></th>
+                  <th class="t-num" scope="col"><button class="th-sort" type="button" data-tip="新品进得去|上架于 T−12 至 T−7 月（{{ entry_window[0] }}–{{ entry_window[1] }}）的新 SPU：命中 ÷ 已判定|不含观察中与数据不全">新品进得去</button></th>
+                  {% endif %}
+                  <th class="t-num" scope="col"><button class="th-sort" type="button" data-tip="结构类痛点占比|评论日期早于 T 月的评论中，标为结构类痛点的占比|父体级评论只计入一个细分">结构类痛点占比</button></th>
+                  <th class="t-num" scope="col"><button class="th-sort" type="button" data-tip="高销低评占比|T−1 月销量前 25% 且此前评论均分 &lt; 4.0 的商品，销量占细分 T−1 月销量的比例">高销低评占比</button></th>
+                  {% set ol = ' · 老品' if cross else '' %}
+                  <th class="t-num col-2" scope="col"><button class="th-sort" type="button" data-tip="单位 ASIN 贡献（候选）|T−1 月细分销量 ÷ 当月有销量的子 ASIN 数{{ '|截面：只用老品在观察月的数据' if cross }}">单位 ASIN 贡献{{ ol }}</button></th>
+                  <th class="t-num col-2" scope="col"><button class="th-sort" type="button" data-tip="属性溢价（候选）|细分销量加权均价 ÷ 同宽度档销量加权均价 − 1{{ '|截面：只用老品在观察月的数据' if cross }}">属性溢价{{ ol }}</button></th>
+                  <th class="t-num col-2" scope="col"><button class="th-sort" type="button" data-tip="属性趋势（候选）|T−3 至 T−1 月销量份额，对比 T−6 至 T−4 月">属性趋势{{ ol }}</button></th>
+                  <th class="t-num col-2" scope="col"><button class="th-sort" type="button" data-tip="低分高销（候选）|与高销低评同口径">低分高销{{ ol }}</button></th>
+                  <th class="t-num" scope="col"><button class="th-sort" type="button" data-tip="父体回填占比|至少一个类型属性来自父体回填的子体占比|颜色、尺寸、盆数不回填">父体回填</button></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in rows %}
+                {% set s = r.sig %}
+                {% set d = s.demand %}{% set e = s.entry %}{% set p = s.pain %}{% set h = s.hslr %}
+                {% set oldn = ('老品 n=' ~ (r.old_n or 0)) if cross else '' %}
+                <tr data-segment="{{ r.key }}" data-href="/signals?month={{ T }}&amp;segment={{ r.key|urlencode }}">
+                  <td class="t-nowrap"><a class="b-rowlink" href="/signals?month={{ T }}&amp;segment={{ r.key|urlencode }}" data-b-seg>{{ segname(r.name) }}</a>{% if not cross %}<div class="cell-sub">{% if r.rank and not r.insufficient %}本月排名 {{ r.rank }}{% elif r.insufficient %}样本不足{% else %}—{% endif %}</div>{% endif %}</td>
+                  <td class="t-num" data-sort="{{ r.sample }}">{{ r.sample }}{% if cross %}<div class="cell-sub">{{ oldn }}</div>{% endif %}</td>
+                  <td class="t-num" data-sort="{{ sortv(d.value if d else none) }}" data-sig="demand">{% if d and d.value is not none %}{{ b_spct(d.value) }}{{ etag('推导', '', {'口径': tw ~ ' 搜索量合计同比（对比 ' ~ pw ~ '）', '参与关键词': (d.cnt or 0) ~ ' 个（已映射到本细分）', '字段': '月搜索量、关键词属性标签', '来源文件': 'C5 关键词月度', '记录数': num(d.num) ~ ' / ' ~ num(d.den) ~ '（近期 / 上年同期搜索量）', '性质': '推导', '版本': ver.package ~ ' · 约定 v' ~ ver.contract ~ ' · 配置 v' ~ ver.config}, '需求在涨' ~ ('（截面）' if cross else '')) }}<div class="cell-sub">关键词 {{ d.cnt }} 个</div>{% else %}{{ nodata(d) }}{% endif %}</td>
+                  {% if cross %}
+                  <td class="t-num small muted" data-sig="entry">截面模式不适用</td>
+                  {% else %}
+                  <td class="t-num" data-sort="{{ sortv(e.value if e else none) }}" data-sig="entry">{% if e and e.value is not none %}{{ b_upct(e.value) }}{{ etag('n=' ~ (e.den|int), 'n', {'口径': '上架于 ' ~ entry_window[0] ~ '–' ~ entry_window[1] ~ ' 的起量新 SPU', '命中': e.num|int, '已判定': e.den|int, '未计入（观察中 / 数据不全）': (e.extra or {}).get('incomplete', 0), '来源': '成败判定（' ~ ver.package ~ '）', '版本': '约定 v' ~ ver.contract ~ ' · 配置 v' ~ ver.config}, '新品进得去') }}<div class="cell-sub">命中 {{ e.num|int }} / 已判定 {{ e.den|int }}</div>{% else %}{{ nodata(e) }}{% endif %}</td>
+                  {% endif %}
+                  <td class="t-num" data-sort="{{ sortv(p.value if p else none) }}" data-sig="pain">{% if p and p.value is not none %}{{ b_upct(p.value) }}{{ etag('人工', '', {'分子': num(p.num) ~ ' 条结构类痛点评论', '分母': num(p.den) ~ ' 条评论（评论日期早于 ' ~ t_first ~ '）', '去重': '父体级评论只计入上月销量最大的子体所在细分', '字段': '是否结构类痛点、痛点事件代码', '来源文件': 'C6 评论痛点', '性质': '人工标注（标注版本 ' ~ ((p.extra or {}).get('label_versions') or ['—'])|join('、') ~ '）', '数据包': ver.package}, '结构类痛点占比') }}<div class="cell-sub">{{ num(p.num) }} / {{ num(p.den) }} 条</div>{% else %}{{ nodata(p) }}{% endif %}</td>
+                  <td class="t-num" data-sort="{{ sortv(h.value if h else none) }}" data-sig="hslr">{% if h and h.value is not none %}{{ b_upct(h.value) }}{{ etag('估算', '', {'分子': num(h.num) ~ ' 件（低评商品 T−1 月销量）', '分母': num(h.den) ~ ' 件（细分 T−1 月销量）', '涉及商品': (h.cnt or 0) ~ ' 个', '来源文件': 'C1 月度类目商品、C6 评论痛点', '性质': '第三方估算销量', '数据包': ver.package}, '高销低评占比') }}<div class="cell-sub">{{ h.cnt or 0 }} 个商品</div>{% else %}{{ nodata(h) }}{% endif %}</td>
+                  {% for key, kind in (('unit_asin', 'units'), ('premium', 'spct'), ('trend', 'pp'), ('low_score', 'pct')) %}
+                  {% set c = s[key] %}
+                  <td class="t-num col-2" data-sort="{{ sortv(c.value if c else none, 1 if kind in ('units', 'pp') else 100) }}" data-sig="{{ key }}">{% if c and c.value is not none %}{% if kind == 'units' %}{{ '%.1f'|format(c.value) }} 件{% elif kind == 'spct' %}{{ b_spct(c.value) }}{% elif kind == 'pp' %}{{ b_spp(c.value) }}{% else %}{{ b_upct(c.value) }}{% endif %}{{ etag('候选', 'cand') }}{% if cross %}<div class="cell-sub">{{ oldn }}</div>{% endif %}{% else %}{{ nodata(c) }}{% endif %}</td>
+                  {% endfor %}
+                  <td class="t-num" data-sort="{{ sortv(r.backfill) }}">{% if r.backfill %}{{ etag('回填 ' ~ pct0(r.backfill), 'fill') }}{% else %}<span class="small muted">0%</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted" style="margin-top: var(--space-3)">候选 = 产品经理现用的 4 个指标（单位 ASIN 贡献、属性溢价、属性趋势、低分高销），只作回测对照，窄屏时点“候选信号列”展开 · 回填 = 至少一个类型属性来自父体回填的子体占比 · 无数据 = 所需数据缺失，不按 0 计</p>
+        </section>
+        <p class="page-foot">数据包 {{ ver.package }}{{ '（截面）' if cross }} · 字段约定 v{{ ver.contract }} · 品类配置 v{{ ver.config }} · 信号计算 {{ ver.computed_at }} · {{ CARD.CROSS_TEXT if cross else '参照人群：' ~ reference }}</p>
+        {% endif %}
+{% endblock %}
+{% block overlays %}
+<div id="seg-drawer-slot">
+{% if drawer %}{% include "partials/B-segment-drawer.html" %}{% endif %}
+</div>
+{% endblock %}

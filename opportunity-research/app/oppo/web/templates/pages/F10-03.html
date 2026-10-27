@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}备份与恢复{% endblock %}
+{% block content %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>备份与恢复</h1>
+            <p class="page-head__sub">导出本月报告后自动备份 · 每份备份包含台账、策略库、字段约定、品类配置和全部确认记录，并附数据包指纹清单</p>
+          </div>
+        </div>
+
+        {% if restore %}
+        <div id="restore-done">
+          <div class="banner banner--ok" role="status" style="margin-bottom: var(--space-6)">
+            {{ icon('check-circle') }}
+            <div class="banner__body">
+              <div class="banner__title">已恢复到 <span data-done-time>{{ (restore.backup_time or '')[:16] }}</span> 的备份</div>
+              <div>恢复于 {{ restore.created_at[:16] }} · 台账、策略库、字段约定、品类配置和确认记录已与该备份逐条核对一致{% if pre_backup %} · 恢复前的状态已自动备份为 {{ pre_backup.created_at[:16] }}，需要撤回时从它恢复{% endif %}。字段约定或品类配置与当前结果所用版本不同时，相关结果标为需重算。</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="grid-2 enter" style="--i:1">
+          <section class="panel" aria-labelledby="last-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="last-title">最近一次备份</h2>
+              {% if last %}{{ badge('成功' if last.status == 'success' else '失败') }}{% endif %}
+            </div>
+            <div class="panel__body">
+              {% if not setting and not last %}
+              <p class="muted">还没有设置备份目录。导出前请先在右侧设置。</p>
+              {% elif not last %}
+              <p class="muted">还没有备份。导出本月报告后会自动备份到这里。</p>
+              {% elif last.status == 'success' %}
+              <dl class="kv">
+                <dt>时间</dt><dd class="num" data-last="time">{{ last.created_at[:16] }}</dd>
+                <dt>触发</dt><dd data-last="trigger">{{ last_trigger }}{{ '后自动备份' if last.trigger == '导出后自动' else '' }}</dd>
+                <dt>大小</dt><dd class="num" data-last="size">{{ size_text(last.size) }}</dd>
+                <dt>位置</dt><dd class="fp" data-last="folder">{{ last.path }}</dd>
+                <dt>下次</dt><dd>{% if cur_snap %}导出 {{ cur_snap.month }} 报告后自动备份{{ '（本月尚未导出）' if not cur_snap.exported_at else '' }}{% else %}导出本月报告后自动备份{% endif %}</dd>
+              </dl>
+              {% else %}
+              <dl class="kv">
+                <dt>失败时间</dt><dd class="num" data-last="time">{{ last.created_at[:16] }}</dd>
+                <dt>原因</dt><dd class="danger-text" data-last="error">{{ last.error }}</dd>
+                <dt>触发</dt><dd>{{ last_trigger }}</dd>
+                <dt>上次成功</dt><dd class="num">{{ last_ok.created_at[:16] if last_ok else '还没有成功的备份' }}</dd>
+              </dl>
+              <p class="small muted" style="margin-top: var(--space-3)">已有备份未被删除或改动；未完成的这一份不出现在列表中。</p>
+              <div class="row" style="margin-top: var(--space-3)"><button class="btn btn--sm" type="button" data-post="/settings/backup/run"{% if running %} aria-disabled="true" disabled{% endif %}>{{ icon('arrows-clockwise') }}<span>重试备份</span></button></div>
+              {% endif %}
+            </div>
+            <div class="panel__foot">备份失败时，这里显示失败原因和上次成功备份的时间；已有备份不会被删除或改动。</div>
+          </section>
+
+          <section class="panel" aria-labelledby="dir-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="dir-title">备份目录</h2>
+              <span class="section__note">导出前必须设置</span>
+            </div>
+            <form class="panel__body stack" id="dir-form" data-ajax action="/settings/backup/dir" novalidate>
+              <div class="field">
+                <label class="field__label" for="bk-dir">备份目录 <span class="req">*</span></label>
+                <input class="input" id="bk-dir" name="directory" value="{{ setting.directory if setting else '' }}" spellcheck="false" aria-describedby="bk-dir-result" placeholder="如 D:\机会判定台备份\">
+                <span class="field__hint" id="bk-dir-result" data-dir-result>{% if setting %}{{ badge('可以写入', 'ok', 'check') }} 可用空间 {{ size_gb(free) }} · 检测于 {{ (setting.checked_at or '')[:16] }}{% endif %}</span>
+                <span class="field-error" data-error-for="directory"></span>
+              </div>
+              <div class="row">
+                <button class="btn" type="button" data-dir-check>{{ icon('folder-open') }}<span>检测能否写入</span></button>
+                <button class="btn" type="submit">保存目录</button>
+              </div>
+              <p class="small muted">建议选本机另一块磁盘或移动硬盘上的文件夹。保存前会先检测一次能否写入，不能写入时不保存并显示原因。数据包原件较大且你手里都有，不进入备份。</p>
+            </form>
+          </section>
+        </div>
+
+        <section class="section enter" style="--i:2" aria-labelledby="list-title">
+          <div class="section__head">
+            <h2 class="section__title" id="list-title">备份列表</h2>
+            <span class="section__note">共 <span data-bk-count>{{ files|length }}</span> 份 · 新的在上 · 点"数据包指纹"查看清单，恢复后重新导入数据包时按指纹识别</span>
+          </div>
+          {% if files %}
+          <div class="table-wrap">
+            <table class="table" id="backup-table">
+              <thead>
+                <tr>
+                  <th scope="col">备份时间</th>
+                  <th scope="col">触发</th>
+                  <th scope="col">内容范围</th>
+                  <th scope="col">数据包指纹</th>
+                  <th class="t-num" scope="col">大小</th>
+                  <th scope="col"><span class="visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in files %}
+                <tr data-backup="{{ f.name }}"{% if restore and pre_backup and pre_backup.path == f.path %} class="is-selected"{% endif %}>
+                  <td class="t-nowrap"><div class="cell-title num">{{ (f.created_at or '')[:16] }}</div><div class="cell-sub mono">{{ f.folder }}</div></td>
+                  <td>{{ f.trigger_text }}</td>
+                  <td>台账：{{ f.stats.ledger }} · 策略库：规则 {{ f.stats.rules.split(' · ')[0] }}<div class="cell-sub">字段约定 {{ f.stats.conv }} · 品类配置 {{ f.stats.cfg }} · 确认记录 {{ f.stats.conf }}</div></td>
+                  <td>{% if f.fps %}{% set pop = {} %}{% for p in f.fps %}{% set _ = pop.update({p.label: p.fingerprint[:8] ~ ('（截面）' if p.kind == 'cross' else '')}) %}{% endfor %}<button class="etag" type="button" data-pop-title="数据包指纹清单（前 8 位）" data-pop="{% for k, v in pop.items() %}{{ k }}={{ v }}{{ ';' if not loop.last }}{% endfor %}">{{ icon('fingerprint') }}{{ f.fps|length }} 个</button>{% else %}<span class="muted">无</span>{% endif %}</td>
+                  <td class="t-num">{{ size_text(f.size) }}</td>
+                  <td class="t-nowrap">{% if running %}<button class="btn btn--danger btn--sm" type="button" aria-disabled="true" data-tip="{{ running.kind }} 正在运行，完成后再试">{{ icon('clock-counter-clockwise') }}<span>恢复</span></button>{% else %}<button class="btn btn--danger btn--sm" type="button" data-open="#restore-modal-{{ loop.index }}">{{ icon('clock-counter-clockwise') }}<span>恢复</span></button>{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="panel"><div class="empty">{{ icon('database') }}<div class="empty__title">还没有备份</div><p class="empty__desc">{{ '还没有备份。导出本月报告后会自动备份到这里。' if setting else '还没有设置备份目录。设置后，导出本月报告时会自动备份到这里。' }}</p></div></div>
+          {% endif %}
+        </section>
+
+        <p class="page-foot">数据目录 {{ data_dir }} · 备份目录 {{ setting.directory if setting else '未设置' }} · 备份只写入你指定的目录，不上传、不调用外部服务 · 有计算任务运行时不能恢复</p>
+{% endblock %}
+{% block overlays %}
+{% for f in files %}
+        <div class="modal" id="restore-modal-{{ loop.index }}" role="dialog" aria-modal="true" aria-labelledby="restore-title-{{ loop.index }}" aria-hidden="true">
+          <div class="modal__dialog">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="restore-title-{{ loop.index }}">恢复到 {{ (f.created_at or '')[:16] }} 的备份？</h2>
+                <p class="modal__sub mono">{{ f.path }} · {{ size_text(f.size) }}</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <form class="modal__body stack-lg" id="restore-form-{{ loop.index }}" data-ajax action="/settings/backup/restore" novalidate>
+              <input type="hidden" name="path" value="{{ f.path }}">
+              <input type="hidden" name="confirm" value="yes">
+              <div class="banner banner--block" data-form-error hidden role="alert">{{ icon('warning-octagon') }}<div class="banner__body" data-form-error-text></div></div>
+              <div class="banner banner--warn">
+                {{ icon('warning') }}
+                <div class="banner__body">
+                  <div class="banner__title">将覆盖当前的台账、策略库、字段约定、品类配置和确认记录</div>
+                  <div>该备份之后新增或修改的内容会被替换，例如之后生成的快照、立项记录、规则版本和确认记录。</div>
+                </div>
+              </div>
+              <section aria-labelledby="restore-diff-title-{{ loop.index }}">
+                <div class="section__head">
+                  <h3 id="restore-diff-title-{{ loop.index }}">当前 → 恢复后</h3>
+                  <span class="section__note">数据包原件不在备份中，不受影响</span>
+                </div>
+                <div class="diff">
+                  {% for k, label in [('ledger', '台账'), ('rules', '策略库'), ('conv', '字段约定'), ('cfg', '品类配置'), ('conf', '确认记录')] %}
+                  {% set same = current[k] == f.stats[k] %}
+                  <span class="diff__key">{{ label }}</span><span class="{{ 'muted' if same else 'diff__old' }}">{{ current[k] }}</span><span class="{{ 'muted' if same else 'diff__new' }}">{{ '不变' if same else f.stats[k] }}</span>
+                  {% endfor %}
+                </div>
+              </section>
+              <section aria-labelledby="restore-steps-title-{{ loop.index }}">
+                <h3 id="restore-steps-title-{{ loop.index }}">确认后系统会</h3>
+                <ol class="small" style="margin-top: var(--space-2)">
+                  <li>先把当前状态自动备份到 {{ setting.directory if setting else '备份目录' }}，这一步不能跳过，需要撤回时从它恢复。</li>
+                  <li>用所选备份覆盖上面 5 类内容，并逐条核对与备份一致。</li>
+                  <li>完成后在本页显示所恢复备份的时间。字段约定或品类配置与当前结果所用版本不同时，相关结果标为需重算。</li>
+                </ol>
+              </section>
+            </form>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--danger" type="submit" form="restore-form-{{ loop.index }}" data-restore-confirm>{{ icon('clock-counter-clockwise') }}<span>确认恢复</span></button>
+            </div>
+          </div>
+        </div>
+{% endfor %}
+{% endblock %}

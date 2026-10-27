@@ -1,1 +1,5 @@
 /* PAGE styles owned by the analysis group */
+/* Insufficient-sample interval bars use the de-emphasised band, as in the prototype's .ibar--muted */
+.ibar--grey .ibar__band { fill: var(--viz-deemph); }
+.ibar--grey .ibar__dot { fill: var(--muted); }
+#export-modal .tab[role="tab"] { cursor: default; }

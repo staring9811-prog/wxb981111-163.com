@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}台账 · 到期对账{% endblock %}
+{% block content %}
+{% set ledger_tab = 'reconcile' %}
+{% set succ = cfg.success %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>台账</h1>
+            <p class="page-head__sub">月度快照、立项决定与到期对账 · 记录只追加，保存后不可修改</p>
+          </div>
+          <div class="page-head__actions"></div>
+        </div>
+{% include "partials/D-tabs.html" %}
+
+        <div class="stats enter" style="--i:2">
+          <div class="stat">
+            <div class="stat__label">已对账快照</div>
+            <div class="stat__value">{{ recs|length }}<span class="stat__unit">个</span></div>
+            <div class="stat__meta">历史 {{ counts.history }} · 截面 {{ counts.cross }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">最近一次对账倍数</div>
+            {% if latest %}
+            <div class="stat__value">{{ mult(latest.multiple) }}<span class="etag">推导</span></div>
+            <div class="stat__meta">{{ latest.batch }} 快照{% if latest.mode == 'cross' %}（截面）{% endif %} · {{ latest.created_at[:10] }} 对账</div>
+            {% else %}
+            <div class="stat__value">—</div>
+            <div class="stat__meta">还没有到期的快照</div>
+            {% endif %}
+          </div>
+          <div class="stat">
+            <div class="stat__label">下次到期</div>
+            {% if next_due %}
+            <div class="stat__value">{{ next_due.expected }}</div>
+            <div class="stat__meta">{{ next_due.label }}{% if next_due.progress %} · 批次已判定 {{ next_due.progress.decided }} / {{ next_due.progress.total }}{% endif %}</div>
+            {% else %}
+            <div class="stat__value">—</div>
+            <div class="stat__meta">没有未到期的快照</div>
+            {% endif %}
+          </div>
+          <div class="stat">
+            <div class="stat__label">自家立项</div>
+            <div class="stat__value">{{ own|length }}<span class="stat__unit">个</span></div>
+            {% set lres = launched|map(attribute='launch')|map(attribute='status')|list %}
+            <div class="stat__meta">已上架 {{ launched|length }}{% if launched %}（{% for s in ['命中', '未命中', '观察中', '数据不全'] if s in lres %}{{ s }} {{ lres|select('equalto', s)|list|length }}{{ '、' if not loop.last }}{% endfor %}）{% endif %} · 未上架 {{ own|length - launched|length }}</div>
+          </div>
+        </div>
+
+        <section class="section enter" style="--i:3" aria-labelledby="recon-title">
+          <div class="section__head">
+            <h2 class="section__title" id="recon-title">竞品新品对账</h2>
+            <span class="section__note">快照对应批次的新 SPU 全部完成 {{ succ.window_months }} 个月判定后自动生成 · 每月只用最后一次导出的那版</span>
+          </div>
+          {% for u in upgrades %}
+          {% set lh = latest_hist %}
+          <div class="banner banner--ok" style="margin-bottom: var(--space-3)">
+            {{ icon('seal-check') }}
+            <div class="banner__body">
+              <div class="banner__title">{{ u.code }} 已由"历史观察"升为"已验证"</div>
+              <div>{{ u.code }}（{{ u.action }}）在 {{ lh.batch }} 快照中适用 {{ u.segments.with_batch|length }} 个细分，起量新 SPU 实际命中 {{ u.hits }} / {{ u.n }} = {{ pct(u.hits / u.n if u.n else none) }}，是同批次全类目 {{ pct(u.batch_avg) }} 的 {{ '%.2f'|format(u.multiple) }} 倍，达到{{ u.action }}的验证条件（{{ '≥ 2 倍' if u.action == '立项候选' else '≤ 0.5 倍' }}）。依据对账月份：{{ u.recon_month }}。</div>
+            </div>
+            <div class="banner__actions"><a class="btn btn--sm" href="/rules">查看策略库</a></div>
+          </div>
+          {% endfor %}
+          {% if recs %}
+          <div class="table-wrap">
+            <table class="table" id="recon-table">
+              <thead>
+                <tr>
+                  <th scope="col">快照与对应批次</th>
+                  <th class="t-num" scope="col">前 20% 细分实际命中率</th>
+                  <th class="t-num" scope="col">全类目平均</th>
+                  <th class="t-num" scope="col">倍数</th>
+                  <th scope="col">实际与回测预期区间</th>
+                  <th scope="col">结论</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in recs %}
+                {% set cross = r.mode == 'cross' %}
+                {% set top_rate = r.top_hits / r.top_n if r.top_n else none %}
+                {% set all_rate = r.all_hits / r.all_n if r.all_n else none %}
+                {% set top_txt = pct(top_rate) ~ '（' ~ r.top_hits ~ '/' ~ r.top_n ~ '）' %}
+                {% set all_txt = pct(all_rate) ~ '（' ~ r.all_hits ~ '/' ~ r.all_n ~ '）' %}
+                <tr id="recon-{{ r.id }}"{% if focus == r.id %} class="is-selected"{% endif %} data-recon-row="{{ r.id }}">
+                  <td class="t-nowrap"><div class="cell-title">{{ r.snapshot.label if r.snapshot else r.batch }}{% if cross %}{{ etag('截面', 'cross') }}{% endif %}</div><div class="cell-sub">{{ '截面卡 ' ~ r.snapshot.card_label.replace('截面 ', '') if cross and r.snapshot else '判定卡 ' ~ (r.snapshot.card_label if r.snapshot else '—') }} · 批次 {{ r.batch }}</div><div class="cell-sub">{{ r.created_at[:10] }} 对账 · 对账月份 {{ r.recon_month }}</div></td>
+                  <td class="t-num">{{ pct(top_rate) }}{{ etag('n=' ~ r.top_n) }}<div class="cell-sub">前 {{ r.snapshot.content.top20.segments|length if r.snapshot else '—' }} 名 · 命中 {{ r.top_hits }} / {{ r.top_n }}</div></td>
+                  <td class="t-num">{{ pct(all_rate) }}{{ etag('n=' ~ r.all_n) }}<div class="cell-sub">命中 {{ r.all_hits }} / {{ r.all_n }}{% if r.incomplete %}，{{ r.incomplete }} 个数据不全不计入分母{% endif %}</div></td>
+                  <td class="t-num"><span class="strong">{{ mult(r.multiple) }}</span><span class="etag">推导</span></td>
+                  <td class="t-nowrap">{{ recon_bar(top_rate, r.exp_lo, r.exp_hi, all_rate, top_txt, all_txt, cross) }}<span class="ibar-text">预期 {{ ci_text([r.exp_lo, r.exp_hi]) }}</span>{% if cross %}{{ etag('截面', 'cross') }}{% endif %}</td>
+                  <td style="min-width: 150px">
+                    {% if r.within %}{% if cross %}{{ badge(r.within ~ '（截面）', 'cross', 'check-circle' if r.within == '落在区间内' else 'info') }}{% else %}{{ badge(r.within, 'ok' if r.within == '落在区间内' else '', 'check-circle' if r.within == '落在区间内' else 'info') }}{% endif %}{% else %}{{ etag('无数据', 'nodata') }}{% endif %}
+                    {% if cross %}<div class="cell-sub">截面对账仅作参考，不改变规则状态</div>
+                    {% else %}{% for x in r.rules if x.result == '升为已验证' %}<div class="cell-sub"><a href="/rules?rule={{ x.code }}">{{ x.code }} 升为已验证</a></div>{% endfor %}{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted" style="margin-top: var(--space-2)">浅蓝带为快照保存时回测给出的预期区间，圆点为实际命中率，竖线为全类目实际平均。参照人群：{{ reference }}。</p>
+          {% if top_rows %}
+          <details class="small" style="margin-top: var(--space-3)">
+            <summary>前 20% 细分明细（按快照当时的品类配置划分细分）</summary>
+            <div class="table-wrap" style="margin-top: var(--space-2)">
+              <table class="table">
+                <thead>
+                  <tr><th scope="col">快照</th><th class="t-num" scope="col">当时排名</th><th scope="col">细分</th><th scope="col">当时锦囊</th><th class="t-num" scope="col">新 SPU</th><th class="t-num" scope="col">命中</th><th class="t-num" scope="col">实际命中率</th></tr>
+                </thead>
+                <tbody>
+                  {% for t in top_rows %}
+                  <tr><td class="t-nowrap">{{ t.rec.snapshot.label if t.rec.snapshot else t.rec.batch }}</td><td class="t-num">{{ t.rank }}</td><td class="t-nowrap">{{ segname(t.segment) }}</td><td class="t-nowrap">{% if t.tips %}{% set parts = t.tips[0].split(' ') %}{{ badge(parts[0]) }} <span class="mono small">{{ parts[1:]|join(' ') }}</span>{% else %}<span class="muted">—</span>{% endif %}</td><td class="t-num">{{ t.n }}</td><td class="t-num">{{ t.hits }}</td><td class="t-num">{{ pct(t.hits / t.n if t.n else none) }}{{ etag('n=' ~ t.n) }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </details>
+          {% endif %}
+          {% else %}
+          <div class="panel"><div class="empty">{{ icon('hourglass') }}<div class="empty__title">还没有到期的快照</div><p class="empty__desc">{% if next_due %}最早可对账：{{ next_due.expected }}（{{ next_due.label }}）。{% endif %}快照对应批次的新 SPU 全部完成 {{ succ.window_months }} 个月判定后，在那次月更计算成败时自动对账。</p></div></div>
+          {% endif %}
+        </section>
+
+        {% if latest_hist %}
+        {% set lh = latest_hist %}
+        <section class="section enter" style="--i:4" aria-labelledby="rule-recon-title">
+          <div class="section__head">
+            <h2 class="section__title" id="rule-recon-title">规则对账 · {{ lh.batch }} 快照</h2>
+            <span class="section__note">快照锦囊引用的"历史观察"规则 · 规则倍数 = 适用细分的实际命中率 ÷ 同批次全类目 {{ pct(lh.all_hits / lh.all_n if lh.all_n else none) }}（{{ lh.all_hits }} / {{ lh.all_n }}）</span>
+          </div>
+          {% if lh.rules %}
+          <div class="table-wrap">
+            <table class="table" id="rule-recon-table">
+              <thead>
+                <tr>
+                  <th scope="col">规则</th>
+                  <th scope="col">动作</th>
+                  <th class="t-num" scope="col">适用细分</th>
+                  <th class="t-num" scope="col">实际命中率</th>
+                  <th class="t-num" scope="col">规则倍数</th>
+                  <th scope="col">验证条件</th>
+                  <th scope="col">结果</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for x in lh.rules %}
+                {% set segs = x.segments %}
+                <tr data-rule="{{ x.code }}">
+                  <td><a class="tlink mono" href="/rules?rule={{ x.code }}">{{ x.code }}</a><div class="cell-sub">{{ x.condition_text }}</div></td>
+                  <td class="t-nowrap">{{ badge(x.action) }}</td>
+                  <td class="t-num">{{ segs.with_batch|length }} 个<div class="cell-sub">快照引用 {{ segs.referenced|length }} 个，{{ segs.with_batch|length }} 个有本批次新 SPU</div></td>
+                  <td class="t-num">{% if x.n %}{{ pct(x.hits / x.n) }}{{ etag('n=' ~ x.n) }}<div class="cell-sub">命中 {{ x.hits }} / {{ x.n }}</div>{% else %}{{ etag('无数据', 'nodata') }}{% endif %}</td>
+                  <td class="t-num">{% if x.multiple is not none %}<span class="strong">{{ mult(x.multiple) }}</span><span class="etag">推导</span>{% else %}{{ etag('无数据', 'nodata') }}{% endif %}</td>
+                  <td class="t-nowrap">{{ {'立项候选': '≥ 2 倍', '放弃': '≤ 0.5 倍'}.get(x.action, '只记录') }}</td>
+                  <td class="t-nowrap">
+                    {% if x.result == '升为已验证' %}{{ badge('升为已验证', 'pass', 'seal-check') }}<div class="cell-sub">生成 {{ x.code }} · v{{ x.new_version_no }}</div>
+                    {% elif x.action == '观察' %}{{ badge('已记录', '', 'clipboard-text') }}<div class="cell-sub">观察规则不升级，状态不变</div>
+                    {% else %}{{ badge('未达条件', '', 'minus') }}<div class="cell-sub">{{ x.result }}</div>{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="small muted">这份快照的锦囊没有引用"历史观察"规则。</p>
+          {% endif %}
+          <p class="small muted" style="margin-top: var(--space-2)">立项候选规则倍数 ≥ 2、放弃规则倍数 ≤ 0.5 时升为"已验证"并生成新版本；观察规则只记录倍数和对账月份。截面快照的规则对账只作参考，不改变规则状态。</p>
+        </section>
+        {% endif %}
+
+        <section class="section enter" style="--i:4" aria-labelledby="due-title">
+          <div class="section__head">
+            <h2 class="section__title" id="due-title">未到期快照</h2>
+            <span class="section__note">预计可对账 = 快照月份 + {{ succ.window_months }} 个月的月更（对应批次判定窗口结束后的下一个月）</span>
+          </div>
+          {% if pending %}
+          <div class="table-wrap">
+            <table class="table" id="due-table">
+              <thead>
+                <tr><th scope="col">快照</th><th scope="col">对应批次</th><th scope="col">批次判定进度</th><th scope="col">判定窗口结束</th><th scope="col">预计可对账</th></tr>
+              </thead>
+              <tbody>
+                {% for s in pending %}
+                {% set p = s.progress %}
+                <tr>
+                  <td class="t-nowrap"><div class="cell-title">{{ s.label }}{% if s.mode == 'cross' %}{{ etag('截面', 'cross') }}{% endif %}</div><div class="cell-sub">判定卡 {{ s.card_label }} · {{ '已导出' if s.exported_at else '未导出，导出后以导出版为准' }}</div></td>
+                  <td class="t-nowrap">{{ s.month }}<div class="cell-sub">{% if s.this_month %}本月批次{% elif p %}起量新 SPU {{ p.total }}{{ etag('n=' ~ p.total) }}{% else %}无数据{% endif %}</div></td>
+                  <td style="min-width: 180px">
+                    {% if s.this_month or not p %}{{ etag('无数据', 'nodata') }}<div class="cell-sub">{{ '本月上架的新品，下月起才有数据' if s.this_month else '暂无批次数据' }}</div>
+                    {% else %}
+                    <div class="row" style="gap: var(--space-2)"><span class="num">已判定 {{ p.decided }} / {{ p.total }}</span></div>
+                    <div class="meter" style="margin-top: var(--space-1); max-width: 160px" role="meter" aria-valuemin="0" aria-valuemax="{{ p.total }}" aria-valuenow="{{ p.decided }}" aria-label="批次 {{ s.month }} 已判定 {{ p.decided }} / {{ p.total }}"><i style="width:{{ (p.decided / p.total * 100)|round(1) if p.total else 0 }}%"></i></div>
+                    <div class="cell-sub">{% set bits = [] %}{% if p.hit %}{% set _ = bits.append('命中 ' ~ p.hit) %}{% endif %}{% if p.miss %}{% set _ = bits.append('未命中 ' ~ p.miss) %}{% endif %}{% if p.watch %}{% set _ = bits.append('观察中 ' ~ p.watch) %}{% endif %}{% if p.incomplete %}{% set _ = bits.append('数据不全 ' ~ p.incomplete) %}{% endif %}{{ bits|join(' · ') or '没有起量新 SPU' }}</div>
+                    {% endif %}
+                  </td>
+                  <td class="t-nowrap num">{{ s.window_end }}</td>
+                  <td class="t-nowrap num"><span class="strong">{{ s.expected }}</span>{% if s.due_now %} {{ badge('可对账', 'watch', 'hourglass') }}<div class="cell-sub"><a href="/">待本月计算</a></div>{% elif loop.first %} {{ badge('下一个', 'watch', 'hourglass') }}{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="small muted">没有未到期的快照。</p>
+          {% endif %}
+          <p class="small muted" style="margin-top: var(--space-2)">{% if unused %}{% for u in unused %}{{ u.label }}{{ '、' if not loop.last }}{% endfor %}不用于对账：{{ unused[0].unused_reason }}。{% endif %}<a href="/ledger/snapshots">在月度快照中查看全部版本</a></p>
+        </section>
+
+        <section class="section enter" style="--i:5" aria-labelledby="own-title">
+          <div class="section__head">
+            <h2 class="section__title" id="own-title">自家立项对账</h2>
+            <span class="section__note">按立项日期排列 · 与竞品新品用同一条成功线（配置 v{{ cfg_no }}）：上架当月起 {{ succ.window_months }} 个月内小类 BSR ≤ {{ succ.bsr_max|int }}，或 SPU 任一月销售额 ≥ {{ money(succ.gmv_min) }}</span>
+          </div>
+          {% if own %}
+          <div class="table-wrap">
+            <table class="table" id="own-table">
+              <thead>
+                <tr><th scope="col">立项与关联细分</th><th scope="col">当时的排序与锦囊</th><th scope="col">上架</th><th scope="col">自家结果</th></tr>
+              </thead>
+              <tbody>
+                {% for r in own %}
+                {% set st = r.launch %}
+                <tr id="own-{{ r.code|lower }}" data-own="{{ r.code }}">
+                  <td style="min-width: 260px"><div class="cell-title"><span class="mono">{{ r.code }}</span> · {{ r.project_name or r.segment_name }}</div><div class="cell-sub">{{ segname(r.segment_name or '') }}</div><div class="cell-sub">{{ r.kind }}{% if r.corrects %}（更正 {{ r.corrects.code }}）{% endif %} · 立项 {{ r.project_date or '—' }}</div></td>
+                  <td>
+                    {% if not r.snapshot %}无对应快照（补录）<div class="cell-sub">当时依据：{{ r.basis_note or '未填写' }}</div>
+                    {% elif r.snap_row %}{% set sr = r.snap_row %}
+                    <div>{{ r.snapshot.label }} · 第 {{ sr.rank }} 名{% if not sr.effective %} · 样本不足{% endif %}</div>
+                    {% if sr.tips %}{% set t = sr.tips[0] %}<div class="row" style="gap: var(--space-2); margin-top: 2px">{{ badge(t.action) }}<span class="mono small">{{ t.rule }}</span><span class="small muted">当时为"{{ t.status }}"</span></div>{% endif %}
+                    <div class="t-nowrap" style="margin-top: 2px">{{ ibar(sr.point, sr.ci, r.snap_avg, sr.sample, avg_label='全类目平均（' ~ r.snapshot.month ~ ' 快照）', grey=r.snapshot.card_status == '未验证') }}<span class="ibar-text">{{ ci_text(sr.ci) }}</span>{{ etag('n=' ~ sr.sample) }}</div>
+                    {% else %}{{ r.snapshot.label }}<div class="cell-sub">该细分不在这份快照的排序中</div>{% endif %}
+                  </td>
+                  <td class="t-nowrap">{% if st %}{{ st.launch_month }}<div class="cell-sub">窗口 {{ st.launch_month }} 至 {{ st.window_end }}{% if st.elapsed >= st.window and not st.missing %} · {{ st.window }} 个月齐全{% elif st.elapsed < st.window %} · 已过 {{ st.elapsed }} 个月{% endif %}</div>{% else %}未上架<div class="cell-sub">在研</div>{% endif %}<div class="cell-sub"><a href="/ledger/reconcile?launch={{ r.code }}">录入上架数据</a></div></td>
+                  <td style="min-width: 220px">
+                    {% if st %}{% set pop = own_pop(st) %}
+                    {{ badge(st.status, OWN_BADGE.get(st.status)) }}
+                    <div class="cell-sub">{% if st.best_bsr is not none %}最好 BSR {{ st.best_bsr|int }}{{ etag('实测', '', pop, '自家上架数据') }}{% else %}BSR 无数据{% endif %} · {% if st.max_sales is not none %}最高月销售额 {{ money(st.max_sales) }}{{ etag('实测', '', pop, '自家上架数据') }}{% else %}销售额无数据{% endif %}</div>
+                    <div class="cell-sub">{% if st.status == '命中' %}第 {{ st.hit_age }} 个月（{{ st.hit_month }}）达到成功线{% elif st.status == '未命中' %}两项都未达标，判为未命中{% elif st.status == '数据不全' %}缺 {{ st.missing|join('、') }} 的数据{% else %}观察中 · 还剩 {{ st.remaining }} 个月{% endif %}</div>
+                    {% else %}<span class="muted">未上架，暂不判定</span>{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="small muted">还没有立项记录。<a href="/ledger/decisions">去记录决定或补录在研立项</a></p>
+          {% endif %}
+          <p class="small muted" style="margin-top: var(--space-2)">{% for c in corrected %}{{ c.code }} 已由 {{ c.corrected_by.code }} 更正，按 {{ c.corrected_by.code }} 对账；{% endfor %}{% for n in nogo %}{{ n.code }}{{ '、' if not loop.last }}{% endfor %}{% if nogo %} 为不立项，不参与自家对账。{% endif %}<a href="/ledger/decisions">查看全部立项记录</a></p>
+        </section>
+
+        <p class="page-foot">{% if pkg %}数据包 {{ pkg.label }}（数据至 {{ pkg.months_to }}）{% else %}还没有历史数据包{% endif %} · 品类配置 v{{ cfg_no }} · 对账在每月计算成败后自动更新 · 规则状态变化同步写入策略库</p>
+{% endblock %}
+{% block overlays %}
+{% if launch %}{% set close_href = '/ledger/reconcile' %}{% include "partials/F10-06.html" %}{% endif %}
+{% endblock %}

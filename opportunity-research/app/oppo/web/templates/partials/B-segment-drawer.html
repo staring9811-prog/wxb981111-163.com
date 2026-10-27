@@ -1,0 +1,193 @@
+{# PAGE-F06-02 细分详情 drawer; context: drawer, T, mode, versions, cfg #}
+{% set dz = drawer %}
+{% set s = dz.sig %}
+{% set cross = mode == 'cross' %}
+{% set ver = versions %}
+        <aside class="drawer" id="seg-drawer" role="dialog" aria-modal="true" aria-labelledby="seg-title" data-open-on-load data-segment="{{ dz.key }}">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="seg-title">{{ segname(dz.name) }}{% if dz.insufficient %} {{ badge('样本不足') }}{% endif %}{% if stale %} {{ badge('需重算') }}{% endif %}</h2>
+              <p class="drawer__sub">细分详情 · T = {{ T }} · {{ '截面口径' if cross else '历史口径' }}{% if dz.rank and not dz.insufficient %} · 排序第 {{ dz.rank }} 名{% endif %} · 样本 {{ dz.sample }}</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+          </div>
+
+          <div class="drawer__body stack-lg">
+            {% if dz.insufficient and dz.adjacent %}
+            <div class="banner">{{ icon('info') }}<div class="banner__body">样本量 {{ dz.sample }} 少于 20，结论只作参考；可在品类配置中合并相邻分档：{{ dz.adjacent|join('、') }}。</div></div>
+            {% endif %}
+            <section aria-labelledby="def-title">
+              <h3 id="def-title">细分定义</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                {% for label, text in dz.definition %}<dt>{{ label }}</dt><dd>{{ text }}</dd>{% endfor %}
+                <dt>未知档</dt><dd class="muted">任一维度为“未知”的子体归入该维度的“未知”档，不在本细分</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="dsig-title">
+              <div class="section__head">
+                <h3 id="dsig-title">当月信号</h3>
+                <span class="section__note">只用早于 {{ T }}-01 的数据</span>
+              </div>
+              <div class="table-wrap">
+                <table class="table" id="drawer-signals">
+                  <thead>
+                    <tr><th scope="col">信号</th><th class="t-num" scope="col">值</th><th scope="col">分子 / 分母</th></tr>
+                  </thead>
+                  <tbody>
+                    {% set d = s.demand %}
+                    <tr data-sig="demand">
+                      <td>需求在涨<div class="cell-sub">关键词 T−4 至 T−1 月搜索量同比</div></td>
+                      <td class="t-num">{% if d and d.value is not none %}{{ b_spct(d.value) }}{{ etag('推导', '', {'口径': 'T−4 至 T−1 月搜索量合计同比', '参与关键词': (d.cnt or 0) ~ ' 个（已映射到本细分）', '来源文件': 'C5 关键词月度', '性质': '推导', '数据包': ver.package}, '需求在涨') }}{% else %}<span class="etag etag--nodata"{% if d and (d.extra or {}).reason %} tabindex="0" data-tip="无数据|{{ d.extra.reason }}"{% endif %}>无数据</span>{% endif %}</td>
+                      <td class="small">{% if d and d.value is not none %}关键词 {{ d.cnt }} 个 · {{ num(d.num) }} / {{ num(d.den) }}{% else %}{{ (d.extra or {}).get('reason', '') if d else '' }}{% endif %}</td>
+                    </tr>
+                    {% set e = s.entry %}
+                    <tr data-sig="entry">
+                      <td>新品进得去<div class="cell-sub">{{ dz.lookback[0] }}–{{ dz.lookback[1] }} 上架的已判定新 SPU</div></td>
+                      {% if cross %}
+                      <td class="t-num small muted">截面模式不适用</td><td class="small muted">新品结果与信号在同一观察期</td>
+                      {% else %}
+                      <td class="t-num">{% if e and e.value is not none %}{{ b_upct(e.value) }}{{ etag('n=' ~ (e.den|int)) }}{% else %}<span class="etag etag--nodata"{% if e and (e.extra or {}).reason %} tabindex="0" data-tip="无数据|{{ e.extra.reason }}"{% endif %}>无数据</span>{% endif %}</td>
+                      <td class="small">{% if e and e.den %}命中 {{ e.num|int }} / 已判定 {{ e.den|int }}{% endif %}</td>
+                      {% endif %}
+                    </tr>
+                    {% set p = s.pain %}
+                    <tr data-sig="pain">
+                      <td>结构类痛点占比<div class="cell-sub">评论日期早于 {{ T }}</div></td>
+                      <td class="t-num">{% if p and p.value is not none %}{{ b_upct(p.value) }}{{ etag('人工', '', {'分子': num(p.num) ~ ' 条结构类痛点评论', '分母': num(p.den) ~ ' 条评论', '去重规则': '父体级评论只计入上月销量最大的子体所在细分', '来源文件': 'C6 评论痛点', '性质': '人工标注（标注版本 ' ~ ((p.extra or {}).get('label_versions') or ['—'])|join('、') ~ '）'}, '结构类痛点占比') }}{% else %}<span class="etag etag--nodata"{% if p and (p.extra or {}).reason %} tabindex="0" data-tip="无数据|{{ p.extra.reason }}"{% endif %}>无数据</span>{% endif %}</td>
+                      <td class="small">{% if p and p.den %}{{ num(p.num) }} / {{ num(p.den) }} 条评论{% endif %}</td>
+                    </tr>
+                    {% set h = s.hslr %}
+                    <tr data-sig="hslr">
+                      <td>高销低评占比<div class="cell-sub">上月销量前 25% 且均分 &lt; 4.0</div></td>
+                      <td class="t-num">{% if h and h.value is not none %}{{ b_upct(h.value) }}{{ etag('n=' ~ (h.cnt or 0)) }}{% else %}<span class="etag etag--nodata"{% if h and (h.extra or {}).reason %} tabindex="0" data-tip="无数据|{{ h.extra.reason }}"{% endif %}>无数据</span>{% endif %}</td>
+                      <td class="small">{% if h and h.value is not none %}涉及 {{ h.cnt or 0 }} 个商品 · {{ num(h.num) }} / {{ num(h.den) }} 件{% endif %}</td>
+                    </tr>
+                    {% set prev_m = recent[-1] %}
+                    {% for key, label, note in (('unit_asin', '单位 ASIN 贡献', prev_m ~ ' 销量 ÷ 有销量的子 ASIN 数'), ('premium', '属性溢价', '对比同宽度档销量加权均价'), ('trend', '属性趋势', '近 3 个月份额对比前 3 个月'), ('low_score', '低分高销', '与高销低评同口径')) %}
+                    {% set c = s[key] %}
+                    <tr data-sig="{{ key }}">
+                      <td>{{ label }}</td>
+                      <td class="t-num">{% if c and c.value is not none %}{% if key == 'unit_asin' %}{{ '%.1f'|format(c.value) }} 件{% elif key == 'premium' %}{{ b_spct(c.value) }}{% elif key == 'trend' %}{{ b_spp(c.value) }}{% else %}{{ b_upct(c.value) }}{% endif %}{{ etag('候选', 'cand') }}{% if key in ('unit_asin', 'low_score') %}{{ etag('估算', '') }}{% endif %}{% else %}<span class="etag etag--nodata"{% if c and (c.extra or {}).reason %} tabindex="0" data-tip="无数据|{{ c.extra.reason }}"{% endif %}>无数据</span>{% endif %}</td>
+                      <td class="small">{{ note }}{% if cross %} · 老品 n={{ ((c.extra or {}).old) if c else 0 }}{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="fill-title">
+              <div class="section__head">
+                <h3 id="fill-title">父体回填</h3>
+                {{ etag('回填 ' ~ pct0(dz.backfill or 0), 'fill') }}
+              </div>
+              <p class="small">{% if dz.backfill %}本细分 {{ pct0(dz.backfill) }} 的子体至少有一个类型属性来自父体回填{% if dz.backfill_items %}：{% for a, v in dz.backfill_items %}{{ a }} {{ pct0(v) }}{{ '、' if not loop.last }}{% endfor %}{% endif %}。{% else %}本细分没有使用父体回填属性的子体。{% endif %}颜色、尺寸、盆数随变体变化，不回填，缺失时归入“未知”档。</p>
+            </section>
+
+            <section aria-labelledby="trend-title">
+              <div class="section__head">
+                <h3 id="trend-title">信号趋势</h3>
+                <span class="section__note">{{ dz.trend_from }} 至 {{ dz.trend_to }}，按当月口径各自计算</span>
+              </div>
+              <div class="grid-2">
+                {% for title, sp in (('需求在涨（同比）', dz.demand_spark), ('新品进得去（命中 / 已判定）', none if cross else dz.entry_spark)) %}
+                <figure style="margin:0">
+                  <figcaption class="small strong">{{ title }}</figcaption>
+                  {% if sp %}
+                  <svg class="spark" viewBox="0 0 260 78" width="100%" role="img" aria-label="{{ title }} {{ sp.aria }}">
+                    <line class="spark__grid" x1="8" y1="56" x2="232" y2="56"/>
+                    <line class="spark__grid" x1="8" y1="{{ sp.zero_y }}" x2="232" y2="{{ sp.zero_y }}"/>
+                    <path class="spark__area" d="{{ sp.area }}"/>
+                    <path class="spark__line" d="{{ sp.line }}"/>
+                    <circle class="spark__dot" cx="{{ sp.last.x }}" cy="{{ sp.last.y }}" r="4"/>
+                    <text class="spark__value" x="236" y="{{ [sp.last.y - 3, 9]|max }}">{{ sp.last.label }}</text>
+                    <text class="spark__label" x="8" y="72">{{ sp.first_m }}</text>
+                    <text class="spark__label" x="232" y="72" text-anchor="end">{{ sp.last_m }}</text>
+                    {% for hp in sp.hits %}<rect class="ibar__hit" x="{{ hp.hx }}" y="0" width="{{ hp.hw }}" height="60" tabindex="0" data-tip="{{ hp.tip }}"/>{% endfor %}
+                  </svg>
+                  {% else %}
+                  <p class="small muted" style="margin-top: var(--space-2)">{{ '截面模式不适用' if cross and loop.index == 2 else '少于 2 个月有数据，不画趋势' }}</p>
+                  {% endif %}
+                </figure>
+                {% endfor %}
+              </div>
+              <details class="small" style="margin-top: var(--space-2)">
+                <summary>表格视图</summary>
+                <div class="table-wrap" style="margin-top: var(--space-2)">
+                  <table class="table">
+                    <thead><tr><th scope="col">月份 T</th><th class="t-num" scope="col">需求在涨</th><th class="t-num" scope="col">新品进得去</th></tr></thead>
+                    <tbody>
+                      {% for t in dz.trend_rows %}
+                      <tr><td>{{ t.m }}</td><td class="t-num">{{ b_spct(t.d) }}</td><td class="t-num">{% if cross %}截面模式不适用{% else %}{{ b_upct(t.e) }}{% if t.en %}（{{ t.en[0] }}/{{ t.en[1] }}）{% endif %}{% endif %}</td></tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </section>
+
+            <section aria-labelledby="pain-title">
+              <div class="section__head">
+                <h3 id="pain-title">结构类痛点构成</h3>
+                <span class="section__note">{% if dz.pain_total %}共 {{ num(dz.pain_total) }} 条结构类痛点评论 · 按痛点事件代码{% else %}无数据{% endif %}</span>
+              </div>
+              {% if dz.pain_bars %}
+              <div class="hbars" style="margin-top: var(--space-4)">
+                {% for b in dz.pain_bars %}
+                <span class="hbar__label">{{ b.label }}</span>
+                <span class="hbar__track"><span class="hbar__bar{% if b.focus %} hbar__bar--focus{% endif %}" style="width:{{ b.width }}%" tabindex="0" data-tip="{{ pct0(b.share) }}|{{ b.n }} / {{ dz.pain_total }} 条"></span></span>
+                <span class="hbar__value">{{ pct0(b.share) }}</span>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="small muted">{{ ((s.pain.extra or {}).get('reason') if s.pain else '') or '本细分没有结构类痛点评论' }}</p>
+              {% endif %}
+            </section>
+
+            <section aria-labelledby="spu-title">
+              <div class="section__head">
+                <h3 id="spu-title">细分内新 SPU</h3>
+                <span class="section__note">{% if cross %}截面已判定 {{ dz.spus|length + dz.spus_more }} 个{% else %}回看期（{{ dz.lookback[0] }}–{{ dz.lookback[1] }} 上架）已判定 {{ dz.spus|length + dz.spus_more }} 个，命中 {{ (dz.spus|selectattr('status', 'equalto', '命中')|list|length) if not dz.spus_more else ((s.entry.num|int) if s.entry and s.entry.num is not none else '—') }}{% endif %}</span>
+              </div>
+              {% if dz.spus %}
+              <div class="table-wrap">
+                <table class="table b-spu-list">
+                  <thead><tr><th scope="col">SPU</th><th scope="col">批次</th><th scope="col">成败</th></tr></thead>
+                  <tbody>
+                    {% for x in dz.spus %}
+                    <tr><td><a class="tlink" href="/spu/{{ x.spu_key|urlencode }}">{{ x.display_id }}</a> <span class="cell-sub">{{ x.brand }}</span></td><td>{{ x.batch }}</td><td>{{ badge(x.status) }}</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% if dz.spus_more %}<p class="small muted" style="margin-top: var(--space-1)">另有 {{ dz.spus_more }} 个未列出</p>{% endif %}
+              {% else %}
+              <p class="small muted">回看期内没有已判定的新 SPU。</p>
+              {% endif %}
+              <p class="small" style="margin-top: var(--space-2)"><a href="/spu?segment={{ dz.key|urlencode }}">在新品与 SPU 中查看本细分全部新 SPU（已判定 {{ dz.decided_all }} 个，观察中 {{ dz.watching }} 个）</a></p>
+            </section>
+
+            <section aria-labelledby="tip-title">
+              <h3 id="tip-title">适用锦囊</h3>
+              {% if dz.tips %}
+              {% for t in dz.tips %}
+              <a class="card-link" href="/kits" style="margin-top: var(--space-3)">
+                <div class="row">{{ badge(t.action) }}{{ badge(t.status) }}<span class="mono muted">{{ t.rule }} · v{{ t.version }}</span></div>
+                <p style="margin-top: var(--space-2)">{{ t.cond }}</p>
+                <p class="small muted" style="margin-top: var(--space-1)">{% if t.ci and t.ci[0] is not none %}预期命中率 {{ ci_text(t.ci) }} · {% endif %}{% if t.batches %}依据批次 {{ t.batches }} · {% endif %}{% if t.n %}样本 {{ t.n }} · {% endif %}{{ '回测生成' if t.origin == '回测' else '人工经验' }}</p>
+              </a>
+              {% endfor %}
+              {% else %}
+              <p class="small muted" style="margin-top: var(--space-2)">{{ '当前判定卡下本细分没有适用的锦囊。' if snapshot_T else '只有本月排序月份显示适用锦囊。' }}</p>
+              {% endif %}
+            </section>
+
+            <p class="page-foot" style="margin-top: 0">数据包 {{ ver.package }} · 约定 v{{ ver.contract }} · 配置 v{{ ver.config }} · 信号计算 {{ ver.computed_at }}</p>
+          </div>
+
+          <div class="drawer__foot">
+            <a class="btn" href="/ranking">在本月排序中查看</a>
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>

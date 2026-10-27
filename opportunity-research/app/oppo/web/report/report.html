@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="品类机会判定台">
+<title>{{ cat.name }} · {{ snap.month }} 细分机会排序 · 快照第 {{ snap.seq }} 版</title>
+<style>
+{{ css }}
+</style>
+</head>
+<body>
+{{ sprite }}
+{% macro nodata() %}<span class="etag etag--nodata">无数据</span>{% endmacro %}
+{% macro tips_cell(r) %}{% if r.tips %}{{ badge(r.tips[0].action) }} <span class="mono">{{ r.tips[0].rule }}</span>{% for t in r.tips[1:] %}<div class="cell-sub">{{ (t.attr_note or '另适用').replace('限', '').replace('的商品', '') }}：{{ t.action }} <span class="mono">{{ t.rule }}</span></div>{% endfor %}{% else %}<span class="muted">无适用锦囊</span>{% endif %}{% endmacro %}
+{% macro summary_head(title, note) %}<summary>{{ icon('caret-right') }}<h3 class="panel__title">{{ title }}</h3><span class="spacer"></span><span class="section__note">{{ note }}</span></summary>{% endmacro %}
+{% set cross = snap.mode == 'cross' %}
+{% set avg = content.average %}
+{% set eff_rows = content.rows|selectattr('effective')|list %}
+{% set short_rows = content.rows|rejectattr('effective')|list %}
+<main>
+  <header class="page-head">
+    <div>
+      <p class="small muted">品类机会判定台 · 网页报告</p>
+      <h1>{{ cat.name }} · {{ snap.month }} 细分机会排序</h1>
+      <p class="page-head__sub">亚马逊{{ '美国' if cat.site == 'US' else cat.site }} · {{ cat.name }}（类目节点 {{ cat.node }}）· 数据至 {{ content.data_to }} · 快照 {{ snap.month }} 第 {{ snap.seq }} 版 · 生成于 {{ generated }} · 操作人 {{ operator }}</p>
+    </div>
+    <div>
+      <div class="stat__label">前 20% 细分{{ '截面' if cross else '' }}命中率 ÷ 全类目平均</div>
+      <div class="hero-figure">{{ mult(bt.multiple) if bt else '无数据' }}{% if card.status == '未验证' %} {{ badge('未达标') }}{% endif %}</div>
+      <div class="small muted">90% 区间 {{ P.mult_ci(bt.mult_ci) if bt else '无数据' }} · 检验组 {{ etag('n=' ~ (bt.all_n if bt and bt.all_n is not none else 0)) }}{% if cross %}{{ etag('截面', 'cross') }}{% endif %}</div>
+    </div>
+  </header>
+
+  {% if card.status == '未验证' %}
+  <div class="banner banner--unverified" role="alert">
+    {{ icon('warning') }}
+    <div class="banner__body">
+      <div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div>
+      <div>判定卡 {{ card.label }} 未达标：{{ card.basis.reason_class or '—' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。下面的排序只能作参考。</div>
+    </div>
+  </div>
+  {% elif card.status == '达标（截面）' %}
+  <div class="banner banner--cross" role="status">
+    {{ icon('intersect') }}
+    <div class="banner__body">
+      <div class="banner__title">{{ CARD.CROSS_TEXT }}</div>
+      <div>截面回测 {{ bt.code if bt else '—' }}{% if bt and bt.test_batches %}（检验组 {{ P.span(bt.test_batches) }}，新品-月 {{ bt.model_rows.test }} 行）{% endif %}中，按截面模型排名前 20% 的细分截面命中率 {{ P.pct1(bt.rate) if bt else '无数据' }}，是全类目平均 {{ P.pct1(bt.avg) if bt else '无数据' }} 的 {{ '%.2f'|format(bt.multiple) if bt and bt.multiple is not none else '—' }} 倍。成败与命中率为{{ CARD.CROSS_LINE_TEXT }}；历史数据包到位并回测后，以历史结论为准。</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="banner banner--ok" role="status">
+    {{ icon('seal-check') }}
+    <div class="banner__body">
+      <div class="banner__title">判定卡 {{ card.label }} 已达标（历史口径）</div>
+      <div>回测 {{ bt.code }} 的检验组（{{ P.span(bt.test_batches) }}，起量新 SPU {{ bt.test_counts.spus }} 个）中，按判定卡排名前 20% 的细分命中率 {{ P.pct1(bt.rate) }}，是全类目平均 {{ P.pct1(bt.avg) }} 的 {{ '%.2f'|format(bt.multiple) }} 倍，并高于{{ '全部 ' if not bt.nodata_current else '' }}{{ bt.computable_current }} 个可计算的现用指标{% if bt.nodata_current %}（{% for r in bt.nodata_current %}{{ r.label }}无数据：{{ r.reason }}{{ '；' if not loop.last }}{% endfor %}，未参与比较）{% endif %}。</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <dl class="kv">
+    <dt>参照人群</dt><dd>{{ content.reference.replace('（', '：').replace('）', '') }}；未起量的新品不计入命中率</dd>
+    <dt>成功线</dt><dd>上架 {{ cfg.success.window_months }} 个月内小类 BSR ≤ {{ cfg.success.bsr_max|int }}，或 SPU 任一月销售额 ≥ {{ money(cfg.success.gmv_min) }}{% if cross %}（{{ CARD.CROSS_LINE_TEXT }}）{% endif %}</dd>
+  </dl>
+
+  <section class="section" aria-labelledby="top-title">
+    <div class="section__head">
+      <h2 class="section__title" id="top-title">本月结论 · {{ eff_rows|length }} 个有效细分{% if card.status == '未验证' %} {{ badge('未验证') }}{% endif %}</h2>
+      <span class="section__note">竖线为全类目平均 {{ P.pct1(avg.rate) }} {{ etag('n=' ~ (avg.n or 0)) }}{% if short_rows %} · 另有 {{ short_rows|length }} 个细分样本不足，见完整排序{% endif %}</span>
+    </div>
+    {% if eff_rows %}
+    <div class="table-wrap">
+      <table class="table" id="top8">
+        <thead>
+          <tr><th class="t-num" scope="col">排名</th><th scope="col">细分</th><th scope="col">预期命中率（90% 区间）</th><th class="t-num" scope="col">样本量</th><th scope="col">锦囊动作</th></tr>
+        </thead>
+        <tbody>
+          {% for r in eff_rows[:10] %}
+          <tr><td class="t-num" data-label="排名">{{ r.rank }}</td><td class="t-nowrap"><span class="cell-title">{{ segname(r.segment) }}</span></td><td class="t-nowrap">{{ ibar(r.point, r.ci, avg.rate, r.sample) }}<span class="ibar-text">{{ pct0(r.point) }}（{{ fmt.ci_text(r.ci) }}）</span>{{ etag('n=' ~ r.sample) }}{% if cross %}{{ etag('截面', 'cross') }}{% endif %}</td><td class="t-num">{{ r.sample }}</td><td>{{ tips_cell(r) }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted">本月没有样本足够的细分。</p>
+    {% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="basis-title">
+    <div class="section__head">
+      <h2 class="section__title" id="basis-title">依据</h2>
+      <span class="section__note">点击标题展开；打印时全部展开</span>
+    </div>
+
+    <details class="panel">
+      {{ summary_head('完整排序 · ' ~ content.rows|length ~ ' 个细分', ('按截面卡 ' ~ card.label.replace('截面 ', '') ~ ' 的命中概率' if cross else '按判定卡 ' ~ card.label ~ ' 得分') ~ '从高到低；得分相同时按样本量、细分名称排序') }}
+      <div class="table-wrap table-wrap--flush">
+        <table class="table">
+          <thead>
+            <tr><th class="t-num" scope="col">排名</th><th scope="col">细分</th><th class="t-num" scope="col">得分</th><th scope="col">预期命中率（90% 区间）</th><th class="t-num" scope="col">样本量</th><th scope="col">锦囊动作</th></tr>
+          </thead>
+          <tbody>
+            {% for r in eff_rows %}
+            <tr><td class="t-num">{{ r.rank }}</td><td class="t-nowrap">{{ segname(r.segment) }}</td><td class="t-num">{{ '%.2f'|format(r.score) if r.score is not none else '无数据' }}</td><td class="t-nowrap">{{ ibar(r.point, r.ci, avg.rate, r.sample) }}<span class="ibar-text">{{ pct0(r.point) }}（{{ fmt.ci_text(r.ci) }}）</span>{{ etag('n=' ~ r.sample) }}</td><td class="t-num">{{ r.sample }}</td><td>{{ tips_cell(r) }}</td></tr>
+            {% endfor %}
+            {% if short_rows %}
+            <tr class="table__divider"><td colspan="6">样本不足 · {{ short_rows|length }} 个细分：已判定的起量新 SPU 少于 20 个，排在全部有效细分之后；区间很宽，锦囊动作仅供参考</td></tr>
+            {% for r in short_rows %}
+            <tr><td class="t-num">{{ r.rank }}</td><td class="t-nowrap">{{ segname(r.segment) }}</td><td class="t-num">{{ '%.2f'|format(r.score) if r.score is not none else '无数据' }}</td><td class="t-nowrap">{{ ibar(r.point, r.ci, avg.rate, r.sample, grey=True) }}<span class="ibar-text">{{ pct0(r.point) }}（{{ fmt.ci_text(r.ci) }}）</span>{{ etag('n=' ~ r.sample) }}</td><td class="t-num">{{ r.sample }} {{ badge('样本不足') }}</td><td>{{ tips_cell(r) }}</td></tr>
+            {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="panel">
+      {% set kc = P.kit_counts(kits) %}
+      {{ summary_head('锦囊 · ' ~ kits|length ~ ' 条', '立项候选 ' ~ kc['立项候选'] ~ ' · 观察 ' ~ kc['观察'] ~ ' · 放弃 ' ~ kc['放弃']) }}
+      <div class="panel__body">
+        {% if kits %}
+        <div class="grid-2">
+          {% for k in kits %}
+          <article class="panel">
+            <div class="panel__body stack">
+              <div class="row">{{ badge(k.action) }}{{ badge(k.status) }}<span class="spacer"></span><span class="mono muted">{{ k.code }} · v{{ k.version }} · {{ k.origin_text }}</span></div>
+              <div>
+                <div class="stat__label">触发条件</div>
+                <h4>{{ k.cond }}</h4>
+              </div>
+              {% if k.advice and k.manual %}<p class="small">建议：{{ k.advice }}</p>{% endif %}
+              <div>
+                <div class="stat__label">预期命中率（90% 区间）</div>
+                {% if k.ci %}
+                <div class="t-nowrap">{{ ibar(k.point, k.ci, avg.rate, k.n) }}<span class="ibar-text">{{ pct0(k.point) }}（{{ fmt.ci_text(k.ci) }}）</span>{{ etag('n=' ~ k.n) }}{% if k.cross %}{{ etag('截面', 'cross') }}{% endif %}</div>
+                {% else %}
+                <div>{{ nodata() }} <span class="small muted">人工经验，尚无回测依据</span></div>
+                {% endif %}
+              </div>
+              <dl class="kv">
+                <dt>依据批次</dt><dd>{% if k.batches %}{{ k.batches }} · 回测 {{ k.backtest }}{% else %}{{ nodata() }}{% endif %}</dd>
+                <dt>样本量</dt><dd>{% if k.n is not none %}{{ k.n }} 个已判定新 SPU{% else %}{{ nodata() }}{% endif %}</dd>
+                <dt>状态</dt><dd>{{ k.note }}</dd>
+                <dt>适用细分</dt><dd>{% if k.segments %}{{ k.segments|map(attribute='name')|join('；') }}{% else %}本月没有适用细分{% endif %}{% if k.attr_note %}（{{ k.attr_note }}）{% endif %}</dd>
+              </dl>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">{{ '判定卡未验证，没有生成锦囊。' if card.status == '未验证' else '当前判定卡下没有锦囊。' }}</p>
+        {% endif %}
+      </div>
+    </details>
+
+    <details class="panel">
+      {{ summary_head('回测摘要 · ' ~ (bt.code if bt else '—'), '切分、倍数与区间、控制干扰因素前后、局限') }}
+      {% if bt %}
+      <div class="panel__body stack-lg">
+        <div class="grid-2">
+          <dl class="kv">
+            <dt>回测</dt><dd>{{ bt.code }} · {{ '截面' if bt.cross else '历史' }}口径 · {{ bt.started }} 开始，用时 {{ bt.duration }} · 随机种子 <span class="fp">{{ bt.seed }}</span></dd>
+            <dt>已判定批次</dt><dd>{{ bt.decided|length }} 个{% if bt.decided %}（{{ P.span(bt.decided) }}）{% endif %}</dd>
+            {% if bt.test_batches %}
+            <dt>{{ '建模组' if bt.cross else '定规则组' }}</dt><dd>{{ bt.rule_batches|length }} 个批次（{{ P.span(bt.rule_batches) }}）· {% if bt.cross %}新品-月 {{ bt.model_rows.model }} 行{% else %}起量新 SPU {{ bt.rule_counts.spus }} 个{% endif %}</dd>
+            <dt>检验组</dt><dd>{{ bt.test_batches|length }} 个批次（{{ P.span(bt.test_batches) }}）· {% if bt.cross %}新品-月 {{ bt.model_rows.test }} 行 · {% endif %}起量新 SPU {{ bt.test_counts.spus }} 个</dd>
+            {% endif %}
+            {% if bt.rate is not none %}
+            <dt>前 20% 细分</dt><dd>{{ bt.k }} 个细分 · 命中 {{ bt.top_hits }} / {{ bt.top_n }} = {{ P.pct1(bt.rate) }}{{ etag('n=' ~ bt.top_n) }}<div class="cell-sub">Wilson 90% 区间 {{ P.ci1(bt.top_ci) }}</div></dd>
+            <dt>全类目平均</dt><dd>命中 {{ bt.all_hits }} / {{ bt.all_n }} = {{ P.pct1(bt.avg) }}{{ etag('n=' ~ bt.all_n) }}</dd>
+            <dt>倍数</dt><dd>{{ mult(bt.multiple) }}（重抽样 1000 次，90% 区间 {{ P.mult_ci(bt.mult_ci) }}）</dd>
+            {% endif %}
+            <dt>结论</dt><dd>{% if bt.achieved %}{{ badge(bt.conclusion) }}{% else %}{{ badge('未达标') }} {{ bt.reason_class or '' }}{% endif %} {% for c in bt.conditions %}{{ c.short }}{{ '；' if not loop.last }}{% endfor %}</dd>
+            <dt>样本不足</dt><dd>{{ bt.insufficient|length }} 个细分（检验组新 SPU &lt; 20），不参与评估</dd>
+          </dl>
+          {% if bt.bars.rows %}
+          <div>
+            <div class="stat__label">检验组前 20% 细分命中率（横轴 {{ bt.bars.scale_text }}，灰色为可计算的现用指标，本次 {{ bt.computable_current }} 个）</div>
+            <div class="hbars" style="margin-top: var(--space-8)">
+              {% for b in bt.bars.rows %}
+              <span class="hbar__label">{{ b.label }}</span>
+              <span class="hbar__track"><span class="hbar__bar{% if b.focus %} hbar__bar--focus{% endif %}" style="width:{{ b.width }}%" title="{{ b.label }}：{{ P.pct1(b.rate) }}，命中 {{ b.hits }} / {{ b.n }}"></span>{% if bt.bars.avg %}<span class="hbar__ref" style="left:{{ bt.bars.two_left }}%">{% if loop.first %}<span class="hbar__ref-label">2 倍线 {{ P.pct1(2 * bt.bars.avg) }}</span>{% endif %}</span>{% endif %}</span>
+              <span class="hbar__value">{{ P.pct1(b.rate) }}{{ etag('n=' ~ b.n) }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% if bt.rows %}
+        <div>
+          <h4>对照</h4>
+          <p class="small muted">判定卡与每个现用指标各自排序取前 20% 细分；无法计算的现用指标写原因，不参与比较。</p>
+          <div class="table-wrap" style="margin-top: var(--space-2)">
+            <table class="table">
+              <thead><tr><th scope="col">排序依据</th><th class="t-num" scope="col">前 20% 命中率</th><th class="t-num" scope="col">分子 / 分母</th><th scope="col">90% 区间</th><th class="t-num" scope="col">倍数</th></tr></thead>
+              <tbody>
+                {% for r in bt.rows if not r.group %}
+                <tr><td>{{ r.label }}{% if r.cand %}<span class="etag etag--cand">候选</span>{% endif %}{% if not r.ok %}<div class="cell-sub">{{ r.reason }}</div>{% endif %}</td>{% if r.ok %}<td class="t-num">{{ P.pct1(r.rate) }}</td><td class="t-num">{{ r.hits }} / {{ r.n }}</td><td class="t-nowrap">{{ P.ci1(r.ci) }}</td><td class="t-num">{{ mult(r.multiple) if r.kind != 'base' else '倍数基准' }}</td>{% else %}<td class="t-num">{{ nodata() }}</td><td class="t-num">{{ nodata() }}</td><td>{{ nodata() }}</td><td class="t-num">{{ nodata() }}</td>{% endif %}</tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+        {% if bt.confounders %}
+        <div>
+          <h4>控制干扰因素前后</h4>
+          <p class="small muted">同时控制 6 项：{{ confounders|join('、') }}。数值为信号对命中的优势比。</p>
+          <div class="table-wrap" style="margin-top: var(--space-2)">
+            <table class="table">
+              <thead><tr><th scope="col">信号</th><th class="t-num" scope="col">控制前</th><th class="t-num" scope="col">控制后</th></tr></thead>
+              <tbody>
+                {% for c in bt.confounders %}
+                <tr><td>{{ c.label }}</td>{% if c.before is none or c.after is none %}<td class="t-num">{{ nodata() }}</td><td class="t-num">{{ nodata() }}</td>{% else %}<td class="t-num">{{ '%.2f'|format(c.before) }}</td><td class="t-num">{{ '%.2f'|format(c.after) }}</td>{% endif %}</tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+        <dl class="kv">
+          <dt>局限</dt><dd>{{ bt.limitation }}</dd>
+          <dt>未进入回测</dt><dd>{% if bt.rejected %}{{ bt.rejected|map(attribute='field')|join('、') }}（采集时快照）{% else %}没有被标为快照的已确认字段{% endif %}</dd>
+          {% if other_bt %}
+          <dt>{{ '历史结论' if cross else '截面结论' }}</dt><dd>{{ other_bt.code }}（{{ '截面' if other_bt.cross else '历史' }}数据包 {{ other_bt.package.label if other_bt.package else '—' }}，{{ other_bt.started[:10] }}）：{{ other_bt.conclusion }}，倍数 {{ mult(other_bt.multiple) }}（90% 区间 {{ P.mult_ci(other_bt.mult_ci) }}）{% if other_bt.cross %}{{ etag('截面', 'cross') }}{% endif %}{% if other_bt.test_batches %}，检验组 {{ P.span(other_bt.test_batches) }}{% if other_bt.cross %}，新品-月 {{ other_bt.model_rows.test }} 行{% endif %}{% endif %}。{% if other_bt.cross %}{{ CARD.CROSS_LINE_TEXT }}，已被历史结论取代，以历史为准{% else %}判定卡状态以历史结论为准{% endif %}</dd>
+          {% endif %}
+        </dl>
+      </div>
+      {% else %}
+      <div class="panel__body"><p class="muted">没有生成本快照的回测记录。</p></div>
+      {% endif %}
+    </details>
+
+    <details class="panel">
+      {{ summary_head('台账', '月度快照 ' ~ ledger.snapshots|length ~ ' · 立项记录 ' ~ ledger.decisions|length ~ ' · 对账 ' ~ ledger.recons|length) }}
+      <div class="panel__body stack-lg">
+        <div>
+          <h4>月度快照</h4>
+          <p class="small muted">快照保存后不可修改；同月有多版时，对账用该月最后一次导出的那版。</p>
+          <div class="table-wrap" style="margin-top: var(--space-2)">
+            <table class="table">
+              <thead><tr><th scope="col">快照</th><th scope="col">判定卡</th><th scope="col">口径</th><th scope="col">生成</th><th scope="col">导出</th><th scope="col">对账状态</th></tr></thead>
+              <tbody>
+                {% for s in ledger.snapshots %}
+                <tr><td class="t-nowrap">{{ s.label }}</td><td class="t-nowrap">{{ s.card_label }} {{ s.card_status }}</td><td class="t-nowrap">{{ '截面' if s.mode == 'cross' else '历史' }}{% if s.mode == 'cross' %}<span class="etag etag--cross">截面</span>{% endif %}</td><td class="t-nowrap num">{{ s.created_at[:16] }}</td><td class="t-nowrap">{{ s.export_text }}</td><td>{{ s.recon_text }}</td></tr>
+                {% else %}
+                <tr><td colspan="6" class="muted">暂无记录</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h4>立项记录</h4>
+          <p class="small muted">记录保存后不可修改，录错时追加更正记录。</p>
+          <div class="table-wrap" style="margin-top: var(--space-2)">
+            <table class="table">
+              <thead><tr><th scope="col">编号</th><th scope="col">立项</th><th scope="col">决定</th><th scope="col">关联细分</th><th scope="col">对应快照</th><th scope="col">来源</th><th scope="col">立项日期</th><th scope="col">状态</th></tr></thead>
+              <tbody>
+                {% for d in ledger.decisions %}
+                <tr><td class="mono t-nowrap">{{ d.code }}</td><td>{{ d.project or '—' }}</td><td class="t-nowrap">{{ d.decision or '—' }}</td><td>{{ d.segment or '—' }}</td><td class="t-nowrap">{% if d.snapshot %}{{ d.snapshot }}{% else %}<span class="muted">{{ d.snapshot_none }}</span>{% endif %}</td><td class="t-nowrap">{{ d.source }}</td><td class="t-nowrap num">{% if d.date %}{{ d.date }}{% else %}<span class="muted">不适用</span>{% endif %}</td><td>{{ d.state }}</td></tr>
+                {% else %}
+                <tr><td colspan="8" class="muted">暂无记录</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h4>对账</h4>
+          <div class="table-wrap" style="margin-top: var(--space-2)">
+            <table class="table">
+              <thead><tr><th scope="col">对账对象</th><th scope="col">对应批次</th><th class="t-num" scope="col">前 20% 细分实际命中</th><th class="t-num" scope="col">全类目</th><th class="t-num" scope="col">倍数</th><th scope="col">回测预期区间</th><th scope="col">结果</th></tr></thead>
+              <tbody>
+                {% for r in ledger.recons %}
+                <tr><td class="t-nowrap">{{ r.snapshot }}{% if r.cross %}<span class="etag etag--cross">截面</span>{% endif %}</td><td class="t-nowrap">{{ r.batch }}（起量新 SPU {{ r.batch_n }}）</td><td class="t-num">{{ r.top_hits }} / {{ r.top_n }} = {{ P.pct1(r.top_rate) }}{{ etag('n=' ~ r.top_n) }}</td><td class="t-num">{{ r.all_hits }} / {{ r.all_n }} = {{ P.pct1(r.all_rate) }}{{ etag('n=' ~ r.all_n) }}</td><td class="t-num">{{ mult(r.multiple) }}</td><td class="t-nowrap">{{ r.expected }}</td><td>{{ r.result }}</td></tr>
+                {% endfor %}
+                {% for o in ledger.own %}
+                <tr><td class="t-nowrap">自家立项 {{ o.code }}</td><td class="t-nowrap">上架 {{ o.launch_month }}</td><td colspan="3">{{ badge(o.status) }} {{ o.detail }}</td><td class="t-nowrap muted">{{ o.snapshot_text }}</td><td>{{ o.note }}</td></tr>
+                {% endfor %}
+                {% if not ledger.recons and not ledger.own %}<tr><td colspan="7" class="muted">暂无记录</td></tr>{% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="panel">
+      {{ summary_head('版本信息', '数据包 ' ~ (vinfo.package.label if vinfo.package else '—') ~ ' · 约定 ' ~ (content.versions.contract or '—') ~ ' · 配置 ' ~ content.versions.config ~ ' · 判定卡 ' ~ card.label) }}
+      <div class="panel__body">
+        <dl class="kv">
+          <dt>品类</dt><dd>亚马逊{{ '美国' if cat.site == 'US' else cat.site }} · {{ cat.name }}（类目节点 {{ cat.node }}）· 负责人 {{ cat.owner }}</dd>
+          <dt>数据包</dt><dd>{% if vinfo.package %}{{ vinfo.package.label }} · {{ '截面' if vinfo.package.kind == 'cross' else '历史' }} · 覆盖 {{ vinfo.package.months }} · 导入 {{ (vinfo.package.created_at or '')[:16] }} · 指纹 <span class="fp">{{ vinfo.package.fp_short }}</span>{% else %}—{% endif %}</dd>
+          <dt>字段约定</dt><dd>{{ content.versions.contract or '—' }}{% if vinfo.contract %} · {{ vinfo.contract.created_at[:16] }} 保存{% endif %}</dd>
+          <dt>品类配置</dt><dd>{{ content.versions.config }}{% if vinfo.config %} · {{ vinfo.config.created_at[:16] }} 保存{% endif %}</dd>
+          <dt>判定卡</dt><dd>{{ card.label }} · {{ card.created_at[:16] }} 由回测 {{ bt.code if bt else '—' }} 生成</dd>
+          <dt>回测</dt><dd>{{ bt.code if bt else '—' }} · 随机种子 <span class="fp">{{ bt.seed if bt else '—' }}</span></dd>
+          <dt>快照</dt><dd>{{ snap.month }} 第 {{ snap.seq }} 版 · {{ snap.created_at[:16] }} 保存 · 内容指纹 <span class="fp">{{ snap.sha256[:12] }}</span></dd>
+          <dt>生成</dt><dd>{{ generated }} · 操作人 {{ operator }}</dd>
+          <dt>文件</dt><dd><span class="fp">{{ html_name }}</span>，与同名 Excel 内容一致</dd>
+        </dl>
+      </div>
+    </details>
+  </section>
+
+  <p class="page-foot">读数说明：n= 为样本量（已判定的起量新 SPU 数）；区间条中浅蓝带为 90% 区间，圆点为预期命中率，竖线为全类目平均 {{ P.pct1(avg.rate) }}；“估算”“实测”标明数据性质，“截面”标明截面口径。本报告为单个离线文件，由品类机会判定台导出，打开时不需要安装系统或联网。</p>
+</main>
+</body>
+</html>

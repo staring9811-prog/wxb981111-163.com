@@ -89,7 +89,8 @@ def own_pop(st: dict[str, Any]) -> dict[str, str]:
 
 
 C.env.globals.update(recon_bar=recon_bar, own_pop=own_pop, size_text=_size, OWN_BADGE=OWN_BADGE,
-                     add_months=PK.add_months, seg_name=SEG.seg_name)
+                     add_months=PK.add_months, seg_name=SEG.seg_name, RULES_cond=RULES.cond_text,
+                     CANDIDATE_SIGNALS=SIG.CURRENT)
 
 
 def _tab_counts(conn: Connection, cid: int) -> dict[str, int]:

@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% block title %}{{ spu.display_id if spu else key }} · SPU 成败明细{% endblock %}
+{% macro cellv(state, has, text, nodata_tip='') -%}
+{%- if state == 'future' -%}<span class="small muted">未到</span>
+{%- elif state == 'unobserved' -%}<span class="small muted">未观察</span>
+{%- elif not has -%}<span class="etag etag--nodata"{% if nodata_tip %} tabindex="0" data-tip="无数据|{{ nodata_tip }}"{% endif %}>无数据</span>
+{%- else -%}{{ text }}{%- endif -%}
+{%- endmacro %}
+{% block content %}
+{% set cross = mode == 'cross' %}
+{% set succ = cfg.success %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <nav class="crumbs" aria-label="面包屑"><a href="/spu" data-b-back>新品与 SPU</a>{{ icon('caret-right') }}<span>{{ spu.display_id if spu else key }}</span></nav>
+            {% if spu %}
+            <h1>{{ spu.display_id }} · {{ spu.brand or '—' }}{% if status %} {{ badge(status) }}{% endif %}{% if spu.relaunch %} {{ badge('疑似重新上架', 'warn', 'clock-counter-clockwise') }}{% endif %}{% if stale %} {{ badge('需重算') }}{% endif %}</h1>
+            <p class="page-head__sub">{{ spu.title }}</p>
+            {% else %}
+            <h1>{{ key }}</h1>
+            {% endif %}
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="/spu/merge">{{ icon('git-merge') }}<span>归并记录</span></a>
+          </div>
+        </div>
+
+        {% if stale and spu %}
+        <div class="banner banner--stale enter" style="--i:1" role="status">
+          {{ icon('arrows-clockwise') }}
+          <div class="banner__body">
+            <div class="banner__title">结果需重算</div>
+            <div>{{ stale|join('；') }}。下面仍是上次计算的结果。</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if not run %}
+        <section class="panel section"><div class="empty">{{ icon('cube') }}<div class="empty__title">还没有新品判定结果</div><p class="empty__desc">确认字段约定、审核合并建议后，在工作台运行计算。</p><a class="btn btn--primary" href="/">去工作台</a></div></section>
+        {% elif not spu %}
+        <section class="panel section"><div class="empty">{{ icon('info') }}
+          <div class="empty__title">{% if cross %}该 SPU 不在截面数据包 {{ versions.package }} 的观察期内，没有截面判定{% else %}该 SPU 不在历史数据包 {{ versions.package }} 的当前结果中{% endif %}</div>
+          <p class="empty__desc">归并改动后 SPU 编号会变化，重算后以新的编号显示。可切换顶栏口径，或回到新品与 SPU 查找。</p>
+          <a class="btn" href="/spu">新品与 SPU</a></div></section>
+        {% else %}
+
+        {% if cross %}
+        <div class="banner banner--cross enter" style="--i:1">
+          {{ icon('intersect') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ CARD.CROSS_LINE_TEXT }}</div>
+            <div>数据包 {{ versions.package }}（观察月 {{ first_obs }}–{{ last_obs }}）。只用新品期第 1–{{ window }} 个月里的观察月判断；结论待历史回测确认，以历史口径为准。</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if spu.is_new and not spu.rising %}
+        <div class="banner banner--warn enter" style="--i:1">{{ icon('info') }}<div class="banner__body"><div class="banner__title">未起量，不计入命中率分母</div><div>可观察月份里各父体月销都低于起量门槛 {{ rise_thr|int }} 件；不出现在新品列表，网格照常显示。</div></div></div>
+        {% endif %}
+
+        {# ---- 判定说明句 ---- #}
+        {% set best_row = (months_tbl|selectattr('best_bsr')|sort(attribute='best_bsr')|first) if months_tbl else none %}
+        {% if status == '命中' or status == '截面命中' %}
+        <div class="banner banner--ok enter" style="--i:1" data-verdict="{{ status }}">
+          {{ icon('check-circle') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ status }}：{% if cross %}{{ spu.hit_month }}（上架第 {{ spu.hit_age }} 个月）{% else %}第 {{ spu.hit_age }} 个月（{{ spu.hit_month }}）{% endif %}
+              {%- if spu.hit_amount is not none %}SPU 销售额 {{ b_money(spu.hit_amount) }}{{ etag('估算', '') }} ≥ {{ money(succ.gmv_min) }}{% endif %}
+              {%- if spu.hit_amount is not none and spu.hit_bsr is not none %}；{% endif %}
+              {%- if spu.hit_bsr is not none %}子 ASIN <span class="mono">{{ spu.hit_child }}</span> 小类 BSR {{ b_bsr(spu.hit_bsr) }}{{ etag('实测', '') }} ≤ {{ succ.bsr_max|int }}{% endif %}</div>
+            <div>这是{{ '新品期观察月' if cross else '窗口' }}内首次达到成功线的月份。
+              {%- if spu.hit_bsr is none and best_row %}小类 BSR {{ '观察月' if cross else '窗口' }}内最好为 {{ b_bsr(best_row.best_bsr) }}{{ etag('实测', '') }}（第 {{ best_row.age }} 个月，{{ best_row.best_child }}），未达到 ≤ {{ succ.bsr_max|int }}。{% endif %}
+              {%- if spu.hit_amount is none and spu.max_sales is not none and spu.max_sales < succ.gmv_min %}SPU 月销售额最高 {{ b_money(spu.max_sales) }}{{ etag('估算', '') }}，未达到 ≥ {{ money(succ.gmv_min) }}。{% endif %}</div>
+          </div>
+        </div>
+        {% elif status == '未命中' %}
+        <div class="banner enter" style="--i:1" data-verdict="{{ status }}">
+          {{ icon('minus') }}
+          <div class="banner__body">
+            <div class="banner__title">未命中：{{ window }} 个月窗口已结束，每月都有数据；小类 BSR 最好 {{ b_bsr(spu.best_bsr) }}{{ etag('实测', '') }}，SPU 月销售额最高 {{ b_money(spu.max_sales) }}{{ etag('估算', '') }}，均未达标</div>
+            <div>成功线：任一子 ASIN 小类 BSR ≤ {{ succ.bsr_max|int }}，或 SPU 任一月销售额 ≥ {{ money(succ.gmv_min) }}；窗口之外的月份不计。</div>
+          </div>
+        </div>
+        {% elif status == '观察中' and not cross %}
+        <div class="banner enter" style="--i:1" data-verdict="{{ status }}">
+          {{ icon('hourglass') }}
+          <div class="banner__body">
+            <div class="banner__title">观察中：已观察 {{ window - (spu.remaining or 0) }} 个月，还剩 {{ spu.remaining }} 个月（窗口至 {{ window_end }}），尚未达标</div>
+            <div>观察中的 SPU 不计入命中率分母。</div>
+          </div>
+        </div>
+        {% elif status == '观察中' and cross %}
+        {% set cur_age = observed_ages|max if observed_ages else 0 %}
+        <div class="banner enter" style="--i:1" data-verdict="{{ status }}">
+          {{ icon('hourglass') }}
+          <div class="banner__body">
+            <div class="banner__title">观察中：新品期未结束（已到第 {{ cur_age }} 个月），还剩{{ b_age_range(range(cur_age + 1, window + 1)|list) }}</div>
+            <div>尚未达到成功线水平；不计入截面命中率分母。</div>
+          </div>
+        </div>
+        {% elif status == '数据不全' %}
+        <div class="banner banner--warn enter" style="--i:1" data-verdict="{{ status }}">
+          {{ icon('warning') }}
+          <div class="banner__body">
+            <div class="banner__title">数据不全：尚未达标，窗口内{{ missing_text }}</div>
+            <div>缺数据的格子写“无数据”，不按 0 计；数据不全的 SPU 不计入命中率分母。</div>
+          </div>
+        </div>
+        {% elif status == '截面未命中' %}
+        {% set obs_in = observed_ages|select('le', window)|list %}
+        <div class="banner enter" style="--i:1" data-verdict="{{ status }}">
+          {{ icon('minus') }}
+          <div class="banner__body">
+            <div class="banner__title">截面未命中：新品期已结束，观察到的{{ b_age_range(obs_in) }}均未达到成功线水平</div>
+            <div>小类 BSR 最好 {{ b_bsr(spu.best_bsr) }}{{ etag('实测', '') }}，SPU 月销售额最高 {{ b_money(spu.max_sales) }}{{ etag('估算', '') }}。{% if unobserved %}未观察到的月龄：{{ b_age_range(unobserved) }}{% if unobserved|min == 1 and first_obs > spu.batch %}（早于观察期）{% endif %}。{% endif %}</div>
+          </div>
+        </div>
+        {% elif status == '老品' %}
+        <div class="banner enter" style="--i:1" data-verdict="{{ status }}">
+          {{ icon('archive') }}
+          <div class="banner__body">
+            <div class="banner__title">老品：观察月全部超出新品期（{{ b_age_range(observed_ages) }}），不做截面判定</div>
+            <div>只展示观察月数据，不显示达成格。</div>
+          </div>
+        </div>
+        {% elif not spu.is_new %}
+        <div class="banner enter" style="--i:1">{{ icon('archive') }}<div class="banner__body"><div class="banner__title">不是新品：SPU 上架日早于数据包的新品上架窗口，不做成败判定</div></div></div>
+        {% endif %}
+
+        {# ---- 判定依据 ---- #}
+        <section class="panel section enter" style="--i:2" aria-labelledby="facts-title">
+          <div class="panel__head">
+            <h2 class="panel__title" id="facts-title">判定依据</h2>
+            <span class="section__note">{% if cross %}截面成功线：新品期观察月任一子 ASIN 小类 BSR ≤ {{ succ.bsr_max|int }}，或 SPU 当月销售额 ≥ {{ money(succ.gmv_min) }}{% else %}历史口径 · 成功线（配置 v{{ versions.config }}）：上架 {{ window }} 个月内任一子 ASIN 小类 BSR ≤ {{ succ.bsr_max|int }}，或 SPU 任一月销售额 ≥ {{ money(succ.gmv_min) }}{% endif %} · 参照人群：{{ reference }}</span>
+          </div>
+          <div class="panel__body grid-2">
+            <dl class="kv">
+              <dt>SPU 上架日</dt><dd><span class="num" data-fact="launch">{{ spu.launch_date }}</span> · 来自子 ASIN <span class="mono" data-fact="launch-child">{{ spu.launch_child }}</span><div class="cell-sub">取全部子体上架日的最早值{% if spu.same_day_count > 1 %}；同日上架的另有 {{ spu.same_day_count - 1 }} 个子体{% endif %}</div></dd>
+              <dt>批次</dt><dd data-fact="batch">{{ spu.batch }}</dd>
+              <dt>子体</dt><dd>{{ spu.child_count }} 个{% if spu.new_variant_count %}，其中新变体 {{ spu.new_variant_count }} 个（不计为新品）{% else %}，无新变体{% endif %}</dd>
+              <dt>疑似重新上架</dt><dd data-fact="relaunch">{% if spu.relaunch %}是 · 最早首评 {{ spu.first_review_min }}，早于 SPU 上架日 {{ spu.launch_date }} 共 {{ early_days }} 天（子 ASIN <span class="mono">{{ first_child }}</span>）{% elif spu.first_review_min %}否 · 最早首评 {{ spu.first_review_min }}{% if early_days is not none and early_days > 0 %}，早于上架日 {{ early_days }} 天，不超过 7 天{% else %}，不早于上架日{% endif %}{% else %}否 · 没有首评日期{% endif %}</dd>
+            </dl>
+            <dl class="kv">
+              {% if cross %}
+              <dt>观察月</dt><dd>{{ first_obs }}–{{ last_obs }}{% if observed_ages %} = {{ b_age_range(observed_ages) }}{% endif %}{% if observed_ages and observed_ages|select('le', window)|list %}；新品期内为{{ b_age_range(observed_ages|select('le', window)|list) }}{% endif %}</dd>
+              {% if outside %}<dt>新品期外</dt><dd>{% for o in outside %}{{ o.month }}{{ '、' if not loop.last }}{% endfor %} 为{{ b_age_range(outside|map(attribute='age')|list) }}，不参与截面判定</dd>{% endif %}
+              {% else %}
+              <dt>判定窗口</dt><dd>{{ win_months[0] }} 至 {{ window_end }}（第 1–{{ window }} 个月，{{ '已结束' if window_done else '未结束' }}）</dd>
+              {% endif %}
+              <dt>起量</dt><dd>{% if rise %}是 · {{ rise.month }} 父体 <span class="mono">{{ rise.parent }}</span> 月销 {{ b_int(rise.units) }} 件{{ etag('估算', '') }} ≥ {{ rise_thr|int }} 件{% else %}否 · 可观察月份父体月销都低于 {{ rise_thr|int }} 件{% endif %}</dd>
+              {% if status in ('命中', '截面命中') %}<dt>首次达成</dt><dd>第 {{ spu.hit_age }} 个月 · {% if spu.hit_amount is not none and spu.hit_bsr is not none %}小类 BSR 与 SPU 月销售额{% elif spu.hit_amount is not none %}SPU 月销售额{% else %}小类 BSR{% endif %}</dd>{% endif %}
+              <dt>归并来源</dt><dd>{% if spu.source == '已确认建议' %}已确认建议 {% if merge and merge.suggestion %}<a href="/spu/merge?tab=active">{{ merge.suggestion.code }}</a>（{{ '批量确认' if merge.suggestion.source == '批量确认' else '逐条确认' }}）{% else %}{{ spu.merge_code }}{% endif %}{% elif spu.source == '暂按父体' %}暂按父体{% if pending_s %}（有待审建议 <a href="/spu/merge">{{ pending_s.code }}</a>）{% endif %}{% else %}{{ spu.source }}{% endif %}</dd>
+            </dl>
+          </div>
+        </section>
+
+        {# ---- 月龄网格 ---- #}
+        <section class="section enter" style="--i:3" aria-labelledby="grid-title">
+          <div class="section__head">
+            <h2 class="section__title" id="grid-title">月龄 1–{{ window }}</h2>
+            <span class="section__note">上架当月为第 1 个月{% if status != '老品' %} · 达成成功线的格子高亮{% endif %}{% if cross %} · 早于或晚于观察期的月龄写“未观察”，不当作缺数据{% endif %}{% if missing_after_hit %} · {% for m in missing_after_hit %}{{ m }}{{ '、' if not loop.last }}{% endfor %} 有缺数据，不影响判定（第 {{ spu.hit_age }} 个月已命中）{% endif %}</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="age-grid">
+              <thead>
+                <tr>
+                  <th scope="col">指标</th>
+                  {% for c in grid %}<th class="t-num" scope="col">第 {{ c.age }} 个月<div class="cell-sub">{{ c.month }}</div></th>{% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="cell-title">最好小类 BSR</span>{{ etag('实测', '') }}<div class="cell-sub">阈值 ≤ {{ succ.bsr_max|int }} · 及对应子 ASIN</div></td>
+                  {% for c in grid %}
+                  {% set has = c.row and c.row.best_bsr is not none %}
+                  <td class="t-num{% if c.hit_bsr %} b-hitcell{% endif %}" data-age="{{ c.age }}">
+                    {%- if c.hit_bsr -%}<span class="strong">{{ b_bsr(c.row.best_bsr) }}</span><div class="cell-sub mono">{{ c.row.best_child }}</div><div style="margin-top: var(--space-1)">{{ badge('达成', 'hit', 'check-circle') }}</div>
+                    {%- else -%}{{ cellv(c.state, has, (b_bsr(c.row.best_bsr) ~ '') if has else '', '当月没有小类 BSR') }}{% if has %}<div class="cell-sub mono">{{ c.row.best_child }}</div>{% endif %}{%- endif -%}
+                  </td>
+                  {% endfor %}
+                </tr>
+                <tr>
+                  <td><span class="cell-title">SPU 月销售额</span><div class="cell-sub">阈值 ≥ {{ money(succ.gmv_min) }} · 子体合计</div></td>
+                  {% for c in grid %}
+                  {% set has = c.row and c.row.sales is not none %}
+                  <td class="t-num{% if c.hit_gmv %} b-hitcell{% endif %}">
+                    {%- if c.hit_gmv -%}<span class="strong">{{ b_money(c.row.sales) }}</span>{{ etag('估算', '') }}<div style="margin-top: var(--space-1)">{{ badge('达成', 'hit', 'check-circle') }}</div>
+                    {%- else -%}{{ cellv(c.state, has, b_money(c.row.sales) if has else '', '当月没有销量与销售额') }}{% if has %}{{ etag('估算', '') }}{% endif %}{%- endif -%}
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% for pr in parent_rows %}
+                <tr>
+                  <td><span class="cell-title">父体月销量</span>{{ etag('估算', '') }}<div class="cell-sub mono">{{ pr.parent }}</div></td>
+                  {% for v in pr.cells %}{% set c = grid[loop.index0] %}
+                  <td class="t-num">{{ cellv(c.state, v is not none, (b_int(v) ~ ' 件') if v is not none else '') }}</td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {% if not cross or status != '老品' %}
+        {# ---- 子体 ---- #}
+        <section class="section enter" style="--i:4" aria-labelledby="kids-title">
+          <div class="section__head">
+            <h2 class="section__title" id="kids-title">子体</h2>
+            <span class="section__note">{{ kids|length }} 个子 ASIN · 类型属性依次为形态、安装方式、台面形态、元素{% if focus %} · 月销量与销售额为第 {{ focus_age }} 个月（{{ focus }}{{ '，命中月' if status in ('命中', '截面命中') else '，窗口内 SPU 销售额最高的月份' }}）{% endif %}</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="kids-table">
+              <thead>
+                <tr>
+                  <th scope="col">子 ASIN</th>
+                  <th scope="col">父 ASIN</th>
+                  <th scope="col">颜色 · 尺寸</th>
+                  <th scope="col">上架日</th>
+                  <th scope="col">首评日</th>
+                  <th scope="col">标记</th>
+                  <th scope="col"><span tabindex="0" data-tip="类型属性|依次为形态 · 安装方式 · 台面形态 · 元素|子体无确认值时用父体候选值，并标回填">类型属性</span></th>
+                  <th class="t-num" scope="col">月销量</th>
+                  <th class="t-num" scope="col">月销售额</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for k in kids %}
+                <tr data-child="{{ k.child }}">
+                  <td class="mono">{{ k.child }}</td>
+                  <td class="mono muted">{{ k.parent or '—' }}</td>
+                  <td class="t-nowrap">{{ k.color or '未知' }} · {{ (k.size ~ '″') if k.size and k.size != '未知' else '未知' }}</td>
+                  <td class="t-nowrap">{{ k.launch_date or '—' }}{% if k.child == spu.launch_child %}<div class="cell-sub">SPU 上架日来源</div>{% endif %}</td>
+                  <td class="t-nowrap">{{ k.first_review or '—' }}</td>
+                  <td>{% if k.new_variant %}<span class="badge" tabindex="0" data-new-variant data-tip="新变体|上架日 {{ k.launch_date }} 晚于 SPU 上架日 {{ spu.launch_date }}|不计为新 SPU，销量计入本 SPU">{{ icon('plus') }}新变体</span>{% endif %}</td>
+                  <td>{{ k.tattrs|map(attribute=1)|join(' · ') }}{% if k.backfill %}{% set vals = [] %}{% for d, v, b in k.tattrs if b %}{% set _ = vals.append(v) %}{% endfor %}{{ etag(k.backfill|join('、') ~ '回填', 'fill', {'属性': k.backfill|join('、'), '子体确认值': '无', '父体候选值': vals|join('、'), '父 ASIN': k.parent or '—', '证据状态': '父体回填', '来源': 'C4 属性标签（' ~ versions.package ~ '）'}, '父体回填') }}{% endif %}</td>
+                  {% if k.not_launched %}
+                  <td class="t-num small muted">当月未上架</td><td class="t-num small muted">当月未上架</td>
+                  {% else %}
+                  <td class="t-num">{% if k.units is not none %}{{ b_int(k.units) }} 件{{ etag('估算', '') }}{% else %}{{ etag('无数据', 'nodata') }}{% endif %}</td>
+                  <td class="t-num">{% if k.sales is not none %}{{ b_money(k.sales) }}{{ etag('估算', '') }}{% else %}{{ etag('无数据', 'nodata') }}{% endif %}</td>
+                  {% endif %}
+                </tr>
+                {% endfor %}
+                {% if focus %}
+                <tr data-total>
+                  <td class="strong" colspan="7">第 {{ focus_age }} 个月合计（= SPU 月销售额）</td>
+                  <td class="t-num strong">{% if focus_total.units is not none %}{{ b_int(focus_total.units) }} 件{{ etag('估算', '') }}{% else %}{{ etag('无数据', 'nodata') }}{% endif %}</td>
+                  <td class="t-num strong">{% if focus_total.sales is not none %}{{ b_money(focus_total.sales) }}{{ etag('估算', '') }}{% else %}{{ etag('无数据', 'nodata') }}{% endif %}</td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        {% endif %}
+
+        <div class="grid-2 section enter" style="--i:5">
+          <section class="panel" aria-labelledby="merge-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="merge-title">归并来源</h2>
+              <a class="small" href="/spu/merge{{ '?tab=active' if merge else '' }}">在合并建议中查看</a>
+            </div>
+            <div class="panel__body">
+              <dl class="kv">
+                {% if merge %}
+                {% set sg = merge.suggestion %}
+                <dt>来源</dt><dd>已确认建议{% if sg %} <span class="mono">{{ sg.code }}</span>{% endif %} · 归并 <span class="mono">{{ merge.merge.code }}</span></dd>
+                {% if sg %}<dt>匹配依据</dt><dd>{{ sg.basis }}{% if merge.detail %}<div class="cell-sub mono">{{ merge.detail[0].stem }}</div>{% endif %}</dd>{% endif %}
+                <dt>涉及父 ASIN</dt><dd>{% for p in merge.merge.parents_json|b_loads %}<span class="mono">{{ p }}</span>（子 {{ kid_count_by_parent.get(p, 0) }}{% if kids|selectattr('parent', 'equalto', p)|selectattr('new_variant')|list %}，含新变体{% endif %}）{{ '、' if not loop.last }}{% endfor %}</dd>
+                <dt>确认</dt><dd>{% if sg %}{{ '批量确认' if sg.source == '批量确认' else '逐条确认' }} · {{ sg.decided_by }} · {{ (sg.decided_at or '')[:16] }}{% else %}{{ merge.merge.source }} · {{ merge.merge.created_by }} · {{ (merge.merge.created_at or '')[:16] }}{% endif %}</dd>
+                <dt>修改记录</dt><dd>{% if merge.history %}{% for h in merge.history %}<div>{{ (h.at or '')[:16] }} · {{ h.by }}：{{ h.before|join('、') }} → {{ h.after|join('、') }}</div>{% endfor %}{% else %}<span class="muted">未修改</span>{% endif %}</dd>
+                {% elif spu.source == '编号' %}
+                <dt>来源</dt><dd>编号 · 数据包提供的 SPU 编号 <span class="mono">{{ spu.display_id }}</span>，不进入审核</dd>
+                <dt>涉及父 ASIN</dt><dd>{% for p in spu.parents_json|b_loads %}<span class="mono">{{ p }}</span>（子 {{ kid_count_by_parent.get(p, 0) }}）{{ '、' if not loop.last }}{% endfor %}</dd>
+                {% else %}
+                <dt>来源</dt><dd>暂按父体{% if pending_s %} · 有待审建议 <a class="mono" href="/spu/merge">{{ pending_s.code }}</a>（{{ pending_s.basis }}），暂按父 ASIN 计{% endif %}</dd>
+                <dt>父 ASIN</dt><dd>{% for p in spu.parents_json|b_loads %}<span class="mono">{{ p }}</span>（子 {{ kid_count_by_parent.get(p, 0) }}）{% endfor %}</dd>
+                {% endif %}
+              </dl>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="trace-title">
+            <div class="panel__head">
+              <h2 class="panel__title" id="trace-title">追溯</h2>
+              <span class="section__note">判定计算于 {{ versions.computed_at }}</span>
+            </div>
+            <div class="panel__body">
+              <dl class="kv">
+                <dt>版本</dt><dd>数据包 {{ versions.package }}（<span class="fp">{{ versions.fingerprint }}</span>）· 字段约定 v{{ versions.contract }} · 品类配置 v{{ versions.config }}</dd>
+                <dt>上架日</dt><dd class="fp">{{ file_names[1] }} · {{ spu.launch_child }}</dd>
+                {% if status in ('命中', '截面命中') and spu.hit_amount is not none %}
+                {% set keyp = {'文件': file_names[2], '字段': '子体月销售额（' ~ file_names[2][:2] ~ '）', '版本': versions.package ~ ' · 约定 v' ~ versions.contract} %}
+                {% for ch in hit_children %}{% set _ = keyp.update({'主键 ' ~ loop.index: spu.hit_month|replace('-', '') ~ ' · ' ~ ch}) %}{% endfor %}
+                {% set _ = keyp.update({'合计': b_money(spu.hit_amount) ~ '（子体月销售额，估算）'}) %}
+                <dt>命中金额</dt><dd><span class="fp">{{ file_names[2] }} · {{ spu.hit_month|replace('-', '') }}</span>{{ etag(hit_children|length ~ ' 条记录', 'n', keyp, '命中金额的来源记录') }}</dd>
+                {% endif %}
+                {% if best_row %}<dt>最好 BSR</dt><dd class="fp">{{ file_names[2] }} · {{ best_row.month|replace('-', '') }} · {{ best_row.best_child }}</dd>{% endif %}
+                {% if rise %}<dt>起量</dt><dd class="fp">{{ file_names[0] }} · {{ cfg.site }} · {{ rise.parent }} · {{ rise.month|replace('-', '') }}</dd>{% endif %}
+                <dt>类型属性</dt><dd class="fp">C4 属性标签 · {{ kids|length }} 个子 ASIN</dd>
+              </dl>
+            </div>
+          </section>
+        </div>
+        <p class="page-foot">数据包 {{ versions.package }}{{ '（截面）' if cross else '' }} · 字段约定 v{{ versions.contract }} · 品类配置 v{{ versions.config }} · 参照人群：{{ reference }}</p>
+        {% endif %}
+{% endblock %}

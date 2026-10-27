@@ -218,8 +218,7 @@ def cmd_status(app: SV.App, a: argparse.Namespace) -> int:
 def cmd_serve(app: SV.App, a: argparse.Namespace) -> int:
     from oppo.web import server
 
-    server.serve(app, port=a.port, open_browser=not a.no_browser)
-    return 0
+    return server.serve(app, port=a.port, open_browser=not a.no_browser)
 
 
 def build_parser() -> argparse.ArgumentParser:

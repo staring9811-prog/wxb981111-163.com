@@ -475,9 +475,9 @@ def _evidence_cell(key: tuple[str, str], it: dict[str, Any], ev: dict[str, Any] 
         pop = {"体检项": label, "分子": f"{int(h['numerator'] or 0):,}", "分母": f"{int(h['denominator'] or 0):,}",
                "预警阈值": f"{h['threshold']:g}{'%' if hk in H.PCT_ITEMS else ' 个'}" if h["threshold"] is not None else "—",
                "状态": st, "数据包": pkg_label}
-        return {"text": text_, "n": int(h["denominator"] or 0), "pop": pop}
+        return {"text": text_, "n": int(h["denominator"] or 0), "popd": pop}
     if not ev:
-        return {"text": "无数据", "n": None, "pop": None}
+        return {"text": "无数据", "n": None, "popd": None}
     rows = int(ev.get("rows") or 0)
     share = ev.get("nonnull_share")
     pop = {"有值": f"{round((share or 0) * rows):,} 行（{(share or 0) * 100:.1f}%）"}
@@ -489,10 +489,10 @@ def _evidence_cell(key: tuple[str, str], it: dict[str, Any], ev: dict[str, Any] 
     pop["数据包"] = pkg_label
     if it.get("timing") == "快照" and ev.get("same_all_months_share") is not None:
         return {"text": f"各月取值相同 {ev['same_all_months_share'] * 100:.1f}%", "n": int(ev.get("same_all_months_n") or 0),
-                "pop": pop}
+                "popd": pop}
     if share is not None and share < 0.999:
-        return {"text": f"有值 {share * 100:.1f}%", "n": rows, "pop": pop}
-    return {"text": f"{rows:,} 行，全部有值", "n": rows, "pop": pop}
+        return {"text": f"有值 {share * 100:.1f}%", "n": rows, "popd": pop}
+    return {"text": f"{rows:,} 行，全部有值", "n": rows, "popd": pop}
 
 
 def _results_using_contract(conn: Connection, cid: int) -> list[tuple[str, str]]:
@@ -702,3 +702,386 @@ async def fields_save(request: Request) -> JSONResponse:
         return C.fail(str(exc))
     toast = f"已保存为字段约定 v{no}" + ("；成败、信号、回测和排序已标为需重算" if stale else "")
     return C.ok(redirect="/fields", toast=toast)
+
+
+# =============================================================================================
+# PAGE-F03-02 数据体检
+# =============================================================================================
+
+SAMPLE_COLS = {
+    "first_review_early": ["子ASIN", "父ASIN", "上架日期", "首次评分日期", "早于上架（天）"],
+    "family_span": ["父ASIN", "子体数", "最早上架", "最晚上架", "跨度（天）"],
+    "below_bought": ["子ASIN", "月份", "子体月销量", "标签", "标签下界", "低于下界"],
+    "unknown_share": ["子ASIN", "维度", "标签值"],
+    "parent_change": ["子ASIN", "月份", "父ASIN 变化"],
+    "dup_key": ["文件", "重复行号"],
+}
+NUM_COLS = {"早于上架（天）", "子体数", "跨度（天）", "子体月销量", "标签下界", "低于下界"}
+MONO_COLS = {"子ASIN", "父ASIN", "父ASIN 变化", "标签"}
+COL_TAG = {"子体月销量": "估算", "低于下界": "推导"}
+HEALTH_DESC = {
+    "first_review_early": "首评日期可能是父体共享口径：新子体挂在老父体下，会带上父体早年的评论。最早首评早于上架超过 7 天的 SPU 会标“疑似重新上架”。相关字段：C1、C2 的首次评分日期。",
+    "family_span": "跨度大多是老父体陆续挂上新子体，或上架日期取的是最早时间。晚于 SPU 上架日的子体按“新变体”处理，不计为新品。",
+    "below_bought": "子体月销量是第三方估算；低于亚马逊“过去一个月 x+ 购买”标签的下界，说明估算偏低。",
+    "unknown_share": "“未知”的子体归入该维度的“未知”档，不进入具体细分。",
+    "parent_change": "子体换了父体，可能影响 SPU 归并和类型属性的父体回填。",
+    "dup_key": "主键重复的行按“无法解析的行”处理：保留首次出现的行，其余在计算中排除。",
+}
+
+
+def _health_item_view(r: dict[str, Any], total_rows: int) -> dict[str, Any]:
+    item = r["item"]
+    v, num_, den = r["value"], r["numerator"], r["denominator"]
+    th = r["threshold"]
+    parts: list[tuple[str, str, int | None]] = []  # (label, html-ish text, n tag)
+    if r.get("na") or v is None:
+        parts.append(("数值", "不适用", None))
+    elif item == "first_review_early":
+        parts += [("数值", f"{v:.1f}%", int(den or 0)), ("分子", f"{int(num_ or 0):,} 个子体", None),
+                  ("分母", f"{int(den or 0):,} 个有首次评分日期的子体", None)]
+    elif item == "family_span":
+        parts += [("数值", f"{int(num_ or 0):,} 个家族，占 {v:.1f}%", int(den or 0)),
+                  ("分母", f"{int(den or 0):,} 个有 2 个以上子体的家族", None)]
+    elif item == "below_bought":
+        parts += [("数值", f"{v:.1f}%", int(den or 0)), ("分子", f"{int(num_ or 0):,} 个子体-月", None),
+                  ("分母", f"{int(den or 0):,} 个有标签的子体-月", None)]
+    elif item == "unknown_share":
+        parts += [("最高", f"{v:.1f}%（{(r.get('detail') or {}).get('max_dim', '')}）", int(den or 0)),
+                  ("分母", f"{int(den or 0):,} 个子体（C4 属性标签）", None)]
+    elif item == "parent_change":
+        share = (num_ / den * 100) if den else None
+        parts += [("数值", f"{int(num_ or 0):,} 个子体" + (f"，占 {share:.1f}%" if share is not None else ""), int(den or 0)),
+                  ("分母", f"{int(den or 0):,} 个出现过的子体", None)]
+    else:
+        parts += [("数值", f"{int(num_ or 0):,} 行", None),
+                  ("分母", f"{total_rows:,} 行（各文件按各自主键检查）", None)]
+    if th is None:
+        th_text = "未设置"
+    elif item in H.PCT_ITEMS:
+        th_text = f"{th:g}%" + ("（每个维度）" if item == "unknown_share" else "")
+    elif item == "dup_key" and float(th) == 0:
+        th_text = "出现 1 行即预警"
+    else:
+        th_text = f"{th:g} {'个子体' if item == 'parent_change' else '条'}"
+    if th is None:
+        th_short = "未设置"
+    elif item in H.PCT_ITEMS:
+        th_short = f"{th:g}%"
+    else:
+        th_short = f"{th:g} {'个子体' if item == 'parent_change' else '条'}"
+    samples = []
+    cols = SAMPLE_COLS[item]
+    from oppo.core.health import _lower_bound
+
+    for s in r["samples"] or []:
+        row = dict(s)
+        if item == "below_bought":
+            lb = _lower_bound(row.get("标签"))
+            row["标签下界"] = f"{lb:g}" if lb else "—"
+            units = row.get("子体月销量")
+            row["低于下界"] = f"{(1 - units / lb) * 100:.0f}%" if lb and units is not None else "—"
+            row["子体月销量"] = f"{units:,} 件" if units is not None else "—"
+        if "早于上架（天）" in row:
+            row["早于上架（天）"] = f"{row['早于上架（天）']:,} 天"
+        if "跨度（天）" in row:
+            row["跨度（天）"] = f"{row['跨度（天）']:,} 天"
+        samples.append([(c, row.get(c, "—")) for c in cols])
+    dims = []
+    if item == "unknown_share":
+        all_dims = (r.get("detail") or {}).get("dims") or []
+        scale = max(float(th or 40) / 0.8, max((d["占比"] for d in all_dims), default=0) or 1)
+        for d in all_dims:
+            if d["未知"] == 0 and len(dims) >= 4:
+                continue
+            dims.append({**d, "width": round(min(100.0, d["占比"] / scale * 100), 1),
+                         "near": th is not None and d["占比"] > float(th) * 0.9 and d["占比"] <= float(th),
+                         "over": th is not None and d["占比"] > float(th)})
+        ref = round(float(th or 40) / scale * 100, 1)
+    else:
+        ref = None
+    return {**r, "parts": parts, "th_text": th_text, "th_short": th_short, "cols": cols, "sample_rows": samples, "dims": dims, "ref": ref,
+            "desc": HEALTH_DESC[item]}
+
+
+@router.get("/health", response_class=HTMLResponse)
+def health_page(request: Request, package: int | None = None) -> HTMLResponse:
+    app, cid = _app_cid(request)
+    with app.engine.begin() as conn:
+        pkg = PK.get(conn, package) if package else (PK.current_package(conn, cid, "history")
+                                                     or PK.current_package(conn, cid, "cross"))
+        cfg_ver = CAT.current_version(conn, cid)
+        cv = CT.current_version(conn, cid)
+        ctx: dict[str, Any] = {"hpkg": pkg, "cfg_no": cfg_ver["version_no"], "cv": cv, "items": [], "fps": []}
+        if pkg and pkg["conclusion"] != "block":
+            total_rows = sum(int(f["row_count"] or 0) for f in PK.files(conn, pkg["id"]) if f["row_count"])
+            rows = H.results(conn, cid, pkg["id"])
+            ctx["items"] = [_health_item_view(r, total_rows) for r in rows]
+            ctx["fps"] = [f for f in H.fingerprint_rows(conn, pkg["id"])]
+            step = conn.execute(select(D.run_step.c.started_at, D.run_step.c.ended_at).where(
+                D.run_step.c.step == "数据体检", D.run_step.c.link == f"/health?package={pkg['id']}")
+                .order_by(D.run_step.c.id.desc()).limit(1)).first()
+            ctx["ran"] = (step[0], step[1]) if step else (rows[0]["created_at"], rows[0]["created_at"]) if rows else None
+            ctx["import_at"] = pkg["created_at"]
+            ctx["acks"] = {r["item"]: r["ack"] for r in rows if r["ack"]}
+    warn = [i for i in ctx["items"] if i["status"] == "warn"]
+    ctx.update(warn=warn, n_normal=sum(1 for i in ctx["items"] if i["status"] in ("normal", "acked")),
+               fp_ok=bool(ctx["fps"]) and all(f["ok"] for f in ctx["fps"]))
+    return C.render(request, "pages/F03-02.html", "PAGE-F03-02", ctx)
+
+
+@router.post("/health/ack")
+async def health_ack(request: Request) -> JSONResponse:
+    app, cid = _app_cid(request)
+    form = await request.form()
+    try:
+        pid = int(str(form.get("package_id") or "0"))
+    except ValueError:
+        pid = 0
+    item, note = str(form.get("item") or ""), str(form.get("note") or "")
+    if not note.strip():
+        return C.fail("请填写说明", {"note": "请填写说明，说明会和操作人、时间一起记录"})
+    try:
+        with app.engine.begin() as conn:
+            H.acknowledge(conn, cid, pid, item, note, app.operator)
+    except H.AckError as exc:
+        return C.fail(str(exc), {"note": str(exc)} if "说明" in str(exc) else None)
+    return C.ok(redirect=f"/health?package={pid}", toast="已标为已知晓，首页不再提示这项预警")
+
+
+# =============================================================================================
+# PAGE-F13-01 品类配置
+# =============================================================================================
+
+SITES = [("US", "US · 美国"), ("CA", "CA · 加拿大"), ("UK", "UK · 英国"), ("DE", "DE · 德国")]
+SPLITS = ("2/3 : 1/3", "3/4 : 1/4", "1/2 : 1/2")
+FIELD_KIND = {path: kind for _g, path, _l, kind in CAT.CONFIG_FIELDS}
+FIELD_LABEL = {path: label for _g, path, label, _k in CAT.CONFIG_FIELDS}
+
+
+def _fmt_cfg(v: Any) -> str:
+    if v is None or v == "":
+        return "—"
+    if isinstance(v, float) and v == int(v):
+        v = int(v)
+    if isinstance(v, int) and abs(v) >= 1000:
+        return f"{v:,}"
+    return str(v)
+
+
+def _width_rules(cfg: dict[str, Any]) -> dict[str, str]:
+    rule = ((cfg.get("keyword_mapping") or {}).get("width") or {}).get("rule") or ""
+    out = {}
+    for part in rule.replace(";", "；").split("；"):
+        if "：" in part:
+            k, v = part.split("：", 1)
+            out[k.strip()] = v.strip()
+    return out
+
+
+def _form_values(form: Any, base: dict[str, Any]) -> dict[str, Any]:
+    """Turn the posted page form into CONFIG_FIELDS paths (keyword rows and type-attribute checkboxes)."""
+    values: dict[str, Any] = {}
+    for _g, path, _l, _k in CAT.CONFIG_FIELDS:
+        if path in form:
+            values[path] = str(form.get(path) or "")
+    if "ta_present" in form:
+        values["type_attributes"] = "、".join(str(x) for x in form.getlist("ta"))
+        if not values["type_attributes"]:
+            values["type_attributes"] = "、".join(base.get("type_attributes") or []) and ""
+    wl = [(k[len("kw.width."):], str(v)) for k, v in form.multi_items() if k.startswith("kw.width.")]
+    if wl:
+        values["keyword_mapping.width.rule"] = "；".join(f"{k}：{v.strip()}" for k, v in wl if v.strip()) or ""
+    fl = [(k[len("kw.form."):], str(v)) for k, v in form.multi_items() if k.startswith("kw.form.")]
+    if fl:
+        values["keyword_mapping.form.map_text"] = "；".join(f"{k}：{v.strip()}" for k, v in fl if v.strip()) or ""
+    return values
+
+
+def _target_category(conn: Connection, request: Request) -> int:
+    q = request.query_params.get("category")
+    if q and q.isdigit() and conn.execute(select(D.category.c.id).where(D.category.c.id == int(q))).first():
+        return int(q)
+    return CAT.current_category_id(conn)
+
+
+def _cur_cfg(conn: Connection, cid: int) -> tuple[dict[str, Any], int, dict[str, Any] | None]:
+    try:
+        cur = CAT.current_version(conn, cid)
+        return cur["config"], cur["version_no"], cur
+    except LookupError:
+        return {}, 0, None
+
+
+def _apply(conn: Connection, cid: int, form: Any) -> tuple[dict[str, Any], dict[str, str], dict[str, Any], int]:
+    cur_cfg, cur_no, _ = _cur_cfg(conn, cid)
+    draft = CAT.get_draft(conn, cid)
+    base = draft["config"] if draft else cur_cfg
+    values = _form_values(form, base)
+    cfg, errors = CAT.apply_form(base, values)
+    return cfg, errors, cur_cfg, cur_no
+
+
+def _store_draft(conn: Connection, cid: int, cfg: dict[str, Any], cur_cfg: dict[str, Any], cur_no: int) -> None:
+    if cur_cfg and not CAT.diff(cur_cfg, cfg):
+        CAT.discard_draft(conn, cid)
+    else:
+        CAT.save_draft(conn, cid, cfg, cur_no)
+
+
+def _diff_rows(old: dict[str, Any], new: dict[str, Any]) -> list[list[str]]:
+    if not old:
+        return [["全部配置项", "—", "新建，保存为 v1"]]
+    return [[label, _fmt_cfg(a), _fmt_cfg(b)] for label, a, b in CAT.diff(old, new)]
+
+
+def _health_now(conn: Connection, cid: int) -> dict[str, dict[str, Any]]:
+    pkg = PK.current_package(conn, cid, "history") or PK.current_package(conn, cid, "cross")
+    return ({"_pkg": pkg, **{r["item"]: r for r in H.results(conn, cid, pkg["id"])}} if pkg else {})
+
+
+def _dependents(conn: Connection, cid: int, cfg_ver_id: int | None) -> list[dict[str, str]]:
+    out = []
+    for mode in ("history", "cross"):
+        run_ = CMP.latest_run(conn, cid, mode)
+        if not run_ or run_["config_version_id"] != cfg_ver_id:
+            continue
+        tag = "（截面）" if mode == "cross" else ""
+        n = conn.execute(select(D.spu.c.id).where(D.spu.c.run_id == run_["id"], D.spu.c.is_new == 1,
+                                                  D.spu.c.rising == 1).with_only_columns(
+            __import__("sqlalchemy").func.count())).scalar() or 0
+        segs = conn.execute(select(__import__("sqlalchemy").func.count(D.signal_value.c.segment_key.distinct())).where(
+            D.signal_value.c.run_id == run_["id"], D.signal_value.c.t_month == run_["t_month"])).scalar() or 0
+        out.append({"icon": "cube", "title": f"成败判定{tag}", "desc": f"{n:,} 个起量新 SPU"})
+        out.append({"icon": "chart-line-up", "title": f"信号{tag}", "desc": f"截至 {run_['t_month']} · {segs} 个细分"})
+        bt = BT.latest(conn, cid, mode)
+        if bt and bt["config_version_id"] == cfg_ver_id:
+            from oppo.core import cards as CARD
+
+            card = CARD.get(conn, bt["card_id"]) if bt.get("card_id") else None
+            out.append({"icon": "flask", "title": f"回测{tag}",
+                        "desc": f"{bt['code']}" + (f"，生成判定卡 {card['label']}" if card else "")})
+    return out
+
+
+@router.get("/settings/category", response_class=HTMLResponse)
+def category_page(request: Request) -> HTMLResponse:
+    app = C.svc(request)
+    with app.engine.begin() as conn:
+        cid = _target_category(conn, request)
+        current_cid = CAT.current_category_id(conn)
+        category = dict(conn.execute(select(D.category).where(D.category.c.id == cid)).mappings().first())
+        cur_cfg, cur_no, cur = _cur_cfg(conn, cid)
+        draft = CAT.get_draft(conn, cid)
+        cfg = draft["config"] if draft else cur_cfg
+        diff_rows = _diff_rows(cur_cfg, cfg) if draft else []
+        modified = {label for label, *_ in diff_rows}
+        versions = CAT.versions(conn, cid)
+        logs = conn.execute(select(D.change_log).where(D.change_log.c.category_id == cid,
+                                                       D.change_log.c.object == "品类配置")
+                            .order_by(D.change_log.c.id)).mappings().all()
+        by_ver: dict[str, list[dict[str, Any]]] = {}
+        for lg in logs:
+            by_ver.setdefault(lg["object_id"], []).append(dict(lg))
+        for v in versions:
+            v["changes"] = [[lg["item"], _fmt_cfg(D.loads(lg["before"])), _fmt_cfg(D.loads(lg["after"]))]
+                            for lg in by_ver.get(f"v{v['version_no']}", [])]
+        health = _health_now(conn, cid) if cid == current_cid else {}
+        stale = [r for r in C.stale_reasons(conn, cid) if r.startswith("品类配置")] if cid == current_cid else []
+        deps = _dependents(conn, cid, cur["id"] if cur else None) if cur else []
+        bt = BT.latest(conn, cid, "history") if cid == current_cid else None
+        categories = [dict(r) for r in conn.execute(select(D.category.c.id, D.category.c.name, D.category.c.is_draft)
+                                                    .order_by(D.category.c.id)).mappings().all()]
+        busy = jobs.running(conn)
+    seg_dims = {d["key"]: d for d in (cfg.get("segment_dims") or [])}
+    n_segments = 1
+    for d in seg_dims.values():
+        n_segments *= max(1, len(d.get("bins") or []))
+    decided = len((bt or {}).get("result", {}).get("decided_batches") or []) if bt else 0
+    split = cfg.get("backtest_split") or {"rule": 2, "test": 1}
+    n_test = max(1, (decided * split["test"]) // (split["rule"] + split["test"])) if decided else 0
+    missing = CAT.missing_required(cfg) if cfg else [lab for _g, _p, lab, _k in CAT.CONFIG_FIELDS]
+    return C.render(request, "pages/F13-01.html", "PAGE-F13-01", {
+        "category": category, "cid": cid, "is_current": cid == current_cid, "cfgv": cfg, "cur_cfg": cur_cfg,
+        "cur_no": cur_no, "cur": cur, "draft": draft, "diff_rows": diff_rows, "modified": modified,
+        "versions": versions, "health": health, "stale": stale, "deps": deps, "decided": decided, "n_test": n_test,
+        "n_segments": n_segments, "seg_dims": seg_dims, "missing": missing, "categories": categories, "busy": busy,
+        "sites": SITES, "splits": SPLITS, "get_path": CAT.get_path, "width_rules": _width_rules(cfg),
+        "fmt_cfg": _fmt_cfg, "health_labels": CAT.HEALTH_LABELS, "pct_items": H.PCT_ITEMS,
+    })
+
+
+@router.post("/settings/category/draft")
+async def category_draft(request: Request) -> JSONResponse:
+    app = C.svc(request)
+    form = await request.form()
+    with app.engine.begin() as conn:
+        cid = _target_category(conn, request)
+        cfg, errors, cur_cfg, cur_no = _apply(conn, cid, form)
+        _store_draft(conn, cid, cfg, cur_cfg, cur_no)
+    return JSONResponse({"ok": True, "fields": errors, "updated_at": clock.now_iso()[:16]})
+
+
+@router.post("/settings/category/preview")
+async def category_preview(request: Request) -> JSONResponse:
+    app = C.svc(request)
+    form = await request.form()
+    with app.engine.begin() as conn:
+        cid = _target_category(conn, request)
+        cfg, errors, cur_cfg, cur_no = _apply(conn, cid, form)
+        _store_draft(conn, cid, cfg, cur_cfg, cur_no)
+        busy = jobs.running(conn)
+    if errors:
+        return C.fail("有配置项不合法", errors)
+    missing = CAT.missing_required(cfg)
+    diff = _diff_rows(cur_cfg, cfg) if (not cur_cfg or CAT.diff(cur_cfg, cfg)) else []
+    return JSONResponse({"ok": True, "diff": diff, "missing": missing,
+                         "can_save": bool(diff) and not missing and not busy})
+
+
+@router.post("/settings/category/save")
+async def category_save(request: Request) -> JSONResponse:
+    app = C.svc(request)
+    form = await request.form()
+    note = str(form.get("note") or "").strip()
+    try:
+        with app.engine.begin() as conn:
+            cid = _target_category(conn, request)
+            draft = CAT.get_draft(conn, cid)
+            cur_cfg, cur_no, _ = _cur_cfg(conn, cid)
+            if not draft:
+                return C.fail(f"与 v{cur_no} 相比没有修改，不需要保存新版本")
+            no = CAT.save_version(conn, cid, draft["config"], app.operator, note)
+            stale = bool(C.stale_reasons(conn, cid))
+    except CAT.ConfigError as exc:
+        return C.fail(str(exc))
+    toast = f"已保存为品类配置 v{no}" + (f"，依赖 v{cur_no} 的结果已标为需重算" if stale else "")
+    q = f"?category={cid}&" if request.query_params.get("category") else "?"
+    return C.ok(redirect=f"/settings/category{q}saved={no}", toast=toast)
+
+
+@router.post("/settings/category/discard")
+async def category_discard(request: Request) -> JSONResponse:
+    app = C.svc(request)
+    with app.engine.begin() as conn:
+        cid = _target_category(conn, request)
+        _cfg, cur_no, _ = _cur_cfg(conn, cid)
+        if cur_no:
+            CAT.discard_draft(conn, cid)
+    q = f"?category={cid}" if request.query_params.get("category") else ""
+    return C.ok(redirect=f"/settings/category{q}", toast="已放弃草稿，恢复为当前版本的取值")
+
+
+@router.post("/settings/category/new")
+async def category_new(request: Request) -> JSONResponse:
+    app = C.svc(request)
+    form = await request.form()
+    name, site, node = (str(form.get(k) or "").strip() for k in ("name", "site", "node"))
+    errs = {k: "必填" for k, v in (("name", name), ("site", site), ("node", node)) if not v}
+    if errs:
+        return C.fail("请填写必填项", errs)
+    try:
+        with app.engine.begin() as conn:
+            cid = CAT.create_category(conn, name, site, node, app.operator, form.get("template") != "blank")
+    except CAT.ConfigError as exc:
+        return C.fail(str(exc), {"name": str(exc)} if "同名" in str(exc) else None)
+    return C.ok(redirect=f"/settings/category?category={cid}", toast=f"已创建品类草稿“{name}”，逐项填写后保存为 v1")

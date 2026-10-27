@@ -15,7 +15,6 @@ from sqlalchemy import select
 from sqlalchemy.engine import Connection
 
 from oppo import db as D
-from oppo import fmt
 from oppo import service as SV
 from oppo.core import backtest as BT
 from oppo.core import backup as BK
@@ -240,5 +239,17 @@ def export_open(request: Request, eid: int) -> JSONResponse:
     return C.fail(f"本机无法直接打开文件夹，请手动打开：{res['folder']}")
 
 
-def ranking_tip_text(r: dict[str, Any]) -> str:
-    return fmt.pct0(r.get("point"))
+@router.post("/exports/{eid}/backup")
+def export_backup_retry(request: Request, eid: int) -> JSONResponse:
+    """重试备份 (AC-F10-07): a new backup attempt for this export; earlier backups are never touched."""
+    app = C.svc(request)
+    with app.engine.begin() as conn:
+        res = _export_result(conn, eid)
+        if not res:
+            return C.fail("导出记录不存在")
+        if jobs.running(conn):
+            return C.fail("有任务正在运行，完成后再试", status=409)
+        bk = BK.run_backup(app.settings.db_path, conn, "导出后重试", app.operator, res["category_id"])
+        conn.execute(D.export_record.update().where(D.export_record.c.id == eid).values(backup_id=bk["id"]))
+    return C.ok(redirect=f"/ranking?export=1&done={eid}",
+                toast="备份完成" if bk["status"] == "success" else f"备份仍然失败：{bk['error']}")

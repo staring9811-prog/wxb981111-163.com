@@ -144,7 +144,7 @@
                   <td class="small t-nowrap">{{ r.timing or '无数据' }}{% if r.timing == '快照' and r.snapshot_date %}<div class="cell-sub">{{ r.snapshot_date }} 采集</div>{% endif %}</td>
                   <td class="small t-nowrap">{{ r.nature or '无数据' }}</td>
                   <td class="t-nowrap">{% if r.usage == '按规则用' and r.rule_text %}<span class="small" tabindex="0" data-tip="规则|{{ r.rule_text }}" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span>{% else %}<span class="small">{{ r.usage or '无数据' }}</span>{% endif %}</td>
-                  <td><span class="small">{{ r.ev.text }}</span>{% if r.ev.n is not none and r.ev.pop %}{{ etag('n=' ~ num(r.ev.n), 'n', r.ev.pop, '体检证据 · ' ~ r.field) }}{% endif %}</td>
+                  <td><span class="small">{{ r.ev.text }}</span>{% if r.ev.n is not none and r.ev.popd %}{{ etag('n=' ~ num(r.ev.n), 'n', r.ev.popd, '体检证据 · ' ~ r.field) }}{% endif %}</td>
                   <td class="t-nowrap">{% if r.status == 'confirmed' %}{{ badge('已确认') }}<div class="cell-sub">{{ '批量' if r.source == '批量确认' else (r.source or '逐项') }}{% if r.confirmed_in %} · v{{ r.confirmed_in }}{% else %} · 草稿{% endif %}</div>{% else %}{{ badge('待确认') }}<div class="cell-sub">{{ {'新增': '本月新增', '类型改变': '类型改变', '缺少': '本月缺少'}.get(r.change_kind, '首次确认') }} · 草稿建议</div>{% endif %}</td>
                   <td><button class="btn btn--ghost btn--sm btn--icon" type="button" data-expand="edit-{{ r.rid }}" aria-expanded="{{ 'true' if is_open else 'false' }}" aria-controls="edit-{{ r.rid }}" aria-label="{{ '收起' if is_open else '修改' }}{{ r.field }}的约定" data-tip="{{ '收起' if is_open else '展开修改含义与用法' }}">{{ icon('caret-up' if is_open else 'pencil-simple') }}</button></td>
                 </tr>
@@ -193,9 +193,9 @@
                       </div>
                       <div class="stack">
                         <div class="strong">本数据包的体检证据</div>
-                        {% if r.ev.pop %}
+                        {% if r.ev.popd %}
                         <dl class="kv">
-                          {% for k, v in r.ev.pop.items() %}<dt>{{ k }}</dt><dd{% if k == '示例值' %} class="mono"{% endif %}>{{ v }}</dd>{% endfor %}
+                          {% for k, v in r.ev.popd.items() %}<dt>{{ k }}</dt><dd{% if k == '示例值' %} class="mono"{% endif %}>{{ v }}</dd>{% endfor %}
                         </dl>
                         {% else %}
                         <p class="small muted">无数据{% if r.change_kind == '缺少' %}：本数据包没有这个字段{% endif %}</p>
