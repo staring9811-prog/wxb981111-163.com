@@ -1,4 +1,4 @@
-# 各字段打标规则现状（v7，2026-10-27）
+# 各字段打标规则现状（v8，2026-10-27）
 
 通用顺序：SKU属性 → 子体标题 → 子体详情 overviews → 卖家精灵导出详细参数/亮点 → 子体五点 → 商品尺寸 → 父体五点/父体详情（子体没有时直接用，JSON status=parent_fill）→ 用户默认规则（status=business_default）。否定词（no/without/not）先于关键词；SKU 与标题不一致时 SKU 优先并标冲突。
 
@@ -41,7 +41,7 @@ SKU 的盆数优先于标题；写了双盆但宽度 < 48in 的行标冲突待�
 | integrated / integration sink、one-piece sink/countertop | 一体盆 |
 | drop-in、top-mount sink | 嵌入盆 |
 | D3 为无盆 | 不适用（无盆） |
-| 以上都没有 | 信息不足（待看图） |
+| 以上都没有 | **默认台下盆**（TOPFORM-DEFAULT-UNDERMOUNT） |
 
 ## D5 元素（多标签，“；”分隔）
 Fluted、Reeded、Shaker（含 recessed panel）、Barn Door、Farmhouse（含 X-design）、Slatted（含 louvered）、Glass Door（glass/glazed door）、Rattan（含 wicker/cane）。只看标题、SKU、五点、导出亮点和 style 类字段。都没有 → 待图片核验（用户要求看图暂不做）。
@@ -54,14 +54,13 @@ Fluted、Reeded、Shaker（含 recessed panel）、Barn Door、Farmhouse（含 X
 5. 都没有 → 信息不足（待看图）。
 
 ## D7 柜体材质（多标签）
-材料词：MDF / medium-density fiberboard、plywood→胶合板、particle board / chipboard→刨花板、solid wood/oak/pine/rubberwood/birch/poplar→实木、engineered / composite wood→工程木材（未细分）、bamboo→竹材；另识别 ceramic/resin/glass/stainless 等但只在明确 "cabinet made of X" 时算柜体。
+材料词：MDF / medium-density fiberboard / engineered wood / composite wood→MDF（用户2026-10-27：engineered/composite wood 就是 MDF）、plywood→胶合板、particle board / chipboard→刨花板、solid wood/oak/pine/rubberwood/birch/poplar→实木、bamboo→竹材；另识别 ceramic/resin/glass/stainless 等但只在明确 "cabinet made of X" 时算柜体。
 - 按子句绑定最近的部件锚点（cabinet / vanity base / body / frame / doors；top；sink；hardware），距离 ≤48 字符。
 - 板材/木材词默认属于柜体；靠近 top/sink/hardware 时丢弃（除非写成 "X countertop"）。
 - solid wood frame → 实木框架（其余未说明）；与 MDF 同时出现写 实木框架；MDF。
-- 已有 MDF/胶合板/刨花板 时不再列 工程木材（未细分）。
 - 多种材料同时出现保留全部并提示需按证据区分组合与冲突。
 - 子体没有 → 父体 Material / 五点补充。都没有 → 信息不足。
-- 不做默认值；engineered wood 不自动等于 MDF。
+- 不做默认值（用户尚未定）。
 
 ## D8 台面材质
 见 surface-basin-rules.md 第 1–4 层及 v6 追加：直接词（石英石/岩板/陶瓷/Cultured Marble/树脂组/花岗岩/玻璃/不锈钢）→ marble 系归卡拉拉大理石或岗石 → wood/oak 直接接 top 为木板，solid wood 单独不算台面 → marble texture top 无石材词为木板 → 未细分 stone top 为岗石（兜底）→ 一体盆台取盆材 → no top / base only 为不适用。都没有 → 信息不足。

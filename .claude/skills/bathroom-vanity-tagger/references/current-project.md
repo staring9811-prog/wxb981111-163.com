@@ -24,6 +24,7 @@
 - v3（2026-10-27）：修复上述两项；接入导出详细参数与父体overviews材质；镜子/龙头列表式表述；逐字段可行性代码与工作队列。列结构与v2相同，Excel由write_workbook.py在v2上原位替换BK:BZ，verify_workbook.py核对其余832,846个单元格不变。
 - v4（2026-10-27）：用户确认启用DIM-DWH-ORDER、DIM-DW-SWAP；新增标准宽度归档、父体信息补充（不再标父体候选）；看图暂不做。Excel在v3上原位替换，verify通过。
 - v5（2026-10-27）：镜子/龙头未明确with的默认无（ACC-DEFAULT-NONE）。Excel在v4上原位替换。
+- v8（2026-10-27）：台面形态默认台下盆；engineered/composite wood归MDF。Excel在v7上原位替换。新增scripts/distribution.py输出各字段分布。
 - v7（2026-10-27）：默认值：盆数默认单盆（双盆且宽<48冲突）、形态默认落地式（新增转角式）、安装默认拆装。Excel在v6上原位替换。
 - v6（2026-10-27）：台面规则：solid wood不作台面、wood top→木板、仿大理石纹无石材词→木板、stone top→岗石、一体盆台同材、no top/base only→不适用。Excel在v5上原位替换。
 

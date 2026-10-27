@@ -14,7 +14,7 @@ import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261027-v7'
+VERSION='bathroom-vanity-tagger-20261027-v8'
 # 2026-10-27 user: vanity widths are essentially standard sizes.
 STANDARD_WIDTHS=(12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84)
 STD_WIDTH_TOLERANCE=0.8
@@ -218,7 +218,7 @@ class Tagger:
             if len(sku_values)>1 and self.tags[HEADERS[5]]==UNKNOWN:self.notes.append('D6组合色未取得明确柜体归属')
 
     def materials(self):
-        pats=[('MDF',r'\bmdf\b|medium[ -]density\s+fib(?:er|re)board'),('胶合板',r'\bplywood\b'),('刨花板',r'\bparticle\s*board\b|\bchipboard\b'),('实木',r'\bsolid\s+(?:wood|oak|pine|rubberwood|birch|poplar)\b'),('工程木材（未细分）',r'\bengineered\s+wood\b|\bcomposite\s+wood\b'),('人造大理石',r'\b(?:cultured|engineered|synthetic)\s+marble\b'),('人造石（未细分）',r'\bengineered\s+stone\b'),('石英石',r'\b(?:engineered\s+)?quartz(?:\s+stone)?\b'),('岩板',r'\bsintered\s+stone\b'),('大理石（天然性未核实）',r'\bmarble\b'),('陶瓷',r'\bceramic\b|\bporcelain\b'),('树脂',r'\bresin\b'),('亚克力',r'\bacrylic\b'),('SMC',r'\bsmc\b|sheet\s+moulding\s+compound|sheet\s+molding\s+compound'),('花岗岩',r'\bgranite\b'),('玻璃',r'\b(?:tempered\s+)?glass\b'),('不锈钢',r'\bstainless\s+steel\b'),('竹材',r'\bbamboo\b')]
+        pats=[('MDF',r'\bmdf\b|medium[ -]density\s+fib(?:er|re)board|\bengineered\s+wood\b|\bcomposite\s+wood\b'),('胶合板',r'\bplywood\b'),('刨花板',r'\bparticle\s*board\b|\bchipboard\b'),('实木',r'\bsolid\s+(?:wood|oak|pine|rubberwood|birch|poplar)\b'),('人造大理石',r'\b(?:cultured|engineered|synthetic)\s+marble\b'),('人造石（未细分）',r'\bengineered\s+stone\b'),('石英石',r'\b(?:engineered\s+)?quartz(?:\s+stone)?\b'),('岩板',r'\bsintered\s+stone\b'),('大理石（天然性未核实）',r'\bmarble\b'),('陶瓷',r'\bceramic\b|\bporcelain\b'),('树脂',r'\bresin\b'),('亚克力',r'\bacrylic\b'),('SMC',r'\bsmc\b|sheet\s+moulding\s+compound|sheet\s+molding\s+compound'),('花岗岩',r'\bgranite\b'),('玻璃',r'\b(?:tempered\s+)?glass\b'),('不锈钢',r'\bstainless\s+steel\b'),('竹材',r'\bbamboo\b')]
         wood={'MDF','胶合板','刨花板','实木','工程木材（未细分）','竹材'}
         roles={'cabinet':r'\bcabinet(?:ry)?\b|\bvanity\s+(?:base|body|frame)\b|\bwood\s+frame\b|\bdoors?\b','top':r'\bcounter\s*top\b|\bvanity\s+top\b|\btable\s*top\b','sink':r'\bsinks?\b|\bbasins?\b|\bbowls?\b','hardware':r'\bhinges?\b|\bhandles?\b|\bfaucets?\b|\bdrains?\b|\bknobs?\b'}
         buckets={k:[] for k in ('cabinet','top','sink')}
@@ -626,13 +626,13 @@ class Tagger:
         # User 2026-10-27 defaults: no explicit form -> 落地式; no assembled/pre-assembled -> 拆装;
         # no "double" -> 单盆 (double only plausible at width >= 48in).
         if self.accessory_default:
-            for h,val,rule in ((HEADERS[0],'落地式','FORM-DEFAULT-FREESTANDING'),(HEADERS[1],'拆装','ASSEMBLY-DEFAULT-RTA'),(HEADERS[2],'单盆','BASIN-DEFAULT-SINGLE')):
+            for h,val,rule in ((HEADERS[0],'落地式','FORM-DEFAULT-FREESTANDING'),(HEADERS[1],'拆装','ASSEMBLY-DEFAULT-RTA'),(HEADERS[2],'单盆','BASIN-DEFAULT-SINGLE'),(HEADERS[3],'台下盆','TOPFORM-DEFAULT-UNDERMOUNT')):
                 if self.tags.get(h)==UNKNOWN:
                     self.tags[h]=val;self.evidence[h]={'status':'business_default','selected':[],'ruleID':rule,'basisType':'business_default','note':'文本未明确，按用户规则默认'}
             width=self.tags.get(HEADERS[9])
             if self.tags.get(HEADERS[2],'').startswith('双盆') and width is not None and width<48:
                 self.conflicts.append(HEADERS[2]+'：文本写双盆但宽度%s<48in，待核验'%width)
-            dflt=[h for h in HEADERS[:3] if self.evidence[h].get('status')=='business_default']
+            dflt=[h for h in HEADERS[:4] if self.evidence[h].get('status')=='business_default']
             if dflt:self.notes.append('按用户规则默认：'+'、'.join('%s=%s'%(h,self.tags[h]) for h in dflt))
         if self.accessory_default:
             for h in (HEADERS[12],HEADERS[13]):
