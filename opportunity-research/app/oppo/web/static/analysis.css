@@ -21,3 +21,18 @@
 .vr-tree .node--m { font-weight: 600; }
 .vr-tree .w { fill: var(--color-text-muted); font-size: 11px; }
 [data-model-panel][hidden] { display: none; }
+
+/* 变量关系 · 左侧板块目录（滚到哪儿哪儿高亮）、简明/详细、好坏高亮 */
+.vr-layout { display: grid; grid-template-columns: 164px minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.vr-toc { position: sticky; top: calc(var(--topbar-h, 56px) + var(--space-4)); display: flex; flex-direction: column; gap: 2px; }
+.vr-toc__title { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: none; margin: 0 0 var(--space-2) var(--space-2); }
+.vr-toc a { display: block; padding: 6px var(--space-2); border-left: 2px solid transparent; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--color-text-muted); font-size: var(--text-sm); text-decoration: none; }
+.vr-toc a:hover { color: var(--color-text); background: var(--color-surface-2, rgba(0,0,0,0.03)); }
+.vr-toc a.is-active { color: var(--color-primary, #1f4f82); border-left-color: var(--color-primary, #1f4f82); background: var(--color-primary-soft, rgba(31,79,130,0.08)); font-weight: 600; }
+body[data-vr-view="simple"] .vr-detail { display: none !important; }
+tr.is-good > td { background: var(--color-success-soft, rgba(22,128,61,0.08)); }
+tr.is-bad > td { background: var(--color-danger-soft, rgba(185,28,28,0.06)); }
+.vr-good-mark { color: var(--color-success, #16803d); font-weight: 700; }
+.vr-combo-vars { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+@media (max-width: 1100px) { .vr-layout { grid-template-columns: minmax(0, 1fr); } .vr-toc { position: static; flex-direction: row; flex-wrap: wrap; } }
+body[data-vr-view="simple"] .vr-m1-grid { grid-template-columns: minmax(0, 1fr); }

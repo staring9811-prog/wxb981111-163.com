@@ -163,3 +163,41 @@
     apply(saved && picker.querySelector('[data-model="' + saved + '"]') ? saved : first.getAttribute('data-model'));
   }
 })();
+
+/* 变量关系（PAGE-F16-01）：左侧板块目录高亮当前板块；简明 / 详细视图 */
+(function () {
+  'use strict';
+  var doc = document;
+  var toc = doc.querySelector('[data-vr-toc]');
+  if (toc) {
+    var links = Array.prototype.slice.call(toc.querySelectorAll('a[href^="#"]'));
+    var targets = links.map(function (a) { return doc.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+    var setActive = function (id) {
+      links.forEach(function (a) { a.classList.toggle('is-active', a.getAttribute('href') === '#' + id); });
+    };
+    /* 当前板块 = 最后一个标题顶部已经越过视口 35% 线的板块 */
+    var update = function () {
+      if (!targets.length) return;
+      var line = window.innerHeight * 0.35;
+      var current = targets[0].id;
+      targets.forEach(function (t) { if (t.getBoundingClientRect().top <= line) current = t.id; });
+      if (window.innerHeight + window.scrollY >= doc.documentElement.scrollHeight - 4) current = targets[targets.length - 1].id;
+      setActive(current);
+    };
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  }
+  var sw = doc.querySelector('[data-vr-view]');
+  if (sw) {
+    var applyView = function (v) {
+      doc.body.setAttribute('data-vr-view', v);
+      sw.querySelectorAll('[data-view]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-view') === v ? 'true' : 'false'); });
+      try { localStorage.setItem('oppo.vr.view', v); } catch (e) {}
+    };
+    sw.querySelectorAll('[data-view]').forEach(function (b) { b.addEventListener('click', function () { applyView(b.getAttribute('data-view')); }); });
+    var savedView = 'simple';
+    try { savedView = localStorage.getItem('oppo.vr.view') || 'simple'; } catch (e) {}
+    applyView(savedView);
+  }
+})();

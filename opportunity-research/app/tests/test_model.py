@@ -62,7 +62,16 @@ def test_model_recovers_planted_truths(clone, mock_done):  # type: ignore[no-unt
     assert paths["demand"]["r2_x"] > 0.9 and paths["units_m1"]["timing"] == "事后"
     # strategy-library rules are scored on the same rows
     assert r["library"] and all("test" in x and "fit" in x for x in r["library"])
-    # logic tree: Y → M (|log OR|) → X (drop-one R² share); importance per model for the picker
+    # combinations point at products: the planted 一体盆 shows up in the best combos, not a colour-only combo
+    combo = r["combos"]
+    assert combo and combo["good"] and r["combo_vars"]
+    assert any("一体盆" in c["text"] for c in combo["good"][:5])
+    assert not any(c["tier"] == "高" and all(v == "attr:颜色" for v in c["vars"]) for c in combo["good"])
+    assert all(c["test"]["lift"] > 1 and c["fit"]["lift"] > 1 for c in combo["good"])
+    with open_dir(clone(mock_done)).engine.begin() as conn2:
+        picked = M.combos_for(conn2, app.category_id(), "history", ["attr:台面形态", "seg:width", "seg:price"])
+    assert picked["variables"] == ["attr:台面形态", "seg:width", "seg:price"] and picked["n_combos"] > 0
+    # logic tree: Y → M (|log OR|) → X (single-variable R² share); importance per model for the picker
     tree = r["tree"]
     assert tree["process"] and tree["process"][0]["strength"] >= tree["process"][-1]["strength"]
     demand = next(p for p in tree["process"] if p["key"] == "demand")
@@ -106,6 +115,21 @@ def test_variables_page_v2_and_adopt_button(live_server, clone, mock_done, page)
     assert page.locator("svg.vr-tree path.edge").count() >= 5
     widths = [float(w) for w in page.locator("svg.vr-tree path.edge").evaluate_all("els => els.map(e => e.getAttribute('stroke-width'))")]
     assert max(widths) > min(widths)
+    # combination section, left TOC highlighting, 简明/详细 switch
+    assert page.locator("#combo-table tbody tr").count() >= 3 and "★" in page.locator("#combo-table").inner_text()
+    assert page.locator(".vr-toc a.is-active").count() == 1
+    assert page.locator("#cmp-title").is_hidden()  # statistics panel hidden in 简明
+    page.locator('[data-vr-view] [data-view="detail"]').click()
+    assert page.locator("#cmp-title").is_visible()
+    page.locator('[data-vr-view] [data-view="simple"]').click()
+    page.evaluate("document.getElementById('combo-title').scrollIntoView({block: 'start'})")
+    page.wait_for_timeout(500)
+    assert "组合" in page.locator(".vr-toc a.is-active").inner_text()
+    page.locator('input[name="combo"][value="attr:颜色"]').uncheck()
+    page.locator('input[name="combo"][value="seg:price"]').check()
+    page.locator("[data-combo-submit]").click()
+    page.wait_for_url("**combo=*")
+    assert "价格带" in page.locator("#combo-table").inner_text() or "$" in page.locator("#combo-table").inner_text()
     page.locator('[data-model-picker] [data-model="tree"]').click()
     assert page.locator('[data-model-panel="tree"]:not([hidden])').count() >= 1
     assert page.locator('[data-model-panel="logit"]:not([hidden])').count() == 0

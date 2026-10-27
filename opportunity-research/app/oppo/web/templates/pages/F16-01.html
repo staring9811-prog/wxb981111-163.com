@@ -10,7 +10,11 @@
             <p class="page-head__sub">可控变量 → 过程指标 → 结果指标，中间是数学模型：在已判定的起量新品上，哪些变量和命中有稳定关系、经由哪条路径、能写成什么规则 · {{ '截面口径，待历史回测确认' if mode == 'cross' else '历史口径' }}</p>
           </div>
           <div class="page-head__actions">
-            <a class="btn" href="/settings/category#g-split">{{ icon('sliders-horizontal') }}<span>控制变量设置</span></a>
+            <div class="seg" role="group" aria-label="视图" data-vr-view>
+              <button class="seg__opt" type="button" data-view="simple" aria-pressed="true" data-tip="只看命中率、倍数、样本和可信标记">简明</button>
+              <button class="seg__opt" type="button" data-view="detail" aria-pressed="false" data-tip="显示优势比、区间、训练 / 校准 / 验证等统计细节">详细</button>
+            </div>
+            <a class="btn vr-detail" href="/settings/category#g-split">{{ icon('sliders-horizontal') }}<span>控制变量设置</span></a>
             {% if running_job %}
             <button class="btn btn--primary" type="button" aria-disabled="true" data-tip="{{ running_label }}运行中">{{ icon('circle-notch', 'spin') }}<span>{{ running_label }}…</span></button>
             {% else %}
@@ -44,11 +48,25 @@
         <div class="stats enter" style="--i:1">
           <div class="stat"><div class="stat__label">结论</div><div class="stat__value" style="font-size: var(--text-xl)">{{ verdicts.get(r.verdict, r.verdict) }}</div><div class="stat__meta">验证窗 AUC {{ num2(test.auc) if test else M.nodata() }} · 前 20% 倍数 {{ num2(test.lift20) if test else M.nodata() }}</div></div>
           <div class="stat"><div class="stat__label">样本</div><div class="stat__value">{{ r.n_pool }}<span class="stat__unit">个起量新品</span></div><div class="stat__meta">命中 {{ r.n_hit }} · 全类目 {{ pct(r.base_rate) }}</div></div>
-          <div class="stat"><div class="stat__label">切分（按上架批次）</div><div class="stat__value" style="font-size: var(--text-lg)">{{ (r.splits.train|length) }} / {{ (r.splits.calib|length) }} / {{ (r.splits.test|length) }}</div><div class="stat__meta">训练 / 校准 / 验证 · 验证窗不参与挑选</div></div>
+          <div class="stat vr-detail"><div class="stat__label">切分（按上架批次）</div><div class="stat__value" style="font-size: var(--text-lg)">{{ (r.splits.train|length) }} / {{ (r.splits.calib|length) }} / {{ (r.splits.test|length) }}</div><div class="stat__meta">训练 / 校准 / 验证 · 验证窗不参与挑选</div></div>
           <div class="stat"><div class="stat__label">规则</div><div class="stat__value">{{ (r.rules or [])|selectattr('tier', 'equalto', '高')|list|length }}<span class="stat__unit">条 高可信</span></div><div class="stat__meta">共 {{ (r.rules or [])|length }} 条模型规则 · 策略库 {{ (r.library or [])|length }} 条同检</div></div>
         </div>
         {% endif %}
 
+        <div class="vr-layout">
+        <nav class="vr-toc" aria-label="本页板块" data-vr-toc>
+          <div class="vr-toc__title">板块</div>
+          {% if catalogue %}<a href="#cat-title">变量总览</a>{% endif %}
+          {% if mr and r.model1 %}
+          <a href="#combo-title">组合 · 指向产品</a>
+          <a href="#m1-title">总效应</a>
+          <a href="#m2-title">路径</a>
+          {% if tree %}<a href="#tree-title">逻辑关系树</a>{% endif %}
+          <a href="#m3-title">规则与采纳</a>
+          <a href="#lim-title">说明与限制</a>
+          {% endif %}
+        </nav>
+        <div class="vr-main">
         <!-- 1. 变量总览：左 可控变量 · 中 过程指标 · 右 结果变量 -->
         {% if catalogue %}
         <section class="section enter" style="--i:2" aria-labelledby="cat-title">
@@ -92,11 +110,57 @@
         {% endif %}
 
         {% if mr and r.model1 %}
+        <!-- 1b. 组合：哪种产品，而不是哪个属性 -->
+        <section class="section enter" style="--i:3" aria-labelledby="combo-title">
+          <div class="section__head"><h2 id="combo-title">组合 · 指向一种产品</h2><span class="section__note">勾选可控变量，自动枚举 1–{{ 3 }} 个维度的组合，按验证窗表现排序</span></div>
+          <form class="panel" method="get" action="/variables" style="padding: var(--space-3) var(--space-4)">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <div class="vr-combo-vars">
+              <span class="filters__label">参与组合的变量</span>
+              {% for v in x_vars %}
+              <label class="check"><input type="checkbox" name="combo" value="{{ v.name }}"{% if v.name in combo_vars %} checked{% endif %}>{{ v.label }}</label>
+              {% endfor %}
+              <span class="spacer"></span>
+              <button class="btn btn--sm btn--primary" type="submit" data-combo-submit>{{ icon('intersect') }}<span>自动找组合</span></button>
+            </div>
+            <p class="small muted" style="margin: var(--space-2) 0 0">默认预选的是模型认为最重要的 {{ (r.combo_vars or [])|length }} 个变量；勾多了组合会很多、每个组合的样本会很少。</p>
+          </form>
+          {% if combo_error %}<div class="banner banner--block" style="margin-top: var(--space-3)"><div class="banner__body">{{ combo_error }}</div></div>{% endif %}
+          {% if combo and combo.good %}
+          <div class="table-wrap" style="margin-top: var(--space-3)">
+            <table class="table" id="combo-table">
+              <thead><tr><th scope="col">组合（就是一种产品）</th><th class="t-num" scope="col">新品数</th><th class="t-num" scope="col">验证 · 命中率</th><th class="t-num" scope="col">相对全类目</th><th class="t-num vr-detail" scope="col">验证 · 90% 区间</th><th class="t-num vr-detail" scope="col">训练+校准</th><th scope="col">可信度</th></tr></thead>
+              <tbody>
+                {% for c in combo.good[:25] %}
+                <tr class="{{ 'is-good' if c.tier == '高' else '' }}">
+                  <td>{% if c.tier == '高' %}<span class="vr-good-mark">★</span> {% endif %}{{ c.text }}</td>
+                  <td class="t-num">{{ c.n }}</td>
+                  <td class="t-num">{% if c.test.rate is not none %}<strong>{{ pct(c.test.rate) }}</strong> <span class="small muted">n={{ c.test.n }}</span>{% else %}{{ M.nodata() }}{% endif %}</td>
+                  <td class="t-num">{{ mult(c.test.lift) }}</td>
+                  <td class="t-num small vr-detail">{{ ci_text((c.test.lo, c.test.hi)) }}</td>
+                  <td class="t-num small vr-detail">{{ pct(c.fit.rate) }} <span class="muted">n={{ c.fit.n }}</span></td>
+                  <td>{{ badge('可信度 ' ~ c.tier, 'pass' if c.tier == '高' else ('warn' if c.tier == '中' else 'old')) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted" style="margin-top: var(--space-2)">全类目命中率：验证窗 {{ pct(combo.base_test) }}，训练+校准 {{ pct(combo.base_fit) }}。共试了 {{ combo.n_combos }} 个组合（每个至少 {{ 10 }} 个新品），这里只列两窗都高于全类目的前 25 个；★ 可信度高 = 验证窗样本 ≥ 20、区间下限高于全类目、两窗倍数都 ≥ 1.5。组合看的是原始命中率，不控制品牌、配送等因素——某个组合好，也可能是因为做它的多是强品牌；下面"每个取值"那张表是控制了这些因素之后的结果，两处对照着看。</p>
+          {% if combo.bad %}
+          <details class="small" style="margin-top: var(--space-2)"><summary class="muted">反过来：两窗都明显低于全类目的组合（{{ combo.bad|length }} 个）</summary>
+            <ul style="margin: var(--space-2) 0 0; padding-left: 1.2em">{% for c in combo.bad %}<li>{{ c.text }}：验证 {{ pct(c.test.rate) }}（n={{ c.test.n }}，{{ mult(c.test.lift) }}）</li>{% endfor %}</ul>
+          </details>
+          {% endif %}
+          {% elif combo %}
+          <div class="panel" style="margin-top: var(--space-3)"><div class="empty">{{ icon('intersect') }}<div class="empty__title">这些变量的组合里没有两窗都高于全类目的</div><p class="empty__desc">共试了 {{ combo.n_combos }} 个组合。换几个变量，或减少数量。</p></div></div>
+          {% endif %}
+        </section>
+
         <!-- 2. 模型 1 总效应 -->
         <section class="section enter" style="--i:3" aria-labelledby="m1-title">
-          <div class="section__head"><h2 id="m1-title">模型 1 · 总效应 Y ~ X</h2><span class="section__note">两种模型同窗对照，按{{ m1.selection }}选出一个，验证窗只报告</span></div>
-          <div class="grid-2">
-            <section class="panel" aria-labelledby="cmp-title">
+          <div class="section__head"><h2 id="m1-title">总效应：哪些变量和命中有关</h2><span class="section__note vr-detail">两种模型同窗对照，按{{ m1.selection }}选出一个，验证窗只报告</span></div>
+          <div class="grid-2 vr-m1-grid">
+            <section class="panel vr-detail" aria-labelledby="cmp-title">
               <div class="panel__head"><h3 class="panel__title" id="cmp-title">同窗对照</h3><span class="section__note">AUC / 前 20% 倍数 · n</span></div>
               <div class="table-wrap table-wrap--flush">
                 <table class="table">
@@ -142,7 +206,7 @@
             </section>
           </div>
 
-          <div class="section__head" style="margin-top: var(--space-4)"><h3>属性取值的边际效应</h3><span class="section__note">多变量 logit 同时控制其余变量；优势比与自助法 90% 区间；“稳”= 区间不含 1 且训练 / 验证方向一致</span></div>
+          <div class="section__head" style="margin-top: var(--space-4)"><h3>每个取值：命中率高还是低</h3><span class="section__note"><span class="vr-detail">多变量 logit 同时控制其余变量；优势比与自助法 90% 区间；</span>绿 = 稳定地高于全类目，红 = 稳定地低于</span></div>
           {% set vars_ = (r.effects or [])|map(attribute='var')|unique|list %}
           <div class="grid-2">
             {% for v in vars_ %}
@@ -150,16 +214,17 @@
               <div class="panel__head"><h3 class="panel__title">{% if v.startswith('seg:') %}细分维度 · {{ seg_labels.get(v[4:], v[4:]) }}{% else %}{{ v[5:] }}{% endif %}</h3></div>
               <div class="table-wrap table-wrap--flush">
                 <table class="table">
-                  <thead><tr><th scope="col">取值</th><th class="t-num" scope="col">优势比</th><th class="t-num" scope="col">90% 区间</th><th class="t-num" scope="col">训练+校准</th><th class="t-num" scope="col">验证</th><th scope="col"></th></tr></thead>
+                  <thead><tr><th scope="col">取值</th><th class="t-num" scope="col">命中率（验证）</th><th class="t-num" scope="col">新品数</th><th class="t-num vr-detail" scope="col">优势比</th><th class="t-num vr-detail" scope="col">90% 区间</th><th class="t-num vr-detail" scope="col">训练+校准</th><th scope="col"></th></tr></thead>
                   <tbody>
                     {% for e in r.effects if e.var == v %}
-                    <tr>
+                    <tr class="{{ 'is-good' if e.stable and e.or > 1 else ('is-bad' if e.stable and e.or < 1 else '') }}">
                       <td>{{ e.value }}</td>
-                      <td class="t-num strong">{{ num2(e.or) }}</td>
-                      <td class="t-num small">{% if e.or_lo is not none %}{{ '%.2f'|format(e.or_lo) }}–{{ '%.2f'|format(e.or_hi) }}{% else %}{{ M.nodata() }}{% endif %}</td>
-                      <td class="t-num small">{{ pct(e.rate_fit) }} <span class="muted">n={{ e.n_fit }}</span></td>
-                      <td class="t-num small">{% if e.rate_test is not none %}{{ pct(e.rate_test) }} <span class="muted">n={{ e.n_test }}</span>{% else %}{{ M.nodata() }}{% endif %}</td>
-                      <td>{% if e.stable %}{{ etag('稳') }}{% elif e.consistent is sameas false %}<span class="small muted">两窗方向不一致</span>{% endif %}</td>
+                      <td class="t-num strong">{% if e.rate_test is not none %}{{ pct(e.rate_test) }}{% else %}{{ pct(e.rate_fit) }} <span class="small muted">(训练)</span>{% endif %}</td>
+                      <td class="t-num small">{{ e.n_test if e.rate_test is not none else e.n_fit }}</td>
+                      <td class="t-num vr-detail">{{ num2(e.or) }}</td>
+                      <td class="t-num small vr-detail">{% if e.or_lo is not none %}{{ '%.2f'|format(e.or_lo) }}–{{ '%.2f'|format(e.or_hi) }}{% else %}{{ M.nodata() }}{% endif %}</td>
+                      <td class="t-num small vr-detail">{{ pct(e.rate_fit) }} <span class="muted">n={{ e.n_fit }}</span></td>
+                      <td>{% if e.stable and e.or > 1 %}<span class="vr-good-mark">★ 稳定偏高</span>{% elif e.stable %}<span class="small muted">稳定偏低</span>{% elif e.consistent is sameas false %}<span class="small muted">两窗方向不一致</span>{% endif %}</td>
                     </tr>
                     {% endfor %}
                   </tbody>
@@ -172,10 +237,10 @@
 
         <!-- 3. 模型 2 路径 -->
         <section class="panel section enter" style="--i:4" aria-labelledby="m2-title">
-          <div class="panel__head"><h2 class="panel__title" id="m2-title">模型 2 · 路径 X → M → Y</h2><span class="section__note">过程指标被可控变量解释多少；固定可控变量后它还剩多少信息</span></div>
+          <div class="panel__head"><h2 class="panel__title" id="m2-title">路径：命中经由哪些过程指标</h2><span class="section__note">过程指标被可控变量解释多少；固定可控变量后它还剩多少信息</span></div>
           <div class="table-wrap table-wrap--flush">
             <table class="table">
-              <thead><tr><th scope="col">过程指标</th><th scope="col">时点</th><th class="t-num" scope="col">n</th><th class="t-num" scope="col">X 解释的份额 R²</th><th class="t-num" scope="col">M→Y 单独</th><th class="t-num" scope="col">M→Y 给定 X</th><th class="t-num" scope="col">保留的关联</th><th scope="col">解读</th></tr></thead>
+              <thead><tr><th scope="col">过程指标</th><th scope="col">时点</th><th class="t-num" scope="col">n</th><th class="t-num" scope="col">被可控变量解释</th><th class="t-num vr-detail" scope="col">M→Y 单独</th><th class="t-num vr-detail" scope="col">M→Y 给定 X</th><th class="t-num vr-detail" scope="col">保留的关联</th><th scope="col">解读</th></tr></thead>
               <tbody>
                 {% for p in r.paths or [] %}
                 <tr>
@@ -183,16 +248,16 @@
                   <td class="small">{{ p.timing }}可知</td>
                   <td class="t-num">{{ p.n }}</td>
                   <td class="t-num">{% if p.r2_x is not none %}{{ pct0(p.r2_x) }}{% else %}{{ M.nodata() }}{% endif %}</td>
-                  <td class="t-num">{{ num2(p.or_alone) }}</td>
-                  <td class="t-num strong">{{ num2(p.or_given_x) }}</td>
-                  <td class="t-num">{% if p.survives is not none %}{{ pct0(p.survives) }}{% else %}{{ M.nodata() }}{% endif %}</td>
+                  <td class="t-num vr-detail">{{ num2(p.or_alone) }}</td>
+                  <td class="t-num strong vr-detail">{{ num2(p.or_given_x) }}</td>
+                  <td class="t-num vr-detail">{% if p.survives is not none %}{{ pct0(p.survives) }}{% else %}{{ M.nodata() }}{% endif %}</td>
                   <td class="small muted">{% if p.reason %}{{ p.reason }}{% elif p.r2_x is not none and p.r2_x >= 0.9 %}几乎是可控变量的函数，没有独立信息{% elif p.or_given_x and p.or_given_x >= 1.3 and (p.survives or 0) >= 0.5 %}在可控变量之外仍指向命中，是独立的过程信号{% elif p.or_alone and p.or_alone >= 1.3 and (p.survives or 0) < 0.5 %}看似相关，多半是可控变量在起作用{% else %}关联弱{% endif %}</td>
                 </tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
-          <div class="panel__body small muted">优势比为过程指标高一个标准差时命中几率的倍数。“保留的关联”= 给定 X 的对数优势比 ÷ 单独的对数优势比（线性近似的中介分解，方向相反记 0）。</div>
+          <div class="panel__body small muted vr-detail">优势比为过程指标高一个标准差时命中几率的倍数。“保留的关联”= 给定 X 的对数优势比 ÷ 单独的对数优势比（线性近似的中介分解，方向相反记 0）。</div>
         </section>
 
         <!-- 3b. 逻辑关系树 -->
@@ -241,19 +306,19 @@
 
         <!-- 4. 模型 3 规则 -->
         <section class="section enter" style="--i:5" aria-labelledby="m3-title">
-          <div class="section__head"><h2 id="m3-title">模型 3 · 规则（模型发现 与 策略库 同表同检）</h2><span class="section__note">条件 · 预期命中率 · n · 验证状态；高 = 验证窗 n ≥ 20、区间下限高于全类目且两窗倍数 ≥ 1.5；中 = 验证窗 n ≥ 10 且两窗都高于全类目</span></div>
+          <div class="section__head"><h2 id="m3-title">规则：能写成条件的发现，与策略库同检</h2><span class="section__note">★ 可信度高 = 验证窗样本 ≥ 20、区间下限高于全类目、两窗倍数都 ≥ 1.5；中 = 验证窗 ≥ 10 且两窗都高于全类目</span></div>
           {% if (r.rules or []) or (r.library or []) %}
           <div class="table-wrap">
             <table class="table" id="rule-table">
-              <thead><tr><th scope="col">来源</th><th scope="col">条件</th><th class="t-num" scope="col">训练+校准</th><th class="t-num" scope="col">验证 · 命中率</th><th class="t-num" scope="col">验证 · 90% 区间</th><th class="t-num" scope="col">倍数</th><th scope="col">可信度 / 状态</th><th scope="col">操作</th></tr></thead>
+              <thead><tr><th scope="col">来源</th><th scope="col">条件</th><th class="t-num vr-detail" scope="col">训练+校准</th><th class="t-num" scope="col">验证 · 命中率</th><th class="t-num vr-detail" scope="col">验证 · 90% 区间</th><th class="t-num" scope="col">相对全类目</th><th scope="col">可信度 / 状态</th><th scope="col">操作</th></tr></thead>
               <tbody>
                 {% for x in r.rules or [] %}
-                <tr data-rule-index="{{ loop.index0 }}">
+                <tr data-rule-index="{{ loop.index0 }}" class="{{ 'is-good' if x.tier == '高' else '' }}">
                   <td class="t-nowrap">{{ etag('模型') }}</td>
-                  <td>{{ x.text }}</td>
-                  <td class="t-num small">{{ pct(x.fit.rate) }} <span class="muted">n={{ x.fit.n }}</span></td>
+                  <td>{% if x.tier == '高' %}<span class="vr-good-mark">★</span> {% endif %}{{ x.text }}</td>
+                  <td class="t-num small vr-detail">{{ pct(x.fit.rate) }} <span class="muted">n={{ x.fit.n }}</span></td>
                   <td class="t-num">{% if x.test.rate is not none %}<strong>{{ pct(x.test.rate) }}</strong> <span class="small muted">n={{ x.test.n }}</span>{% else %}{{ M.nodata() }}{% endif %}</td>
-                  <td class="t-num small">{{ ci_text((x.test.lo, x.test.hi)) }}</td>
+                  <td class="t-num small vr-detail">{{ ci_text((x.test.lo, x.test.hi)) }}</td>
                   <td class="t-num">{{ mult(x.test.lift) }}</td>
                   <td>{{ badge('可信度 ' ~ x.tier, 'pass' if x.tier == '高' else ('warn' if x.tier == '中' else 'old')) }}</td>
                   <td class="t-nowrap">
@@ -267,9 +332,9 @@
                 <tr>
                   <td class="t-nowrap">{{ etag('策略库') }} <a class="tlink mono small" href="/rules?rule={{ l.code }}">{{ l.code }}</a></td>
                   <td>{{ l.text }}<div class="cell-sub">{{ l.action }} · {{ l.origin }}{% if l.verdict %} · <span class="muted">{{ l.verdict }}</span>{% endif %}</div></td>
-                  <td class="t-num small">{% if l.fit.n %}{{ pct(l.fit.rate) }} <span class="muted">n={{ l.fit.n }}</span>{% else %}{{ M.nodata() }}{% endif %}</td>
+                  <td class="t-num small vr-detail">{% if l.fit.n %}{{ pct(l.fit.rate) }} <span class="muted">n={{ l.fit.n }}</span>{% else %}{{ M.nodata() }}{% endif %}</td>
                   <td class="t-num">{% if l.test.rate is not none %}<strong>{{ pct(l.test.rate) }}</strong> <span class="small muted">n={{ l.test.n }}</span>{% else %}{{ M.nodata() }}{% endif %}</td>
-                  <td class="t-num small">{{ ci_text((l.test.lo, l.test.hi)) }}</td>
+                  <td class="t-num small vr-detail">{{ ci_text((l.test.lo, l.test.hi)) }}</td>
                   <td class="t-num">{{ mult(l.test.lift) }}</td>
                   <td>{{ badge(l.status) }}{% if l.tier %} {{ badge('可信度 ' ~ l.tier, 'pass' if l.tier == '高' else ('warn' if l.tier == '中' else 'old')) }}{% endif %}</td>
                   <td></td>
@@ -286,9 +351,12 @@
 
         <!-- 5. 说明与限制 -->
         <section class="panel section enter" style="--i:6" aria-labelledby="lim-title">
-          <div class="panel__head"><h2 class="panel__title" id="lim-title">模型说明与数据限制</h2><span class="section__note">运行于 {{ (mr.ended_at or '')[:16] }} · 计算 #{{ mr.compute_run_id }} · 配置 v{{ cfg_ver.version_no }}</span></div>
+          <div class="panel__head"><h2 class="panel__title" id="lim-title">说明与限制（这些词是什么意思）</h2><span class="section__note">运行于 {{ (mr.ended_at or '')[:16] }} · 计算 #{{ mr.compute_run_id }} · 配置 v{{ cfg_ver.version_no }}</span></div>
           <div class="panel__body">
             <ul class="small" style="margin: 0; padding-left: 1.2em">
+              <li><strong>命中率</strong>：这群新品里上架 6 个月内达到成功线的比例；<strong>相对全类目</strong>：它是全类目命中率的几倍，1.0× 等于没差别；<strong>新品数 n</strong>：数越小越不可信。</li>
+              <li><strong>验证窗</strong>：按上架月份把新品分成前后两段，用前一段找规律、后一段检验；页面上“验证”列都是在后一段上算的，这才是没被挑过的成绩。</li>
+              <li class="vr-detail"><strong>优势比</strong>：带这个取值时命中几率是不带时的几倍；<strong>90% 区间</strong>：样本有限时真实值可能落在的范围，区间不含 1.0 才算“稳”。</li>
               <li>模型只吃原始数据和结果：属性取值、细分维度、价格位置、上架月、品牌、变体数、配送、重新上架；人工经验不作输入，只在上表同检。</li>
               <li>切分按上架批次：训练 {{ r.splits.train|join('、') }}{% if r.splits.calib %}；校准 {{ r.splits.calib|join('、') }}{% endif %}{% if r.splits.test %}；验证 {{ r.splits.test|join('、') }}{% endif %}。</li>
               <li>两种模型：岭回归 logit（给方向与区间）和梯度提升树（抓非线性与交互）；规则来自对可控变量拟合的浅层决策树（≤ 3 个条件，叶子 ≥ 10 个新品），再在验证窗重算。</li>
@@ -297,4 +365,6 @@
           </div>
         </section>
         {% endif %}
+        </div><!-- /vr-main -->
+        </div><!-- /vr-layout -->
 {% endblock %}

@@ -404,6 +404,84 @@ def logic_tree(path_rows: list[dict[str, Any]], importance_by: dict[str, list[di
     return {"n": n, "process": ms, "direct": direct}
 
 
+# ---- combinations: which products, not which attributes -----------------------------------
+
+MAX_COMBO_DIMS = 3
+DEFAULT_COMBO_VARS = 5
+
+
+def combos(df: pd.DataFrame, sp: dict[str, list[str]], variables: list[str], max_dims: int = MAX_COMBO_DIMS,
+           min_n: int = MIN_LEAF, top: int = 40, dim_labels: dict[str, str] | None = None) -> dict[str, Any]:
+    """Every combination of 1–max_dims of the chosen controllable variables, each value tuple scored on the
+    训练+校准 and 验证 windows: n, hit rate, lift over that window's base, Wilson interval, tier. A combination is a
+    product description (台面材质=岩板 · 柜体材质=实木 · 价格带=$500–900), which is what people can act on."""
+    from itertools import combinations
+
+    y = df["y"].to_numpy().astype(int)
+    fit_mask = df["batch"].isin(sp["train"] + sp["calib"]).to_numpy()
+    test_mask = df["batch"].isin(sp["test"]).to_numpy()
+    variables = [v for v in variables if v in df.columns and (v.startswith("attr:") or v.startswith("seg:"))]
+    cols = {v: df[v].astype(str).to_numpy() for v in variables}
+    rows: list[dict[str, Any]] = []
+    for k in range(1, min(max_dims, len(variables)) + 1):
+        for group in combinations(variables, k):
+            keys = pd.Series(list(zip(*[cols[v] for v in group], strict=False))) if k > 1 else pd.Series(cols[group[0]])
+            for tup, n_all in keys.value_counts().items():
+                vals = tup if isinstance(tup, tuple) else (tup,)
+                if "未知" in vals or n_all < min_n:
+                    continue
+                mask = np.ones(len(df), bool)
+                for v, val in zip(group, vals, strict=False):
+                    mask &= cols[v] == val
+                fit_s, test_s = _score(mask, y, fit_mask), _score(mask, y, test_mask)
+                if fit_s["n"] < min_n:
+                    continue
+                rows.append({"vars": list(group), "values": list(vals),
+                             "text": " · ".join(f"{_short(v, dim_labels)}={val}" for v, val in zip(group, vals, strict=False)),
+                             "dims": k, "n": int(n_all), "fit": fit_s, "test": test_s,
+                             "tier": _tier(fit_s, test_s) if test_s["n"] else "低",
+                             "direction": "好" if (fit_s["lift"] or 0) > 1 and (test_s["lift"] or 0) > 1 else (
+                                 "差" if (fit_s["lift"] or 1) < 1 and (test_s["lift"] or 1) < 1 else "不稳")})
+    rows.sort(key=lambda r: (TIERS.index(r["tier"]), -(r["test"]["lift"] or 0), -(r["fit"]["lift"] or 0), -r["n"]))
+    good = [r for r in rows if r["direction"] == "好"]
+    bad = sorted([r for r in rows if r["direction"] == "差" and r["test"]["n"] >= min_n],
+                 key=lambda r: ((r["test"]["lift"] or 1), -r["n"]))
+    return {"variables": variables, "n_combos": len(rows), "good": good[:top], "bad": bad[:10],
+            "base_fit": float(y[fit_mask].mean()) if fit_mask.any() else None,
+            "base_test": float(y[test_mask].mean()) if test_mask.any() else None}
+
+
+def _short(var: str, dim_labels: dict[str, str] | None = None) -> str:
+    if var.startswith("seg:"):
+        return (dim_labels or {}).get(var[4:], var[4:])
+    return var.split(":", 1)[1] if ":" in var else var
+
+
+def default_combo_vars(importance: list[dict[str, Any]], k: int = DEFAULT_COMBO_VARS) -> list[str]:
+    """The k most important controllable variables, de-duplicated against each other's segment twin
+    (尺寸 vs 宽度档, 形态 vs 细分形态): the attribute keeps its slot, the segment dim is skipped."""
+    out: list[str] = []
+    twins = {"seg:width": "attr:尺寸", "seg:form": "attr:形态"}
+    have = {i["var"] for i in importance}
+    for i in importance:
+        v = i["var"]
+        if i["layer"] != "x" or i["importance"] <= 0:
+            continue
+        if v in twins and twins[v] in have:
+            continue
+        out.append(v)
+        if len(out) >= k:
+            break
+    return out
+
+
+def combos_for(conn: Connection, category_id: int, mode: str, variables: list[str]) -> dict[str, Any]:
+    """Combinations for variables a person picked, on the latest compute run (no model refit)."""
+    t = table(conn, category_id, mode)
+    sp = splits(t["df"], t["cfg"])
+    return combos(t["df"], sp, variables, dim_labels=t["dim_labels"])
+
+
 # ---- model 3: rules ------------------------------------------------------------------------
 
 
@@ -588,6 +666,9 @@ def run(conn: Connection, category_id: int, operator: str, mode: str = "history"
     res["paths"] = paths(X, df, meta)
     report("模型 3：规则", 0.8)
     res["tree"] = logic_tree(res["paths"], res["importance_by"], len(df))
+    report("组合", 0.75)
+    res["combo_vars"] = default_combo_vars(res["importance"])
+    res["combos"] = combos(df, sp, res["combo_vars"], dim_labels=t["dim_labels"]) if res["combo_vars"] else None
     res["verdict"] = _verdict(fitres, len(df))
     res["rules"] = tree_rules(X, df, meta, sp, t["dim_labels"]) if sp["test"] and res["verdict"] != "none" else []
     if res["verdict"] == "none":

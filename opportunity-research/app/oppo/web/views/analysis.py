@@ -67,8 +67,22 @@ def variables(request: Request) -> HTMLResponse:
                 catalogue = None
         res = mr["result"] if mr else {}
         seg_labels = {d["key"]: d["label"] for d in CAT.current_version(conn, cid)["config"].get("segment_dims") or []}
+        # 组合: the person's pick (?combo=attr:台面材质,seg:price) or the model's default
+        picked = [v for raw in request.query_params.getlist("combo") for v in raw.split(",") if v]
+        combo_vars = picked or (res.get("combo_vars") or [])
+        combo = res.get("combos")
+        combo_error = None
+        if picked and mr is not None:
+            try:
+                combo = MODEL.combos_for(conn, cid, mode, picked)
+            except MODEL.ModelError as exc:
+                combo_error = str(exc)
+        x_vars = [{"name": v["name"], "label": _var_label(v["name"], CAT.CONTROL_VARS, seg_labels)}
+                  for v in (res.get("catalogue") or catalogue or []) if v["layer"] == "x"]
         ctx = {"mr": mr, "r": res, "run": run_, "catalogue": res.get("catalogue") or catalogue or [],
                "tree": _tree_layout(res.get("tree") or {}, CAT.CONTROL_VARS, seg_labels), "seg_labels": seg_labels,
+               "combo": combo, "combo_vars": combo_vars, "combo_error": combo_error, "x_vars": x_vars,
+               "var_label": lambda v: _var_label(v, CAT.CONTROL_VARS, seg_labels),
                "model_names": {"logit": "岭回归 logit", "tree": "梯度提升树"},
                "stale": MODEL.stale_reasons(conn, cid, mr), "compute_stale": CMP.stale_reasons(conn, cid, run_) if run_ else [],
                "verdicts": MODEL.VERDICTS, "layers": MODEL.LAYERS, "control_vars": CAT.CONTROL_VARS,
