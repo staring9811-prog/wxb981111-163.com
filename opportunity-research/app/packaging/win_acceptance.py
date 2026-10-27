@@ -294,6 +294,62 @@ def rule05(root: Path, scale: Path, out: Path, res: dict) -> None:
     res["RULE-05"] = r
 
 
+def flow17(root: Path, out: Path, res: dict) -> None:
+    """FLOW-17 (browser part): finish the month on the package's own CLI, copy the exported web report to another
+    folder and open it with the network off in Chromium and in WebKit (Safari's engine)."""
+    log = out / "flow17.log"
+    env = clean_env(root)
+    r: dict = {}
+    res["FLOW-17"] = r
+    oppo = ["cmd", "/c", str(root / "oppo.bat")]
+    for args in (["contract", "confirm"], ["merge", "confirm", "--basis", "标题主干相同"], ["compute"], ["backtest"],
+                 ["backup-dir", str(root.parent / "backups")]):
+        code, _ = run(oppo + args, env, root, log)
+        r["cli_" + args[0]] = code
+    code, text = run(oppo + ["export"], env, root, log)
+    r["cli_export"] = code
+    info = json.loads(text[text.index("{"):text.rindex("}") + 1])
+    copy_dir = root.parent / "report-copy"
+    copy_dir.mkdir(exist_ok=True)
+    html = copy_dir / Path(info["html_path"]).name
+    shutil.copy2(info["html_path"], html)
+    r["report_copy"] = str(html)
+    r["backup"] = (info.get("backup") or {}).get("status")
+    from openpyxl import load_workbook
+    from playwright.sync_api import sync_playwright
+
+    wb = load_workbook(info["xlsx_path"], read_only=True)
+    r["sheets"] = wb.sheetnames
+    ws = wb["细分排序"]
+    rows = list(ws.iter_rows(values_only=True))
+    head = next(i for i, row in enumerate(rows) if row and row[0] == "排名")
+    excel_order = ["".join(str(x) for x in row[2:5]) for row in rows[head + 1:] if row and row[1]]
+    norm = lambda t: t.replace(" ", "").replace("·", "").replace("\n", "")  # noqa: E731
+    texts = {}
+    with sync_playwright() as pw:
+        for name in ("chromium", "webkit"):
+            b = getattr(pw, name).launch()
+            ctx = b.new_context(viewport={"width": 1440, "height": 900}, offline=True)
+            pg = ctx.new_page()
+            reqs: list[str] = []
+            pg.on("request", lambda q, reqs=reqs: reqs.append(q.url))
+            pg.goto(html.as_uri())
+            pg.wait_for_timeout(800)
+            pg.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+            order = pg.evaluate("""() => { const t = [...document.querySelectorAll('table')].find(
+                x => x.querySelector('th') && [...x.querySelectorAll('th')].some(h => h.textContent.trim() === '得分'));
+                return t ? [...t.querySelectorAll('tbody tr')].filter(tr => !tr.classList.contains('table__divider'))
+                  .map(tr => tr.children[1].innerText) : []; }""")
+            texts[name] = pg.evaluate("document.body.innerText")
+            pg.screenshot(path=str(out / f"flow17_report_{name}.png"), full_page=True)
+            r[name] = {"network_requests": [u for u in reqs if not u.startswith("file:")],
+                       "ranking_rows": len(order),
+                       "ranking_matches_excel": [norm(x) for x in order] == [norm(x) for x in excel_order]}
+            ctx.close()
+            b.close()
+    r["same_text_in_both_engines"] = texts.get("chromium") == texts.get("webkit")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--zip", required=True)
@@ -312,6 +368,10 @@ def main() -> int:
             root = next((p for p in (Path(os.environ.get("SystemDrive", "C:") + "\\") / "oppo-acceptance").iterdir()
                          if p.is_dir()), None)
         if root is not None:
+            try:
+                flow17(root, out, res)
+            except Exception as exc:  # noqa: BLE001 - recorded; RULE-05 still runs
+                res.setdefault("FLOW-17", {})["error"] = repr(exc)
             rule05(root, Path(a.fixtures).resolve() / "S-规模", out, res)
     finally:
         res["ended"] = datetime.now().isoformat(timespec="seconds")

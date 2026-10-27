@@ -28,8 +28,8 @@ jobs:
       - name: Driver tools (test driver only, not part of the package)
         run: |
           python -m pip install --upgrade pip
-          python -m pip install numpy==2.5.4 pandas==3.0.6 playwright==1.64.1
-          python -m playwright install chromium
+          python -m pip install numpy==2.5.4 pandas==3.0.6 openpyxl==3.1.5 playwright==1.64.1
+          python -m playwright install chromium webkit
       - name: Build sample packages (H1-A … S-规模)
         run: python -m fixtures.build_samples --out fixtures/packages --with-scale
       - name: Build offline package

@@ -47,6 +47,16 @@ SIGNAL_FIELDS = {
 Scorer = Callable[[str, str], float | None]
 
 
+def holdout_size(n_batches: int, split: dict[str, Any]) -> int:
+    """Batches in the test group: ⌊n × test / (rule + test)⌋, at least 1 (AC-F07-01; 4 → 1, 10 → 3 at 2:1)."""
+    return max(1, math.floor(n_batches * split["test"] / (split["rule"] + split["test"])))
+
+
+def top_k(n_effective: int) -> int:
+    """Segments in the top 20 %: ⌈n × 0.2⌉, at least 1 (11 → 3)."""
+    return max(1, math.ceil(n_effective * TOP_SHARE))
+
+
 class BacktestError(Exception):
     pass
 
@@ -78,7 +88,7 @@ def _reasons(sig: pd.DataFrame) -> dict[str, str]:
 def evaluate(batches: list[str], pool: pd.DataFrame, eff: list[str], n_seg: dict[str, int], scorer: Scorer,
              seed: int, boot: bool = True) -> dict[str, Any]:
     """Top-20% hit rate of `scorer` over `batches` (pool: one row per decided SPU with hit ∈ {0,1})."""
-    k = max(1, math.ceil(len(eff) * TOP_SHARE))
+    k = top_k(len(eff))
     per_batch = {b: pool[pool["batch"] == b] for b in batches}
     by_seg_batch = {(b, s): (int(g["hit"].sum()), int(len(g)))
                     for b, pb in per_batch.items() for s, g in pb.groupby("segment_key")}
@@ -263,7 +273,7 @@ def _history(conn: Connection, cfg: dict[str, Any], spus: pd.DataFrame, sig: pd.
         res["card_signals"] = []
         return res
     split = cfg["backtest_split"]
-    n_test = max(1, math.floor(len(decided) * split["test"] / (split["rule"] + split["test"])))
+    n_test = holdout_size(len(decided), split)
     rule_b, test_b = decided[:-n_test], decided[-n_test:]
     res["split"] = {"rule": rule_b, "test": test_b}
     look = _sig_lookup(sig)
@@ -283,7 +293,7 @@ def _history(conn: Connection, cfg: dict[str, Any], spus: pd.DataFrame, sig: pd.
     eff_test = sorted(s for s, n in n_test_seg.items() if n >= MIN_SAMPLE)
     insufficient = sorted(s for s, n in n_test_seg.items() if n < MIN_SAMPLE)
     res["effective"] = eff_test
-    res["k"] = max(1, math.ceil(len(eff_test) * TOP_SHARE))
+    res["k"] = top_k(len(eff_test))
     res["insufficient"] = [_merge_hint(s, n_test_seg, cfg) for s in insufficient]
 
     def sig_scorer(name: str) -> Scorer:
@@ -501,7 +511,7 @@ def _cross(conn: Connection, cfg: dict[str, Any], spus: pd.DataFrame, sig: pd.Da
         res["card_signals"] = []
         return res
     split = cfg["backtest_split"]
-    n_test = max(1, math.floor(len(batches) * split["test"] / (split["rule"] + split["test"])))
+    n_test = holdout_size(len(batches), split)
     model_b, test_b = batches[:-n_test], batches[-n_test:]
     res["split"] = {"rule": model_b, "test": test_b}
     res["rows"] = {"model": int(rows_df["batch"].isin(model_b).sum()), "test": int(rows_df["batch"].isin(test_b).sum())}
@@ -515,7 +525,7 @@ def _cross(conn: Connection, cfg: dict[str, Any], spus: pd.DataFrame, sig: pd.Da
     eff = sorted(s for s, n in n_seg.items() if n >= MIN_SAMPLE)
     insufficient = sorted(s for s, n in n_seg.items() if n < MIN_SAMPLE)
     res["effective"] = eff
-    res["k"] = max(1, math.ceil(len(eff) * TOP_SHARE))
+    res["k"] = top_k(len(eff))
     res["insufficient"] = [_merge_hint(s, n_seg, cfg) for s in insufficient]
     res["test_counts"] = {"spus": int(len(pool)), "batches": len(test_b)}
     res["rule_counts"] = {"spus": int(len(new[new["batch"].isin(model_b)])), "batches": len(model_b)}

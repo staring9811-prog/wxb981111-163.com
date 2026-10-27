@@ -46,3 +46,25 @@ def test_data_dir_with_percent_and_chinese(tmp_path):  # type: ignore[no-untyped
 
     app = open_dir(tmp_path / "机会判定台 100%" / "data")
     assert app.category_id() > 0
+
+
+def test_workbench_lists_health_warning_with_evidence(live_server, clone, h1a_done, page):  # type: ignore[no-untyped-def]
+    """FLOW-03 on the workbench itself: a warning with value, threshold and an evidence tag (n=)."""
+    from oppo.core import categories as CAT
+
+    live = live_server(clone(h1a_done))
+    with live.app.engine.begin() as conn:
+        cid = live.app.category_id()
+        cfg = CAT.current_version(conn, cid)["config"]
+        cfg["health_thresholds"]["first_review_early"] = 0.1
+        CAT.save_version(conn, cid, cfg, "wen", "测试：降低首评阈值")
+    page.goto(live.u("/"))
+    item = page.locator('li[data-todo="health"]').filter(has_text="首次评分早于上架")
+    assert item.count() == 1
+    text = item.inner_text()
+    assert "0.3%" in text and "阈值 0.1%" in text and "n=986" in text
+    item.locator("button.etag").click()
+    from playwright.sync_api import expect
+
+    expect(page.locator(".popover.is-open")).to_contain_text("分母")
+    assert not page.js_errors

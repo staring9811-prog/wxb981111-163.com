@@ -123,7 +123,9 @@ def ok(redirect: str | None = None, toast: str | None = None, **extra: Any) -> J
     return JSONResponse({"ok": True, "redirect": redirect, **extra})
 
 
-def fail(error: str, fields: dict[str, str] | None = None, status: int = 400) -> JSONResponse:
+def fail(error: str, fields: dict[str, str] | None = None, status: int = 200) -> JSONResponse:
+    """A refused write. Validation answers with 200 + ok:false so the browser console stays clean; callers pass
+    409 for a running job when the status code matters."""
     return JSONResponse({"ok": False, "error": error, "fields": fields or {}}, status_code=status)
 
 

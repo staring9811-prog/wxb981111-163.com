@@ -61,7 +61,7 @@ def _cmp(a: float, op: str, b: float) -> bool:
 
 
 def matches(conds: list[dict[str, Any]], seg_key: str, sig: dict[str, float | None], cfg: dict[str, Any]) -> bool:
-    labels = dict(zip([d["key"] for d in cfg["segment_dims"]], seg_key.split("|")))
+    labels = dict(zip([d["key"] for d in cfg["segment_dims"]], seg_key.split("|"), strict=False))
     for c in conds:
         if c["kind"] == "signal":
             v = sig.get(c["key"])

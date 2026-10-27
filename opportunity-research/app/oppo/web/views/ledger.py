@@ -17,12 +17,10 @@ from sqlalchemy.engine import Connection
 
 from oppo import clock, fmt
 from oppo import db as D
-from oppo.core import backtest as BT
 from oppo.core import backup as BK
 from oppo.core import cards as CARD
 from oppo.core import categories as CAT
 from oppo.core import compute as CMP
-from oppo.core import contract as CT
 from oppo.core import jobs
 from oppo.core import judge as J
 from oppo.core import ledger as LG
@@ -285,7 +283,8 @@ def post_import_c7(request: Request) -> JSONResponse:
             return C.fail("当前数据包没有 C7 自家立项")
         label = pv["package"]["label"]
         if not pv["new"] and not pv["launch"]:
-            return C.ok(toast=f"已读取 {label} 的 C7 自家立项 {len(pv['rows'])} 行：都已在台账中，没有新的立项或上架数据")
+            return C.ok(redirect="/ledger/decisions",
+                        toast=f"已读取 {label} 的 C7 自家立项 {len(pv['rows'])} 行：都已在台账中，没有新的立项或上架数据")
         try:
             LG.import_c7(conn, cid, app.operator)
         except LG.LedgerError as exc:

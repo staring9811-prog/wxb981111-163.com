@@ -37,7 +37,7 @@ def _rows(d: Path, sql: str) -> list[tuple]:
 
 
 def _months(rows: list[tuple]) -> list[dict]:
-    return [dict(zip(("units", "sales", "bsr"), r)) for r in rows]
+    return [dict(zip(("units", "sales", "bsr"), r, strict=False)) for r in rows]
 
 
 @pytest.fixture(scope="module")

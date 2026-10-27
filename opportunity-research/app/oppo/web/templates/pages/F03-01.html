@@ -103,7 +103,7 @@
                 <li class="list__item" data-todo="{{ t.kind }}">
                   {{ icon(t.icon, 'list__icon list__icon--' ~ t.tone) }}
                   <div class="list__body">
-                    <div class="list__title">{{ t.title }}{% if t.n %}{{ etag('n=' ~ num(t.n), 'n', t.pop, '样本') if t.pop else etag('n=' ~ num(t.n)) }}{% endif %}</div>
+                    <div class="list__title">{{ t.title }}{% if t.n %}{{ etag('n=' ~ num(t.n), 'n', t.popd, '样本') if t.popd else etag('n=' ~ num(t.n)) }}{% endif %}</div>
                     <div class="list__desc">{{ t.desc }}</div>
                   </div>
                   {% if t.job %}

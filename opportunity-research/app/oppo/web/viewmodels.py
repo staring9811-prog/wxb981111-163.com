@@ -78,14 +78,14 @@ def todo_items(conn: Connection, cid: int, mode: str) -> list[dict[str, Any]]:
     for w in H.open_warnings(conn, cid):
         val = w["value"]
         th = w["threshold"]
-        if w["item"] in H.PCT_ITEMS:
-            vt, tt = f"{val * 100:.1f}%", f"{float(th):g}%"
+        if w["item"] in H.PCT_ITEMS:  # health stores these as percentages already (23.4 = 23.4%)
+            vt, tt = f"{val:.1f}%", f"{float(th):g}%"
         else:
             vt, tt = f"{val:g}", f"{float(th):g}"
         n = w["denominator"]
         out.append({"kind": "health", "icon": "warning", "tone": "warn",
                     "title": f"{w['label']} {vt}", "n": int(n) if n else None,
-                    "pop": {"分子": w["numerator"], "分母": w["denominator"], "数据包": w["package_id"]},
+                    "popd": {"分子": w["numerator"], "分母": w["denominator"], "数据包": w["package_id"]},
                     "desc": f"超过预警阈值 {tt}，尚未标为“已知晓”。", "href": "/health", "action": "去体检"})
     pend = [it for it in CT.draft_items(conn, cid) if it["status"] != "confirmed"]
     if pend:
