@@ -26,10 +26,9 @@ from oppo.core import categories as CAT
 from oppo.core import compute as CMP
 from oppo.core import contract as CT
 from oppo.core import health as H
-from oppo.core import jobs
+from oppo.core import jobs, runs
 from oppo.core import packages as PK
 from oppo.core import ranking as RK
-from oppo.core import runs
 from oppo.core import spec as S
 from oppo.core import spu as SPU
 from oppo.web import common as C
@@ -578,7 +577,7 @@ def fields_context(conn: Connection, cid: int, open_key: str | None) -> dict[str
     health = _health_by_item(conn, cid, health_pkg["id"] if health_pkg else None)
     draft_pkg = PK.get(conn, max(pkg_ids)) if pkg_ids else None
     rows = []
-    for i, it in enumerate(items):
+    for _i, it in enumerate(items):
         key = (it["file_code"], it["field"])
         ev = evs.get(it["package_id"], {}).get(key) if it["package_id"] else None
         if it["change_kind"] == "缺少":

@@ -13,9 +13,9 @@ from oppo import clock
 from oppo import db as D
 from oppo.core import backtest as BT
 from oppo.core import cards as CARD
+from oppo.core import categories as CAT
 from oppo.core import compute as CMP
 from oppo.core import contract as CT
-from oppo.core import categories as CAT
 from oppo.core import judge as J
 from oppo.core import packages as PK
 from oppo.core import rules as RULES

@@ -362,10 +362,10 @@ class H1:
                 self.plans.append(p)
 
         for seg, rows in self.rule.items():
-            for b, (n, hits, inc) in zip(RULE_BATCHES, rows):
+            for b, (n, hits, inc) in zip(RULE_BATCHES, rows, strict=False):
                 add(seg, b, n, hits, inc, "R")
         for seg, rows in self.test.items():
-            for b, (n, hits, inc) in zip(TEST_BATCHES, rows):
+            for b, (n, hits, inc) in zip(TEST_BATCHES, rows, strict=False):
                 add(seg, b, n, hits, inc, "T")
         for b, segs in WATCH.items():
             for seg in segs:
@@ -982,7 +982,7 @@ class X1:
                     new_children.append((c, b, rows))
                     if special:
                         self.special[special] = (c, b, hit_m)
-        for c, b, rows in new_children:
+        for c, _b, rows in new_children:
             pkg.c2.append({"子ASIN": c.asin, "父ASIN": c.parent, "品牌": c.brand, "标题": c.title, "上架日期": c.launch,
                            "配送方式": c.fulfillment, "变体数": c.variants, "首次评分日期": c.first_review or ""})
             for r in rows:

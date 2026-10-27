@@ -153,7 +153,8 @@ def shots(tmp: Path) -> list[Shot]:
         Shot("DESIGN-04", "4_history_drawer", "s1", "/fields", [click('button[data-open="#history-drawer"]')],
              full=False),
         # PAGE-F03-02 数据体检
-        Shot("DESIGN-05", "1_health_sample_open", "s1", "/health"),
+        Shot("DESIGN-05", "1_health_sample_open", "s1", "/health",
+             [run_js("document.querySelectorAll('li[data-check=first_review_early] details').forEach(d => d.open = true)")]),
         Shot("DESIGN-05", "2_ack_modal", "s1", "/health", [click('button[data-open^="#ack-modal-"]')], full=False),
         # PAGE-F04-01 新品与 SPU
         Shot("DESIGN-06", "1_spu_history", "s1x", "/spu", mode="history"),
@@ -174,9 +175,21 @@ def shots(tmp: Path) -> list[Shot]:
         # PAGE-F06-01 信号
         Shot("DESIGN-09", "1_signals_history", "s1x", "/signals?month=2026-03", mode="history"),
         Shot("DESIGN-09", "2_signals_cross", "s1x", "/signals", mode="cross"),
+        Shot("DESIGN-09", "3_signals_history_all_columns", "s1x", "/signals?month=2026-03",
+             [click('[data-cols-toggle="#sig-wrap"]')], mode="history"),
+        Shot("DESIGN-09", "4_signals_cross_all_columns", "s1x", "/signals", [click('[data-cols-toggle="#sig-wrap"]')],
+             mode="cross"),
         # PAGE-F06-02 细分详情抽屉
         Shot("DESIGN-10", "1_segment_drawer", "s1", "/signals?month=2026-03",
              [click(f'tr[data-segment="{X}"], tr:has-text("30–48″"):has-text("落地式"):has-text("$500–900")')], full=False),
+        Shot("DESIGN-10", "3_drawer_middle", "s1", "/signals?month=2026-03",
+             [click(f'tr[data-segment="{X}"]'),
+              run_js("(b => b.scrollTop = b.scrollHeight / 3)(document.querySelector('.drawer.is-open .drawer__body'))")],
+             full=False),
+        Shot("DESIGN-10", "4_drawer_bottom", "s1", "/signals?month=2026-03",
+             [click(f'tr[data-segment="{X}"]'),
+              run_js("(b => b.scrollTop = b.scrollHeight)(document.querySelector('.drawer.is-open .drawer__body'))")],
+             full=False),
         Shot("DESIGN-10", "2_after_esc", "s1", "/signals?month=2026-03",
              [click(f'tr[data-segment="{X}"], tr:has-text("30–48″"):has-text("落地式"):has-text("$500–900")'),
               press("Escape")], full=False),
@@ -217,6 +230,7 @@ def shots(tmp: Path) -> list[Shot]:
         # PAGE-F10-06 录入自家上架数据（弹窗）
         Shot("DESIGN-20", "1_launch_modal_jia", "s_ledger", "/ledger/decisions?launch=D-0001", full=False),
         # PAGE-F11-01 策略库
+        Shot("DESIGN-21", "0_rules", "s_ledger", "/rules"),
         Shot("DESIGN-21", "1_rules_basis_popover", "s_ledger", "/rules",
              [click('tr:has-text("已验证") button.etag')]),
         # PAGE-F11-02 规则编辑（抽屉）
@@ -231,6 +245,8 @@ def shots(tmp: Path) -> list[Shot]:
               lambda p, s: p.wait_for_timeout(800)], full=False),
         Shot("DESIGN-23", "4_export_confirm_unverified", "s_unverified", "/ranking?export=1", full=False),
         # PAGE-F13-01 品类配置
+        Shot("DESIGN-25", "0_config_edited_page", "s1", "/settings/category",
+             [fill("input[name='bins.price']", "<$450 / $450–900 / ≥$900")]),
         Shot("DESIGN-25", "1_config_edited_save_modal", "s1", "/settings/category",
              [fill("input[name='bins.price']", "<$450 / $450–900 / ≥$900"), click("[data-cfg-review]")], full=False),
         Shot("DESIGN-25", "2_new_category_modal", "s1", "/settings/category",

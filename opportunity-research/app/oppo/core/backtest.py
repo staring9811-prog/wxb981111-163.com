@@ -25,7 +25,7 @@ from oppo.core import rules as RULES
 from oppo.core import segments as SEG
 from oppo.core import signals as SIG
 from oppo.core import stats as ST
-from oppo.core.packages import add_months, month_range
+from oppo.core.packages import add_months
 
 MIN_SAMPLE = 20
 MIN_EFFECTIVE = 5  # DEC-036
@@ -397,7 +397,7 @@ def _confounders(pool: pd.DataFrame, look: dict[tuple[str, str, str], float | No
     price = {(T, s): v for T, s, sg, v in sig[sig["signal"] == "premium"][["t_month", "segment_key", "signal", "num"]]
              .itertuples(index=False)}
     p = pool.copy()
-    p["seg_price"] = [price.get((b, s)) for b, s in zip(p["batch"], p["segment_key"])]
+    p["seg_price"] = [price.get((b, s)) for b, s in zip(p["batch"], p["segment_key"], strict=False)]
     p["price_pos"] = p["launch_price"] / p["seg_price"]
     months = sorted(p["batch"].unique())
     p["month_idx"] = p["batch"].map({m: i for i, m in enumerate(months)})
@@ -407,7 +407,7 @@ def _confounders(pool: pd.DataFrame, look: dict[tuple[str, str, str], float | No
         if s in blocked:
             out.append({"signal": s, "label": SIG.LABELS[s], "before": None, "after": None, "reason": "回测不用快照字段"})
             continue
-        x = np.array([look.get((b, seg, s)) for b, seg in zip(p["batch"], p["segment_key"])], dtype=float)
+        x = np.array([look.get((b, seg, s)) for b, seg in zip(p["batch"], p["segment_key"], strict=False)], dtype=float)
         mask = ~np.isnan(x)
         ctrl = p[ctrl_cols].astype(float).to_numpy()
         mask &= ~np.isnan(ctrl).any(axis=1)
@@ -489,7 +489,6 @@ def _make_card(conn: Connection, category_id: int, mode: str, bt_id: int, code: 
 def _cross(conn: Connection, cfg: dict[str, Any], spus: pd.DataFrame, sig: pd.DataFrame, run_: dict[str, Any],
            seed: int, blocked: set[str], report: Callable[[str, float], None]) -> dict[str, Any]:
     window = int(cfg["success"]["window_months"])
-    first_obs = conn.execute(select(D.package.c.months_from).where(D.package.c.id == run_["package_id"])).scalar()
     new = spus[(spus["is_new"] == 1) & (spus["rising"] == 1)].copy()
     batches = sorted(new["batch"].unique())
     res: dict[str, Any] = {"mode": "cross", "decided_batches": batches, "excluded_batches": []}

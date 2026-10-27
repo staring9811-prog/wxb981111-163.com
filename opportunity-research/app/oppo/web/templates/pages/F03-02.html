@@ -47,6 +47,7 @@
           </div>
           <div class="panel">
             <ul class="list">
+              {% set first_warn = (items|selectattr('status', 'equalto', 'warn')|first) %}
               {% for it in items %}
               <li class="list__item" id="check-{{ loop.index }}" data-check="{{ it.item }}" data-status="{{ it.status }}">
                 {% if it.status == 'warn' %}{{ icon('warning', 'list__icon list__icon--warn') }}{% elif it.status == 'acked' %}{{ icon('seal-check', 'list__icon list__icon--ok') }}{% elif it.status == 'na' %}{{ icon('minus', 'list__icon') }}{% else %}{{ icon('check-circle', 'list__icon list__icon--ok') }}{% endif %}
@@ -75,7 +76,7 @@
                   <p class="small" data-ack-note>已知晓 · {{ it.ack.created_by }} · {{ it.ack.created_at[:16] }} · 说明：{{ it.ack.note }}</p>
                   {% endif %}
                   {% if it.sample_rows %}
-                  <details class="small" style="margin-top: var(--space-3)"{% if it.status == 'warn' and loop.first %} open{% endif %}>
+                  <details class="small" style="margin-top: var(--space-3)"{% if first_warn and it.item == first_warn.item %} open{% endif %}>
                     <summary>样例 {{ it.sample_rows|length }} 条</summary>
                     <div class="table-wrap" style="margin-top: var(--space-2)">
                       <table class="table">

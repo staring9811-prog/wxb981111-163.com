@@ -127,7 +127,7 @@ def _parse_bins(key: str, text_value: str) -> list[dict[str, Any]]:
     for lab in labels:
         found = [float(x.replace(",", "")) for x in re.findall(r"\d[\d,]*(?:\.\d+)?", lab)]
         nums.append(found)
-    for i, (lab, found) in enumerate(zip(labels, nums)):
+    for i, (lab, found) in enumerate(zip(labels, nums, strict=False)):
         if not found:
             raise ValueError(f"分档“{lab}”缺少数值")
         if i == 0:
@@ -146,7 +146,7 @@ def _parse_bins(key: str, text_value: str) -> list[dict[str, Any]]:
         lo = b.get("min", b.get("gt"))
         hi = b.get("lt", b.get("max"))
         edges.append((lo, hi))
-    for (lo1, hi1), (lo2, _hi2) in zip(edges, edges[1:]):
+    for (_lo1, hi1), (lo2, _hi2) in zip(edges, edges[1:], strict=False):
         if hi1 is None or lo2 is None or abs(float(hi1) - float(lo2)) > 1e-9:
             raise ValueError("分档有重叠或空档")
     return bins

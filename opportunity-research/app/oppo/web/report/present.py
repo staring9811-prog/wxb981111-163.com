@@ -141,7 +141,7 @@ def conditions(res: dict[str, Any], cross: bool = False) -> list[dict[str, Any]]
         ok2 = bool(cond.get("cond2"))
         tail = f"（另 {len(nodata)} 个无数据，未参与比较）" if nodata else ""
         if ok2:
-            txt = (f"高于{'全部 ' if not nodata else '可计算的 '}{len(comp)} 个可计算的现用指标"
+            txt = (f"高于{'全部 ' if not nodata else ''}{len(comp)} 个可计算的现用指标"
                    f"（最高 {SIG.LABELS[best[0]]} {pct1(best[1])}）" if best else "")
             desc = f"最高的现用指标为{SIG.LABELS[best[0]]} {pct1(best[1])}" if best else ""
         else:

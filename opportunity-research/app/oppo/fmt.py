@@ -70,8 +70,14 @@ def ibar(point: Any, ci: Any, avg: Any, n: Any = None, grey: bool = False, label
     if not is_none(avg):
         ax = _x(avg)
         parts.append(f'<line class="ibar__avg" x1="{ax}" y1="3" x2="{ax}" y2="17"/>')
-    parts.append(f'<circle class="ibar__dot" cx="{_x(point)}" cy="10" r="4"/>')
+    over = hi > SCALE_MAX
+    if over:  # the 0–60 % scale is fixed (prototype geometry): mark a band that runs past its end
+        parts.append('<path class="ibar__over" d="M153 5 L159 10 L153 15 Z"/>')
+    dot_cls = "ibar__dot ibar__dot--over" if point > SCALE_MAX else "ibar__dot"
+    parts.append(f'<circle class="{dot_cls}" cx="{min(_x(point), 151.0) if point > SCALE_MAX else _x(point)}" cy="10" r="4"/>')
     desc = f"{label} {pct0(point)}，90% 区间 {ci_text(ci)}"
+    if over:
+        desc += "（上限超出 60% 刻度）"
     if n is not None:
         desc += f"，样本 {n}"
     if not is_none(avg):
@@ -82,7 +88,7 @@ def ibar(point: Any, ci: Any, avg: Any, n: Any = None, grey: bool = False, label
     cls = "ibar ibar--grey" if grey else "ibar"
     data_tip = ""
     if tip and not standalone:
-        line2 = f"90% 区间 {ci_text(ci)}" + (f" · 样本 {n}" if n is not None else "")
+        line2 = f"90% 区间 {ci_text(ci)}" + (f" · 样本 {n}" if n is not None else "") + (" · 上限超出 60% 刻度" if over else "")
         line3 = f"竖线：{avg_label} {pct(avg)}" if not is_none(avg) else ""
         data_tip = f' tabindex="0" data-tip="{escape(pct0(point))}|{escape(line2)}|{escape(line3)}" aria-label="{escape(desc)}"'
     return Markup(f'<span class="{cls}"{data_tip}>{svg}</span>')

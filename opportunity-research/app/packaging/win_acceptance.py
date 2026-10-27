@@ -347,7 +347,13 @@ def flow17(root: Path, out: Path, res: dict) -> None:
                        "ranking_matches_excel": [norm(x) for x in order] == [norm(x) for x in excel_order]}
             ctx.close()
             b.close()
-    r["same_text_in_both_engines"] = texts.get("chromium") == texts.get("webkit")
+    # innerText whitespace (tabs between cells, line breaks) differs by engine; compare the words themselves
+    words = {k: " ".join(v.split()) for k, v in texts.items()}
+    r["same_text_in_both_engines"] = words.get("chromium") == words.get("webkit")
+    if not r["same_text_in_both_engines"]:
+        a, b = words.get("chromium", ""), words.get("webkit", "")
+        i = next((k for k in range(min(len(a), len(b))) if a[k] != b[k]), min(len(a), len(b)))
+        r["first_text_difference"] = {"chromium": a[max(0, i - 60):i + 60], "webkit": b[max(0, i - 60):i + 60]}
 
 
 def main() -> int:

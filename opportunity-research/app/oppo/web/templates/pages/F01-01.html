@@ -20,8 +20,7 @@
               <div class="banner__body"><div class="banner__title">没有完成导入</div><div>{{ error }}</div></div>
             </div>
             {% endif %}
-            {% if not preview %}
-            <form class="dropzone" id="pkg-drop" data-stage-form action="/packages/stage" method="post" enctype="multipart/form-data">
+            <form class="dropzone{% if preview %} dropzone--compact{% endif %}" id="pkg-drop" data-stage-form action="/packages/stage" method="post" enctype="multipart/form-data">
               {{ icon('file-zip') }}
               <div style="flex:1; min-width:0">
                 <div class="strong">把 zip 或数据包文件夹拖到这里</div>
@@ -37,7 +36,7 @@
               <label class="btn">选择 zip<input class="visually-hidden" type="file" accept=".zip" data-stage-zip></label>
               <label class="btn">选择文件夹<input class="visually-hidden" type="file" webkitdirectory multiple data-stage-folder></label>
             </form>
-            {% else %}
+            {% if preview %}
             {% set pv = preview %}
             <div class="stack" aria-labelledby="preview-title">
               <div class="row">

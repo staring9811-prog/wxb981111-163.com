@@ -51,9 +51,14 @@ def clone(src: Path, dst: Path) -> Path:
     t.close()
     # backup records point at the source's backup directory; give the clone its own copy
     if (src / "backups").exists():
+        from sqlalchemy import text
+
         app = open_dir(dst)
         with app.engine.begin() as conn:
             BK.set_directory(conn, str(dst / "backups"), "wen")
+            # backup records are not append-only; point them at the copied files so list and records agree
+            conn.execute(text("UPDATE backup_record SET path = REPLACE(path, :a, :b) WHERE path IS NOT NULL"),
+                         {"a": str(src / "backups"), "b": str(dst / "backups")})
         close(app)
     return dst
 

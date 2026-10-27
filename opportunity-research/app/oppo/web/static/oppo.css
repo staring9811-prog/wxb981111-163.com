@@ -10,7 +10,14 @@
 .ibar--grey .ibar__dot { fill: var(--muted); }
 .danger-text { color: var(--danger); }
 .step[data-status="running"] .step__dot { color: var(--accent); }
-.step__meta { display: block; overflow: hidden; text-overflow: ellipsis; padding-right: var(--space-2); }
+.step, .step__link { min-width: 0; }
+.step__meta { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: var(--space-2); }
 .step__meta--warn { color: var(--warn); }
-.step__meta--warn .icon { width: 12px; height: 12px; vertical-align: -1px; margin-right: 2px; }
 .kv dd, .fp, .cell-sub { overflow-wrap: anywhere; min-width: 0; }
+/* one emphasis button per screen: while a modal or drawer is open, primary buttons behind it fall back to the default style */
+body:has(.modal.is-open, .drawer.is-open) .main .btn--primary:not(.modal .btn--primary):not(.drawer .btn--primary) {
+  background: var(--surface); border-color: var(--border-control); color: var(--fg);
+}
+/* interval bar runs past the fixed 0–60 % scale: arrow at the end, the dot drawn hollow when the point itself is beyond it */
+.ibar__over { fill: var(--viz-series-1); }
+.ibar__dot--over { fill: var(--surface); stroke: var(--viz-series-1); stroke-width: 2; }

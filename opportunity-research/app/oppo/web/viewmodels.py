@@ -186,7 +186,7 @@ def workbench_summary(conn: Connection, app: Any, mode: str = "history") -> dict
         add("todo", "导入后自动体检")
     elif warns:
         # the check itself is done (it runs on import); open warnings stay visible here and in 待处理
-        add("done", f"已完成 · {len(warns)} 项预警待知晓", warn=True)
+        add("done", f"已完成 · {len(warns)} 项待知晓", warn=True)
     else:
         add("done", "已完成 · 没有未知晓的预警")
     # 4 SPU 归并
@@ -228,7 +228,7 @@ def workbench_summary(conn: Connection, app: Any, mode: str = "history") -> dict
     else:
         mult = (bt["result"].get("card") or {}).get("multiple")
         add("done", f"{bt['conclusion']}" + (f" {mult:.2f}×" if mult is not None else "")
-            + _dur_text(_last_step(steps_rec, "回测", month)))
+            + _dur_text(_last_step(steps_rec, "回测", month)), warn=bt["conclusion"] not in ("达标", "达标（截面）"))
     # 7 判定卡与排序
     if month_snaps:
         add("done", f"快照第 {month_snaps[0]['seq']} 版已保存")

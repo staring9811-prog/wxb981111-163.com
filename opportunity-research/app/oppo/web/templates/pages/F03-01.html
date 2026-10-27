@@ -70,11 +70,11 @@
 
         <ol class="steps enter" style="--i:1" aria-label="本月 8 步进度">
           {% for s in vm.steps %}
-          <li class="step step--{{ {'block': 'blocked', 'stale': 'attention', 'running': 'current'}.get(s.status, s.status) }}" data-status="{{ s.status }}">
+          <li class="step step--{{ 'attention' if s.warn else {'block': 'blocked', 'stale': 'attention', 'running': 'current'}.get(s.status, s.status) }}" data-status="{{ s.status }}"{% if s.warn %} data-attention{% endif %}>
             <a class="step__link" href="{{ s.href }}"{% if s.status == 'current' %} aria-current="step"{% endif %}>
-              <span class="step__dot">{% if s.status in st_icon %}{{ icon(st_icon[s.status], 'spin' if s.status == 'running' else '') }}{% else %}{{ s.no }}{% endif %}</span>
+              <span class="step__dot">{% if s.warn %}{{ icon('warning') }}{% elif s.status in st_icon %}{{ icon(st_icon[s.status], 'spin' if s.status == 'running' else '') }}{% else %}{{ s.no }}{% endif %}</span>
               <span class="step__name">{{ s.name }}</span>
-              <span class="step__meta{% if s.warn %} step__meta--warn{% endif %}" title="{{ s.meta }}"{% if s.status == 'running' %} data-job-step{% endif %}>{% if s.warn %}{{ icon('warning') }}{% endif %}{{ s.meta }}</span>
+              <span class="step__meta{% if s.warn %} step__meta--warn{% endif %}" title="{{ s.meta }}"{% if s.status == 'running' %} data-job-step{% endif %}>{{ s.meta }}</span>
             </a>
           </li>
           {% endfor %}

@@ -3,3 +3,7 @@
 .ibar--grey .ibar__band { fill: var(--viz-deemph); }
 .ibar--grey .ibar__dot { fill: var(--muted); }
 #export-modal .tab[role="tab"] { cursor: default; }
+/* export modal: each step panel is a flex column so its body scrolls and its footer stays visible */
+#export-modal [role="tabpanel"]:not([hidden]) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden !important; }
+#export-modal [role="tabpanel"] > .modal__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+#export-modal [role="tabpanel"] > .modal__foot { flex: none; }

@@ -21,14 +21,8 @@ def _job_done(live, page) -> None:  # type: ignore[no-untyped-def]
     page.wait_for_load_state("networkidle")
 
 
-def test_smoke02_month_in_browser(live_server, data_dir, page, tmp_path) -> None:  # type: ignore[no-untyped-def]
-    live = live_server(data_dir)
-    with live.app.engine.begin() as conn:  # precondition: a writable backup directory
-        ok, _ = BK.set_directory(conn, str(tmp_path / "备份"), "wen")
-        assert ok
-    outside: list[str] = []
-    page.on("request", lambda r: outside.append(r.url) if not r.url.startswith(live.url) else None)
-
+def month_in_browser(live, page) -> None:  # type: ignore[no-untyped-def]
+    """SMOKE-02 steps 1–6 through the pages (shared with RULE-04)."""
     # 1 导入 H1-A
     page.goto(live.u("/packages?import=1"))
     page.fill("#pkg-path", str(fixture_pkg("H1-A")))
@@ -79,6 +73,17 @@ def test_smoke02_month_in_browser(live_server, data_dir, page, tmp_path) -> None
     page.click("[data-export-start]")
     page.wait_for_selector('[data-file="html"]', timeout=300_000)
     _job_done(live, page)
+
+
+def test_smoke02_month_in_browser(live_server, data_dir, page, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    live = live_server(data_dir)
+    with live.app.engine.begin() as conn:  # precondition: a writable backup directory
+        ok, _ = BK.set_directory(conn, str(tmp_path / "备份"), "wen")
+        assert ok
+    outside: list[str] = []
+    page.on("request", lambda r: outside.append(r.url) if not r.url.startswith(live.url) else None)
+
+    month_in_browser(live, page)
 
     with live.app.engine.begin() as conn:
         exp = conn.execute(text("SELECT * FROM export_record ORDER BY id DESC")).mappings().first()

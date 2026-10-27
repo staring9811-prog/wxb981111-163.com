@@ -255,9 +255,9 @@ def _coverage(files: dict[str, FileCheck], kind: str, manifest: dict[str, Any]) 
               "缺少月份：" + "、".join(missing) + "；涉及月份的信号为“无数据”" if missing else None)
     fc2, fc3 = files.get(c2), files.get(c3)
     if fc2 and fc3 and fc2.df is not None and fc3.df is not None and "上架日期" in fc2.parsed and "月份" in fc3.parsed:
-        launch = {c: d for c, d in zip(fc2.parsed.get("子ASIN", []), fc2.parsed["上架日期"]) if c and d}
+        launch = {c: d for c, d in zip(fc2.parsed.get("子ASIN", []), fc2.parsed["上架日期"], strict=False) if c and d}
         have3: dict[str, set[str]] = {}
-        for i, (c, m) in enumerate(zip(fc3.parsed.get("子ASIN", []), fc3.parsed["月份"])):
+        for i, (c, m) in enumerate(zip(fc3.parsed.get("子ASIN", []), fc3.parsed["月份"], strict=False)):
             if c and m and i not in fc3.excluded:
                 have3.setdefault(c, set()).add(m)
         short = 0
