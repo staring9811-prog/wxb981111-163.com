@@ -14,7 +14,7 @@ import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261027-v4'
+VERSION='bathroom-vanity-tagger-20261027-v5'
 # 2026-10-27 user: vanity widths are essentially standard sizes.
 STANDARD_WIDTHS=(12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84)
 STD_WIDTH_TOLERANCE=0.8
@@ -51,9 +51,9 @@ def export_attributes(text):
     return out
 
 class Tagger:
-    def __init__(self,row,details,feature_provenance=None,export_rows=None,enable_dim_rules=True,parent_fill=True,std_width=True):
+    def __init__(self,row,details,feature_provenance=None,export_rows=None,enable_dim_rules=True,parent_fill=True,std_width=True,accessory_default=True):
         self.row=row;self.asin=row['子ASIN'];self.sources=[];self.notes=[];self.conflicts=[];self.tags={};self.evidence={}
-        self.rejected_dims=[];self.enable_dim_rules=enable_dim_rules;self.parent_fill=parent_fill;self.std_width=std_width
+        self.rejected_dims=[];self.enable_dim_rules=enable_dim_rules;self.parent_fill=parent_fill;self.std_width=std_width;self.accessory_default=accessory_default
         def add(field,text,scope='child',a=None,**meta):
             if clean(text):self.sources.append({'field':field,'text':clean(text),'scope':scope,'asin':a or self.asin,**meta})
         add('SKU属性',row.get('SKU属性'));add('商品标题',row.get('商品标题'))
@@ -581,6 +581,13 @@ class Tagger:
 
     def run(self):
         self.structure();self.colors();self.materials();self.dimensions();self.parent_dimensions();self.snap_width();self.included(HEADERS[12],'mirror');self.included(HEADERS[13],'faucet')
+        # User 2026-10-27: mirror/faucet without an explicit "with"/included are 无.
+        if self.accessory_default:
+            for h in (HEADERS[12],HEADERS[13]):
+                if self.tags.get(h)==UNKNOWN:
+                    self.tags[h]='无';self.evidence[h]={'status':'business_default','selected':[],'ruleID':'ACC-DEFAULT-NONE','basisType':'business_default','note':'文本未明确with/included，按用户规则默认无'}
+            if any(self.evidence[h].get('status')=='business_default' for h in (HEADERS[12],HEADERS[13])):
+                self.notes.append('镜子/龙头未明确提及，按用户规则默认无：'+'、'.join(h for h in (HEADERS[12],HEADERS[13]) if self.evidence[h].get('status')=='business_default'))
         for h in HEADERS[:14]:
             related=[s for s in self.conflicts if s.startswith(h)]
             if related and h in self.evidence:
@@ -616,7 +623,7 @@ VISUAL={'D1产品形态','D3盆数','D4台面形态','D5元素','D6柜体颜色'
 def feasibility(field,ev,has_child_text):
     status=(ev or {}).get('status','missing')
     if status in ('text_supported','derived'):return 'A'
-    if status in ('business_mapping','business_inference','business_assumption','order_inference'):return 'A2'
+    if status in ('business_mapping','business_inference','business_assumption','order_inference','business_default'):return 'A2'
     if status=='parent_fill':return 'A3'
     if status=='parent_candidate':return 'B'
     if (ev or {}).get('swapCorrectedCandidate') and status=='conflict':return 'D'
@@ -640,6 +647,7 @@ def main():
     ap.add_argument('--no-dim-rules',action='store_true',help='关闭DIM-DWH-ORDER与DIM-DW-SWAP')
     ap.add_argument('--no-parent-fill',action='store_true',help='子体缺失时不用父体值填，只标（父体候选）')
     ap.add_argument('--no-std-width',action='store_true',help='宽度保留实际值，不归标准宽度')
+    ap.add_argument('--no-accessory-default',action='store_true',help='镜子/龙头未提及时保留信息不足，不默认无')
     args=ap.parse_args()
     root=Path(args.data_root);out=Path(args.out_dir);out.mkdir(parents=True,exist_ok=True)
     p=load(root/'sales_payload.json');details=load(root/'collected_details.json')
@@ -656,14 +664,14 @@ def main():
         else:
             textkey=hashlib.sha256(json.dumps({h:r.get(h) for h in ['子ASIN','SKU属性','商品标题','商品尺寸','五点描述','五点来源','五点来源ASIN','核验父ASIN']},ensure_ascii=False,sort_keys=True).encode()).hexdigest()
             if textkey not in snapshots:
-                t=Tagger(r,details,fp.get((month,a)),exports.get(a),not args.no_dim_rules,not args.no_parent_fill,not args.no_std_width)
+                t=Tagger(r,details,fp.get((month,a)),exports.get(a),not args.no_dim_rules,not args.no_parent_fill,not args.no_std_width,not args.no_accessory_default)
                 res=t.run();child_text=t.has_child_detail or t.has_export
                 snapshots[textkey]=res+({h:feasibility(h,res[1].get(h),child_text) for h in HEADERS[:14]},{'childDetail':t.has_child_detail,'sellerSpriteExport':t.has_export,'parentFeatures':r.get('五点来源')=='父体详情填充'})
             tags,e,conflicts,feas,sourcesUsed=snapshots[textkey];values=[tags[h] for h in HEADERS];target_rows.append((a,month,tags,e,feas,sourcesUsed,r))
         matrix.append(values);states[values[-2]]+=1
         evidence_rows.append({'excelRow':i,'marketplace':r['站点'],'month':month,'childASIN':a,'verifiedParentASIN':r.get('核验父ASIN'),'includeInBathroomAnalysis':bool(r.get('_eligible')) and a not in excluded,'tags':dict(zip(HEADERS,values)),'fields':e,'feasibility':feas,'textSources':sourcesUsed,'conflicts':conflicts,'originalRecordIDs':r.get('关联原始记录ID'),'featureSource':r.get('五点来源'),'featureSourceASIN':r.get('五点来源ASIN')})
     months=sorted({x[1] for x in target_rows})
-    summary={'ruleVersion':VERSION,'dimensionRulesEnabled':not args.no_dim_rules,'parentFill':not args.no_parent_fill,'standardWidth':not args.no_std_width,'allRowsRetained':len(matrix),'taggedTargetRows':len(target_rows),'uniqueTargetASINs':len({x[0] for x in target_rows}),'distinctTextSnapshots':len(snapshots),'rowStates':dict(states),'dimensions':{},'feasibilityLegend':FEASIBILITY,'feasibility':{},'textSourceCoverage':{},'newAPICalls':0,'imagesIndependentlyReviewed':0,'imageNote':'本轮是已有文本证据打标，元素待图片核验/文本线索均明确标注，不宣称已看图','monthly':[]}
+    summary={'ruleVersion':VERSION,'dimensionRulesEnabled':not args.no_dim_rules,'parentFill':not args.no_parent_fill,'standardWidth':not args.no_std_width,'accessoryDefaultNone':not args.no_accessory_default,'allRowsRetained':len(matrix),'taggedTargetRows':len(target_rows),'uniqueTargetASINs':len({x[0] for x in target_rows}),'distinctTextSnapshots':len(snapshots),'rowStates':dict(states),'dimensions':{},'feasibilityLegend':FEASIBILITY,'feasibility':{},'textSourceCoverage':{},'newAPICalls':0,'imagesIndependentlyReviewed':0,'imageNote':'本轮是已有文本证据打标，元素待图片核验/文本线索均明确标注，不宣称已看图','monthly':[]}
     for h in HEADERS[:14]:
         vals=[x[2][h] for x in target_rows]
         present=sum(v not in (None,UNKNOWN,'待图片核验') for v in vals)

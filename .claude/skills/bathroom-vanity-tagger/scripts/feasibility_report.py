@@ -31,8 +31,8 @@ FIELD_NOTES={
     'D9宽(in)':('SKU Size、标题宽度、详情Product Dimensions','缺子体详情的补采；冲突多为卖家标签互换或名义/实际尺寸差'),
     'D9深(in)':('详情Product Dimensions（带D/W/H标签）；商品尺寸为无方向三维数','确认DIM-DWH-ORDER/DIM-DW-SWAP规则后可补大部分；其余补采'),
     'D9高(in)':('详情Product Dimensions（带D/W/H标签）；商品尺寸为无方向三维数','确认DIM-DWH-ORDER规则后可补大部分；SKU“3H”是3孔龙头位不是高度'),
-    'D10镜子':('五点/标题中mirror included / not included等明确表述','多数商品文本不提镜子；未提及不能推出“无”；需子体详情或厂家确认'),
-    'D11龙头':('五点/标题中faucet included / not included、标题列出Faucet等','缺子体详情的补采；pre-drilled faucet hole不代表含龙头'),
+    'D10镜子':('五点/标题中mirror included / not included等明确表述；未提及按用户规则默认无','默认无是业务口径，不是文本证据；按子体口径分析时用feasibility分开A/A2'),
+    'D11龙头':('五点/标题中faucet included / not included、标题列出Faucet等；未提及按用户规则默认无','pre-drilled faucet hole不代表含龙头；默认无是业务口径，用feasibility分开A/A2'),
 }
 
 def verdict(r,n):

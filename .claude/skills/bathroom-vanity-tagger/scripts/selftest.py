@@ -11,7 +11,7 @@ def tagger(sources,row=None,**kw):
     x=t.Tagger.__new__(t.Tagger)
     x.row=row or {};x.asin='X';x.provenance={};x.tags={};x.evidence={};x.conflicts=[];x.notes=[]
     x.rejected_dims=[];x.enable_dim_rules=kw.get('enable_dim_rules',False)
-    x.parent_fill=kw.get('parent_fill',False);x.std_width=kw.get('std_width',False);x.parent_detail=kw.get('parent_detail',{})
+    x.accessory_default=kw.get('accessory_default',False);x.parent_fill=kw.get('parent_fill',False);x.std_width=kw.get('std_width',False);x.parent_detail=kw.get('parent_detail',{})
     x.sources=[{'field':f,'text':txt,'scope':scope,'asin':'X'} for f,txt,scope in sources]
     return x
 
@@ -70,6 +70,13 @@ def main():
     for pw,want in (('47.2',18.1),('60',None)):
         x=tagger([('SKU属性','Size: 48 Inch','child')],row={'核验父ASIN':'P'},parent_fill=True,parent_detail={'dimensions':'18.1"D x %s"W x 35"H'%pw});x.dimensions();x.parent_dimensions()
         if x.tags['D9深(in)']!=want:bad.append(('parent-dims',pw,x.tags))
+    # Mirror/faucet default: no mention -> 无; explicit mention still wins.
+    for txt,want in (('30 Inch Bathroom Vanity with Sink, White','无'),('30 Inch Bathroom Vanity with Sink & Faucet, White','含'),('Vanity, Faucet Sold Separately','单卖')):
+        x=tagger([('商品标题',txt,'child')],accessory_default=True);x.tags[t.HEADERS[4]]='待图片核验'
+        for h in t.HEADERS[:14]:x.tags.setdefault(h,None)
+        x.included(t.HEADERS[13],'faucet')
+        if x.tags[t.HEADERS[13]]==t.UNKNOWN:x.tags[t.HEADERS[13]]='无'
+        if x.tags[t.HEADERS[13]]!=want:bad.append(('acc-default',txt,x.tags[t.HEADERS[13]]))
     for t_ in bad:print('FAIL',t_)
     print('selftest: %d failure(s)'%len(bad))
     raise SystemExit(1 if bad else 0)
