@@ -1,0 +1,70 @@
+{
+  "project": "opportunity-research / 第二道题：产品元素统筹",
+  "stage": "1",
+  "created_at_utc": "2026-10-27T13:57:20Z",
+  "nodes": {
+    "D1": {
+      "status": "open"
+    },
+    "D2": {
+      "status": "open"
+    },
+    "D3": {
+      "status": "open"
+    },
+    "D4": {
+      "status": "open"
+    },
+    "D5": {
+      "status": "open"
+    },
+    "D6": {
+      "status": "open"
+    },
+    "D7": {
+      "status": "open"
+    },
+    "D8": {
+      "status": "open"
+    },
+    "D9": {
+      "status": "open"
+    },
+    "D10": {
+      "status": "open"
+    },
+    "D11": {
+      "status": "open"
+    },
+    "D12": {
+      "status": "open"
+    },
+    "D13": {
+      "status": "open"
+    },
+    "D14": {
+      "status": "open"
+    },
+    "D15": {
+      "status": "open"
+    }
+  },
+  "frontier": [
+    "D1"
+  ],
+  "decisions": [
+    {
+      "id": "S2-1",
+      "decision": "作为 opportunity-research 的第二道题，在同一 GitHub 仓库内做，完成后再合并到主干（合并需用户另行授权）",
+      "source": "用户 2026-10-27"
+    }
+  ],
+  "assumptions": [],
+  "evidence": [
+    "trial/推演结论.md：只勾选关注变量会系统性出错；需分条件/关注/控制三种角色并设样本量闸门"
+  ],
+  "for_prd": [
+    "界面上让用户勾选关注变量、选择条件，系统自动带控制变量"
+  ],
+  "next_action": "等用户回答 D1：最近一次真实的元素决策是谁、何时、在几个方案里怎么选的"
+}
