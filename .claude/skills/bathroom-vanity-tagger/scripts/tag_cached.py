@@ -14,9 +14,10 @@ import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261027-v10'
+VERSION='bathroom-vanity-tagger-20261027-v11'
 # Solid-wood claims are checked against assembly and same-width MDF price (user 2026-10-27).
 SOLID_WOOD_PRICE_RATIO=1.5
+SOLID_WOOD_PRICE_FLOOR=500.0  # USD; used when no same-width MDF reference exists
 # 2026-10-27 user: vanity widths are essentially standard sizes.
 STANDARD_WIDTHS=(12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84)
 STD_WIDTH_TOLERANCE=0.8
@@ -723,7 +724,10 @@ def apply_solid_wood_price_rule(target_rows,matrix,evidence_rows):
         ratio=(pr/med[w]) if (pr and w in med) else None
         expensive=ratio is not None and ratio>=SOLID_WOOD_PRICE_RATIO
         if asm=='整装' and expensive:new='实木' if cur=='实木' else '实木框架+实木';why='整装且价格≥同宽MDF中位%.1f倍'%SOLID_WOOD_PRICE_RATIO
-        elif asm=='整装' and ratio is None:new=cur;why='整装但无同宽MDF价格参照，保留文本标签'
+        elif asm=='整装' and ratio is None and pr is not None:
+            if pr>=SOLID_WOOD_PRICE_FLOOR:new=cur;why='整装、无同宽参照、价格≥$%d'%SOLID_WOOD_PRICE_FLOOR
+            else:new='实木框架+MDF';why='整装、无同宽参照、价格<$%d，按实木框架+MDF'%SOLID_WOOD_PRICE_FLOOR
+        elif asm=='整装' and pr is None:new=cur;why='整装但无价格，保留文本标签'
         else:new='实木框架+MDF';why='拆装或价格未达同宽MDF中位%.1f倍，按实木框架+MDF'%SOLID_WOOD_PRICE_RATIO
         base=e.get(D7,{})
         newev=dict(base);newev.update({'status':'business_mapping' if new!=cur else base.get('status'),'ruleID':'CAB-SOLIDWOOD-PRICE','basisType':'business_mapping','textLabel':cur,'assembly':asm,'price':pr,'width':w,'sameWidthMDFMedian':med.get(w),'priceRatio':round(ratio,2) if ratio else None,'decision':why})

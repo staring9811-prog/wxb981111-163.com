@@ -1,4 +1,4 @@
-# 各字段打标规则现状（v10，2026-10-27）
+# 各字段打标规则现状（v11，2026-10-27）
 
 通用顺序：SKU属性 → 子体标题 → 子体详情 overviews → 卖家精灵导出详细参数/亮点 → 子体五点 → 商品尺寸 → 父体五点/父体详情（子体没有时直接用，JSON status=parent_fill）→ 用户默认规则（status=business_default）。否定词（no/without/not）先于关键词；SKU 与标题不一致时 SKU 优先并标冲突。
 
@@ -63,11 +63,11 @@ Fluted、Reeded、Shaker（含 recessed panel）、Barn Door、Farmhouse（含 X
 - 多种材料同时出现保留全部；输出格式（用户2026-10-27）：含实木的写 实木框架+MDF / 实木框架+MDF+胶合板+刨花板，其余用 + 连接，顺序 MDF、胶合板、刨花板、竹材；单独 solid wood frame 写 实木框架。
 - 子体没有 → 父体 Material / 五点补充。都没有 → 信息不足。
 - solid wood legs / feet / handles / knobs 只描述部件，不作柜体实木证据。
-- **实木复核（CAB-SOLIDWOOD-PRICE，v10）**：文本只给出 实木 或 实木框架 时，结合 D2 与同宽度价格：整装且价格 ≥ 同宽度 MDF 中位数 × 1.5 → 实木 / 实木框架+实木；拆装或价格不足 → 实木框架+MDF；整装但该宽度无 ≥10 个 MDF 参照 → 保留文本标签。逐行执行（价格按行），依据写入 JSON（assembly、price、width、sameWidthMDFMedian、priceRatio、decision）。--no-price-rules 关闭。
+- **实木复核（CAB-SOLIDWOOD-PRICE，v10）**：文本只给出 实木 或 实木框架 时，结合 D2 与同宽度价格：整装且价格 ≥ 同宽度 MDF 中位数 × 1.5 → 实木 / 实木框架+实木；拆装或价格不足 → 实木框架+MDF；整装但无同宽度参照（宽度缺失）→ 价格 ≥ $500 保留文本标签，否则 实木框架+MDF（v11）。逐行执行（价格按行），依据写入 JSON（assembly、price、width、sameWidthMDFMedian、priceRatio、decision）。--no-price-rules 关闭。
 - 不做默认值（用户尚未定）。
 
 ## D8 台面材质
-见 surface-basin-rules.md 第 1–4 层及 v6 追加：直接词（石英石/岩板/陶瓷/Cultured Marble/树脂组/花岗岩/玻璃/不锈钢）→ marble 系归卡拉拉大理石或岗石 → wood/oak 直接接 top 为木板，solid wood 单独不算台面 → marble texture top 无石材词为木板 → 未细分 stone top 为岗石（兜底）→ 一体盆台取盆材 → no top / base only 为不适用。都没有 → 信息不足。
+台面关键词清晰，一个词即可判定，不做价格校验（用户2026-10-27）。见 surface-basin-rules.md 第 1–4 层及 v6 追加：直接词（石英石/岩板/陶瓷/Cultured Marble/树脂组/花岗岩/玻璃/不锈钢）→ marble 系归卡拉拉大理石或岗石 → wood/oak 直接接 top 为木板，solid wood 单独不算台面 → marble texture top 无石材词为木板 → 未细分 stone top 为岗石（兜底）→ 一体盆台取盆材 → no top / base only 为不适用。都没有 → 信息不足。
 
 ## D8 台盆材质
 | 原文（绑定 sink/basin/bowl） | 标签 |
