@@ -17,6 +17,7 @@ from oppo.core import categories as CAT
 from oppo.core import compute as CMP
 from oppo.core import contract as CT
 from oppo.core import jobs, runs
+from oppo.core import model as MODEL
 from oppo.core import packages as PK
 from oppo.core import ranking as RK
 from oppo.core import spu as SPU
@@ -231,6 +232,30 @@ def backtest(app: App, mode: str = "history", background: bool = False) -> int:
             raise PermissionError(f"数据包 {pkg['label']} 存在阻断项，不能回测")
 
     return jobs.run(app.engine, cid, "backtest", app.operator, work, background=background)
+
+
+def model_run(app: App, mode: str = "history", background: bool = False) -> int:
+    """变量关系 models on the latest compute run of `mode` (API-F16-01)."""
+    cid = app.category_id()
+    with app.engine.begin() as conn:
+        if CMP.latest_run(conn, cid, mode) is None:
+            raise MODEL.ModelError("还没有成败与信号结果，请先运行计算")
+
+    def work(conn: Any, report: Callable[[str, float], None]) -> Any:
+        mid = MODEL.run(conn, cid, app.operator, mode, report)
+        return {"model_run": mid}
+
+    return jobs.run(app.engine, cid, "model", app.operator, work, background=background)
+
+
+def model_adopt(app: App, model_run_id: int, index: int, reason: str = "", action: str = "立项候选") -> int:
+    cid = app.category_id()
+    started = clock.now_iso()
+    with app.engine.begin() as conn:
+        rid = MODEL.adopt(conn, cid, model_run_id, index, app.operator, reason=reason, action=action)
+        runs.record_step(conn, cid, "SPU 审核", started, clock.now_iso(), app.operator,
+                         result=f"采纳模型规则进策略库（规则 {rid}）", link="/rules")
+        return rid
 
 
 def recompute(app: App, background: bool = False) -> int:

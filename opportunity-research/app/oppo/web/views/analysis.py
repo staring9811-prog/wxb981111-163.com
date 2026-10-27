@@ -22,11 +22,11 @@ from oppo.core import cards as CARD
 from oppo.core import categories as CAT
 from oppo.core import compute as CMP
 from oppo.core import jobs
+from oppo.core import model as MODEL
 from oppo.core import packages as PK
 from oppo.core import ranking as RK
 from oppo.core import rules as RULES
 from oppo.core import signals as SIG
-from oppo.core import variables as VARS
 from oppo.web import common as C
 from oppo.web.report import present as P
 
@@ -57,10 +57,64 @@ def variables(request: Request) -> HTMLResponse:
     with app.engine.begin() as conn:
         cid = app.category_id()
         mode = C.mode_of(request, conn, cid)
-        va = VARS.analysis(conn, cid, mode)
-        ctx = {"va": va, "stale": [r for r in CMP.stale_reasons(conn, cid, va["run"])] if va["run"] else [],
-               "bt": BT.latest(conn, cid, mode), "control_vars": CAT.CONTROL_VARS, **_job_ctx(conn)}
+        run_ = CMP.latest_run(conn, cid, mode)
+        mr = MODEL.latest(conn, cid, mode)
+        catalogue = None
+        if mr is None and run_ is not None:
+            try:
+                catalogue = MODEL.table(conn, cid, mode)["catalogue"]
+            except MODEL.ModelError:
+                catalogue = None
+        res = mr["result"] if mr else {}
+        ctx = {"mr": mr, "r": res, "run": run_, "catalogue": res.get("catalogue") or catalogue or [],
+               "stale": MODEL.stale_reasons(conn, cid, mr), "compute_stale": CMP.stale_reasons(conn, cid, run_) if run_ else [],
+               "verdicts": MODEL.VERDICTS, "layers": MODEL.LAYERS, "control_vars": CAT.CONTROL_VARS,
+               "adopted": _adopted(conn, cid, mr), **_job_ctx(conn)}
     return C.render(request, "pages/F16-01.html", "PAGE-F16-01", ctx)
+
+
+def _adopted(conn: Connection, cid: int, mr: dict[str, Any] | None) -> dict[int, str]:
+    """rule index → strategy-library code, for rules of this model run already adopted."""
+    if mr is None:
+        return {}
+    out: dict[int, str] = {}
+    for rule in RULES.list_current(conn, cid):
+        b = rule.get("basis") or {}
+        if rule["origin"] == "模型发现" and b.get("model_run") == mr["id"]:
+            for i, x in enumerate((mr["result"].get("rules") or [])):
+                if [{k: v for k, v in c.items() if k != "label"} for c in x["conds"]] == rule["conds"]:
+                    out[i] = rule["code"]
+    return out
+
+
+@router.post("/jobs/model")
+async def job_model(request: Request) -> JSONResponse:
+    form = await request.form()
+    mode = str(form.get("mode") or "history")
+    app = C.svc(request)
+    try:
+        jid = SV.model_run(app, mode=mode if mode in ("history", "cross") else "history", background=True)
+    except jobs.JobBusy as exc:
+        return C.fail(str(exc), status=409)
+    except MODEL.ModelError as exc:
+        return C.fail(str(exc))
+    return C.ok(job=jid, redirect=f"/variables?mode={mode}")
+
+
+@router.post("/variables/adopt")
+async def variables_adopt(request: Request) -> JSONResponse:
+    form = await request.form()
+    app = C.svc(request)
+    try:
+        mid, index = int(form.get("model_run") or 0), int(form.get("index") or -1)
+        rid = SV.model_adopt(app, mid, index, reason=str(form.get("reason") or ""),
+                             action=str(form.get("action") or "立项候选"))
+    except (ValueError, MODEL.ModelError, RULES.RuleError) as exc:
+        return C.fail(str(exc))
+    with app.engine.begin() as conn:
+        code = RULES.current(conn, rid)["code"]
+    return C.ok(redirect=str(form.get("next") or "/variables"),
+                toast=f"已采纳为策略库规则 {code}（来源 模型发现，状态 历史观察），到期对账后可升为已验证")
 
 
 # ---- PAGE-F07-01 回测 ------------------------------------------------------------------------------

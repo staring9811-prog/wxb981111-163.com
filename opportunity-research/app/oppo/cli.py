@@ -266,6 +266,45 @@ def cmd_status(app: SV.App, a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_model(app: SV.App, a: argparse.Namespace) -> int:
+    """变量关系模型：run / show / adopt。"""
+    from oppo.core import model as M
+
+    cid = app.category_id()
+    if a.action == "run":
+        jid = SV.model_run(app, mode=a.mode)
+        res = SV.job_result(app, jid)
+        if res.get("status") != "success":
+            raise M.ModelError(res.get("error") or "模型任务失败")
+        with app.engine.begin() as conn:
+            mr = M.latest(conn, cid, a.mode)
+        r = mr["result"]
+        print(f"模型完成：{M.VERDICTS.get(r.get('verdict'), r.get('verdict'))}；样本 {r.get('n_pool')}，"
+              f"规则 {len(r.get('rules') or [])} 条")
+        return 0
+    with app.engine.begin() as conn:
+        mr = M.latest(conn, cid, a.mode)
+    if mr is None:
+        raise M.ModelError("还没有模型结果，先运行 oppo model run")
+    if a.action == "show":
+        r = mr["result"]
+        out = {"verdict": M.VERDICTS.get(r.get("verdict")), "n_pool": r.get("n_pool"), "splits": r.get("splits"),
+               "model1": {k: v["by_window"] for k, v in (r.get("model1") or {}).get("models", {}).items()},
+               "chosen": (r.get("model1") or {}).get("chosen"),
+               "importance": (r.get("importance") or [])[:10],
+               "rules": [{"index": i, "tier": x["tier"], "text": x["text"], "test": x["test"]}
+                         for i, x in enumerate(r.get("rules") or [])]}
+        _print(out)
+        return 0
+    if a.action == "adopt":
+        if a.index is None:
+            raise M.ModelError("请用 --index 指定规则序号（见 oppo model show）")
+        rid = SV.model_adopt(app, mr["id"], a.index, reason=a.note or "")
+        print(f"已采纳为策略库规则（id {rid}，状态 历史观察，来源 模型发现）")
+        return 0
+    return 1
+
+
 def cmd_update(app: SV.App, a: argparse.Namespace) -> int:
     from oppo import update as UP
 
@@ -362,6 +401,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_runs)
     s = sub.add_parser("status", help="工作台汇总")
     s.set_defaults(fn=cmd_status)
+    s = sub.add_parser("model", help="变量关系模型：run / show / adopt（采纳规则进策略库，状态 历史观察）")
+    s.add_argument("action", choices=["run", "show", "adopt"])
+    s.add_argument("--mode", choices=["history", "cross"], default="history")
+    s.add_argument("--index", type=int, help="adopt 的规则序号")
+    s.add_argument("--note", help="adopt 的理由")
+    s.set_defaults(fn=cmd_model)
     s = sub.add_parser("update", help="从 GitHub 下载最新程序文件并替换（data 与 .venv 不动，旧文件先备份）")
     s.add_argument("--url", help="zip 下载地址（默认取仓库分支的 zip）")
     s.add_argument("--zip", help="已下载好的 zip 文件路径，不再联网下载")

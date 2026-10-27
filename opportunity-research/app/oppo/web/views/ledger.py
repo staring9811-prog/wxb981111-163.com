@@ -540,7 +540,7 @@ def _rule_rows(conn: Connection, cid: int) -> list[dict[str, Any]]:
         if r["origin"] == "回测":
             d["source_text"] = "回测生成" + (f"，v{manual_later[0]['version_no']} 人工修改" if manual_later else "")
         else:
-            d["source_text"] = "人工新增"
+            d["source_text"] = "模型发现，人工采纳" if d["origin"] == "模型发现" else "人工新增"
         d["actor"] = _actor(hist[0], r)
         recon = LG.rule_recon_history(conn, r["rule_id"])
         d["recon"] = None
@@ -635,7 +635,7 @@ def rules_page(request: Request) -> HTMLResponse:
         used = [t["rule"] for t in _tips_of(snap["content"])] if snap else []
         ctx = {"rows": rows, "editor": editor, "missing_rule": code if code and editor is None else None,
                "counts": {s: sum(1 for r in rows if r["status"] == s) for s in RULES.STATUSES},
-               "origin_counts": {o: sum(1 for r in rows if r["origin"] == o) for o in ("人工", "回测")},
+               "origin_counts": {o: sum(1 for r in rows if r["origin"] == o) for o in ("人工", "回测", "模型发现")},
                "card": card, "used": used, "focus_code": code}
     return C.render(request, "pages/F11-01.html", "PAGE-F11-01", ctx)
 

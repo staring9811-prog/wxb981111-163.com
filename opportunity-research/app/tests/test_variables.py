@@ -54,8 +54,9 @@ def test_variables_page_and_bins_picklist(live_server, clone, h1a_done, page):  
     live = live_server(clone(h1a_done))
     page.goto(live.u("/variables"))
     assert page.locator("h1").inner_text() == "变量关系"
-    assert page.locator("table").count() >= 2
-    assert "BSR" in page.locator("section[aria-labelledby=out-title] dl").inner_text()
+    assert page.locator("#cat-title").is_visible()  # catalogue shows before any model run
+    assert page.locator("form[action='/jobs/model'] button").is_enabled()
+    assert "还没有运行变量模型" in page.locator(".empty__title").inner_text()
     assert not page.js_errors
     # 品类配置: category dimensions pick bins from the package's values; width stays a text range
     page.goto(live.u("/settings/category"))

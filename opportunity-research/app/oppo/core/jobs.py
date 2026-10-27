@@ -18,7 +18,7 @@ from oppo import clock
 from oppo import db as D
 
 JOB_LABELS = {"compute": "计算（成败与信号）", "backtest": "回测", "recompute": "全部重算", "export": "导出",
-              "import": "导入校验"}
+              "import": "导入校验", "model": "变量模型"}
 
 _lock = threading.Lock()
 _progress: dict[int, dict[str, Any]] = {}

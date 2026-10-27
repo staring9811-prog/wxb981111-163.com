@@ -733,6 +733,25 @@ data_adjustment = Table(
 )
 Index("ix_data_adjustment_pkg", data_adjustment.c.package_id, data_adjustment.c.status)
 
+# 变量关系 model results (PAGE-F16-01): one row per run, bound to the compute run it read.
+model_run = Table(
+    "model_run", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("category_id", Integer, nullable=False),
+    Column("mode", String(8), nullable=False),
+    Column("compute_run_id", Integer, nullable=False),
+    Column("package_id", Integer, nullable=False),
+    Column("config_version_id", Integer),
+    Column("adjust_hash", String(64)),
+    Column("status", String(16), nullable=False),
+    Column("verdict", String(32)),
+    Column("result_json", Text),
+    Column("started_at", String(32)),
+    Column("ended_at", String(32)),
+    *_audit(),
+)
+Index("ix_model_run_cat", model_run.c.category_id, model_run.c.mode)
+
 run_step = Table(
     "run_step", metadata,
     Column("id", Integer, primary_key=True),
@@ -769,7 +788,7 @@ BACKUP_TABLES = (
     "merge_suggestion", "merge", "health_ack", "change_log",
     "decision_card", "backtest_run", "rule", "rule_version",
     "snapshot", "snapshot_export", "decision_record", "launch_data",
-    "reconciliation", "rule_reconciliation", "export_record", "run_step", "data_adjustment",
+    "reconciliation", "rule_reconciliation", "export_record", "run_step", "data_adjustment", "model_run",
 )
 
 

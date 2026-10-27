@@ -20,6 +20,12 @@ uv venv --python 3.14 && uv pip install -e ".[dev]"
 
 试用：在“数据包”页粘贴 `fixtures/packages/H1-A` 的路径导入，然后按工作台的 8 步走完一个月。
 
+## 变量关系（模型）
+
+左侧「变量关系」页：在已判定的起量新品上，按三层变量（可控变量 → 过程指标 → 结果指标）做三件事——模型 1 总效应（岭回归 logit 与梯度提升树同窗对照，按上架批次切训练 / 校准 / 验证，验证窗不参与挑选；变量重要性、属性取值的优势比与自助法区间）、模型 2 路径（过程指标被可控变量解释多少、固定可控变量后还剩多少）、模型 3 规则（浅层决策树抽取，验证窗重算，分高 / 中 / 低，与策略库规则同表同检）。规则只能由人点「采纳」进策略库（来源 模型发现，状态 历史观察）。命令行：`oppo model run|show|adopt --index N`。
+
+方法先在模拟数据上验证：`fixtures/packages/M1-真相`（`python -m fixtures.build_samples` 一并生成）种入四条已知关系，`真相.json` 写明期望，`tests/test_model.py` 断言模型找回它们。模拟数据只验证方法，不代表业务效果。
+
 ## 更新到最新版本
 
 关闭运行窗口后，在 `app` 目录双击 `更新.bat`（或运行 `.venv\Scripts\python -m oppo.cli update`）：从 GitHub 下载分支最新代码，替换 `oppo/`、`docs/`、`tests/`、`packaging/`、`fixtures/`（生成的样例包不动）、`pyproject.toml`；`data/` 和 `.venv/` 不动，被替换的旧文件先备份到 `data/update_backup/<时间>/`。依赖有变化时自动重装。更新后双击 `启动.bat` 即可，数据库在启动时自动升级。没有网络时先在浏览器下载分支 zip，再运行 `oppo update --zip <文件>`。

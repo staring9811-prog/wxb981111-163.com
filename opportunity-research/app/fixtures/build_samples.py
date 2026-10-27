@@ -1295,6 +1295,14 @@ def build_all(out: Path, with_scale: bool = False) -> None:
         from fixtures import build_scale
 
         build_scale.build(out / "S-规模")
+    build_mock(out)
+
+
+def build_mock(out: Path) -> None:
+    """M1-真相: planted relationships for the 变量关系 models (fixtures/build_mock_truth.py)."""
+    from fixtures import build_mock_truth
+
+    build_mock_truth.build(out)
 
 
 def main() -> None:

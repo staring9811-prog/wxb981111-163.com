@@ -369,6 +369,9 @@ def kits(conn: Connection, cid: int, mode: str, snapshot: dict[str, Any] | None)
             note = (f"{b.get('recon_month', '')} 对账 {b.get('recon_snapshot', '')}："
                     f"规则倍数 {fmt.mult(b.get('rule_multiple'))}"
                     f"（{'立项候选 ≥ 2' if r['action'] == '立项候选' else '放弃 ≤ 0.5'}）")
+        elif r["status"] == "历史观察" and r["origin"] == "模型发现":
+            note = (f"由变量关系模型发现、人工采纳（可信度 {b.get('tier') or '—'}"
+                    f"{'，模拟数据' if b.get('simulated') else ''}），尚未经到期对账检验。理由：" + (r.get("reason") or ""))
         elif r["status"] == "历史观察":
             note = "由达标回测生成，尚未经到期对账检验"
         else:
@@ -377,8 +380,9 @@ def kits(conn: Connection, cid: int, mode: str, snapshot: dict[str, Any] | None)
         segs = applies.get(r["code"], [])
         out.append({
             "rule": r, "code": r["code"], "version": r["version_no"], "origin": r["origin"],
-            "origin_text": "回测" if r["origin"] == "回测" else f"人工 · {r.get('created_by') or ''} · "
-                           f"{(r.get('created_at') or '')[:10]}",
+            "origin_text": "回测" if r["origin"] == "回测" else (
+                f"模型发现 · 采纳人 {r.get('created_by') or ''} · {(r.get('created_at') or '')[:10]}"
+                if r["origin"] == "模型发现" else f"人工 · {r.get('created_by') or ''} · {(r.get('created_at') or '')[:10]}"),
             "action": r["action"], "status": r["status"], "cond": r["cond_text"], "attr_note": r.get("attr_note"),
             "advice": r.get("reason") if r["origin"] == "人工" else None, "ci": ci if ci and ci[0] is not None else None,
             "point": point, "n": n, "hits": h, "batches": b.get("batches"), "backtest": b.get("backtest"),
