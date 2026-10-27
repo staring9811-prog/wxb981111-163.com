@@ -907,6 +907,8 @@ def _form_values(form: Any, base: dict[str, Any]) -> dict[str, Any]:
         values["segment_dims.selected"] = "、".join(str(x) for x in form.getlist("segdim"))
     if "ta_present" in form:
         values["type_attributes"] = "、".join(str(x) for x in form.getlist("ta"))
+    if "controls_present" in form:
+        values["controls"] = "、".join(str(x) for x in form.getlist("ctrl"))
     wl = [(k[len("kw.width."):], str(v)) for k, v in form.multi_items() if k.startswith("kw.width.")]
     if wl:
         values["keyword_mapping.width.rule"] = "；".join(f"{k}：{v.strip()}" for k, v in wl if v.strip()) or ""
@@ -951,6 +953,20 @@ def _diff_rows(old: dict[str, Any], new: dict[str, Any]) -> list[list[str]]:
     if not old:
         return [["全部配置项", "（无）", "新建，保存为 v1"]]
     return [[label, _fmt_cfg(a), _fmt_cfg(b)] for label, a, b in CAT.diff(old, new)]
+
+
+def _attr_values(conn: Connection, cid: int) -> dict[str, list[tuple[str, int]]]:
+    """Every value of each attribute in the current data package with its child count (bins pick-list)."""
+    pkg = PK.current_package(conn, cid, "history") or PK.current_package(conn, cid, "cross")
+    if not pkg:
+        return {}
+    rows = conn.execute(text("SELECT dim, value, COUNT(*) AS n FROM raw_c4 WHERE package_id=:p AND value IS NOT NULL "
+                             "AND value NOT IN ('', '未知') GROUP BY dim, value ORDER BY dim, n DESC, value"),
+                        {"p": pkg["id"]}).all()
+    out: dict[str, list[tuple[str, int]]] = {}
+    for dim, value, n in rows:
+        out.setdefault(dim, []).append((str(value), int(n)))
+    return out
 
 
 def _attr_examples(conn: Connection, cid: int) -> dict[str, list[str]]:
@@ -1026,12 +1042,19 @@ def category_page(request: Request) -> HTMLResponse:
                                                     .order_by(D.category.c.id)).mappings().all()]
         busy = jobs.running(conn)
         examples = _attr_examples(conn, cid) if cid == current_cid else {}
+        attr_values = _attr_values(conn, cid) if cid == current_cid else {}
     seg_dims = {d["key"]: d for d in (cfg.get("segment_dims") or [])}
     dim_rows = []
     for d in CAT.dim_candidates(cfg or CAT.BATHROOM_TEMPLATE):
         ex = examples.get(d["attr"], [])
+        chosen = [b["label"] for b in (seg_dims.get(d["key"]) or d).get("bins") or []]
+        # category dimensions pick their bins from the values the package actually has; numeric ones stay ranges
+        numeric = d["key"] in CAT.NUMERIC_DIMS
+        options = [] if numeric else attr_values.get(d["attr"], [])
+        extra = [] if numeric or not options else [v for v in chosen if v not in {o for o, _n in options}]
         dim_rows.append({**d, "on": d["key"] in seg_dims, "default_bins": " / ".join(b["label"] for b in d["bins"]),
-                         "hint": ("如：" + " / ".join(ex)) if ex else "勾选后填写取值，用“ / ”分隔"})
+                         "hint": ("如：" + " / ".join(ex)) if ex else "勾选后填写取值，用“ / ”分隔",
+                         "options": options + [(v, 0) for v in extra], "chosen": chosen})
     n_segments = 1
     for d in seg_dims.values():
         n_segments *= max(1, len(d.get("bins") or []))
@@ -1048,6 +1071,8 @@ def category_page(request: Request) -> HTMLResponse:
         "width_was": _width_rules(cur_cfg) if cur_cfg else {},
         "form_was": (((cur_cfg.get("keyword_mapping") or {}).get("form") or {}).get("map") or {}) if cur_cfg else {},
         "fmt_cfg": _fmt_cfg, "health_labels": CAT.HEALTH_LABELS, "pct_items": H.PCT_ITEMS,
+        "control_vars": CAT.CONTROL_VARS, "controls_on": CAT.controls_of(cfg) if cfg else [],
+        "controls_was": CAT.controls_of(cur_cfg) if cur_cfg else [],
     })
 
 

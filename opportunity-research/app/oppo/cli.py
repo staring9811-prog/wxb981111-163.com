@@ -266,6 +266,18 @@ def cmd_status(app: SV.App, a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_update(app: SV.App, a: argparse.Namespace) -> int:
+    from oppo import update as UP
+
+    res = UP.run(app.settings, url=a.url, zip_path=Path(a.zip) if a.zip else None, branch=a.branch or UP.BRANCH,
+                 reinstall=True if a.reinstall else None)
+    if res["changed"]:
+        print(f"已更新 {len(res['changed'])} 个文件；旧文件备份在 {res['backup']}"
+              + ("；依赖已重新安装" if res["reinstalled"] else ""))
+        print("重新启动程序即可使用新版本（数据库会在启动时自动升级）。")
+    return 0
+
+
 def cmd_serve(app: SV.App, a: argparse.Namespace) -> int:
     from oppo.web import server
 
@@ -350,6 +362,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_runs)
     s = sub.add_parser("status", help="工作台汇总")
     s.set_defaults(fn=cmd_status)
+    s = sub.add_parser("update", help="从 GitHub 下载最新程序文件并替换（data 与 .venv 不动，旧文件先备份）")
+    s.add_argument("--url", help="zip 下载地址（默认取仓库分支的 zip）")
+    s.add_argument("--zip", help="已下载好的 zip 文件路径，不再联网下载")
+    s.add_argument("--branch", help="分支名（默认交付分支）")
+    s.add_argument("--reinstall", action="store_true", help="强制重新安装依赖")
+    s.set_defaults(fn=cmd_update)
     s = sub.add_parser("serve", help="启动本机网页服务（只监听 127.0.0.1）")
     s.add_argument("--port", type=int, default=None)
     s.add_argument("--no-browser", action="store_true")

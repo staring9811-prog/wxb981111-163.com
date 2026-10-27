@@ -26,6 +26,7 @@ from oppo.core import packages as PK
 from oppo.core import ranking as RK
 from oppo.core import rules as RULES
 from oppo.core import signals as SIG
+from oppo.core import variables as VARS
 from oppo.web import common as C
 from oppo.web.report import present as P
 
@@ -45,6 +46,21 @@ def _job_ctx(conn: Connection) -> dict[str, Any]:
 def _month_T(conn: Connection, cid: int, mode: str) -> str | None:
     pkg = PK.current_package(conn, cid, mode)
     return PK.add_months(pkg["months_to"], 1) if pkg and pkg.get("months_to") else None
+
+
+# ---- PAGE-F16-01 变量关系 -------------------------------------------------------------------------
+
+
+@router.get("/variables", response_class=HTMLResponse)
+def variables(request: Request) -> HTMLResponse:
+    app = C.svc(request)
+    with app.engine.begin() as conn:
+        cid = app.category_id()
+        mode = C.mode_of(request, conn, cid)
+        va = VARS.analysis(conn, cid, mode)
+        ctx = {"va": va, "stale": [r for r in CMP.stale_reasons(conn, cid, va["run"])] if va["run"] else [],
+               "bt": BT.latest(conn, cid, mode), "control_vars": CAT.CONTROL_VARS, **_job_ctx(conn)}
+    return C.render(request, "pages/F16-01.html", "PAGE-F16-01", ctx)
 
 
 # ---- PAGE-F07-01 回测 ------------------------------------------------------------------------------

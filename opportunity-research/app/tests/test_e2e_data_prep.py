@@ -350,20 +350,22 @@ def test_config_segment_dimensions_are_editable(live_server, clone, h1a_done, pa
     """PAGE-F13-01 F-02 / REQ-F13-01: the segment dimensions themselves can be changed, not only their bins."""
     live = live_server(clone(h1a_done))
     page.goto(live.u("/settings/category"))
-    bins = page.locator("input[name='bins.柜体材质']")
-    assert bins.is_disabled() and "如：" in (bins.get_attribute("placeholder") or "")
+    row = page.locator("tr[data-dim-row]").filter(has_text="柜体材质")
+    picks = row.locator("[data-bins-pick] input[data-pick-value]")  # the package's values, not a free text box
+    assert picks.count() >= 4 and picks.first.is_disabled()
     page.check("input[name=segdim][value='柜体材质']")
-    assert bins.is_enabled()
+    assert picks.first.is_enabled()
     page.click("[data-cfg-review]")  # a newly selected dimension needs its bins
     page.wait_for_selector("[data-error-for='bins.柜体材质']:not(:empty)")
-    bins.fill("橡胶木 / MDF / 竹 / 实木")
+    for v in ("橡胶木", "MDF", "竹", "实木"):
+        row.locator(f"[data-bins-pick] input[value='{v}']").check()
     page.uncheck("input[name=segdim][value='form']")
     assert page.locator("input[name='bins.form']").is_disabled()
     page.wait_for_timeout(800)
     page.click("[data-cfg-review]")
     page.wait_for_selector("#save-modal.is-open")
     diff = page.locator("#save-diff").inner_text()
-    assert "宽度档 × 价格带 × 柜体材质" in diff and "橡胶木 / MDF / 竹 / 实木" in diff
+    assert "宽度档 × 价格带 × 柜体材质" in diff and all(v in diff for v in ("橡胶木", "MDF", "竹", "实木"))
     page.fill("#save-note", "细分加柜体材质、去掉形态")
     page.click("#save-confirm")
     assert "已保存为品类配置 v2" in _toast(page, "已保存为品类配置 v2")

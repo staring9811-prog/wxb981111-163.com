@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% import "partials/C-macros.html" as M %}
+{% block title %}变量关系{% endblock %}
+{% block content %}
+        {% set v = va %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>变量关系</h1>
+            <p class="page-head__sub">结果变量、过程变量、控制变量各是什么，以及在已判定的起量新品上，过程变量和属性取值与命中的关系 · {{ '截面口径，待历史回测确认' if mode == 'cross' else '历史口径' }}</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="/settings/category#g-split">{{ icon('sliders-horizontal') }}<span>控制变量设置</span></a>
+            <a class="btn" href="/backtest">{{ icon('flask') }}<span>回测</span></a>
+          </div>
+        </div>
+
+        {% if stale %}
+        <div class="banner banner--stale enter" style="--i:1" role="status">
+          {{ icon('arrows-clockwise') }}
+          <div class="banner__body"><div class="banner__title">结果需重算</div><div>{{ stale|join('；') }}。下面的效应按上次计算的结果估计，在工作台点“全部重算”后更新。</div></div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/">去工作台</a></div>
+        </div>
+        {% endif %}
+        {% for n in v.notes %}
+        <div class="banner banner--warn enter" style="--i:1" role="status">{{ icon('info') }}<div class="banner__body">{{ n }}</div></div>
+        {% endfor %}
+
+        <div class="stats enter" style="--i:1">
+          <div class="stat"><div class="stat__label">已判定的起量新品</div><div class="stat__value">{{ v.n_pool }}<span class="stat__unit">个</span></div><div class="stat__meta">效应都在这个样本上估计</div></div>
+          <div class="stat"><div class="stat__label">其中命中</div><div class="stat__value">{{ v.n_hit }}<span class="stat__unit">个</span></div><div class="stat__meta">{% if v.base_rate is defined %}全类目命中率 {{ pct(v.base_rate) }}{% else %}{{ NO_DATA }}{% endif %}</div></div>
+          <div class="stat"><div class="stat__label">过程变量</div><div class="stat__value">{{ v.process|selectattr('available')|list|length }}<span class="stat__unit">/ {{ v.process|length }} 可算</span></div><div class="stat__meta">3 类信号 + 4 个现用指标</div></div>
+          <div class="stat"><div class="stat__label">控制变量</div><div class="stat__value">{{ v.selected_controls|length }}<span class="stat__unit">/ {{ v.controls|length }} 启用</span></div><div class="stat__meta">在品类配置里勾选</div></div>
+        </div>
+
+        <!-- 变量清单 -->
+        <div class="grid-2 section enter" style="--i:2">
+          <section class="panel" aria-labelledby="out-title">
+            <div class="panel__head"><h2 class="panel__title" id="out-title">结果变量</h2>{{ etag('Y') }}</div>
+            <dl class="kv" style="padding: 0 var(--space-4) var(--space-3)">
+              <dt>{{ v.outcome.label }}</dt><dd>{{ v.outcome.definition }}</dd>
+              <dt>来源字段</dt><dd class="small">{{ v.outcome.source }}</dd>
+              <dt>参照人群</dt><dd class="small">{{ v.outcome.reference }}</dd>
+            </dl>
+          </section>
+          <section class="panel" aria-labelledby="ctl-title">
+            <div class="panel__head"><h2 class="panel__title" id="ctl-title">控制变量</h2>{{ etag('Z') }}</div>
+            <div class="panel__body">
+              <ul class="small" style="margin: 0; padding-left: 1.2em">
+                {% for c in v.controls %}<li{% if not c.on %} class="muted"{% endif %}>{{ c.label }}{% if not c.on %}（未启用）{% endif %}</li>{% endfor %}
+              </ul>
+              <p class="small muted" style="margin: var(--space-2) 0 0">估计某个信号或属性取值的效应时，这些因素被固定住，避免把“品牌本来就强”“上架早”“价格低”的差别算到它头上。</p>
+            </div>
+          </section>
+        </div>
+
+        <!-- 过程变量 -->
+        <section class="panel section enter" style="--i:3" aria-labelledby="proc-title">
+          <div class="panel__head"><h2 class="panel__title" id="proc-title">过程变量与命中的关系</h2>{{ etag('X · n=' ~ v.n_pool) }}</div>
+          <div class="table-wrap table-wrap--flush">
+            <table class="table">
+              <thead>
+                <tr><th scope="col">变量</th><th scope="col">类别</th><th scope="col">含义</th><th class="t-num" scope="col">可算的细分·月</th><th class="t-num" scope="col">控制前</th><th class="t-num" scope="col">控制后</th><th class="t-num" scope="col">变化</th></tr>
+              </thead>
+              <tbody>
+                {% set eff = {} %}{% for e in v.process_effects %}{% set _ = eff.update({e.signal: e}) %}{% endfor %}
+                {% for pv in v.process %}
+                {% set e = eff.get(pv.key) %}
+                <tr>
+                  <td class="cell-title">{{ pv.label }}</td>
+                  <td class="small">{{ pv.kind }}</td>
+                  <td class="small muted">{{ pv.definition }}</td>
+                  <td class="t-num">{% if pv.available %}{{ pv.cells }}{% else %}<span class="muted" data-tip="{{ pv.reason or '' }}">{{ NO_DATA }}</span>{% endif %}</td>
+                  {% if e and e.before is not none and e.after is not none %}
+                  <td class="t-num">{{ '%.2f'|format(e.before) }}</td><td class="t-num strong">{{ '%.2f'|format(e.after) }}</td><td class="t-num">{{ ('%+.2f'|format(e.after - e.before)).replace('-', '−') }}</td>
+                  {% else %}
+                  <td class="t-num">{{ M.nodata() }}</td><td class="t-num">{{ M.nodata() }}</td><td class="t-num small muted">{{ (e.reason if e and e.reason else '') or ('未计算' if not v.process_effects else '无数据') }}</td>
+                  {% endif %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="panel__body small muted">数值为优势比：该变量高一个标准差时命中几率的倍数，在全部已判定的起量新品上估计（回测页的同名表只用定规则组）。控制后仍明显大于 1，说明关联不只来自控制变量。</div>
+        </section>
+
+        <!-- 属性取值 -->
+        <section class="section enter" style="--i:4" aria-labelledby="attr-title">
+          <div class="section__head"><h2 id="attr-title">属性取值与命中的关系</h2><span class="section__note">每个取值单独对比“是 / 不是这个取值”；少于 {{ 5 }} 个或“未知”不估计效应</span></div>
+          {% if v.attribute_effects %}
+          <div class="grid-2">
+            {% for a in v.attribute_effects %}
+            <section class="panel" aria-labelledby="attr-{{ loop.index }}">
+              <div class="panel__head">
+                <h2 class="panel__title" id="attr-{{ loop.index }}">{{ a.dim }}</h2>
+                {% if a.is_segment_dim %}{{ etag('细分维度') }}{% endif %}
+                <span class="section__note">未知 {{ pct0(a.unknown_share) }}</span>
+              </div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th scope="col">取值</th><th class="t-num" scope="col">新品数</th><th class="t-num" scope="col">命中率</th><th class="t-num" scope="col">90% 区间</th><th class="t-num" scope="col">控制前</th><th class="t-num" scope="col">控制后</th></tr></thead>
+                  <tbody>
+                    {% for r in a['values'] %}
+                    <tr{% if r.unknown %} class="muted"{% endif %}>
+                      <td>{{ r.value }}</td>
+                      <td class="t-num">{{ r.n }}</td>
+                      <td class="t-num">{{ pct(r.rate) }}</td>
+                      <td class="t-num small">{{ ci_text((r.lo, r.hi)) }}</td>
+                      <td class="t-num">{% if r.or_before is not none %}{{ '%.2f'|format(r.or_before) }}{% else %}{{ M.nodata() }}{% endif %}</td>
+                      <td class="t-num strong">{% if r.or_after is not none %}{{ '%.2f'|format(r.or_after) }}{% else %}{{ M.nodata() }}{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            {% endfor %}
+          </div>
+          <p class="page-foot" style="margin-top: var(--space-3)">优势比 &gt; 1 表示带这个取值的新品更容易命中。区间很宽或控制前后差很多时，说明样本不够或被控制变量解释了大半，不要据此单独立项；把它作为细分维度跑回测，用检验组确认。</p>
+          {% else %}
+          <div class="panel"><div class="empty">{{ icon('scales') }}<div class="empty__title">还没有可估计的属性效应</div><p class="empty__desc">需要已判定的起量新品至少 10 个、且命中与未命中都有。</p></div></div>
+          {% endif %}
+        </section>
+{% endblock %}

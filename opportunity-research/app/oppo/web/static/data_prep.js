@@ -284,9 +284,23 @@
       box.addEventListener('change', function () {
         var row = box.closest('tr');
         var bins = row && row.querySelector('input[name^="bins."]');
-        if (bins) { bins.disabled = !box.checked; if (box.checked) bins.focus(); }
+        if (bins) { bins.disabled = !box.checked; if (box.checked && bins.type !== 'hidden') bins.focus(); }
+        if (row) $$('[data-bins-pick] input', row).forEach(function (c) { c.disabled = !box.checked; });
         if (row) row.classList.toggle('is-off', !box.checked);
       });
+    });
+    /* 分档勾选：属性维度从数据包取值里勾选，拼成“a / b / c”写入隐藏的 bins 字段 */
+    $$('[data-bins-pick]', cfg).forEach(function (pick) {
+      var hidden = pick.closest('td').querySelector('input[name^="bins."]');
+      var all = pick.querySelector('[data-pick-all]');
+      var items = $$('input[data-pick-value]', pick);
+      function sync() {
+        hidden.value = items.filter(function (c) { return c.checked; }).map(function (c) { return c.value; }).join(' / ');
+        if (all) all.checked = items.length > 0 && items.every(function (c) { return c.checked; });
+        hidden.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      items.forEach(function (c) { c.addEventListener('change', sync); });
+      if (all) all.addEventListener('change', function () { items.forEach(function (c) { c.checked = all.checked; }); sync(); });
     });
     cfg.addEventListener('input', function () {
       marks();

@@ -48,6 +48,7 @@ NAV = [
     ("group", "分析"),
     ("PAGE-F06-01", "/signals", "chart-line-up", "信号", None),
     ("PAGE-F07-01", "/backtest", "flask", "回测", None),
+    ("PAGE-F16-01", "/variables", "scales", "变量关系", None),
     ("PAGE-F08-01", "/card", "cards", "判定卡", None),
     ("PAGE-F08-02", "/kits", "lightbulb", "立项锦囊", None),
     ("PAGE-F09-01", "/ranking", "list-numbers", "本月排序", None),

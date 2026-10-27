@@ -37,6 +37,8 @@ BATHROOM_TEMPLATE: dict[str, Any] = {
     },
     "signal_windows": {"demand_months": 4, "entry_lookback_months": 6},
     "backtest_split": {"rule": 2, "test": 1},
+    # control variables held fixed when the effect of a signal or an attribute on hitting is estimated (F07, 变量关系)
+    "controls": ["brand_prior_hit", "month_idx", "price_pos", "variant_count", "fba", "relaunch"],
     "health_thresholds": {
         "first_review_early": 20.0,
         "family_span": 25.0,
@@ -73,6 +75,7 @@ CONFIG_FIELDS: list[tuple[str, str, str, str]] = [
     ("信号窗口与回看期", "signal_windows.demand_months", "需求动量窗口（个月）", "posint"),
     ("信号窗口与回看期", "signal_windows.entry_lookback_months", "新品进得去回看（个月）", "posint"),
     ("回测切分比例", "backtest_split.text", "定规则组 : 检验组", "split"),
+    ("回测切分比例", "controls", "控制变量", "list"),
     ("体检预警阈值", "health_thresholds.first_review_early", HEALTH_LABELS["first_review_early"] + "（%）", "pct"),
     ("体检预警阈值", "health_thresholds.family_span", HEALTH_LABELS["family_span"] + "（%）", "pct"),
     ("体检预警阈值", "health_thresholds.below_bought", HEALTH_LABELS["below_bought"] + "（%）", "pct"),
@@ -80,6 +83,21 @@ CONFIG_FIELDS: list[tuple[str, str, str, str]] = [
     ("体检预警阈值", "health_thresholds.parent_change", HEALTH_LABELS["parent_change"] + "（个）", "count"),
     ("体检预警阈值", "health_thresholds.dup_key", HEALTH_LABELS["dup_key"] + "（条）", "count"),
 ]
+
+
+# key → label of the control variables a person can switch on (BATHROOM_TEMPLATE["controls"] has them all on)
+CONTROL_VARS = {
+    "brand_prior_hit": "品牌上架前已有命中 SPU", "month_idx": "上架月份", "price_pos": "价格位置（相对细分销量加权均价）",
+    "variant_count": "变体数", "fba": "配送方式", "relaunch": "疑似重新上架",
+}
+
+
+def controls_of(cfg: dict[str, Any]) -> list[str]:
+    """Selected control variables; configs saved before the field existed use the full default set."""
+    sel = cfg.get("controls")
+    if sel is None:
+        return list(BATHROOM_TEMPLATE["controls"])
+    return [k for k in CONTROL_VARS if k in sel]
 
 
 BIN_FIELD_LABELS = {"width": "宽度档（取自尺寸）", "form": "形态", "price": "价格带"}
@@ -146,6 +164,8 @@ def get_path(cfg: dict[str, Any], path: str) -> Any:
         return f"{s['rule']}/{s['rule'] + s['test']} : {s['test']}/{s['rule'] + s['test']}"
     if path == "type_attributes":
         return "、".join(cfg["type_attributes"])
+    if path == "controls":
+        return "、".join(controls_of(cfg))
     cur: Any = cfg
     for part in path.split("."):
         if not isinstance(cur, dict) or part not in cur:
@@ -225,6 +245,13 @@ def set_path(cfg: dict[str, Any], path: str, value: Any) -> None:
         return
     if path == "type_attributes":
         cfg["type_attributes"] = [x.strip() for x in str(value).replace(",", "、").split("、") if x.strip()]
+        return
+    if path == "controls":
+        keys = [x.strip() for x in str(value).replace(",", "、").split("、") if x.strip()]
+        bad = [k for k in keys if k not in CONTROL_VARS]
+        if bad:
+            raise ValueError("未知的控制变量：" + "、".join(bad))
+        cfg["controls"] = [k for k in CONTROL_VARS if k in keys]
         return
     parts = path.split(".")
     cur = cfg

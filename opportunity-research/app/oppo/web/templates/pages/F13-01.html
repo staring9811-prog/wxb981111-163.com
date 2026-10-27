@@ -121,7 +121,21 @@
                       <tr data-dim-row{% if not d.on %} class="is-off"{% endif %}>
                         <td class="cell-title">{{ d.label }}{% if d.key == 'width' %}<div class="cell-sub">取自{{ d.attr }}</div>{% elif d.key == 'price' %}<div class="cell-sub">月销售额 ÷ 月销量</div>{% endif %}</td>
                         <td class="t-center"><label class="check"><input type="checkbox" name="segdim" value="{{ d.key }}"{% if d.on %} checked{% endif %} data-was="{{ 'true' if (d.key in cur_keys if cur_cfg else d.on) else 'false' }}" data-segdim><span class="visually-hidden">{{ d.label }}用作细分维度</span></label></td>
-                        <td><input class="input" name="bins.{{ d.key }}" value="{{ val('bins.' ~ d.key) if d.on else d.default_bins }}" placeholder="{{ d.hint }}" aria-label="{{ d.label }}分档" data-was="{{ was('bins.' ~ d.key) }}"{% if not d.on %} disabled{% endif %}><div class="field-error" data-error-for="bins.{{ d.key }}"></div></td>
+                        <td>
+                          {% if d.options %}
+                          {% set picked = (val('bins.' ~ d.key) if d.on else d.default_bins).split(' / ') %}
+                          <input type="hidden" name="bins.{{ d.key }}" value="{{ val('bins.' ~ d.key) if d.on else d.default_bins }}" data-was="{{ was('bins.' ~ d.key) }}"{% if not d.on %} disabled{% endif %}>
+                          <div class="choice-group choice-group--wrap" data-bins-pick aria-label="{{ d.label }}分档">
+                            <label class="check check--all"><input type="checkbox" data-pick-all{% if not d.on %} disabled{% endif %}>全选</label>
+                            {% for v, n in d.options %}
+                            <label class="check"><input type="checkbox" value="{{ v }}" data-pick-value{% if v in picked %} checked{% endif %}{% if not d.on %} disabled{% endif %}>{{ v }}{% if n %} <span class="count">{{ n }}</span>{% else %} <span class="count" data-tip="当前数据包里没有这个取值">0</span>{% endif %}</label>
+                            {% endfor %}
+                          </div>
+                          {% else %}
+                          <input class="input" name="bins.{{ d.key }}" value="{{ val('bins.' ~ d.key) if d.on else d.default_bins }}" placeholder="{{ d.hint }}" aria-label="{{ d.label }}分档" data-was="{{ was('bins.' ~ d.key) }}"{% if not d.on %} disabled{% endif %}>
+                          {% endif %}
+                          <div class="field-error" data-error-for="bins.{{ d.key }}"></div>
+                        </td>
                         <td>{% if d.key == 'price' %}<span class="small muted">不适用：由销售数据计算</span>{% else %}<label class="check"><input type="checkbox" name="ta" value="{{ d.attr }}"{% if d.attr in ta %} checked{% endif %} data-was="{{ 'true' if d.attr in ta_was else 'false' }}">可回填</label>{% endif %}</td>
                       </tr>
                       {% endfor %}
@@ -131,7 +145,7 @@
                 <input type="hidden" name="segdim_present" value="1">
                 <div class="field-error" data-error-for="segment_dims.selected"></div>
                 <div class="field-error" data-error-for="type_attributes"></div>
-                <p class="field__hint" style="margin-top: var(--space-2)">勾选“细分维度”的属性组合成细分（细分数 = 各维度分档数相乘，维度越多每个细分的样本越少）；属性维度的分档写属性取值。勾选“可回填”的是类型属性：子体没有确认值、但父体有候选值时用父体值，并标“父体回填”。颜色、尺寸、盆数随变体变化，不回填，缺失时归入“未知”档。分档之间用“ / ”分隔，不重叠、不留空档。</p>
+                <p class="field__hint" style="margin-top: var(--space-2)">勾选“细分维度”的属性组合成细分（细分数 = 各维度分档数相乘，维度越多每个细分的样本越少）；属性维度的分档从当前数据包的实际取值里勾选（括号里是子体数），没勾的取值归入“未知”档；宽度档和价格带是数值区间，手工填写。勾选“可回填”的是类型属性：子体没有确认值、但父体有候选值时用父体值，并标“父体回填”。颜色、尺寸、盆数随变体变化，不回填，缺失时归入“未知”档。分档之间用“ / ”分隔，不重叠、不留空档。</p>
               </section>
               <section aria-labelledby="g-kw">
                 <div class="section__head"><h3 id="g-kw">关键词映射规则</h3><span class="section__note">把关键词归入细分，用于“需求在涨”</span></div>
@@ -197,6 +211,17 @@
                     <div class="field-error" data-error-for="backtest_split.text"></div>
                     <span class="field__hint">不能整除时检验组向下取整、至少 1 个批次{% if decided %}；当前 {{ decided }} 个已判定批次 → {{ decided - n_test }} : {{ n_test }}{% endif %}</span>
                   </div>
+                </div>
+                <div class="field" style="margin-top: var(--space-3)">
+                  <span class="field__label">控制变量</span>
+                  <div class="choice-group choice-group--wrap">
+                    {% for k, lab in control_vars.items() %}
+                    <label class="check"><input type="checkbox" name="ctrl" value="{{ k }}"{% if k in controls_on %} checked{% endif %} data-was="{{ 'true' if k in controls_was else 'false' }}">{{ lab }}</label>
+                    {% endfor %}
+                  </div>
+                  <input type="hidden" name="controls_present" value="1">
+                  <div class="field-error" data-error-for="controls"></div>
+                  <span class="field__hint">估计信号和属性对命中的效应时固定住这些因素（回测“控制前后”表与“变量关系”页）。截面模型按月龄堆叠行，只用其中的品牌、变体数、重新上架和配送方式。</span>
                 </div>
               </section>
               <section aria-labelledby="g-health" id="g-health-sec">

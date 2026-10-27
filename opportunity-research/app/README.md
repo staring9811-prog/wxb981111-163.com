@@ -20,6 +20,10 @@ uv venv --python 3.14 && uv pip install -e ".[dev]"
 
 试用：在“数据包”页粘贴 `fixtures/packages/H1-A` 的路径导入，然后按工作台的 8 步走完一个月。
 
+## 更新到最新版本
+
+关闭运行窗口后，在 `app` 目录双击 `更新.bat`（或运行 `.venv\Scripts\python -m oppo.cli update`）：从 GitHub 下载分支最新代码，替换 `oppo/`、`docs/`、`tests/`、`packaging/`、`fixtures/`（生成的样例包不动）、`pyproject.toml`；`data/` 和 `.venv/` 不动，被替换的旧文件先备份到 `data/update_backup/<时间>/`。依赖有变化时自动重装。更新后双击 `启动.bat` 即可，数据库在启动时自动升级。没有网络时先在浏览器下载分支 zip，再运行 `oppo update --zip <文件>`。
+
 ## Codex 接入（数据审核）
 
 程序启动后在本机提供 `http://127.0.0.1:8765/api/v1`，Codex 等工具可以读数据包、提交调整提议；提议在「数据审核」页由人确认、改值或驳回后才参与体检和计算，导入的数据包本身不变。令牌在 `data/api_token.txt`（`oppo api-token` 查看），接口与命令行 `oppo adjust` 的说明见 `docs/Codex接入.md`。

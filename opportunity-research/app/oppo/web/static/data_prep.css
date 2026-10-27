@@ -16,3 +16,9 @@ td .was-note .badge { margin: 0 var(--space-1) 0 0; }
 .dropzone--compact { margin-bottom: var(--space-4); }
 #seg-table tr.is-off .cell-title { color: var(--fg-2); font-weight: 400; }
 #seg-table .input:disabled { background: var(--surface-warm); color: var(--muted); cursor: not-allowed; }
+
+/* 品类配置 · 分档勾选：从数据包取值里勾选，取值多时在格内滚动 */
+[data-bins-pick] { max-height: 9.5rem; overflow: auto; padding: var(--space-1) 0; gap: var(--space-1) var(--space-3); }
+[data-bins-pick] .check .count { margin-left: 0.25em; }
+[data-bins-pick] .check--all { font-weight: 600; flex-basis: 100%; }
+tr.is-off [data-bins-pick] { opacity: 0.55; }

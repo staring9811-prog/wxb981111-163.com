@@ -31,7 +31,20 @@ MIN_SAMPLE = 20
 MIN_EFFECTIVE = 5  # DEC-036
 TOP_SHARE = 0.20
 LIMITATION = "广告投入、站外引流未纳入"
-CONFOUNDERS = ("品牌上架前已有命中 SPU", "上架月份", "价格位置（相对细分销量加权均价）", "变体数", "配送方式", "疑似重新上架")
+CONFOUNDERS = tuple(CAT.CONTROL_VARS.values())  # every control variable; the category config picks a subset
+
+
+def control_frame(pool: pd.DataFrame, sig: pd.DataFrame) -> pd.DataFrame:
+    """The control variables of every SPU in `pool`, one column per key of CAT.CONTROL_VARS."""
+    price = {(T, s): v for T, s, sg, v in sig[sig["signal"] == "premium"][["t_month", "segment_key", "signal", "num"]]
+             .itertuples(index=False)} if len(sig) else {}
+    p = pool.copy()
+    p["seg_price"] = [price.get((b, s)) for b, s in zip(p["batch"], p["segment_key"], strict=False)]
+    p["price_pos"] = p["launch_price"] / p["seg_price"]
+    months = sorted(p["batch"].unique())
+    p["month_idx"] = p["batch"].map({m: i for i, m in enumerate(months)})
+    p["fba"] = (p["fulfillment"].fillna("").str.upper() == "FBA").astype(int)
+    return p
 # Source fields each signal needs; a snapshot field among them excludes the signal (AC-F02-05).
 SIGNAL_FIELDS = {
     "demand": [("C5", "月搜索量"), ("C5", "关键词属性标签")],
@@ -362,7 +375,8 @@ def _history(conn: Connection, cfg: dict[str, Any], spus: pd.DataFrame, sig: pd.
                                 f"{SIG.LABELS[best[0]] if best else '无'} {_pct(best[1]) if best else ''}"))
     # ---- confounders on the rule group (AC-F07-06)
     report("控制干扰因素", 0.75)
-    res["confounders"] = _confounders(rule_pool, look, sig, blocked)
+    res["confounders"] = _confounders(rule_pool, look, sig, blocked, CAT.controls_of(cfg))
+    res["controls"] = [CAT.CONTROL_VARS[k] for k in CAT.controls_of(cfg)]
     res["confounder_n"] = int(len(rule_pool))
     # ---- rule basis for tips
     res["rules"] = _rule_specs(card_signals, pool, decided, look, cfg) if res["conclusion"] == "达标" else []
@@ -390,30 +404,24 @@ def _merge_hint(seg: str, counts: dict[str, int], cfg: dict[str, Any]) -> dict[s
 
 
 def _confounders(pool: pd.DataFrame, look: dict[tuple[str, str, str], float | None], sig: pd.DataFrame,
-                 blocked: set[str]) -> list[dict[str, Any]]:
+                 blocked: set[str], controls: list[str] | None = None) -> list[dict[str, Any]]:
     out = []
     if not len(pool):
         return out
-    price = {(T, s): v for T, s, sg, v in sig[sig["signal"] == "premium"][["t_month", "segment_key", "signal", "num"]]
-             .itertuples(index=False)}
-    p = pool.copy()
-    p["seg_price"] = [price.get((b, s)) for b, s in zip(p["batch"], p["segment_key"], strict=False)]
-    p["price_pos"] = p["launch_price"] / p["seg_price"]
-    months = sorted(p["batch"].unique())
-    p["month_idx"] = p["batch"].map({m: i for i, m in enumerate(months)})
-    p["fba"] = (p["fulfillment"].fillna("").str.upper() == "FBA").astype(int)
-    ctrl_cols = ["brand_prior_hit", "month_idx", "price_pos", "variant_count", "fba", "relaunch"]
+    p = control_frame(pool, sig)
+    ctrl_cols = list(controls) if controls is not None else list(CAT.CONTROL_VARS)
     for s in SIG.SIGNALS:
         if s in blocked:
             out.append({"signal": s, "label": SIG.LABELS[s], "before": None, "after": None, "reason": "回测不用快照字段"})
             continue
         x = np.array([look.get((b, seg, s)) for b, seg in zip(p["batch"], p["segment_key"], strict=False)], dtype=float)
         mask = ~np.isnan(x)
-        ctrl = p[ctrl_cols].astype(float).to_numpy()
-        mask &= ~np.isnan(ctrl).any(axis=1)
+        ctrl = p[ctrl_cols].astype(float).to_numpy() if ctrl_cols else np.zeros((len(p), 0))
+        if ctrl.shape[1]:
+            mask &= ~np.isnan(ctrl).any(axis=1)
         y = p["hit"].to_numpy()[mask]
         before = ST.odds_ratio(y, x[mask], None)
-        after = ST.odds_ratio(y, x[mask], ctrl[mask])
+        after = ST.odds_ratio(y, x[mask], ctrl[mask] if ctrl.shape[1] else None)
         out.append({"signal": s, "label": SIG.LABELS[s], "before": before, "after": after, "n": int(mask.sum()),
                     "reason": None if before is not None else "无数据"})
     return out
@@ -516,7 +524,7 @@ def _cross(conn: Connection, cfg: dict[str, Any], spus: pd.DataFrame, sig: pd.Da
     res["rows"] = {"model": int(rows_df["batch"].isin(model_b).sum()), "test": int(rows_df["batch"].isin(test_b).sum())}
     report("截面模型：新品-月逻辑回归", 0.3)
     jobs.maybe_fail("backtest:evaluate")
-    probs = _cross_model(rows_df[rows_df["batch"].isin(model_b)], new, window)
+    probs = _cross_model(rows_df[rows_df["batch"].isin(model_b)], new, window, CAT.controls_of(cfg))
     res["probs"] = probs
     pool = new[new["batch"].isin(test_b)].copy()
     pool["hit"] = (pool["status"] == J.X_HIT).astype(int)
@@ -582,7 +590,8 @@ def _cross(conn: Connection, cfg: dict[str, Any], spus: pd.DataFrame, sig: pd.Da
     return res
 
 
-def _cross_model(rows: pd.DataFrame, new: pd.DataFrame, window: int) -> dict[str, float]:
+def _cross_model(rows: pd.DataFrame, new: pd.DataFrame, window: int,
+                 controls: list[str] | None = None) -> dict[str, float]:
     """Logit on new-product-months: age dummies + segment dummies + confounders (ridge), then
     P(hit within 6 months) = 1 − Π(1 − p_age) at mean confounders — an approximation (independent months)."""
     import statsmodels.api as sm
@@ -599,7 +608,10 @@ def _cross_model(rows: pd.DataFrame, new: pd.DataFrame, window: int) -> dict[str
         X[f"age{a}"] = (df["age"] == a).astype(float)
     for s in segs[1:]:
         X[f"seg::{s}"] = (df["segment_key"] == s).astype(float)
-    conf = df[["brand_prior_hit", "variant_count", "relaunch", "fba"]].astype(float).fillna(0.0)
+    # month and price position are not identified on the age-stacked rows; the other controls are used as selected
+    keys = [k for k in (controls if controls is not None else list(CAT.CONTROL_VARS))
+            if k in ("brand_prior_hit", "variant_count", "relaunch", "fba")]
+    conf = df[keys].astype(float).fillna(0.0) if keys else pd.DataFrame(index=df.index)
     means = conf.mean()
     sds = conf.std().replace(0, 1.0).fillna(1.0)
     for c in conf.columns:
