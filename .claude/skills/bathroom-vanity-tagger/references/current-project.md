@@ -1,36 +1,29 @@
 # 当前项目与来源位置
 
-确认日期：2026-10-24。用户：“ok把他存成下次我一说你就能直接找到的skill，打标吧”，随后确认15列。
+## 交接包（2026-10-27）
 
-- 当前Excel：D:/Codex/Outputs/BathroomVanities_202606-202609_SKU销量预估.xlsx
-- 当前规范化原件：D:/Codex/Data/BathroomVanities_202606_09_expansion/sales_payload.json
-- 子体详情缓存：同目录collected_details.json；features来源：feature_field_provenance.json。
-- 纳入/排除：step1_macro_audit.json.confirmedNonTargetProducts与明细_eligible，分析交接JSON的rowManifest亦可独立读取。以当前真实文件为准，不将路径当永久固定数据。
-- 本次原表13,432条，目标月家庭分摊范围10,831条；已知非目标排除后10,816条、唯一子ASIN4,639个。另有1个商品品类待图片复核。
-- 历史规则：D:/Desktop/浴室柜/市场调研 code/amz bathroom vanity/TAG_SKILL.md
-- 历史脚本：同目录tag_vanity_v3.py、tag_size_lib.py；历史标签库output/tag_database.xlsx。
-- 旧Claude记忆：D:/以前的用户/.claude/projects/C--Users-lenovo/memory/amz-vanity-child-sales-estimation.md
+数据随“浴室柜_数据源与全部打标Skills_20261027”包交接，不入本仓库。解压后目录：
 
-旧规则仅为溯源，禁止直接沿用：未知默认MDF/陶瓷、默认单盆/无镜/无龙头、父体五点优先、月销>10/>20过滤、engineered wood无条件当MDF、按价格反推改材料。
+- 01_原始导出：卖家精灵6/7/8/9月导出Excel及原ZIP。
+- 02_数据源/BathroomVanities_202606_09_expansion：打标用的规范化数据目录，即 `--data-root`。含sales_payload.json（13,432行明细）、collected_details.json（1,318个ASIN详情，其中907个目标子ASIN的精确子体详情，其余为父体）、step1_macro_audit.json（已知非目标）、feature_field_provenance.json（五点来源）、input_rows.json（卖家精灵导出逐行，含详细参数attributes/亮点features）。
+- 03_打标结果与基础表：未打标源表、v2打标表及同名analysis/tags/README。
+- 04_打标证据与核查：v2逐字段证据与大数核查（tagging_macro_readout_20261027.json记录了3H高度问题，v3已修复）。
 
-准备审查说明：D:/Codex/Outputs/BathroomVanities_旧打标规则审查与准备_20261024.md
+旧D:/Codex、C:/Users等路径只在原机器有效，按包内相应目录映射。
 
-## 已完成的2026-10-24文本打标交付
+## 项目范围
 
-- 打标版：D:/Codex/Outputs/BathroomVanities_202606-202609_SKU销量预估_已打标.xlsx
-- 分析交接包：D:/Codex/Outputs/BathroomVanities_202606-202609_打标分析交接包.zip
-- 同名analysis.json、tags.json、README.md均位于D:/Codex/Outputs。
-- 当前版保留原13,432行与62列，追加15列；目标样本10,816行/4,639唯一子ASIN已执行文本打标。
-- 尚未进行独立图片核验：元素7,423行待图片核验，3,393行有文本线索（其中1,315行仅父体候选）。1,197行至少有一个字段冲突。不能称为全量图片核验完成或所有字段均准确。
-- 原有657,032个非空单元格和公式与源文件比较一致；新增接口调用0。
+- 原表13,432行；已知非目标排除后10,816条子ASIN×月份、4,639个唯一子ASIN纳入打标；目标月归属待核验2,002行、不纳入614行只标状态。
+- 文本来源覆盖（目标行）：子体详情2,000行/907个子ASIN；卖家精灵导出详细参数1,504行/668个；五点为父体填充8,808行/3,729个；既无子体详情也无导出参数7,955行/3,353个。
+- 用户确认：2026-10-24“ok把他存成下次我一说你就能直接找到的skill，打标吧”，确认16列（D8拆两列）与marble归类。2026-10-27要求“把数据打标好，哪些用现有数据源就可打标，哪些现阶段不行”。
 
-## 当前正式v2：台面与台盆拆列及marble业务归类
+## 版本
 
-- 最新Excel：D:/Codex/Outputs/BathroomVanities_202606-202609_SKU销量预估_已打标_v2.xlsx
-- 最新交接包：D:/Codex/Outputs/BathroomVanities_202606-202609_打标分析交接包_v2.zip
-- 同名analysis.json、tags.json、README.md与Excel绑定使用。旧v1保留，其旧D8不用于确定材料分析。
-- 原62列、13,432行保留，新增16列，总78列（BK:BZ）；D8为台面材质、台盆材质两列。
-- 标签范围10,816行、4,639唯一子ASIN。非材料维度标签与v1逐值一致；原有非空值/公式逐值一致；新SellerSprite调用0。
-- 当前快照台面卡拉拉大理石615条、岗石1,090条（子ASIN×月份，含候选/冲突）；台面信息不足6,776条、台盆信息不足2,565条。不能当历史月末属性或地质鉴定。
-- 材料JSON含原词、细分、部件、归类规则与direct_text/business_mapping/business_inference/business_assumption；父体候选、冲突独立标记。少见盆材保留待核验；未开展图片独立核验。
-- 审查记录：D:/Codex/Data/BathroomVanities_202606_09_tagging_v2/tagging_export_audit.json；material_change_audit.json。
+- v1（2026-10-24）：15列，旧合并D8仅溯源。
+- v2（2026-10-24）：16列，台面/台盆拆列。已知问题：137行高度=3in（3H龙头孔位）；152行深度实为宽度（D/W标签互换）。
+- v3（2026-10-27）：修复上述两项；接入导出详细参数与父体overviews材质；镜子/龙头列表式表述；逐字段可行性代码与工作队列。列结构与v2相同，Excel由write_workbook.py在v2上原位替换BK:BZ，verify_workbook.py核对其余832,846个单元格不变。
+- 待用户确认：DIM-DWH-ORDER、DIM-DW-SWAP（见feasibility-and-dimension-rules.md）。确认后用 --enable-dim-rules 重跑并重新写表。
+
+## 历史规则（仅溯源，禁止直接沿用）
+
+原机器上的TAG_SKILL.md、tag_vanity_v3.py、tag_size_lib.py及旧标签库。禁止沿用：未知默认MDF/陶瓷、默认单盆/无镜/无龙头、父体五点优先、月销>10/>20过滤、engineered wood无条件当MDF、按价格反推材料。

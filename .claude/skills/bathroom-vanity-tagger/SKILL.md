@@ -1,31 +1,40 @@
 ---
 name: bathroom-vanity-tagger
-description: 浴室柜整柜商品属性打标。用户说浴室柜打标、给浴室柜贴标签、之前浴室柜打标skill时使用。基于子ASIN的SKU、标题、详情参数、五点和图片处理11维度，保留字段证据与父体候选，不用销量门槛或未知材质默认值。关键词词库打标另用keyword-taxonomy-skill。
+description: 浴室柜整柜商品属性打标，并回答“哪些字段现有数据能打、哪些现阶段不行”。用户说浴室柜打标、给浴室柜贴标签、浴室柜打标可行性、之前的浴室柜打标skill时使用。基于子ASIN的SKU、标题、子体详情、卖家精灵导出详细参数、五点处理11维度16列，保留字段证据、父体候选和逐字段可行性代码，不用销量门槛或未知默认值。关键词词库打标另用keyword-taxonomy-skill。
 ---
 
 # 浴室柜商品打标
 
-2026-10-24用户授权保存并执行。下次说“浴室柜打标”直接从本技能开始。当前输入位置和历史原件在[references/current-project.md](references/current-project.md)，正式输出字段在[references/output-schema.md](references/output-schema.md)。同一已确认结构直接复用，不重复询问。
+下次说“浴室柜打标”直接从本技能开始。输入位置与项目历史见[references/current-project.md](references/current-project.md)；输出16列见[references/output-schema.md](references/output-schema.md)；可行性代码与尺寸规则见[references/feasibility-and-dimension-rules.md](references/feasibility-and-dimension-rules.md)。同一已确认结构直接复用，不重复询问。
 
-**台面/台盆v2：** D8已确认拆为台面材质、台盆材质。执行前读[references/surface-basin-rules.md](references/surface-basin-rules.md)。大理石分支Carrara/Calacatta统一卡拉拉大理石，其余未明确细分marble归岗石；明确石英石、岩板、树脂、Cultured Marble优先。业务归类与推导须记JSON方法和来源，不作为天然材质鉴定。
+**台面/台盆：** D8拆为台面材质、台盆材质。执行前读[references/surface-basin-rules.md](references/surface-basin-rules.md)。大理石分支Carrara/Calacatta统一卡拉拉大理石，其余未明确细分marble归岗石；明确石英石、岩板、树脂、Cultured Marble优先。业务归类与推导须记JSON方法和来源，不作为天然材质鉴定。
 
 ## 关键规则
 
-- 粒度为子ASIN×目标月份；属性是证据快照，不是历史月末属性。可以复用同一子ASIN相同文本快照，但必须保留原月份行、证据指纹、冲突和父体来源。不得对多月记录简单取最后一条覆盖。
-- 不设月销10/20门槛。保留输入全部行；本次已核验目标浴室柜填标签，范围外或历史归属未核验行标状态，不删除、不挪用销量。
-- 柜体颜色优先明确SKU单色和对应柜体描述。Black White等组合色须分清柜体/盆/龙头，未区分不按颜色词表先后硬填。标题与SKU不一致保留SKU优先值并标冲突。
-- 柜体、台面、盆材质按部件判断，明确文本优先；engineered wood无MDF证据时保留工程木材未细分，solid wood frame不自动补成实木框架+MDF。SMC/亚克力归树脂业务组，JSON保留细分；符合条件的配盆推导单独标business_assumption。纹理/仿色不证明天然石材。无法识别为信息不足，不能用图片证明内部板材。
-- 子体标题/SKU/明确子体参数/子体五点优先。父体回填五点只能作为父体候选，结果标“（父体候选）”，不当子体已确认规格。JSON逐字段记来源ASIN与范围。Material整套混合列表不能直接当柜体材料。
-- 元素先文本；无可靠文本线索标待图片核验。实际看过对应子体图片才可写图片核验，不把下载链接存在当看图。图片可辅助外观/安装结构，但不能声称证明内部材料。
-- 否定、排除与部件范围先于关键词匹配。无镜/无龙头需明确证据，不因未提及就填无；无盆不推出无龙头；vessel、drop-in、undermount、integrated区分处理，材质本身不决定安装形态。
-- 尺寸优先明确SKU宽度，再有方向标记的子体尺寸/标题；保留实际数值和单位，不自动将37寸改成36寸或把无方向三维数猜成宽深高。名义尺寸与实际尺寸在合理范围可共存，明显冲突标记。
-- 文字来源不保证正确。每个标签记录原文片段、来源字段/ASIN、子体/父体范围、方法、冲突、规则版本。数字空值不转0；未知标签不伪造确定值。自动文本证据可用不等于独立验证准确。
+- 粒度为子ASIN×目标月份；属性是证据快照，不是历史月末属性。可复用同一子ASIN相同文本快照，但保留原月份行、证据指纹、冲突和父体来源。不得对多月记录取最后一条覆盖。
+- 不设月销10/20门槛。保留输入全部行；已核验目标浴室柜填标签，范围外或目标月归属未核验行只标状态，不删除、不挪用销量。
+- 子体标题/SKU/子体详情/卖家精灵导出详细参数（同ASIN）/子体五点优先。父体回填五点与父体详情overviews只作父体候选，结果标“（父体候选）”；父体overviews不取颜色、尺寸。JSON逐字段记来源ASIN、范围，导出来源另记导出月份与行号。
+- 柜体颜色优先SKU单色和明确柜体描述；组合色未区分柜/盆/五金不硬填。标题与SKU不一致保留SKU值并标冲突。
+- 柜体、台面、盆材质按部件判断。engineered wood无MDF证据时为工程木材（未细分）；solid wood frame不自动补成实木框架+MDF；SMC/亚克力归树脂业务组并保留细分。纹理/仿色不证明天然石材；图片不能证明内部板材。
+- 元素先文本；无可靠文本线索标待图片核验。实际看过对应子体图片才可写图片核验，链接存在不等于看过图。
+- 否定、排除与部件范围先于关键词：无镜/无龙头需明确证据，未提及不填无；无盆不推出无龙头；“faucets and mirror are not included”“excluding faucets”这类列表排除要识别；pre-drilled faucet hole、Single Hole Faucet不代表含龙头。
+- 盆数只认明确数量词（single/double/dual/two + 可带vessel、boat、rectangular等修饰 + sink），不凭宽度强推；single/double vanity行业用语只在没有其他盆数证据时使用。
+- 尺寸：优先SKU宽度，再用带方向标记的子体尺寸/标题；保留实际数值和单位，不把37寸改36寸。无单位的“3H”不在a×b×c尺寸串里时是3孔龙头位，不是高度。同一来源D/W标签互换（标D≈已选宽度、标W与宽度不符）时深度留空标冲突。
+- 无方向三维数“a x b x c inches”默认不猜宽深高。DIM-DWH-ORDER、DIM-DW-SWAP只在用户确认后用 --enable-dim-rules 启用；未启用时只给候选。
+- 文字来源不保证正确。每个标签记录原文片段、来源字段/ASIN、范围、方法、冲突、规则版本。数字空值不转0；自动文本证据可用不等于独立验证准确。
 
 ## 执行
 
-1. 读用户当前文件及同名analysis.json/README，先复用缓存，核对范围、字段和文件版本。新结构按table-schema-confirmation确认；2026-10-24确认的16列（D8拆两列）见输出规范。
-2. 使用[scripts/tag_cached.py](scripts/tag_cached.py)产生标签矩阵、逐字段证据及宏观数。该脚本接受当前项目规范化sales_payload/collected_details等JSON；其他项目须先明确映射字段和纳入标记，不能把缺少_eligible当作全量范围。脚本无网络功能；不要运行旧tag_vanity_v3.py主函数（旧抓取/固定表头/默认值/过滤均不适用）。语义复杂或冲突商品保留待核验，不能将正则命中当真值。多种材料列在同一标签时仍须按部件证据判断，不能未经核验把所有材料当作整个柜体的结构。
-3. Excel编辑按Spreadsheets技能，仅追加确认列；保留销量数值、公式、原始信息、表格对象与其他Sheet。可交付独立打标版，源文件不覆盖。
-4. 交付Excel、证据JSON与README。准备工作未完成时不能宣称全量属性已准确核验；待图片/父体候选/缺失数量应在大数中明示。按table-macro-check自动在对话给关键覆盖和异常。
+1. 读用户当前文件及同名analysis.json/README，先复用缓存，核对范围、字段和文件版本。新结构按table-schema-confirmation确认；已确认16列见输出规范。不要为了打标调用在线采集接口。
+2. 打标（无网络）：
+   `python3 -I scripts/tag_cached.py --data-root <规范化数据目录> --out-dir <输出目录>`
+   数据目录需含sales_payload.json、collected_details.json、step1_macro_audit.json、feature_field_provenance.json，可选input_rows.json（卖家精灵导出逐行）。输出tagging_matrix/evidence/summary/work_queues四个JSON。其他项目须先明确映射字段和纳入标记，不能把缺少_eligible当作全量范围。不要运行旧tag_vanity_v3.py。
+3. 写Excel（只改16个标签列，其余单元格原样）：
+   `python3 -I scripts/write_workbook.py --base <源或上一版xlsx> --matrix <输出目录>/tagging_matrix.json --out <新xlsx>`
+   表头已有16列时原位替换；没有时追加到末列并扩展表格范围。然后必须跑
+   `python3 -I scripts/verify_workbook.py --base ... --out ... --matrix ...`，ok不为true不得交付。
+4. 可行性报告：`python3 -I scripts/feasibility_report.py --tag-dir <输出目录> --data-root <数据目录> --out-xlsx ... --out-md ... [--base-evidence 上一版evidence] [--dim-rules-dir 启用尺寸规则的输出目录]`。
+5. 交接文件：`python3 -I scripts/update_handoff.py` 在上一版analysis.json上替换工作簿绑定、taggingStatus和tagging块，销量口径不动。交付Excel、tags.json（=tagging_evidence.json）、analysis.json、README与可行性报告。
+6. 按table-macro-check在对话给关键覆盖和异常：每字段可打标/父体候选/冲突/需补采/需看图/待确认规则的行数，待图片、父体候选、缺失数量必须明示，不能宣称全量已准确核验。
 
 原始历史TAG_SKILL及脚本保留不改，不把其中不一致的默认值继续作为新规则。

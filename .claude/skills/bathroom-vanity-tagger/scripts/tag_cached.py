@@ -1,13 +1,20 @@
 """Evidence-preserving, network-free bathroom vanity attribute tagging.
 
 Consumes the current normalized payload and exact-ASIN detail cache. Produces
-only JSON; workbook editing is separate. Parent descriptions remain candidates.
+only JSON; workbook editing is separate (write_workbook.py). Parent
+descriptions remain candidates.
+
+v3 (2026-10-27): SellerSprite export 详细参数/亮点 as child evidence, parent
+overview materials as candidates, 3H faucet-hole fix, list-style mirror/faucet
+inclusion, more explicit single/double sink wording, D/W label-swap guard,
+D×W×H order and swap-correction candidates (filled only with
+--enable-dim-rules), per-field feasibility classes and work queues.
 """
 import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261024-v2'
+VERSION='bathroom-vanity-tagger-20261027-v3'
 HEADERS=['D1产品形态','D2安装方式','D3盆数','D4台面形态','D5元素','D6柜体颜色','D7柜体材质','D8台面材质','D8台盆材质','D9宽(in)','D9深(in)','D9高(in)','D10镜子','D11龙头','打标状态','打标说明']
 UNKNOWN='信息不足'
 def clean(s):return re.sub(r'\s+',' ',html.unescape(str(s or ''))).strip()
@@ -15,28 +22,59 @@ def load(p):return json.loads(Path(p).read_text(encoding='utf-8'))
 def match(pattern,text):return re.search(pattern,text,re.I)
 def uniq(xs):return list(dict.fromkeys(xs))
 
+# Parent overview keys that describe one representative variant, not the family.
+PARENT_OVERVIEW_SKIP={'brand','color','size','product dimensions','dimensions','item weight','weight','dimensions & weight','recommended uses for product'}
+
+def overviews(d):
+    ov=(d or {}).get('overviews')
+    if isinstance(ov,str):
+        try:ov=json.loads(ov)
+        except (ValueError,TypeError):ov={}
+    return ov if isinstance(ov,dict) else {}
+
+def export_attributes(text):
+    """SellerSprite 详细参数 is 'Key:Value | Key:Value'; values may contain ':'."""
+    out=[]
+    for part in str(text or '').split(' | '):
+        k,sep,v=part.partition(':')
+        if sep and clean(k) and clean(v):out.append((clean(k),clean(v)))
+    return out
+
 class Tagger:
-    def __init__(self,row,details,feature_provenance=None):
+    def __init__(self,row,details,feature_provenance=None,export_rows=None,enable_dim_rules=False):
         self.row=row;self.asin=row['子ASIN'];self.sources=[];self.notes=[];self.conflicts=[];self.tags={};self.evidence={}
-        def add(field,text,scope='child',a=None):
-            if clean(text):self.sources.append({'field':field,'text':clean(text),'scope':scope,'asin':a or self.asin})
+        self.rejected_dims=[];self.enable_dim_rules=enable_dim_rules
+        def add(field,text,scope='child',a=None,**meta):
+            if clean(text):self.sources.append({'field':field,'text':clean(text),'scope':scope,'asin':a or self.asin,**meta})
         add('SKU属性',row.get('SKU属性'));add('商品标题',row.get('商品标题'))
         d=(details.get(self.asin) or {}).get('data') or {}
         if d.get('asin')!=self.asin:d={}
-        ov=d.get('overviews')
-        if isinstance(ov,str):
-            try:ov=json.loads(ov)
-            except (ValueError,TypeError):ov={}
-        if isinstance(ov,dict):
-            for k,v in ov.items():add('子体详情.overviews.'+k,clean(v))
+        self.has_child_detail=bool(d)
+        for k,v in overviews(d).items():add('子体详情.overviews.'+k,clean(v))
+        # Same-ASIN SellerSprite export rows are child evidence from the export month's snapshot.
+        seen=set()
+        for x in export_rows or []:
+            for k,v in export_attributes(x.get('attributes')):
+                if (k,v) in seen:continue
+                seen.add((k,v));add('卖家精灵导出.详细参数.'+k,v,exportMonth=x.get('month'),exportFile=x.get('sourceFile'),exportRow=x.get('sourceRow'))
+            if clean(x.get('features')) and ('亮点',clean(x['features'])) not in seen:
+                seen.add(('亮点',clean(x['features'])));add('卖家精灵导出.亮点',x['features'],exportMonth=x.get('month'),exportFile=x.get('sourceFile'),exportRow=x.get('sourceRow'))
+        self.has_export=bool(seen)
         if row.get('五点来源')=='子体详情':add('五点描述',row.get('五点描述'))
         elif row.get('五点来源')=='父体详情填充':add('五点描述',row.get('五点描述'),'parent',row.get('五点来源ASIN'))
+        parent=row.get('核验父ASIN')
+        pd=(details.get(parent) or {}).get('data') or {} if parent and parent!=self.asin else {}
+        if pd.get('asin')==parent:
+            for k,v in overviews(pd).items():
+                if k.lower() not in PARENT_OVERVIEW_SKIP:add('父体详情.overviews.'+k,clean(v),'parent',parent)
         add('商品尺寸',row.get('商品尺寸'))
         self.provenance=feature_provenance or {}
     def ev(self,source,label,quote,method='明确文本',extra=None):
         e={'label':label,'sourceField':source['field'],'sourceASIN':source['asin'],'sourceScope':source['scope'],'quote':clean(quote),'method':method}
         if source['field']=='五点描述':
             e['sourceRecordID']=self.provenance.get('sourceRecordID');e['requestTime']=self.provenance.get('requestTime')
+        for k in ('exportMonth','exportFile','exportRow'):
+            if source.get(k):e[k]=source[k]
         if extra:e.update(extra)
         return e
     def set(self,key,candidates,multi=False,default=UNKNOWN):
@@ -79,12 +117,18 @@ class Tagger:
             if no:c.append(self.ev(s,'整装',text[max(0,no.start()-25):no.end()+60]))
             elif yes:c.append(self.ev(s,'拆装',text[max(0,yes.start()-25):yes.end()+60]))
         self.set(HEADERS[1],c)
-        c=[]
+        c=[];vanity_terms=[]
         for s in self.sources:
             t=s['text']
             no=match(r'\b(?:without|no) (?:a )?(?:sink|basin)\b|\b(?:sink|basin) (?:is )?(?:not included|sold separately)\b|\b(?:cabinet|vanity base) only\b',t)
-            double=match(r'\b(?:double|dual|two|2)[ -]+(?:sink|basin|bowl)s?\b|\bsize\s*:[^|]*\bdual\b',t)
-            single=match(r'\b(?:single|one|1)[ -]+(?:(?:oval|round|rectangular|white|black|ceramic|porcelain|resin|undermount)\s+){0,3}(?:sink|basin|bowl)\b|\bsize\s*:[^|]*\bsingle\b',t)
+            # Explicit count words only; adjectives such as "vessel"/"boat" may sit between.
+            adj=r'(?:(?:oval|round|rectangular|rectangle|square|white|black|gr[ae]y|ceramic|porcelain|resin|smc|stone|marble|glass|undermount|undercounter|vessel|boat|integrated|drop[ -]in)\s+){0,3}'
+            double=match(r'\b(?:double|dual|two|2)[ -]+'+adj+r'(?:sink|basin|bowl)s?\b|\bsize\s*:[^|]*\bdual\b',t)
+            single=match(r'\b(?:single|one|1)[ -]+'+adj+r'(?:sink|basin|bowl)\b|\bsize\s*:[^|]*\bsingle\b',t)
+            # Trade terms "single/double vanity" name the sink count but are weaker than sink wording.
+            for label,pat in (('双盆',r'\bdouble\s+(?:bathroom\s+)?vanity\b'),('单盆',r'\bsingle\s+(?:bathroom\s+)?vanity\b')):
+                vm=match(pat,t)
+                if vm:vanity_terms.append(self.ev(s,label,t[max(0,vm.start()-20):vm.end()+55],'行业用语single/double vanity'))
             choices=[]
             if no:choices=[('无盆',no)]
             elif double and single:
@@ -98,7 +142,7 @@ class Tagger:
             for e in c:
                 if e['sourceScope']=='child' and e['label']!=sku[0]['label']:self.conflicts.append('D3盆数：SKU与其他文本不一致')
             self.set(HEADERS[2],sku)
-        else:self.set(HEADERS[2],c)
+        else:self.set(HEADERS[2],c or [e for e in vanity_terms if len({x['label'] for x in vanity_terms})==1])
         if self.tags[HEADERS[2]]=='无盆':
             self.tags[HEADERS[3]]='不适用（无盆）';self.evidence[HEADERS[3]]={'status':'derived','basis':HEADERS[2]}
         else:self.set(HEADERS[3],self.pattern_candidates([
@@ -110,7 +154,7 @@ class Tagger:
             ('Fluted',r'\bfluted\b'),('Reeded',r'\breeded\b'),('Shaker',r'\bshaker\b|\brecessed panel\b'),
             ('Barn Door',r'\bbarn[ -]door\b'),('Farmhouse',r'\bfarmhouse\b|\bx[ -]design\b'),
             ('Slatted',r'\bslatted\b|\blouvered\b'),('Glass Door',r'\b(?:glass|glazed)\s+(?:cabinet\s+)?doors?\b'),
-            ('Rattan',r'\b(?:rattan|wicker|cane)\b')],lambda f:f in ('商品标题','SKU属性','五点描述') or 'style' in f.lower()),multi=True,default='待图片核验')
+            ('Rattan',r'\b(?:rattan|wicker|cane)\b')],lambda f:f in ('商品标题','SKU属性','五点描述','卖家精灵导出.亮点') or 'style' in f.lower()),multi=True,default='待图片核验')
 
     def colors(self):
         patterns=[('灰绿色',r'gray[ -]green|grey[ -]green'),('灰蓝色',r'blue[ -]gr[ae]y|gr[ae]y[ -]blue'),('藏青色',r'navy(?: blue)?'),('胡桃木色',r'(?:dark )?walnut'),('深咖啡色',r'espresso|dark brown|coffee'),('白色',r'(?:milky |off[ -]|matte |pure )?white|cream|ivory'),('黑色',r'(?:matte |jet )?black|tuxedo'),('灰色',r'gr[ae]y|driftwood'),('原木色',r'natural(?: oak| wood)?|(?:light )?oak|wood color'),('米色',r'beige'),('棕色',r'brown'),('蓝色',r'blue'),('绿色',r'green|sage|mint|eucalyptus'),('粉色',r'pink|blush|rose pink'),('黄色',r'yellow|mustard'),('红色',r'red|burgundy|coral|rust red')]
@@ -347,18 +391,33 @@ class Tagger:
             if s['field'] not in ('SKU属性','商品标题','商品尺寸') and not any(x in s['field'].lower() for x in ('dimension','size')):continue
             t=s['text'];cm=bool(match(r'\bcm\b',t)) and not match(r'inch|\bin\b|["″]',t)
             factor=1/2.54 if cm else 1
-            for m in re.finditer(r'(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*(?:["″]|inches|inch|\bin\b|cm)?\s*([WDH])(?=\s|[x×,;)]|$)',t,re.I):
-                v=float(m.group(1))*factor;axis=m.group(2).upper()
+            for m in re.finditer(r'(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*(["″]|inches|inch|\bin\b|cm)?\s*([WDH])(?=\s|[x×,;)]|$)',t,re.I):
+                v=float(m.group(1))*factor;axis=m.group(3).upper()
+                # A bare "3H" is a faucet-hole code (e.g. 'Size: 48" -3H'), not a height;
+                # unitless letters count only inside an "a x b x c" dimension run.
+                triad=match(r'^\s*[x×*]\s*\d',t[m.end():m.end()+8]) or match(r'\d\s*["″]?\s*[LWDH]?\s*[x×*]\s*$',t[max(0,m.start()-12):m.start()])
+                if not m.group(2) and not triad:
+                    if axis=='H' and v<=8:
+                        self.rejected_dims.append(self.ev(s,v,t[max(0,m.start()-20):m.end()+20],'无单位nH按龙头孔位处理，不作高度',{'ruleID':'DIM-HOLE-CODE','faucetHoles':int(v) if v.is_integer() else v}))
+                        self.notes.append('SKU/标题中“%sH”按%s孔龙头孔位处理，未作高度'%(m.group(1),m.group(1)))
+                    continue
                 if 1<v<150:dims[axis].append((v,s,self.ev(s,v,m.group(0),'方向标记尺寸')))
+            for m in re.finditer(r'(?<![A-Za-z])([WDH])\s*[:=]?\s*(\d{1,3}(?:\.\d+)?)\s*(["″]|inches|inch|\bin\b|cm)',t):
+                # '24"W 18"D' — the letter is the previous number's suffix, not a prefix.
+                if match(r'[\d"″]\s*$',t[max(0,m.start()-3):m.start()]):continue
+                v=float(m.group(2))*(1/2.54 if m.group(3).lower()=='cm' else 1);axis=m.group(1).upper()
+                if 1<v<150:dims[axis].append((v,s,self.ev(s,v,m.group(0),'方向标记尺寸（字母在前）')))
             if s['field']=='SKU属性':
                 m=match(r'(?:size|pattern name)\s*:\s*([^|]+)',t)
-                if m and not match(r'\b(?:depth|deep|height|tall)\b|\d\s*["″]?\s*[DH]\b',m.group(1)):
-                    mm=match(r'^\s*(\d{1,3}(?:\.\d+)?)\s*(?:inch(?:es)?|["″]|\bin\b|cm)(?!\s*(?:deep|depth))',m.group(1))
+                # Drop a trailing faucet-hole code ('48" -3H') before reading the width.
+                size=re.sub(r'\s*-\s*[1-8]\s*H\b(?!\s*[x×])','',m.group(1)) if m else ''
+                if m and not match(r'\b(?:depth|deep|height|tall)\b|\d\s*["″]?\s*[DH]\b',size):
+                    mm=match(r'^\s*(\d{1,3}(?:\.\d+)?)\s*(?:inch(?:es)?|["″]|\bin\b|cm)(?!\s*(?:deep|depth))',size)
                     if mm:
                         v=float(mm.group(1))*factor
                         if 5<v<150:dims['W'].insert(0,(v,s,self.ev(s,v,m.group(0),'SKU名义宽度')))
-                    elif match(r'^\s*\d{1,3}(?:\.\d+)?\s*$',m.group(1)):
-                        v=float(m.group(1))
+                    elif match(r'^\s*\d{1,3}(?:\.\d+)?\s*$',size):
+                        v=float(size)
                         # Bare SKU size is only usable when the child title
                         # independently spells out the same vanity width.
                         title=clean(self.row.get('商品标题'))
@@ -369,25 +428,116 @@ class Tagger:
                 if mm and not match(r'\b(?:depth|height|faucet|mirror)\b',mm.group(0)):
                     v=float(mm.group(1))
                     if 5<v<150:dims['W'].append((v,s,self.ev(s,v,mm.group(0),'子体标题浴室柜宽度上下文')))
+        dims['W'].sort(key=lambda x:0 if x[1]['field']=='SKU属性' else 1)
+        # Sellers sometimes swap D/W labels ('30"D x 18.3"W'): a source whose W
+        # disagrees with the chosen width while its D equals that width. Its W
+        # is not a width conflict; its D is handled below.
+        swapped=[]
+        if dims['W']:
+            width=dims['W'][0][0]
+            for s in {id(x[1]):x[1] for x in dims['D']}.values():
+                own_w=[v for v,s2,e in dims['W'] if s2 is s];own_d=[v for v,s2,e in dims['D'] if s2 is s]
+                if own_w and own_d and abs(own_w[0]-width)>2.5 and abs(own_d[0]-width)<=1.0:swapped.append(s)
+        # Prefer a depth from a source whose labels are consistent.
+        dims['D'].sort(key=lambda x:1 if any(x[1] is s for s in swapped) else 0)
         for axis,key in zip(('W','D','H'),HEADERS[9:12]):
             values=dims[axis]
-            if axis=='W':values.sort(key=lambda x:0 if x[1]['field']=='SKU属性' else 1)
             if values:
                 value=values[0][0];self.tags[key]=round(value,3);self.evidence[key]={'status':'text_supported','selected':[values[0][2]],'otherCandidates':[v[2] for v in values[1:]]}
-                if any(abs(v[0]-value)>2.5 for v in values[1:]):self.conflicts.append(key+'尺寸来源差异超过2.5in，保留首选值待核验')
+                if any(abs(v[0]-value)>2.5 and not (axis in ('W','D') and any(v[1] is s for s in swapped)) for v in values[1:]):self.conflicts.append(key+'尺寸来源差异超过2.5in，保留首选值待核验')
             else:self.tags[key]=None;self.evidence[key]={'status':'missing','candidates':[]}
+        if self.rejected_dims:self.evidence[HEADERS[11]]['rejectedCandidates']=self.rejected_dims
+        # If the chosen depth comes from a swapped source it is really the width: blank it.
+        width=self.tags[HEADERS[9]];depth=self.tags[HEADERS[10]]
+        if width is not None and depth is not None and dims['D']:
+            src=dims['D'][0][1]
+            own=[v for v,s2,e in dims['W'] if s2 is src]
+            if any(src is s for s in swapped):
+                ev=self.evidence[HEADERS[10]]
+                fixed=self.ev(src,round(own[0],3),dims['D'][0][2]['quote'],'D/W标签互换纠正：取同一来源标W值作深度',{'ruleID':'DIM-DW-SWAP','basisType':'order_inference','crossCheckWidth':width})
+                ev.update({'status':'conflict','swapCorrectedCandidate':fixed,'rejectedValue':depth,'selected':[]})
+                ev['rejectedCandidates']=ev.get('rejectedCandidates',[])+[dims['D'][0][2]]
+                self.tags[HEADERS[10]]=None
+                if self.enable_dim_rules:
+                    self.tags[HEADERS[10]]=fixed['label'];ev.update({'status':'order_inference','selected':[fixed]})
+                    self.notes.append('D9深：来源D/W标签互换，已按同源标W值纠正')
+                else:self.conflicts.append(HEADERS[10]+'：来源D/W标签疑似互换（标D=%s≈已选宽度，标W=%s），深度留空待核验'%(depth,round(own[0],3)))
+        self.dwh_order_candidates()
+
+    def dwh_order_candidates(self):
+        # Unlabelled 'a x b x c inches' is usually Amazon's D×W×H with the letters
+        # stripped. Use it only when b independently matches the selected width.
+        width=self.tags.get(HEADERS[9])
+        if width is None or (self.tags[HEADERS[10]] is not None and self.tags[HEADERS[11]] is not None):return
+        s=next((x for x in self.sources if x['field']=='商品尺寸' and x['scope']=='child'),None)
+        m=s and match(r'^\s*(\d{1,3}(?:\.\d+)?)\s*[x×]\s*(\d{1,3}(?:\.\d+)?)\s*[x×]\s*(\d{1,3}(?:\.\d+)?)\s*(inches|inch|in|cm)?\s*$',s['text'])
+        if not m:return
+        f=1/2.54 if (m.group(4) or '').lower()=='cm' else 1
+        a,b,c=(float(m.group(i))*f for i in (1,2,3))
+        if abs(b-width)>1.0:return
+        for key,v in ((HEADERS[10],a),(HEADERS[11],c)):
+            if self.tags[key] is not None or not 1<v<150:continue
+            ev=self.ev(s,round(v,3),s['text'],'无方向商品尺寸按D×W×H顺序推断（中间值与已选宽度一致）',{'ruleID':'DIM-DWH-ORDER','basisType':'order_inference','crossCheckWidth':width})
+            self.evidence[key]['orderInferenceCandidate']=ev
+            if self.enable_dim_rules:
+                self.tags[key]=round(v,3);self.evidence[key].update({'status':'order_inference','selected':[ev]})
+        if self.enable_dim_rules and any(self.evidence[k].get('status')=='order_inference' for k in HEADERS[10:12]):
+            self.notes.append('D9深/高按无方向商品尺寸D×W×H顺序推断，宽度已交叉核对')
 
     def included(self,key,kind):
         c=[]
+        word=kind
         for s in self.sources:
-            t=s['text'];word=kind
+            t=s['text']
             separate=match(r'\b'+word+r's?\s+(?:is\s+)?sold separately\b',t)
             no=match(r'\b(?:no|without)\s+(?:a\s+)?'+word+r's?\b|\b'+word+r's?\s+(?:is\s+)?not included\b|does not include\s+(?:a\s+)?'+word,t)
-            yes=match(r'\b'+word+r's?\s+(?:is\s+)?included\b|\bwith\s+(?:(?:matte|black|white|chrome|brushed|gold|nickel)\s+){0,3}'+word+r'\b|\b1\s*[x×]\s*'+word+r'\b',t)
+            yes=match(r'\b'+word+r's?\s+(?:is\s+)?included\b|\bwith\s+(?:(?:matte|black|white|chrome|brushed|gold|nickel)\s+){0,3}'+word+r'\b(?![- ]?(?:finish|polish|like|holes?)\b)|\b1\s*[x×]\s*'+word+r'\b',t)
             chosen=('单卖',separate) if separate else ('无',no) if no else ('含',yes) if yes else None
             if chosen:
                 label,m=chosen;c.append(self.ev(s,label,t[max(0,m.start()-30):m.end()+60]))
+            else:
+                hit=self.listed_component(s,word)
+                if hit:c.append(self.ev(s,hit[0],hit[1],hit[2]))
         self.set(key,c)
+
+    def listed_component(self,s,word):
+        """List wording v2 missed: "faucets and mirror are not included",
+        "excluding faucets", "mirror, faucet, and drain are sold separately",
+        "includes faucet, drain", or a child title naming the part."""
+        # The part itself, not "faucet hole", "faucet-ready", "mirror finish".
+        noun=r'\b'+word+r's?\b(?![- ]?(?:holes?|mount(?:ing)?\s+holes?|deck|spout|cut[ -]?outs?|openings?|hole\s+size|finish|polish|like|compatible|ready)\b)'
+        gap=r'(?P<gap>[\w\s,&/()\'"″”-]{0,70}?)'
+        # A negation reaches back over a list of accessories only ("faucet and
+        # drain are not included"), not over "6 Drawers, Mirror Not Included".
+        accessory=r'^(?:[\s,&/()-]|\b(?:and|or|the|a|an|are|is|any|all|mirrors?|faucets?|drains?|pop[ -]?up|p[ -]?trap|backsplash|hardware|counter\s*tops?|tops?|sinks?|basins?|water|supply|lines?|assembly|components?|accessories|glue|lights?|lighting|plumbing|fixtures?|hot|cold|parts|kits?|mount(?:ing)?|sets?|decor|shown|pictured|in|picture|images?)\b)*$'
+        neg=r'(?:(?:are|is)\s+)?not\s+(?:be\s+)?included|\bnot\s+includ(?:e|ed|ing)\b|(?:are|is)\s+excluded'
+        sep=r'(?:are\s+|is\s+)?(?:sold|purchased|available)\s+separately|sold\s+individually'
+        intro=r'\b(?:includes?|including|included\s*:|comes?\s+with|equipped\s+with|packages?\s+(?:includes?|contains?)|package\s+contents?\s*:|in\s+the\s+box\s*:|complete\s+with)\b'
+        for_ctx=r'(?:\bfor|\bfits?|compatible\s+with|accommodates?|suitable\s+for|drilled\s+for|\bmatch(?:es)?)\s+(?:an?\s+|the\s+|your\s+)?(?:[\w"”″.-]+\s+){0,3}$'
+        for clause in re.split(r'(?<=[.;!?])\s+|\n|\s*\|\|\s*',s['text']):
+            for m in re.finditer(noun,clause,re.I):
+                after=clause[m.end():];before=clause[max(0,m.start()-90):m.start()]
+                q=clause[max(0,m.start()-60):m.end()+70]
+                f_sep=match(r'^'+gap+r'(?:'+sep+r')',after)
+                if f_sep and match(accessory,f_sep.group('gap')):return '单卖',q,'列表式单卖文本'
+                f_neg=match(r'^\s*\(\s*not\s+included\s*\)',after) or match(r'^'+gap+r'(?:'+neg+r')',after)
+                if f_neg and 'gap' in f_neg.re.groupindex and not match(accessory,f_neg.group('gap')):f_neg=None
+                b_neg=match(r'(?:excluding|excludes?|does\s*n[o\']t\s+(?:come\s+with|include)|\bnot\s+include)\s+'+gap+r'$|\bwithout\s+(?:an?\s+|the\s+)?(?:[\w-]+\s+){0,2}$',before)
+                if b_neg and b_neg.group('gap') is not None and not match(accessory,b_neg.group('gap')):b_neg=None
+                b_inc=match(intro+gap+r'$',before)
+                if b_inc and (match(r'\bnot\b|\bno\b|without|exclud',b_inc.group('gap')) or match(r'(?:\bnot|n\'t|\bno)\s*$',before[:b_inc.start()])):b_inc=None
+                if b_inc and match(for_ctx,before):b_inc=None
+                if (f_neg or b_neg) and b_inc:
+                    # Both an inclusion intro and a negation reach the noun: nearer wins.
+                    dn=min(len(x.group(0)) for x in (f_neg,b_neg) if x);di=len(b_inc.group('gap'))
+                    return ('无' if dn<di else '含'),q,'列表式包含/排除文本（就近判断）'
+                if f_neg or b_neg:return '无',q,'列表式排除文本'
+                if b_inc:return '含',q,'列表式包含文本'
+                # "Single Hole Faucet", "3-Hole Faucet", "8\" Widespread Faucet" describe drilling.
+                if s['field']=='商品标题' and s['scope']=='child' and not match(for_ctx,before) and not match(r'(?:\bholes?|widespread|center[ -]?set|centre[ -]?set)[ -]*$',before,):
+                    return '含',q,'子体标题列出部件'
+        return None
+
     def run(self):
         self.structure();self.colors();self.materials();self.dimensions();self.included(HEADERS[12],'mirror');self.included(HEADERS[13],'faucet')
         for h in HEADERS[:14]:
@@ -408,36 +558,91 @@ class Tagger:
         self.tags[HEADERS[14]]=state;self.tags[HEADERS[15]]='；'.join(notes) or '标签取自当前文本快照'
         return {h:self.tags.get(h) for h in HEADERS},self.evidence,uniq(self.conflicts)
 
+# Per-field feasibility: can the current data sources tag this field for this row?
+FEASIBILITY={
+    'A':'可打标：子体文本证据',
+    'A2':'可打标：按已确认业务规则归类/推导',
+    'B':'仅父体候选：需子体证据确认',
+    'C':'有冲突：需人工核验',
+    'D':'现有数据可补：需确认新规则后启用',
+    'E':'现阶段不行：缺子体详情，需补采asin_detail',
+    'F':'现阶段不行：文本无线索，需看图核验',
+    'G':'现阶段不行：子体文本未写，需说明书/厂家/人工',
+}
+VISUAL={'D1产品形态','D3盆数','D4台面形态','D5元素','D6柜体颜色'}
+
+def feasibility(field,ev,has_child_text):
+    status=(ev or {}).get('status','missing')
+    if status in ('text_supported','derived'):return 'A'
+    if status in ('business_mapping','business_inference','business_assumption','order_inference'):return 'A2'
+    if status=='parent_candidate':return 'B'
+    if (ev or {}).get('swapCorrectedCandidate') and status=='conflict':return 'D'
+    if status=='conflict':return 'C'
+    if (ev or {}).get('orderInferenceCandidate'):return 'D'
+    if field in VISUAL:return 'F'
+    return 'G' if has_child_text else 'E'
+
+def load_export_rows(path):
+    rows={}
+    if path and Path(path).exists():
+        for r in load(path):rows.setdefault(r['asin'],[]).append(r)
+    return rows
+
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--data-root',required=True);ap.add_argument('--out-dir',required=True);args=ap.parse_args()
+    ap=argparse.ArgumentParser()
+    ap.add_argument('--data-root',required=True,help='项目规范化数据目录（含sales_payload.json等）')
+    ap.add_argument('--out-dir',required=True)
+    ap.add_argument('--export-rows',help='卖家精灵导出逐行JSON（asin/month/attributes/features）；默认<data-root>/input_rows.json')
+    ap.add_argument('--enable-dim-rules',action='store_true',help='启用DIM-DWH-ORDER（无方向商品尺寸按D×W×H）与DIM-DW-SWAP（D/W标签互换纠正）；需用户确认后才用')
+    args=ap.parse_args()
     root=Path(args.data_root);out=Path(args.out_dir);out.mkdir(parents=True,exist_ok=True)
     p=load(root/'sales_payload.json');details=load(root/'collected_details.json')
     excluded=load(root/'step1_macro_audit.json')['confirmedNonTargetProducts']
     fp={(r['targetMonth'],r['childASIN']):r for r in load(root/'feature_field_provenance.json')}
+    exports=load_export_rows(args.export_rows or root/'input_rows.json')
     matrix=[];evidence_rows=[];states=Counter();snapshots={};target_rows=[]
     for i,r in enumerate(p['detailRows'],2):
         a=r['子ASIN'];month=r['目标月份']
         if not r.get('_eligible') or a in excluded:
             state='不纳入浴室柜分析' if a in excluded or r.get('_outside_input_scope') else '目标月归属待核验'
             values=[None]*14+[state,excluded.get(a) or '保留原始记录，未对未核验目标月候选强行打标']
-            e={};conflicts=[]
+            e={};conflicts=[];feas={};sourcesUsed={}
         else:
-            textkey=hashlib.sha256(json.dumps({h:r.get(h) for h in ['子ASIN','SKU属性','商品标题','商品尺寸','五点描述','五点来源','五点来源ASIN']},ensure_ascii=False,sort_keys=True).encode()).hexdigest()
+            textkey=hashlib.sha256(json.dumps({h:r.get(h) for h in ['子ASIN','SKU属性','商品标题','商品尺寸','五点描述','五点来源','五点来源ASIN','核验父ASIN']},ensure_ascii=False,sort_keys=True).encode()).hexdigest()
             if textkey not in snapshots:
-                snapshots[textkey]=Tagger(r,details,fp.get((month,a))).run()
-            tags,e,conflicts=snapshots[textkey];values=[tags[h] for h in HEADERS];target_rows.append((a,month,tags,e))
+                t=Tagger(r,details,fp.get((month,a)),exports.get(a),args.enable_dim_rules)
+                res=t.run();child_text=t.has_child_detail or t.has_export
+                snapshots[textkey]=res+({h:feasibility(h,res[1].get(h),child_text) for h in HEADERS[:14]},{'childDetail':t.has_child_detail,'sellerSpriteExport':t.has_export,'parentFeatures':r.get('五点来源')=='父体详情填充'})
+            tags,e,conflicts,feas,sourcesUsed=snapshots[textkey];values=[tags[h] for h in HEADERS];target_rows.append((a,month,tags,e,feas,sourcesUsed,r))
         matrix.append(values);states[values[-2]]+=1
-        evidence_rows.append({'excelRow':i,'marketplace':r['站点'],'month':month,'childASIN':a,'verifiedParentASIN':r.get('核验父ASIN'),'includeInBathroomAnalysis':bool(r.get('_eligible')) and a not in excluded,'tags':dict(zip(HEADERS,values)),'fields':e,'conflicts':conflicts,'originalRecordIDs':r.get('关联原始记录ID'),'featureSource':r.get('五点来源'),'featureSourceASIN':r.get('五点来源ASIN')})
-    summary={'ruleVersion':VERSION,'allRowsRetained':len(matrix),'taggedTargetRows':len(target_rows),'uniqueTargetASINs':len({a for a,m,t,e in target_rows}),'distinctTextSnapshots':len(snapshots),'rowStates':dict(states),'dimensions':{},'newAPICalls':0,'imagesIndependentlyReviewed':0,'imageNote':'本轮是已有文本证据打标，元素待图片核验/文本线索均明确标注，不宣称已看图','monthly':[]}
+        evidence_rows.append({'excelRow':i,'marketplace':r['站点'],'month':month,'childASIN':a,'verifiedParentASIN':r.get('核验父ASIN'),'includeInBathroomAnalysis':bool(r.get('_eligible')) and a not in excluded,'tags':dict(zip(HEADERS,values)),'fields':e,'feasibility':feas,'textSources':sourcesUsed,'conflicts':conflicts,'originalRecordIDs':r.get('关联原始记录ID'),'featureSource':r.get('五点来源'),'featureSourceASIN':r.get('五点来源ASIN')})
+    months=sorted({x[1] for x in target_rows})
+    summary={'ruleVersion':VERSION,'dimensionRulesEnabled':args.enable_dim_rules,'allRowsRetained':len(matrix),'taggedTargetRows':len(target_rows),'uniqueTargetASINs':len({x[0] for x in target_rows}),'distinctTextSnapshots':len(snapshots),'rowStates':dict(states),'dimensions':{},'feasibilityLegend':FEASIBILITY,'feasibility':{},'textSourceCoverage':{},'newAPICalls':0,'imagesIndependentlyReviewed':0,'imageNote':'本轮是已有文本证据打标，元素待图片核验/文本线索均明确标注，不宣称已看图','monthly':[]}
     for h in HEADERS[:14]:
-        vals=[t[h] for a,m,t,e in target_rows]
+        vals=[x[2][h] for x in target_rows]
         present=sum(v not in (None,UNKNOWN,'待图片核验') for v in vals)
-        summary['dimensions'][h]={'textOrCandidatePresentRows':present,'insufficientRows':sum(v in (None,UNKNOWN,'待图片核验') for v in vals),'parentCandidateRows':sum('父体候选' in str(v) for v in vals),'fieldEvidenceStates':dict(Counter(e.get(h,{}).get('status','component_specific') for a,m,t,e in target_rows)),'distribution':dict(Counter(str(v) if v is not None else '空白' for v in vals))}
-    for m in ['202606','202607','202608','202609']:
-        rr=[t for a,mm,t,e in target_rows if mm==m]
+        summary['dimensions'][h]={'textOrCandidatePresentRows':present,'insufficientRows':sum(v in (None,UNKNOWN,'待图片核验') for v in vals),'parentCandidateRows':sum('父体候选' in str(v) for v in vals),'fieldEvidenceStates':dict(Counter(x[3].get(h,{}).get('status','component_specific') for x in target_rows)),'distribution':dict(Counter(str(v) if v is not None else '空白' for v in vals))}
+        rows_by=Counter(x[4][h] for x in target_rows)
+        asins_by={k:len({x[0] for x in target_rows if x[4][h]==k}) for k in rows_by}
+        summary['feasibility'][h]={'rows':{k:rows_by.get(k,0) for k in FEASIBILITY},'uniqueASINs':{k:asins_by.get(k,0) for k in FEASIBILITY}}
+    for k in ('childDetail','sellerSpriteExport','parentFeatures'):
+        summary['textSourceCoverage'][k]={'rows':sum(x[5][k] for x in target_rows),'uniqueASINs':len({x[0] for x in target_rows if x[5][k]})}
+    none=[x for x in target_rows if not (x[5]['childDetail'] or x[5]['sellerSpriteExport'])]
+    summary['textSourceCoverage']['noChildDetailOrExport']={'rows':len(none),'uniqueASINs':len({x[0] for x in none})}
+    for m in months:
+        rr=[x[2] for x in target_rows if x[1]==m]
         summary['monthly'].append({'month':m,'targetRows':len(rr),'states':dict(Counter(t[HEADERS[14]] for t in rr))})
-    for name,value in [('tagging_matrix.json',{'headers':HEADERS,'matrix':matrix}),('tagging_evidence.json',{'schemaVersion':VERSION,'snapshotWarning':'商品属性为当前证据快照，不是历史月末；父体候选不得当已确认子体属性','rows':evidence_rows}),('tagging_summary.json',summary)]:
+    # Work queues for what the current data cannot answer.
+    recollect=sorted({x[0] for x in none})
+    image_queue={}
+    for a,m,t,e,feas,src,r in target_rows:
+        fields=[h for h in HEADERS[:14] if feas[h]=='F']
+        if fields:
+            q=image_queue.setdefault(a,{'childASIN':a,'mainImage':r.get('主图链接'),'productURL':r.get('商品链接'),'months':[],'fields':[]})
+            q['months']=sorted(set(q['months'])|{m});q['fields']=[h for h in HEADERS[:14] if h in set(q['fields'])|set(fields)]
+    queues={'recollectChildDetailASINs':recollect,'imageReviewQueue':list(image_queue.values())}
+    for name,value in [('tagging_matrix.json',{'headers':HEADERS,'matrix':matrix}),('tagging_evidence.json',{'schemaVersion':VERSION,'snapshotWarning':'商品属性为当前证据快照，不是历史月末；父体候选不得当已确认子体属性','feasibilityLegend':FEASIBILITY,'rows':evidence_rows}),('tagging_summary.json',summary),('tagging_work_queues.json',queues)]:
         (out/name).write_text(json.dumps(value,ensure_ascii=False,indent=2),encoding='utf-8')
-    print(json.dumps({k:v for k,v in summary.items() if k!='dimensions'},ensure_ascii=False))
+    print(json.dumps({k:v for k,v in summary.items() if k not in ('dimensions','feasibility','feasibilityLegend')},ensure_ascii=False))
 
 if __name__=='__main__':main()
