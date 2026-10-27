@@ -78,3 +78,19 @@ def test_reconcile_bar_marks_an_interval_past_the_scale() -> None:
 
     assert "ibar__over" in str(LV.recon_bar(0.444, 0.46, 0.63, 0.214, "44.4%", "21.4%"))
     assert "ibar__over" not in str(LV.recon_bar(0.30, 0.20, 0.40, 0.214, "30%", "21.4%"))
+
+
+def test_width_bins_accept_exact_values_or_ranges():
+    """品类配置: width picks concrete 尺寸 values (each its own bin) or, optionally, ranges."""
+    from oppo.core import categories as CAT
+    from oppo.core import segments as SEG
+
+    exact = CAT._parse_bins("width", "24 / 30 / 36")
+    assert [b["eq"] for b in exact] == [24, 30, 36]
+    assert SEG.bin_numeric(30, exact) == "30" and SEG.bin_numeric(42, exact) == "未知"
+    ranges = CAT._parse_bins("width", "≤30″ / 30–48″ / ≥48″")
+    assert "max" in ranges[0] and SEG.bin_numeric(42, ranges) == "30–48″"
+    import pytest
+
+    with pytest.raises(ValueError):
+        CAT._parse_bins("width", "24 / 24")

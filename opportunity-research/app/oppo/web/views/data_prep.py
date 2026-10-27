@@ -1049,12 +1049,22 @@ def category_page(request: Request) -> HTMLResponse:
         ex = examples.get(d["attr"], [])
         chosen = [b["label"] for b in (seg_dims.get(d["key"]) or d).get("bins") or []]
         # category dimensions pick their bins from the values the package actually has; numeric ones stay ranges
-        numeric = d["key"] in CAT.NUMERIC_DIMS
+        # price bands come from sales data and stay ranges; width picks the package's 尺寸 values (ranges optional)
+        numeric = d["key"] == "price"
         options = [] if numeric else attr_values.get(d["attr"], [])
-        extra = [] if numeric or not options else [v for v in chosen if v not in {o for o, _n in options}]
+        if d["key"] == "width":
+            def _num(v: str) -> float:
+                m = re.search(r"\d+(?:\.\d+)?", v)
+                return float(m.group(0)) if m else float("inf")
+            options = sorted(options, key=lambda o: (_num(o[0]), o[0]))
+        is_range = any(("eq" not in b and ("values" not in b)) for b in (seg_dims.get(d["key"]) or d).get("bins") or [])
+        extra = [] if numeric or not options or (d["key"] == "width" and is_range) else \
+            [v for v in chosen if v not in {o for o, _n in options}]
         dim_rows.append({**d, "on": d["key"] in seg_dims, "default_bins": " / ".join(b["label"] for b in d["bins"]),
                          "hint": ("如：" + " / ".join(ex)) if ex else "勾选后填写取值，用“ / ”分隔",
-                         "options": options + [(v, 0) for v in extra], "chosen": chosen})
+                         "options": options + [(v, 0) for v in extra], "chosen": chosen,
+                         "range_text": (" / ".join(chosen) if d["key"] == "width" and is_range else
+                                        (" / ".join(b["label"] for b in d["bins"]) if d["key"] == "width" else ""))})
     n_segments = 1
     for d in seg_dims.values():
         n_segments *= max(1, len(d.get("bins") or []))

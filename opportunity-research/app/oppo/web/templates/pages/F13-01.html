@@ -131,6 +131,12 @@
                             <label class="check"><input type="checkbox" value="{{ v }}" data-pick-value{% if v in picked %} checked{% endif %}{% if not d.on %} disabled{% endif %}>{{ v }}{% if n %} <span class="count">{{ n }}</span>{% else %} <span class="count" data-tip="当前数据包里没有这个取值">0</span>{% endif %}</label>
                             {% endfor %}
                           </div>
+                          {% if d.key == 'width' %}
+                          <details class="small" style="margin-top: var(--space-1)"{% if d.range_text and not (d.chosen and d.chosen[0] in (d.options|map(attribute=0)|list)) %} open{% endif %}>
+                            <summary class="muted">或按区间分档（可选）</summary>
+                            <input class="input input--sm mono" type="text" data-bins-range value="{{ d.range_text if d.on and d.range_text and not (d.chosen and d.chosen[0] in (d.options|map(attribute=0)|list)) else '' }}" placeholder="如：≤30″ / 30–48″ / ≥48″" aria-label="宽度档区间">
+                          </details>
+                          {% endif %}
                           {% else %}
                           <input class="input" name="bins.{{ d.key }}" value="{{ val('bins.' ~ d.key) if d.on else d.default_bins }}" placeholder="{{ d.hint }}" aria-label="{{ d.label }}分档" data-was="{{ was('bins.' ~ d.key) }}"{% if not d.on %} disabled{% endif %}>
                           {% endif %}
@@ -145,7 +151,7 @@
                 <input type="hidden" name="segdim_present" value="1">
                 <div class="field-error" data-error-for="segment_dims.selected"></div>
                 <div class="field-error" data-error-for="type_attributes"></div>
-                <p class="field__hint" style="margin-top: var(--space-2)">勾选“细分维度”的属性组合成细分（细分数 = 各维度分档数相乘，维度越多每个细分的样本越少）；属性维度的分档从当前数据包的实际取值里勾选（括号里是子体数），没勾的取值归入“未知”档；宽度档和价格带是数值区间，手工填写。勾选“可回填”的是类型属性：子体没有确认值、但父体有候选值时用父体值，并标“父体回填”。颜色、尺寸、盆数随变体变化，不回填，缺失时归入“未知”档。分档之间用“ / ”分隔，不重叠、不留空档。</p>
+                <p class="field__hint" style="margin-top: var(--space-2)">勾选“细分维度”的属性组合成细分（细分数 = 各维度分档数相乘，维度越多每个细分的样本越少）；属性维度（含宽度）的分档从当前数据包的实际取值里勾选（后面的数字是子体数），没勾的取值归入“未知”档；宽度想合并时可改填区间；价格带由销售额 ÷ 销量算出，只能填区间。勾选“可回填”的是类型属性：子体没有确认值、但父体有候选值时用父体值，并标“父体回填”。颜色、尺寸、盆数随变体变化，不回填，缺失时归入“未知”档。分档之间用“ / ”分隔，不重叠、不留空档。</p>
               </section>
               <section aria-labelledby="g-kw">
                 <div class="section__head"><h3 id="g-kw">关键词映射规则</h3><span class="section__note">把关键词归入细分，用于“需求在涨”</span></div>

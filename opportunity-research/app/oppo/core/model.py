@@ -247,13 +247,13 @@ def fit_models(X: pd.DataFrame, df: pd.DataFrame, sp: dict[str, list[str]]) -> d
 
 
 def importance(fitres: dict[str, Any], X: pd.DataFrame, df: pd.DataFrame, meta: list[dict[str, Any]],
-               sp: dict[str, list[str]]) -> list[dict[str, Any]]:
-    """Permutation importance of the chosen model on the 校准 window (训练 when there is none): the AUC lost when
-    all columns of a variable are shuffled together, averaged over PERM_REPEATS seeded shuffles."""
+               sp: dict[str, list[str]], name: str | None = None) -> list[dict[str, Any]]:
+    """Permutation importance of one model (default: the chosen one) on the 校准 window (训练 when there is none):
+    the AUC lost when all columns of a variable are shuffled together, averaged over PERM_REPEATS seeded shuffles."""
     from sklearn.metrics import roc_auc_score
 
-    name = fitres["chosen"]
-    if name is None or not X.shape[1]:
+    name = name or fitres["chosen"]
+    if name is None or name not in fitres["_fits"] or not X.shape[1]:
         return []
     kind, m = fitres["_fits"][name]
     w = "calib" if sp["calib"] else "train"
@@ -354,10 +354,23 @@ def paths(X: pd.DataFrame, df: pd.DataFrame, meta: list[dict[str, Any]]) -> list
             continue
         ms = (m[ok] - m[ok].mean()) / m[ok].std()
         if Xn.shape[1]:
-            A = np.column_stack([np.ones(ok.sum()), Xn[ok]])
-            coef, *_ = np.linalg.lstsq(A, ms, rcond=None)
-            resid = ms - A @ coef
-            row["r2_x"] = float(max(0.0, 1 - resid.var() / ms.var())) if ms.var() > 0 else None
+            def r2_of(cols: list[int], ok: np.ndarray = ok, ms: np.ndarray = ms) -> float:
+                A = np.column_stack([np.ones(ok.sum()), Xn[ok][:, cols]]) if cols else np.ones((ok.sum(), 1))
+                coef, *_ = np.linalg.lstsq(A, ms, rcond=None)
+                resid = ms - A @ coef
+                return float(max(0.0, 1 - resid.var() / ms.var())) if ms.var() > 0 else 0.0
+
+            all_cols = list(range(Xn.shape[1]))
+            full = r2_of(all_cols)
+            row["r2_x"] = full
+            # per controllable variable: how much of M it explains on its own (single-variable R²; variables that
+            # duplicate each other, e.g. 尺寸 and 宽度档, both show their full share)
+            by_var: dict[str, list[int]] = {}
+            for j, mt in enumerate(meta):
+                if mt["layer"] == "x":
+                    by_var.setdefault(mt["var"], []).append(j)
+            row["by_x"] = sorted(({"var": v, "share": r2_of(cols)} for v, cols in by_var.items()),
+                                 key=lambda d: -d["share"])
         row["or_alone"] = ST.odds_ratio(y[ok], ms, None)
         row["or_given_x"] = ST.odds_ratio(y[ok], ms, Xn[ok] if Xn.shape[1] else None)
         if row["or_alone"] and row["or_given_x"]:
@@ -366,6 +379,29 @@ def paths(X: pd.DataFrame, df: pd.DataFrame, meta: list[dict[str, Any]]) -> list
             row["survives"] = (min(float(lg / la), 1.5) if la * lg > 0 else 0.0) if abs(la) >= 0.1 else None
         out.append(row)
     return out
+
+
+def logic_tree(path_rows: list[dict[str, Any]], importance_by: dict[str, list[dict[str, Any]]], n: int,
+               top_x: int = 4) -> dict[str, Any]:
+    """结果 → 过程指标 → 可控变量: edge strengths for the diagram. Y–M strength = |log OR| of M alone (how much M
+    tells about hitting); M–X strength = the single-variable R² of X on M (how much X alone explains M). A '直接' branch
+    carries each model's permutation importance of X on Y, so variables that act without any process indicator
+    still show up."""
+    ms = []
+    for p in path_rows:
+        if p.get("or_alone") is None:
+            continue
+        strength = abs(math.log(p["or_alone"]))
+        kids = [{"var": d["var"], "strength": d["share"]} for d in (p.get("by_x") or [])[:top_x] if d["share"] > 0.005]
+        ms.append({"key": p["key"], "label": p["label"], "timing": p["timing"], "strength": strength,
+                   "or_alone": p["or_alone"], "or_given_x": p.get("or_given_x"), "n": p["n"], "children": kids})
+    ms.sort(key=lambda d: -d["strength"])
+    ms = ms[:6]  # the strongest process indicators keep the diagram readable; the table above lists all
+    direct = {}
+    for name, rows in (importance_by or {}).items():
+        direct[name] = [{"var": r["var"], "strength": max(0.0, r["importance"])} for r in rows
+                        if r["layer"] == "x" and r["importance"] > 0][:top_x + 2]
+    return {"n": n, "process": ms, "direct": direct}
 
 
 # ---- model 3: rules ------------------------------------------------------------------------
@@ -545,11 +581,13 @@ def run(conn: Connection, category_id: int, operator: str, mode: str = "history"
     res["model1"] = {"models": fitres["models"], "chosen": fitres["chosen"], "selection": fitres["selection"],
                      "windows": fitres["windows"]}
     res["importance"] = importance(fitres, X, df, meta, sp)
+    res["importance_by"] = {name: importance(fitres, X, df, meta, sp, name) for name in fitres["models"]}
     report("模型 1：边际效应（自助法）", 0.45)
     res["effects"] = marginal_effects(X, df, meta, sp, fitres)
     report("模型 2：路径", 0.65)
     res["paths"] = paths(X, df, meta)
     report("模型 3：规则", 0.8)
+    res["tree"] = logic_tree(res["paths"], res["importance_by"], len(df))
     res["verdict"] = _verdict(fitres, len(df))
     res["rules"] = tree_rules(X, df, meta, sp, t["dim_labels"]) if sp["test"] and res["verdict"] != "none" else []
     if res["verdict"] == "none":

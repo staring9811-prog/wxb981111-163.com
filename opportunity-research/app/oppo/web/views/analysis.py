@@ -66,11 +66,68 @@ def variables(request: Request) -> HTMLResponse:
             except MODEL.ModelError:
                 catalogue = None
         res = mr["result"] if mr else {}
+        seg_labels = {d["key"]: d["label"] for d in CAT.current_version(conn, cid)["config"].get("segment_dims") or []}
         ctx = {"mr": mr, "r": res, "run": run_, "catalogue": res.get("catalogue") or catalogue or [],
+               "tree": _tree_layout(res.get("tree") or {}, CAT.CONTROL_VARS, seg_labels), "seg_labels": seg_labels,
+               "model_names": {"logit": "岭回归 logit", "tree": "梯度提升树"},
                "stale": MODEL.stale_reasons(conn, cid, mr), "compute_stale": CMP.stale_reasons(conn, cid, run_) if run_ else [],
                "verdicts": MODEL.VERDICTS, "layers": MODEL.LAYERS, "control_vars": CAT.CONTROL_VARS,
                "adopted": _adopted(conn, cid, mr), **_job_ctx(conn)}
     return C.render(request, "pages/F16-01.html", "PAGE-F16-01", ctx)
+
+
+def _var_label(var: str, control_vars: dict[str, str], seg_labels: dict[str, str] | None = None) -> str:
+    if var.startswith("attr:"):
+        return var[5:]
+    if var.startswith("seg:"):
+        return "细分维度 · " + (seg_labels or {}).get(var[4:], var[4:])
+    if var.startswith("z:"):
+        return control_vars.get(var[2:], var[2:])
+    return var
+
+
+def _tree_layout(tree: dict[str, Any], control_vars: dict[str, str], seg_labels: dict[str, str]) -> dict[str, Any]:
+    """Positions for the 结果 → 过程指标 → 可控变量 diagram (one SVG, left to right). Each process indicator
+    is a row with its top controllable variables stacked under it; the '直接' branch is drawn once per model
+    and the page shows the one matching the selected model."""
+    if not tree or not tree.get("process"):
+        return {}
+    col_x = {"y": 90, "m": 470, "x": 900}
+    row_h, pad_top = 26, 24
+    rows: list[dict[str, Any]] = []
+    y = pad_top
+    max_m = max([p["strength"] for p in tree["process"]] + [1e-9])
+    max_x = max([k["strength"] for p in tree["process"] for k in p["children"]] + [1e-9])
+    for p in tree["process"]:
+        kids = p["children"] or [{"var": None, "strength": 0.0}]
+        block_h = row_h * len(kids)
+        my = y + block_h / 2
+        node = {"key": p["key"], "label": p["label"], "timing": p["timing"], "y": my, "n": p["n"],
+                "or_alone": p["or_alone"], "or_given_x": p["or_given_x"], "strength": p["strength"],
+                "width": 1 + 7 * p["strength"] / max_m, "children": []}
+        for i, k in enumerate(kids):
+            ky = y + row_h * i + row_h / 2
+            if k["var"] is None:
+                node["children"].append({"label": "没有可控变量能解释它", "y": ky, "width": 0, "strength": 0.0, "empty": True})
+            else:
+                node["children"].append({"label": _var_label(k["var"], control_vars, seg_labels), "y": ky,
+                                         "strength": k["strength"], "width": 1 + 7 * k["strength"] / max_x})
+        rows.append(node)
+        y += block_h + 10
+    direct: dict[str, list[dict[str, Any]]] = {}
+    for model, items in (tree.get("direct") or {}).items():
+        md = max([d["strength"] for d in items] + [1e-9])
+        direct[model] = [{"label": _var_label(d["var"], control_vars, seg_labels), "strength": d["strength"],
+                          "width": 1 + 7 * d["strength"] / md} for d in items]
+    n_direct = max([len(v) for v in direct.values()] + [1])
+    direct_y0 = y + 14
+    direct_mid = direct_y0 + row_h * n_direct / 2
+    for items in direct.values():
+        for i, d in enumerate(items):
+            d["y"] = direct_y0 + row_h * i + row_h / 2
+    height = direct_y0 + row_h * n_direct + pad_top
+    return {"col_x": col_x, "rows": rows, "direct": direct, "direct_mid": direct_mid, "height": int(height),
+            "y_mid": height / 2, "n": tree["n"]}
 
 
 def _adopted(conn: Connection, cid: int, mr: dict[str, Any] | None) -> dict[int, str]:

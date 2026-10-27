@@ -49,21 +49,34 @@
         </div>
         {% endif %}
 
-        <!-- 1. 变量总览 -->
+        <!-- 1. 变量总览：左 可控变量 · 中 过程指标 · 右 结果变量 -->
         {% if catalogue %}
         <section class="section enter" style="--i:2" aria-labelledby="cat-title">
-          <div class="section__head"><h2 id="cat-title">变量总览</h2><span class="section__note">三层变量；“事后”才知道的变量只进路径分析，不进预测</span></div>
-          <div class="grid-3">
-            {% for layer, title in [('x', '可控变量 X'), ('m', '过程指标 M'), ('z', '控制变量 Z')] %}
+          <div class="section__head">
+            <h2 id="cat-title">变量总览</h2>
+            {% if mr and r.model1 %}
+            <div class="seg" role="group" aria-label="选择数学模型" data-model-picker>
+              <span class="filters__label">数学模型</span>
+              {% for key, mdl in (r.model1.models or {}).items() %}
+              <button class="seg__opt" type="button" data-model="{{ key }}" aria-pressed="{{ 'true' if key == r.model1.chosen else 'false' }}" data-tip="{{ '按' ~ r.model1.selection ~ '选用' if key == r.model1.chosen else '切换查看这个模型的结果' }}">{{ mdl.label }}{% if key == r.model1.chosen %} · 选用{% endif %}</button>
+              {% endfor %}
+            </div>
+            {% else %}
+            <span class="section__note">三层变量；“事后”才知道的只进路径分析，不进预测</span>
+            {% endif %}
+          </div>
+          <div class="vr-flow">
+            {% for layer, title, tag in [('x', '可控变量 X', '能动的杠杆'), ('m', '过程指标 M', '中途看得见的信号'), ('y', '结果变量 Y', '真正要的')] %}
+            {% if not loop.first %}<div class="vr-flow__arrow" aria-hidden="true">→</div>{% endif %}
             <section class="panel">
-              <div class="panel__head"><h3 class="panel__title">{{ title }}</h3>{{ etag(catalogue|selectattr('layer', 'equalto', layer)|list|length ~ ' 个') }}</div>
+              <div class="panel__head"><h3 class="panel__title">{{ title }}</h3><span class="section__note">{{ tag }}</span></div>
               <div class="table-wrap table-wrap--flush">
                 <table class="table">
                   <thead><tr><th scope="col">变量</th><th scope="col">时点</th><th class="t-num" scope="col">有值</th></tr></thead>
                   <tbody>
                     {% for v in catalogue if v.layer == layer %}
-                    <tr{% if v.available == 0 or (layer == 'z' and not v.on) %} class="muted"{% endif %}>
-                      <td>{{ v.label }}{% if v.note %}<div class="cell-sub">{{ v.note }}</div>{% endif %}{% if layer == 'z' and not v.on %}<div class="cell-sub">未启用</div>{% endif %}</td>
+                    <tr{% if v.available == 0 %} class="muted"{% endif %}>
+                      <td>{{ v.label }}{% if v.note %}<div class="cell-sub">{{ v.note }}</div>{% endif %}{% if layer == 'y' and r.base_rate is defined and r.base_rate is not none %}<div class="cell-sub">已判定起量新品 {{ r.n_pool }} 个，命中 {{ r.n_hit }}（{{ pct(r.base_rate) }}）</div>{% endif %}</td>
                       <td class="small">{{ v.timing }}可知</td>
                       <td class="t-num">{{ v.available }}</td>
                     </tr>
@@ -74,7 +87,7 @@
             </section>
             {% endfor %}
           </div>
-          <p class="small muted" style="margin-top: var(--space-2)">结果变量 Y：{{ (catalogue|selectattr('layer', 'equalto', 'y')|first).label if catalogue|selectattr('layer', 'equalto', 'y')|list else '命中' }}（上架窗口内小类 BSR 或月 GMV 达到成功线）。</p>
+          <p class="small muted" style="margin-top: var(--space-2)">控制变量 Z（模型里固定住、不单独解读）：{% for v in catalogue if v.layer == 'z' %}{{ v.label }}{{ '（未启用）' if not v.on }}{{ '、' if not loop.last }}{% endfor %}。</p>
         </section>
         {% endif %}
 
@@ -90,7 +103,7 @@
                   <thead><tr><th scope="col">模型</th><th class="t-num" scope="col">训练</th><th class="t-num" scope="col">校准</th><th class="t-num" scope="col">验证</th></tr></thead>
                   <tbody>
                     {% for key, mdl in (m1.models or {}).items() %}
-                    <tr{% if key == chosen %} class="is-selected"{% endif %}>
+                    <tr data-model-row="{{ key }}"{% if key == chosen %} class="is-selected"{% endif %}>
                       <td>{{ mdl.label }}{% if key == chosen %} {{ etag('选用') }}{% endif %}</td>
                       <td class="t-num">{{ win(mdl.by_window.train) }}</td>
                       <td class="t-num">{{ win(mdl.by_window.calib) }}</td>
@@ -103,22 +116,29 @@
               <div class="panel__body small muted">AUC 0.5 等于乱猜；前 20% 倍数 = 模型打分最高的 20% 新品的命中率 ÷ 该窗全类目命中率。验证窗 AUC ≤ 0.55 或倍数 ≤ 1.2 时判“未找到稳定关系”。</div>
             </section>
             <section class="panel" aria-labelledby="imp-title">
-              <div class="panel__head"><h3 class="panel__title" id="imp-title">变量重要性</h3><span class="section__note">置换后 AUC 的下降 · {{ '校准' if r.splits.calib else '训练' }}窗</span></div>
+              <div class="panel__head"><h3 class="panel__title" id="imp-title">变量重要性</h3><span class="section__note">置换后 AUC 的下降 · {{ '校准' if r.splits.calib else '训练' }}窗 · 随上方选择的模型切换</span></div>
+              {% set imp_by = r.importance_by or {chosen: r.importance} %}
+              {% for key, rows in imp_by.items() %}
+              <div data-model-panel="{{ key }}"{% if key != chosen %} hidden{% endif %}>
               <div class="table-wrap table-wrap--flush">
                 <table class="table">
                   <thead><tr><th scope="col">变量</th><th scope="col">层</th><th class="t-num" scope="col">重要性</th><th class="t-num" scope="col">± 波动</th></tr></thead>
                   <tbody>
-                    {% for i in (r.importance or [])[:12] %}
+                    {% for i in (rows or [])[:12] %}
                     <tr>
-                      <td>{{ i.var|replace('attr:', '')|replace('seg:', '细分维度 · ')|replace('z:', '') if not i.var.startswith('z:') else control_vars.get(i.var[2:], i.var) }}</td>
+                      <td>{% if i.var.startswith('z:') %}{{ control_vars.get(i.var[2:], i.var) }}{% elif i.var.startswith('seg:') %}细分维度 · {{ seg_labels.get(i.var[4:], i.var[4:]) }}{% else %}{{ i.var[5:] }}{% endif %}</td>
                       <td class="small">{{ layers[i.layer] }}</td>
                       <td class="t-num strong">{{ '%.3f'|format(i.importance) }}</td>
                       <td class="t-num small muted">{{ '%.3f'|format(i.sd) }}</td>
                     </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="muted">{{ M.nodata() }}</td></tr>
                     {% endfor %}
                   </tbody>
                 </table>
               </div>
+              </div>
+              {% endfor %}
             </section>
           </div>
 
@@ -127,7 +147,7 @@
           <div class="grid-2">
             {% for v in vars_ %}
             <section class="panel">
-              <div class="panel__head"><h3 class="panel__title">{{ v|replace('attr:', '')|replace('seg:', '细分维度 · ') }}</h3></div>
+              <div class="panel__head"><h3 class="panel__title">{% if v.startswith('seg:') %}细分维度 · {{ seg_labels.get(v[4:], v[4:]) }}{% else %}{{ v[5:] }}{% endif %}</h3></div>
               <div class="table-wrap table-wrap--flush">
                 <table class="table">
                   <thead><tr><th scope="col">取值</th><th class="t-num" scope="col">优势比</th><th class="t-num" scope="col">90% 区间</th><th class="t-num" scope="col">训练+校准</th><th class="t-num" scope="col">验证</th><th scope="col"></th></tr></thead>
@@ -174,6 +194,50 @@
           </div>
           <div class="panel__body small muted">优势比为过程指标高一个标准差时命中几率的倍数。“保留的关联”= 给定 X 的对数优势比 ÷ 单独的对数优势比（线性近似的中介分解，方向相反记 0）。</div>
         </section>
+
+        <!-- 3b. 逻辑关系树 -->
+        {% if tree %}
+        <section class="panel section enter" style="--i:4" aria-labelledby="tree-title">
+          <div class="panel__head"><h2 class="panel__title" id="tree-title">逻辑关系树：结果 → 过程指标 → 可控变量</h2><span class="section__note">线越粗越相关 · 只画关联最强的 {{ tree.rows|length }} 个过程指标 · n={{ tree.n }}</span></div>
+          <div class="panel__body" style="overflow-x: auto">
+            <svg class="vr-tree" viewBox="0 0 1180 {{ tree.height }}" role="img" aria-label="结果变量拆成过程指标，再拆成可控变量的关系树">
+              {% set cx = tree.col_x %}
+              {# Y node #}
+              <text class="node node--y" x="{{ cx.y }}" y="{{ tree.y_mid }}" text-anchor="middle" dominant-baseline="middle">命中</text>
+              <text class="w" x="{{ cx.y }}" y="{{ tree.y_mid + 18 }}" text-anchor="middle">结果变量 Y</text>
+              {% for m in tree.rows %}
+              {# Y → M edge, width = |log OR of M alone| #}
+              <path class="edge{% if m.strength < 0.1 %} edge--weak{% endif %}" stroke-width="{{ '%.1f'|format(m.width) }}" d="M {{ cx.y + 40 }} {{ tree.y_mid }} C {{ cx.y + 200 }} {{ tree.y_mid }}, {{ cx.m - 230 }} {{ m.y }}, {{ cx.m - 90 }} {{ m.y }}"><title>{{ m.label }} → 命中：单独优势比 {{ '%.2f'|format(m.or_alone) }}{% if m.or_given_x %}，给定可控变量 {{ '%.2f'|format(m.or_given_x) }}{% endif %}（n={{ m.n }}）</title></path>
+              <text class="node node--m{% if m.strength < 0.1 %} node--muted{% endif %}" x="{{ cx.m }}" y="{{ m.y }}" text-anchor="middle" dominant-baseline="middle">{{ m.label }}</text>
+              <text class="w" x="{{ cx.m }}" y="{{ m.y + 14 }}" text-anchor="middle">OR {{ '%.2f'|format(m.or_alone) }} · {{ m.timing }}</text>
+              {% for k in m.children %}
+              {% if k.empty %}
+              <text class="w" x="{{ cx.x - 60 }}" y="{{ k.y }}" dominant-baseline="middle">{{ k.label }}</text>
+              {% else %}
+              <path class="edge{% if k.strength < 0.02 %} edge--weak{% endif %}" stroke-width="{{ '%.1f'|format(k.width) }}" d="M {{ cx.m + 90 }} {{ m.y }} C {{ cx.m + 220 }} {{ m.y }}, {{ cx.x - 200 }} {{ k.y }}, {{ cx.x - 70 }} {{ k.y }}"><title>{{ k.label }} 单独能解释 {{ m.label }} 的 {{ pct0(k.strength) }}（单变量 R²）</title></path>
+              <text class="node" x="{{ cx.x - 60 }}" y="{{ k.y }}" dominant-baseline="middle">{{ k.label }} <tspan class="w">{{ pct0(k.strength) }}</tspan></text>
+              {% endif %}
+              {% endfor %}
+              {% endfor %}
+              {# direct branch: Y → X without a process indicator, per model #}
+              {% for model, items in tree.direct.items() %}
+              <g data-model-panel="{{ model }}"{% if model != chosen %} hidden{% endif %}>
+                <path class="edge" stroke-width="3" d="M {{ cx.y + 40 }} {{ tree.y_mid }} C {{ cx.y + 200 }} {{ tree.y_mid }}, {{ cx.m - 230 }} {{ tree.direct_mid }}, {{ cx.m - 90 }} {{ tree.direct_mid }}"><title>不经过程指标的直接关系（{{ model_names.get(model, model) }} 的置换重要性）</title></path>
+                <text class="node node--m" x="{{ cx.m }}" y="{{ tree.direct_mid }}" text-anchor="middle" dominant-baseline="middle">直接（不经过程指标）</text>
+                <text class="w" x="{{ cx.m }}" y="{{ tree.direct_mid + 14 }}" text-anchor="middle">{{ model_names.get(model, model) }}</text>
+                {% for d in items %}
+                <path class="edge" stroke-width="{{ '%.1f'|format(d.width) }}" d="M {{ cx.m + 90 }} {{ tree.direct_mid }} C {{ cx.m + 220 }} {{ tree.direct_mid }}, {{ cx.x - 200 }} {{ d.y }}, {{ cx.x - 70 }} {{ d.y }}"><title>{{ d.label }}：置换后 AUC 下降 {{ '%.3f'|format(d.strength) }}</title></path>
+                <text class="node" x="{{ cx.x - 60 }}" y="{{ d.y }}" dominant-baseline="middle">{{ d.label }} <tspan class="w">{{ '%.3f'|format(d.strength) }}</tspan></text>
+                {% endfor %}
+              </g>
+              {% endfor %}
+              <text class="w" x="{{ cx.x - 60 }}" y="12">可控变量 X</text>
+              <text class="w" x="{{ cx.m }}" y="12" text-anchor="middle">过程指标 M</text>
+            </svg>
+          </div>
+          <div class="panel__body small muted">左到右：命中 → 过程指标（线宽 = 它单独对命中的对数优势比大小）→ 可控变量（线宽 = 该变量单独能解释这个过程指标多少，单变量 R²）。虚线表示关联很弱。“直接”一支是可控变量不经任何过程指标、直接与命中的关系，按上方选择的数学模型显示。</div>
+        </section>
+        {% endif %}
 
         <!-- 4. 模型 3 规则 -->
         <section class="section enter" style="--i:5" aria-labelledby="m3-title">

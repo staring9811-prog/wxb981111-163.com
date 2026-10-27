@@ -138,4 +138,28 @@
   var first = modal.getAttribute('data-first-step') || 'confirm';
   step(first);
   if (first === 'running') { startedAt = Date.now(); poll(); }
+
+})();
+
+/* 变量关系（PAGE-F16-01）：选择数学模型，切换重要性面板与逻辑树的“直接”分支 */
+(function () {
+  'use strict';
+  var doc = document;
+  var picker = doc.querySelector('[data-model-picker]');
+  if (picker) {
+    var apply = function (name) {
+      picker.querySelectorAll('[data-model]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-model') === name ? 'true' : 'false'); });
+      doc.querySelectorAll('[data-model-panel]').forEach(function (el) {
+        /* attribute, not the .hidden property: SVG groups have no hidden property */
+        if (el.getAttribute('data-model-panel') === name) el.removeAttribute('hidden'); else el.setAttribute('hidden', '');
+      });
+      doc.querySelectorAll('[data-model-row]').forEach(function (tr) { tr.classList.toggle('is-selected', tr.getAttribute('data-model-row') === name); });
+      try { localStorage.setItem('oppo.vr.model', name); } catch (e) {}
+    };
+    picker.querySelectorAll('[data-model]').forEach(function (b) { b.addEventListener('click', function () { apply(b.getAttribute('data-model')); }); });
+    var saved = null;
+    try { saved = localStorage.getItem('oppo.vr.model'); } catch (e) {}
+    var first = picker.querySelector('[data-model][aria-pressed="true"]') || picker.querySelector('[data-model]');
+    apply(saved && picker.querySelector('[data-model="' + saved + '"]') ? saved : first.getAttribute('data-model'));
+  }
 })();

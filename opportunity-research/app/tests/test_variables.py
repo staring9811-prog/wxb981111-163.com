@@ -64,7 +64,15 @@ def test_variables_page_and_bins_picklist(live_server, clone, h1a_done, page):  
     assert row.locator("[data-bins-pick] input[data-pick-value]").count() >= 2
     assert row.locator("[data-bins-pick] input[data-pick-value]:checked").count() == 2  # 落地式 / 悬浮式
     width = page.locator("tr[data-dim-row]").filter(has_text="宽度档")
-    assert width.locator('input.input[name="bins.width"]').count() == 1
+    assert width.locator("[data-bins-pick] input[data-pick-value]").count() >= 4  # concrete 尺寸 values
+    assert width.locator("input[data-bins-range]").count() == 1  # ranges stay optional
+    width.locator("[data-pick-all]").check()
+    width.locator("[data-pick-all]").uncheck()
+    for v in ("24", "36"):
+        width.locator(f"[data-bins-pick] input[value='{v}']").check()
+    assert width.locator('input[name="bins.width"]').input_value() == "24 / 36"
+    price = page.locator("tr[data-dim-row]").filter(has_text="价格带")
+    assert price.locator('input.input[name="bins.price"]').count() == 1
     # pick every value of 颜色 as a segment dimension; the hidden bins field follows the ticks
     basin = page.locator("tr[data-dim-row]").filter(has_text="颜色")
     basin.locator("input[data-segdim]").check()

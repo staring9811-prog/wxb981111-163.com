@@ -187,6 +187,12 @@ def _parse_bins(key: str, text_value: str) -> list[dict[str, Any]]:
     for lab in labels:
         found = [float(x.replace(",", "")) for x in re.findall(r"\d[\d,]*(?:\.\d+)?", lab)]
         nums.append(found)
+    # plain numbers (24 / 30 / 36) are exact values, each its own bin; anything else is a range
+    if key == "width" and all(re.fullmatch(r"\s*\d+(?:\.\d+)?\s*", lab) for lab in labels):
+        vals = [float(lab) for lab in labels]
+        if len(set(vals)) != len(vals):
+            raise ValueError("分档有重复取值")
+        return [{"label": lab.strip(), "eq": v} for lab, v in zip(labels, vals, strict=False)]
     for i, (lab, found) in enumerate(zip(labels, nums, strict=False)):
         if not found:
             raise ValueError(f"分档“{lab}”缺少数值")

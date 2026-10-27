@@ -61,6 +61,10 @@ def bin_numeric(v: float | None, bins: list[dict[str, Any]]) -> str:
         return UNKNOWN
     for b in bins:
         ok = True
+        if "eq" in b:
+            if abs(v - float(b["eq"])) < 1e-6:
+                return b["label"]
+            continue
         if "max" in b and not v <= b["max"]:
             ok = False
         if "gt" in b and not v > b["gt"]:

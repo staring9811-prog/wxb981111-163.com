@@ -301,6 +301,18 @@
       }
       items.forEach(function (c) { c.addEventListener('change', sync); });
       if (all) all.addEventListener('change', function () { items.forEach(function (c) { c.checked = all.checked; }); sync(); });
+      /* 宽度档可改为区间写法：填了区间就以区间为准，取消所有勾选 */
+      var range = pick.closest('td').querySelector('input[data-bins-range]');
+      if (range) {
+        range.addEventListener('input', function () {
+          if (!range.value.trim()) return;
+          items.forEach(function (c) { c.checked = false; });
+          if (all) all.checked = false;
+          hidden.value = range.value.trim();
+          hidden.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        items.forEach(function (c) { c.addEventListener('change', function () { if (c.checked) range.value = ''; }); });
+      }
     });
     cfg.addEventListener('input', function () {
       marks();

@@ -62,6 +62,12 @@ def test_model_recovers_planted_truths(clone, mock_done):  # type: ignore[no-unt
     assert paths["demand"]["r2_x"] > 0.9 and paths["units_m1"]["timing"] == "事后"
     # strategy-library rules are scored on the same rows
     assert r["library"] and all("test" in x and "fit" in x for x in r["library"])
+    # logic tree: Y → M (|log OR|) → X (drop-one R² share); importance per model for the picker
+    tree = r["tree"]
+    assert tree["process"] and tree["process"][0]["strength"] >= tree["process"][-1]["strength"]
+    demand = next(p for p in tree["process"] if p["key"] == "demand")
+    assert demand["children"] and demand["children"][0]["strength"] > 0.5  # a segment-level signal: segment dims explain it
+    assert set(r["importance_by"]) == set(r["model1"]["models"]) and set(tree["direct"]) == set(r["importance_by"])
 
 
 def test_adopt_is_person_only_and_recorded(clone, mock_done):  # type: ignore[no-untyped-def]
@@ -94,6 +100,15 @@ def test_variables_page_v2_and_adopt_button(live_server, clone, mock_done, page)
     assert page.locator("#m1-title").is_visible() and page.locator("#m2-title").is_visible()
     assert page.locator("#rule-table tbody tr").count() >= 2
     assert "模拟数据" in page.locator(".banner--warn").first.inner_text()
+    # X | M | Y side by side, the logic tree, and the model picker switching the importance panel
+    cols = page.locator(".vr-flow .panel__title").all_inner_texts()
+    assert cols == ["可控变量 X", "过程指标 M", "结果变量 Y"]
+    assert page.locator("svg.vr-tree path.edge").count() >= 5
+    widths = [float(w) for w in page.locator("svg.vr-tree path.edge").evaluate_all("els => els.map(e => e.getAttribute('stroke-width'))")]
+    assert max(widths) > min(widths)
+    page.locator('[data-model-picker] [data-model="tree"]').click()
+    assert page.locator('[data-model-panel="tree"]:not([hidden])').count() >= 1
+    assert page.locator('[data-model-panel="logit"]:not([hidden])').count() == 0
     page.locator('#rule-table [data-post="/variables/adopt"]').first.click()
     page.wait_for_url("**toast=*")
     assert "已采纳" in page.locator("#rule-table").inner_text()
