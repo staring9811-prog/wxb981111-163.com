@@ -798,7 +798,7 @@ def main():
     # Work queues for what the current data cannot answer.
     recollect=sorted({x[0] for x in none})
     image_queue={}
-    for a,m,t,e,feas,src,r in target_rows:
+    for a,m,t,e,feas,src,r,_i in target_rows:
         fields=[h for h in HEADERS[:14] if feas[h]=='F']
         if fields:
             q=image_queue.setdefault(a,{'childASIN':a,'mainImage':r.get('主图链接'),'productURL':r.get('商品链接'),'months':[],'fields':[]})
