@@ -1,0 +1,68 @@
+{# Shared pieces of the analysis pages (回测、判定卡、锦囊、排序). #}
+
+{% macro nodata() %}<span class="etag etag--nodata">无数据</span>{% endmacro %}
+
+{% macro hbars(bars, refs=True, tips_prefix='') %}
+{% set avg = bars.avg %}
+<div class="hbars" role="img" aria-label="检验组前 20% 细分命中率：{% for b in bars.rows %}{{ b.label }} {{ P.pct1(b.rate) }}{{ '，' if not loop.last }}{% endfor %}{% if avg %}；全类目平均 {{ P.pct1(avg) }}，2 倍线 {{ P.pct1(2 * avg) }}{% endif %}" style="margin-top: var(--space-6)">
+  {% for b in bars.rows %}
+  <span class="hbar__label">{{ b.label }}{% if b.cand %}<span class="etag etag--cand">候选</span>{% endif %}</span>
+  <span class="hbar__track">{% if avg and refs %}<span class="hbar__ref" style="left: {{ bars.avg_left }}%"></span>{% endif %}{% if avg %}<span class="hbar__ref" style="left: {{ bars.two_left }}%"></span>{% endif %}{% if loop.first and avg %}{% if refs %}<span class="hbar__ref-label" style="left: {{ bars.avg_left }}%">全类目平均 {{ P.pct1(avg) }}</span>{% endif %}<span class="hbar__ref-label" style="left: {{ bars.two_left }}%">2 倍线 {{ P.pct1(2 * avg) }}</span>{% endif %}<span class="hbar__bar{% if b.focus %} hbar__bar--focus{% endif %}" style="width: {{ b.width }}%" tabindex="0" data-tip="{{ P.pct1(b.rate) }}|{{ tips_prefix }}{{ b.label }} · 命中 {{ b.hits }} / {{ b.n }}{% if b.ci %} · Wilson 90% {{ P.ci1(b.ci) }}{% endif %}"></span></span>
+  <span class="hbar__value">{{ P.pct1(b.rate) }}<span class="etag etag--n">n={{ b.n }}</span></span>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro eval_table(v, cross=False) %}
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">{{ '排序依据' if cross else '信号或规则' }}</th>
+      <th class="t-num" scope="col">{{ '截面命中率' if cross else '前 20% 命中率' }}</th>
+      <th scope="col">{{ '90% 区间' if cross else 'Wilson 90% 区间（竖线 = 平均 ' ~ P.pct1(v.avg) ~ '）' }}</th>
+      <th class="t-num" scope="col">{{ '新 SPU' if cross else '样本量' }}</th>
+      <th class="t-num" scope="col">倍数</th>
+      <th class="t-num" scope="col">倍数 90% 区间（重抽样）</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in v.rows %}
+      {% if r.group %}
+    <tr class="table__divider"><td colspan="6">{{ r.group }}</td></tr>
+      {% elif not r.ok %}
+    <tr data-row="{{ r.key or r.kind }}"><td>{{ r.label }}{% if r.cand %}<span class="etag etag--cand">候选</span>{% endif %}<div class="cell-sub">{{ r.reason }}</div></td><td class="t-num">{{ nodata() }}</td><td>{{ nodata() }}</td><td class="t-num">{{ nodata() }}</td><td class="t-num">{{ nodata() }}</td><td class="t-num">{{ nodata() }}</td></tr>
+      {% elif r.kind == 'base' %}
+    <tr data-row="base"><td>{{ r.label }}<div class="cell-sub">{{ r.sub }}</div></td><td class="t-num">{{ P.pct1(r.rate) }}{% if cross %}<span class="etag etag--cross">截面</span>{% endif %}<div class="cell-sub">{{ r.hits }} / {{ r.n }}</div></td><td class="t-nowrap">{{ ibar(r.rate, r.ci, v.avg, r.n, grey=True, label='全类目平均') }}<span class="ibar-text">{{ P.ci1(r.ci) }}</span></td><td class="t-num">{{ r.n }}</td><td class="t-num muted" colspan="2">倍数基准</td></tr>
+      {% else %}
+    <tr data-row="{{ r.key or r.kind }}"><td><span{% if r.kind == 'card' %} class="strong"{% endif %}>{{ r.label }}</span>{% if r.cand %}<span class="etag etag--cand">候选</span>{% endif %}{% if r.sub %}<div class="cell-sub">{{ r.sub }}</div>{% endif %}</td><td class="t-num"><span{% if r.kind == 'card' %} class="strong"{% endif %}>{{ P.pct1(r.rate) }}</span>{% if cross %}<span class="etag etag--cross">截面</span>{% endif %}<div class="cell-sub">{{ r.hits }} / {{ r.n }}</div></td><td class="t-nowrap">{{ ibar(r.rate, r.ci, v.avg, r.n, label=r.label) }}<span class="ibar-text">{{ P.ci1(r.ci) }}</span></td><td class="t-num">{{ r.n }}</td><td class="t-num"><span{% if r.kind == 'card' %} class="strong"{% endif %}>{{ mult(r.multiple) }}</span></td><td class="t-num">{{ P.mult_ci(r.mult_ci) }}</td></tr>
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% macro rejected(v, cross=False) %}
+{% if v.rejected %}
+<ul class="list">
+  {% for f in v.rejected %}
+  <li class="list__item">{{ icon('prohibit', 'list__icon') }}<div class="list__body"><div class="list__title">{{ f.field }}<span class="etag etag--snap">快照</span></div><div class="list__desc">{{ f.file_label }}{% if f.note %} · {{ f.note }}{% endif %}</div></div></li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="panel__body small muted">本次没有被标为快照的已确认字段。</div>
+{% endif %}
+{% endmacro %}
+
+{% macro run_info(v, out_text) %}
+<dl class="kv">
+  <dt>回测</dt><dd><span class="mono">{{ v.code }}</span> · {{ '截面' if v.cross else '历史' }}口径 · 操作人 {{ v.operator }}</dd>
+  <dt>开始</dt><dd class="num">{{ v.started }} · 用时 {{ v.duration }}</dd>
+  <dt>随机种子</dt><dd class="fp">{{ v.seed }}</dd>
+  <dt>版本</dt><dd>数据包 {{ v.package.label if v.package else '—' }}{% if v.package %}（<span class="fp">{{ v.package.fp_short }}</span>）{% endif %} · 字段约定 v{{ v.contract_no }} · 品类配置 v{{ v.config_no }}</dd>
+  <dt>产出</dt><dd>{{ out_text }}</dd>
+</dl>
+{% endmacro %}
+
+{% macro cond_list(v) %}
+{% for c in v.conditions %}{{ icon('check' if c.ok else 'warning') }} {{ c.short }}{% if not loop.last %} · {% endif %}{% endfor %}
+{% endmacro %}

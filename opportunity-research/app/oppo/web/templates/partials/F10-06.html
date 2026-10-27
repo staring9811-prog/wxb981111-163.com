@@ -1,0 +1,82 @@
+{# PAGE-F10-06 录入自家上架数据 modal. Context: launch (record), launch_ctx, close_href. #}
+{% set lc = launch_ctx %}
+{% set st = lc.status %}
+{% set succ = lc.cfg.success %}
+{% set lm = lc.launch_month or '' %}
+        <div class="modal" id="launch-modal" role="dialog" aria-modal="true" aria-labelledby="launch-title" data-open-on-load data-close-href="{{ close_href }}" data-launch-modal data-current="{{ lc.current }}">
+          <div class="modal__dialog modal__dialog--wide">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="launch-title">录入自家上架数据</h2>
+                <p class="modal__sub"><span class="mono">{{ launch.code }}</span> · {{ launch.project_name or launch.segment_name }} · {{ segname(launch.segment_name or launch.segment_key or '') }} · {{ launch.kind }} · 立项 {{ launch.project_date or '—' }}</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <form class="modal__body stack-lg" id="launch-form" data-guard data-ajax action="/ledger/launch/{{ launch.code }}" novalidate>
+              <input type="hidden" name="next" value="{{ close_href }}">
+              <div class="banner banner--block" data-form-error hidden role="alert">{{ icon('warning-octagon') }}<div class="banner__body" data-form-error-text></div></div>
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field__label" for="l-asin">关联 ASIN 或 SPU<span class="req">*</span></label>
+                  <input class="input" id="l-asin" name="asin" value="{{ (st.asin or '') if st else '' }}" placeholder="如 B0DGX4M7QK" spellcheck="false">
+                  <span class="field-error" data-error-for="asin"></span>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="l-month">上架月<span class="req">*</span></label>
+                  <input class="input" id="l-month" name="launch_month" value="{{ lm }}" inputmode="numeric" placeholder="YYYY-MM" data-launch-month>
+                  <span class="field-error" data-error-for="launch_month"></span>
+                </div>
+              </div>
+
+              <section aria-labelledby="grid-title">
+                <div class="section__head">
+                  <h3 id="grid-title">月龄 1–{{ lc.window }}</h3>
+                  <span class="section__note">上架当月为第 1 个月 · 留空表示该月缺数据，不按 0 处理 · 晚于当前数据月 {{ lc.current }} 的月份不可填</span>
+                </div>
+                <div class="table-wrap">
+                  <table class="table launch-grid">
+                    <thead>
+                      <tr><th scope="col">指标</th>{% for i in range(1, 7) %}{% set mm = add_months(lm, i - 1) if lm else '' %}<th class="t-num" scope="col">第 {{ i }} 个月<div class="cell-sub" data-month-label="{{ i }}">{{ mm or '—' }}</div></th>{% endfor %}</tr>
+                    </thead>
+                    <tbody>
+                      {% for key, label, mode in [('units', '月销量（件）', 'numeric'), ('sales', '月销售额（$）', 'decimal'), ('bsr', '小类 BSR', 'numeric')] %}
+                      <tr><td class="t-nowrap cell-title">{{ label }}</td>{% for i in range(1, 7) %}{% set v = lc.months[i - 1][key] if lc.months|length >= i and lc.months[i - 1] else none %}{% set mm = add_months(lm, i - 1) if lm else '' %}<td><input class="input input--num" name="{{ key }}_{{ i }}" value="{% if v is not none %}{{ '{:,.0f}'.format(v) if key == 'sales' else v }}{% endif %}" inputmode="{{ mode }}" aria-label="第 {{ i }} 个月 {{ label }}" data-age="{{ i }}"{% if mm and mm > lc.current %} disabled{% endif %}><span class="field-error" data-error-for="{{ key }}_{{ i }}"></span></td>{% endfor %}</tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                <p class="field__hint" style="margin-top: var(--space-2)">月销售额填 SPU 内各子体合计；小类 BSR 填当月最好的子 ASIN 名次。</p>
+              </section>
+
+              <section class="panel" aria-labelledby="judge-title">
+                <div class="panel__head">
+                  <h3 class="panel__title" id="judge-title">按成功线判定 <span class="small muted">品类配置 v{{ lc.cfg_no }}，与竞品新品同一条</span></h3>
+                  {% if st %}{{ badge(st.status, OWN_BADGE.get(st.status)) }}{% endif %}
+                </div>
+                {% if st %}
+                {% set pop = own_pop(st) %}
+                <div class="panel__body">
+                  <dl class="kv">
+                    <dt>小类 BSR ≤ {{ succ.bsr_max|int }}</dt><dd>{% if st.best_bsr is not none %}最好 {{ st.best_bsr|int }}{{ etag('实测', '', pop, '自家上架数据') }}（第 {{ st.best_bsr_age }} 个月 · {{ add_months(st.launch_month, st.best_bsr_age - 1) }}）· {% if st.best_bsr <= succ.bsr_max %}<span>达标</span>{% else %}<span class="muted">未达标</span>{% endif %}{% else %}{{ etag('无数据', 'nodata') }}{% endif %}</dd>
+                    <dt>SPU 任一月销售额 ≥ {{ money(succ.gmv_min) }}</dt><dd>{% if st.max_sales is not none %}最高 {{ money(st.max_sales) }}{{ etag('实测', '', pop, '自家上架数据') }}（第 {{ st.max_sales_age }} 个月 · {{ add_months(st.launch_month, st.max_sales_age - 1) }}）· {% if st.max_sales >= succ.gmv_min %}<span>达标</span>{% else %}<span class="muted">未达标</span>{% endif %}{% else %}{{ etag('无数据', 'nodata') }}{% endif %}</dd>
+                  </dl>
+                </div>
+                <div class="panel__foot">
+                  {% if st.status == '命中' %}第 {{ st.hit_age }} 个月（{{ st.hit_month }}）{{ '小类 BSR' if st.basis == 'BSR' else '销售额' }}达到成功线，判为命中。
+                  {% elif st.status == '未命中' %}窗口 {{ st.launch_month }} 至 {{ st.window_end }} 的 {{ st.window }} 个月数据齐全，两项都未达标，判为未命中。
+                  {% elif st.status == '数据不全' %}窗口内尚未达标，且缺 {{ st.missing|join('、') }} 的数据，判为数据不全。
+                  {% else %}上架 {{ st.elapsed }} 个月，尚未达标，还剩 {{ st.remaining }} 个月。{% if st.missing %}其中 {{ st.missing|join('、') }} 缺数据。{% endif %}
+                  {% endif %}保存时按所填数据重新判定，结果同步到到期对账 · 上次保存 {{ st.created_at[:16] }} · {{ st.created_by }}{% if st.source != '手工录入' %}（{{ st.source }}）{% endif %}
+                </div>
+                {% else %}
+                <div class="panel__body"><p class="small muted">填写上架月和月度数据后，保存时按成功线判定：上架当月起 {{ succ.window_months }} 个月内小类 BSR ≤ {{ succ.bsr_max|int }}，或 SPU 任一月销售额 ≥ {{ money(succ.gmv_min) }}。</p></div>
+                {% endif %}
+              </section>
+            </form>
+            <div class="modal__foot">
+              <span class="small" data-dirty-hint hidden style="margin-right: auto">有未保存的修改</span>
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="submit" form="launch-form" data-save>保存并判定</button>
+            </div>
+          </div>
+        </div>

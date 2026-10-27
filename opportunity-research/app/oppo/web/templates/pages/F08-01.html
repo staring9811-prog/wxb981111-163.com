@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% import "partials/C-macros.html" as M %}
+{% block title %}判定卡{% endblock %}
+{% block content %}
+        {% if not card %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>判定卡</h1>
+            <p class="page-head__sub">{{ '截面口径' if mode == 'cross' else '历史口径' }} · 还没有判定卡</p>
+          </div>
+        </div>
+        <section class="panel section enter" style="--i:1">
+          <div class="empty">
+            {{ icon('cards') }}
+            <div class="empty__title">还没有判定卡</div>
+            <p class="empty__desc">完成成败与信号计算后，在回测页运行回测，达标后在这里生成判定卡。</p>
+            <a class="btn btn--primary" href="/backtest">去回测</a>
+          </div>
+        </section>
+        {% else %}
+        {% set cross = card.mode == 'cross' %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>判定卡</h1>
+            <p class="page-head__sub">当前版本 {{ card.label }} · {{ '截面' if cross else '历史' }}口径 · {{ card.created_at[:16] }} 由回测 {{ bt.code if bt else '—' }} 生成{% if snapshot %} · 用于 {{ snapshot.month }} 排序{% endif %}</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="/backtest">{{ icon('flask') }}<span>回测报告</span></a>
+            <a class="btn" href="/kits">{{ icon('lightbulb') }}<span>立项锦囊</span></a>
+          </div>
+        </div>
+        {% if running_job and running_job.kind == 'backtest' %}
+        <p class="small muted enter" style="--i:1">{{ icon('circle-notch', 'spin') }} 回测运行中，完成后更新判定卡；当前内容保持上一版。</p>
+        {% endif %}
+
+        {% if card.status == '已达标' %}
+        <div class="banner banner--ok enter" style="--i:1" role="status">
+          {{ icon('seal-check') }}
+          <div class="banner__body">
+            <div class="banner__title">已达标 · 判定卡 {{ card.label }}（历史口径）</div>
+            <div>回测 {{ bt.code }} 的检验组中，按本卡排名前 20% 的细分命中率 {{ P.pct1(bt.rate) }}，是全类目平均 {{ P.pct1(bt.avg) }} 的 {{ '%.2f'|format(bt.multiple) }} 倍，并高于{{ '全部 ' if not bt.nodata_current else '' }}{{ bt.computable_current }} 个可计算的现用指标各自排序的结果。参照人群：{{ reference }}。</div>
+          </div>
+        </div>
+        {% elif card.status == '达标（截面）' %}
+        <div class="banner banner--cross enter" style="--i:1" role="status">
+          {{ icon('intersect') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ CARD.CROSS_TEXT }}</div>
+            <div>截面回测 {{ bt.code }} · 数据包 {{ card_pkg.label if card_pkg else '—' }}{% if card_pkg %}（观察月 {{ card_pkg.months }}）{% endif %} · 倍数 {{ mult(bt.multiple) }}（90% 区间 {{ P.mult_ci(bt.mult_ci) }}）。{% if superseded %}本品类已有历史结论（判定卡 {{ hist_card.label }} {{ hist_card.status }}），判定卡状态以历史为准，这张截面卡已被历史结论取代。{% else %}历史数据包到位并回测后，以历史结论为准。{% endif %}</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="banner banner--unverified enter" style="--i:1" role="alert">
+          {{ icon('warning') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div>
+            <div>未达标：{{ card.basis.reason_class or '—' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。入选信号与依据仍显示，便于排查。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/backtest">查看回测</a></div>
+        </div>
+        {% endif %}
+        {% if stale %}
+        <div class="banner banner--stale enter" style="--i:1" role="status">
+          {{ icon('arrows-clockwise') }}
+          <div class="banner__body">
+            <div class="banner__title">判定卡依据的结果需重算</div>
+            <div>{{ stale|join('；') }}。仍可查看当前版本；重算并回测后再生成新版本。</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="grid-main-side section">
+          <div class="stack-lg">
+            <section class="panel enter" style="--i:2" aria-labelledby="sig-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="sig-title">当前版本 {{ card.label }} · 入选信号{% if card.status == '未验证' %} {{ badge('未验证') }}{% endif %}</h2>
+                <span class="section__note">{{ card.signals|length }} 个信号 · 权重合计 {{ '%.2f'|format(card.signals|sum(attribute='weight')) }}</span>
+              </div>
+              {% if card.signals %}
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">信号</th>
+                      <th scope="col">口径（第 T 月，只用早于 T 月的数据）</th>
+                      <th class="t-num" scope="col">阈值</th>
+                      <th class="t-num" scope="col">权重</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for s in card.signals %}
+                    <tr data-signal="{{ s.signal }}">
+                      <td class="t-nowrap"><span class="cell-title">{{ s.label }}</span>{% if cross %}<span class="etag etag--cross">截面</span>{% endif %}</td>
+                      <td class="small">{{ defs.get(s.signal, '') }}</td>
+                      <td class="t-num">{{ P.threshold_text(s.signal, s.threshold) }}</td>
+                      <td class="t-num">{{ '%.2f'|format(s.weight) }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div class="panel__body small muted">没有入选信号：{{ card.basis.reason_text or card.basis.reason_class or '回测没有可用的信号' }}。</div>
+              {% endif %}
+              {% if not cross %}
+              {% set chosen = card.signals|map(attribute='signal')|list %}
+              {% set unchosen = [] %}{% for s in ['demand', 'entry', 'pain', 'hslr'] if s not in chosen %}{% set _ = unchosen.append(SIG_LABELS[s]) %}{% endfor %}
+              <div class="panel__foot">{% if unchosen %}未入选：{{ unchosen|join('、') }}。{% endif %}4 个候选信号（单位 ASIN 贡献、属性溢价、属性趋势、低分高销）只作对照，不入卡。</div>
+              {% else %}
+              <div class="panel__foot">截面卡用截面模型合成的“上架 6 个月内命中概率”排序；对照为只用老品计算、且可计算的现用指标。</div>
+              {% endif %}
+            </section>
+
+            {% if bt and bt.conditions %}
+            <section class="panel enter" style="--i:3" aria-labelledby="pass-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="pass-title">达标判定</h2>
+                <span class="section__note">检验组 {{ P.span(bt.test_batches) }} · 前 20% = {{ bt.k }} 个细分</span>
+              </div>
+              <ul class="list">
+                {% for c in bt.conditions %}
+                <li class="list__item">
+                  {{ icon('check-circle' if c.ok else 'warning', 'list__icon list__icon--' ~ ('ok' if c.ok else 'warn')) }}
+                  <div class="list__body">
+                    <div class="list__title">{{ c.title }}</div>
+                    <div class="list__desc">{{ c.text }}</div>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+              {% if bt.bars.rows %}
+              <div class="panel__body stack" style="border-top: 1px solid var(--border-soft)">
+                {{ M.hbars(bt.bars, refs=False) }}
+                <p class="small muted">横轴 {{ bt.bars.scale_text }}。灰色为可计算的现用指标（本次 {{ bt.computable_current }} 个），作为对照{% if bt.nodata_current %}；{% for r in bt.nodata_current %}{{ r.label }}无数据（{{ r.reason }}）{{ '、' if not loop.last }}{% endfor %}，不参与比较{% endif %}。</p>
+              </div>
+              {% endif %}
+            </section>
+            {% endif %}
+          </div>
+
+          <aside class="stack-lg" aria-label="回测依据">
+            <section class="panel enter" style="--i:2" aria-labelledby="basis-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="basis-title">回测依据</h2>
+                {% if bt %}<a class="small" href="/backtest">回测 {{ bt.code }}</a>{% endif %}
+              </div>
+              {% if bt %}
+              <div class="panel__body stack">
+                <div>
+                  <div class="stat__label">命中率倍数（前 20% 细分 ÷ 全类目平均）</div>
+                  <div class="row" style="align-items: baseline; margin-top: var(--space-1)">
+                    <span class="hero-figure">{{ mult(bt.multiple) }}</span>
+                    {% if cross %}<span class="etag etag--cross">截面</span>{% endif %}
+                    <span class="small muted">重抽样 90% 区间 {{ P.mult_ci(bt.mult_ci) }}</span>
+                  </div>
+                </div>
+                <dl class="kv" style="margin-top: var(--space-4)">
+                  {% if bt.test_batches %}
+                  <dt>检验组</dt><dd>{{ P.span(bt.test_batches) }} · {{ bt.test_batches|length }} 个批次<div class="cell-sub">{% if cross %}新品-月 {{ bt.model_rows.test }} 行 · {% endif %}起量新 SPU {{ bt.test_counts.spus }} 个{{ etag('n=' ~ bt.test_counts.spus) }}</div></dd>
+                  <dt>{{ '建模组' if cross else '定规则组' }}</dt><dd>{{ P.span(bt.rule_batches) }} · {{ bt.rule_batches|length }} 个批次<div class="cell-sub">{% if cross %}新品-月 {{ bt.model_rows.model }} 行{% else %}起量新 SPU {{ bt.rule_counts.spus }} 个{% endif %}</div></dd>
+                  {% else %}
+                  <dt>已判定批次</dt><dd>{{ bt.decided|length }} 个（至少需要 3 个）</dd>
+                  {% endif %}
+                  {% if bt.rate is not none %}
+                  <dt>前 20% 细分</dt><dd>命中 {{ bt.top_hits }} / {{ bt.top_n }} = {{ P.pct1(bt.rate) }}{{ etag('n=' ~ bt.top_n) }}<div class="cell-sub">Wilson 90% 区间 {{ P.ci1(bt.top_ci) }}</div></dd>
+                  <dt>全类目平均</dt><dd>命中 {{ bt.all_hits }} / {{ bt.all_n }} = {{ P.pct1(bt.avg) }}{{ etag('n=' ~ bt.all_n) }}</dd>
+                  {% endif %}
+                  <dt>样本不足</dt><dd>{{ bt.insufficient|length }} 个细分（检验组新 SPU &lt; 20），不参与评估</dd>
+                  <dt>运行</dt><dd>{{ bt.started }} 开始 · 用时 {{ bt.duration }}<div class="cell-sub">随机种子 <span class="fp">{{ bt.seed }}</span></div></dd>
+                </dl>
+              </div>
+              <div class="panel__foot">局限：{{ bt.limitation }}。</div>
+              {% else %}
+              <div class="panel__body small muted">来源回测不存在。</div>
+              {% endif %}
+            </section>
+
+            <section class="panel enter" style="--i:3" aria-labelledby="kit-title">
+              <div class="panel__head">
+                <h2 class="panel__title" id="kit-title">本版锦囊</h2>
+                <a class="small" href="/kits">立项锦囊</a>
+              </div>
+              {% if kits %}
+              <ul class="list">
+                {% for k in kits %}
+                <li class="list__item">
+                  <div class="list__body">
+                    <div class="row">{{ badge(k.action) }}{% if k.status != '历史观察' %}{{ badge(k.status) }}{% endif %}<span class="mono muted">{{ k.code }}</span></div>
+                    <div class="list__desc">{{ k.cond }}{% if k.attr_note %}（{{ k.attr_note }}）{% endif %} · {% if k.ci %}预期 {{ fmt.ci_text(k.ci) }}{% else %}人工经验，尚无回测依据{% endif %}</div>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <div class="panel__body small muted">{{ '判定卡未验证，没有生成锦囊。' if card.status == '未验证' else '当前判定卡下没有锦囊。' }}</div>
+              {% endif %}
+            </section>
+          </aside>
+        </div>
+        {% endif %}
+
+        {% if versions %}
+        <section class="section enter" style="--i:4" aria-labelledby="hist-title">
+          <div class="section__head">
+            <h2 class="section__title" id="hist-title">版本历史</h2>
+            <span class="section__note">版本只追加，旧版本只读 · 同时有两种口径时，判定卡状态以历史口径为准</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="card-versions">
+              <thead>
+                <tr>
+                  <th scope="col">版本</th>
+                  <th scope="col">生成日期</th>
+                  <th scope="col">口径</th>
+                  <th scope="col">结论</th>
+                  <th scope="col">来源回测</th>
+                  <th scope="col">检验组</th>
+                  <th class="t-num" scope="col">倍数（90% 区间）</th>
+                  <th scope="col">与上一版相比</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in versions %}
+                <tr{% if card and r.card.id == card.id %} class="is-selected"{% endif %}>
+                  <td class="t-nowrap"><span class="cell-title">{{ r.label }}</span>{% if r.current and r.mode == (card.mode if card else mode) %} <span class="badge">当前</span>{% endif %}</td>
+                  <td class="t-nowrap num">{{ r.date }}</td>
+                  <td class="t-nowrap">{{ '截面' if r.mode == 'cross' else '历史' }}</td>
+                  <td>{% if r.status == '已达标' %}{{ badge('达标') }}{% else %}{{ badge(r.status) }}{% endif %}{% if r.superseded %}<div class="cell-sub">已被历史结论取代</div>{% endif %}{% if r.status == '未验证' and r.reason_class %}<div class="cell-sub">{{ r.reason_class }}</div>{% endif %}</td>
+                  <td class="mono t-nowrap">{{ r.bt }}</td>
+                  <td class="t-nowrap">{{ r.test }}{% if r.mode == 'cross' and r.model_rows %} · 新品-月 {{ r.model_rows }} 行{% elif r.test_n %}{{ etag('n=' ~ r.test_n) }}{% endif %}</td>
+                  <td class="t-num">{% if r.multiple is not none %}{{ mult(r.multiple) }}（{{ P.mult_ci(r.mult_ci) }}）{% else %}{{ M.nodata() }}{% endif %}{% if r.mode == 'cross' %}<span class="etag etag--cross">截面</span>{% endif %}</td>
+                  <td class="small">{{ r.diff }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        {% endif %}
+
+        {% if card %}<p class="page-foot">判定卡 {{ card.label }} · 回测 {{ bt.code if bt else '—' }}（种子 {{ bt.seed if bt else '—' }}）· 数据包 {{ card_pkg.label if card_pkg else '—' }} · 字段约定 v{{ bt.contract_no if bt else '—' }} · 品类配置 v{{ bt.config_no if bt else '—' }} · 生成 {{ card.created_at[:16] }} · {{ card.created_by }}</p>{% endif %}
+{% endblock %}

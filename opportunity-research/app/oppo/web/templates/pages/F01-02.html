@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}校验报告 · {{ pkg.label }}{% endblock %}
+{% macro rb(r, text) -%}
+{%- if r == 'pass' -%}{{ badge('通过', 'pass', 'check-circle') }}{%- elif r == 'warn' -%}{{ badge('警告', 'warn', 'warning') }}{%- elif r == 'block' -%}{{ badge('阻断', 'block', 'warning-octagon') }}{%- else -%}<span class="small muted">{{ text or '不适用' }}</span>{%- endif -%}
+{%- endmacro %}
+{% macro cell(c) -%}
+{%- if c -%}{%- if c[0] in ('pass', 'warn', 'block') -%}{{ rb(c[0]) }}<div class="cell-sub">{{ c[1] }}</div>{%- else -%}<span class="small muted">{{ c[1] or '不适用' }}</span>{%- endif -%}{%- else -%}<span class="small muted">—</span>{%- endif -%}
+{%- endmacro %}
+{% block content %}
+{% set blocked = pkg.conclusion == 'block' %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <nav class="crumbs" aria-label="面包屑"><a href="/packages">数据包</a><span aria-hidden="true">/</span><span>{{ pkg.label }}</span></nav>
+            <h1>校验报告 · {{ pkg.label }}</h1>
+            <p class="page-head__sub">{{ kind_label }}数据包 · {{ '按' ~ contract_label ~ '校验' if pkg.kind else '清单无法识别，未选择约定' }}{% if pkg.months_from %} · 覆盖 {{ pkg.months_from }}–{{ pkg.months_to }}{% endif %} · {{ pkg.created_at[:16] }} 由 {{ pkg.created_by }} 导入，{{ (checked_at or '')[11:16] }} 校验完成</p>
+          </div>
+          <div class="page-head__actions">
+            {% if blocked %}
+            <button class="btn" type="button" aria-disabled="true" data-tip="有阻断项，没有运行体检">{{ icon('heartbeat') }}<span>数据体检</span></button>
+            <button class="btn" type="button" aria-disabled="true" data-tip="存在阻断项，不能计算。修好数据包后重新导入">{{ icon('list-checks') }}<span>去确认字段约定</span></button>
+            <a class="btn btn--primary" href="/packages?import=1">{{ icon('upload-simple') }}<span>重新导入</span></a>
+            {% else %}
+            <a class="btn" href="/health?package={{ pkg.id }}">{{ icon('heartbeat') }}<span>数据体检</span></a>
+            <a class="btn btn--primary" href="/fields">{{ icon('list-checks') }}<span>去确认字段约定</span></a>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if blocked %}
+        <div class="banner banner--block enter" style="--i:1" role="alert">
+          {{ icon('warning-octagon') }}
+          <div class="banner__body">
+            <div class="banner__title">阻断 · 不能计算</div>
+            <div>{{ blocks_total }} 个阻断项。修好数据包后重新导入；{{ pkg.label }} 不会成为当前数据包，计算与回测对它不可用。{% if no_c6 %}缺少痛点信号，回测先用另两类信号。{% endif %}</div>
+          </div>
+        </div>
+        {% elif pkg.conclusion == 'warn' %}
+        <div class="banner banner--warn enter" style="--i:1" role="status">
+          {{ icon('warning') }}
+          <div class="banner__body">
+            <div class="banner__title">有警告 · 可以计算</div>
+            <div>没有阻断项。{{ warns_total }} 个警告{% if excl_total %}，{{ excluded_by_file|length }} 个文件共 {{ num(excl_total) }} 行无法解析或主键重复，都不超过所在文件总行数的 1%，已在后续计算中排除{% endif %}。{% if is_current %}{{ pkg.label }} 已成为当前{{ kind_label }}数据包。{% endif %}{% if no_c6 %}缺少痛点信号，回测先用另两类信号。{% endif %}</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="banner banner--ok enter" style="--i:1" role="status">
+          {{ icon('check-circle') }}
+          <div class="banner__body">
+            <div class="banner__title">通过 · 可以计算</div>
+            <div>没有阻断项和警告。{% if is_current %}{{ pkg.label }} 已成为当前{{ kind_label }}数据包。{% endif %}{% if no_c6 %}缺少痛点信号，回测先用另两类信号。{% endif %}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="stats enter" style="--i:1; margin-top: var(--space-4)">
+          <div class="stat">
+            <div class="stat__label">文件</div>
+            <div class="stat__value">{{ files_present }}<span class="stat__unit">/ {{ files_expected }}</span></div>
+            <div class="stat__meta">{% if manifest_block %}清单阻断，未逐文件检查{% else %}必需 {{ req_total }} 个{{ '齐全' if req_present == req_total else '缺 ' ~ (req_total - req_present) ~ ' 个' }}{% if opt_present %}，可选 {{ opt_present|join('、') }} 已提供{% endif %}{% endif %}</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">总行数</div>
+            <div class="stat__value">{{ num(total_rows) }}</div>
+            <div class="stat__meta">{{ files_present }} 个文件合计</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">阻断项</div>
+            <div class="stat__value">{{ blocks_total }}</div>
+            <div class="stat__meta">{{ '不能启动计算' if blocks_total else '可以启动计算' }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">警告项</div>
+            <div class="stat__value">{{ warns_total }}</div>
+            <div class="stat__meta">{% if excl_total %}排除 {{ num(excl_total) }} 行（{% for code, n in excluded_by_file.items() %}{{ code }} {{ num(n) }} 行{{ '，' if not loop.last }}{% endfor %}）{% else %}没有排除的行{% endif %}</div>
+          </div>
+        </div>
+
+        <section class="section enter" style="--i:2" aria-labelledby="matrix-title">
+          <div class="section__head">
+            <h2 class="section__title" id="matrix-title">逐项检查</h2>
+            <span class="section__note">每格为检查结果与受影响行数 · 无法解析的行 ≤ 该文件 1% 记为警告并排除，超过 1% 记为阻断</span>
+          </div>
+          {% if manifest_block %}
+          <div class="panel"><div class="panel__body"><p class="muted">清单文件缺失或类型无法识别，未展开逐文件检查。</p></div></div>
+          {% else %}
+          <div class="table-wrap">
+            <table class="table" id="matrix-table">
+              <thead>
+                <tr>
+                  <th scope="col">文件</th>
+                  <th class="t-num" scope="col">行数</th>
+                  <th scope="col">必需文件</th>
+                  <th scope="col">必需字段</th>
+                  <th scope="col">主键唯一</th>
+                  <th scope="col">日期与数值解析</th>
+                  <th scope="col">月份覆盖</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for m in matrix %}
+                <tr data-file="{{ m.code }}">
+                  <td><div class="cell-title">{{ m.label }}</div><div class="cell-sub">{% if m.optional %}可选文件 · {% endif %}主键：{{ m.key }}</div></td>
+                  <td class="t-num">{{ num(m.rows) if m.rows is not none else '—' }}</td>
+                  <td>{{ cell(m.cells.file) }}</td>
+                  <td>{{ cell(m.cells.fields) }}</td>
+                  <td>{{ cell(m.cells.unique) }}</td>
+                  <td>{{ cell(m.cells.parse) }}</td>
+                  <td>{% if m.code == 'C7' %}<span class="small muted">不适用</span>{% else %}{{ cell(m.cells.cover) }}{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </section>
+
+        <section class="section enter" style="--i:3" aria-labelledby="issue-title">
+          <div class="section__head">
+            <h2 class="section__title" id="issue-title">问题明细</h2>
+            <span class="section__note">阻断项给出文件、字段和不超过 5 个示例行号 · 警告项列出全部被排除的行号</span>
+          </div>
+          {% set block_first = block_list|length > 0 %}
+          <div class="tabs" role="tablist" aria-label="问题类型">
+            <a class="tab" href="#panel-block" role="tab" id="tab-block" aria-controls="panel-block" aria-selected="{{ 'true' if block_first or not warn_list else 'false' }}">阻断 <span class="count">{{ block_list|length }}</span></a>
+            <a class="tab" href="#panel-warn" role="tab" id="tab-warn" aria-controls="panel-warn" aria-selected="{{ 'false' if block_first or not warn_list else 'true' }}">警告 <span class="count">{{ warn_list|length }}</span></a>
+          </div>
+          <div role="tabpanel" id="panel-block" aria-labelledby="tab-block"{% if not (block_first or not warn_list) %} hidden{% endif %}>
+            <div class="panel">
+              {% if block_list %}
+              <ul class="list">
+                {% for e in block_list %}
+                {% set it = e.item %}
+                <li class="list__item" data-issue="block">
+                  {{ icon('warning-octagon', 'list__icon list__icon--danger') }}
+                  <div class="list__body">
+                    <div class="list__title">{{ e.file_label }}{% if it.field %} · {{ it.field }}{% endif %}：{{ it.message or '阻断' }}</div>
+                    <div class="list__desc">
+                      {% if it.affected_note in ('整列', '整个文件', '整个数据包') %}受影响：{{ it.affected_note }}
+                      {% else %}受影响 {{ num(it.affected_rows or 0) }} 行{% if e.share is not none %}，占该文件 {{ '%.1f'|format(e.share * 100) }}%{{ etag('n=' ~ num(e.rows_total)) }}，超过 1%{% endif %}
+                      {% if it.sample_rows %} · 示例行号 <span class="mono">{{ it.sample_rows[:5]|map('num')|join('、') }}</span>{% endif %}
+                      {% if e.detail.examples %} · 示例值 {% for f, ex in e.detail.examples.items() %}{{ f }}：{{ ex|join('、') }}{{ '；' if not loop.last }}{% endfor %}{% endif %}
+                      {% endif %}
+                    </div>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <div class="empty">
+                {{ icon('check-circle') }}
+                <div class="empty__title">没有阻断项</div>
+                <div class="empty__desc">必需文件、必需字段、主键和日期数值解析都满足{{ contract_label }}，可以启动计算。</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          <div role="tabpanel" id="panel-warn" aria-labelledby="tab-warn"{% if block_first or not warn_list %} hidden{% endif %}>
+            <div class="panel">
+              {% if warn_list %}
+              <ul class="list">
+                {% for e in warn_list %}
+                {% set it = e.item %}
+                <li class="list__item" data-issue="warn">
+                  {{ icon('warning', 'list__icon list__icon--warn') }}
+                  <div class="list__body">
+                    {% if it.check_name in ('parse', 'unique_key') %}
+                    <div class="list__title">{{ e.file_label }} · {{ it.field or '' }}：{{ num(it.affected_rows or 0) }} 行{{ '无法解析' if it.check_name == 'parse' else '主键重复' }}，已在计算中排除</div>
+                    <div class="list__desc">占该文件 {{ '%.3f'|format((e.share or 0) * 100) }}%{{ etag('n=' ~ num(e.rows_total)) }}，未超过 1%{% if e.detail.examples %} · 示例值 {% for f, ex in e.detail.examples.items() %}{{ ex|join('、') }}（{{ f }}）{{ '；' if not loop.last }}{% endfor %}{% endif %}{% if it.check_name == 'unique_key' %} · 保留首次出现的行{% endif %}</div>
+                    {% if it.excluded_rows %}
+                    <details class="small" style="margin-top: var(--space-2)">
+                      <summary>被排除的 {{ it.excluded_rows|length }} 个行号</summary>
+                      <p class="mono" style="margin-top: var(--space-2); color: var(--fg-2)">{{ it.excluded_rows|map('num')|join('、') }}</p>
+                    </details>
+                    {% endif %}
+                    {% else %}
+                    <div class="list__title">{{ e.file_label }} · 月份覆盖：{{ it.message }}</div>
+                    <div class="list__desc">约定：{{ it.affected_note or '—' }}；不排除任何行，只提示影响。</div>
+                    {% endif %}
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <div class="empty">
+                {{ icon('check-circle') }}
+                <div class="empty__title">没有警告</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+
+        {% if tabs %}
+        <section class="section enter" style="--i:4" aria-labelledby="field-title">
+          <div class="section__head">
+            <h2 class="section__title" id="field-title">必需字段逐项结果</h2>
+            <span class="section__note">共 {{ req_field_total }} 个必需字段，{{ req_field_pass }} 个通过{% if req_field_total - req_field_pass %}，{{ req_field_total - req_field_pass }} 个警告或阻断{% endif %}</span>
+          </div>
+          <div class="tabs" role="tablist" aria-label="按文件查看">
+            {% for t in tabs %}
+            <a class="tab" href="#panel-{{ t.code }}" role="tab" id="tab-{{ t.code }}" aria-controls="panel-{{ t.code }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ t.code }} <span class="count">{{ t.rows|length }}</span></a>
+            {% endfor %}
+          </div>
+          {% for t in tabs %}
+          <div role="tabpanel" id="panel-{{ t.code }}" aria-labelledby="tab-{{ t.code }}"{% if not loop.first %} hidden{% endif %}>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th scope="col">{{ t.label }} · 必需字段</th><th scope="col">格式</th><th scope="col">结果</th><th class="t-num" scope="col">受影响行数</th><th scope="col">说明</th></tr>
+                </thead>
+                <tbody>
+                  {% for r in t.rows %}
+                  <tr><td class="cell-title">{{ r.field }}</td><td class="small">{{ r.fmt }}</td><td>{{ rb(r.result) }}</td><td class="t-num">{{ r.rows }}</td><td class="small{% if r.result == 'pass' %} muted{% endif %}">{{ r.note }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <p class="small muted" style="margin-top: var(--space-2)">{% if t.optional %}可选字段 {{ t.optional|length }} 个已提供：{{ t.optional|join('、') }}。{% else %}没有提供可选字段。{% endif %}{% if t.extra %}约定外字段 {{ t.extra|length }} 个：{{ t.extra|join('、') }}，交给字段约定确认。{% endif %}</p>
+          </div>
+          {% endfor %}
+        </section>
+        {% endif %}
+
+        {% if not blocked %}
+        <a class="card-link section" href="/fields">
+          <div class="row">
+            {{ icon('list-checks') }}
+            <span class="strong">下一步：确认字段约定</span>
+            <span class="spacer"></span>
+            {{ icon('arrow-right') }}
+          </div>
+          <p class="small muted" style="margin-top: var(--space-1)">{% if first_contract %}首个数据包：共 {{ field_total }} 个字段，确认并保存后生成字段约定 v1。{% elif not prev_label %}首个{{ kind_label }}数据包：共 {{ field_total }} 个字段，按当前字段约定确认。{% else %}{{ pkg.label }} 比 {{ prev_label }} {% set ch = changed %}{% if ch['新增'] or ch['类型改变'] or ch['缺少'] %}{% if ch['新增'] %}多 {{ ch['新增']|length }} 个字段（{% for d in ch['新增'] %}{{ d.file_code }} 的 {{ d.field }}{{ '、' if not loop.last }}{% endfor %}）{% endif %}{% if ch['类型改变'] %}{{ '，' if ch['新增'] }}{{ ch['类型改变']|length }} 个字段类型改变（{{ ch['类型改变']|map(attribute='field')|join('、') }}）{% endif %}{% if ch['缺少'] %}{{ '，' if ch['新增'] or ch['类型改变'] }}缺少 {{ ch['缺少']|length }} 个字段（{{ ch['缺少']|map(attribute='field')|join('、') }}）{% endif %}，其余沿用原约定{% else %}没有字段变化，全部沿用原约定{% endif %}。{% endif %}{% if pending %}目前还有 {{ pending|length }} 个待确认{% if pending|length <= 5 %}：{{ pending|map(attribute='field')|join('、') }}{% endif %}。未确认的字段不参与计算。{% else %}没有待确认的字段。{% endif %}</p>
+        </a>
+        {% endif %}
+
+        <p class="page-foot">校验报告生成于 {{ (checked_at or '')[:16] }} · {% if pkg.readonly_path %}只读副本 {{ pkg.readonly_path }}{% else %}有阻断，未保存只读副本{% endif %} · 数据包指纹 {{ fp8(pkg.fingerprint) }}</p>
+{% endblock %}

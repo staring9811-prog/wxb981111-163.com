@@ -17,11 +17,10 @@ from oppo.core import categories as CAT
 from oppo.core import compute as CMP
 from oppo.core import contract as CT
 from oppo.core import health as H
-from oppo.core import jobs
+from oppo.core import jobs, runs
 from oppo.core import ledger as LG
 from oppo.core import packages as PK
 from oppo.core import ranking as RK
-from oppo.core import runs
 from oppo.core import spu as SPU
 
 STEP_NAMES = ("导入校验", "字段约定", "数据体检", "SPU 归并", "成败与信号", "回测", "判定卡与排序", "记录与导出")
@@ -53,7 +52,7 @@ def _dur_text(s: dict[str, Any] | None) -> str:
     m = _minutes(s["started_at"], s["ended_at"])
     if m is None:
         return ""
-    return f" · {m} 分钟" if m >= 1 else " · 不到 1 分钟"
+    return f" · {max(1, m)} 分钟"
 
 
 def todo_items(conn: Connection, cid: int, mode: str) -> list[dict[str, Any]]:
@@ -103,7 +102,6 @@ def todo_items(conn: Connection, cid: int, mode: str) -> list[dict[str, Any]]:
     recs = LG.reconciliations(conn, cid)
     if recs:
         r = recs[0]
-        snap = r["snapshot"] or {}
         rate = r["top_hits"] / r["top_n"] if r["top_n"] else None
         avg = r["all_hits"] / r["all_n"] if r["all_n"] else None
         if r["mode"] == "cross":
@@ -170,7 +168,7 @@ def workbench_summary(conn: Connection, app: Any, mode: str = "history") -> dict
     elif pkg["conclusion"] == "block":
         add("block", f"{pkg['label']} 有阻断项")
     else:
-        add("done", f"{pkg['label']} · {'有警告' if pkg['conclusion'] == 'warn' else '通过'}"
+        add("done", f"{'有警告' if pkg['conclusion'] == 'warn' else '已完成'}"
             + _dur_text(_last_step(steps_rec, "导入校验", month)))
     blocked = pkg is not None and pkg["conclusion"] == "block"
     # 2 字段约定
@@ -181,7 +179,7 @@ def workbench_summary(conn: Connection, app: Any, mode: str = "history") -> dict
     elif pending_fields:
         add("attention", f"v{cv['version_no']} · {pending_fields} 个未确认")
     else:
-        add("done", f"v{cv['version_no']} · 全部已确认")
+        add("done", f"已完成 · v{cv['version_no']}")
     # 3 数据体检
     if pkg is None:
         add("todo", "导入后自动体检")
@@ -209,7 +207,7 @@ def workbench_summary(conn: Connection, app: Any, mode: str = "history") -> dict
     elif stale:
         add("stale", "需重算")
     else:
-        add("done", f"T={run_['t_month']}" + _dur_text(_last_step(steps_rec, "计算", month)))
+        add("done", "已完成" + _dur_text(_last_step(steps_rec, "计算", month)))
     # 6 回测
     if job and job["kind"] == "backtest":
         p = jobs.progress(job["id"]).get("progress") or 0
@@ -221,7 +219,7 @@ def workbench_summary(conn: Connection, app: Any, mode: str = "history") -> dict
     elif run_ and bt["compute_run_id"] != run_["id"]:
         add("done", f"沿用判定卡 {card['label']}" if card else "沿用上次回测")
     else:
-        mult = (bt["result"].get("test") or {}).get("multiple")
+        mult = (bt["result"].get("card") or {}).get("multiple")
         add("done", f"{bt['conclusion']}" + (f" {mult:.2f}×" if mult is not None else "")
             + _dur_text(_last_step(steps_rec, "回测", month)))
     # 7 判定卡与排序

@@ -28,7 +28,7 @@ def effective_attrs(c4: pd.DataFrame, cfg: dict[str, Any]) -> pd.DataFrame:
         stat = wide.get(f"{dim}__status")
         stat = stat.fillna("") if stat is not None else pd.Series([""] * len(wide))
         eff, bf = [], []
-        for v, s in zip(vals, stat):
+        for v, s in zip(vals, stat, strict=False):
             v = v.strip()
             if not v or v == UNKNOWN:
                 eff.append(UNKNOWN)

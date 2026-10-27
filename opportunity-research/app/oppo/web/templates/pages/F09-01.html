@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% import "partials/C-macros.html" as M %}
+{% block title %}本月排序{% endblock %}
+{% macro tips_cell(r) %}
+{% if r.tips %}
+{% set t0 = r.tips[0] %}
+{{ badge(t0.action) }} <a class="tlink mono" href="/kits#rule-{{ t0.rule }}">{{ t0.rule }}</a>
+{% for t in r.tips[1:] %}<div class="cell-sub">{{ (t.attr_note or '另适用').replace('限', '').replace('的商品', '') }}：{{ t.action }} <a class="tlink mono" href="/kits#rule-{{ t.rule }}">{{ t.rule }}</a></div>{% endfor %}
+{% else %}<span class="muted">无适用锦囊</span>{% endif %}
+{% endmacro %}
+{% block content %}
+        {% set cross = content.cross if content else mode == 'cross' %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>本月排序</h1>
+            <p class="page-head__sub">{{ T or '—' }} · 数据至 {{ (content.data_to if content else (pkg.months_to if pkg else '—')) }} · {{ '截面' if cross else '历史' }}口径{% if card %} · {{ badge(('判定卡 ' if card.mode == 'history' else '截面卡 ') ~ card.label.replace('截面 ', '') ~ ' ' ~ card.status, fmt.STATUS_BADGE.get(card.status, ('', ''))[0], fmt.STATUS_BADGE.get(card.status, ('', 'info'))[1]) }}{% endif %}</p>
+            {% if snap %}
+            <p class="page-head__sub">参照人群：{{ content.reference }}{% if cross %} · {{ CARD.CROSS_LINE_TEXT }}{% endif %} · <span class="lock">{{ icon('lock-simple') }}本月快照已保存（第 {{ snap.seq }} 版）· {{ snap.created_at[:16] }} · 保存后不可修改{% if snap.exported_at %} · 已导出 · {{ snap.exported_at[:16] }}{% endif %}</span></p>
+            {% endif %}
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="/ledger/snapshots">{{ icon('book-open-text') }}<span>在台账查看快照</span></a>
+            {% if snap %}
+            <a class="btn btn--primary" href="/ranking?export=1" data-open="#export-modal">{{ icon('export') }}<span>导出报告</span></a>
+            {% else %}
+            <button class="btn btn--primary" type="button" aria-disabled="true" data-tip="还没有本月排序">{{ icon('export') }}<span>导出报告</span></button>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if running_job and running_job.kind == 'backtest' %}
+        <p class="small muted enter" style="--i:1">{{ icon('circle-notch', 'spin') }} 回测运行中，完成后生成新排序；当前排序保持不变。</p>
+        {% endif %}
+        {% if card and card.status == '未验证' %}
+        <div class="banner banner--unverified enter" style="--i:1" role="alert">
+          {{ icon('warning') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div>
+            <div>判定卡 {{ card.label }} 未达标：{{ card.basis.reason_class or '—' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。排序照常显示，只能作参考。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/card">查看判定卡</a></div>
+        </div>
+        {% elif card and card.status == '达标（截面）' %}
+        <div class="banner banner--cross enter" style="--i:1" role="status">
+          {{ icon('intersect') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ CARD.CROSS_TEXT }}</div>
+            <div>本排序按截面卡 {{ card.label.replace('截面 ', '') }} 的上架 6 个月内命中概率排序；命中率为{{ CARD.CROSS_LINE_TEXT }}。</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if stale and snap %}
+        <div class="banner banner--stale enter" style="--i:1" role="status">
+          {{ icon('arrows-clockwise') }}
+          <div class="banner__body">
+            <div class="banner__title">当前排序基于旧版本，重算后会生成新快照（第 {{ snap.seq + 1 }} 版）</div>
+            <div>{{ stale|join('；') }}。在工作台点“全部重算”。</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if not snap %}
+        <section class="panel section enter" style="--i:1">
+          <div class="empty">
+            {{ icon('list-numbers') }}
+            <div class="empty__title">还没有 {{ T or '本月' }} 的排序</div>
+            <p class="empty__desc">运行回测生成判定卡后，系统会排序并保存本月快照。{% if older %}最近一次排序是 {{ older.label }}，可在台账查看。{% endif %}</p>
+            <a class="btn btn--primary" href="/backtest">去回测</a>
+          </div>
+        </section>
+        {% else %}
+        {% set avg = content.average %}
+        {% set eff_rows = content.rows|selectattr('effective')|list %}
+        {% set short_rows = content.rows|rejectattr('effective')|list %}
+        <section class="enter" style="--i:1" aria-labelledby="rank-title">
+          <div class="section__head">
+            <h2 class="section__title" id="rank-title">细分排序 · {{ content.rows|length }} 个</h2>
+            <span class="section__note">{% if cross %}按截面卡 {{ card.label.replace('截面 ', '') }} 的上架 6 个月内命中概率从高到低{% else %}按判定卡 {{ card.label }} 得分从高到低{% endif %}；得分相同时按样本量从大到小，再按细分名称排序</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="rank-table">
+              <thead>
+                <tr>
+                  <th class="t-num" scope="col">排名</th>
+                  <th scope="col">细分</th>
+                  <th class="t-num" scope="col">得分</th>
+                  <th scope="col">预期命中率（90% 区间）· 竖线为全类目平均 {{ P.pct1(avg.rate) }} {{ etag('n=' ~ (avg.n or 0)) }}</th>
+                  <th class="t-num" scope="col">样本量</th>
+                  <th scope="col">锦囊动作</th>
+                  <th scope="col">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in eff_rows %}
+                <tr data-href="/signals?segment={{ r.segment_key|urlencode }}" id="seg-{{ r.rank }}" data-segment="{{ r.segment_key }}">
+                  <td class="t-num">{{ r.rank }}</td>
+                  <td class="t-nowrap">{{ segname(r.segment) }}</td>
+                  <td class="t-num">{{ '%.2f'|format(r.score) if r.score is not none else '无数据' }}</td>
+                  <td class="t-nowrap">{{ ibar(r.point, r.ci, avg.rate, r.sample) }}<span class="ibar-text">{{ pct0(r.point) }}（{{ fmt.ci_text(r.ci) }}）</span>{{ etag('n=' ~ r.sample) }}{% if cross %}{{ etag('截面', 'cross') }}{% endif %}</td>
+                  <td class="t-num">{{ r.sample }}</td>
+                  <td>{{ tips_cell(r) }}</td>
+                  <td class="t-nowrap"><a class="btn btn--sm btn--ghost btn--icon" href="/signals?segment={{ r.segment_key|urlencode }}" aria-label="查看细分" data-tip="查看细分">{{ icon('eye') }}</a> <button class="btn btn--sm btn--ghost" type="button" data-open="#decision-modal" data-segment="{{ r.segment_key }}"{% if not decision_ctx %} aria-disabled="true" data-tip="记录立项决定暂不可用"{% endif %}>{{ icon('note-pencil') }}<span>记录决定</span></button></td>
+                </tr>
+                {% endfor %}
+                {% if short_rows %}
+                <tr class="table__divider">
+                  <td colspan="7">{{ icon('info') }} 样本不足 · {{ short_rows|length }} 个细分：已判定的起量新 SPU 少于 20 个，排在全部有效细分之后；区间很宽，锦囊动作仅供参考</td>
+                </tr>
+                {% for r in short_rows %}
+                <tr data-href="/signals?segment={{ r.segment_key|urlencode }}" id="seg-{{ r.rank }}" data-segment="{{ r.segment_key }}" data-insufficient>
+                  <td class="t-num">{{ r.rank }}</td>
+                  <td class="t-nowrap">{{ segname(r.segment) }}</td>
+                  <td class="t-num">{{ '%.2f'|format(r.score) if r.score is not none else '无数据' }}</td>
+                  <td class="t-nowrap">{{ ibar(r.point, r.ci, avg.rate, r.sample, grey=True) }}<span class="ibar-text">{{ pct0(r.point) }}（{{ fmt.ci_text(r.ci) }}）</span>{{ etag('n=' ~ r.sample) }}{% if cross %}{{ etag('截面', 'cross') }}{% endif %}</td>
+                  <td class="t-num">{{ r.sample }} {{ badge('样本不足') }}</td>
+                  <td>{{ tips_cell(r) }}</td>
+                  <td class="t-nowrap"><a class="btn btn--sm btn--ghost btn--icon" href="/signals?segment={{ r.segment_key|urlencode }}" aria-label="查看细分" data-tip="查看细分">{{ icon('eye') }}</a> <button class="btn btn--sm btn--ghost" type="button" data-open="#decision-modal" data-segment="{{ r.segment_key }}"{% if not decision_ctx %} aria-disabled="true" data-tip="记录立项决定暂不可用"{% endif %}>{{ icon('note-pencil') }}<span>记录决定</span></button></td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted" style="margin-top: var(--space-2)">预期命中率来自{% if cross %}截面回测{% else %}回测{% endif %} {{ bt.code if bt else '—' }}（Wilson 90% 区间）；样本量为细分内已判定的起量新 SPU 数。点击一行查看细分详情。</p>
+        </section>
+        {% endif %}
+
+        <p class="page-foot">{{ P.footer(vers, False) }}{% if snap %} · 快照 {{ snap.month }} 第 {{ snap.seq }} 版（{{ snap.created_at[:16] }}）{% endif %}</p>
+{% endblock %}
+{% block overlays %}
+{% if snap %}{% include "partials/F12-01.html" %}{% endif %}
+{% if decision_ctx %}{% include "partials/F10-02.html" ignore missing %}{% endif %}
+{% endblock %}

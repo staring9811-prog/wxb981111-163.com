@@ -78,7 +78,7 @@ def _run_mode(conn: Connection, category_id: int, pkg: dict[str, Any], mode: str
     T_now = add_months(latest, 1)
     cm = J.child_months(b.c1, b.c3)
     cm_by_child = {c: g.set_index("month") for c, g in cm.groupby("child")}
-    child_parent = dict(zip(kids["child"], kids["parent"]))
+    child_parent = dict(zip(kids["child"], kids["parent"], strict=False))
     pu = J.parent_units_by_parent(b.c1, cm, child_parent)
     rise_thr = float(cfg["rising_min_parent_units"])
     first_rise = pu[pu["parent_units"] >= rise_thr].groupby("parent")["month"].min().to_dict()
@@ -144,7 +144,7 @@ def _run_mode(conn: Connection, category_id: int, pkg: dict[str, Any], mode: str
     # brand already had a hit SPU known before this launch (REQ-F07-02 confounder)
     hits = spus[spus["status"].isin([J.HIT, J.X_HIT])]
     jr = pd.DataFrame(judg_rows)
-    hit_month = dict(zip(jr["spu_key"], jr["hit_month"])) if len(jr) else {}
+    hit_month = dict(zip(jr["spu_key"], jr["hit_month"], strict=False)) if len(jr) else {}
     prior = []
     for r in spus.itertuples():
         same = hits[(hits["brand"] == r.brand) & (hits["spu_key"] != r.spu_key)]

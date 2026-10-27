@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}台账 · 月度快照{% endblock %}
+{% block content %}
+{% set ledger_tab = 'snapshots' %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>台账</h1>
+            <p class="page-head__sub">月度快照、立项决定与到期对账 · 记录只追加，保存后不可修改</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn" type="button" data-cols-toggle="#snap-wrap" aria-pressed="false">{{ icon('columns') }}<span>列</span></button>
+            <a class="btn" href="/ranking?export=1">{{ icon('export') }}<span>导出本月报告</span></a>
+          </div>
+        </div>
+{% include "partials/D-tabs.html" %}
+
+        <div class="banner enter" style="--i:2">
+          {{ icon('lock-simple') }}
+          <div class="banner__body">
+            <div class="banner__title">快照保存后不可修改</div>
+            <div>每次生成排序都会自动保存一份快照（月份 + 第 n 版），连同锦囊和判定卡版本号一起封存。同月重算会另存新版本，旧版本保留。<strong>对账用当月最后一次导出的那版</strong>；当月从未导出时，用当月最后一版。</div>
+          </div>
+        </div>
+
+        {% if not snaps %}
+        <section class="panel section enter" style="--i:3">
+          <div class="empty">
+            {{ icon('book-open-text') }}
+            <div class="empty__title">还没有月度快照</div>
+            <p class="empty__desc">还没有月度快照。完成回测、生成本月排序后，这里会自动保存第一份快照。</p>
+            <a class="btn btn--primary" href="/">{{ icon('house') }}<span>去本月工作台</span></a>
+          </div>
+        </section>
+        {% else %}
+        <section class="section enter" style="--i:3" aria-labelledby="snap-title" data-filter-scope="#snap-table">
+          <div class="section__head">
+            <h2 class="section__title" id="snap-title">月度快照</h2>
+            <span class="section__note">当前显示 <span data-filter-count>{{ snaps|length }}</span> 个 · 共 {{ total }} 个{% if month_span %}，覆盖 {{ month_span[0] }}{% if month_span[0] != month_span[1] %} 至 {{ month_span[1] }}{% endif %}{% endif %} · 新的在上</span>
+          </div>
+          <div class="filters" role="group" aria-label="快照筛选">
+            <span class="filters__label">对账状态</span>
+            <button class="chip" type="button" data-filter="recon:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="recon:pending" aria-pressed="false">未到期 <span class="count">{{ counts.pending }}</span></button>
+            <button class="chip" type="button" data-filter="recon:done" aria-pressed="false">已对账 <span class="count">{{ counts.done }}</span></button>
+            <button class="chip" type="button" data-filter="recon:unused" aria-pressed="false">不用于对账 <span class="count">{{ counts.unused }}</span></button>
+            {% if mode_counts.history and mode_counts.cross %}
+            <span class="filters__sep" aria-hidden="true"></span>
+            <span class="filters__label">口径</span>
+            <button class="chip" type="button" data-filter="caliber:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="caliber:history" aria-pressed="false">历史 <span class="count">{{ mode_counts.history }}</span></button>
+            <button class="chip" type="button" data-filter="caliber:cross" aria-pressed="false">截面 <span class="count">{{ mode_counts.cross }}</span></button>
+            {% endif %}
+          </div>
+          <div class="table-wrap" id="snap-wrap">
+            <table class="table" id="snap-table">
+              <thead>
+                <tr>
+                  <th scope="col">快照</th>
+                  <th scope="col">判定卡</th>
+                  <th scope="col">口径</th>
+                  <th scope="col">生成时间</th>
+                  <th scope="col">导出</th>
+                  <th scope="col">对账状态</th>
+                  <th class="col-2" scope="col">内容指纹</th>
+                  <th scope="col"><span class="visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in snaps %}
+                  <tr data-recon="{{ s.recon }}" data-caliber="{{ s.mode }}" data-snapshot="{{ s.id }}">
+                    <td class="t-nowrap"><div class="cell-title">{{ s.label }}</div>{% if s.note %}<div class="cell-sub">{{ s.note }}</div>{% endif %}</td>
+                    <td class="t-nowrap">{{ s.card_label }} {{ badge(s.card_status) if s.card_status else '' }}</td>
+                    <td class="t-nowrap">{% if s.mode == 'cross' %}{{ badge('截面') }}{% else %}历史{% endif %}</td>
+                    <td class="t-nowrap num">{{ s.created_at[:16] }}</td>
+                    <td class="t-nowrap">{% if s.exported_at %}{{ icon('export') }} 已导出{% else %}<span class="muted">未导出</span>{% endif %}</td>
+                    <td class="t-nowrap">
+                      {% if s.recon == 'done' %}{% set rr = s.recon_rec %}
+                        {% if s.mode == 'cross' %}{{ badge('已对账（截面）', 'cross', 'intersect') }}{% else %}{{ badge('已对账') }}{% endif %}<div class="cell-sub"><a href="/ledger/reconcile/{{ rr.id }}">{{ rr.created_at[:10] }} · 倍数 {{ mult(rr.multiple) }}</a></div>
+                      {% elif s.recon == 'unused' %}
+                        {{ badge('不用于对账') }}<div class="cell-sub">{{ s.unused_reason }}</div>
+                      {% elif s.due_now %}
+                        {{ badge('可对账', 'watch', 'hourglass') }}<div class="cell-sub"><a href="/">待本月计算</a></div>
+                      {% else %}
+                        {{ badge('未到期') }}<div class="cell-sub">预计 {{ s.expected }}{% if s.export_hint %} · 导出后以导出版为准{% endif %}</div>
+                      {% endif %}
+                    </td>
+                    <td class="col-2"><span class="fp">{{ s.sha256[:8] }}</span></td>
+                    <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#snap-{{ s.id }}">{{ icon('eye') }}<span>查看快照</span></button></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div class="empty" data-filter-empty hidden>
+              <div class="empty__title">没有符合条件的快照</div>
+              <button class="btn btn--sm" type="button" data-filter-clear="#snap-table">清除筛选</button>
+            </div>
+          </div>
+          {% if pages > 1 %}
+          <div class="row" style="margin-top: var(--space-3)">
+            {% if page > 1 %}<a class="btn btn--sm" href="?page={{ page - 1 }}">上一页</a>{% endif %}
+            <span class="small muted">第 {{ page }} / {{ pages }} 页 · 每页 50 个</span>
+            {% if page < pages %}<a class="btn btn--sm" href="?page={{ page + 1 }}">下一页</a>{% endif %}
+          </div>
+          {% endif %}
+        </section>
+        {% endif %}
+
+        <p class="page-foot">快照存于本机 {{ data_dir }} · {% if bk_set %}每次导出后随台账自动备份到 {{ bk_set.directory }}{% if bk_ok %}（上次 {{ bk_ok.created_at[:16] }}）{% endif %}{% else %}还没有设置备份目录{% endif %} · 预计可对账月份 = 快照月份 + {{ window }} 个月的月更</p>
+{% endblock %}
+{% block overlays %}
+{% for s in snaps %}
+{% include "partials/D-snapshot-drawer.html" %}
+{% endfor %}
+{% endblock %}

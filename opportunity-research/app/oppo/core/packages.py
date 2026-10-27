@@ -206,9 +206,15 @@ def _check_file(fc: FileCheck) -> None:
     grade = _grade(len(bad_rows), total)
     sample = [_row_label(i) for i in sorted(bad_rows)[:5]]
     fields_txt = "、".join(bad_by_field) if bad_by_field else None
+    # Per-field breakdown for the report (rows and up to 3 example raw values per field).
+    detail = None
+    if bad_by_field:
+        detail = D.dumps({"by_field": {f: len(ix) for f, ix in bad_by_field.items()},
+                          "examples": {f: list(dict.fromkeys(df[f].iloc[ix[:20]].str.strip()))[:3]
+                                       for f, ix in bad_by_field.items()}})
     fc.items.append(dict(
         file_code=fc.code, field=fields_txt, check_name="parse", result=grade, affected_rows=len(bad_rows),
-        sample_rows_json=D.dumps(sample),
+        affected_note=detail, sample_rows_json=D.dumps(sample),
         excluded_rows_json=D.dumps([_row_label(i) for i in sorted(bad_rows)]) if grade == "warn" else None,
         message=(None if not bad_rows else
                  f"{len(bad_rows)} 行无法解析（{fields_txt}），占 {len(bad_rows) / total:.1%}" +
@@ -470,7 +476,7 @@ def import_package(conn: Connection, settings: Any, category_id: int, src: Path,
         if conclusion != "block":
             hstart = clock.now_iso()
             health.run(conn, category_id, pid)
-            runs.record_step(conn, category_id, "数据体检", hstart, clock.now_iso(), operator,
+            runs.record_step(conn, category_id, "数据体检", hstart, clock.now_iso(), "系统",
                              result="完成", link=f"/health?package={pid}", package_id=pid)
         return result
 
@@ -542,6 +548,121 @@ def _store_raw(conn: Connection, pid: int, fc: FileCheck, manifest: dict[str, An
                             "segment_or_attr": col("关联细分或属性"), "launch_date": col("上架日期"),
                             "asin": col("对应ASIN")})
         out.to_sql("raw_c7", conn, if_exists="append", index=False, chunksize=20000)
+
+
+# ---- preview before import (PAGE-F01-01 清单预览) ------------------------------------------------
+
+
+def _count_rows(path: Path) -> int | None:
+    """Data rows (header excluded) without parsing values."""
+    try:
+        if path.suffix.lower() in (".xlsx", ".xlsm"):
+            from openpyxl import load_workbook
+
+            wb = load_workbook(path, read_only=True)
+            n = max(0, (wb.active.max_row or 1) - 1)
+            wb.close()
+            return n
+        import csv
+
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            return max(0, sum(1 for _ in csv.reader(f)) - 1)
+    except Exception:  # noqa: BLE001 - an unreadable file shows as 无数据 in the preview
+        return None
+
+
+def preview(conn: Connection, settings: Any, category_id: int, src: Path) -> dict[str, Any]:
+    """Read the manifest and list the files of a package without importing it (AC-F01-05/06)."""
+    from oppo.core import categories as CAT
+
+    cfg = CAT.current_version(conn, category_id)["config"]
+    src = Path(src)
+    out: dict[str, Any] = {"source_name": src.name, "manifest_found": False, "kind": None, "kind_raw": None,
+                           "error": None, "files": [], "extra_files": [], "duplicate": None,
+                           "config": {"name": cfg.get("name"), "site": cfg.get("site"), "node": cfg.get("node")}}
+    if src.is_file():
+        out["size"] = src.stat().st_size
+    elif src.is_dir():
+        out["size"] = sum(p.stat().st_size for p in src.iterdir() if p.is_file())
+    tmp_root = settings.data_dir / "tmp"
+    tmp_root.mkdir(parents=True, exist_ok=True)
+    try:
+        with tempfile.TemporaryDirectory(dir=tmp_root) as tmp:
+            root = _materialize(src, Path(tmp))
+            manifest_path = next((root / m for m in MANIFEST_NAMES if (root / m).exists()), None)
+            all_files = sorted(p for p in root.iterdir() if p.is_file())
+            hashes = {p.name: sha256_file(p) for p in all_files}
+            fingerprint = hashlib.sha256("\n".join(sorted(hashes.values())).encode()).hexdigest()
+            out["fingerprint"] = fingerprint
+            dup = conn.execute(select(D.package.c.id, D.package.c.label, D.package.c.created_at).where(
+                D.package.c.category_id == category_id, D.package.c.fingerprint == fingerprint)).first()
+            if dup:
+                out["duplicate"] = {"id": dup[0], "label": dup[1], "created_at": dup[2]}
+            manifest: dict[str, Any] = {}
+            if manifest_path is None:
+                out["error"] = "missing"
+            else:
+                out["manifest_found"] = True
+                try:
+                    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    manifest = {}
+                out["kind_raw"] = str(manifest.get("类型", "")).strip()
+                out["kind"] = KIND_ALIASES.get(out["kind_raw"])
+                if out["kind"] is None:
+                    out["error"] = "kind"
+            out["manifest"] = manifest
+            cov = manifest.get("覆盖月份") or manifest.get("观察月份") or {}
+            out["months_from"], out["months_to"] = cov.get("起"), cov.get("止")
+            if out["months_from"] and out["months_to"]:
+                out["months_n"] = len(month_range(out["months_from"], out["months_to"]))
+            out["category"], out["site"], out["node"] = manifest.get("品类"), manifest.get("站点"), manifest.get("类目节点")
+            if out["kind"] and ((out["category"] and out["category"] != cfg.get("name")) or
+                                (out["site"] and out["site"] != cfg.get("site"))):
+                out["error"] = "category"
+            used: set[str] = set()
+            if out["kind"]:
+                dims = tuple(cfg.get("attribute_dims") or S.C4_DIMS)
+                specs = S.history_specs(dims) if out["kind"] == "history" else S.cross_specs(dims)
+                declared = manifest.get("文件") or {}
+                for fs in specs:
+                    name = declared.get(fs.code)
+                    path = root / name if name else None
+                    if path is None or not path.exists():
+                        guess = [p for p in all_files if p.name.upper().startswith(fs.code)]
+                        path = guess[0] if guess else None
+                    row = {"code": fs.code, "label": S.FILE_NAMES.get(fs.code, fs.code), "required": fs.required_file,
+                           "declared": name, "present": path is not None, "filename": path.name if path else None,
+                           "rows": _count_rows(path) if path else None,
+                           "sha": hashes.get(path.name) if path else None}
+                    if path is not None:
+                        used.add(path.name)
+                    out["files"].append(row)
+            out["extra_files"] = [p.name for p in all_files if p.name not in used and p != manifest_path]
+    except (zipfile.BadZipFile, ValueError, OSError) as exc:
+        out["error"] = "unreadable"
+        out["unreadable"] = f"{src.name} 无法读取：{getattr(exc, 'strerror', None) or exc}"
+    req = [f for f in out["files"] if f["required"]]
+    out["required_total"] = len(req)
+    out["required_present"] = sum(1 for f in req if f["present"])
+    out["optional_present"] = [f["code"] for f in out["files"] if not f["required"] and f["present"]]
+    out["missing_required"] = [f["code"] for f in req if not f["present"]]
+    out["can_import"] = out["error"] is None and out["duplicate"] is None
+    return out
+
+
+def file_codes_text(codes: list[str]) -> str:
+    """C1–C7 / S1–S3、C4 style range text for the package list."""
+    order = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"]
+    if all(c.startswith("C") for c in codes):
+        idx = sorted(order.index(c) for c in codes if c in order)
+        if idx and idx == list(range(idx[0], idx[-1] + 1)):
+            return f"{order[idx[0]]}–{order[idx[-1]]}" if len(idx) > 1 else order[idx[0]]
+        return "、".join(order[i] for i in idx)
+    s = [c for c in codes if c.startswith("S")]
+    rest = [c for c in codes if not c.startswith("S")]
+    head = f"{s[0]}–{s[-1]}" if len(s) > 1 else "".join(s)
+    return "、".join([head] + sorted(rest, key=lambda c: order.index(c) if c in order else 9))
 
 
 # ---- queries -------------------------------------------------------------------------------

@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}数据包{% endblock %}
+{% block content %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>数据包</h1>
+            <p class="page-head__sub">导入后只读保存并计算每个文件的指纹，后续计算只读取这份副本 · 当前历史数据包 {{ hist.label if hist else '—' }}，截面数据包 {{ cross.label if cross else '—' }}</p>
+          </div>
+        </div>
+
+        <section class="panel enter{% if focus_import %} is-focus{% endif %}" style="--i:1" aria-labelledby="import-title" id="import-panel">
+          <div class="panel__head">
+            <h2 class="panel__title" id="import-title">导入数据包</h2>
+            <span class="section__note">按清单文件声明的类型校验：历史数据包用约定 v1，截面数据包用约定 v1.1</span>
+          </div>
+          <div class="panel__body stack">
+            {% if error %}
+            <div class="banner banner--block" role="alert">
+              {{ icon('warning-octagon') }}
+              <div class="banner__body"><div class="banner__title">没有完成导入</div><div>{{ error }}</div></div>
+            </div>
+            {% endif %}
+            {% if not preview %}
+            <form class="dropzone" id="pkg-drop" data-stage-form action="/packages/stage" method="post" enctype="multipart/form-data">
+              {{ icon('file-zip') }}
+              <div style="flex:1; min-width:0">
+                <div class="strong">把 zip 或数据包文件夹拖到这里</div>
+                <div class="small muted">根目录需有清单文件，写明类型（历史 / 截面）、品类、站点、覆盖月份和文件列表</div>
+                <div class="row dz-path">
+                  <label class="visually-hidden" for="pkg-path">本机路径</label>
+                  <input class="input" id="pkg-path" name="path" type="text" placeholder="或粘贴本机路径，例如 D:\数据\浴室柜_数据包_202704.zip"{% if focus_import %} autofocus{% endif %}>
+                  <button class="btn btn--sm" type="submit" data-stage-path>读取</button>
+                </div>
+                <div class="field-error" data-error-for="path"></div>
+                <div class="small muted" data-stage-status hidden role="status"></div>
+              </div>
+              <label class="btn">选择 zip<input class="visually-hidden" type="file" accept=".zip" data-stage-zip></label>
+              <label class="btn">选择文件夹<input class="visually-hidden" type="file" webkitdirectory multiple data-stage-folder></label>
+            </form>
+            {% else %}
+            {% set pv = preview %}
+            <div class="stack" aria-labelledby="preview-title">
+              <div class="row">
+                {{ icon('file-zip' if pv.source_name.lower().endswith('.zip') else 'folder') }}
+                <h3 id="preview-title">{{ pv.source_name }}</h3>
+                <span class="small muted">{% if pv.size is not none %}{{ '%.1f'|format(pv.size / 1048576) }} MB · {% endif %}{{ (meta.read_at or '')[11:16] }} 读取清单文件</span>
+              </div>
+              {% if pv.duplicate %}
+              <div class="banner" role="status" data-dup>
+                {{ icon('info') }}
+                <div class="banner__body">
+                  <div class="banner__title">该数据包已导入</div>
+                  <div>{{ pv.files|selectattr('present')|list|length or '全部' }} 个文件的指纹与 {{ pv.duplicate.label }}（{{ pv.duplicate.created_at[:16] }} 导入）完全相同，没有新建版本。</div>
+                </div>
+                <div class="banner__actions">
+                  <a class="btn btn--sm" href="/packages/{{ pv.duplicate.id }}/report">查看 {{ pv.duplicate.label }}</a>
+                </div>
+              </div>
+              {% elif pv.error == 'missing' %}
+              <div class="banner banner--block" role="alert">
+                {{ icon('warning-octagon') }}
+                <div class="banner__body">
+                  <div class="banner__title">未找到清单文件，无法识别数据包类型</div>
+                  <div>请在数据包根目录放入清单文件后重新选择。清单需要写明：类型（历史 / 截面）、品类、站点、覆盖月份、文件列表。</div>
+                </div>
+              </div>
+              {% elif pv.error == 'kind' %}
+              <div class="banner banner--block" role="alert">
+                {{ icon('warning-octagon') }}
+                <div class="banner__body">
+                  <div class="banner__title">清单中的类型“{{ pv.kind_raw }}”无法识别，应为“历史”或“截面”</div>
+                  <div>清单需要写明：类型、品类、站点、覆盖月份、文件列表。</div>
+                </div>
+              </div>
+              {% elif pv.error == 'category' %}
+              <div class="banner banner--block" role="alert">
+                {{ icon('warning-octagon') }}
+                <div class="banner__body">
+                  <div class="banner__title">清单中的品类或站点与当前品类配置不一致</div>
+                  <div>清单：{{ pv.category or '—' }} · {{ pv.site or '—' }}；当前品类配置：{{ pv.config.name }} · {{ pv.config.site }}。导入会记为阻断，请切换品类或检查数据包。</div>
+                </div>
+              </div>
+              {% elif pv.error == 'unreadable' %}
+              <div class="banner banner--block" role="alert">
+                {{ icon('warning-octagon') }}
+                <div class="banner__body"><div class="banner__title">文件无法读取</div><div>{{ pv.unreadable }}；可重新选择。</div></div>
+              </div>
+              {% endif %}
+              {% if pv.manifest_found and pv.error != 'unreadable' %}
+              <div class="grid-2" style="align-items: start">
+                <dl class="kv">
+                  <dt>清单文件</dt><dd>{{ '已找到，类型可识别' if pv.kind else '已找到，类型无法识别' }}</dd>
+                  <dt>类型</dt><dd>{% if pv.kind == 'history' %}历史数据包 · 按约定 v1 校验{% elif pv.kind == 'cross' %}截面数据包 · 按约定 v1.1 校验{% else %}无法识别{% endif %}</dd>
+                  <dt>品类</dt><dd>{{ pv.category or '—' }}{% if pv.node %}（类目节点 {{ pv.node }}）{% endif %}</dd>
+                  <dt>站点</dt><dd>{{ {'US': '亚马逊美国'}.get(pv.site, pv.site or '—') }}</dd>
+                  <dt>覆盖月份</dt><dd>{% if pv.months_from %}{{ pv.months_from }}–{{ pv.months_to }} · {{ pv.months_n }} 个月{% else %}无数据{% endif %}</dd>
+                  <dt>文件</dt><dd>{{ pv.files|selectattr('present')|list|length }} 个：{% if pv.missing_required %}缺少必需文件 {{ pv.missing_required|join('、') }}{% else %}{{ '、'.join(pv.files|selectattr('required')|map(attribute='code')) }} 必需文件齐全{% endif %}{% if pv.optional_present %}，另有可选的 {{ pv.optional_present|join('、') }}{% endif %}</dd>
+                  <dt>指纹比对</dt><dd>{% if pv.duplicate %}全部文件与已有版本 {{ pv.duplicate.label }} 相同{% else %}与已有版本不同，导入后生成新版本{% endif %}</dd>
+                </dl>
+                <div class="table-wrap">
+                  <table class="table" id="preview-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">清单中的文件</th>
+                        <th scope="col">约定</th>
+                        <th class="t-num" scope="col">行数</th>
+                        <th scope="col">指纹（前 8 位）</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for f in pv.files %}
+                      <tr>
+                        <td>{{ f.label }}{% if not f.present %}<div class="cell-sub">{{ '缺失' if f.required else '未提供' }}</div>{% endif %}</td>
+                        <td class="small{% if not f.required %} muted{% endif %}">{{ '必需' if f.required else '可选' }}</td>
+                        <td class="t-num">{{ num(f.rows) if f.rows is not none else '—' }}</td>
+                        <td class="fp">{{ fp8(f.sha) }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {% elif pv.error == 'missing' and pv.extra_files %}
+              <p class="small muted">包内文件：{{ pv.extra_files|join('、') }}</p>
+              {% endif %}
+              <form class="row" id="import-form" data-ajax action="/packages/import" method="post">
+                <input type="hidden" name="staged" value="{{ staged }}">
+                <span class="spacer"></span>
+                <a class="btn btn--ghost" href="/packages">重新选择</a>
+                {% if importing %}
+                <button class="btn btn--primary" type="button" aria-disabled="true" data-tip="导入中|正在复制文件、计算指纹并校验"><span>导入中…</span></button>
+                {% elif busy %}
+                <button class="btn btn--primary" type="button" aria-disabled="true" data-tip="{{ job_label }}正在运行，完成后再试"><span>开始导入并校验</span></button>
+                {% elif pv.duplicate %}
+                <button class="btn btn--primary" type="button" aria-disabled="true" data-tip="该数据包已导入|没有新建版本，无需再导入"><span>开始导入并校验</span></button>
+                {% elif pv.error in ('missing', 'kind', 'unreadable') %}
+                <button class="btn btn--primary" type="button" aria-disabled="true" data-tip="{{ '清单缺失或类型无法识别，不能开始导入' if pv.error != 'unreadable' else '文件无法读取，请重新选择' }}"><span>开始导入并校验</span></button>
+                {% else %}
+                <button class="btn btn--primary" type="submit" data-import-submit><span>开始导入并校验</span></button>
+                {% endif %}
+              </form>
+              <div class="small muted" data-import-status hidden role="status"></div>
+            </div>
+            {% endif %}
+
+            <details class="small">
+              <summary>数据包需要哪些文件</summary>
+              <div class="grid-2" style="margin-top: var(--space-2); align-items: start">
+                <dl class="kv">
+                  <dt>历史 · 约定 v1</dt><dd>C1 月度类目商品、C2 新品清单、C3 新品月度轨迹、C4 属性标签、C5 关键词月度、C6 评论痛点为必需；C7 自家立项可选</dd>
+                </dl>
+                <dl class="kv">
+                  <dt>截面 · 约定 v1.1</dt><dd>S1 观察期月度类目商品、S2 新品期起量新品、S3 新品观察期月度数据、C4 属性标签为必需；C5–C7 可选，没有 C6 时缺少痛点信号</dd>
+                </dl>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:2" aria-labelledby="list-title" data-filter-scope="#pkg-table">
+          <div class="section__head">
+            <h2 class="section__title" id="list-title">数据包版本</h2>
+            <span class="section__note">共 {{ counts.all }} 个，新的在上 · 每种类型以最新通过校验的版本为当前</span>
+          </div>
+          {% if rows %}
+          <div class="filters" role="group" aria-label="类型筛选">
+            <span class="filters__label">类型</span>
+            <button class="chip" type="button" data-filter="type:all" aria-pressed="true">全部 <span class="count">{{ counts.all }}</span></button>
+            <button class="chip" type="button" data-filter="type:history" aria-pressed="false">历史 <span class="count">{{ counts.history }}</span></button>
+            <button class="chip" type="button" data-filter="type:cross" aria-pressed="false">截面 <span class="count">{{ counts.cross }}</span></button>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="pkg-table">
+              <thead>
+                <tr>
+                  <th scope="col">版本</th>
+                  <th scope="col">类型</th>
+                  <th scope="col">覆盖月份</th>
+                  <th scope="col">文件</th>
+                  <th scope="col">导入</th>
+                  <th scope="col">指纹</th>
+                  <th scope="col">校验结论</th>
+                  <th scope="col"><span class="visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in rows %}
+                <tr data-href="/packages/{{ r.id }}/report" data-type="{{ r.kind or 'none' }}">
+                  <td class="t-nowrap"><span class="cell-title mono">{{ r.label }}</span>{% if r.is_current %} {{ badge('当前') }}{% endif %}</td>
+                  <td>{% if r.kind == 'cross' %}{{ badge('截面') }}{% else %}{{ r.kind_label }}{% endif %}<div class="cell-sub">{{ r.contract_label or '清单无法识别' }}</div></td>
+                  <td class="t-nowrap">{% if r.months_from %}{{ r.months_from }}–{{ r.months_to }}<div class="cell-sub">{{ r.months_n }} 个月</div>{% else %}—{% endif %}</td>
+                  <td>{{ r.codes_text }}<div class="cell-sub">{{ r.n_files }} 个文件{% if r.files_note %} · {{ r.files_note }}{% endif %}</div></td>
+                  <td class="t-nowrap num">{{ r.created_at[:16] }}<div class="cell-sub">{{ r.created_by }}{% if r.source_name %} · {{ r.source_name }}{% endif %}</div></td>
+                  <td class="fp">{{ fp8(r.fingerprint) }}</td>
+                  <td>{{ badge(r.conclusion_label) }}{% if r.conclusion_sub %}<div class="cell-sub">{{ r.conclusion_sub }}</div>{% endif %}</td>
+                  <td class="t-nowrap"><a class="tlink small" href="/packages/{{ r.id }}/report">校验报告</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="panel">
+            <div class="empty">
+              {{ icon('package') }}
+              <div class="empty__title">还没有数据包</div>
+              <p class="empty__desc">历史数据包（约定 v1）：C1–C6 必需、C7 可选；截面数据包（约定 v1.1）：S1–S3、C4 必需，C5–C7 可选。</p>
+            </div>
+          </div>
+          {% endif %}
+        </section>
+
+        <p class="page-foot">只读副本保存在 {{ readonly_dir }} · 指纹为 SHA-256，列表显示前 8 位 · 数据包原件不进入备份，恢复后需要时重新导入，指纹会自动识别</p>
+{% endblock %}

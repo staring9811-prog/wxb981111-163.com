@@ -1,0 +1,108 @@
+{# Snapshot detail drawer (PAGE-F10-01). Expects `s` = snapshot state dict. #}
+{% set ct = s.content %}
+{% set avg = ct.average or {} %}
+{% set dom = 'snap-' ~ s.id %}
+        <aside class="drawer" id="{{ dom }}" role="dialog" aria-modal="true" aria-labelledby="{{ dom }}-title" aria-hidden="true"{% if open_id == s.id|string %} data-open-on-load{% endif %}>
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="{{ dom }}-title">{{ s.label }}</h2>
+              <p class="drawer__sub">月度快照 · {{ '历史' if s.mode == 'history' else '截面' }}口径 · 生成于 {{ s.created_at[:16] }} · 只读</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+          </div>
+          <div class="drawer__body stack-lg">
+            {% if s.card_status == '未验证' %}
+            <div class="banner banner--unverified">{{ icon('warning') }}<div class="banner__body"><div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div><div>快照保存时判定卡 {{ s.card_label }} 没有通过回测验证。</div></div></div>
+            {% elif s.mode == 'cross' %}
+            <div class="banner banner--cross">{{ icon('intersect') }}<div class="banner__body"><div class="banner__title">{{ CARD.CROSS_TEXT }}</div><div>这份快照来自截面回测；有历史结论后以历史为准。</div></div></div>
+            {% endif %}
+            <div class="banner">
+              {{ icon('lock-simple') }}
+              <div class="banner__body">
+                <div class="banner__title">快照保存后不可修改</div>
+                <div>排序、锦囊与版本号在生成时一并封存。内容指纹 <span class="fp">{{ s.sha256[:8] }}</span><button class="etag" type="button" data-pop-title="内容指纹" data-pop="算法=SHA-256;完整值={{ s.sha256 }};封存内容=排序 {{ ct.rows|length }} 个细分、锦囊 {{ s.tips|length }} 条、判定卡 {{ s.card_label }} 与版本号;保存时间={{ s.created_at[:16] }}">{{ icon('fingerprint') }}SHA-256</button></div>
+              </div>
+            </div>
+
+            <section aria-labelledby="{{ dom }}-ver">
+              <h3 id="{{ dom }}-ver">版本与对账</h3>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                <dt>判定卡</dt><dd>{{ s.card_label }} {{ badge(s.card_status) if s.card_status else '' }}</dd>
+                <dt>数据包</dt><dd>{{ ct.versions.package or '—' }}（数据至 {{ ct.data_to or '—' }}）</dd>
+                <dt>字段约定</dt><dd>{{ ct.versions.contract or '—' }}</dd>
+                <dt>品类配置</dt><dd>{{ ct.versions.config or '—' }}（细分按快照当时的配置划分）</dd>
+                <dt>导出</dt><dd>{{ ('已导出 · ' ~ s.exported_at[:16]) if s.exported_at else '未导出' }}</dd>
+                <dt>对账</dt><dd>
+                  {% if s.recon == 'done' %}{% set rr = s.recon_rec %}已对账 · {{ rr.created_at[:10] }}（对账月份 {{ rr.recon_month }}）· 前 20% {{ rr.top_hits }}/{{ rr.top_n }}，全类目 {{ rr.all_hits }}/{{ rr.all_n }}，倍数 {{ mult(rr.multiple) }}
+                  {% elif s.recon == 'unused' %}不用于对账：{{ s.unused_reason }}（DEC-006）
+                  {% elif s.due_now %}可对账，待本月计算（对应批次 {{ s.month }}）
+                  {% else %}未到期 · 预计 {{ s.expected }} 月更可对账（对应批次 {{ s.month }}）。{% if s.export_hint %}本月尚未导出：导出后以导出的那版为准；本月若再重算，将另存新版本。{% endif %}{% endif %}
+                  {% if s.decisions %}<div class="cell-sub">对应的立项记录：{% for d in s.decisions %}<a href="/ledger/decisions#{{ d.code|lower }}" class="mono">{{ d.code }}</a>{{ '、' if not loop.last }}{% endfor %}</div>{% endif %}
+                </dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="{{ dom }}-rank">
+              <div class="section__head">
+                <h3 id="{{ dom }}-rank">排序</h3>
+                <span class="section__note">{{ ct.rows|length }} 个细分：有效 {{ ct.effective }}、样本不足 {{ ct.insufficient }} · 前 20% 为前 {{ ct.top20.segments|length }} 名</span>
+              </div>
+              <p class="small muted" style="margin-bottom: var(--space-2)">竖线为全类目平均 {{ pct(avg.rate) }}{{ etag('n=' ~ (avg.n or 0)) }}</p>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr><th class="t-num" scope="col">排名</th><th scope="col">细分与预期命中率（90% 区间）</th><th class="t-num" scope="col">得分</th><th scope="col">锦囊</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for r in ct.rows if r.effective %}
+                    <tr>
+                      <td class="t-num">{{ r.rank }}</td>
+                      <td><div>{{ segname(r.segment) }}</div><div class="t-nowrap" style="margin-top: 2px">{{ ibar(r.point, r.ci, avg.rate, r.sample, grey=s.card_status == '未验证') }}<span class="ibar-text">{{ ci_text(r.ci) }}</span>{{ etag('n=' ~ r.sample) }}{% if s.mode == 'cross' %}{{ etag('截面', 'cross') }}{% endif %}</div></td>
+                      <td class="t-num">{{ '%.2f'|format(r.score) if r.score is not none else '无数据' }}</td>
+                      <td class="t-nowrap">{% if r.tips %}{{ badge(r.tips[0].action) }}<div class="cell-sub mono">{{ r.tips|map(attribute='rule')|join('、') }}</div>{% else %}<span class="muted">—</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if ct.insufficient %}
+                    <tr class="table__divider"><td colspan="4">样本不足 {{ ct.insufficient }} 个细分：新 SPU 少于 20 个，区间很宽，排在有效细分之后</td></tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section aria-labelledby="{{ dom }}-tips">
+              <div class="section__head">
+                <h3 id="{{ dom }}-tips">锦囊</h3>
+                <span class="section__note">{{ s.tips|length }} 条 · 状态为快照保存时的状态</span>
+              </div>
+              {% if s.tips %}
+              <div class="panel">
+                <ul class="list">
+                  {% for t in s.tips %}
+                  <li class="list__item">
+                    {{ icon(fmt.ACTION_BADGE.get(t.action, ('', 'info'))[1], 'list__icon') }}
+                    <div class="list__body">
+                      <div class="row"><span class="list__title mono">{{ t.rule }}</span>{{ badge(t.action) }}{{ badge(t.status) }}{% if s.mode == 'cross' %}{{ etag('截面', 'cross') }}{% endif %}</div>
+                      <div class="list__desc" style="color: var(--fg-2)">{{ t.cond }}{% if t.attr_note %}（{{ t.attr_note }}）{% endif %}</div>
+                      {% if t.ci and t.ci[0] is not none %}
+                      <div class="list__desc">预期命中率 {{ ci_text(t.ci) }} · 依据 {{ t.batches or '—' }} · 样本 {{ t.n }}{% if t.backtest %} · 回测 {{ t.backtest }}{% endif %}</div>
+                      {% else %}
+                      <div class="list__desc">预期命中率 {{ etag('无数据', 'nodata') }} · 未经回测</div>
+                      {% endif %}
+                      <div class="list__desc">适用细分：{{ t.segments|join('；') }}</div>
+                    </div>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+              {% else %}
+              <p class="small muted">这份快照没有锦囊。</p>
+              {% endif %}
+            </section>
+          </div>
+          <div class="drawer__foot">
+            {% if s.recon == 'done' %}<a class="btn" href="/ledger/reconcile/{{ s.recon_rec.id }}">{{ icon('seal-check') }}<span>在到期对账中查看</span></a>{% endif %}
+            {% if not s.exported_at and cur_snap and cur_snap.id == s.id %}<a class="btn" href="/ranking?export=1">{{ icon('export') }}<span>导出本月报告</span></a>{% endif %}
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>

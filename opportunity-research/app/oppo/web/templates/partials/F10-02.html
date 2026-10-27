@@ -1,0 +1,159 @@
+{# PAGE-F10-02 记录立项决定 modal. Context: decision_ctx (views.ledger.decision_ctx); optional `correct` = record to
+   correct. Opened by any button with data-open="#decision-modal" (data-segment / data-tab preselect). #}
+{% set dc = decision_ctx %}
+{% set corr = correct if correct is defined else none %}
+{% set corr_backfill = corr and (corr.kind == '补录' or (corr.kind == '更正' and not corr.snapshot_id)) %}
+{% set snap = dc.snapshot %}
+{% set preselect = corr.segment_key if corr else '' %}
+        <div class="modal" id="decision-modal" role="dialog" aria-modal="true" aria-labelledby="decision-title" aria-hidden="true"{% if corr %} data-open-on-load data-close-href="/ledger/decisions"{% elif open_modal is defined and open_modal %} data-open-on-load data-start-tab="{{ 'backfill' if open_modal == 'backfill' else 'decide' }}"{% endif %} data-decision-modal>
+          <div class="modal__dialog modal__dialog--wide">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="decision-title">{{ '更正立项记录' if corr else '记录立项决定' }}</h2>
+                <p class="modal__sub">{% if corr %}更正 <span class="mono">{{ corr.code }}</span> · 追加一条更正记录，原记录保留并标"已更正"{% else %}写入台账 · 立项记录{% if dc.month %} · {{ dc.month }} 月更{% endif %}{% endif %}</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body">
+              {% if not corr %}
+              <div class="tabs" role="tablist" aria-label="记录方式">
+                <a class="tab" role="tab" id="tab-decide" href="#panel-decide" aria-controls="panel-decide" aria-selected="true" data-dtab="decide">{{ icon('note-pencil') }}记录决定</a>
+                <a class="tab" role="tab" id="tab-backfill" href="#panel-backfill" aria-controls="panel-backfill" aria-selected="false" data-dtab="backfill">{{ icon('clock-counter-clockwise') }}补录在研立项</a>
+              </div>
+              {% endif %}
+
+              {% if not corr_backfill %}
+              <form id="panel-decide" role="tabpanel"{% if not corr %} aria-labelledby="tab-decide"{% endif %} class="stack-lg" data-guard data-ajax action="{{ ('/ledger/decisions/' ~ corr.code ~ '/correct') if corr else '/ledger/decisions' }}" novalidate>
+                <input type="hidden" name="mode" value="{{ dc.mode }}">
+                <input type="hidden" name="next" value="" data-next>
+                <div class="banner banner--block" data-form-error hidden role="alert">{{ icon('warning-octagon') }}<div class="banner__body" data-form-error-text></div></div>
+                {% if corr %}
+                <div class="banner">
+                  {{ icon('arrows-clockwise') }}
+                  <div class="banner__body"><span class="banner__title">更正 {{ corr.code }}。</span>保存后新增一条来源为"更正"的记录，{{ corr.code }} 标"已更正"并保留，两条记录互相链接；对应快照沿用原记录的 {{ corr.snapshot.label if corr.snapshot else '—' }}。</div>
+                </div>
+                {% elif not snap %}
+                <div class="banner banner--warn">
+                  {{ icon('warning') }}
+                  <div class="banner__body"><span class="banner__title">还没有快照。</span>请先生成本月排序；系统启用前的立项请用补录。</div>
+                </div>
+                {% else %}
+                <div class="banner">
+                  {{ icon('lock-simple') }}
+                  <div class="banner__body"><span class="banner__title">保存后不可修改。</span>录错时在立项记录中追加一条更正记录，原记录标"已更正"并保留。</div>
+                </div>
+                {% endif %}
+                {% if dc.card_status == '未验证' %}
+                <div class="banner banner--unverified">{{ icon('warning') }}<div class="banner__body"><div class="banner__title">{{ CARD.UNVERIFIED_TEXT }}</div></div></div>
+                {% elif dc.mode == 'cross' and snap %}
+                <div class="banner banner--cross">{{ icon('intersect') }}<div class="banner__body"><div class="banner__title">{{ CARD.CROSS_TEXT }}</div></div></div>
+                {% endif %}
+                <div class="form-grid">
+                  <div class="field span-2">
+                    <label class="field__label" for="d-seg">关联细分<span class="req">*</span></label>
+                    <select class="select" id="d-seg" name="segment_key" data-seg-select{% if not snap and not corr %} disabled{% endif %}>
+                      <option value=""{% if not preselect %} selected{% endif %}>选择细分</option>
+                      {% for k, name in dc.segments %}<option value="{{ k }}"{% if k == preselect %} selected{% endif %}>{{ name }}</option>{% endfor %}
+                    </select>
+                    <span class="field-error" data-error-for="segment_key"></span>
+                  </div>
+                  <div class="panel span-2">
+                    <div class="panel__body stack" style="padding-top: var(--space-3); padding-bottom: var(--space-3)">
+                      <p class="small muted" data-ctx-for=""{% if preselect %} hidden{% endif %}>选择细分后显示它在本月排序中的位置</p>
+                      {% for k, name in dc.segments %}
+                      {% set r = dc.by_key.get(k) %}
+                      <div class="stack" data-ctx-for="{{ k }}"{% if k != preselect %} hidden{% endif %}>
+                        {% if r %}
+                        <div class="row" style="gap: var(--space-2)"><span class="strong">{% if r.effective %}本月排第 {{ r.rank }} 名{% else %}本月排第 {{ r.rank }} 名 · 样本不足{% endif %}</span><span class="small muted">从{{ snap.label }}带入 · 有效细分 {{ dc.effective }} 个 · 得分 {{ '%.2f'|format(r.score) if r.score is not none else '无数据' }} · 随快照一起记录</span></div>
+                        <div class="row" style="gap: var(--space-4)"><span class="t-nowrap">{{ ibar(r.point, r.ci, dc.average.rate, r.sample, grey=dc.card_status == '未验证') }}<span class="ibar-text">{{ ci_text(r.ci) }}</span>{{ etag('n=' ~ r.sample) }}{% if dc.mode == 'cross' %}{{ etag('截面', 'cross') }}{% endif %}</span>
+                          {% if r.tips %}{% set t = r.tips[0] %}<span class="row" style="gap: var(--space-2)">{{ badge(t.action) }}<span class="mono small">{{ t.rule }}</span>{{ badge(t.status) }}</span>{% else %}<span class="small muted">没有锦囊</span>{% endif %}</div>
+                        {% else %}
+                        <div class="small muted">{{ name }} 不在{{ (' ' ~ snap.label) if snap else '本月排序' }}中：这个细分还没有已判定的起量新品。</div>
+                        {% endif %}
+                      </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {% set dec = corr.decision if corr else '立项' %}
+                  <div class="field" role="radiogroup" aria-labelledby="d-decision-label">
+                    <span class="field__label" id="d-decision-label">决定<span class="req">*</span></span>
+                    <div class="choice-group">
+                      <label class="choice"><input type="radio" name="decision" value="立项"{% if dec == '立项' %} checked{% endif %} data-decision>{{ icon('flag') }}立项</label>
+                      <label class="choice"><input type="radio" name="decision" value="不立项"{% if dec == '不立项' %} checked{% endif %} data-decision>{{ icon('prohibit') }}不立项</label>
+                    </div>
+                    <span class="field-error" data-error-for="decision"></span>
+                  </div>
+                  <div class="field" data-go-only{% if dec == '不立项' %} hidden{% endif %}>
+                    <label class="field__label" for="d-date">立项日期</label>
+                    <input class="input" id="d-date" name="project_date" type="date" max="{{ dc.today }}" value="{{ (corr.project_date if corr else dc.today) or dc.today }}">
+                    <span class="field-error" data-error-for="project_date"></span>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="d-name">立项名称（选填）</label>
+                    <input class="input" id="d-name" name="project_name" value="{{ corr.project_name or '' if corr else '' }}" placeholder="不填时以关联细分作为名称">
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="d-snap">{{ icon('lock-simple') }} 对应快照（自动带入）</label>
+                    <input class="input" id="d-snap" value="{% if corr %}{{ corr.snapshot.label if corr.snapshot else '无对应快照' }}{% elif snap %}{{ snap.label }}（判定卡 {{ snap.card_label }}）{% else %}还没有快照{% endif %}" readonly>
+                  </div>
+                  <div class="field span-2">
+                    <label class="field__label" for="d-reason">{{ '更正理由' if corr else '理由' }}<span class="req">*</span></label>
+                    <textarea class="textarea" id="d-reason" name="reason" required placeholder="{{ '写明哪里录错了、改成什么' if corr else '为什么立项或不立项，日后对账要看' }}"></textarea>
+                    <span class="field-error" data-error-for="reason"></span>
+                  </div>
+                </div>
+              </form>
+              {% endif %}
+
+              {% if not corr or corr_backfill %}
+              <form id="panel-backfill" role="tabpanel"{% if not corr %} aria-labelledby="tab-backfill" hidden{% endif %} class="stack-lg" data-guard data-ajax action="{{ ('/ledger/decisions/' ~ corr.code ~ '/correct') if corr else '/ledger/backfill' }}" novalidate>
+                <input type="hidden" name="next" value="" data-next>
+                <div class="banner banner--block" data-form-error hidden role="alert">{{ icon('warning-octagon') }}<div class="banner__body" data-form-error-text></div></div>
+                <div class="banner">
+                  {{ icon('clock-counter-clockwise') }}
+                  <div class="banner__body">{% if corr %}<span class="banner__title">更正补录记录 {{ corr.code }}。</span>保存后追加一条更正记录，原记录标"已更正"并保留。{% else %}<span class="banner__title">补录系统启用前已在研的立项。</span>记录标"补录"，没有对应快照；保存后同样不可修改，录错时追加更正记录。{% endif %}</div>
+                </div>
+                <div class="form-grid">
+                  <div class="field span-2">
+                    <label class="field__label" for="b-name">立项名称<span class="req">*</span></label>
+                    <input class="input" id="b-name" name="project_name" value="{{ corr.project_name or '' if corr else '' }}" placeholder="如：30″ 悬浮式双抽柜（ZR-2026-07）">
+                    <span class="field-error" data-error-for="project_name"></span>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="b-date">立项日期<span class="req">*</span></label>
+                    <input class="input" id="b-date" name="project_date" type="date" max="{{ dc.today }}" value="{{ corr.project_date or '' if corr else '' }}">
+                    <span class="field-error" data-error-for="project_date"></span>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="b-seg">关联细分<span class="req">*</span></label>
+                    <select class="select" id="b-seg" name="segment_key">
+                      <option value=""{% if not preselect %} selected{% endif %}>选择细分</option>
+                      {% for k, name in dc.segments %}<option value="{{ k }}"{% if corr_backfill and k == preselect %} selected{% endif %}>{{ name }}</option>{% endfor %}
+                    </select>
+                    <span class="field-error" data-error-for="segment_key"></span>
+                  </div>
+                  <div class="field span-2">
+                    <label class="field__label" for="b-basis">当时的研究依据（选填）</label>
+                    <textarea class="textarea" id="b-basis" name="basis_note" placeholder="如：2026 年初人工研究报告">{{ corr.basis_note or '' if corr else '' }}</textarea>
+                    <span class="field__hint">写明当时凭什么立项，日后对账时与结果并列展示</span>
+                  </div>
+                  {% if corr %}
+                  <div class="field span-2">
+                    <label class="field__label" for="b-reason">更正理由<span class="req">*</span></label>
+                    <textarea class="textarea" id="b-reason" name="reason" required></textarea>
+                    <span class="field-error" data-error-for="reason"></span>
+                  </div>
+                  {% endif %}
+                </div>
+              </form>
+              {% endif %}
+            </div>
+            <div class="modal__foot">
+              <span class="small muted" style="margin-right: auto">操作人 {{ operator }} · 时间在保存时自动记录</span>
+              <span class="small" data-dirty-hint hidden>有未保存的内容</span>
+              <button class="btn" type="button" data-close>取消</button>
+              {% if not corr_backfill %}<button class="btn btn--primary" type="submit" form="panel-decide" data-save data-submit-for="decide"{% if not snap and not corr %} disabled{% endif %}>保存记录</button>{% endif %}
+              {% if not corr or corr_backfill %}<button class="btn btn--primary" type="submit" form="panel-backfill" data-save data-submit-for="backfill"{% if not corr %} hidden{% endif %}>保存记录</button>{% endif %}
+            </div>
+          </div>
+        </div>

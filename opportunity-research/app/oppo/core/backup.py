@@ -8,6 +8,7 @@ a half-written file and never touches existing backups.
 from __future__ import annotations
 
 import os
+import shutil
 import sqlite3
 import uuid
 from datetime import datetime
@@ -29,31 +30,50 @@ def setting(conn: Connection) -> dict[str, Any] | None:
     return dict(row) if row else None
 
 
+def free_space(path: str) -> int | None:
+    try:
+        return shutil.disk_usage(path).free
+    except OSError:
+        return None
+
+
 def check_writable(path: str) -> tuple[bool, str]:
+    """Can a backup be written here? Creates the folder when its parent exists (NFR-002)."""
     p = Path(path)
+    if not str(path).strip():
+        return False, "请填写备份目录"
     try:
         p.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        return False, f"目录无法创建：{exc.strerror or exc}"
+        return False, f"不能写入：目录不存在且无法创建（{exc.strerror or exc}）。请换一个目录，或检查该目录的权限"
+    if not p.is_dir():
+        return False, "不能写入：这不是一个文件夹。请换一个目录"
     probe = p / f".oppo-probe-{uuid.uuid4().hex}"
     try:
         probe.write_bytes(b"ok")
         probe.unlink()
     except OSError as exc:
-        return False, f"目录不可写：{exc.strerror or exc}"
-    return True, "目录可写"
+        reason = "拒绝访问" if isinstance(exc, PermissionError) else (exc.strerror or str(exc))
+        return False, f"不能写入：{reason}。请换一个目录，或检查该目录的权限"
+    free = free_space(str(p))
+    if free is not None and free < 50 * 1024 * 1024:
+        return False, "不能写入：可用空间不足 50 MB。请换一个目录"
+    return True, "可以写入"
 
 
 def set_directory(conn: Connection, path: str, operator: str) -> tuple[bool, str]:
+    """Save the backup folder after checking it again; a folder that cannot be written is not saved."""
     path = (path or "").strip()
     if not path:
         return False, "请填写备份目录"
     ok, msg = check_writable(path)
+    if not ok:
+        return False, msg
     now = clock.now_iso()
     conn.execute(text("DELETE FROM backup_setting WHERE id=1"))
-    conn.execute(D.backup_setting.insert().values(id=1, directory=path, writable=int(ok), checked_at=now,
+    conn.execute(D.backup_setting.insert().values(id=1, directory=path, writable=1, checked_at=now,
                                                   updated_by=operator, updated_at=now))
-    return ok, msg
+    return True, msg
 
 
 def records(conn: Connection) -> list[dict[str, Any]]:
@@ -161,6 +181,43 @@ def list_files(conn: Connection) -> list[dict[str, Any]]:
     return out
 
 
+CONFIRM_SQL = ("SELECT (SELECT count(*) FROM change_log) + (SELECT count(*) FROM health_ack) + "
+               "(SELECT count(*) FROM merge_suggestion WHERE status IN ('confirmed','rejected'))")
+
+
+def _stats(scalar: Any) -> dict[str, Any]:
+    """The five backed-up kinds of content, summarised the way the restore dialog compares them."""
+    def q(sql: str) -> Any:
+        try:
+            return scalar(sql)
+        except Exception:  # noqa: BLE001 - a table missing from an older backup counts as empty
+            return None
+    return {
+        "snapshots": q("SELECT count(*) FROM snapshot") or 0,
+        "decisions": q("SELECT count(*) FROM decision_record") or 0,
+        "rules": q("SELECT count(*) FROM rule") or 0,
+        "rule_updated": (q("SELECT max(created_at) FROM rule_version") or "")[:10] or None,
+        "contract": q("SELECT max(version_no) FROM contract_version"),
+        "config": q("SELECT max(version_no) FROM category_version"),
+        "confirmations": q(CONFIRM_SQL) or 0,
+    }
+
+
+def current_stats(conn: Connection) -> dict[str, Any]:
+    return _stats(lambda sql: conn.execute(text(sql)).scalar())
+
+
+def file_stats(path: str | Path) -> dict[str, Any] | None:
+    try:
+        c = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    except sqlite3.Error:
+        return None
+    try:
+        return _stats(lambda sql: c.execute(sql).fetchone()[0])
+    finally:
+        c.close()
+
+
 class RestoreError(Exception):
     pass
 
@@ -178,10 +235,17 @@ def restore(app: Any, backup_path: Path, confirm: bool) -> dict[str, Any]:
         bk.close()
     except sqlite3.Error as exc:
         raise RestoreError(f"不是有效的备份文件：{exc}") from exc
+    from oppo.core import jobs
+
+    with app.engine.begin() as conn:
+        cur = jobs.running(conn)
+        if cur:
+            raise RestoreError(f"{jobs.JOB_LABELS.get(cur['kind'], cur['kind'])}正在运行，完成后再试")
     with app.engine.begin() as conn:
         pre = run_backup(app.settings.db_path, conn, "恢复前", app.operator, None)
     if pre["status"] != "success":
         raise RestoreError(f"恢复前备份当前状态失败，未恢复：{pre['error']}")
+    checked = 0
     with app.engine.connect() as conn:
         conn.exec_driver_sql("ATTACH DATABASE ? AS bk", (str(backup_path),))
         conn.commit()
@@ -196,6 +260,22 @@ def restore(app: Any, backup_path: Path, confirm: bool) -> dict[str, Any]:
                     if cols:
                         collist = ", ".join(f'"{c}"' for c in cols)
                         conn.exec_driver_sql(f'INSERT INTO main."{t}" ({collist}) SELECT {collist} FROM bk."{t}"')
+                for t in D.BACKUP_TABLES:  # NFR-002: check row by row before declaring success
+                    cols = [r[1] for r in raw.execute(f'PRAGMA bk.table_info("{t}")')]
+                    if not cols:
+                        continue
+                    collist = ", ".join(f'"{c}"' for c in cols)
+                    n_main = conn.exec_driver_sql(f'SELECT count(*) FROM main."{t}"').scalar()
+                    n_bk = conn.exec_driver_sql(f'SELECT count(*) FROM bk."{t}"').scalar()
+                    diff = conn.exec_driver_sql(
+                        f'SELECT count(*) FROM (SELECT {collist} FROM main."{t}" EXCEPT SELECT {collist} FROM bk."{t}")'
+                    ).scalar()
+                    diff2 = conn.exec_driver_sql(
+                        f'SELECT count(*) FROM (SELECT {collist} FROM bk."{t}" EXCEPT SELECT {collist} FROM main."{t}")'
+                    ).scalar()
+                    if n_main != n_bk or diff or diff2:
+                        raise RestoreError(f"恢复后核对不一致（{t}），已撤销恢复，当前数据保持恢复前的状态")
+                    checked += n_bk
                 for stmt in D.trigger_sql():
                     conn.exec_driver_sql(stmt)
                 conn.execute(D.restore_record.insert().values(
@@ -204,7 +284,7 @@ def restore(app: Any, backup_path: Path, confirm: bool) -> dict[str, Any]:
         finally:
             conn.exec_driver_sql("DETACH DATABASE bk")
             conn.commit()
-    return {"restored_from": str(backup_path), "backup_time": created, "pre_backup": pre}
+    return {"restored_from": str(backup_path), "backup_time": created, "pre_backup": pre, "checked_rows": checked}
 
 
 def last_restore(conn: Connection) -> dict[str, Any] | None:

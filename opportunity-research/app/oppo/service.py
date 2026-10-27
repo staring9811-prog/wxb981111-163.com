@@ -15,10 +15,9 @@ from oppo.core import backtest as BT
 from oppo.core import categories as CAT
 from oppo.core import compute as CMP
 from oppo.core import contract as CT
-from oppo.core import jobs
+from oppo.core import jobs, runs
 from oppo.core import packages as PK
 from oppo.core import ranking as RK
-from oppo.core import runs
 from oppo.core import spu as SPU
 
 

@@ -119,7 +119,7 @@ def suggest(b: DATA.Bundle, use_spu_no: bool, use_bullets: bool) -> list[dict[st
                 out.append(_suggestion(brand, grp, BASES[0], g, use_bullets))
         # 3. identical bullets (only when the field is provided and confirmed, D-29)
         if use_bullets:
-            for bn, sub in g[g["bnorm"] != ""].groupby("bnorm"):
+            for _bn, sub in g[g["bnorm"] != ""].groupby("bnorm"):
                 grp = sorted(sub.index)
                 if len(grp) > 1 and not any(frozenset(grp) <= t for t in taken):
                     taken.add(frozenset(grp))
@@ -282,21 +282,59 @@ def confirm_by_basis(conn: Connection, category_id: int, basis: str, operator: s
     return decide(conn, category_id, ids, "confirm", operator, source="批量确认")
 
 
+def parent_info(conn: Connection, package_id: int) -> dict[str, dict[str, Any]]:
+    """parent ASIN → brand, child count and a title, from the package's C2 (new products) and C1 rows."""
+    raw = conn.connection.driver_connection
+    c2 = pd.read_sql_query("SELECT child, parent, brand, title FROM raw_c2 WHERE package_id = ?", raw,
+                           params=(package_id,))
+    c1 = pd.read_sql_query("SELECT child, parent, brand, title, month FROM raw_c1 WHERE package_id = ? "
+                           "ORDER BY child, month", raw, params=(package_id,))
+    c1 = c1.groupby("child", as_index=False).first() if len(c1) else c1
+    allc = pd.concat([c2.assign(o=0), c1.drop(columns=["month"], errors="ignore").assign(o=1)], ignore_index=True)
+    allc = allc.dropna(subset=["child"]).sort_values(["child", "o"]).groupby("child", as_index=False).first()
+    out: dict[str, dict[str, Any]] = {}
+    for parent, g in allc.dropna(subset=["parent"]).groupby("parent"):
+        brands = g["brand"].dropna()
+        titles = g["title"].dropna().tolist()
+        out[str(parent)] = {"brand": str(brands.iloc[0]) if len(brands) else "",
+                            "children": int(g["child"].nunique()),
+                            "title": max(set(titles), key=titles.count) if titles else ""}
+    return out
+
+
 def revise(conn: Connection, category_id: int, code: str, operator: str, keep_parents: list[str] | None = None,
-           note: str = "") -> str | None:
-    """Split (keep_parents=None) or modify an active merge (AC-F04-05); returns the new merge code if any."""
+           note: str = "", add_parents: list[str] | None = None, package_id: int | None = None) -> str | None:
+    """Split (keep_parents=None) or modify an active merge (AC-F04-05); returns the new merge code if any.
+
+    add_parents: parent ASINs to bring into the merge; they must be in the package (`package_id`), share the
+    merge's brand and not belong to another active merge."""
     m = conn.execute(select(D.merge).where(D.merge.c.code == code, D.merge.c.category_id == category_id)
                      ).mappings().first()
     if m is None or m["status"] != "active":
         raise MergeError("该归并不存在或已失效")
     before = D.loads(m["parents_json"], [])
     now = clock.now_iso()
-    if keep_parents is None:
+    if keep_parents is None and not add_parents:
         conn.execute(D.merge.update().where(D.merge.c.id == m["id"]).values(
             status="split", ended_by=operator, ended_at=now, note=note or None))
         _log(conn, category_id, code, "拆分归并", before, [[p] for p in before], operator)
         return None
-    keep = sorted(set(keep_parents) & set(before))
+    keep = sorted(set(keep_parents if keep_parents is not None else before) & set(before))
+    extra = sorted({p.strip() for p in (add_parents or []) if p and p.strip()} - set(before))
+    if extra:
+        if package_id is None:
+            raise MergeError("没有当前数据包，不能加入父 ASIN")
+        info = parent_info(conn, package_id)
+        brand = next((info[p]["brand"] for p in before if p in info and info[p]["brand"]), None)
+        others = {p: x["code"] for x in active_merges(conn, category_id) if x["id"] != m["id"] for p in x["parents"]}
+        for p in extra:
+            if p not in info:
+                raise MergeError(f"父 ASIN {p} 不在当前数据包中")
+            if brand is not None and info[p]["brand"] != brand:
+                raise MergeError(f"父 ASIN {p} 的品牌是 {info[p]['brand'] or '未知'}，只能加入同品牌（{brand}）的父 ASIN")
+            if p in others:
+                raise MergeError(f"父 ASIN {p} 已在归并 {others[p]} 中，请先拆分那条归并")
+        keep = sorted(set(keep) | set(extra))
     if len(keep) < 2:
         raise MergeError("修改后至少要保留 2 个父 ASIN；只剩 1 个请用拆分")
     if keep == sorted(before):

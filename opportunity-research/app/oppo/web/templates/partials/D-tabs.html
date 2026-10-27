@@ -1,0 +1,5 @@
+        <nav class="tabs enter" style="--i:1" aria-label="台账">
+          <a class="tab" href="/ledger/snapshots"{% if ledger_tab == 'snapshots' %} aria-current="page"{% endif %}>月度快照 <span class="count">{{ tabs.snapshots }}</span></a>
+          <a class="tab" href="/ledger/decisions"{% if ledger_tab == 'decisions' %} aria-current="page"{% endif %}>立项记录 <span class="count">{{ tabs.decisions }}</span></a>
+          <a class="tab" href="/ledger/reconcile"{% if ledger_tab == 'reconcile' %} aria-current="page"{% endif %}>到期对账 <span class="count">{{ tabs.reconcile }}</span></a>
+        </nav>

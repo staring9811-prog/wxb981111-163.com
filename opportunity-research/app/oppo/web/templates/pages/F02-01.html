@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% block title %}字段约定{% endblock %}
+{% block content %}
+{% set h = health %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>字段约定</h1>
+            <p class="page-head__sub">逐个确认数据包里每个字段的含义和用法 · {% if cur %}当前 v{{ cur.version_no }}{% else %}还没有保存的版本{% endif %}{% if draft_pkg %} 基于数据包 {{ draft_pkg.label }}{% endif %} · 共 {{ total }} 个字段</p>
+          </div>
+          <div class="page-head__actions">
+            {% if changes %}<span class="small muted" style="align-self: center">{{ icon('note-pencil') }} 草稿有 {{ changes|length }} 个字段未保存为新版本</span>{% endif %}
+            <button class="btn" type="button" data-open="#history-drawer">{{ icon('clock-counter-clockwise') }}<span>版本记录</span></button>
+            {% if busy %}
+            <button class="btn" type="button" aria-disabled="true" data-tip="{{ job_label }}正在运行，完成后再保存">{{ icon('stack') }}<span>保存为新版本</span></button>
+            {% else %}
+            <button class="btn" type="button" data-open="#save-modal">{{ icon('stack') }}<span>保存为新版本</span></button>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if pending %}
+        <div class="banner banner--warn enter" style="--i:1" role="status" data-pending-banner>
+          {{ icon('prohibit') }}
+          <div class="banner__body">
+            <div class="banner__title">未确认的字段不参与计算</div>
+            <div>当前 {{ pending|length }} 个字段未确认{% if pending|length <= 6 %}：{% for p in pending %}{{ p.field }}（{{ p.file_label }}）{{ '、' if not loop.last }}{% endfor %}{% endif %}。成败、信号和回测都会排除它们，结果页会列出被排除的字段。</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if stale %}
+        <div class="banner banner--stale enter" style="--i:1" role="status">
+          {{ icon('arrows-clockwise') }}
+          <div class="banner__body">
+            <div class="banner__title">需重算</div>
+            <div>{{ stale|join('；') }}。依赖旧版本的成败、信号、回测和排序已标为需重算，旧结果仍可查看；系统不会自动重算。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/">去工作台</a></div>
+        </div>
+        {% endif %}
+
+        <div class="stats enter" style="--i:1; margin-top: var(--space-4)">
+          <div class="stat">
+            <div class="stat__label">当前版本</div>
+            <div class="stat__value">{{ ('v' ~ cur.version_no) if cur else '—' }}</div>
+            <div class="stat__meta">{% if cur %}{{ cur.created_at[:16] }} · {{ cur.created_by }} 保存{% else %}确认并保存后生成 v1{% endif %}</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">待确认</div>
+            <div class="stat__value">{{ pending|length }}<span class="stat__unit">个</span></div>
+            <div class="stat__meta">{% if cur %}只列变化字段：{{ draft_pkg.label if draft_pkg else '' }} 新增 {{ changed['新增']|length }} 个，缺少 {{ changed['缺少']|length }} 个，类型改变 {{ changed['类型改变']|length }} 个{% else %}首个数据包，全部字段待确认{% endif %}</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">已确认</div>
+            <div class="stat__value">{{ confirmed }}<span class="stat__unit">/ {{ total }}</span></div>
+            <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="{{ total }}" aria-valuenow="{{ confirmed }}" aria-label="已确认 {{ confirmed }} 个，共 {{ total }} 个"><i style="width:{{ (confirmed / total * 100)|round(2) if total else 0 }}%"></i></div>
+            <div class="stat__meta">已确认比例 {{ '%.1f'|format(confirmed / total * 100) if total else '0.0' }}%{{ etag('n=' ~ total) }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">快照字段</div>
+            <div class="stat__value">{{ snaps|length }}<span class="stat__unit">个</span></div>
+            <div class="stat__meta">{{ snaps|map(attribute='field')|join('、') or '无' }}{% if snaps %} · 回测不用{% endif %}</div>
+          </div>
+        </div>
+
+        <section class="panel section enter" style="--i:2" aria-labelledby="known-title">
+          <div class="panel__head">
+            <h2 class="panel__title" id="known-title">已知口径疑点</h2>
+            <span class="section__note">固定置顶 · 相关字段已按规则使用</span>
+          </div>
+          <div class="panel__body grid-2" style="row-gap: var(--space-4)">
+            {% set fs = h.get('family_span') %}
+            <div class="row" style="align-items: flex-start; flex-wrap: nowrap">
+              {{ icon('seal-question', 'list__icon list__icon--warn') }}
+              <div>
+                <div class="list__title">上架日期取“最早时间”</div>
+                <div class="list__desc">卖家精灵在多个时间中取最早值，可能早于真实开售。SPU 上架日取全部子体的最早值；{% if fs and fs.value is not none %}同一父体内跨度超过 180 天的家族 {{ num(fs.numerator) }} 个（{{ '%.1f'|format(fs.value) }}%{{ etag('n=' ~ num(fs.denominator)) }}）。{% else %}体检无数据。{% endif %}</div>
+              </div>
+            </div>
+            {% set fr = h.get('first_review_early') %}
+            <div class="row" style="align-items: flex-start; flex-wrap: nowrap">
+              {{ icon('seal-question', 'list__icon list__icon--warn') }}
+              <div>
+                <div class="list__title">首次评分日期可能是父体口径</div>
+                <div class="list__desc">{% if fr and fr.value is not none %}{{ '%.1f'|format(fr.value) }}%{{ etag('n=' ~ num(fr.denominator)) }} 的子体首评早于上架 7 天以上，{{ '超过' if fr.status in ('warn', 'acked') else '未超过' }}预警阈值 {{ '%g'|format(fr.threshold) }}%。{% else %}数据里没有首次评分日期。{% endif %}只用于“疑似重新上架”提示，不改动上架日。<a href="/health">看体检</a></div>
+              </div>
+            </div>
+            {% set bb = h.get('below_bought') %}
+            <div class="row" style="align-items: flex-start; flex-wrap: nowrap">
+              {{ icon('seal-question', 'list__icon list__icon--warn') }}
+              <div>
+                <div class="list__title">子体月销量是第三方估算</div>
+                <div class="list__desc">卖家精灵按流量词数把父体预测销量分摊到子体。累加到 SPU 和细分后使用，结果标“估算”{% if bb and bb.value is not none %}；{{ '%.1f'|format(bb.value) }}%{{ etag('n=' ~ num(bb.denominator)) }} 的子体-月低于“过去一个月购买”标签下界{% endif %}。</div>
+              </div>
+            </div>
+            <div class="row" style="align-items: flex-start; flex-wrap: nowrap">
+              {{ icon('seal-question', 'list__icon list__icon--warn') }}
+              <div>
+                <div class="list__title">价格与评分是快照</div>
+                <div class="list__desc">{% if snaps %}{{ snaps|map(attribute='field')|join('、') }} 是{% if snap_dates %} {{ snap_dates|join('、') }}{% endif %} 采集时的值，不代表历史月份，回测不用。{% else %}还没有确认为快照的字段。{% endif %}“低评”改用评论日期早于第 T 月的评论星级（C6）。</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:3" aria-labelledby="table-title" data-filter-scope="#field-table">
+          <div class="section__head">
+            <h2 class="section__title" id="table-title">字段</h2>
+            <span class="section__note">待确认与本月变化的字段排在最前，其余按文件顺序</span>
+          </div>
+          <div class="filters" role="group" aria-label="字段筛选">
+            <button class="chip" type="button" data-filter="view:all" aria-pressed="true">全部 <span class="count">{{ counts.all }}</span></button>
+            <button class="chip" type="button" data-filter="view:pending" aria-pressed="false">待确认 <span class="count">{{ counts.pending }}</span></button>
+            <button class="chip" type="button" data-filter="view:changed" aria-pressed="false">变化字段 <span class="count">{{ counts.changed }}</span></button>
+            <button class="chip" type="button" data-filter="view:snap" aria-pressed="false">快照 <span class="count">{{ counts.snap }}</span></button>
+            <button class="chip" type="button" data-filter="view:rule" aria-pressed="false">按规则用 <span class="count">{{ counts.rule }}</span></button>
+            <span class="spacer"></span>
+            <label class="search">{{ icon('magnifying-glass') }}<span class="visually-hidden">搜索字段</span><input class="input" type="search" placeholder="字段名或含义" data-field-search></label>
+          </div>
+
+          <div class="table-wrap" id="field-wrap">
+            <table class="table" id="field-table">
+              <thead>
+                <tr>
+                  <th class="t-check" scope="col"><label class="check"><input type="checkbox" data-select-all="#field-table" aria-label="全选当前筛选的字段"></label></th>
+                  <th scope="col">文件</th>
+                  <th scope="col">字段与含义</th>
+                  <th scope="col">粒度</th>
+                  <th scope="col">时点</th>
+                  <th scope="col">性质</th>
+                  <th scope="col">建议用法</th>
+                  <th scope="col">体检证据</th>
+                  <th scope="col">确认状态与来源</th>
+                  <th scope="col"><span class="visually-hidden">操作</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in rows %}
+                {% set is_open = opened == r.rid %}
+                <tr id="{{ r.rid }}" data-view="{{ r.views }}" data-field-row data-edit-id="edit-{{ r.rid }}" data-text="{{ r.file_code }} {{ r.field }} {{ r.meaning or '' }}" data-field="{{ r.key }}">
+                  <td class="t-check"><label class="check"><input type="checkbox" name="keys" value="{{ r.key }}" form="batch-form" data-row-check aria-label="选择{{ r.field }}"></label></td>
+                  <td class="mono" title="{{ r.file_label }}">{{ r.file_code }}</td>
+                  <td><div class="cell-title">{{ r.field }}{% if r.change_kind == '新增' %} {{ badge('本月新增') }}{% elif r.change_kind == '类型改变' %} {{ badge('类型改变', 'warn', 'arrows-clockwise') }}{% elif r.change_kind == '缺少' %} {{ badge('本月缺少', 'warn', 'minus') }}{% endif %}</div><div class="cell-sub">{{ r.meaning or '无数据' }}</div></td>
+                  <td class="small t-nowrap">{{ r.grain or '无数据' }}</td>
+                  <td class="small t-nowrap">{{ r.timing or '无数据' }}{% if r.timing == '快照' and r.snapshot_date %}<div class="cell-sub">{{ r.snapshot_date }} 采集</div>{% endif %}</td>
+                  <td class="small t-nowrap">{{ r.nature or '无数据' }}</td>
+                  <td class="t-nowrap">{% if r.usage == '按规则用' and r.rule_text %}<span class="small" tabindex="0" data-tip="规则|{{ r.rule_text }}" style="text-decoration: underline dotted; text-underline-offset: 3px">按规则用</span>{% else %}<span class="small">{{ r.usage or '无数据' }}</span>{% endif %}</td>
+                  <td><span class="small">{{ r.ev.text }}</span>{% if r.ev.n is not none and r.ev.pop %}{{ etag('n=' ~ num(r.ev.n), 'n', r.ev.pop, '体检证据 · ' ~ r.field) }}{% endif %}</td>
+                  <td class="t-nowrap">{% if r.status == 'confirmed' %}{{ badge('已确认') }}<div class="cell-sub">{{ '批量' if r.source == '批量确认' else (r.source or '逐项') }}{% if r.confirmed_in %} · v{{ r.confirmed_in }}{% else %} · 草稿{% endif %}</div>{% else %}{{ badge('待确认') }}<div class="cell-sub">{{ {'新增': '本月新增', '类型改变': '类型改变', '缺少': '本月缺少'}.get(r.change_kind, '首次确认') }} · 草稿建议</div>{% endif %}</td>
+                  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" data-expand="edit-{{ r.rid }}" aria-expanded="{{ 'true' if is_open else 'false' }}" aria-controls="edit-{{ r.rid }}" aria-label="{{ '收起' if is_open else '修改' }}{{ r.field }}的约定" data-tip="{{ '收起' if is_open else '展开修改含义与用法' }}">{{ icon('caret-up' if is_open else 'pencil-simple') }}</button></td>
+                </tr>
+                <tr data-view="{{ r.views }}" id="edit-{{ r.rid }}"{% if not is_open %} data-collapsed{% endif %}>
+                  <td colspan="10" style="background: var(--surface-warm); padding: var(--space-4) var(--space-5)">
+                    <form class="grid-2" data-ajax data-field-form action="/fields/item" method="post" aria-label="确认{{ r.field }}的约定" style="align-items: start">
+                      <input type="hidden" name="file_code" value="{{ r.file_code }}">
+                      <input type="hidden" name="field" value="{{ r.field }}">
+                      <div class="stack">
+                        <div class="field">
+                          <label class="field__label" for="{{ r.rid }}-meaning">含义</label>
+                          <input class="input" id="{{ r.rid }}-meaning" name="meaning" type="text" value="{{ r.meaning or '' }}">
+                          <div class="field-error" data-error-for="meaning"></div>
+                        </div>
+                        <div class="form-grid">
+                          <div class="field">
+                            <label class="field__label" for="{{ r.rid }}-grain">粒度</label>
+                            <select class="select" id="{{ r.rid }}-grain" name="grain">{% for g in r.grains %}<option{% if g == r.grain %} selected{% endif %}>{{ g }}</option>{% endfor %}</select>
+                          </div>
+                          <div class="field">
+                            <label class="field__label" for="{{ r.rid }}-nature">性质</label>
+                            <select class="select" id="{{ r.rid }}-nature" name="nature">{% for g in natures %}<option{% if g == r.nature %} selected{% endif %}>{{ g }}</option>{% endfor %}</select>
+                          </div>
+                          <div class="field">
+                            <label class="field__label" for="{{ r.rid }}-timing">时点</label>
+                            <select class="select" id="{{ r.rid }}-timing" name="timing">{% for g in timings %}<option{% if g == r.timing %} selected{% endif %}>{{ g }}</option>{% endfor %}</select>
+                          </div>
+                          <div class="field" data-snap-date>
+                            <label class="field__label" for="{{ r.rid }}-date">快照日期</label>
+                            <input class="input" id="{{ r.rid }}-date" name="snapshot_date" type="text" placeholder="YYYY-MM-DD" value="{{ r.snapshot_date or '' }}">
+                            <div class="field-error" data-error-for="snapshot_date"></div>
+                          </div>
+                        </div>
+                        <fieldset class="field" style="border: 0; margin: var(--space-4) 0 0; padding: 0">
+                          <legend class="field__label">建议用法</legend>
+                          <div class="choice-group" style="margin-top: var(--space-1)">
+                            {% for u in usages %}<label class="choice"><input type="radio" name="usage" value="{{ u }}"{% if u == r.usage %} checked{% endif %}>{{ u }}</label>{% endfor %}
+                          </div>
+                          <span class="field__hint">时点为快照时只能选“回测不用”：快照字段一律不进入回测信号计算</span>
+                        </fieldset>
+                        <div class="field">
+                          <label class="field__label" for="{{ r.rid }}-rule">规则（按规则用时必填）</label>
+                          <input class="input" id="{{ r.rid }}-rule" name="rule_text" type="text" value="{{ r.rule_text or '' }}">
+                          <div class="field-error" data-error-for="rule_text"></div>
+                        </div>
+                      </div>
+                      <div class="stack">
+                        <div class="strong">本数据包的体检证据</div>
+                        {% if r.ev.pop %}
+                        <dl class="kv">
+                          {% for k, v in r.ev.pop.items() %}<dt>{{ k }}</dt><dd{% if k == '示例值' %} class="mono"{% endif %}>{{ v }}</dd>{% endfor %}
+                        </dl>
+                        {% else %}
+                        <p class="small muted">无数据{% if r.change_kind == '缺少' %}：本数据包没有这个字段{% endif %}</p>
+                        {% endif %}
+                        <p class="small muted">草稿建议：{{ r.grain or '—' }} · {{ r.timing or '—' }} · {{ r.nature or '—' }} · {{ r.usage or '—' }}。{% if r.status != 'confirmed' %}确认前，{{ r.field }} 不参与任何计算。{% endif %}</p>
+                        <div class="field-error" data-form-error hidden></div>
+                        <div class="row">
+                          <span class="spacer"></span>
+                          <button class="btn btn--sm" type="submit" name="action" value="edit">确认修改</button>
+                          <button class="btn btn--sm" type="submit" name="action" value="confirm">{{ icon('check') }}<span>按建议确认</span></button>
+                        </div>
+                      </div>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="batchbar" data-batchbar="#field-table" hidden>
+            <span>已选 <strong data-batch-count>0</strong> 个字段</span>
+            <button class="btn btn--sm" type="button" data-open="#batch-modal">{{ icon('list-checks') }}<span>按建议批量确认</span></button>
+            <span class="spacer"></span>
+            <button class="btn btn--sm" type="button" data-batch-clear="#field-table">取消选择</button>
+          </div>
+          <div class="pager" data-pager>
+            <span data-pager-info>共 {{ total }} 个字段 · 每页 50 个</span>
+            <div class="pager__pages" data-pager-pages></div>
+          </div>
+        </section>
+        <p class="page-foot">字段约定 {{ ('v' ~ cur.version_no) if cur else '—' }}{% if draft_pkg %} · 数据包 {{ draft_pkg.label }}{% endif %} · 每次保存生成新版本，旧版本只追加不覆盖 · 草稿保存在本机，离开页面不丢</p>
+{% endblock %}
+{% block overlays %}
+        {% set next_no = (cur.version_no + 1) if cur else 1 %}
+        <div class="modal" id="save-modal" role="dialog" aria-modal="true" aria-labelledby="save-title" aria-hidden="true">
+          <form class="modal__dialog" data-ajax action="/fields/save" method="post">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="save-title">保存为字段约定 v{{ next_no }}</h2>
+                <p class="modal__sub">{% if cur %}在 v{{ cur.version_no }} 基础上保存{% else %}首次保存{% endif %}{% if draft_pkg %} · 数据包 {{ draft_pkg.label }}{% endif %} · 操作人 {{ operator }}{% if cur %} · v{{ cur.version_no }} 保留可查{% endif %}</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack-lg">
+              <section aria-labelledby="diff-title">
+                <h3 id="diff-title">变动摘要 · {{ changes|length }} 个字段</h3>
+                {% if diff %}
+                <div class="diff" style="margin-top: var(--space-3)">
+                  {% for k, old, new, note in diff[:40] %}<span class="diff__key">{{ k }}</span>{% if note %}<span class="small muted">{{ old }}</span>{% else %}<span class="diff__old">{{ old }}</span>{% endif %}<span class="diff__new">{{ new }}</span>{% endfor %}
+                </div>
+                {% if diff|length > 40 %}<p class="small muted" style="margin-top: var(--space-2)">另有 {{ diff|length - 40 }} 处修改，保存后可在版本记录中查看全部。</p>{% endif %}
+                <p class="small muted" style="margin-top: var(--space-3)">保存后待确认字段为 {{ pending_after }} 个{% if not pending_after %}，“未确认的字段不参与计算”提示随之消失{% endif %}。</p>
+                {% else %}
+                <p class="small muted" style="margin-top: var(--space-3)">草稿与{{ ' v' ~ cur.version_no if cur else '已保存版本' }}相比没有修改，不需要保存新版本。</p>
+                {% endif %}
+              </section>
+              {% if results %}
+              <div class="banner banner--stale">
+                {{ icon('arrows-clockwise') }}
+                <div class="banner__body">
+                  <div class="banner__title">依赖 v{{ cur.version_no if cur else '—' }} 的结果将标为“需重算”</div>
+                  <div>下列结果用的是当前字段约定，保存后标为“需重算”，旧结果仍可查看。系统不会自动重算，可在工作台点“全部重算”。已保存的月度快照不改动。</div>
+                </div>
+              </div>
+              <dl class="kv">
+                {% for k, v in results %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}
+              </dl>
+              {% endif %}
+              <div class="field">
+                <label class="field__label" for="save-note">修改说明</label>
+                <textarea class="textarea" id="save-note" name="note" placeholder="选填，显示在版本记录里"></textarea>
+              </div>
+              <div class="field-error" data-form-error hidden></div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="submit" data-save{% if not diff %} disabled{% endif %}>保存为 v{{ next_no }}</button>
+            </div>
+          </form>
+        </div>
+        <div class="modal" id="batch-modal" role="dialog" aria-modal="true" aria-labelledby="batch-title" aria-hidden="true">
+          <form class="modal__dialog" id="batch-form" data-ajax action="/fields/batch" method="post">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="batch-title">按建议批量确认</h2>
+                <p class="modal__sub">确认来源记为“批量确认” · 保存为新版本后生效</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+            <div class="modal__body stack">
+              <p>所选的 <strong data-batch-count>0</strong> 个字段将按草稿建议的含义、粒度、时点、性质和用法一次确认；已确认的字段不变。</p>
+              <label class="choice"><input type="checkbox" name="suggested_only" value="1" checked>只确认建议用法为“直接用”的字段</label>
+              <div class="banner">
+                {{ icon('info') }}
+                <div class="banner__body">建议先逐项看过“按规则用”的字段：它们的规则会直接影响成败判定和信号。</div>
+              </div>
+              <div class="field-error" data-form-error hidden></div>
+            </div>
+            <div class="modal__foot">
+              <button class="btn" type="button" data-close>取消</button>
+              <button class="btn btn--primary" type="submit">{{ icon('check') }}<span>按建议确认</span></button>
+            </div>
+          </form>
+        </div>
+        <aside class="drawer" id="history-drawer" role="dialog" aria-modal="true" aria-labelledby="history-title" aria-hidden="true">
+          <div class="drawer__head">
+            <div>
+              <h2 class="drawer__title" id="history-title">版本记录</h2>
+              <p class="drawer__sub">字段约定 · 共 {{ history|length }} 个版本 · 只追加，不覆盖</p>
+            </div>
+            <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+          </div>
+          <div class="drawer__body stack-lg">
+            {% if not history %}<p class="muted">还没有保存的版本。</p>{% endif %}
+            {% for v in history[:4] %}
+            <section aria-labelledby="v{{ v.version_no }}-title">
+              <div class="row">
+                <h3 class="mono" id="v{{ v.version_no }}-title">v{{ v.version_no }}</h3>
+                {% if loop.first %}{{ badge('当前') }}{% endif %}
+                <span class="small muted">{{ v.created_at[:16] }} · {{ v.created_by }}{% if v.package_label %} · 数据包 {{ v.package_label }}{% endif %} · 变动 {{ v.n_fields }} 个字段{% if v.note %} · {{ v.note }}{% endif %}</span>
+              </div>
+              {% if v.n_fields > 8 %}
+              <p class="small" style="margin-top: var(--space-2)">确认 {{ v.n_fields }} 个字段（批量 {{ v.batch }} 个，逐项 {{ v.n_fields - v.batch }} 个）。</p>
+              <details class="small"><summary>查看全部变动</summary>
+                <div class="diff" style="margin-top: var(--space-3)">
+                  {% for k, old, new, note in v.lines %}<span class="diff__key">{{ k }}</span>{% if note %}<span class="small muted">{{ old }}</span>{% else %}<span class="diff__old">{{ old }}</span>{% endif %}<span class="diff__new">{{ new }}</span>{% endfor %}
+                </div>
+              </details>
+              {% else %}
+              <div class="diff" style="margin-top: var(--space-3)">
+                {% for k, old, new, note in v.lines %}<span class="diff__key">{{ k }}</span>{% if note %}<span class="small muted">{{ old }}</span>{% else %}<span class="diff__old">{{ old }}</span>{% endif %}<span class="diff__new">{{ new }}</span>{% endfor %}
+              </div>
+              {% endif %}
+            </section>
+            {% endfor %}
+            {% if history|length > 4 %}
+            <details class="small">
+              <summary>更早的版本：v1–v{{ history[4].version_no }}</summary>
+              <dl class="kv" style="margin-top: var(--space-3)">
+                {% for v in history[4:] %}<dt class="mono">v{{ v.version_no }}</dt><dd>{{ v.created_at[:16] }} · {{ v.created_by }}{% if v.package_label %} · 数据包 {{ v.package_label }}{% endif %} · 变动 {{ v.n_fields }} 个字段{% if v.note %} · {{ v.note }}{% endif %}</dd>{% endfor %}
+              </dl>
+            </details>
+            {% endif %}
+          </div>
+          <div class="drawer__foot">
+            <button class="btn" type="button" data-close>关闭</button>
+          </div>
+        </aside>
+{% endblock %}

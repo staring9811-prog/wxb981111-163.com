@@ -35,7 +35,7 @@ build-backend = "setuptools.build_meta"
 include = ["oppo*"]
 
 [tool.setuptools.package-data]
-oppo = ["web/templates/**/*", "web/static/**/*"]
+oppo = ["web/templates/**/*", "web/static/**/*", "web/report/**/*", "migrations/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -44,6 +44,7 @@ addopts = "-q"
 [tool.ruff]
 line-length = 120
 target-version = "py314"
+extend-exclude = ["oppo/migrations/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]

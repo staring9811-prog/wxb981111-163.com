@@ -1,0 +1,223 @@
+{# PAGE-F12-01 导出报告：在本月排序页之上的弹窗（/ranking?export=1）。确认内容 → 生成中 → 结果。 #}
+{% set ed = export_done %}
+{% set exporting = running_job and running_job.kind == 'export' %}
+{% set first_step = 'result' if ed else ('running' if exporting else 'confirm') %}
+        <div class="modal" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" aria-hidden="true"{% if want_export or ed %} data-open-on-load{% endif %} data-close-href="/ranking" data-export-month="{{ snap.month }}" data-export-mode="{{ snap.mode }}" data-first-step="{{ first_step }}">
+          <div class="modal__dialog modal__dialog--wide">
+            <div class="modal__head">
+              <div>
+                <h2 class="modal__title" id="export-title">导出报告</h2>
+                <p class="modal__sub">{{ snap.month }} · 快照第 {{ snap.seq }} 版 · Excel 与网页报告</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭">{{ icon('x') }}</button>
+            </div>
+
+            <div class="tabs" role="tablist" aria-label="导出步骤" style="margin: 0; padding: var(--space-1) var(--space-5) 0">
+              <span class="tab" role="tab" data-step-tab="confirm" aria-selected="{{ 'true' if first_step == 'confirm' else 'false' }}">1 确认内容</span>
+              <span class="tab" role="tab" data-step-tab="running" aria-selected="{{ 'true' if first_step == 'running' else 'false' }}">2 生成中</span>
+              <span class="tab" role="tab" data-step-tab="result" aria-selected="{{ 'true' if first_step == 'result' else 'false' }}">3 结果</span>
+            </div>
+
+            <!-- 第 1 步：确认内容 -->
+            <div id="exp-confirm" role="tabpanel"{% if first_step != 'confirm' %} hidden{% endif %} style="min-height: 0; overflow-y: auto">
+              <div class="modal__body stack-lg">
+                {% if card and card.status == '未验证' %}
+                <div class="banner banner--unverified" role="alert">
+                  {{ icon('warning') }}
+                  <div class="banner__body">
+                    <div class="banner__title">判定卡未验证，不可作为立项结论</div>
+                    <div>未达标：{{ card.basis.reason_class or '—' }}{% if card.basis.reason_text %} · {{ card.basis.reason_text }}{% endif %}。导出文件首页将显示“{{ CARD.UNVERIFIED_TEXT }}”。</div>
+                  </div>
+                </div>
+                {% elif card and card.status == '达标（截面）' %}
+                <div class="banner banner--cross" role="status">
+                  {{ icon('intersect') }}
+                  <div class="banner__body">
+                    <div class="banner__title">{{ CARD.CROSS_TEXT }}</div>
+                    <div>导出文件首页将显示同一句；成败与命中率标“{{ CARD.CROSS_LINE_TEXT }}”。</div>
+                  </div>
+                </div>
+                {% endif %}
+                {% if stale %}
+                <div class="banner banner--warn" role="status">
+                  {{ icon('arrows-clockwise') }}
+                  <div class="banner__body">
+                    <div class="banner__title">当前结果需重算，本次导出的是快照第 {{ snap.seq }} 版（重算前生成）</div>
+                    <div>{{ stale|join('；') }}。仍可导出。</div>
+                  </div>
+                </div>
+                {% endif %}
+                {% if not backup_setting or not backup_setting.directory %}
+                <div class="banner banner--warn" role="status">
+                  {{ icon('warning') }}
+                  <div class="banner__body">
+                    <div class="banner__title">导出前请先设置备份目录</div>
+                    <div>仍可导出；没有备份目录时，自动备份按失败记录。<a href="/settings/backup">去设置备份目录</a></div>
+                  </div>
+                </div>
+                {% endif %}
+                <dl class="kv">
+                  <dt>排序月份</dt><dd>{{ snap.month }}（数据至 {{ content.data_to }}）</dd>
+                  <dt>快照</dt><dd><span class="lock">{{ icon('lock-simple') }}第 {{ snap.seq }} 版 · {{ snap.created_at[:16] }} 保存，不可修改</span></dd>
+                  <dt>判定卡</dt><dd>{{ card.label }} {{ badge(card.status) }}{% if bt_view %} · 回测 {{ bt_view.code }} · 倍数 {{ mult(bt_view.multiple) }}{% endif %}</dd>
+                  <dt>口径</dt><dd>{{ '截面（' ~ CARD.CROSS_LINE_TEXT ~ '）' if snap.mode == 'cross' else '历史（判定卡状态以历史口径为准）' }}</dd>
+                  <dt>参照人群</dt><dd>{{ content.reference }}</dd>
+                  <dt>版本</dt><dd>数据包 {{ content.versions.package }} · 字段约定 {{ content.versions.contract }} · 品类配置 {{ content.versions.config }}</dd>
+                </dl>
+                <div class="panel">
+                  <ul class="list">
+                    <li class="list__item">
+                      {{ icon('file-xls', 'icon--lg list__icon') }}
+                      <div class="list__body">
+                        <div class="list__title">Excel · {{ sheets|length }} 张工作表</div>
+                        <div class="list__desc">{{ sheets[:5]|join('、') }}、台账（快照、立项记录、对账）、{{ sheets[-1] }}</div>
+                      </div>
+                    </li>
+                    <li class="list__item">
+                      {{ icon('file-html', 'icon--lg list__icon') }}
+                      <div class="list__body">
+                        <div class="list__title">网页报告 · 单个 HTML 文件</div>
+                        <div class="list__desc">结论在首屏，依据可展开；结果接收方不装系统、不联网也能打开</div>
+                      </div>
+                    </li>
+                    <li class="list__item">
+                      {{ icon('folder-simple', 'icon--lg list__icon') }}
+                      <div class="list__body">
+                        <div class="list__title">保存到</div>
+                        <div class="list__desc fp">{{ exports_dir }}</div>
+                      </div>
+                    </li>
+                    <li class="list__item">
+                      {{ icon('archive', 'icon--lg list__icon') }}
+                      <div class="list__body">
+                        <div class="list__title">导出后自动备份</div>
+                        <div class="list__desc">台账、策略库、字段约定、品类配置和全部确认记录 → <span class="fp">{{ backup_setting.directory if backup_setting and backup_setting.directory else '（未设置备份目录）' }}</span></div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <p class="small muted">两个文件的首页都写明判定卡版本与状态、口径和参照人群。</p>
+                <div class="banner banner--block" data-export-error hidden role="alert">{{ icon('warning-octagon') }}<div class="banner__body"><div class="banner__title">没有开始导出</div><div data-export-error-text></div></div></div>
+              </div>
+              <div class="modal__foot">
+                <button class="btn" type="button" data-close>取消</button>
+                {% if running_job and not exporting %}
+                <button class="btn btn--primary" type="button" aria-disabled="true" data-tip="{{ running_label }}正在运行，完成后再试">{{ icon('export') }}<span>开始导出</span></button>
+                {% else %}
+                <button class="btn btn--primary" type="button" data-export-start>{{ icon('export') }}<span>开始导出</span></button>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- 第 2 步：生成中 -->
+            <div id="exp-running" role="tabpanel"{% if first_step != 'running' %} hidden{% endif %} style="min-height: 0; overflow-y: auto" data-exporting="{{ '1' if exporting else '' }}">
+              <div class="modal__body stack-lg">
+                <div>
+                  <div class="row"><span class="strong" data-run-title>正在生成</span><span class="spacer"></span><span class="small muted num" data-run-meta>0% · 已用 0 秒</span></div>
+                  <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="导出进度" data-run-meter><i style="width:0%"></i></div>
+                </div>
+                <div class="panel">
+                  <ul class="list">
+                    <li class="list__item" data-substep="snapshot">
+                      {{ icon('clock', 'list__icon') }}
+                      <div class="list__body"><div class="list__title">读取快照 {{ snap.month }} 第 {{ snap.seq }} 版</div><div class="list__desc" data-desc>等待</div></div>
+                    </li>
+                    <li class="list__item" data-substep="excel">
+                      {{ icon('clock', 'list__icon') }}
+                      <div class="list__body"><div class="list__title">写入 Excel</div><div class="list__desc" data-desc>等待</div></div>
+                    </li>
+                    <li class="list__item" data-substep="html">
+                      {{ icon('clock', 'list__icon') }}
+                      <div class="list__body"><div class="list__title">生成网页报告</div><div class="list__desc" data-desc>等待</div></div>
+                    </li>
+                    <li class="list__item" data-substep="backup">
+                      {{ icon('clock', 'list__icon') }}
+                      <div class="list__body"><div class="list__title">自动备份</div><div class="list__desc" data-desc>等待 · 导出完成后开始</div></div>
+                    </li>
+                  </ul>
+                </div>
+                <div class="banner banner--block" data-run-error hidden role="alert">{{ icon('warning-octagon') }}<div class="banner__body"><div class="banner__title">导出失败</div><div data-run-error-text></div><div class="small">没有留下不完整的文件；快照未标为“已导出”。</div></div><div class="banner__actions"><button class="btn btn--sm" type="button" data-export-start>重试</button></div></div>
+                <p class="small muted">可以关闭此窗口，导出在后台继续，进度显示在顶栏，完成后提示。</p>
+              </div>
+              <div class="modal__foot">
+                <button class="btn" type="button" data-close>在后台继续</button>
+              </div>
+            </div>
+
+            <!-- 第 3 步：结果 -->
+            <div id="exp-result" role="tabpanel"{% if first_step != 'result' %} hidden{% endif %} style="min-height: 0; overflow-y: auto">
+              {% if ed %}
+              {% set es = ed.snapshot %}
+              <div class="modal__body stack-lg">
+                <div class="banner banner--ok" role="status">
+                  {{ icon('check-circle') }}
+                  <div class="banner__body">
+                    <div class="banner__title">导出完成 · {{ ed.created_at[:16] }}</div>
+                    <div>{{ es.month }} 快照第 {{ es.seq }} 版 · {{ '判定卡 ' if es.mode == 'history' else '截面卡 ' }}{{ es.card_label.replace('截面 ', '') }} {{ es.card_status }} · {{ '截面' if es.mode == 'cross' else '历史' }}口径。快照已标为“已导出”，对账用本月最后一次导出的快照。</div>
+                  </div>
+                </div>
+
+                <section aria-labelledby="exp-files-title">
+                  <div class="section__head">
+                    <h3 id="exp-files-title">文件</h3>
+                    <button class="btn btn--sm" type="button" data-reveal="/exports/{{ ed.id }}/open">{{ icon('folder-open') }}<span>打开所在文件夹</span></button>
+                  </div>
+                  <div class="panel">
+                    <ul class="list">
+                      <li class="list__item" data-file="xlsx">
+                        {{ icon('file-xls', 'icon--lg list__icon') }}
+                        <div class="list__body">
+                          <div class="list__title">Excel · {{ sheets|length }} 张工作表 · {{ P.size_text(ed.xlsx_size) }}</div>
+                          <div class="list__desc fp">{{ ed.xlsx_path }}</div>
+                        </div>
+                      </li>
+                      <li class="list__item" data-file="html">
+                        {{ icon('file-html', 'icon--lg list__icon') }}
+                        <div class="list__body">
+                          <div class="list__title">网页报告 · 单个文件，离线可打开 · {{ P.size_text(ed.html_size) }}</div>
+                          <div class="list__desc fp">{{ ed.html_path }}</div>
+                        </div>
+                        <a class="btn btn--sm list__action" href="/exports/{{ ed.id }}/html" target="_blank" rel="noopener">{{ icon('arrow-square-out') }}<span>打开网页报告</span></a>
+                      </li>
+                    </ul>
+                  </div>
+                </section>
+
+                <section aria-labelledby="exp-backup-title">
+                  <div class="section__head">
+                    <h3 id="exp-backup-title">自动备份</h3>
+                    <a class="small" href="/settings/backup">备份与恢复</a>
+                  </div>
+                  <div class="panel">
+                    <ul class="list">
+                      {% set b = ed.backup %}
+                      {% if b and b.status == 'success' %}
+                      <li class="list__item" data-backup="success">
+                        {{ icon('check-circle', 'list__icon list__icon--ok') }}
+                        <div class="list__body">
+                          <div class="list__title">备份完成 · {{ b.created_at[:16] }} · {{ P.size_text(b.size) }}</div>
+                          <div class="list__desc">台账、策略库、字段约定、品类配置和全部确认记录，附数据包指纹清单</div>
+                          <div class="list__desc fp">{{ b.path }}</div>
+                        </div>
+                      </li>
+                      {% else %}
+                      <li class="list__item" data-backup="failed">
+                        {{ icon('warning-octagon', 'list__icon list__icon--danger') }}
+                        <div class="list__body">
+                          <div class="list__title">备份失败：{{ b.error if b else '没有备份记录' }}</div>
+                          <div class="list__desc">上次成功备份：{{ ed.last_success.created_at[:16] if ed.last_success else '还没有成功的备份' }} · 已有备份未改动 · 导出的文件不受影响</div>
+                        </div>
+                        <span class="row list__action"><button class="btn btn--sm" type="button" data-backup-retry="/exports/{{ ed.id }}/backup">重试备份</button><a class="btn btn--sm" href="/settings/backup">去设置备份目录</a></span>
+                      </li>
+                      {% endif %}
+                    </ul>
+                  </div>
+                </section>
+              </div>
+              {% endif %}
+              <div class="modal__foot">
+                <button class="btn" type="button" data-close>完成</button>
+              </div>
+            </div>
+          </div>
+        </div>

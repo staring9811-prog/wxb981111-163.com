@@ -267,3 +267,22 @@ REQUIRED_FOR_COMPUTE = {
 
 def pending_count(conn: Connection, category_id: int) -> int:
     return sum(1 for it in draft_items(conn, category_id) if it["status"] != "confirmed")
+
+
+def confirm_started_at(conn: Connection, category_id: int) -> str | None:
+    """Start of the current 字段确认 step: the earliest draft change since the last saved version."""
+    cur = current_version(conn, category_id)
+    since = cur["created_at"] if cur else ""
+    row = conn.execute(text("SELECT MIN(updated_at) FROM contract_draft_item WHERE category_id=:c AND updated_at > :s"),
+                       {"c": category_id, "s": since or ""}).first()
+    return row[0] if row and row[0] else None
+
+
+def evidence(conn: Connection, package_id: int) -> dict[tuple[str, str], dict[str, Any]]:
+    """Field evidence recorded at import (non-null share, example, same-value-across-months share)."""
+    out: dict[tuple[str, str], dict[str, Any]] = {}
+    for fc, fname, dtype, ev in conn.execute(select(D.package_field.c.file_code, D.package_field.c.field,
+                                                    D.package_field.c.dtype, D.package_field.c.evidence_json)
+                                             .where(D.package_field.c.package_id == package_id)):
+        out[(contract_code(fc), fname)] = {"dtype": dtype, "file": fc, **(D.loads(ev, {}) or {})}
+    return out

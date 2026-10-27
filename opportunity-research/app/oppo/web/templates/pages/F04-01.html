@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}新品与 SPU{% endblock %}
+{% macro sort_th(label, key, cls='') -%}
+{%- set cur = (filters.sort or 'launch') == key -%}
+{%- set nd = 'asc' if cur and (filters.dir or 'desc') == 'desc' else 'desc' -%}
+<th class="{{ cls }}" scope="col"><a class="th-sort b-th" href="{{ url(sort=key, dir=nd) }}"{% if cur %} aria-sort="{{ 'descending' if (filters.dir or 'desc') == 'desc' else 'ascending' }}"{% endif %}>{{ label }}{% if cur %}{{ icon('caret-down' if (filters.dir or 'desc') == 'desc' else 'caret-up') }}{% endif %}</a></th>
+{%- endmacro %}
+{% macro pager_nav(pg) -%}
+<div class="pager">
+  <span>{% if pg.total %}第 {{ pg.lo + 1 }}–{{ pg.hi }} 个，共 {{ num(pg.total) }} 个 · 每页 50 个{% else %}共 0 个{% endif %}</span>
+  {% if pg.pages > 1 %}
+  <div class="pager__pages b-pager">
+    <a class="pager__btn" href="{{ url(page=[pg.page - 1, 1]|max) }}" aria-label="上一页"{% if pg.page == 1 %} aria-disabled="true"{% endif %}>{{ icon('caret-left') }}</a>
+    {% for p in pg.show %}{% if p is none %}<span class="pager__btn" aria-hidden="true">…</span>{% else %}<a class="pager__btn" href="{{ url(page=p) }}"{% if p == pg.page %} aria-current="page"{% endif %}>{{ p }}</a>{% endif %}{% endfor %}
+    <a class="pager__btn" href="{{ url(page=[pg.page + 1, pg.pages]|min) }}" aria-label="下一页"{% if pg.page == pg.pages %} aria-disabled="true"{% endif %}>{{ icon('caret-right') }}</a>
+  </div>
+  {% endif %}
+</div>
+{%- endmacro %}
+{% block content %}
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <h1>新品与 SPU{% if stale and run %} {{ badge('需重算') }}{% endif %}</h1>
+            <p class="page-head__sub">按上架月份划分批次 · 参照人群：{{ reference }}</p>
+          </div>
+          <div class="page-head__actions">
+            {% if run and mode == 'history' %}<button class="btn" type="button" data-cols-toggle="#spu-wrap" aria-pressed="false">{{ icon('columns') }}<span>列</span></button>{% endif %}
+          </div>
+        </div>
+
+        {% if pending %}
+        <div class="banner banner--warn enter" style="--i:1" data-banner="pending">
+          {{ icon('git-merge') }}
+          <div class="banner__body">
+            <div class="banner__title">{{ pending.n }} 条合并建议未确认</div>
+            <div>涉及的 {{ pending.kids }} 个子 ASIN 暂按各自父 ASIN 计为 SPU。确认后需重算成败与信号。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/spu/merge">去审核</a></div>
+        </div>
+        {% endif %}
+        {% if stale and run %}
+        <div class="banner banner--stale enter" style="--i:1" role="status">
+          {{ icon('arrows-clockwise') }}
+          <div class="banner__body">
+            <div class="banner__title">结果需重算</div>
+            <div>{{ stale|join('；') }}。下表仍是上次计算的结果，在工作台点“全部重算”后更新。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="/">去工作台</a></div>
+        </div>
+        {% endif %}
+
+        {% if not run %}
+        <section class="panel section enter" style="--i:2">
+          <div class="empty">
+            {{ icon('cube') }}
+            <div class="empty__title">还没有新品判定结果</div>
+            <p class="empty__desc">确认字段约定、审核合并建议后，在工作台运行计算。</p>
+            <a class="btn btn--primary" href="/">去工作台</a>
+          </div>
+        </section>
+        {% elif mode == 'history' %}
+          <section class="section enter" style="--i:2" aria-labelledby="batch-title">
+            <div class="section__head">
+              <h2 class="section__title" id="batch-title">批次概览</h2>
+              <span class="section__note">历史口径 · 窗口为上架当月起 {{ cfg.success.window_months }} 个月 · 观察中与数据不全不计入分母</span>
+            </div>
+            <div class="table-wrap">
+              <table class="table" id="batch-table">
+                <thead>
+                  <tr>
+                    <th scope="col">批次</th>
+                    <th class="t-num" scope="col">起量新品</th>
+                    <th class="t-num" scope="col">命中</th>
+                    <th class="t-num" scope="col">未命中</th>
+                    <th class="t-num" scope="col">观察中</th>
+                    <th class="t-num" scope="col">数据不全</th>
+                    <th class="t-num" scope="col">命中率</th>
+                    <th class="t-num" scope="col">未起量（已排除）</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for b in overview %}
+                  <tr data-href="{{ url(batch=b.batch) }}" data-batch="{{ b.batch }}"{% if filters.batch == b.batch %} class="is-selected"{% endif %}>
+                    <td class="t-nowrap">{% if b.batch == fully_batch %}<strong>{{ b.batch }}</strong> {{ badge('已全部判定', 'ok', 'check') }}{% else %}{{ b.batch }}{% endif %}</td>
+                    <td class="t-num">{{ b.n }}</td><td class="t-num">{{ b.hit }}</td><td class="t-num">{{ b.miss }}</td><td class="t-num">{{ b.watch }}</td><td class="t-num">{{ b.incomplete }}</td>
+                    <td class="t-num">{% if b.rate is none %}{{ etag('无数据', 'nodata') }}{% else %}{{ pct(b.rate) }}{{ etag('n=' ~ b.dec) }}{% endif %}</td>
+                    <td class="t-num">{{ b.excluded }}</td>
+                  </tr>
+                  {% endfor %}
+                  {% if overview_older %}
+                  {% set o = overview_older %}
+                  <tr>
+                    <td class="t-nowrap">更早 {{ o.count }} 个批次（{{ o.first }}–{{ o.last }}）</td>
+                    <td class="t-num">{{ o.n }}</td><td class="t-num">{{ o.hit }}</td><td class="t-num">{{ o.miss }}</td><td class="t-num">{{ o.watch }}</td><td class="t-num">{{ o.incomplete }}</td>
+                    <td class="t-num">{% if o.rate is none %}{{ etag('无数据', 'nodata') }}{% else %}{{ pct(o.rate) }}{{ etag('n=' ~ o.dec) }}{% endif %}</td>
+                    <td class="t-num">{{ o.excluded }}</td>
+                  </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section enter" style="--i:3" aria-labelledby="list-title">
+            <div class="section__head">
+              <h2 class="section__title" id="list-title">新 SPU{% if filters.batch %} · {{ filters.batch }} 批次{% endif %}{% if segment_name %} · {{ segment_name }}{% endif %}</h2>
+              <span class="section__note">当前显示 {{ pager.total }} 个 · 共 {{ num(total_rising) }} 个起量新 SPU</span>
+            </div>
+            <form class="b-filterform" role="search" method="get" action="/spu" aria-label="筛选新 SPU">
+            <div class="filters b-filters">
+              <span class="filters__label">成败</span>
+              <a class="chip" href="{{ url(result=None) }}" aria-pressed="{{ 'true' if not filters.result else 'false' }}">全部</a>
+              {% for k, label in result_opts %}<a class="chip" href="{{ url(result=k) }}" aria-pressed="{{ 'true' if filters.result == k else 'false' }}" data-result-chip="{{ k }}">{{ label }} <span class="count">{{ counts[k] }}</span></a>{% endfor %}
+              <span class="filters__sep" aria-hidden="true"></span>
+              <span class="filters__label">标记</span>
+              <a class="chip" href="{{ url(flag=None) }}" aria-pressed="{{ 'true' if not filters.flag else 'false' }}">全部</a>
+              <a class="chip" href="{{ url(flag='relaunch') }}" aria-pressed="{{ 'true' if filters.flag == 'relaunch' else 'false' }}">疑似重新上架 <span class="count">{{ flag_counts.relaunch }}</span></a>
+              <a class="chip" href="{{ url(flag='variant') }}" aria-pressed="{{ 'true' if filters.flag == 'variant' else 'false' }}">有新变体 <span class="count">{{ flag_counts.variant }}</span></a>
+              <span class="spacer"></span>
+              {% for k in ('result', 'flag', 'segment', 'sort', 'dir') %}{% if filters[k] %}<input type="hidden" name="{{ k }}" value="{{ filters[k] }}">{% endif %}{% endfor %}
+              <label class="search">{{ icon('magnifying-glass') }}<span class="visually-hidden">搜索</span><input class="input" type="search" name="q" value="{{ filters.q }}" placeholder="SPU 编号、ASIN、品牌或标题"></label>
+            </div>
+            <div class="filters b-filters b-filters--sub">
+              <span class="filters__label">批次</span>
+              <select class="select b-select" name="batch" aria-label="批次" data-b-autosubmit>
+                <option value="">全部</option>
+                {% for b in batches %}<option value="{{ b }}"{% if filters.batch == b %} selected{% endif %}>{{ b }}</option>{% endfor %}
+              </select>
+              <span class="filters__sep" aria-hidden="true"></span>
+              <span class="filters__label">归并来源</span>
+              <select class="select b-select" name="source" aria-label="归并来源" data-b-autosubmit>
+                <option value="">全部</option>
+                <option value="number"{% if filters.source == 'number' %} selected{% endif %}>编号</option>
+                <option value="merged"{% if filters.source == 'merged' %} selected{% endif %}>已确认建议</option>
+                <option value="parent"{% if filters.source == 'parent' %} selected{% endif %}>暂按父体</option>
+              </select>
+              {% if filters.segment %}<span class="filters__sep" aria-hidden="true"></span><span class="filters__label">细分</span><a class="chip" href="{{ url(segment=None) }}" aria-pressed="true" title="清除细分筛选">{{ segment_name }} {{ icon('x') }}</a>{% endif %}
+            </div>
+            </form>
+
+            {% if items %}
+            <div class="table-wrap" id="spu-wrap">
+              <table class="table" id="spu-table">
+                <thead>
+                  <tr>
+                    <th scope="col">SPU</th>
+                    {{ sort_th('子体', 'kids', 't-num') }}
+                    {{ sort_th('上架日（来源子 ASIN）', 'launch') }}
+                    <th scope="col">批次</th>
+                    <th scope="col">成败</th>
+                    <th scope="col">命中依据</th>
+                    <th class="col-2" scope="col">归并来源</th>
+                    {{ sort_th('最好 BSR', 'bsr', 't-num col-2') }}
+                    {{ sort_th('最高月销售额', 'sales', 't-num col-2') }}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for r in items %}
+                  <tr data-href="/spu/{{ r.spu_key|urlencode }}" data-spu="{{ r.spu_key }}" data-status="{{ r.status }}">
+                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|urlencode }}">{{ r.display_id }}</a> · {{ r.brand or '—' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
+                    <td class="t-num">{{ r.child_count }}{% if r.new_variant_count %} <span class="badge" tabindex="0" data-tip="新变体|上架晚于 SPU 上架日的子体|不计为新 SPU，销量计入本 SPU">含新变体 {{ r.new_variant_count }}</span>{% endif %}</td>
+                    <td class="t-nowrap">{{ r.launch_date }}<div class="cell-sub mono">{{ r.launch_child }}</div></td>
+                    <td class="t-nowrap">{{ r.batch }}</td>
+                    <td>{{ badge(r.status) }}{% if r.relaunch %} {{ badge('疑似重新上架', 'warn', 'clock-counter-clockwise') }}{% endif %}</td>
+                    <td class="small{% if r.status == '未命中' %} muted{% endif %}">{{ r.hit_text }}</td>
+                    <td class="col-2 small">{{ r.source_text }}</td>
+                    <td class="t-num col-2">{{ b_bsr(r.best_bsr) }}{% if r.best_bsr is not none %}{{ etag('实测', '') }}{% endif %}</td>
+                    <td class="t-num col-2">{{ b_money(r.max_sales) }}{% if r.max_sales is not none %}{{ etag('估算', '') }}{% endif %}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {{ pager_nav(pager) }}
+            {% else %}
+            <div class="panel"><div class="empty">
+              {{ icon('funnel') }}
+              <div class="empty__title">没有符合条件的新 SPU</div>
+              <a class="btn" href="/spu">清除筛选</a>
+            </div></div>
+            {% endif %}
+          </section>
+          <p class="page-foot">数据包 {{ versions.package }} · 字段约定 v{{ versions.contract }} · 品类配置 v{{ versions.config }} · 成功线：上架 {{ cfg.success.window_months }} 个月内小类 BSR ≤ {{ cfg.success.bsr_max|int }}，或 SPU 任一月销售额 ≥ {{ money(cfg.success.gmv_min) }}</p>
+        {% else %}
+          <div class="banner banner--cross section enter" style="--i:1">
+            {{ icon('intersect') }}
+            <div class="banner__body">
+              <div class="banner__title">{{ CARD.CROSS_LINE_TEXT }}</div>
+              <div>数据包 {{ versions.package }}（{{ first_obs }}–{{ last_obs[5:] if first_obs[:4] == last_obs[:4] else last_obs }}）。只看新品期第 1–{{ cfg.success.window_months }} 个月里的观察月；结论待历史回测确认，以历史口径为准。</div>
+            </div>
+          </div>
+
+          <section class="section enter" style="--i:2" aria-labelledby="cross-batch-title">
+            <div class="section__head">
+              <h2 class="section__title" id="cross-batch-title">按上架月份</h2>
+              <span class="section__note">老品 {{ num(old_count) }} 个（观察月全部超出新品期，不做截面判定）· 未起量排除 {{ excluded_count }} 个{% if excluded_count == 0 %}（截面数据包只含起量商品）{% endif %}</span>
+            </div>
+            <div class="table-wrap">
+              <table class="table" id="cross-batch-table">
+                <thead>
+                  <tr>
+                    <th scope="col">上架月</th>
+                    <th scope="col">观察到的月龄</th>
+                    <th class="t-num" scope="col">起量新品</th>
+                    <th class="t-num" scope="col">截面命中</th>
+                    <th class="t-num" scope="col">截面未命中</th>
+                    <th class="t-num" scope="col">观察中</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for b in cross_overview %}
+                  <tr data-href="{{ url(batch=b.batch) }}" data-batch="{{ b.batch }}"><td>{{ b.batch }}</td><td>{{ b.ages }}</td><td class="t-num">{{ b.n }}</td><td class="t-num">{{ b.xhit }}</td><td class="t-num">{{ b.xmiss }}</td><td class="t-num">{{ b.watch }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section enter" style="--i:3" aria-labelledby="cross-list-title">
+            <div class="section__head">
+              <h2 class="section__title" id="cross-list-title">新 SPU（截面口径）{% if filters.batch %} · {{ filters.batch }}{% endif %}{% if segment_name %} · {{ segment_name }}{% endif %}</h2>
+              <span class="section__note">共 {{ num(total_rising) }} 个起量新 SPU，其中截面命中 {{ total_xhit }} 个</span>
+            </div>
+            <form class="filters b-filters" role="search" method="get" action="/spu" aria-label="筛选新 SPU">
+              <span class="filters__label">上架月</span>
+              <select class="select b-select" name="batch" aria-label="上架月" data-b-autosubmit>
+                <option value="">全部</option>
+                {% for b in batches %}<option value="{{ b }}"{% if filters.batch == b %} selected{% endif %}>{{ b }}</option>{% endfor %}
+              </select>
+              <span class="filters__sep" aria-hidden="true"></span>
+              <span class="filters__label">截面结果</span>
+              <a class="chip" href="{{ url(result=None) }}" aria-pressed="{{ 'true' if not filters.result else 'false' }}">全部</a>
+              {% for k, label in result_opts %}<a class="chip" href="{{ url(result=k) }}" aria-pressed="{{ 'true' if filters.result == k else 'false' }}" data-result-chip="{{ k }}">{{ label }} <span class="count">{{ counts[k] }}</span></a>{% endfor %}
+              <span class="spacer"></span>
+              {% for k in ('result', 'segment') %}{% if filters[k] %}<input type="hidden" name="{{ k }}" value="{{ filters[k] }}">{% endif %}{% endfor %}
+              <label class="search">{{ icon('magnifying-glass') }}<span class="visually-hidden">搜索</span><input class="input" type="search" name="q" value="{{ filters.q }}" placeholder="SPU 编号、ASIN、品牌或标题"></label>
+            </form>
+            {% if items %}
+            <div class="table-wrap">
+              <table class="table" id="cross-table">
+                <thead>
+                  <tr>
+                    <th scope="col">SPU</th>
+                    <th scope="col">上架月</th>
+                    <th scope="col">观察到的月龄</th>
+                    <th scope="col">截面结果</th>
+                    <th scope="col">依据</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for r in items %}
+                  <tr data-href="/spu/{{ r.spu_key|urlencode }}" data-spu="{{ r.spu_key }}" data-status="{{ r.status }}">
+                    <td><div class="cell-title"><a class="b-rowlink" href="/spu/{{ r.spu_key|urlencode }}">{{ r.display_id }}</a> · {{ r.brand or '—' }}</div><div class="cell-sub b-trunc" title="{{ r.title }}">{{ r.title }}</div></td>
+                    <td>{{ r.batch }}</td><td>{{ r.ages_text }}</td>
+                    <td>{{ badge(r.status) }}</td>
+                    <td class="small{% if r.status == '老品' %} muted{% endif %}">{{ r.hit_text }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {{ pager_nav(pager) }}
+            {% else %}
+            <div class="panel"><div class="empty">
+              {{ icon('funnel') }}
+              <div class="empty__title">没有符合条件的新 SPU</div>
+              <a class="btn" href="/spu">清除筛选</a>
+            </div></div>
+            {% endif %}
+          </section>
+          <p class="page-foot">数据包 {{ versions.package }}（截面）· 字段约定 v{{ versions.contract }} · 品类配置 v{{ versions.config }} · 截面成功线：新品期观察月小类 BSR ≤ {{ cfg.success.bsr_max|int }}，或 SPU 当月销售额 ≥ {{ money(cfg.success.gmv_min) }}</p>
+        {% endif %}
+{% endblock %}

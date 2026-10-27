@@ -10,3 +10,4 @@
 .ibar--grey .ibar__dot { fill: var(--muted); }
 .danger-text { color: var(--danger); }
 .step[data-status="running"] .step__dot { color: var(--accent); }
+.step__meta { display: block; overflow: hidden; text-overflow: ellipsis; padding-right: var(--space-2); }

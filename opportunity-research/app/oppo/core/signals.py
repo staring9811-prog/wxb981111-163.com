@@ -199,9 +199,11 @@ def compute_T(ctx: Context, T: str) -> tuple[list[dict[str, Any]], dict[str, dic
         g = sp[(sp["segment_key"] == s) & (sp["batch"] >= lo) & (sp["batch"] <= hi) & (sp["rising_from"] < T)]
         hits = int((g["status"] == HIT).sum())
         dec = int(g["status"].isin([HIT, MISS]).sum())
+        entry_extra: dict[str, Any] = {"incomplete": int((~g["status"].isin([HIT, MISS])).sum()), "window": f"{lo}–{hi}"}
+        if not dec:
+            entry_extra["reason"] = "回看期内没有已判定的新 SPU"
         rows.append(_row(s, "entry", hits / dec if dec else None, hits, dec, int(len(g)),
-                         flag=None if dec else NO_DATA, incomplete=int((~g["status"].isin([HIT, MISS])).sum()),
-                         window=f"{lo}–{hi}"))
+                         flag=None if dec else NO_DATA, **entry_extra))
 
     # ---- T-1 month figures and review attribution
     mprev = view.month(prev) if prev in ctx.months_avail else ctx.c1.iloc[0:0]
@@ -215,6 +217,8 @@ def compute_T(ctx: Context, T: str) -> tuple[list[dict[str, Any]], dict[str, dic
     rev = view.reviews()
     child_rating: dict[str, list[float]] = {}
     seg_reviews: dict[str, list[int]] = {}
+    seg_codes: dict[str, dict[str, int]] = {}  # structural pain codes per segment (PAGE-F06-02 构成)
+    label_versions: set[str] = set()
     if ctx.has_c6 and len(rev):
         before = view.before()
         # parent-level reviews go to that parent's best-selling child in T-1 (or latest month before T)
@@ -227,11 +231,18 @@ def compute_T(ctx: Context, T: str) -> tuple[list[dict[str, Any]], dict[str, dic
         rev = rev.assign(target=target)
         rev = rev.dropna(subset=["target"])
         rev = rev.assign(seg=rev["target"].map(segs)).dropna(subset=["seg"])
-        for t, st in zip(rev["target"], rev["stars"]):
+        for t, st in zip(rev["target"], rev["stars"], strict=False):
             if pd.notna(st):
                 child_rating.setdefault(t, []).append(float(st))
-        for sg, structural in zip(rev["seg"], rev["structural"]):
+        codes = rev["pain_code"] if "pain_code" in rev.columns else pd.Series([None] * len(rev), index=rev.index)
+        for sg, structural, code in zip(rev["seg"], rev["structural"], codes, strict=False):
             seg_reviews.setdefault(sg, []).append(int(structural or 0))
+            if int(structural or 0):
+                key = str(code) if isinstance(code, str) and code.strip() else "未标代码"
+                cc = seg_codes.setdefault(sg, {})
+                cc[key] = cc.get(key, 0) + 1
+        if "label_version" in rev.columns:
+            label_versions = {str(v) for v in rev["label_version"].dropna().unique()}
 
     for s in seg_keys:
         # 结构类痛点占比 (REQ-F06-05)
@@ -239,14 +250,18 @@ def compute_T(ctx: Context, T: str) -> tuple[list[dict[str, Any]], dict[str, dic
             rows.append(_row(s, "pain", None, flag=NO_DATA, reason="数据包不含评论痛点（C6）"))
         else:
             lst = seg_reviews.get(s, [])
+            pain_extra: dict[str, Any] = {"codes": dict(sorted(seg_codes.get(s, {}).items())),
+                                          "label_versions": sorted(label_versions)}
+            if not lst:
+                pain_extra["reason"] = "早于 T 月没有评论"
             rows.append(_row(s, "pain", (sum(lst) / len(lst)) if lst else None, float(sum(lst)), float(len(lst)),
-                             len(lst), flag=None if lst else NO_DATA))
+                             len(lst), flag=None if lst else NO_DATA, **pain_extra))
         # 高销低评 (REQ-F06-05)
         g = mprev[mprev["seg"] == s].sort_values(["child_units", "child"], ascending=[False, True])
         if not ctx.has_c6:
             rows.append(_row(s, "hslr", None, flag=NO_DATA, reason="数据包不含评论痛点（C6）"))
         elif not len(g):
-            rows.append(_row(s, "hslr", None, flag=NO_DATA))
+            rows.append(_row(s, "hslr", None, flag=NO_DATA, reason="第 T−1 月没有销量数据"))
         else:
             k = math.ceil(len(g) * 0.25)
             top = g.head(k)
@@ -273,7 +288,7 @@ def compute_T(ctx: Context, T: str) -> tuple[list[dict[str, Any]], dict[str, dic
             if w == SEG.UNKNOWN:
                 rows.append(_row(s, "premium", None, flag=NO_DATA, reason="宽度档未知", **cur_note))
             else:
-                same_w = base_rows[base_rows["seg"].map(lambda x: isinstance(x, str) and x.split("|")[0] == w)]
+                same_w = base_rows[base_rows["seg"].map(lambda x, w=w: isinstance(x, str) and x.split("|")[0] == w)]
                 sp_ = float(g["child_sales"].sum()) / units
                 wu = float(same_w["child_units"].sum())
                 wp = float(same_w["child_sales"].sum()) / wu if wu else None

@@ -10,7 +10,6 @@ import socket
 import sqlite3
 import threading
 import time
-from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 

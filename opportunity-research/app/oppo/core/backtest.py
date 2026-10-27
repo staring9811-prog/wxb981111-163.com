@@ -64,9 +64,10 @@ def _sig_lookup(sig: pd.DataFrame) -> dict[tuple[str, str, str], float | None]:
 
 
 def _reasons(sig: pd.DataFrame) -> dict[str, str]:
-    """First recorded reason per signal when it has no value anywhere."""
+    """Reason per signal when it has no value, taken from the latest month T that has one."""
     out: dict[str, str] = {}
-    for s, extra in sig[sig["value"].isna()][["signal", "extra_json"]].itertuples(index=False):
+    empty = sig[sig["value"].isna()].sort_values("t_month", ascending=False, kind="stable")
+    for s, extra in empty[["signal", "extra_json"]].itertuples(index=False):
         if s not in out and extra:
             r = (D.loads(extra, {}) or {}).get("reason")
             if r:

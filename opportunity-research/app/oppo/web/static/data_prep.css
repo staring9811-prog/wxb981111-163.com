@@ -1,1 +1,10 @@
-/* PAGE styles owned by the data_prep group */
+/* PAGE styles owned by the data_prep group (数据包、校验报告、字段约定、数据体检、品类配置、运行记录) */
+tr[data-collapsed], tr[data-page-hidden], tr[data-search-hidden] { display: none; }
+.dropzone.is-drag { border-color: var(--accent); background: var(--accent-tint, var(--surface-warm)); }
+.dropzone.is-loading { opacity: .6; pointer-events: none; }
+.dz-path { margin-top: var(--space-2); flex-wrap: nowrap; }
+.dz-path .input { flex: 1; min-width: 0; }
+#import-panel.is-focus { box-shadow: 0 0 0 2px var(--accent); }
+.field.is-modified > .field__label::after,
+td.is-modified > .row::after { content: "已修改"; margin-left: var(--space-2); font-size: var(--text-xs); color: var(--warn); font-weight: 500; }
+.cat-switch { display: inline-flex; gap: var(--space-2); flex-wrap: wrap; }
