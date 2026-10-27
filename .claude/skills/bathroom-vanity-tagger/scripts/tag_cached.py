@@ -352,6 +352,9 @@ class Tagger:
                     ev=self.ev(source,label,clause[max(0,a-65):min(len(clause),b+95)],method,{'rawMaterial':original,'materialSubtype':raw,'component':role,'ruleID':rule,'basisType':'business_mapping' if method=='用户业务归类' else 'direct_text'})
                     buckets[role].append(ev);all_evidence.append(ev)
         keys={'top':HEADERS[7],'sink':HEADERS[8]}
+        # Unqualified "stone top" is a fallback: drop it when a specific material is named.
+        if any(e.get('ruleID')!='M-STONE-UNSPECIFIED' for e in buckets['top']):
+            buckets['top']=[e for e in buckets['top'] if e.get('ruleID')!='M-STONE-UNSPECIFIED']
         for role,key in keys.items():
             es=buckets[role]
             self.set(key,es)

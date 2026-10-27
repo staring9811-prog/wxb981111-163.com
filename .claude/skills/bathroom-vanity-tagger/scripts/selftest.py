@@ -90,6 +90,7 @@ def main():
      ('Vanity with Marble Texture Top and 2 Drawers, Two Boat Ceramic Sinks','木板','陶瓷盆'),
      ('Vanity with Marble Texture Top, Carrara Quartz Countertop','石英石',t.UNKNOWN),
      ('Vanity with Stone Countertop and Backsplash','岗石',t.UNKNOWN),
+     ('Premium Sintered Stone Top; combines a beige stone top with oak','岩板',t.UNKNOWN),
      ('Vanity with Sintered Stone Top and Ceramic Basin','岩板','陶瓷盆'),
      ('Vanity Base Only, No Top or Sink','不适用（不含台面）',None),
      ('Vanity with White Ceramic Sink Top, Black Faucet','陶瓷','陶瓷盆'),
