@@ -49,3 +49,13 @@ v1旧合并D8仅供溯源。v2已加入单独Top锚点及局部材料部件绑�
 - KOHLER石英石台面配套资料：https://resources.kohler.com/webassets/kpna/brochures/QuartzTop_SellSheet.pdf 。可搭配指定盆型号，支持配套验证，不证明所有石英石台面都附陶瓷盆。
 - KOHLER盆材料说明：https://assist.kohler.com/en/sinks/Sink-Material-Information 。Vitreous China属于陶瓷材料。
 - VIGO玻璃盆：https://vigoindustries.com/collections/tempered-glass-sinks 。明确钢化玻璃浴室盆，不能强归陶瓷/树脂。
+
+## 2026-10-27 用户追加的台面规则（v6）
+
+1. **solid wood 不是台面**。单独出现的 solid wood / solid oak 指柜体或框架（走D7）。只有 wood / wooden / oak / walnut / bamboo / teak / MDF / plywood 直接接 top / countertop / tabletop 时才是木板台面，标签“木板”（原台面“实木”标签并入“木板”）。
+2. **仿大理石纹 = 木板**：marble texture / look / pattern / grain / effect top，且子体自己的文本（标题、SKU、子体详情、子体五点、导出参数）里没有 stone / quartz / sintered / granite / cultured / engineered marble / marble top / Carrara / Calacatta 这些真石材词 → 木板，ruleID M-FAUX-MARBLE-WOOD，basisType business_mapping，rawMaterial 保留 marble texture。有石材词时不归木板，打标说明提示。
+3. **未细分 stone countertop = 岗石**：stone 前面不是 sintered / engineered / cultured，后面直接接 top / countertop → 岗石，ruleID M-STONE-UNSPECIFIED。
+4. **一体盆台同材**（用户确认 R1/R2/R6）：台面未知、盆材已知，且文本有 `<材质> sink top`、`integrated <材质> sink`、`sink and top in one`、`one-piece sink/top`，或 D4 已判一体盆 → 台面 = 盆材（陶瓷盆→陶瓷、玻璃盆→玻璃、树脂盆→树脂、岗石盆→岗石）。ruleID M-SINK-TOP-ONEPIECE，basisType business_inference；来源为父体时按父体补充口径。
+5. **不含台面**：补 no top、vanity base only、cabinet only。
+
+台面标签集现为：卡拉拉大理石 / 岗石 / 石英石 / 岩板 / 陶瓷 / 树脂 / Cultured Marble / 花岗岩 / 玻璃 / 不锈钢 / 木板 / 不适用（不含台面）/ 信息不足。

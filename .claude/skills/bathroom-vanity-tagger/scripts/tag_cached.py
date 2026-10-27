@@ -14,7 +14,7 @@ import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261027-v5'
+VERSION='bathroom-vanity-tagger-20261027-v6'
 # 2026-10-27 user: vanity widths are essentially standard sizes.
 STANDARD_WIDTHS=(12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84)
 STD_WIDTH_TOLERANCE=0.8
@@ -41,6 +41,10 @@ def overviews(d):
         try:ov=json.loads(ov)
         except (ValueError,TypeError):ov={}
     return ov if isinstance(ov,dict) else {}
+
+def role_hint_sink(clause,pos):
+    # "wood sink" / "stone basin" right after the word: not a top.
+    return bool(match(r'^\s+(?:\w+\s+){0,2}?(?:sinks?|basins?|bowls?)\b',clause[pos:]))
 
 def export_attributes(text):
     """SellerSprite 详细参数 is 'Key:Value | Key:Value'; values may contain ':'."""
@@ -286,7 +290,10 @@ class Tagger:
             ('Carrara / Calacatta',r'\b(?:carrara|calacatta)\b'),
             ('花岗岩',r'\bgranite\b'),('玻璃',r'\b(?:tempered\s+)?glass\b'),
             ('不锈钢',r'\bstainless\s+steel\b'),
-            ('实木',r'\bsolid\s+wood\b')]
+            # User 2026-10-27: nobody writes "solid wood" for a top; wood is a top
+            # only when written as "wood top / wooden countertop / oak tabletop".
+            ('木板',r'\b(?:wood(?:en)?|oak|walnut|bamboo|teak|mdf|plywood)(?:[ -]+(?:grain|veneer|finish))?(?=\s+(?:counter\s*tops?|table\s*tops?|tops?)\b)'),
+            ('stone',r'\b(?<!sintered )(?<!engineered )(?<!cultured )stone\b(?=\s+(?:counter\s*tops?|vanity\s+tops?|tops?)\b)')]
         rolepat=r'\b(?P<top>counter\s*tops?|vanity\s+tops?|table\s*tops?|tops?)\b|\b(?P<sink>sinks?|basins?|bowls?)\b|\b(?P<other>cabinets?|doors?|frames?|faucets?|handles?|drains?|hinges?)\b'
         buckets={'top':[],'sink':[]}
         all_evidence=[]
@@ -311,6 +318,7 @@ class Tagger:
                     prefix=clause[max(0,a-28):a]
                     if match(r'\b(?:not(?: made of)?|without|no|unlike|instead of)\s*$',prefix):continue
                     if raw=='marble' and match(r'^\s*[- ]?(?:look|pattern|texture|grain|like)\b',clause[b:]):continue
+                    if raw in ('木板','stone') and role_hint_sink(clause,b):continue
                     # Carrara/Calacatta next to an explicit non-marble material is a design name.
                     if raw=='Carrara / Calacatta' and any(c>=b and c-b<32 and lab not in ('Carrara / Calacatta','marble','engineered marble') for c,d,lab,o in hits):continue
                     forward=[x for x in anchors if x[0]>=b]
@@ -330,8 +338,10 @@ class Tagger:
                         if match(r'(?:countertop|top)[ _-]*material',field) and not anchors:role='top'
                         elif match(r'(?:sink|basin)[ _-]*material',field) and not anchors:role='sink'
                     if role is None:continue
-                    if role=='sink' and raw=='实木':continue
+                    if raw in ('木板','stone'):role='top'
+                    if role=='sink' and raw=='木板':continue
                     label=raw;method='部件绑定文本';rule='M-DIRECT'
+                    if raw=='stone':label='岗石';method='用户业务归类';rule='M-STONE-UNSPECIFIED'
                     if raw in ('engineered marble','engineered stone','marble','Carrara / Calacatta'):
                         named=match(r'\b(?:carrara|calacatta)\b',clause[max(0,a-40):min(len(clause),b+40)])
                         label='卡拉拉大理石' if named and raw!='engineered stone' else '岗石'
@@ -347,8 +357,21 @@ class Tagger:
             self.set(key,es)
             ev=self.evidence[key]
             if ev['status']=='text_supported' and any(e.get('basisType')=='business_mapping' for e in ev.get('selected',[])):ev['status']='business_mapping'
+        # User 2026-10-27: "marble texture/look top" with no real stone word in the
+        # child's own text is a wood (board) top.
+        if self.tags[HEADERS[7]]==UNKNOWN:
+            child_text=' || '.join(x['text'] for x in self.sources if x['scope']=='child' and x['field'] not in ('商品尺寸',))
+            stone=match(r'\b(?:quartz|sintered|granite|stone|cultured|engineered\s+marble|marble\s+(?:counter\s*top|top)|calacatta|carrara)\b',child_text)
+            faux=[]
+            for x in self.sources:
+                if x['scope']!='child':continue
+                m=match(r'\b(?:faux[ -]?)?marble[ -]?(?:texture|look|pattern|grain|like|effect)(?:[ -]+\w+){0,2}?\s+(?:counter\s*tops?|table\s*tops?|tops?)\b',x['text'])
+                if m:faux.append(self.ev(x,'木板',m.group(0),'用户业务归类：仿大理石纹台面且无石材词',{'rawMaterial':m.group(0),'materialSubtype':'marble texture','component':'top','ruleID':'M-FAUX-MARBLE-WOOD','basisType':'business_mapping'}))
+            if faux and not stone:
+                self.set(HEADERS[7],faux);self.evidence[HEADERS[7]]['status']='business_mapping'
+            elif faux and stone:self.notes.append('D8台面：有仿大理石纹台面描述但同时出现石材词，未按木板归类')
         # Explicitly absent components override inferred combinations.
-        no_top=self.pattern_candidates([('不适用（不含台面）',r'\bwithout\s+(?:a\s+)?(?:top|countertop)\b|\b(?:top|countertop)\s+(?:is\s+)?(?:not included|sold separately)\b')])
+        no_top=self.pattern_candidates([('不适用（不含台面）',r'\bwithout\s+(?:a\s+)?(?:top|countertop)\b|\b(?:top|countertop)\s+(?:is\s+)?(?:not included|sold separately)\b|\bno\s+(?:top|countertop)\b|\b(?:vanity\s+)?base\s+only\b|\bcabinet\s+only\b')])
         direct_no=[e for e in no_top if e['sourceScope']=='child']
         if direct_no:
             if self.tags[HEADERS[7]]!=UNKNOWN:self.conflicts.append(HEADERS[7]+'包含状态与材料线索冲突')
@@ -373,6 +396,21 @@ class Tagger:
             if candidates:
                 self.set(key,candidates)
                 if self.evidence[key]['status']=='text_supported':self.evidence[key]['status']='business_inference'
+        # User 2026-10-27 (R1/R2/R6): a one-piece sink-top is the sink's material.
+        if self.tags[HEADERS[7]]==UNKNOWN and self.tags[HEADERS[8]] not in (UNKNOWN,'不适用（不含盆）'):
+            sink_ev=self.evidence[HEADERS[8]].get('selected') or []
+            base=next((e for e in sink_ev if e.get('materialSubtype')),None)
+            onepiece=None
+            for x in self.sources:
+                m=match(r'\b(?:ceramic|porcelain|resin|smc|acrylic|glass|quartz|stone|marble|cultured\s+marble)\s+(?:\w+\s+){0,3}?(?:sink|basin|bowl)s?\s+tops?\b|\bintegrated\s+(?:\w+\s+){0,2}?(?:sink|basin)|\b(?:sink|basin)\s+(?:and|&|/)\s+(?:counter\s*)?top\s+(?:in\s+)?one\b|\bone[ -]piece\s+(?:\w+\s+){0,2}?(?:sink|basin|top)',x['text'])
+                if m:onepiece=(x,m);break
+            if base and (onepiece or self.tags[HEADERS[3]]=='一体盆'):
+                src,m=onepiece if onepiece else (next(s for s in self.sources if s['field']==base['sourceField'] and s['asin']==base['sourceASIN']),None)
+                label=base['label'][:-1] if base['label'].endswith('盆') else base['label']
+                ev=self.ev(src,label,m.group(0) if m else base['quote'],'一体盆台同材推导',{'basisType':'business_inference','ruleID':'M-SINK-TOP-ONEPIECE','basisField':HEADERS[8],'basisMaterialEvidence':base,'materialSubtype':base.get('materialSubtype'),'component':'top'})
+                parent=src['scope']=='parent'
+                self.tags[HEADERS[7]]=label+('' if self.parent_fill or not parent else '（父体候选）')
+                self.evidence[HEADERS[7]]={'status':('parent_fill' if self.parent_fill else 'parent_candidate') if parent else 'business_inference','selected':[ev]}
         # User-approved pairing assumption; only when the product includes a basin.
         if self.tags[HEADERS[8]]==UNKNOWN:
             top=self.evidence[HEADERS[7]]

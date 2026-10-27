@@ -77,6 +77,29 @@ def main():
         x.included(t.HEADERS[13],'faucet')
         if x.tags[t.HEADERS[13]]==t.UNKNOWN:x.tags[t.HEADERS[13]]='无'
         if x.tags[t.HEADERS[13]]!=want:bad.append(('acc-default',txt,x.tags[t.HEADERS[13]]))
+    # Countertop rules (v6).
+    def top(sources,**kw):
+        x=tagger(sources,**kw)
+        for h in t.HEADERS[:14]:x.tags.setdefault(h,t.UNKNOWN)
+        x.tags[t.HEADERS[2]]=t.UNKNOWN;x.evidence[t.HEADERS[3]]={'status':'missing'}
+        x.structure();x.surface_materials();return x
+    cases=[
+     ('Solid Wood Bathroom Vanity with Ceramic Sink, White',t.UNKNOWN,'陶瓷盆'),
+     ('Vanity with Ceramic Vessel Sink and Multi-layer Solid Wood Countertop','木板','陶瓷盆'),
+     ('24" Floating Vanity, Marble Look Wooden Tabletop, Natural','木板',t.UNKNOWN),
+     ('Vanity with Marble Texture Top and 2 Drawers, Two Boat Ceramic Sinks','木板','陶瓷盆'),
+     ('Vanity with Marble Texture Top, Carrara Quartz Countertop','石英石',t.UNKNOWN),
+     ('Vanity with Stone Countertop and Backsplash','岗石',t.UNKNOWN),
+     ('Vanity with Sintered Stone Top and Ceramic Basin','岩板','陶瓷盆'),
+     ('Vanity Base Only, No Top or Sink','不适用（不含台面）',None),
+     ('Vanity with White Ceramic Sink Top, Black Faucet','陶瓷','陶瓷盆'),
+     ('Vanity with Integrated Ceramic Sink, 2 Drawers','陶瓷','陶瓷盆'),
+     ('Vanity with Blue Boat Glass Vessel Sink','信息不足','玻璃盆'),
+    ]
+    for title,wt,ws in cases:
+        x=top([('商品标题',title,'child')],parent_fill=True)
+        got=(x.tags[t.HEADERS[7]],x.tags[t.HEADERS[8]])
+        if got[0]!=wt or (ws is not None and got[1]!=ws):bad.append(('top',title,got))
     for t_ in bad:print('FAIL',t_)
     print('selftest: %d failure(s)'%len(bad))
     raise SystemExit(1 if bad else 0)
