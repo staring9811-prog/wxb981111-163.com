@@ -100,5 +100,26 @@ L += ['## 5. 价格', '', f'- 1–3 月都出现的子体 {len(a):,} 个：1 月
 L += ['## 6. 旧流程的其他处理', '',
       '- "逻辑父体编码"是旧流程把同一产品的多个父 ASIN 并成一组的结果（如 ARIEL-001），每月约 20 组，可作为 SPU 归并的参考。',
       '- 旧打标文件（_tagged_size_v2）按子体月销 > 10/20 件筛过行，且台面和台盆混在一列，词表和 v11 不一致，不沿用；本次按 v11 规则全量重打。', '']
+# 7. 下载与匹配完整性：同一子体/父体跨月是否接得上（错配会让相关断开）
+L += ['## 7. 下载与匹配完整性', '', '| 月份 | 行 | 重复子体行 | 月份标签不对 | 缺父 ASIN | 父体内占比之和 > 100% | 占比与流量词不成比例的父体 |', '| :--- | ---: | ---: | ---: | ---: | ---: | ---: |']
+for m, x in Q.items():
+    kw = pd.to_numeric(x['流量词'], errors='coerce'); y = x[(x['流量词占比'] > 0) & kw.notna()].assign(den=lambda t: pd.to_numeric(t['流量词']) / t['流量词占比'])
+    bad = y.groupby('父ASIN')['den'].agg(lambda t: (t.max() - t.min()) / t.median() if len(t) > 1 else 0)
+    L.append(f'| 2026-{m} | {len(x):,} | {int(x["ASIN"].duplicated().sum())} | {int((x["月份"] != f"2026-{m}").sum())} | {int(x["父ASIN"].isna().sum())} | {int((x.groupby("父ASIN")["流量词占比"].sum() > 1.01).sum())} | {int((bad > 0.02).sum())} |')
+K = {f'2026-{m}': pd.to_numeric(x.set_index('ASIN')['流量词'], errors='coerce') for m, x in Q.items()}
+PP = {f'2026-{m}': x.groupby('父ASIN')['P'].first() for m, x in Q.items()}
+for mo, g in V.groupby('月'):
+    k = f'{mo[:4]}-{mo[4:]}'; K[k] = pd.to_numeric(g.set_index('子ASIN')['流量词数量'], errors='coerce'); PP[k] = g.groupby('核验父ASIN')['P'].first()
+def link(D, a, b, far):
+    s = pd.concat([D[a].rename('a'), D[b].rename('b')], axis=1, join='inner').dropna(); s = s[(s.a > 0) & (s.b > 0)]
+    return f'| {a} → {b} | {len(s):,} | {spearmanr(s.a, s.b).correlation:.2f} | {(s.b / s.a).median():.2f} | {((s.b / s.a > far) | (s.a / s.b > far)).mean():.1%} |'
+L += ['', '**同一子体的流量词数跨月是否接得上**（6→7 月、8→9 月是复用规则，不列）', '', '| 月份对 | 子体 | 相关 | 后月/前月中位 | 相差 10 倍以上 |', '| :--- | ---: | ---: | ---: | ---: |']
+L += [link(K, a, b, 10) for a, b in [('2026-01', '2026-02'), ('2026-02', '2026-03'), ('2026-03', '2026-06'), ('2026-07', '2026-08')]]
+L += ['', '| 月份 | ' + ' | '.join(K) + ' |', '| :--- |' + ' ---: |' * len(K),
+      '| 有流量词的子体，流量词数中位 | ' + ' | '.join(f'{s[s > 0].median():.0f}' for s in K.values()) + ' |',
+      '| 流量词数 P90 | ' + ' | '.join(f'{s[s > 0].quantile(.9):.0f}' for s in K.values()) + ' |']
+L += ['', '**同一父体的月销量跨月是否接得上**', '', '| 月份对 | 父体 | 相关 | 后月/前月中位 | 相差 3 倍以上 |', '| :--- | ---: | ---: | ---: | ---: |']
+L += [link(PP, a, b, 3) for a, b in [('2026-01', '2026-02'), ('2026-02', '2026-03'), ('2026-03', '2026-06'), ('2026-07', '2026-08')]]
+L += ['', '结论：没有发现下载或匹配错误。流量词和父体销量跨月接得上，接续程度和 6–9 月自己相邻月份相当；流量词数量级与 6–9 月一致，是同一种"全部流量词"。3 月有 3 行缺父 ASIN、没有流量词，影响可忽略。', '']
 open(OUT, 'w', encoding='utf-8').write('\n'.join(L) + '\n')
 print('\n'.join(L))
