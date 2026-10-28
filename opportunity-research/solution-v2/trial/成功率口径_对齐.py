@@ -10,7 +10,7 @@ import os, json, pandas as pd
 S = os.environ['TRIAL_DUMP']; N = int(os.environ.get('WINDOW', 3)); BSR_LINE, REV_LINE = 50, 100000
 UNIT = os.environ.get('UNIT', 'chain'); BSR_RULE = os.environ.get('BSR_RULE', 'all')
 df = pd.read_pickle(S + '/df.pkl').dropna(subset=['核验父ASIN'])
-OKS = ['未发现排序异常'] if BSR_RULE == 'strict' else ['未发现排序异常', '发现排序异常', '共享排名不适用']
+OKS = {'strict': ['未发现排序异常'], 'own': ['未发现排序异常', '发现排序异常'], 'all': ['未发现排序异常', '发现排序异常', '共享排名不适用']}[BSR_RULE]
 df['BSR可用'] = df['BSR'].notna() & df['BSR校验状态'].isin(OKS)
 TAG = {'未发现排序异常': '', '发现排序异常': '，该月销量估算与排名顺序不一致', '共享排名不适用': '，全父体共享排名'}
 # 产品链：同一子 ASIN 在不同月挂到不同核验父 ASIN 时，把这些父 ASIN 并成一个单位（并查集）
