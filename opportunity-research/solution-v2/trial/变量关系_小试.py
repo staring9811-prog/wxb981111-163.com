@@ -124,3 +124,9 @@ for r in sorted(rows, key=lambda x: -abs(x[3]))[:12]:
 L += ['', '## 6. 局限', '', '- 只有 4 个月、只有头部商品、没有未起量的新品，跑赢比例是"卖起来的里面谁更好"。', '- 1–3 月上架的只能看到第 4–6 个月，6–7 月上架的只能看到第 1–3 个月，月龄不齐。', '- 销量为估算、价格为快照；元素、台面材质未知占比高，"未知"档已排除出组合。', f'- 样本 {len(new)} 个家族，两两组合 n 多在 8–30，结论只能当线索。']
 open(OUT, 'w', encoding='utf-8').write('\n'.join(L) + '\n')
 print('\n'.join(L))
+# 供举例脚本复用的中间结果（临时目录，不入库）
+import os
+_S = os.environ.get('TRIAL_DUMP')
+if _S:
+    new.to_pickle(_S + '/new.pkl'); obs.to_pickle(_S + '/obs.pkl'); band_med.to_pickle(_S + '/band_med.pkl'); df.to_pickle(_S + '/df.pkl')
+    pd.Series(lr.coef_[0], index=X.columns).to_pickle(_S + '/coef.pkl'); pd.Series({'intercept': lr.intercept_[0], 'pairs': len(combos)}).to_pickle(_S + '/meta.pkl')
