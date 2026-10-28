@@ -79,7 +79,7 @@ for f, a in attr.iterrows():
     else: status = '成功' if hit else '未成功'
     best = min([e['最好BSR'] for e in ev if e['最好BSR'] is not None], default=None)
     rows.append(dict(单位=f, 父ASIN=list(members[f]), 品牌=a['品牌'], 上架月=str(lm), 宽度段=a['宽度段'], 形态=a['形态'], 台面=a['台面材质'], 状态=status,
-                     已达线=bool(hit), 首次达线=hit, 看到的月龄=[e['月龄'] for e in ev], 最好BSR=best,
+                     已达线=bool(hit), 首次达线=hit, 看到的月龄=[e['月龄'] for e in ev], 缺的月龄=[k for k in range(1, N + 1) if k not in {e['月龄'] for e in ev}], 最好BSR=best,
                      最高月销售额=max([e['销售额'] for e in ev], default=0), 逐月=ev))
 R = pd.DataFrame(rows)
 done = R[R['状态'].isin(['成功', '未成功'])]
@@ -90,6 +90,11 @@ out = {'window': N, 'unit': UNIT, 'bsr_rule': BSR_RULE, 'data': f'{first}—{las
        'by_line': done[done['状态'] == '成功']['首次达线'].map(lambda h: h['线']).value_counts().to_dict(),
        'invalid_bsr_only': int(done[(done['状态'] == '未成功') & done['逐月'].map(lambda ev: any(e['无效BSR达线'] for e in ev))].shape[0]),
        'grid': {}, 'families': R.to_dict('records')}
+# 缺月：名单每月深浅不同、个别头部家族也会缺月（数据准备/关键词_需求核对.md 第 4 节）。首月没进表多半是还没起量，不算；
+# 未成功、第 2 月以后有缺月、且看到的月份离线近（BSR ≤ 100 或销售额 ≥ $7 万）的，缺的那个月可能达线
+gap = (done['状态'] == '未成功') & done['缺的月龄'].map(lambda ks: any(k > 1 for k in ks))
+near = done[gap & ((done['最好BSR'] <= 100) | (done['最高月销售额'] >= 0.7 * REV_LINE))]
+out['gap'] = {'未成功且第2月以后有缺月': int(gap.sum()), '其中离线近': near['单位'].tolist()}
 for (w, f), g in done.groupby(['宽度段', '形态']): out['grid'][f'{w}|{f}'] = dict(n=int(len(g)), k=int((g['状态'] == '成功').sum()))
 for w, g in done.groupby('宽度段'): out['grid'][f'{w}|all'] = dict(n=int(len(g)), k=int((g['状态'] == '成功').sum()))
 # 阈值敏感性：同一批观察完整的家族，换线后成功几个
@@ -107,6 +112,8 @@ print('数据', out['data'], '观察期', N, '个月', '单位', UNIT, 'BSR', BS
 print('成功率（观察完整）', out['rate'], f"{out['rate']['k'] / max(out['rate']['n'], 1):.1%}")
 print('观察期没走完但已达线', out['early_hit_unfinished']); print('成功由哪条线触发', out['by_line'])
 print('未成功但有被排除的异常 BSR 达线', out['invalid_bsr_only']); print('阈值敏感性', out['sens'])
+print('未成功且第 2 月以后有缺月', out['gap']['未成功且第2月以后有缺月'], '其中离线近', len(near))
+for r in near.itertuples(): print(' ~ 缺月离线近', r.单位, r.品牌, r.上架月, '看到', r.看到的月龄, '缺', r.缺的月龄, '最好BSR', r.最好BSR, f'最高月销售额 ${r.最高月销售额:,}')
 print('格子', {k: v for k, v in out['grid'].items() if v['n'] >= 3})
 for r in R[R['状态'] == '成功'].itertuples(): print(' ✓', r.单位, len(r.父ASIN), r.品牌, r.上架月, r.宽度段, r.形态, '第', r.首次达线['月龄'], '月', r.首次达线['依据'])
 for r in done[(done['状态'] == '未成功') & done['逐月'].map(lambda ev: any(e['无效BSR达线'] for e in ev))].itertuples():
