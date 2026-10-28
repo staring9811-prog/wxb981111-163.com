@@ -50,6 +50,11 @@ def make_cell(p,ref,style,value):
         return '<%sc r="%s"%s t="n"><%sv>%s</%sv></%sc>'%(p,ref,s,p,num,p,p)
     return '<%sc r="%s"%s t="str"><%sv>%s</%sv></%sc>'%(p,ref,s,p,escape(str(value)),p,p)
 
+def root_prefix(xml,tag):
+    # Namespace prefix of the root element. The XML declaration is optional:
+    # parts written by openpyxl and similar tools start directly with the root tag.
+    return re.match(r'(?:<\?xml[^>]*\?>\s*)?<(\w+:)?'+tag+r'\b',xml).group(1) or ''
+
 CELL=re.compile(r'<(?:\w+:)?c\b[^>]*?\br="([A-Z]+)(\d+)"[^>]*?(?:/>|>.*?</(?:\w+:)?c>)',re.S)
 
 def main():
@@ -60,7 +65,7 @@ def main():
     m=json.loads(Path(args.matrix).read_text(encoding='utf-8'));headers=m['headers'];matrix=m['matrix']
     zin=zipfile.ZipFile(args.base);path=sheet_path(zin,args.sheet)
     xml=zin.read(path).decode('utf-8')
-    p=re.match(r'<\?xml[^>]*\?>\s*<(\w+:)?worksheet',xml).group(1) or ''
+    p=root_prefix(xml,'worksheet')
     rows=list(re.finditer(r'(<%srow\b[^>]*\br="(\d+)"[^>]*>)(.*?)(</%srow>)'%(p,p),xml,re.S))
     if rows[0].group(2)!='1':raise SystemExit('expected header in row 1')
     header={cell_text(c.group(0)):c.group(1) for c in CELL.finditer(rows[0].group(3))}
@@ -100,7 +105,7 @@ def main():
         if relpath in zin.namelist():
             for t in re.findall(r'Target="([^"]*tables/[^"]+)"',zin.read(relpath).decode('utf-8')):
                 tp='xl/tables/'+t.rsplit('/',1)[1]
-                tx=zin.read(tp).decode('utf-8');tq=re.match(r'<\?xml[^>]*\?>\s*<(\w+:)?table',tx).group(1) or ''
+                tx=zin.read(tp).decode('utf-8');tq=root_prefix(tx,'table')
                 ref=re.search(r'\bref="([A-Z]+\d+):([A-Z]+)(\d+)"',tx)
                 tx=tx.replace(ref.group(0),'ref="%s:%s%s"'%(ref.group(1),col_letter(last+len(headers)),ref.group(3)),1)
                 cnt=int(re.search(r'<%stableColumns count="(\d+)"'%tq,tx).group(1))

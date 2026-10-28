@@ -120,6 +120,10 @@ def main():
     # Pedestal wording only in parent bullets does not override the child's explicit form.
     got=form([('商品标题','36" Freestanding Bathroom Vanity with Sink','child'),('五点描述','A stylish upgrade from your old pedestal sink.','parent')],parent_fill=True)
     if got!='落地式':bad.append(('pedestal-bullet',got))
+    # Workbook parts without an XML declaration (openpyxl output) must still be writable.
+    import write_workbook as ww
+    for xml,want in (('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<worksheet xmlns="m">',''),('<worksheet xmlns="m"><sheetData/>',''),('<x:worksheet xmlns:x="m">','x:')):
+        if ww.root_prefix(xml,'worksheet')!=want:bad.append(('xml-declaration',xml[:45],ww.root_prefix(xml,'worksheet')))
     for t_ in bad:print('FAIL',t_)
     print('selftest: %d failure(s)'%len(bad))
     raise SystemExit(1 if bad else 0)
