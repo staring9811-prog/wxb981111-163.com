@@ -8,8 +8,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.metrics import roc_auc_score
 warnings.filterwarnings('ignore')
-D = '/home/user/wxb981111-163.com/opportunity-research/input/data_v2/BathroomVanities_202606-202609_SKU销量预估_已打标_v2'
-OUT = '/home/user/wxb981111-163.com/opportunity-research/solution-v2/trial/变量关系_小试结论.md'
+import os
+D = os.environ.get('TRIAL_DATA', '/home/user/wxb981111-163.com/opportunity-research/input/data_v2/BathroomVanities_202606-202609_SKU销量预估_已打标_v2')
+OUT = os.environ.get('TRIAL_OUT', '/home/user/wxb981111-163.com/opportunity-research/solution-v2/trial/变量关系_小试结论.md')
 a = json.load(open(D + '.analysis.json', encoding='utf-8'))
 keep = {(r['month'], r['childASIN']) for r in a['rowManifest'] if r['includeInBathroomAnalysis']}
 df = pd.read_excel(D + '.xlsx', sheet_name='SKU估算明细')
@@ -89,6 +90,23 @@ for d1, d2 in itertools.combinations(DIMS, 2):
 combos.sort(key=lambda x: -x[3])
 for c in combos[:10] + combos[-5:]:
     L.append(f'| {c[0]} | {c[1]} | {c[2]:.0%} | {c[3]:.2f}× | {c[4]} |')
+# 2b 三元、四元组合：能枚举多少个样本够的
+L += ['', '## 2b. 三元、四元组合：样本够（n ≥ 8，不含未知、不含上架月份）的组合有多少', '', '| 组合元数 | 实际出现的组合数 | n ≥ 8 的组合数 | 其中跑赢比例 ≥ 整体 1.5 倍且两段稳定 |', '| :--- | :--- | :--- | :--- |']
+DIMS_NM = [d for d in DIMS if d != '上架月份']
+kway = {}
+for k in (2, 3, 4):
+    total = ok = strong = 0
+    for ds in itertools.combinations(DIMS_NM, k):
+        for vals, grp in new.groupby(list(ds)):
+            total += 1
+            if len(grp) < 8 or '未知' in vals: continue
+            ok += 1; m = grp[Y].mean(); sub = grp.groupby(half.loc[grp.index])[Y].mean()
+            st = len(sub) == 2 and (sub >= base).all()
+            if m >= 1.5 * base and st:
+                strong += 1; kway.setdefault(k, []).append((' 且 '.join(f'{d}={v}' for d, v in zip(ds, vals)), len(grp), m))
+    L.append(f'| {k} | {total} | {ok} | {strong} |')
+for k, lst in kway.items():
+    L += ['', f'{k} 元中达标的组合：'] + [f'- {c} ：n={n}，跑赢 {m:.0%}' for c, n, m in sorted(lst, key=lambda x: -x[2])[:8]]
 # 3 决策树
 X = pd.get_dummies(new[DIMS].astype(str)); y = new[Y].astype(int)
 tree = DecisionTreeClassifier(max_depth=3, min_samples_leaf=10, random_state=0).fit(X, y)
