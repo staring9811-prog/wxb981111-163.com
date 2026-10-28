@@ -103,6 +103,23 @@ def main():
         if got[0]!=wt or (ws is not None and got[1]!=ws):bad.append(('top',title,got))
     for v,want in (('MDF；实木','实木框架+MDF'),('实木；胶合板；MDF；刨花板','实木框架+MDF+胶合板+刨花板'),('胶合板；MDF','MDF+胶合板'),('实木框架（其余未说明）','实木框架'),('实木','实木'),('MDF','MDF'),('MDF；实木（父体候选）','实木框架+MDF（父体候选）')):
         if t.format_cabinet(v)!=want:bad.append(('cabinet-format',v,t.format_cabinet(v)))
+    # Pedestal forms (user 2026-10-28): pedestal sink / storage cabinet -> 柱状盆, outranking freestanding/wall words.
+    def form(sources,**kw):
+        x=tagger(sources,**kw)
+        for h in t.HEADERS[:14]:x.tags.setdefault(h,t.UNKNOWN)
+        x.structure();return x.tags[t.HEADERS[0]]
+    for title,want in (
+        ('TEENFON Pedestal Sink Storage Cabinet with 2 Doors and Drawer, Freestanding Under Sink Storage with U-Shape Cut-Out','柱状盆'),
+        ('kleankin Modern Under Sink Cabinet with 2 Doors, Pedestal Under Sink Bathroom Cupboard, Wall Mounted','柱状盆'),
+        ('White Ceramic Pedestal Sink, 24 inch Bathroom Pedestal Basin','柱状盆'),
+        ('Under Sink Cabinet for Pedestal Sink, Bathroom Storage Organizer','柱状盆'),
+        ('Farmhouse Style Standing Pedestal Cabinet with Two Blue Boat Glass Vessel Sinks, Freestanding','落地式'),
+        ('30 Inch Floating Bathroom Vanity with Sink','悬浮式')):
+        got=form([('商品标题',title,'child')])
+        if got!=want:bad.append(('pedestal',title,got))
+    # Pedestal wording only in parent bullets does not override the child's explicit form.
+    got=form([('商品标题','36" Freestanding Bathroom Vanity with Sink','child'),('五点描述','A stylish upgrade from your old pedestal sink.','parent')],parent_fill=True)
+    if got!='落地式':bad.append(('pedestal-bullet',got))
     for t_ in bad:print('FAIL',t_)
     print('selftest: %d failure(s)'%len(bad))
     raise SystemExit(1 if bad else 0)

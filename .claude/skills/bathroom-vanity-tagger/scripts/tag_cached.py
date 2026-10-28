@@ -14,7 +14,7 @@ import argparse,html,json,re,hashlib
 from pathlib import Path
 from collections import Counter
 
-VERSION='bathroom-vanity-tagger-20261027-v11'
+VERSION='bathroom-vanity-tagger-20261028-v12'
 # Solid-wood claims are checked against assembly and same-width MDF price (user 2026-10-27).
 SOLID_WOOD_PRICE_RATIO=1.5
 SOLID_WOOD_PRICE_FLOOR=500.0  # USD; used when no same-width MDF reference exists
@@ -22,6 +22,9 @@ SOLID_WOOD_PRICE_FLOOR=500.0  # USD; used when no same-width MDF reference exist
 STANDARD_WIDTHS=(12,16,18,20,22,24,26,28,30,31,32,34,36,40,42,48,54,55,60,61,66,72,84)
 STD_WIDTH_TOLERANCE=0.8
 PARENT_SUFFIX='（父体候选）'
+# User 2026-10-28: every pedestal form is 柱状盆, including pedestal sink storage cabinets.
+# "Standing Pedestal Cabinet with ... vessel sink" names a freestanding vanity and does not match.
+PEDESTAL_FORM=r'\bpedestal\s+(?:sink|basin|under[ -]?sink)\b|\bfor\s+(?:a\s+)?pedestal\s+sinks?\b'
 
 def standard_width(v):
     # Nearest standard width within tolerance; ties (e.g. 31.5 between 31/32) stay raw.
@@ -133,12 +136,16 @@ class Tagger:
                     out.append(self.ev(s,label,s['text'][max(0,m.start()-35):min(len(s['text']),m.end()+55)]));break
         return out
     def structure(self):
-        self.set(HEADERS[0],self.pattern_candidates([
+        c=self.pattern_candidates([
             ('悬浮式',r'\b(?:floating|wall[ -]mount(?:ed)?|wall[ -]hung)\b'),
             ('落地式',r'\b(?:freestanding|free[ -]standing|floor[ -]mount(?:ed)?)\b'),
             ('开放式',r'\bconsole\s+(?:vanity|sink|table)\b'),
             ('转角式',r'\bcorner\s+(?:bathroom\s+)?(?:vanity|cabinet|sink)\b'),
-            ('柱状盆',r'\bpedestal\s+(?:sink|basin)(?!\s+(?:storage|cabinet))\b')],lambda f:f!='商品尺寸'))
+            ('柱状盆',PEDESTAL_FORM)],lambda f:f!='商品尺寸')
+        # Title/SKU naming a pedestal sink outranks floating/freestanding words (FORM-PEDESTAL-PRIORITY).
+        ped=[e for e in c if e['label']=='柱状盆' and e['sourceField'] in ('商品标题','SKU属性')]
+        self.set(HEADERS[0],ped or c)
+        if ped:self.evidence[HEADERS[0]].update({'ruleID':'FORM-PEDESTAL-PRIORITY','note':'标题/SKU写明立柱盆，形态统一为柱状盆（用户2026-10-28）'})
         c=[]
         for s in self.sources:
             text=s['text']

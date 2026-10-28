@@ -1,4 +1,4 @@
-# 各字段打标规则现状（v11，2026-10-27）
+# 各字段打标规则现状（v12，2026-10-28）
 
 通用顺序：SKU属性 → 子体标题 → 子体详情 overviews → 卖家精灵导出详细参数/亮点 → 子体五点 → 商品尺寸 → 父体五点/父体详情（子体没有时直接用，JSON status=parent_fill）→ 用户默认规则（status=business_default）。否定词（no/without/not）先于关键词；SKU 与标题不一致时 SKU 优先并标冲突。
 
@@ -9,10 +9,10 @@
 | freestanding / free-standing / floor-mounted | 落地式 |
 | console vanity / sink / table | 开放式 |
 | corner vanity / cabinet / sink | 转角式 |
-| pedestal sink / basin（后面不是 storage/cabinet） | 柱状盆 |
+| pedestal sink / basin / under sink、for pedestal sink（含立柱盆储物柜） | 柱状盆；标题或 SKU 写明时优先于上面各行（FORM-PEDESTAL-PRIORITY，用户 2026-10-28） |
 | 以上都没有 | **默认落地式**（FORM-DEFAULT-FREESTANDING） |
 
-注：vessel 是台面形态（D4 台上盆），不是 D1。商品尺寸列不参与。
+注：vessel 是台面形态（D4 台上盆），不是 D1。商品尺寸列不参与。“Standing Pedestal Cabinet with … vessel sink”是带台上盆的落地柜，不算柱状盆；只在父体五点里提到 pedestal sink 不覆盖子体自己写明的形态。
 
 ## D2 安装方式
 | 原文 | 标签 |
