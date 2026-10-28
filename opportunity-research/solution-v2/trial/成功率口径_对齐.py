@@ -1,14 +1,14 @@
 """成功率口径对齐：逐个新品家族给出成功 / 未成功 / 观察中 / 数据不全，以及判定依据（哪个月、哪条线、多少值）。
 口径（待 wen 逐项确认）：
-- 成功单位（UNIT）：chain = 产品链，按"共享子 ASIN"把逐月迁移的核验父 ASIN 串成一个（默认）；parent = 当月核验父 ASIN。
+- 成功单位（UNIT）：replace（默认）= 以当月核验父 ASIN 为基础，旧父体下个月消失、且一半以上子体整体搬到同一个新父体时视为同一产品（wen 2026-10-28：父体只是 MCP 抓取时的统一入口，换父体不代表新产品）；parent = 只按当月核验父 ASIN（对照）；chain = 凡共享过子 ASIN 的父体都串成一个（过粗，会把挂过老家族的新款并进老品，仅对照）。
 - 新品：单位内最早子体上架日期在 2026-01 至 09。
 - 观察期：上架当月为第 1 个月，连续 N 个月（WINDOW，默认 3）。
-- 成功线：观察期内任一月，任一子体小类 BSR ≤ 50（BSR_RULE：all = 全部有当月证据的"目标月校验小类BSR"，默认；strict = 只用"未发现排序异常"的行）或家族月销售额 ≥ $100,000（子体销量估算 × 快照价，求和）。
+- 成功线：观察期内任一月，父体内最好的子体小类 BSR ≤ 50（BSR_RULE：all = 家族排名，共享排名照算，默认，wen 2026-10-28 确认；own = 不含共享排名；strict = 只用"未发现排序异常"的行）或 SPU 月销售额 ≥ $100,000。SPU 月销售额 = 父体月销量 × 导出子体的销量加权均价（wen 2026-10-28：没导出的子体按销量太低处理，父体销量全部归导出子体）；REV_RULE=child 时改回子体分摊销售额相加，仅作对照。
 - 分母：观察期完整落在数据月份内、且观察期内至少一个月出现在表里（父体月销 ≥ 60 件）的家族。
 输出：WINDOW 对应的 json（TRIAL_DUMP 目录）和终端摘要。"""
 import os, json, pandas as pd
 S = os.environ['TRIAL_DUMP']; N = int(os.environ.get('WINDOW', 3)); BSR_LINE, REV_LINE = 50, 100000
-UNIT = os.environ.get('UNIT', 'chain'); BSR_RULE = os.environ.get('BSR_RULE', 'all')
+UNIT = os.environ.get('UNIT', 'replace'); BSR_RULE = os.environ.get('BSR_RULE', 'all'); REV_RULE = os.environ.get('REV_RULE', 'parent')
 df = pd.read_pickle(S + '/df.pkl').dropna(subset=['核验父ASIN'])
 OKS = {'strict': ['未发现排序异常'], 'own': ['未发现排序异常', '发现排序异常'], 'all': ['未发现排序异常', '发现排序异常', '共享排名不适用']}[BSR_RULE]
 df['BSR可用'] = df['BSR'].notna() & df['BSR校验状态'].isin(OKS)
@@ -21,6 +21,14 @@ def root(x):
 if UNIT == 'chain':
     for ps in df.groupby('子ASIN')['核验父ASIN'].unique():
         for q in ps[1:]: up[root(q)] = root(ps[0])
+elif UNIT == 'replace':
+    kids = {(m, p): set(g['子ASIN']) for (m, p), g in df.groupby(['月', '核验父ASIN'])}
+    ms = sorted(df['月'].unique())
+    for a, b in zip(ms, ms[1:]):
+        pa = {p for (m, p) in kids if m == a}; pb = {p for (m, p) in kids if m == b}
+        for A in pa - pb:  # 旧父体下个月消失
+            best = max(((B, len(kids[(a, A)] & kids[(b, B)]) / len(kids[(a, A)])) for B in pb), key=lambda t: t[1], default=(None, 0))
+            if best[1] >= 0.5: up[root(A)] = root(best[0])
 df['单位'] = df['核验父ASIN'].map(root)
 members = df.groupby('单位')['核验父ASIN'].unique().map(sorted)
 fam = df.groupby('单位')['上架'].min().rename('上架F')
@@ -44,7 +52,13 @@ for f, a in attr.iterrows():
     for m, gm in g.groupby('月龄'):
         v = gm[gm['BSR可用']]
         b = v.loc[v['BSR'].idxmin()] if len(v) else None
-        rev = gm['销售额'].sum(); bad = gm[~gm['BSR可用'] & gm['BSR'].notna() & (gm['BSR'] <= BSR_LINE)]
+        if REV_RULE == 'child': rev = gm['销售额'].sum()
+        else:  # 父体月销量（同月多个父体时相加）× 导出子体按分摊销量加权的价格
+            pq = gm.groupby('核验父ASIN')['父体月销量预测'].first().astype(float).sum()
+            pr = gm.dropna(subset=['价格']); wsum = pr['销量'].fillna(0).sum()
+            price = (pr['销量'].fillna(0) * pr['价格']).sum() / wsum if wsum > 0 else pr['价格'].median()
+            rev = pq * price if pd.notna(price) else 0.0
+        bad = gm[~gm['BSR可用'] & gm['BSR'].notna() & (gm['BSR'] <= BSR_LINE)]
         ev.append(dict(月龄=int(m), 月份=str(gm['月期'].iloc[0]), 最好BSR=None if b is None else int(b['BSR']), BSR子体=None if b is None else b['子ASIN'], BSR状态=None if b is None else b['BSR校验状态'],
                        销售额=round(float(rev)), 无效BSR达线=int(len(bad)), 子体数=int(gm['子ASIN'].nunique())))
     hit = None
@@ -82,7 +96,7 @@ def k_with(bl, rl, both=False):
 out['sens'] = {'BSR≤50 或 ≥$10万（现行）': k_with(50, REV_LINE), '只看 BSR≤50': k_with(50, 9e18), '只看 ≥$10万': k_with(0, REV_LINE),
                'BSR≤50 且 ≥$10万': k_with(50, REV_LINE, True), 'BSR≤30 或 ≥$10万': k_with(30, REV_LINE), 'BSR≤100 或 ≥$10万': k_with(100, REV_LINE),
                'BSR≤50 或 ≥$5万': k_with(50, 50000)}
-json.dump(out, open(S + f'/success_window{N}_{UNIT}_{BSR_RULE}.json', 'w', encoding='utf-8'), ensure_ascii=False, default=str, indent=1)
+json.dump(out, open(S + f'/success_window{N}_{UNIT}_{BSR_RULE}_{REV_RULE}.json', 'w', encoding='utf-8'), ensure_ascii=False, default=str, indent=1)
 print('数据', out['data'], '观察期', N, '个月', '单位', UNIT, 'BSR', BSR_RULE, '单位数', len(R), '多父体单位', int((R['父ASIN'].map(len) > 1).sum())); print('状态', out['status']); print('按上架月', out['by_launch'])
 print('成功率（观察完整）', out['rate'], f"{out['rate']['k'] / max(out['rate']['n'], 1):.1%}")
 print('观察期没走完但已达线', out['early_hit_unfinished']); print('成功由哪条线触发', out['by_line'])

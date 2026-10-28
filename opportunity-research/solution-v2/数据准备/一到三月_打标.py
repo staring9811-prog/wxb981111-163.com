@@ -129,6 +129,11 @@ for m in MONTHS:
     fam_kw = x.groupby('父ASIN')['流量词'].transform(lambda s: (s.fillna(0) > 0).any())
     single = (x['列出子体数'] == 1) & (x['变体数'] == 1)
     x['子体月销量（6–9月公式）'] = np.where(single, x['父体月销量'], np.where(fam_kw, x['父体月销量'] * x['流量词占比'].fillna(0), np.nan))
+    # wen 2026-10-28：没导出的子体按销量太低处理，父体销量全部分给导出的子体（流量词占比在导出子体内归一）
+    tot = x.groupby('父ASIN')['流量词占比'].transform(lambda s: s.fillna(0).sum())
+    # 只导出 1 行的父体：其余变体按销量太低处理，这一行拿走全部父体销量（不论有没有流量词）
+    only_one = x['列出子体数'] == 1
+    x['子体月销量（父体全分给导出子体）'] = np.where(only_one, x['父体月销量'], np.where(tot > 0, x['父体月销量'] * x['流量词占比'].fillna(0) / tot.where(tot > 0, 1), np.nan))
     x['小类BSR数值'] = pd.to_numeric(x['小类BSR'], errors='coerce'); x['商品价格'] = pd.to_numeric(x['价格($)'], errors='coerce')
     x['纳入浴室柜分析'] = x['小类目'].map(is_vanity)
     parts.append(x)
@@ -136,7 +141,7 @@ A = pd.concat(parts, ignore_index=True)
 for j, h in enumerate(HEADERS): A[h] = [r[j] for r in final]
 A['标签来源'] = source
 keep = ['目标月份', 'ASIN', '父ASIN', '逻辑父体编码', '品牌', '商品标题', 'SKU', '上架时间', '商品价格', '买家运费($)', '配送方式', '小类目', '纳入浴室柜分析',
-        '小类BSR数值', '父体月销量', '月销量', '子体销量', '变体数', '列出子体数', '流量词', '流量词占比', '流量推算销量', '子体月销量（6–9月公式）',
+        '小类BSR数值', '父体月销量', '月销量', '子体销量', '变体数', '列出子体数', '流量词', '流量词占比', '流量推算销量', '子体月销量（6–9月公式）', '子体月销量（父体全分给导出子体）',
         '评分', '评分数', '商品详情页链接'] + HEADERS + ['标签来源']
 A = A[keep].rename(columns={'ASIN': '子ASIN', '父ASIN': '核验父ASIN', 'SKU': 'SKU属性', '上架时间': '上架日期', '小类BSR数值': '小类BSR',
                             '月销量': '父体月销量（行值）', '子体销量': '子体销量（卖家精灵）', '流量推算销量': '子体月销量（原流程）'})
