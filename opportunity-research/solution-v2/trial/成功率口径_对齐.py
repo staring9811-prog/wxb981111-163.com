@@ -6,7 +6,7 @@
 - 成功线：观察期内任一月，父体内最好的子体小类 BSR ≤ 50（BSR_RULE：all = 家族排名，共享排名照算，默认，wen 2026-10-28 确认；own = 不含共享排名；strict = 只用"未发现排序异常"的行）或 SPU 月销售额 ≥ $100,000。SPU 月销售额 = 父体月销量 × 导出子体的销量加权均价（wen 2026-10-28：没导出的子体按销量太低处理，父体销量全部归导出子体）；REV_RULE=child 时改回子体分摊销售额相加，仅作对照。
 - 分母：观察期完整落在数据月份内、且观察期内至少一个月出现在表里（父体月销 ≥ 60 件）的家族。
 输出：WINDOW 对应的 json（TRIAL_DUMP 目录）和终端摘要。"""
-import os, json, pandas as pd
+import os, re, html, json, pandas as pd
 S = os.environ['TRIAL_DUMP']; N = int(os.environ.get('WINDOW', 3)); BSR_LINE, REV_LINE = 50, 100000
 UNIT = os.environ.get('UNIT', 'replace'); BSR_RULE = os.environ.get('BSR_RULE', 'all'); REV_RULE = os.environ.get('REV_RULE', 'parent')
 df = pd.read_pickle(S + '/df.pkl').dropna(subset=['核验父ASIN'])
@@ -25,10 +25,12 @@ elif UNIT == 'replace':
     kids = {(m, p): set(g['子ASIN']) for (m, p), g in df.groupby(['月', '核验父ASIN'])}
     ms = sorted(df['月'].unique())
     for a, b in zip(ms, ms[1:]):
-        pa = {p for (m, p) in kids if m == a}; pb = {p for (m, p) in kids if m == b}
-        for A in pa - pb:  # 旧父体下个月消失
-            best = max(((B, len(kids[(a, A)] & kids[(b, B)]) / len(kids[(a, A)])) for B in pb), key=lambda t: t[1], default=(None, 0))
-            if best[1] >= 0.5: up[root(A)] = root(best[0])
+        pa = {p for (m, p) in kids if m == a}; pb = sorted(p for (m, p) in kids if m == b)
+        for A in sorted(pa - set(pb)):  # 旧父体下个月消失
+            share = {B: len(kids[(a, A)] & kids[(b, B)]) / len(kids[(a, A)]) for B in pb}
+            top = max(share.values(), default=0); winners = [B for B, v in share.items() if v == top]
+            # 只有一个新父体接收了至少一半子体才算整体搬家；子体平分到几个新父体是拆分，不合并
+            if top >= 0.5 and len(winners) == 1: up[root(A)] = root(winners[0])
 df['单位'] = df['核验父ASIN'].map(root)
 members = df.groupby('单位')['核验父ASIN'].unique().map(sorted)
 fam = df.groupby('单位')['上架'].min().rename('上架F')
@@ -41,9 +43,12 @@ win = df[df['月龄'].between(1, N)]
 
 def mode(s):
     s = s[s != '未知']; return s.mode().iloc[0] if len(s) else '未知'
+PEDESTAL = re.compile(r'pedestal\s+(?:sink|basin|under[ -]?sink)|for\s+pedestal\s+sink', re.I)  # wen 2026-10-28：柱状盆形态全部打成柱状盆
+ped_units = set(df[(df['商品标题'].fillna('').astype(str) + ' ' + df['SKU属性'].fillna('').astype(str)).map(lambda t: bool(PEDESTAL.search(re.sub(r'\s+', ' ', html.unescape(t))))) | (df['形态'] == '柱状盆')]['单位'])
 attr = df.groupby('单位').agg(宽度段=('宽度段', lambda s: s.dropna().mode().iloc[0] if s.notna().any() else '未知'),
                                   形态=('形态', mode), 台面材质=('台面材质', mode), 品牌=('品牌', 'first'), 上架月=('上架月', 'first'))
 
+attr.loc[attr.index.isin(ped_units), '形态'] = '柱状盆'
 rows = []
 for f, a in attr.iterrows():
     lm = a['上架月']; end = lm + (N - 1)
