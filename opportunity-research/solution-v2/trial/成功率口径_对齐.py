@@ -43,7 +43,8 @@ win = df[df['月龄'].between(1, N)]
 
 def mode(s):
     s = s[s != '未知']; return s.mode().iloc[0] if len(s) else '未知'
-PEDESTAL = re.compile(r'pedestal\s+(?:sink|basin|under[ -]?sink)|for\s+pedestal\s+sink', re.I)  # wen 2026-10-28：柱状盆形态全部打成柱状盆
+# 与打标技能 v12 的 PEDESTAL_FORM 一致（标题/SKU 写明即优先，FORM-PEDESTAL-PRIORITY）；6–9 月 v11 原标签按旧规则，这里在分析层统一
+PEDESTAL = re.compile(r'\bpedestal\s+(?:sink|basin|under[ -]?sink)\b|\bfor\s+(?:a\s+)?pedestal\s+sinks?\b', re.I)
 ped_units = set(df[(df['商品标题'].fillna('').astype(str) + ' ' + df['SKU属性'].fillna('').astype(str)).map(lambda t: bool(PEDESTAL.search(re.sub(r'\s+', ' ', html.unescape(t))))) | (df['形态'] == '柱状盆')]['单位'])
 attr = df.groupby('单位').agg(宽度段=('宽度段', lambda s: s.dropna().mode().iloc[0] if s.notna().any() else '未知'),
                                   形态=('形态', mode), 台面材质=('台面材质', mode), 品牌=('品牌', 'first'), 上架月=('上架月', 'first'))

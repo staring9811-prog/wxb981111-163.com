@@ -6,7 +6,7 @@
 5. 另出分析用合并表：统一表头、父体月销量、子体月销量（6–9 月公式）、16 列标签、标签来源。
 环境变量：TAGGER（技能目录，含 scripts/）、Q1_RAW、V11、OUT_DIR（默认 input/data_v2/202601-202603_打标，不入库）、REPORT_MD。
 用法：python3 -I 一到三月_打标.py"""
-import os, re, html, json, subprocess, sys, numpy as np, pandas as pd
+import os, json, subprocess, sys, numpy as np, pandas as pd
 from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
@@ -19,11 +19,6 @@ MONTHS = ['01', '02', '03']
 HEADERS = ['D1产品形态', 'D2安装方式', 'D3盆数', 'D4台面形态', 'D5元素', 'D6柜体颜色', 'D7柜体材质', 'D8台面材质', 'D8台盆材质',
            'D9宽(in)', 'D9深(in)', 'D9高(in)', 'D10镜子', 'D11龙头', '打标状态', '打标说明']
 TAGGED_STATES = ('文本证据可用', '部分信息不足', '存在冲突待核验')
-# wen 2026-10-28：柱状盆形态全部打成柱状盆。立柱盆、立柱盆储物柜（标题/SKU 写 pedestal sink / basin / under sink）都算；
-# "Standing Pedestal Cabinet with Vessel Sink" 这类是带台上盆的落地柜，不算。
-PEDESTAL = re.compile(r'pedestal\s+(?:sink|basin|under[ -]?sink)|for\s+pedestal\s+sink', re.I)
-def is_pedestal(*texts):
-    return bool(PEDESTAL.search(re.sub(r'\s+', ' ', html.unescape(' '.join(str(t) for t in texts if t)))))
 OPEN = (None, '信息不足', '待图片核验')
 WORK = os.path.join(OUT, '_work'); DR = os.path.join(WORK, 'data_root'); TD = os.path.join(WORK, 'tag')
 for d in (OUT, DR, TD): os.makedirs(d, exist_ok=True)
@@ -110,12 +105,13 @@ for k, (row, mt) in enumerate(zip(M, meta)):
         vals[15] = '1–3月按v11规则新打（文本：标题/SKU/详细参数/尺寸' + ('/五点：' + mt['五点来源说明'] if mt['五点来源说明'] else '') + '）；' + (vals[15] or '')
         final.append(vals); source.append('新打（v11 规则）')
 
-# 柱状盆统一（在沿用 v11 与新打之后统一执行，两种来源同一口径）
+# 柱状盆统一（wen 2026-10-28，已写进打标技能 v12 的 FORM-PEDESTAL-PRIORITY）：
+# 技能对全部行都打了一遍，判为柱状盆的行，沿用 v11 的也一并统一，两种来源同一口径
 n_ped = 0
-for k, (vals, r) in enumerate(zip(final, rows)):
+for k, vals in enumerate(final):
     if source[k].startswith('不纳入'): continue
-    if is_pedestal(r['商品标题'], r['SKU属性']) and vals[0] != '柱状盆':
-        vals[0] = '柱状盆'; vals[15] = '形态按 wen 2026-10-28 规则统一为柱状盆；' + (vals[15] or ''); n_ped += 1
+    if M[k][0] == '柱状盆' and vals[0] != '柱状盆':
+        vals[0] = '柱状盆'; vals[15] = '形态按打标技能 v12 柱状盆规则统一（wen 2026-10-28）；' + (vals[15] or ''); n_ped += 1
 print('统一为柱状盆的行', n_ped)
 
 # ---------- 4. 写入每月底表并逐格校验 ----------
@@ -176,8 +172,8 @@ L += ['', f'- 唯一子体：沿用 v11 {int((u["标签来源"] == "沿用 v11")
       '| 字段 | 重打后有值 | 两边都有值 | 一致 | 一致率 |', '| :--- | ---: | ---: | ---: | ---: |']
 for h, (both, same, has) in agree.items():
     L.append(f'| {h} | {has:,} | {both:,} | {same:,} | {"—" if not both else f"{same / both:.0%}"} |')
-L += ['', '一致率低的字段，新打子体的标签要谨慎使用；默认值（落地式、拆装、单盆、台下盆、无镜、无龙头）两边都会填，一致率偏高。上表是统一柱状盆之前的比较。', '',
-      f'另按 wen 2026-10-28 规则，把标题或 SKU 写明 pedestal sink / basin / under sink 的行统一为柱状盆：共 {n_ped} 行。', '',
+L += ['', '一致率低的字段，新打子体的标签要谨慎使用；默认值（落地式、拆装、单盆、台下盆、无镜、无龙头）两边都会填，一致率偏高。D1 的差异里包含柱状盆新规则：技能 v12 把立柱盆储物柜统一为柱状盆，v11 原标签按旧规则。', '',
+      f'沿用 v11 的行里，技能 v12 判为柱状盆、原标签不是的，统一为柱状盆：共 {n_ped} 行（新打的行已由技能直接判定）。', '',
       '## 3. 打标后各字段"有值"的比例（纳入打标的子体×月）', '', '| 字段 | 沿用 v11 | 新打 |', '| :--- | ---: | ---: |']
 for h in HEADERS[:14]:
     f = lambda s: f'{(~T[T["标签来源"] == s][h].isin(OPEN) & T[T["标签来源"] == s][h].notna()).mean():.0%}'
