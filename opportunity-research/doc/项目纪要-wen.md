@@ -107,6 +107,7 @@
   - input/data_v2/raw_202601-202605/：1–5 月旧导出原件，不入库
   - input/data_v2/202601-202605_打标/：1–5 月打标结果与分析用合并表，不入库
   - input/data_v2/keywords_20261028/：关键词研究包（SellerSprite），不入库
+  - wen 以前的市场分析（飞书表，公开只读）：https://my.feishu.cn/sheets/HqSqsIxqbhNPEktrVJGc5sLjngb ，含"两个大机会方向"（fluted 带到更多形态；台面盆以同价做进现有形态）、9 月数据源等 22 个页签
   - input/研究框架v1.0.md
   - input/data_v2/：SKU 打标表，不入库
   - input/data_1/：关键词表，不入库

@@ -7,33 +7,14 @@
 用法：TRIAL_DUMP=<放 df.pkl 的目录> python3 -I 模拟_案例.py"""
 import os, sys, numpy as np, pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from 方法页_共用 import S, Q15, KW, band, searches
+from 方法页_共用 import KW, searches, tagged
 
-TAGS = {'D2安装方式': '装', 'D1产品形态': '形态', 'D4台面形态': '台盆位置', 'D3盆数': '盆数', 'D8台面材质': '台面材质', 'D8台盆材质': '台盆材质',
-        'D7柜体材质': '柜体材质', 'D5元素': '元素', 'D6柜体颜色': '颜色'}
-UNK = {'信息不足', '待图片核验', '未知', '待核实', '未提及', 'nan', ''}
 LADDER = ['尺寸段', '装', '柜体材质', '台面材质']  # 同尺寸后按对价格影响从大到小；台面材质影响最大但一半没标签，暂放最后
 DIMS = ['尺寸段', '精确尺寸', '装', '形态', '台盆位置', '盆数', '台面材质', '台盆材质', '柜体材质', '元素', '颜色']
 MIN_OTHER = 3
 pd.set_option('display.width', 250)
 
-q = pd.read_pickle(Q15); q = q[q['纳入浴室柜分析']]
-a = pd.DataFrame({'m': q['目标月份'], 'p': q['核验父ASIN'], 'k': q['子ASIN'], 'c': pd.to_numeric(q['子体月销量（父体全分给导出子体）'], errors='coerce'),
-                  'bsr': pd.to_numeric(q['小类BSR'], errors='coerce'), 'price': pd.to_numeric(q['商品价格'], errors='coerce'), 'rt': pd.to_numeric(q['评分'], errors='coerce'),
-                  'up': pd.to_datetime(q['上架日期'], errors='coerce'), 'brand': q['品牌'], 'w': pd.to_numeric(q['D9宽(in)'], errors='coerce'), **{v: q[k] for k, v in TAGS.items()}})
-d = pd.read_pickle(S + '/df.pkl').dropna(subset=['核验父ASIN'])
-b = pd.DataFrame({'m': d['月'].str[:4] + '-' + d['月'].str[4:], 'p': d['核验父ASIN'], 'k': d['子ASIN'], 'c': pd.to_numeric(d['最终SKU月销量估算'], errors='coerce'),
-                  'bsr': pd.to_numeric(d['BSR'], errors='coerce'), 'price': pd.to_numeric(d['商品价格'], errors='coerce'), 'rt': pd.to_numeric(d['商品评分'], errors='coerce'),
-                  'up': pd.to_datetime(d['上架日期'], errors='coerce'), 'brand': d['品牌'], 'w': pd.to_numeric(d['D9宽(in)'], errors='coerce'), **{v: d[k] for k, v in TAGS.items()}})
-x = pd.concat([a, b], ignore_index=True)
-for c in TAGS.values():
-    x[c] = x[c].astype(object).where(x[c].notna(), None).map(lambda s: None if s is None or str(s) in UNK else str(s))
-x['尺寸段'] = x['w'].map(band); x['精确尺寸'] = x['w'].round().map(lambda v: None if pd.isna(v) else f'{int(v)}″')
-x = x.dropna(subset=['尺寸段', 'price']).reset_index(drop=True)
-x['c'] = x['c'].clip(lower=0).fillna(0)
-mi = lambda s: int(s[:4]) * 12 + int(s[5:7])
-x['age'] = x['m'].map(mi) - x['p'].map(x.groupby('p')['up'].min().map(lambda t: t.year * 12 + t.month if pd.notna(t) else np.nan)) + 1
-x['fbsr'] = x.groupby(['m', 'p'])['bsr'].transform('min')
+x = tagged()
 MONTHS = sorted(x.m.unique())
 
 MEM = {}
