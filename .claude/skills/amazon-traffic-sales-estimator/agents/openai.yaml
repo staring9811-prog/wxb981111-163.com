@@ -1,0 +1,6 @@
+interface:
+  display_name: "Amazon流量词销量分摊"
+  short_description: "跨品类用卖家精灵同月子体流量词分摊父体销量，保留公式和原始数据"
+  default_prompt: "使用 $amazon-traffic-sales-estimator 用流量词预估这些Amazon商品的子体销量。"
+policy:
+  allow_implicit_invocation: true

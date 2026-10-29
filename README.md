@@ -10,4 +10,6 @@
   - `scripts/selftest.py`：规则回归用例。
 - `reports/浴室柜各字段打标分布_v11.md`（各字段每个值的行数与来源）、`reports/浴室柜打标可行性评估_20261027_v11.md`（最新）、v10、v9、v8、`reports/浴室柜打标可行性评估_20261027_v7.md`、`reports/浴室柜打标可行性评估_20261027_v6.md`、`reports/浴室柜打标可行性评估_20261027_v5.md`、`reports/浴室柜打标可行性评估_20261027_v4.md`、`reports/浴室柜打标可行性评估_20261027.md`（v3）：2026年6–9月项目（10,816行/4,639个子ASIN）各字段现阶段能否打标的汇总。
 
+- `.claude/skills/amazon-traffic-sales-estimator/`：销量预估 skill（按流量词分摊父体月销量到子 ASIN），原样导入自交接包；`scripts/project_202606_09/` 放了本项目实际使用的 prepare/normalize/reuse_merge/estimate_sales 原件。采集依赖卖家精灵 MCP，本仓库不含密钥。
+
 项目数据（卖家精灵导出、详情缓存、打标后的 Excel/JSON）不入库，随交接包单独保存。
