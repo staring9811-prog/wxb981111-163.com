@@ -23,6 +23,19 @@ description: 浴室柜整柜商品属性打标，并回答“哪些字段现有�
 - 无方向三维数“a x b x c inches”按D×W×H读取（DIM-DWH-ORDER，中间值须与已选宽度相差≤1in）；D/W标反来源取其标W值作深度（DIM-DW-SWAP）。两条规则用户2026-10-27已确认，默认开启，--no-dim-rules 关闭。
 - 文字来源不保证正确。每个标签记录原文片段、来源字段/ASIN、范围、方法、冲突、规则版本。数字空值不转0；自动文本证据可用不等于独立验证准确。
 
+## v12.2（2026-10-29，四路审计后，用户逐条确认）
+
+以下覆盖上文对应条目；规则用例见 references/v12.2_cases.jsonl，`python3 -I scripts/case_tests.py` 全部通过才算改完。
+
+- 形态：标题/SKU 写 corner 一律转角式（FORM-CORNER-PRIORITY）；写可壁挂也可落地的单列"两用"（FORM-DUAL）；标题写 under sink 储物柜、不含盆也不是 bathroom vanity，或写 U 形的，算柱状盆（FORM-PEDESTAL-STORAGE）；"pedestal sink"只作卖点词（柜子自带盆、厨房底柜）不算柱状盆；镜柜/防倾倒五金/对比句里的 wall mount 不算悬浮；floor standing 算落地。
+- 安装方式：认 fully-assembled 等写法和"部分组件预装"；文字没写的仍默认拆装，但同一子体其他月份、同家族文字写了的照用（FAMILY-ASSEMBLY-FILL）；不用包装尺寸、品牌推断。
+- 盆数/台盆位置：台盆位置只有无盆 / 台上盆 / 台下盆三种，drop-in 归台上盆；without sink、vanity only、base cabinet、without top、sink not included 等认作无盆；sink top、boat、countertop sink、integrated / one-piece / all-in-one 写法认作台上盆；文字完全没写的仍默认台下盆。
+- 台面/台盆：盆材已知（陶瓷/树脂/Cultured Marble）、子体文字没有台面材质词、不是 vessel 类台上盆的，推断一体盆台，台面 = 盆材、台盆位置 = 台上盆（M-INTEGRATED-INFER / TOPFORM-INTEGRATED-INFER）；vessel 类台上盆且没写台面材质的算木板（M-VESSEL-TOP-WOOD）；台面→盆同材反推；读 SKU 里的台面/盆材料。
+- 元素：Farmhouse 只认看得见的饰条（X 形、cross、barn door），只写风格词的待图片核验；Barn Doors 复数、barn-style doors 认作 Barn Door；风格列表里的 farmhouse 不算。
+- 颜色：颜色和柜体名词之间可隔几个词；盆/台面/五金的颜色不算柜体色；Size 里写的柜体色要读；White Oak 归原木色；近义色（Walnut 与 Brown）不算冲突。
+- 柜体材质：对比/否定句（than、unlike、avoid using、no、-free、where X warps）里的材料不算；认 solid hardwood / solid wooden / solid American oak；"vanities"复数也算柜体上下文；多层实木板 → 胶合板，实木颗粒板 → 刨花板，manufactured wood / density board → MDF；泛称 engineered wood 与具体板材同时出现时只留具体板材；腿、抽屉、门板、台面板的材料不算柜体；实木框架 + 实木写成实木。实木价格复核前的文字标签另存 tagging_d7_text_labels.json，分析"能贵多少"时用它，避免用价格解释价格。
+- 尺寸：认 ''、”、“、28-inch、36in、48 in. 等写法和复数 vanities；文字没写宽度时用商品尺寸前两维中较大且 ≤84 的值（DIM-WIDTH-FROM-DIMENSION）；商品尺寸首值等于宽度、次值 ≤26 时按宽×深×高补深高（DIM-WDH-ORDER）；带侧柜的按总宽（DIM-SIDE-CABINET-TOTAL）；D/W 标反的判定放宽；别的变体的导出尺寸只作最后的深高来源。
+
 ## 执行
 
 1. 读用户当前文件及同名analysis.json/README，先复用缓存，核对范围、字段和文件版本。新结构按table-schema-confirmation确认；已确认16列见输出规范。不要为了打标调用在线采集接口。

@@ -41,12 +41,13 @@ SKU 的盆数优先于标题；写了双盆但宽度 < 48in 的行标冲突待�
 | vessel sink、above-counter sink | 台上盆 |
 | undermount / undercounter | 台下盆 |
 | integrated / integration sink、one-piece sink/countertop | 台上盆（用户2026-10-27：一体盆归台上盆；原文保留在JSON，用于一体盆台同材推导） |
-| drop-in、top-mount sink | 嵌入盆 |
-| D3 为无盆 | 不适用（无盆） |
+| drop-in、top-mount sink | 台上盆（用户2026-10-29：台盆位置只有无盆 / 台上盆 / 台下盆三种） |
+| D3 为无盆 | 无盆 |
+| 盆材已知（陶瓷/树脂）、子体文字没有台面材质词、不是 vessel 类台上盆 | 台上盆（一体盆台推断，TOPFORM-INTEGRATED-INFER，用户2026-10-29） |
 | 以上都没有 | **默认台下盆**（TOPFORM-DEFAULT-UNDERMOUNT） |
 
 ## D5 元素（多标签，“；”分隔）
-Fluted、Reeded、Shaker（含 recessed panel）、Barn Door、Farmhouse（含 X-design）、Slatted（含 louvered）、Glass Door（glass/glazed door）、Rattan（含 wicker/cane）。只看标题、SKU、五点、导出亮点和 style 类字段。都没有 → 待图片核验（用户要求看图暂不做）。
+Fluted、Reeded、Shaker（含 recessed panel）、Barn Door、Farmhouse（只认看得见的饰条：X 形、cross、barn door；只写风格词的待图片核验，用户2026-10-29）、Slatted（含 louvered）、Glass Door（glass/glazed door）、Rattan（含 wicker/cane）。只看标题、SKU、五点、导出亮点和 style 类字段。都没有 → 待图片核验（用户要求看图暂不做）。
 
 ## D6 柜体颜色
 1. SKU `Color:` 单一颜色 → 直接用（规范化：white/cream/ivory→白色，oak/natural→原木色，walnut→胡桃木色，espresso/dark brown/coffee→深咖啡色，gray/driftwood→灰色，navy→藏青色，blue-gray→灰蓝色，gray-green→灰绿色，sage/mint→绿色 等）。

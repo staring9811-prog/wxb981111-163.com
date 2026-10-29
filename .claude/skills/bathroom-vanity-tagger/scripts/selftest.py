@@ -59,6 +59,9 @@ def main():
     x=tagger(src,enable_dim_rules=True);x.dimensions()
     if (x.tags['D9深(in)'],x.tags['D9高(in)'])!=(22,34.5):bad.append(('dwh-enabled',x.tags))
     x=tagger([('SKU属性','Size: 36 Inch','child'),('商品尺寸','36 x 22 x 34.5 inches','child')],enable_dim_rules=True);x.dimensions()
+    # User 2026-10-29: '36 x 22 x 34.5' whose first value is the width reads as W×D×H (DIM-WDH-ORDER).
+    if (x.tags['D9深(in)'],x.tags['D9高(in)'])!=(22,34.5) or x.evidence['D9深(in)'].get('selected',[{}])[0].get('ruleID')!='DIM-WDH-ORDER':bad.append(('wdh-order',x.tags))
+    x=tagger([('SKU属性','Size: 36 Inch','child'),('商品尺寸','30 x 22 x 34.5 inches','child')],enable_dim_rules=True);x.dimensions()
     if x.tags['D9深(in)'] is not None:bad.append(('dwh-no-crosscheck',x.tags))
     # Standard widths: 23.6 -> 24, 31.5 (tie 31/32) and 37 stay raw.
     for raw,want in ((23.6,24),(47.2,48),(29.3,30),(31.5,31.5),(37,37)):
