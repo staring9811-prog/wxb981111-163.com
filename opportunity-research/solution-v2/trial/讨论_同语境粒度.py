@@ -3,8 +3,8 @@
 用法：TRIAL_DUMP=<放 df.pkl 的目录> python3 -I 讨论_同语境粒度.py"""
 import os, sys, numpy as np, pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from 方法页_共用 import S, Q15, band
-TAGS = {'D2安装方式': '装', 'D1产品形态': '形态', 'D4台面形态': '台盆位置', 'D8台面材质': '台面材质', 'D7柜体材质': '柜体材质', 'D5元素': '元素'}
+from 方法页_共用 import S, Q15, band, ORDER
+TAGS = {'D2安装方式': '装', 'D1产品形态': '形态', 'D4台面形态': '台盆位置', 'D3盆数': '盆数', 'D8台面材质': '台面材质', 'D7柜体材质': '柜体材质', 'D5元素': '元素'}
 q = pd.read_pickle(Q15); q = q[q['纳入浴室柜分析']]
 a = q.assign(m=q['目标月份'], p=q['核验父ASIN'], c=pd.to_numeric(q['子体月销量（父体全分给导出子体）'], errors='coerce'), price=pd.to_numeric(q['商品价格'], errors='coerce'))
 d = pd.read_pickle(S + '/df.pkl').dropna(subset=['核验父ASIN'])
@@ -20,12 +20,18 @@ def tier(g):
 x['价档'] = x.groupby(['m', '尺寸段'])['price'].transform(tier)
 x = x.dropna(subset=['尺寸段'])
 LEVELS = ['尺寸段', '装', '形态', '台盆位置', '价档', '台面材质', '柜体材质', '元素']
-tot = x['c'].sum(); out = []
-for i in range(1, len(LEVELS) + 1):
-    keys = LEVELS[:i]
+tot = x['c'].sum()
+def cut(keys):
     k = x.dropna(subset=keys)
     u = k.groupby(['m', 'p'] + keys, dropna=False)['c'].sum().reset_index()   # 月 × 家族 × 格子
     n = u.groupby(['m'] + keys)['p'].transform('nunique')
     cell = u.groupby(['m'] + keys)['p'].nunique()
-    out.append((' + '.join(keys[1:]) or '只按尺寸段', f'{k.c.sum() / tot:.0%}', f'{u.loc[n >= 5, "c"].sum() / tot:.0%}', int(cell.median()), int(len(cell) / x.m.nunique())))
-print(pd.DataFrame(out, columns=['在尺寸段上再加', '标签齐全的销量占比', '同月 ≥ 5 个家族可比的销量占比', '格子家族数中位', '每月格子数']).to_string(index=False))
+    return (' + '.join(keys[1:]) or '只按尺寸段', f'{k.c.sum() / tot:.0%}', f'{u.loc[n >= 5, "c"].sum() / tot:.0%}', int(cell.median()), int(len(cell) / x.m.nunique()))
+COLS = ['在尺寸段上再加', '标签齐全的销量占比', '同月 ≥ 5 个家族可比的销量占比', '格子家族数中位', '每月格子数']
+print(pd.DataFrame([cut(LEVELS[:i]) for i in range(1, len(LEVELS) + 1)], columns=COLS).to_string(index=False))
+
+# 单盆/双盆：哪些尺寸两种都有；放进第 5 层后还剩多少可比
+k = x.dropna(subset=['盆数'])
+share = k[k['盆数'] == '双盆'].groupby('尺寸段')['c'].sum() / k.groupby('尺寸段')['c'].sum()
+print('\n双盆销量占该尺寸段销量：', {s: f'{share.get(s, 0):.0%}' for s in ORDER if s in k['尺寸段'].unique()})
+print(pd.DataFrame([cut(LEVELS[:4] + ['盆数']), cut(LEVELS[:4] + ['盆数', '价档'])], columns=COLS).to_string(index=False))
