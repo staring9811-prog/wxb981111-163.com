@@ -45,15 +45,15 @@ TAGS = {'D2安装方式': '装', 'D1产品形态': '形态', 'D4台面形态': '
 UNK = {'信息不足', '待图片核验', '未知', '待核实', '未提及', 'nan', ''}
 
 def tagged():
-    """1–9 月子体行，带打标维度（未知标签记为 None）、价格、评分、上架日、品牌、尺寸段、精确尺寸、家族月龄（age）和家族当月最好 BSR（fbsr）。"""
+    """1–9 月子体行，带打标维度（未知标签记为 None）、价格、评分、上架日、品牌、标题、尺寸段、精确尺寸、家族月龄（age）和家族当月最好 BSR（fbsr）。"""
     q = pd.read_pickle(Q15); q = q[q['纳入浴室柜分析']]
     a = pd.DataFrame({'m': q['目标月份'], 'p': q['核验父ASIN'], 'k': q['子ASIN'], 'c': pd.to_numeric(q['子体月销量（父体全分给导出子体）'], errors='coerce'),
                       'bsr': pd.to_numeric(q['小类BSR'], errors='coerce'), 'price': pd.to_numeric(q['商品价格'], errors='coerce'), 'rt': pd.to_numeric(q['评分'], errors='coerce'),
-                      'up': pd.to_datetime(q['上架日期'], errors='coerce'), 'brand': q['品牌'], 'w': pd.to_numeric(q['D9宽(in)'], errors='coerce'), **{v: q[k] for k, v in TAGS.items()}})
+                      'up': pd.to_datetime(q['上架日期'], errors='coerce'), 'brand': q['品牌'], 'title': q['商品标题'], 'w': pd.to_numeric(q['D9宽(in)'], errors='coerce'), **{v: q[k] for k, v in TAGS.items()}})
     d = pd.read_pickle(S + '/df.pkl').dropna(subset=['核验父ASIN'])
     b = pd.DataFrame({'m': d['月'].str[:4] + '-' + d['月'].str[4:], 'p': d['核验父ASIN'], 'k': d['子ASIN'], 'c': pd.to_numeric(d['最终SKU月销量估算'], errors='coerce'),
                       'bsr': pd.to_numeric(d['BSR'], errors='coerce'), 'price': pd.to_numeric(d['商品价格'], errors='coerce'), 'rt': pd.to_numeric(d['商品评分'], errors='coerce'),
-                      'up': pd.to_datetime(d['上架日期'], errors='coerce'), 'brand': d['品牌'], 'w': pd.to_numeric(d['D9宽(in)'], errors='coerce'), **{v: d[k] for k, v in TAGS.items()}})
+                      'up': pd.to_datetime(d['上架日期'], errors='coerce'), 'brand': d['品牌'], 'title': d['商品标题'], 'w': pd.to_numeric(d['D9宽(in)'], errors='coerce'), **{v: d[k] for k, v in TAGS.items()}})
     x = pd.concat([a, b], ignore_index=True)
     for c in TAGS.values():
         x[c] = x[c].astype(object).where(x[c].notna(), None).map(lambda s: None if s is None or str(s) in UNK else str(s))
