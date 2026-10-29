@@ -8,11 +8,14 @@
 2. 文字：每行自己的标题、SKU、商品尺寸；五点按同子体自己的（子体详情）→ 同子体的父体五点 → 同家族的，从 2026 年两批材料里取
    （当前快照，不是当月历史），同一子体各月用同一份；详细参数只用同子体的，取 1–5 月表里最近一条。
 3. 非浴室柜剔除（wen 2026-10-29 确认）：非浴室柜_wen确认_20261029.json 里的 87 个子体整条剔除；其余每行按自己的标题判
-   （独立盆台、化妆台、镜柜/药柜、储物柜、单独的盆/龙头），命中就不纳入。标题主体（第一个逗号前）是"…Vanity"、后面不接
-   top / sink 等词的，不判独立盆台（UEV B0DT95PHVR 曾被误判）。2026 年已有的非目标名单照旧。
+   （独立盆台、化妆台、镜柜/药柜、储物柜、单独的盆/龙头；v12.2 审计补镜子、厨房柜、挡水板等台面配件、儿童免接水管洗手台），
+   命中就不纳入。标题主体（第一个逗号前）是"…Vanity"、后面不接 top / sink 等词的，不判独立盆台（UEV B0DT95PHVR 曾被误判）。
+   2026 年已有的非目标名单照旧。
 4. 用技能原脚本 tag_cached.py 打标（柱状盆、默认值、尺寸、实木价格复核等全部现行规则）；换技能版本只改 TAGGER。
-5. 形态分两层（wen 2026-10-29："开放式属于站立式"）：形态（怎么装）= 技能 D1，技能的"开放式"（console）归落地式；
-   柜体结构 = 开放式（文字写了不带门的开放层板：open shelf / open storage / open compartment / console 等）或待图片核验。
+5. 形态分两层（wen 2026-10-29："开放式属于站立式"）：形态（怎么装）= 技能 D1（落地 / 悬浮 / 柱状盆 / 转角 / 两用），技能的"开放式"
+   （console）归落地式；柜体结构 = 开放式（文字写了不带门的开放层板：open shelf / open storage / open cubes / side shelves /
+   two-tier shelf / console 等）或待图片核验；镜柜上的层板、放水管的柜内层板、门背置物架不算；父体五点只在子体标题/SKU 也提到
+   层板时采信（v12.2 审计）。
 6. 统一分析用表（共同列 + 口径标记"家族月销≥60""价格≥90"）；核对两批来源在 2025-12 → 2026-01 接不接得上；与 2026 年旧标签对同一子体
    比一致率；出证据、待核验清单和汇总报告。
 环境变量：TAGGER（技能目录，含 scripts/）、EXPORTS（MCP 导出 JSON 的 glob）、OUT_DIR（默认 input/data_v2/统一打标，不入库）、REPORT_MD。
@@ -133,6 +136,21 @@ def suspect(t):
     if s(r'\bover[ -]the[ -]toilet\b|\blinen\s+(?:cabinet|tower)\b|\btall\s+(?:bathroom\s+)?(?:storage\s+)?cabinet\b|\bside\s+cabinet\b|\bstorage\s+tower\b|\bwall\s+cabinet\b') \
             and not s(r'\b(?:sinks?|basins?|vanit(?:y|ies)|pedestal)\b'): return '独立储物柜'
     if s(r'\b(?:vessel|bathroom|undermount)\s+sinks?\b|\bfaucets?\b') and not s(r'\b(?:vanit(?:y|ies)|cabinet|stand|console|pedestal|base)\b'): return '独立盆/龙头'
+    return more_suspect(t, s)
+
+# v12.2 审计（2026-10-29）补的几类：标题里 vanity 只当 sink / top 的修饰词时不算柜子；镜子、厨房柜、挡水板、
+# 不写 sink 的台面、高柜、尺寸很小的单盆单龙头、儿童免接水管洗手台（wen：不是浴室柜的剔除）
+VANITY_FURN = r'\bvanit(?:y|ies)\b(?!\s*(?:sinks?|tops?|basins?|bowls?|vessel|mirrors?|lights?|space|side\s+cabinet|desk|table|stool|bench|chair)\b)'
+CAB_WORDS = r'\b(?:cabinets?|storage|drawers?|doors?|shel(?:f|ves)|console|stand|legs?|pedestal|combo|base)\b'
+
+def more_suspect(t, s):
+    furn = s(VANITY_FURN)
+    if s(r'\b(?:kids?|children|toddlers?|montessori)\b') and s(r'\bsinks?\b') and s(r'\bportable\b|\bno plumbing\b'): return '儿童洗手台'
+    if s(r'\banti[ -]?fog\b|\bdefog\w*\b|\b(?:led|lighted)\s+(?:bathroom\s+)?mirrors?\b') and not furn and not s(r'\b(?:sinks?|basins?|cabinets?)\b'): return '镜子'
+    if s(r'\bkitchen\s+(?:base\s+|wall\s+|sink\s+base\s+|blind\s+base\s+)?cabinets?\b|\b(?:base|wall|blind\s+base)\s+kitchen\s+cabinets?\b') and not furn and not s(r'\bbathroom\b'): return '厨房柜'
+    if s(r'\b(?:back|side)splash\b') and not furn and not s(r'\b(?:sinks?|basins?|cabinets?)\b'): return '台面配件'
+    if s(r'\b(?:vanity|counter)\s*tops?\b|\bcountertops?\b') and not furn and not s(CAB_WORDS): return '独立盆台（无柜）'
+    if s(r'\btall\s+(?:\w+\s+)?cabinet\b') and not furn and not s(r'\b(?:sinks?|basins?)\b'): return '独立储物柜'
     return None
 SUS = [CONF.get(r['asin']) or suspect(r['title']) for r in R]
 for r, c in zip(R, SUS):
@@ -196,24 +214,45 @@ os.replace(f'{TD}/tagging_evidence.json', f'{OUT}/打标证据.tags.json')
 VERSION = json.load(open(f'{TD}/tagging_summary.json', encoding='utf-8'))['ruleVersion']
 
 # ---------- 5. 形态两层 ----------
-# 不带门的开放层板 / 开放储物格；open-back、push-to-open、open the door 不算
-OPEN_RE = re.compile(r'\bopen(?:[ -]+(?:storage|display|side|bottom|lower|middle|upper|top|left|right|tier))*[ -]+(?:shel(?:f|ves|ving)|storage|cubb(?:y|ies)|compartments?)\b'
+# 不带门的开放层板 / 开放储物格；open-back、push-to-open、open the door、open space under the vanity 不算
+OPEN_RE = re.compile(r'\bopen(?:[ -]+(?:storage|display|side|bottom|lower|middle|upper|top|left|right|tier))*[ -]+(?:shel(?:f|ves|ving)|storage|cubb(?:y|ies)|cubes?|compartments?|spaces)\b'
+                     r'|\bopening\s+(?:bottom\s+|lower\s+|side\s+)?shel(?:f|ves)\b'
+                     r'|\bside\s+(?:open\s+)?(?:storage\s+)?shel(?:f|ves)\b'
+                     r'|\b(?:2|3|two|three)[ -]tier(?:ed)?\s+(?:open\s+)?(?:side\s+)?(?:storage\s+)?shel(?:f|ves)\b'
                      r'|\bconsole\s+(?:vanity|sink|table)\b', re.I)
 NEG_RE = re.compile(r'\b(?:no|not|without)\s+(?:an?\s+|any\s+)?$', re.I)
+# v12.2 审计：层板属于镜柜/药柜、或是柜内放水管的层板、或是门背置物架，都不是柜体开放层板
+MIRROR_BEFORE = re.compile(r'\b(?:mirror|medicine)\s+cabinet\b[^.|]{0,40}$', re.I)
+PIPES_AFTER = re.compile(r'^[^.|]{0,20}\b(?:accommodat\w*|fits?|for|around|hid(?:es?|ing))\s+(?:the\s+)?(?:pipes?|plumbing)\b', re.I)
+DOOR_RACK_BEFORE = re.compile(r'\bdoors?\s+(?:features?|has|have|with|includes?)\s+(?:an?\s+)?$', re.I)
+DOOR_RACK_AFTER = re.compile(r'^\s*(?:on|inside|behind|in)\b', re.I)
+# 父体五点可能写的是别的变体：子体标题/SKU 自己也提到层板/开放/侧边储物时才采信
+CHILD_STORAGE_CUE = re.compile(r'\bshel(?:f|ves)\b|\bopen\b|\bracks?\b|\btier\b|\bcub(?:e|es|by|bies)\b|\bside\s+storage\b', re.I)
 
 def open_cue(text):
     t = html.unescape(str(text or ''))
     for mm in OPEN_RE.finditer(t):
-        if not NEG_RE.search(t[max(0, mm.start() - 20):mm.start()]): return True
+        before, after = t[max(0, mm.start() - 60):mm.start()], t[mm.end():mm.end() + 40]
+        if NEG_RE.search(before[-20:]): continue
+        if MIRROR_BEFORE.search(before) or PIPES_AFTER.search(after): continue
+        # 门背/柜内的 tier 置物架（"doors features a three-tiered storage shelf"）不算；带 open 的照算
+        if re.match(r'(?:2|3|two|three)[ -]tier', mm.group(0), re.I) and 'open' not in mm.group(0).lower() \
+                and (DOOR_RACK_BEFORE.search(before) or DOOR_RACK_AFTER.search(after)): continue
+        return True
     return False
 
-STRUCT, STRUCT_SRC = [], []
-for row in rows:
-    srcs = [('标题', row['商品标题']), ('SKU', row['SKU属性']),
-            ('子体五点' if row['五点来源'] == '子体详情' else '父体五点', row['五点描述']),
-            ('详细参数', ATTR[row['子ASIN']]['attributes'] if row['子ASIN'] in ATTR else None)]
-    hit = next((s for s, t in srcs if t and open_cue(t)), None)
-    STRUCT.append('开放式' if hit else '待图片核验'); STRUCT_SRC.append(hit)
+def struct_of(title, sku, bullets, bullets_src, attrs):
+    srcs = [('标题', title), ('SKU', sku), ('子体五点' if bullets_src == '子体详情' else '父体五点', bullets), ('详细参数', attrs)]
+    child = html.unescape(f'{title or ""} {sku or ""}')
+    for s, t in srcs:
+        if not (t and open_cue(t)): continue
+        if s == '父体五点' and not CHILD_STORAGE_CUE.search(child): continue
+        return s
+    return None
+
+STRUCT_SRC = [struct_of(row['商品标题'], row['SKU属性'], row['五点描述'], row['五点来源'],
+                        ATTR[row['子ASIN']]['attributes'] if row['子ASIN'] in ATTR else None) for row in rows]
+STRUCT = ['开放式' if s else '待图片核验' for s in STRUCT_SRC]
 
 # ---------- 6. 统一分析用表 ----------
 A = pd.DataFrame({'月份': [r['m'][:4] + '-' + r['m'][4:] for r in R], '子ASIN': [r['asin'] for r in R], '家族键': FAM, '家族键来源': FAM_HOW,
