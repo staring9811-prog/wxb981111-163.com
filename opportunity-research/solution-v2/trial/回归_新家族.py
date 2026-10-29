@@ -74,7 +74,8 @@ A['尺寸段'] = A['D9宽(in)'].map(band)
 A['品牌键'] = A['品牌'].fillna('').map(lambda s: html.unescape(str(s)).strip().lower())
 A['c'] = pd.to_numeric(A['子体月销（家族均分）'], errors='coerce').fillna(0).clip(lower=0)
 A['装'] = np.where(A['D2安装方式'].eq('整装'), '整装', '拆装')
-A['柜体材质'] = A['D7柜体材质'].map(cab)
+# 实木价格复核用了价格，这里用复核前的文字标签，避免用价格解释价格（v12.2 起表里有这一列）
+A['柜体材质'] = A.get('D7柜体材质（价格复核前）', A['D7柜体材质']).map(cab)
 A['台面类型'] = [top_type(t, s) for t, s in zip(A['D8台面材质'], A['D8台盆材质'])]
 A['元素集'] = A['D5元素'].map(lambda v: tuple(x for x in str(v).split('；') if x in ELEM) if pd.notna(v) else ())
 A['主色'] = A['D6柜体颜色'].map(lambda v: COLOR.get(str(v), '未知' if (pd.isna(v) or str(v) in UNK) else '其他'))

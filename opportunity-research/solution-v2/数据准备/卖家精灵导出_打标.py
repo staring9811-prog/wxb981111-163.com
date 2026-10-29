@@ -274,6 +274,10 @@ A['家族导出子体数'] = A.groupby(['月份', '家族键'])['子ASIN'].trans
 A['家族月销'] = A.groupby(['月份', '家族键'])['家族月销（行值）'].transform('max')
 A['子体月销（家族均分）'] = A['家族月销'] / A['家族导出子体数']
 for j, h in enumerate(HEADERS): A[h] = [r[j] for r in M]
+# 实木价格复核用了价格，分析"能贵多少"时用复核前的文字标签（v12.2 起技能另存 tagging_d7_text_labels.json）
+TL = f'{TD}/tagging_d7_text_labels.json'
+TL = {r['row']: r['textLabel'] for r in json.load(open(TL, encoding='utf-8'))} if os.path.exists(TL) else {}
+A['D7柜体材质（价格复核前）'] = [TL.get(i, v) for i, v in enumerate(A['D7柜体材质'])]
 A['形态（怎么装）'] = A['D1产品形态'].replace({'开放式': '落地式'})
 A['柜体结构'] = STRUCT; A['柜体结构来源'] = STRUCT_SRC
 A['五点来源'] = [r['五点来源'] for r in rows]; A['五点来源说明'] = [m['五点来源说明'] for m in meta]
