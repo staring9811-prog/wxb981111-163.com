@@ -123,7 +123,7 @@ x['fam'] = FAM; x['how'] = FAM_HOW
 REAL_PARENT = {'父体字段', '被同月其他行当父体', '其他月份的父体', '同月同品牌同月销的家族'}
 
 # ---------- 2. 非浴室柜（每行按自己的标题判） ----------
-def suspect(t):
+def suspect(t, dim=None):
     t = html.unescape(str(t or '')); s = lambda p: re.search(p, t, re.I)
     head = re.split(r'[,，|]', t, maxsplit=1)[0]
     # 标题主体是"…Bathroom Vanity"（vanity 后面不接 top / sink 等），是带柜子的浴室柜
@@ -136,23 +136,31 @@ def suspect(t):
     if s(r'\bover[ -]the[ -]toilet\b|\blinen\s+(?:cabinet|tower)\b|\btall\s+(?:bathroom\s+)?(?:storage\s+)?cabinet\b|\bside\s+cabinet\b|\bstorage\s+tower\b|\bwall\s+cabinet\b') \
             and not s(r'\b(?:sinks?|basins?|vanit(?:y|ies)|pedestal)\b'): return '独立储物柜'
     if s(r'\b(?:vessel|bathroom|undermount)\s+sinks?\b|\bfaucets?\b') and not s(r'\b(?:vanit(?:y|ies)|cabinet|stand|console|pedestal|base)\b'): return '独立盆/龙头'
-    return more_suspect(t, s)
+    return more_suspect(t, s, dim)
 
 # v12.2 审计（2026-10-29）补的几类：标题里 vanity 只当 sink / top 的修饰词时不算柜子；镜子、厨房柜、挡水板、
 # 不写 sink 的台面、高柜、尺寸很小的单盆单龙头、儿童免接水管洗手台（wen：不是浴室柜的剔除）
 VANITY_FURN = r'\bvanit(?:y|ies)\b(?!\s*(?:sinks?|tops?|basins?|bowls?|vessel|mirrors?|lights?|space|side\s+cabinet|desk|table|stool|bench|chair)\b)'
 CAB_WORDS = r'\b(?:cabinets?|storage|drawers?|doors?|shel(?:f|ves)|console|stand|legs?|pedestal|combo|base)\b'
 
-def more_suspect(t, s):
+def _min_dim(dim):
+    m = re.match(r'\s*([\d.]+)\s*(?:"\w*)?\s*x\s*([\d.]+)\s*(?:"\w*)?\s*x\s*([\d.]+)', str(dim or ''))
+    return min(float(x) for x in m.groups()) if m else None
+
+def more_suspect(t, s, dim=None):
     furn = s(VANITY_FURN)
     if s(r'\b(?:kids?|children|toddlers?|montessori)\b') and s(r'\bsinks?\b') and s(r'\bportable\b|\bno plumbing\b'): return '儿童洗手台'
     if s(r'\banti[ -]?fog\b|\bdefog\w*\b|\b(?:led|lighted)\s+(?:bathroom\s+)?mirrors?\b') and not furn and not s(r'\b(?:sinks?|basins?|cabinets?)\b'): return '镜子'
     if s(r'\bkitchen\s+(?:base\s+|wall\s+|sink\s+base\s+|blind\s+base\s+)?cabinets?\b|\b(?:base|wall|blind\s+base)\s+kitchen\s+cabinets?\b') and not furn and not s(r'\bbathroom\b'): return '厨房柜'
     if s(r'\b(?:back|side)splash\b') and not furn and not s(r'\b(?:sinks?|basins?|cabinets?)\b'): return '台面配件'
     if s(r'\b(?:vanity|counter)\s*tops?\b|\bcountertops?\b') and not furn and not s(CAB_WORDS): return '独立盆台（无柜）'
-    if s(r'\btall\s+(?:\w+\s+)?cabinet\b') and not furn and not s(r'\b(?:sinks?|basins?)\b'): return '独立储物柜'
+    if s(r'\bover[ -]the[ -]toilet\b|\blinen\s+(?:cabinet|tower)\b|\btall\s+(?:\w+\s+)?cabinet\b|\bside\s+cabinet\b|\bstorage\s+tower\b|\bwall\s+cabinet\b') \
+            and not furn and not s(r'\b(?:sinks?|basins?)\b'): return '独立储物柜'
+    # 单卖的盆或龙头：标题里的 vanity 只是 sink 的修饰词，也没有柜体词；尺寸看得出时最短边 ≤ 12 寸
+    md = _min_dim(dim)
+    if s(r'\b(?:sinks?|basins?|bowls?|faucets?)\b') and not furn and not s(CAB_WORDS) and (md is None or md <= 12): return '独立盆/龙头'
     return None
-SUS = [CONF.get(r['asin']) or suspect(r['title']) for r in R]
+SUS = [CONF.get(r['asin']) or suspect(r['title'], r['dim']) for r in R]
 for r, c in zip(R, SUS):
     if c and r['asin'] not in CONF: r['eligible'], r['outside'] = False, True  # 规则命中：按这一行剔除
 
