@@ -280,6 +280,13 @@ TL = {r['row']: r['textLabel'] for r in json.load(open(TL, encoding='utf-8'))} i
 A['D7柜体材质（价格复核前）'] = [TL.get(i, v) for i, v in enumerate(A['D7柜体材质'])]
 A['形态（怎么装）'] = A['D1产品形态'].replace({'开放式': '落地式'})
 A['柜体结构'] = STRUCT; A['柜体结构来源'] = STRUCT_SRC
+# 看图补标（2026-10-30 起）：两组代理各自读主图，元素一致且至少一组把握高的自动采用，其余由 wen 复核；按家族键贴到这个家族的全部行。
+# 元素用 wen 的看图分类（夏克式、农场风装饰饰条、竖棱……），和 D5 的文字元素分开放；柜体结构文字没写开放式的，按看图的开放层板定
+IMG = f'{OUT}/看图标签.json'
+IMG = {r['家族键']: r for r in json.load(open(IMG, encoding='utf-8'))} if os.path.exists(IMG) else {}
+for k in ('元素', '元素来源', '开放层板', '腿离地', '壁挂', '一体盆台'): A[f'{k}（看图）'] = [IMG.get(f, {}).get(k) for f in A['家族键']]
+m = A['柜体结构'].eq('待图片核验') & A['开放层板（看图）'].isin(['是', '否'])
+A.loc[m, '柜体结构'] = np.where(A.loc[m, '开放层板（看图）'].eq('是'), '开放式', '无开放层板'); A.loc[m, '柜体结构来源'] = '看图'
 A['五点来源'] = [r['五点来源'] for r in rows]; A['五点来源说明'] = [m['五点来源说明'] for m in meta]
 A['详细参数来源月份'] = [m['详细参数来源月份'] for m in meta]
 A['主图500'] = [r['主图链接'] for r in rows]; A['商品链接'] = [r['商品链接'] for r in rows]
@@ -345,7 +352,7 @@ def sheet(mask, extra=()):
 Q = {'冲突': sheet(last['打标状态'] == '存在冲突待核验', ['打标说明']),
      '台面材质信息不足': sheet(last['D8台面材质'] == '信息不足', ['D3盆数', 'D8台盆材质', '五点来源说明']),
      '柜体结构待看图': sheet(last['柜体结构'] == '待图片核验', ['形态（怎么装）']),
-     '元素待看图': sheet(last['D5元素'] == '待图片核验', ['形态（怎么装）', '柜体结构'])}
+     '元素待看图': sheet((last['D5元素'] == '待图片核验') & last['元素（看图）'].isna(), ['形态（怎么装）', '柜体结构'])}
 X = A[A['非浴室柜类别'].notna()]
 NV = X.groupby('子ASIN').agg(类别=('非浴室柜类别', 'first'), 品牌=('品牌', 'first'), 标题=('标题', 'last'), 剔除行=('月份', 'size'),
                             月份=('月份', lambda s: '、'.join(sorted(s))), 来源批次=('数据来源批次', lambda s: '、'.join(sorted(set(s)))),
@@ -418,10 +425,10 @@ del ev
 L += ['', f"D7 一致率偏低：多数是组合粒度不同（如 MDF 对 MDF+胶合板）；另有 {len(cmp):,} 行（{len({a for a, _ in cmp}):,} 个子体、{len({p for _, p in cmp}):,} 个家族）的柜体材质证据来自\"比 MDF / 刨花板更耐用\"这类对比句，"
       '被当成了材质（如 ARIEL 标成 MDF+胶合板+刨花板，2026 年旧标签是实木），属技能 D7 规则漏洞，修技能后重打。']
 ct = pd.crosstab(I['形态（怎么装）'], I['柜体结构'])
-L += ['', '## 6. 形态两层', '', '| 形态（怎么装） | 开放式 | 待图片核验 | 开放式占比 |', '| :--- | ---: | ---: | ---: |']
-for f_, r in ct.iterrows(): L.append(f"| {f_} | {int(r.get('开放式', 0)):,} | {int(r.get('待图片核验', 0)):,} | {pct(r.get('开放式', 0) / r.sum())} |")
-sc = Counter(I['柜体结构来源'].dropna())
-L += ['', f"开放式按文字来源：{'、'.join(f'{k} {v:,}' for k, v in sc.most_common())}（行）。技能的\"开放式\"（console）已归落地式。", '',
+L += ['', '## 6. 形态两层', '', '| 形态（怎么装） | 开放式 | 无开放层板（看图） | 待图片核验 | 开放式占比 |', '| :--- | ---: | ---: | ---: | ---: |']
+for f_, r in ct.iterrows(): L.append(f"| {f_} | {int(r.get('开放式', 0)):,} | {int(r.get('无开放层板', 0)):,} | {int(r.get('待图片核验', 0)):,} | {pct(r.get('开放式', 0) / r.sum())} |")
+sc = Counter(I.loc[I['柜体结构'].eq('开放式'), '柜体结构来源'].dropna())
+L += ['', f"开放式按来源：{'、'.join(f'{k} {v:,}' for k, v in sc.most_common())}（行）。技能的\"开放式\"（console）已归落地式。", '',
       '## 7. 非浴室柜剔除（wen 2026-10-29：不是浴室柜的剔除）', '']
 nv_new = NV[NV['依据'] == '规则命中（新）']
 L += [f"- wen 确认的 87 个子体整条剔除：{int(X['子ASIN'].isin(CONF).sum()):,} 行（{'、'.join(f'{k} {v}' for k, v in NV[NV['依据'] == 'wen 确认（87 个）']['类别'].value_counts().items())}）。",

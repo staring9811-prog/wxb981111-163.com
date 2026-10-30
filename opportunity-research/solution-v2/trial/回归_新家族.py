@@ -85,7 +85,11 @@ A['装'] = np.where(A['D2安装方式'].eq('整装'), '整装', '拆装')
 # 实木价格复核用了价格，这里用复核前的文字标签，避免用价格解释价格（v12.2 起表里有这一列）
 A['柜体材质'] = A.get('D7柜体材质（价格复核前）', A['D7柜体材质']).map(cab)
 A['台面类型'] = [top_type(t, s) for t, s in zip(A['D8台面材质'], A['D8台盆材质'])]
-A['元素集'] = A['D5元素'].map(lambda v: tuple(x for x in str(v).split('；') if x in ELEM) if pd.notna(v) else ())
+A['元素集_文字'] = A['D5元素'].map(lambda v: tuple(x for x in str(v).split('；') if x in ELEM) if pd.notna(v) else ())
+# 元素（2026-10-30 起）：家族的元素用看图标签（wen 的看图分类，第一批只看了回归里的新家族）；表里还没有看图列时退回文字元素。
+# 时间信号要全市场的元素，仍用文字元素（元素集_文字）
+A['元素集'] = A['元素（看图）'].map(lambda e: (e,) if isinstance(e, str) and e else ()) if '元素（看图）' in A else A['元素集_文字']
+IMG_EL = '元素（看图）' in A
 A['主色'] = A['D6柜体颜色'].map(lambda v: COLOR.get(str(v), '未知' if (pd.isna(v) or str(v) in UNK) else '其他'))
 A['形态'] = A['形态（怎么装）'].fillna('落地式').astype(str)
 A['开放式'] = A['柜体结构'].eq('开放式')
@@ -165,13 +169,13 @@ for u, g in W.groupby('单位'):
     if u not in U.index: continue
     F = g['m'].min(); gf = g[g['m'] == F]
     tt = g['台面类型']; spec = tt[~tt.str.startswith('台面未知') & (tt != '未知')]
-    el = sorted({e for t in g['元素集'] for e in t})
+    el = sorted({e for t in g['元素集'] for e in t}); elt = sorted({e for t in g['元素集_文字'] for e in t})
     feat[u] = dict(尺寸段=sorted(gf['尺寸段'].dropna().unique()) or ['未知'], 主尺寸段=[main_band(gf)], 装=[modev(g['装']) or '拆装'], 柜体材质=[modev(g['柜体材质']) or '未知'],
                    台面类型=[modev(spec) or modev(tt, ('未知',)) or '未知'], 元素=el or ['未知'], 形态=[modev(g['形态']) or '落地式'],
                    开放式=['是' if g['开放式'].any() else '否'], 盆数=['双盆' if gf['盆数'].eq('双盆').any() else (modev(gf['盆数']) or '单盆')],
                    主色=[modev(gf['主色']) or '未知'], 价格档=[tier(np.exp(np.nanmedian(np.log(gf['价比'])))) if gf['价比'].notna().any() else '未知'],
                    _价位=float(np.nanmedian(np.log(gf['价比']))) if gf['价比'].notna().any() else np.nan, _变体=gf['子ASIN'].nunique(),
-                   _颜色数=gf['主色'][gf['主色'] != '未知'].nunique(), _中位价=float(g['价格'].median()), _首月=F)
+                   _颜色数=gf['主色'][gf['主色'] != '未知'].nunique(), _中位价=float(g['价格'].median()), _首月=F, _元素文字=elt or ['未知'])
 U = U[U.index.isin(feat)].copy()
 for u, f in feat.items():
     if u in U.index:
@@ -216,14 +220,14 @@ def cand(col, explode=False):
             r['增长比'] = now / before if before > 0 else np.nan
         rec[(v, t)] = r
     return pd.DataFrame(rec).T
-DIMS = {'元素': ('元素集', True), '台面类型': ('台面类型', False), '柜体材质': ('柜体材质', False), '尺寸段': ('尺寸段', False)}
+DIMS = {'元素': ('元素集_文字', True), '台面类型': ('台面类型', False), '柜体材质': ('柜体材质', False), '尺寸段': ('尺寸段', False)}
 MET = ['成功率3', '成功率6', '成功率12', '渗透率', '单位贡献比', '增长比']
 CM = {d: cand(c, e) for d, (c, e) in DIMS.items()}
 for d in DIMS:
     for k in MET:
         vals = []
         for u in U.index:
-            t = U.at[u, 'L'] - 1; xs = [CM[d][k].get((v, t), np.nan) for v in feat[u][d] if v != '未知'] if k in CM[d] else []
+            t = U.at[u, 'L'] - 1; xs = [CM[d][k].get((v, t), np.nan) for v in feat[u]['_元素文字' if d == '元素' else d] if v != '未知'] if k in CM[d] else []
             xs = [x for x in xs if pd.notna(x)]; vals.append(float(np.mean(xs)) if xs else np.nan)
         U[f'信号·{d}·{k}'] = vals
 SIG = [f'信号·{d}·{k}' for d in DIMS for k in MET]
@@ -512,7 +516,9 @@ def traj(tok):
     for name, a, b in PERIODS:
         pm = A['m'].between(a, b); sh = A.loc[pm & rm, 'c'].sum() / A.loc[pm, 'c'].sum()
         newu = [u for u in U.index if a <= U.at[u, 'L'] <= b and has(u, tok)]
-        out.append(dict(期=name, 份额=sh, 新家族=len(newu), 起来=int(U.loc[newu, 'y'].sum()) if newu else 0, 中位价=A.loc[pm & rm, '价格'].median()))
+        img_only = IMG_EL and any(x == '元素' for x, _ in parse(tok))   # 看图元素只覆盖看过图的家族，算全市场份额、中位价会偏
+        out.append(dict(期=name, 份额=np.nan if img_only else sh, 新家族=len(newu), 起来=int(U.loc[newu, 'y'].sum()) if newu else 0,
+                        中位价=np.nan if img_only else A.loc[pm & rm, '价格'].median()))
     return out
 def traj_txt(t):
     if not t: return '—'
@@ -710,7 +716,8 @@ for _, r in STAND.assign(_t=STAND['q'].ge(0.2).astype(int) + STAND['打乱p'].ge
                    f"{r['中位口径同格学习'] * 100:+.0f} / {r['中位口径同格检验'] * 100:+.0f} | {rel(r['特征'])} |")
 SUMMARY = SUMMARY or ['| （没有站住的） | | | | | | | |']
 L = ['# 回归第一版：新家族上架后 6 个月起没起来', '',
-     f'> **标签为打标技能 {TAG_VER}（四路审计修复后全部重打）。元素和柜体结构多数还要看图补，看图后再跑一次。** 每条发现由 wen 逐条判断合不合理。',
+     (f'> **标签为打标技能 {TAG_VER}，元素和柜体结构已看图补标（回归里的新家族）。** 每条发现由 wen 逐条判断合不合理。' if IMG_EL else
+      f'> **标签为打标技能 {TAG_VER}（四路审计修复后全部重打）。元素和柜体结构多数还要看图补，看图后再跑一次。** 每条发现由 wen 逐条判断合不合理。'),
      f'> 由 `trial/回归_新家族.py` 生成。数据：统一打标表 {ms(FIRST)} 至 {ms(LAST)}（卖家精灵 15 个月 + 2026 年月度表、v11 表），只用纳入浴室柜分析的行。做法见 state.json S2-45。', '',
      '## 1. 范围与结果定义', '',
      f'- 单位：家族键 {A["家族键"].nunique():,} 个，按 replace 规则（旧键下月消失、一半以上子体整体搬到同一个新键）合并 {merges} 次，再把同品牌、共用子体 ≥ 较小一方一半的单位合并 {dedup} 次（去重，2026-10-30），得到 {A["单位"].nunique():,} 个单位。各来源（家族键 → 单位）：' + '，'.join(f'{k} {v[0]} → {v[1]}' for k, v in unit_stat.items()) + '。',
@@ -790,7 +797,9 @@ L += ['', '品牌力分档（上架当月同品牌在榜的其他家族数）：
 for idx in bt.index:
     L.append(f'| {idx} | {int(bt.loc[idx, ("size", "学习")]) if pd.notna(bt.loc[idx, ("size", "学习")]) else 0}（{pct(bt.loc[idx, ("mean", "学习")])}） | {int(bt.loc[idx, ("size", "检验")]) if pd.notna(bt.loc[idx, ("size", "检验")]) else 0}（{pct(bt.loc[idx, ("mean", "检验")])}） |')
 L += ['', '## 7. 限制', '',
-      f'- 标签：打标技能 {TAG_VER}。元素文字只覆盖少数家族（Farmhouse 只认看得见的饰条后更少），柜体结构只有文字写明的开放式，台面材质约三分之一未知（其余含一体盆推断）；看图补标后再跑。',
+      (f'- 标签：打标技能 {TAG_VER}；元素和柜体结构用看图补标（两组代理一致且至少一组把握高的自动采用，其余 wen 复核），第一批只看了回归里的新家族，'
+       '所以元素条目的全市场份额、中位价不算，元素的时间信号仍用文字元素（覆盖少）；台面材质约三分之一未知（其余含一体盆推断）。' if IMG_EL else
+       f'- 标签：打标技能 {TAG_VER}。元素文字只覆盖少数家族（Farmhouse 只认看得见的饰条后更少），柜体结构只有文字写明的开放式，台面材质约三分之一未知（其余含一体盆推断）；看图补标后再跑。'),
       '- 只看得到进过榜（家族月销 ≥ 50 / 60、价格 ≥ 90）的新家族，没起量的看不到；"起来的比例"是起量新家族里的比例。',
       '- 2026-06 至 09 来自 v11 表，家族键逐月不稳（同一子体 06 → 07 只有 67% 键相同）。replace 规则只能并"整体搬家"，去重又并了同品牌、共用子体过半的，仍可能有拆开的；2026-01 至 03 上架的家族，观察期落在这几个月。',
       '- 子体排名基本是家族排名在不同时间的读数，成功只看单位内最好排名；子体销量是家族销量平均分。',
