@@ -488,12 +488,16 @@ def cohort_txt(col):
         c = U[U['L'].between(a, b)]; hi, lo = c[v.reindex(c.index) >= q2], c[v.reindex(c.index) <= q1]
         out.append(f"{name} 上架的：高的三分之一起来 {pct(hi['y'].mean()) if len(hi) else '—'}（{len(hi)} 家），低的三分之一 {pct(lo['y'].mean()) if len(lo) else '—'}（{len(lo)} 家）")
     return '；'.join(out)
-def examples(tok, k=2):
+def examples(tok, k=2, neg=False):
+    """例子跟着发现的方向走：起来得多的举起来的、反例举没起来的；起来得少的反过来。反例不用和例子共用子体的家族。"""
     if tok in CONT or tok.startswith('信号'):
         v = U[tok].astype(float); us = U[v >= v[lrn].quantile(2 / 3)]
     else: us = U[[has(u, tok) for u in U.index]]
     want = [v for a, v in parse(tok) if a == '尺寸段'] if not (tok in CONT or tok.startswith('信号') or tok == '新品牌') else []
-    good = us[us['y'] == 1].sort_values('最好BSR').head(k); bad = us[us['y'] == 0].sort_values('最高销售额', ascending=False).head(1)
+    up_, down_ = us[us['y'] == 1].sort_values('最好BSR'), us[us['y'] == 0].sort_values('最高销售额', ascending=False)
+    good, other = (down_, up_) if neg else (up_, down_)
+    good = good.head(k); used = set(W.loc[W['单位'].isin(good.index), '子ASIN'])
+    bad = other.loc[[u for u in other.index if not used & set(W.loc[W['单位'] == u, '子ASIN'])][:1]]
     def one(u):
         g = W[(W['单位'] == u)]; g2 = g[g['尺寸段'].isin(want)] if want and g['尺寸段'].isin(want).any() else g
         r = g2.loc[g2['小类BSR'].idxmin()] if g2['小类BSR'].notna().any() else g2.iloc[0]
@@ -577,7 +581,7 @@ EXPLAIN = {   # 特征 → 可能的解释（看过结果后写的定性解释�
 def finding_rows(D):
     out = []
     for _, r in D.iterrows():
-        c = r['特征']; ex, bad = examples(c)
+        c = r['特征']; ex, bad = examples(c, neg=r['同格差学习'] < 0)
         change = cohort_txt(c) if r['连续'] else traj_txt(traj(c))
         rob = f"稳健性：换成“子体排名中位数 ≤ 50”判成败，同格差为学习 {r['中位口径同格学习'] * 100:+.0f}、检验 {r['中位口径同格检验'] * 100:+.0f} 个百分点"
         out.append(f"| {fname(c)} | {metric_txt(r)} | {change} | {ex}{bad} | "
@@ -691,6 +695,7 @@ L += ['', '## 4. 发现表（同一比较框里比：学习段、检验段格内
       '- "回归分量" = 把比较框、属性、组合、价格、品牌、变体、时间信号都放进去以后，这一项单独让起来的概率高或低几个百分点（连续项按高半个标准差对低半个标准差），学习段、检验段分别拟合。岭回归收得很紧（交叉验证选出的强度），所以分量偏小，看方向和两段是否一致。',
       '- "长时间之后的变化"按半年看：2024-10 至 2025-03 → 2025-04 至 09 → 2025-10 至 2026-03 → 2026-04 至 09；新家族括号里是起来的个数（2026-04 以后上架的观察期没走完，不算）。',
       '- 回归只说明"有它的新家族后来起来得多 / 少"，不说明是它造成的；原因写成可能的解释。',
+      '- 例子跟着发现的方向举：起来得多的，例子是起来了的家族、反例是没起来的；起来得少的反过来（没起来的按最高月销售额从高到低挑）。',
       f'- 打乱对照：在学习段、检验段的每个比较框里把"起没起来"随机打乱 {NPERM} 次（格子之间的成败差别保留），用同样的标准，平均也会"站住" {NULL[0]:.1f} 条（95% 情况下不超过 {NULL[1]:.0f} 条）；实际站住 {len(STAND)} 条——'
       + ('**比碰巧多，但仍要看每条自己的强度**。' if len(STAND) > NULL[1] else '**站住的条数本身没比碰巧多多少，要看每条自己的强度**。'),
       f'- 所以每条再给两个数：①"格内打乱对照里同样强的概率"（越小越不像碰巧）；② 对全部 {len(FD)} 个候选一起做多重比较校正后的 q 值，q < 0.2 记"较可信"。下表只列①< 0.1 的，其余放在表后存疑。', '',
