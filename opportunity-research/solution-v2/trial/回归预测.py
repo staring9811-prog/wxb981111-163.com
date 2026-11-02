@@ -7,7 +7,7 @@ from scipy.stats import spearmanr, norm
 from sklearn.linear_model import Ridge
 from sklearn.metrics import roc_auc_score
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
-VER = int(os.environ.get('VER', '7')); MODE = os.environ.get('MODE', '回测'); ASOF = os.environ.get('ASOF', '2026-10'); os.environ['MODE'] = '库'
+VER = int(os.environ.get('VER', '8')); MODE = os.environ.get('MODE', '回测'); ASOF = os.environ.get('ASOF', '2026-10'); os.environ['MODE'] = '库'
 P = os.path.join(HERE, '大属性为线.py'); ns = {'__file__': P}
 exec(compile(open(P, encoding='utf-8').read(), P, 'exec'), ns)
 A, U, feat, mi, ms, END, newprod, search_yoy, TK, UNK, DIMS = (ns[k] for k in ('A', 'U', 'feat', 'mi', 'ms', 'END', 'newprod', 'search_yoy', 'TK', 'UNK', 'DIMS'))
@@ -87,11 +87,25 @@ def fit(T0):
         for k in KS_:
             if T + k + 2 > T0 - 1: continue
             D = FEAT[T]; y = target(D, T, k); ok = (D['近3月'] >= 50) & y.notna()
-            X = design(D[ok], k); X['y'] = y[ok]; X['tier'] = TIER(D.loc[ok, '近3月'].values); X['T'] = T; rows.append(X)
-    Tr = pd.concat(rows); cols = [c for c in Tr.columns if c not in ('y', 'tier', 'T')]
+            X = design(D[ok], k); X['y'] = y[ok]; X['tier'] = TIER(D.loc[ok, '近3月'].values); X['T'] = T; X['kk'] = k; rows.append(X)
+    Tr = pd.concat(rows); cols = [c for c in Tr.columns if c not in ('y', 'tier', 'T', 'kk')]
     m = Ridge(alpha=1e-6).fit(Tr[cols], Tr['y']); Tr['res'] = Tr['y'] - m.predict(Tr[cols])
-    q = Tr.groupby('tier')['res'].agg(lo=lambda r: r.quantile(0.1), hi=lambda r: r.quantile(0.9), sd='std', n='size')
+    agg = dict(mu='mean', lo=lambda r: r.quantile(0.1), hi=lambda r: r.quantile(0.9), sd='std', n='size')
+    q = Tr.groupby('tier')['res'].agg(**agg)
+    if VER >= 8:   # 第八版：按（体量档, k）校准；缺的用同档最大 k、标准差按 √((k+3)/(kmax+3)) 放大
+        qk = Tr.groupby(['tier', 'kk'])['res'].agg(**agg); full = {}
+        for t in qk.index.get_level_values(0).unique():
+            have = qk.loc[t]
+            for k in KS_:
+                if k in have.index: full[(t, k)] = have.loc[k]
+                else:
+                    r = have.loc[have.index.max()].copy(); f = np.sqrt((k + 3) / (have.index.max() + 3))
+                    r['lo'] = r['mu'] + (r['lo'] - r['mu']) * f; r['hi'] = r['mu'] + (r['hi'] - r['mu']) * f; r['sd'] *= f; r['n'] = 0; full[(t, k)] = r
+        q = pd.DataFrame(full).T; q.index.names = ['tier', 'kk']
     return m, cols, q, Tr
+def qget(q, tier, k, col):
+    if VER >= 8: return np.array([q.at[(t, k), col] for t in tier])
+    return tier.map(q[col]).values if col != 'mu' else np.zeros(len(tier))
 
 def cat_fc(T0, a):
     """品类第 a 至 a+2 月的月均销预测：去年同月 × 近 3 个月同比（算不出取 1）。"""
@@ -101,10 +115,11 @@ def cat_fc(T0, a):
 def predict(T0):
     m, cols, q, Tr = fit(T0); D = FEAT[T0].copy(); tier = pd.Series(TIER(D['近3月'].values), index=D.index)
     for k in KS_:
-        D[f'预测{k}'] = m.predict(design(D, k)[cols]); D[f'lo{k}'] = D[f'预测{k}'] + tier.map(q['lo']).values; D[f'hi{k}'] = D[f'预测{k}'] + tier.map(q['hi']).values
+        raw = m.predict(design(D, k)[cols]); D[f'预测{k}'] = raw + qget(q, tier, k, 'mu'); D[f'lo{k}'] = raw + qget(q, tier, k, 'lo'); D[f'hi{k}'] = raw + qget(q, tier, k, 'hi')
+        D[f'sd{k}'] = qget(q, tier, k, 'sd')
         base = D[BASE] * D['标签占比'] * cat_fc(T0, T0 + k)
         D[f'件{k}'] = base * np.exp(D[f'预测{k}']); D[f'件lo{k}'] = base * np.exp(D[f'lo{k}']); D[f'件hi{k}'] = base * np.exp(D[f'hi{k}']); D[f'不变{k}'] = base
-    sd = tier.map(q['sd']).values
+    sd = (D['sd3'] + D['sd6']).values / 2
     D['把握'] = norm.cdf(((D['预测3'] + D['预测6']) / 2) / sd); D['预计多卖'] = ((D['件3'] - D['不变3']) + (D['件6'] - D['不变6'])) / 2
     D['分级'] = np.select([(D['把握'] >= 0.7) & (D['预计多卖'] >= 100), (D['把握'] <= 0.3) & (D['近3月'] >= 300), D['把握'] >= 0.5], ['A', 'D', 'B'], 'C')
     D['体量档'] = tier.values
@@ -129,9 +144,9 @@ def newlayer(T0):
 
 # ---------- 回测 ----------
 if MODE == '回测':
-    VN = {6: '第六版', 7: '第七版'}[VER]
+    VNS = {6: '第六版', 7: '第七版', 8: '第八版'}; VN = VNS[VER]
     L = [f'# {VN}（回归预测 + 评分）回测', '',
-         f'> 由 `trial/回归预测.py`（VER={VER}）生成；规则见 识别方法_预登记.md 补记{VN}（先提交、后回测）。数据到 2026-09。' + ('第七版的基准、特征是看过 2026 年诊断后选的，见补记第七版。' if VER == 7 else ''),
+         f'> 由 `trial/回归预测.py`（VER={VER}）生成；规则见 识别方法_预登记.md 补记{VN}（先提交、后回测）。数据到 2026-09。' + ('第七、八版的基准、特征是看过 2026 年诊断后选的，见补记第七版。' if VER >= 7 else ''),
          '> 单元 = 五个大属性的每个取值 + 两两交叉的每个格子，**全部打分**（全量）；份额按已知标签算。"把握" = 模型给的"之后份额变大"的概率；"预计多卖" = 预测销量 − 份额不变时的销量（件 / 月）。', '']
     # 主时点 2026-01
     T0 = mi('2026-01'); D, m, cols, q, Tr = predict(T0)
@@ -150,8 +165,8 @@ if MODE == '回测':
           '| 特征 | 意思 | b（k = 0 时） | c（每多 3 个月加的） |', '| :--- | :--- | ---: | ---: |']
     NM = {'b6': '份额斜率（近 6 个月每月对数变化）', 'x1': '份额动量（近 3 个月对再前 3 个月）', 'x2': '新进家族（相对增长）', 'x3': '搜索同比', 'x4': '体量（ln 月均销，中心化）'}
     for x in XS: L.append(f"| {x} | {NM[x]} | {coef[x]:+.3f} | {coef[x + '·k']:+.3f} |")
-    L += [f"| 截距 | | a = {m.intercept_:+.3f} | θ = {coef['k']:+.3f} |", '', '80% 区间（训练残差 10% / 90% 分位，对数）：']
-    for t, r in q.iterrows(): L.append(f"- {t} 件：{r.lo:+.2f} 至 {r.hi:+.2f}（约 ×{np.exp(r.lo):.2f} 至 ×{np.exp(r.hi):.2f}），标准差 {r.sd:.2f}，{int(r.n)} 个样本")
+    L += [f"| 截距 | | a = {m.intercept_:+.3f} | θ = {coef['k']:+.3f} |", '', '80% 区间（训练残差 10% / 90% 分位，对数；第八版按体量档 × k，预测值加上纠偏）：']
+    for t, r in q.iterrows(): L.append(f"- {t if isinstance(t, str) else f'{t[0]} 件、k = {t[1]}'}：{r.lo:+.2f} 至 {r.hi:+.2f}（约 ×{np.exp(r.lo):.2f} 至 ×{np.exp(r.hi):.2f}），纠偏 {r.mu:+.2f}，标准差 {r.sd:.2f}，{int(r.n)} 个样本")
     L += ['', '## 2. 站在 2026-01，预测和 2026-04 至 2026-09 的实际比', '',
           '| 预测窗口 | 体量档 | 单元数 | 预测和实际份额变化的秩相关 | 方向对的比例 | 80% 区间覆盖 | 误差 / "份额不变"误差 |', '| :--- | :--- | ---: | ---: | ---: | ---: | ---: |']
     for k in KS_:
@@ -190,15 +205,15 @@ if MODE == '回测':
         L.append(f"| {att}：{v} | {r['近3月']:,.0f} | {r['把握']:.0%} | {r['分级']} | {r['实际多卖']:+,.0f} |")
     # 其他时点
     MAIN = VER
-    L += ['', '## 5. 各时点、第六版和第七版并排（只报结果窗口已走完的部分）', '', '| 版本 | 时点 | 训练样本 | 窗口 | 秩相关 全部 / ≥ 300 件 | 方向对 ≥ 300 件 | 80% 覆盖 | 把握 ≥ 70% 实际变大 / 把握 ≤ 30% 实际变大 |', '| :--- | :--- | ---: | :--- | :--- | ---: | ---: | :--- |']
-    for v_, Ts in [(v_, Ts) for v_ in (6, 7) for Ts in ('2025-11', '2025-12', '2026-01', '2026-02', '2026-03')]:
+    L += ['', '## 5. 各时点、第六、七、八版并排（只报结果窗口已走完的部分）', '', '| 版本 | 时点 | 训练样本 | 窗口 | 秩相关 全部 / ≥ 300 件 | 方向对 ≥ 300 件 | 80% 覆盖 | 把握 ≥ 70% 实际变大 / 把握 ≤ 30% 实际变大 |', '| :--- | :--- | ---: | :--- | :--- | ---: | ---: | :--- |']
+    for v_, Ts in [(v_, Ts) for v_ in (6, 7, 8) for Ts in ('2025-11', '2025-12', '2026-01', '2026-02', '2026-03')]:
         set_ver(v_); T1 = mi(Ts); Dx, *_, Trx = predict(T1)
         for k in KS_:
             y = target(Dx, T1, k)
             if y.isna().all(): continue
             d = Dx.assign(y=y); b = d[d['近3月'] >= 300]; nz = b['y'].abs() > 0.05
-            hi_, lo_ = d[norm.cdf(d[f'预测{k}'] / 0.5) >= 0.7], d[norm.cdf(d[f'预测{k}'] / 0.5) <= 0.3]
-            L.append(f"| {VN if False else {6: '第六版', 7: '第七版'}[v_]} | {Ts} | {len(Trx):,} | {ms(T1 + k)} 至 {ms(T1 + k + 2)} | {spearmanr(d[f'预测{k}'], d['y'])[0]:+.2f} / {spearmanr(b[f'预测{k}'], b['y'])[0]:+.2f} | "
+            pk = norm.cdf(d[f'预测{k}'] / (d[f'sd{k}'] if VER >= 8 else 0.5)); hi_, lo_ = d[pk >= 0.7], d[pk <= 0.3]
+            L.append(f"| {VNS[v_]} | {Ts} | {len(Trx):,} | {ms(T1 + k)} 至 {ms(T1 + k + 2)} | {spearmanr(d[f'预测{k}'], d['y'])[0]:+.2f} / {spearmanr(b[f'预测{k}'], b['y'])[0]:+.2f} | "
                      f"{(np.sign(b.loc[nz, f'预测{k}']) == np.sign(b.loc[nz, 'y'])).mean():.0%} | {d['y'].between(d[f'lo{k}'], d[f'hi{k}']).mean():.0%} | {(hi_['y'] > 0).mean():.0%}（{len(hi_)}） / {(lo_['y'] > 0).mean():.0%}（{len(lo_)}） |")
     set_ver(MAIN)
     L += ['', '这一节的把握按单个窗口算（标准差取 0.5 近似），只用来看方向；各时点训练样本互相重叠，不是独立检验。', '']
@@ -218,4 +233,4 @@ if MODE == '回测':
     for b, g in pd.cut(p, [0, 0.25, 0.4, 0.55, 1.0], labels=['< 2.5', '2.5–4', '4–5.5', '≥ 5.5']).groupby(pd.cut(p, [0, 0.25, 0.4, 0.55, 1.0], labels=['< 2.5', '2.5–4', '4–5.5', '≥ 5.5']), observed=True):
         L.append(f"| {b} | {len(g)} | {in10(y[g.index].mean())} |")
     L += ['', f'做到的时间（训练里做到的家族）：首次达线一般在上架后第 {mo[0]:.0f}–{mo[2]:.0f} 个月，中位第 {mo[1]:.0f} 个月。']
-    out = os.path.join(ROOT, f'solution-v2/开发建议/回归预测_回测{"" if VER == 6 else "_第七版"}.md'); open(out, 'w', encoding='utf-8').write('\n'.join(L) + '\n'); print('\n'.join(L))
+    out = os.path.join(ROOT, f'solution-v2/开发建议/回归预测_回测{ {6: "", 7: "_第七版", 8: "_第八版"}[VER] }.md'); open(out, 'w', encoding='utf-8').write('\n'.join(L) + '\n'); print('\n'.join(L))
