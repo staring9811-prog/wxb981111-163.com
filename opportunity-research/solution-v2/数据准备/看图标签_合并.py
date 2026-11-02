@@ -4,8 +4,8 @@
   wen 选了的一律用 wen 的（自动采用的也会被改掉），没选的：自动采用的按已采用，待复核的留空。2026-11-02 起多一类"现代线条纹理"（wen 新加）。
 - 竖棱：fluted、reeded 看图不分；标题只写了 fluted 的拆成 fluted，只写了 reeded 的拆成 reeded，其余仍为竖棱（"纯色+竖棱"同理）。
 - 开放层板、腿离地、壁挂、一体盆台：两组一致（是 / 否）才采用，其余留空。
-输入目录 IN（默认 input/data_v2/看图补标，不入库）：清单_含链接.csv（图片、家族键、子ASIN、品牌、标题、累计销量）、
-结果/A/*.csv 与 结果/B/*.csv（图片,元素,把握,开放层板,腿离地,壁挂,一体盆台）、wen复核.json（{"k017": "夏克式", ...}，可缺）。
+输入目录 IN（默认 input/data_v2/看图补标，不入库）：清单_含链接.csv、清单2_含链接.csv（第二批，全市场；图片、家族键、子ASIN、品牌、标题、累计销量）、
+结果/A/*.csv 与 结果/B/*.csv（图片,元素,把握,开放层板,腿离地,壁挂,一体盆台；第二批文件名带"第二批_"前缀）、wen复核.json（{"k017": "夏克式", "k1203": ...}，可缺；编号 = k + 图片序号）。
 用法：python3 -I 看图标签_合并.py"""
 import os, re, glob, json, html, pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -14,7 +14,7 @@ IN = os.environ.get('IN_DIR', os.path.join(ROOT, 'input/data_v2/看图补标'))
 OUT = os.environ.get('OUT_JSON', os.path.join(ROOT, 'input/data_v2/统一打标/看图标签.json'))
 YN = ['开放层板', '腿离地', '壁挂', '一体盆台']
 
-L = pd.read_csv(f'{IN}/清单_含链接.csv', encoding='utf-8-sig')
+L = pd.concat([pd.read_csv(f, encoding='utf-8-sig') for f in sorted(glob.glob(f'{IN}/清单*_含链接.csv'))], ignore_index=True)
 def load(g):
     d = pd.concat([pd.read_csv(f, encoding='utf-8-sig', dtype=str) for f in sorted(glob.glob(f'{IN}/结果/{g}/*.csv'))])
     return d.drop_duplicates('图片', keep='last').set_index('图片').add_prefix(g)
@@ -28,7 +28,7 @@ def split(e, title):
     return e.replace('竖棱', 'fluted' if f and not r else ('reeded' if r and not f else '竖棱'))
 M['两组判完'] = M['A元素'].notna() & M['B元素'].notna()
 M['自动采用'] = M['两组判完'] & M['A元素'].eq(M['B元素']) & (M['A把握'].eq('高') | M['B把握'].eq('高')) & M['A元素'].ne('看不出')
-M['复核'] = [WEN.get('k' + i[1:4]) for i in M.index]
+M['复核'] = [WEN.get('k' + re.search(r'\d+', i).group()) for i in M.index]   # 看001.jpg → k001，看1203.jpg → k1203
 rows = []
 for img, r in M.iterrows():
     w = r['复核'] if isinstance(r['复核'], str) else None   # 没选的是空值（pandas 里会变成 NaN，不能直接当真假用）
