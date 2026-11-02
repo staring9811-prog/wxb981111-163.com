@@ -38,6 +38,7 @@ h1 small{font-weight:400;color:var(--muted);font-size:12px;margin-left:8px;lette
 nav.steps{display:flex;gap:4px;flex-wrap:wrap}
 nav.steps button{border:1px solid var(--line);background:var(--surface2);color:var(--muted);padding:6px 12px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer;display:flex;gap:6px;align-items:center}
 nav.steps button b{font-family:var(--f-num);font-weight:600}
+nav.steps button .chip{color:var(--ink);font-family:var(--f-num)}
 nav.steps button[aria-current="step"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 h2{font-family:var(--f-head);font-size:17px;margin:28px 0 4px}
 h3{font-size:14px;margin:0 0 8px;font-weight:600}
@@ -109,6 +110,7 @@ summary{cursor:pointer;padding:12px 0;font-weight:600}
     <button data-step="2"><b>2</b>确认尺寸与价格</button>
     <button data-step="3"><b>3</b>参数设置</button>
     <button data-step="4"><b>4</b>利润测算表</button>
+    <button data-step="5">历史库<span class="chip" id="histCount" style="padding:0 6px">0</span></button>
   </nav>
 </div></header>
 
@@ -197,6 +199,19 @@ summary{cursor:pointer;padding:12px 0;font-weight:600}
   <details style="margin-top:8px"><summary>CG 尾程收费标准</summary><div class="tw" id="pCg"></div></details>
 </section>
 
+<!-- STEP 5 -->
+<section id="s5" hidden>
+  <h2>历史库</h2>
+  <p class="lead">每次“保存到历史库”都会存一个完整版本（产品、尺寸、价格、销量和全部参数）。名称可以直接改；“打开”会把这个版本载入为当前测算。</p>
+  <div class="row" style="margin-bottom:10px">
+    <input id="histName2" placeholder="版本名称（可不填）" style="width:240px" aria-label="版本名称">
+    <button class="btn primary" id="btnHistSave2">保存当前测算为新版本</button>
+    <span style="flex:1"></span><span class="note" id="histMode"></span>
+  </div>
+  <div id="histMsg"></div>
+  <div class="tw" id="histTable"></div>
+</section>
+
 <!-- STEP 4 -->
 <section id="s4" hidden>
   <h2>利润测算表</h2>
@@ -204,6 +219,8 @@ summary{cursor:pointer;padding:12px 0;font-weight:600}
   <div class="sticky-params" id="quickParams"></div>
   <div class="row" style="margin:12px 0">
     <button class="btn primary" id="btnExport">导出 Excel</button>
+    <input id="histName" placeholder="版本名称（可不填）" style="width:220px" aria-label="版本名称">
+    <button class="btn primary" id="btnHistSave">保存到历史库</button>
     <button class="btn" id="btnSaveJson">保存方案(.json)</button>
     <span class="note" id="exportMsg"></span>
   </div>
@@ -345,12 +362,12 @@ function calcProduct(p){
 }
 
 /* ---------------- step navigation ---------------- */
-function go(n){ step=n; for(let i=1;i<=4;i++) document.getElementById("s"+i).hidden=i!==n;
+function go(n){ step=n; for(let i=1;i<=5;i++) document.getElementById("s"+i).hidden=i!==n;
   document.querySelectorAll("#steps button").forEach(b=>{ if(+b.dataset.step===n) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current"); });
   render(); try{ localStorage.setItem("pc_step",n);}catch(e){} window.scrollTo(0,0); }
 document.getElementById("steps").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) go(+b.dataset.step); });
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-go]"); if(b) go(+b.dataset.go); });
-function render(){ if(step===1) renderS1(); if(step===2) renderS2(); if(step===3) renderS3(); if(step===4) renderS4(); }
+function render(){ if(step===1) renderS1(); if(step===2) renderS2(); if(step===3) renderS3(); if(step===4) renderS4(); if(step===5) renderS5(); }
 
 /* ---------------- step 1: import ---------------- */
 const FIELDS=[
@@ -521,7 +538,7 @@ function renderS3(){
   document.getElementById("pFbaTiers").innerHTML=`<table><thead><tr><th>档位</th><th>重量 ≤ lb</th><th>最长边 ≤</th><th>次长边 ≤</th><th>最短边 ≤</th><th>长+围长 ≤</th><th>非旺季基础费 $</th><th>旺季基础费 $</th><th>续重 $/lb</th><th>起算 lb</th></tr></thead><tbody>${P.fba.tiers.map((t,i)=>`<tr><td>${tf(i,"name",130)}</td><td>${tf(i,"w")}</td><td>${tf(i,"l")}</td><td>${tf(i,"m")}</td><td>${tf(i,"n")}</td><td>${tf(i,"lg")}</td><td>${tf(i,"base",76)}</td><td>${tf(i,"peak",76)}</td><td>${tf(i,"per")}</td><td>${tf(i,"from")}</td></tr>`).join("")}</tbody></table>`;
   document.getElementById("pTail").innerHTML=`<table><thead><tr><th>计费重 lb</th><th>加权平均运费 $</th><th>订单处理费 $</th></tr></thead><tbody>${P.tail.map((t,i)=>`<tr><td class="n">${t.lb}</td><td><input type="number" step="any" data-tail="${i}" data-k="fee" value="${esc(t.fee)}"></td><td><input type="number" step="any" data-tail="${i}" data-k="handling" value="${esc(t.handling)}"></td></tr>`).join("")}</tbody></table>`;
   document.getElementById("pSurch").innerHTML=`<table><thead><tr><th>异常费用项</th><th>规则</th><th>附加费（加权平均）$</th><th>旺季附加 $</th></tr></thead><tbody>${P.surch.map((s,i)=>`<tr><td>${esc(s.type)}</td><td class="note">${esc(s.rule)}</td><td><input type="number" step="any" data-surch="${i}" data-k="base" value="${esc(s.base)}"></td><td><input type="number" step="any" data-surch="${i}" data-k="peak" value="${esc(s.peak)}"></td></tr>`).join("")}</tbody></table><p class="note" style="padding:0 8px">同一异常类型有多条规则时取第一条的费用。旺季产品 = 附加费 + 旺季附加。</p>`;
-  document.getElementById("pCg").innerHTML=`<table><thead><tr><th>Product Bucket</th><th>Pick Only $</th><th>Pick&amp;Ship 基础 $</th><th>每磅 $/LB</th></tr></thead><tbody>${P.cg.map((c,i)=>`<tr><td>${esc(c.bucket)}</td>${["pick","ship","perLb"].map(k=>`<td><input type="number" step="any" data-cg="${i}" data-k="${k}" value="${isFinite(c[k])?c[k]:""}"></td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  document.getElementById("pCg").innerHTML=`<table><thead><tr><th>Product Bucket</th><th>Pick Only $</th><th>Pick&amp;Ship 基础 $</th><th>每磅 $/LB</th></tr></thead><tbody>${P.cg.map((c,i)=>`<tr><td>${esc(c.bucket)}</td>${["pick","ship","perLb"].map(k=>`<td><input type="number" step="any" data-cg="${i}" data-k="${k}" value="${Number.isFinite(c[k])?c[k]:""}"></td>`).join("")}</tr>`).join("")}</tbody></table>`;
 }
 const s3=document.getElementById("s3");
 s3.addEventListener("change",e=>{ const t=e.target; let v=t.type==="number"?(t.value===""?"":num(t.value)):t.value;
@@ -636,9 +653,87 @@ document.getElementById("btnExport").addEventListener("click",()=>{
 document.getElementById("btnSaveJson").addEventListener("click",()=>offer(`利润测算方案_${stamp()}.json`,JSON.stringify({version:1,params:P,products},null,1),"application/json"));
 
 /* ---------------- boot ---------------- */
-if(window.claude&&typeof window.claude.use==="function"){ window.claude.use("downloads").then(d=>{dl=d;}).catch(()=>{}); }
+/* ---------------- history library ---------------- */
+const hist={mode:"pending",items:[],col:null,slow:false,err:""};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const fmtTime=ms=>{ const d=new Date(ms); return isNaN(d)?"–":d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0"); };
+function defaultName(){ const d=new Date(); return (products[0]?products[0].name+(products.length>1?` 等${products.length}款`:""):"利润测算")+" "+fmtTime(d).slice(5,16); }
+function histChanged(){ document.getElementById("histCount").textContent=hist.items.length; if(step===5) renderS5(); }
+function saveLocalHist(){ try{ localStorage.setItem("pc_history",JSON.stringify(hist.items)); return true; }catch(e){ toast("本浏览器存储空间不足，请删除一些旧版本"); return false; } }
+async function initHistory(){
+  for(let i=0;i<20&&!(window.claude&&typeof window.claude.use==="function");i++) await new Promise(r=>setTimeout(r,100));
+  if(window.claude&&typeof window.claude.use==="function"){
+    window.claude.use("downloads").then(d=>{dl=d;}).catch(()=>{});
+    try{
+      const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
+      const id=user?await user.id():null;
+      if(db&&id){
+        hist.mode="cloud"; hist.col=db.doc("data/users/"+id+"/lib").collection("history"); hist.loading=true; histChanged();
+        const timer=setTimeout(()=>{ hist.slow=true; histChanged(); },10000);
+        hist.col.orderBy("savedAtMs","desc").onSnapshot(snap=>{ if(!snap.metadata.fromCache){ clearTimeout(timer); hist.slow=false; } hist.loading=false; hist.items=snap.docs.map(d=>Object.assign({id:d.id},d.data())); histChanged(); },
+          err=>{ clearTimeout(timer); hist.loading=false; hist.err=err&&err.code||"unavailable"; histChanged(); });
+        return;
+      }
+    }catch(e){}
+  }
+  hist.mode="local"; hist.items=load("pc_history")||[]; histChanged();
+}
+async function histSave(name){
+  if(hist.mode==="pending"){ toast("历史库还在连接，请稍等几秒再保存"); return; }
+  if(!products.length){ toast("没有产品可以保存"); return; }
+  const now=Date.now();
+  const rec={name:(name||"").trim()||defaultName(),savedAtMs:now,savedAt:new Date(now).toISOString(),count:products.length,names:products.map(p=>p.name).slice(0,20),products:clone(products),params:clone(P)};
+  try{
+    if(hist.mode==="cloud") await hist.col.add(rec);
+    else { hist.items.unshift(Object.assign({id:uid()},rec)); if(!saveLocalHist()){ hist.items.shift(); return; } histChanged(); }
+    toast("已保存到历史库："+rec.name);
+  }catch(e){ toast(e&&e.code==="quota_exceeded"?"历史库已满，请删除一些旧版本后再保存":"保存失败，请稍后再试"); }
+}
+async function histUpdate(id,patch){
+  try{
+    if(hist.mode==="cloud") await hist.col.doc(id).update(patch);
+    else { const it=hist.items.find(x=>x.id===id); if(it){ Object.assign(it,patch); saveLocalHist(); histChanged(); } }
+  }catch(e){ toast("修改失败，请稍后再试"); }
+}
+async function histDelete(id){
+  try{
+    if(hist.mode==="cloud") await hist.col.doc(id).delete();
+    else { hist.items=hist.items.filter(x=>x.id!==id); saveLocalHist(); histChanged(); }
+    toast("已删除");
+  }catch(e){ toast("删除失败，请稍后再试"); }
+}
+function histOpen(id){ const it=hist.items.find(x=>x.id===id); if(!it) return;
+  products=clone(it.products||[]); P=Object.assign(defaultParams(),clone(it.params||{})); migrate(); save(); toast("已打开："+it.name); go(4); }
+function renderS5(){
+  document.getElementById("histName2").placeholder=defaultName();
+  document.getElementById("histMode").textContent= hist.mode==="cloud"?"保存在你的 claude.ai 账号里，只有你自己能看到，换电脑也在":hist.mode==="local"?"保存在本浏览器里（清缓存会丢失，重要版本请另存 .json）":"正在连接历史库…";
+  document.getElementById("histMsg").innerHTML= hist.err?`<p class="msg">历史库暂时连不上，刷新页面后再试。</p>`: hist.slow?`<p class="msg">历史库响应较慢，下面的列表可能不是最新的。</p>`:"";
+  if(hist.mode==="pending"||hist.loading){ document.getElementById("histTable").innerHTML=`<p class="muted" style="padding:12px">正在读取历史库…</p>`; return; }
+  if(!hist.items.length){ document.getElementById("histTable").innerHTML=`<p class="muted" style="padding:12px 16px">还没有保存过版本。在“利润测算表”或上面点“保存”，当前的产品和参数就会存成第一个版本。</p>`; return; }
+  document.getElementById("histTable").innerHTML=`<table><thead><tr><th>名称（可改）</th><th>保存时间</th><th>产品数</th><th>包含产品</th><th>汇率</th><th>操作</th></tr></thead><tbody>${hist.items.map(it=>`<tr>
+    <td><input class="wide" style="width:240px" data-hname="${esc(it.id)}" value="${esc(it.name)}"></td>
+    <td class="n">${fmtTime(it.savedAtMs)}${it.renamedAtMs?`<br><span class="note">改名 ${fmtTime(it.renamedAtMs).slice(5,16)}</span>`:""}</td>
+    <td class="c">${esc(it.count)}</td>
+    <td style="max-width:320px;white-space:normal" class="note">${esc((it.names||[]).join("、"))}</td>
+    <td class="n">${esc(it.params&&it.params.rate)}</td>
+    <td class="c" style="white-space:nowrap"><button class="btn sm" data-hact="open" data-id="${esc(it.id)}">打开</button> <button class="btn sm" data-hact="overwrite" data-id="${esc(it.id)}">用当前覆盖</button> <button class="btn sm" data-hact="json" data-id="${esc(it.id)}">导出.json</button> <button class="btn sm danger" data-hact="del" data-id="${esc(it.id)}">删除</button></td>
+  </tr>`).join("")}</tbody></table>`;
+}
+document.getElementById("btnHistSave").addEventListener("click",()=>{ const i=document.getElementById("histName"); histSave(i.value); i.value=""; });
+document.getElementById("btnHistSave2").addEventListener("click",()=>{ const i=document.getElementById("histName2"); histSave(i.value); i.value=""; });
+const ht=document.getElementById("histTable");
+ht.addEventListener("change",e=>{ const t=e.target; if(t.dataset.hname===undefined) return; const v=t.value.trim(); const it=hist.items.find(x=>x.id===t.dataset.hname); if(!it) return; if(!v){ t.value=it.name; return; } if(v!==it.name) histUpdate(it.id,{name:v,renamedAtMs:Date.now()}); });
+ht.addEventListener("click",e=>{ const b=e.target.closest("[data-hact]"); if(!b) return; const id=b.dataset.id, it=hist.items.find(x=>x.id===id); if(!it) return; const act=b.dataset.hact;
+  const confirm2=(label)=>{ if(b.dataset.confirm==="1") return true; b.dataset.confirm="1"; const old=b.textContent; b.textContent=label; setTimeout(()=>{ if(b.isConnected){ b.dataset.confirm=""; b.textContent=old; } },3000); return false; };
+  if(act==="open"){ if(confirm2("替换当前测算?")) histOpen(id); }
+  if(act==="overwrite"){ if(confirm2("确认覆盖?")){ const now=Date.now(); histUpdate(id,{savedAtMs:now,savedAt:new Date(now).toISOString(),count:products.length,names:products.map(p=>p.name).slice(0,20),products:clone(products),params:clone(P)}); toast("已覆盖："+it.name); } }
+  if(act==="del"){ if(confirm2("确认删除?")) histDelete(id); }
+  if(act==="json") offer(`${it.name.replace(/[\\/:*?"<>|]/g,"_")}.json`,JSON.stringify({version:1,name:it.name,savedAt:it.savedAt,params:it.params,products:it.products},null,1),"application/json");
+});
+initHistory();
 // fill keys added in newer versions
-(function migrate(){ const d=defaultParams(); for(const k in d) if(P[k]===undefined) P[k]=d[k]; for(const k in d.fba) if(P.fba[k]===undefined) P.fba[k]=d.fba[k]; for(const k in d.commission) if(P.commission[k]===undefined) P.commission[k]=d.commission[k]; for(const k in d.fbm) if(P.fbm[k]===undefined) P.fbm[k]=d.fbm[k]; })();
-let st=4; try{ st=+(localStorage.getItem("pc_step")||4)||4; }catch(e){}
+function migrate(){ const d=defaultParams(); for(const k in d) if(P[k]===undefined) P[k]=d[k]; for(const k in d.fba) if(P.fba[k]===undefined) P.fba[k]=d.fba[k]; for(const k in d.commission) if(P.commission[k]===undefined) P.commission[k]=d.commission[k]; for(const k in d.fbm) if(P.fbm[k]===undefined) P.fbm[k]=d.fbm[k]; }
+migrate();
+let st=4; try{ st=+(localStorage.getItem("pc_step")||4)||4; if(st<1||st>5) st=4; }catch(e){}
 go(st);
 </script>
