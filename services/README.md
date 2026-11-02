@@ -48,4 +48,7 @@
 |---|---|---|---|
 | `sian.agency/wayfair-data-scraper` | `{"operation":"productReviews","sku":"W100454815","reviewSort":"date_descending","maxPages":N}` | 每页 10 条，按最新排序；字段含 `badge`（Verified Purchase / Wayfair Professional / Incentivized Review）、`date`(MM/DD/YYYY)、`rating`、`body`、`review_id` | 启动 $0.01 + 每条评论 $0.0105（约 $10.5 / 1000 条） |
 
+| **`abotapi/wayfair-scraper`（主用）** | `{"mode":"url","urls":[商品页URL...],"fetchReviews":true,"maxReviewsPerProduct":1000,"reviewSort":"newest"}`，可一次传多个 URL | 1279 条评论的商品 17 秒取回 1000 条（覆盖到 2023 年）；字段 `badge`、`verifiedPurchase`、`date`、`rating`、`text`、`purchasedOptions` | 单商品实测 $0.05（启动费为主，评论 $0.0005 级） |
+| **`automation-lab/lowes-product-reviews-scraper`（Lowe's 主用）** | `{"productIds":[...],"maxReviewsPerProduct":500,"sort":"newestFirst"或"oldestFirst","newerThan":"2026-01-01"}`；每商品每次最多 500 条，新/旧各跑一次合并 | 500 条 88 秒；字段 `verifiedPurchaser`、`incentivizedReview`、`syndicated`、`submittedAt`，与 Lowe's 评论页一致 | 启动 $0.005 + 每条约 $0.0001（500 条 $0.05） |
+
 其他候选（未测）：`scraped/wayfair-reviews-scraper`（只收 productUrl）、`khadinakbar/wayfair-scraper`、`memo23/wayfair-scraper`。
