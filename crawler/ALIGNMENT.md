@@ -95,3 +95,12 @@ crawler/
 - 未解决：Lowe's 返回 BD `bucket_rate_limit`（X-Brd-Status-Code 429，“global adaptive rate limit”），需稍后重试/降速；Wayfair（类目页和首页）均在约 30 秒处返回 502 “upstream request failed”，响应头无 BD 标识，判断是云端出口代理约 30 秒超时，而非 BD 报错。
 - 对策：改用 BD 异步接口（/unblocker/req 提交 + /unblocker/get_result 取结果），需在 Network secrets 的允许路径里加上 `/unblocker/*`。
 - 账户余额约 $25，低于 3 平台 × $10 预算，跑完小样再定是否充值。
+
+## 10. 口径已确认（2026-11-02，用户回复）
+
+1. 表头 v2 确认，Sheet 1 在“排名”后加“平台徽章”列（见 SCHEMA.md）。
+2. 时间窗：2026-01-01 至 2026-10-31 为正式口径；11 月 1 日至抓取日单列，月份标“2026-11（未完整）”。
+3. HDP：带台面、无台面两入口各取 Top Sellers 自然顺序前 100（去 Sponsored、去非整柜后顺延），不展开“+N more”变体。
+4. 邮编：三平台统一 90013，并逐行记录。
+
+下一步：用户在 Network secrets 给 api.brightdata.com 加 `/unblocker/*` 路径 → 用 BD 异步接口测 Wayfair、重试 Lowe's → 每平台 1 个商品小样（列表 + 评论原始返回，核验 VP 字段）。
