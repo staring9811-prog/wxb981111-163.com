@@ -88,3 +88,10 @@ crawler/
 - 直连探测（无 BD）：HDP 带台面类目页 200（约 1.5MB，可直连）；Lowe's 榜单页 403；Wayfair 类目页 429。**Lowe's、Wayfair 必须等 BD 打通**。
 - 待用户核对 Network secrets：Value 只填 Account settings → API keys 里的 API key；认证方式选 Bearer 时 Value 不要再写 “Bearer ” 前缀（避免变成 “Bearer Bearer …”）；不要填 zone 密码或 Proxies 页的用户名/密码。改完开新会话复测。
 - 第 7 节 4 项口径仍待确认。
+
+## 9. BD 打通情况（2026-11-02 续）
+
+- 已解决：Network secrets 改为 Header `Authorization` + Prefix `Bearer` + Value=API key；zone `mcp_unlocker` 的 IP Allowlist 需放行云端出口 IP（实测 160.79.106.26 / .134，会变，建议放行 160.79.106.0/24 或全部）。BD 测试页 200 正常。
+- 未解决：Lowe's 返回 BD `bucket_rate_limit`（X-Brd-Status-Code 429，“global adaptive rate limit”），需稍后重试/降速；Wayfair（类目页和首页）均在约 30 秒处返回 502 “upstream request failed”，响应头无 BD 标识，判断是云端出口代理约 30 秒超时，而非 BD 报错。
+- 对策：改用 BD 异步接口（/unblocker/req 提交 + /unblocker/get_result 取结果），需在 Network secrets 的允许路径里加上 `/unblocker/*`。
+- 账户余额约 $25，低于 3 平台 × $10 预算，跑完小样再定是否充值。
