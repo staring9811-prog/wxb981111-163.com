@@ -48,7 +48,7 @@ def _http(url, data=None, timeout=60):
         return e.code, dict(e.headers), e.read()
 
 
-def submit(url, platform, budget_usd=10.0, method=None, body=None, headers=None, country="us"):
+def submit(url, platform, budget_usd=10.0, method=None, body=None, headers=None, country="us", extra=None):
     _charge(platform, budget_usd)
     payload = {"url": url, "country": country}
     if method:
@@ -57,6 +57,8 @@ def submit(url, platform, budget_usd=10.0, method=None, body=None, headers=None,
         payload["body"] = body
     if headers:
         payload["headers"] = headers
+    if extra:
+        payload.update(extra)
     q = urllib.parse.urlencode({"customer": CUSTOMER, "zone": ZONE})
     st, h, b = _http(f"{API}/req?{q}", json.dumps(payload).encode())
     if st != 200:
