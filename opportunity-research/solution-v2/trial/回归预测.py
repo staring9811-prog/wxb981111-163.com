@@ -79,7 +79,7 @@ def design(D, k):
     X = D[XS].copy(); X['x4'] = X['x4'] - 5.0
     for x in XS: X[x + '·k'] = X[x] * k / 3
     X['k'] = k / 3; return X
-FEAT = {T: feats(T) for T in range(M0 + 6, END + 1)}
+FEAT = {T: feats(T) for T in range(M0 + 6, END + 2)}
 def fit(T0):
     """只用结果在 T0−1 前已知的 (T, k)。"""
     rows = []
@@ -234,3 +234,109 @@ if MODE == '回测':
         L.append(f"| {b} | {len(g)} | {in10(y[g.index].mean())} |")
     L += ['', f'做到的时间（训练里做到的家族）：首次达线一般在上架后第 {mo[0]:.0f}–{mo[2]:.0f} 个月，中位第 {mo[1]:.0f} 个月。']
     out = os.path.join(ROOT, f'solution-v2/开发建议/回归预测_回测{ {6: "", 7: "_第七版", 8: "_第八版"}[VER] }.md'); open(out, 'w', encoding='utf-8').write('\n'.join(L) + '\n'); print('\n'.join(L))
+
+# ---------- 建议：全量评分 + 新品方案 + "实"的结论 ----------
+if MODE == '建议':
+    T0 = mi(ASOF); D, m, cols, q, Tr = predict(T0); KN = [k for k in KS_ if T0 + k + 2 <= END]
+    for k in KN:
+        D[f'实际{k}'] = target(D, T0, k); D[f'实件{k}'] = actual_units(D, T0, k)
+    W = lambda k: f'{ms(T0 + k)} 至 {ms(T0 + k + 2)}'; F_ = lambda x: f'{x:.1%}'
+    D['斜率'] = np.expm1(D['b6'])
+    full = D.reset_index()[['层', '属性', '取值', '近3月', BASE, '斜率', 'x2', 'S3', '把握', '预计多卖', '分级', '体量档'] + [f'{a}{k}' for k in KS_ for a in ('件', '件lo', '件hi')] + [f'{a}{k}' for k in KN for a in ('实际', '实件')]]
+    for k in KS_:
+        full[f'份额{k}'] = D[BASE].values * np.exp(D[f'预测{k}'].values); full[f'份额lo{k}'] = D[BASE].values * np.exp(D[f'lo{k}'].values); full[f'份额hi{k}'] = D[BASE].values * np.exp(D[f'hi{k}'].values)
+    full = full.sort_values(['层', '属性', '预计多卖'], ascending=[False, True, False])
+    full.to_csv(os.path.join(ROOT, f'solution-v2/开发建议/回归预测_{ASOF}_全量评分.csv'), index=False, encoding='utf-8-sig')
+    cover = {d: PAN[(d,)][2].loc[T0 - 6:T0 - 1].sum() / CAT.loc[T0 - 6:T0 - 1].sum() for d in DIMS}
+    L = [f'# 开发建议（第八版 · 回归预测 + 评分）：站在 {ASOF} 月初', '',
+         f'> 只用截至 {ms(T0 - 1)} 的数据。由 `trial/回归预测.py`（MODE=建议 ASOF={ASOF}）生成；方法见 识别方法_预登记.md 补记第六至八版，回测见 回归预测_回测_第八版.md。', '',
+         '## 怎么读', '',
+         f'- **全量还是片面**：五个大属性的每个取值、两两交叉的每个格子都打了分，共 {len(D)} 个单元，全部在 `回归预测_{ASOF}_全量评分.csv`，本页只摘要。'
+         f'各属性有标签的销量占全部销量：' + '、'.join(f'{d} {v:.0%}' for d, v in cover.items()) + '，没标签的部分不在评分里。近 3 个月月均 < 300 件的单元也打了分，但回测里方向准确率低，只作参考。',
+         '- **把握** = 回归模型给的"之后份额会变大"的概率。回测（站在 2026-01，看 2026-04 至 09）：把握 ≤ 30% 的单元，之后 22% 真的变大；30–50% 是 43%；50–70% 是 56%；≥ 70% 是 65%。',
+         '- **分级**：A = 把握 ≥ 70% 且预计每月多卖 ≥ 100 件（机会）；D = 把握 ≤ 30% 且月均 ≥ 300 件（坑）；B / C = 把握高于 / 低于 50%。回测：A 档 83% 份额变大，D 档只有 20% 变大、合计每月少卖 1.2 万件。',
+         '- **预测份额 / 件数**带 80% 区间。件数 = 预测份额 × 品类月销预测（去年同月 × 近 3 个月同比）。2026 年数据来源切换后品类总量偏高约 20%，所以件数看相对大小，份额更可靠。',
+         f'- **时间**：k = 3 窗口（{W(3)}）= 现在立项、约 3 个月后上架的那段时间；k = 6 窗口（{W(6)}）= 再往后 3 个月。', '']
+    def row(r, att, v):
+        s = f"| {v} | {r['近3月']:,.0f} | {F_(r[BASE])} | {r['斜率']:+.1%} | {r['把握']:.0%} | **{r['分级']}** | {F_(r[BASE] * np.exp(r['预测3']))}（{F_(r[BASE] * np.exp(r['lo3']))}–{F_(r[BASE] * np.exp(r['hi3']))}） | {F_(r[BASE] * np.exp(r['预测6']))}（{F_(r[BASE] * np.exp(r['lo6']))}–{F_(r[BASE] * np.exp(r['hi6']))}） | {r['件6']:,.0f}（{r['件lo6']:,.0f}–{r['件hi6']:,.0f}） |"
+        if 6 in KN: s += f" {F_(r[BASE] * np.exp(r['实际6']))} / {r['实件6']:,.0f} |"
+        return s
+    HD = f"| 取值 | 近 3 个月月均 | 近 6 个月份额 | 份额每月变化 | 把握 | 分级 | 预测份额 {W(3)}（80% 区间） | 预测份额 {W(6)} | 预测月均件 {W(6)} |" + (' 实际 份额 / 件 |' if 6 in KN else '')
+    SEP = '| :--- | ---: | ---: | ---: | ---: | :--- | :--- | :--- | :--- |' + (' :--- |' if 6 in KN else '')
+    for d in DIMS:
+        X = D.xs(d, level='属性').sort_values('近3月', ascending=False)
+        L += [f'## 大属性 · {d}（全部取值）', '', HD, SEP] + [row(r, d, v) for v, r in X.iterrows()] + ['']
+    G = D[D['层'] == '两维格子']
+    L += ['## 两维格子：A 档（机会）全部、B 档预计多卖前 10、D 档（坑）全部', '', HD.replace('| 取值 |', '| 格子 |'), SEP]
+    for g, sel in (('A', G[G['分级'] == 'A'].sort_values('预计多卖', ascending=False)), ('B', G[G['分级'] == 'B'].sort_values('预计多卖', ascending=False).head(10)), ('D', G[G['分级'] == 'D'].sort_values('近3月', ascending=False))):
+        L += [row(r, att, f'{att}：{v}') for (att, v), r in sel.iterrows()]
+    L += ['']
+    # 新品方案
+    cal, sales, mo, tr = newlayer(T0)
+    SZ = [v for v in D.xs('尺寸', level='属性').index if D.at[('尺寸', v), '近3月'] >= 300]
+    ELS = [e for e in D.xs('元素', level='属性').sort_values('近3月', ascending=False).index[:10]]
+    TOPS = [v for v in D.xs('台面', level='属性').index if D.at[('台面', v), '近3月'] >= 300]
+    COLS = [v for v in D.xs('主色', level='属性').sort_values('近3月', ascending=False).index[:7]]
+    price = pd.DataFrame({'s': [feat[u]['主尺寸段'][0] for u in tr.index], '档': [feat[u]['价格档'][0] for u in tr.index], 'p': tr['_中位价'].values}).groupby(['s', '档'])['p'].quantile([0.25, 0.75]).unstack()
+    combo = pd.DataFrame([((feat[u]['主尺寸段'][0], feat[u]['台面类型'][0], e), tr.at[u, 'y']) for u in tr.index for e in feat[u]['元素']], columns=['k', 'y']).groupby('k')['y'].agg(['size', 'sum'])
+    rows = []
+    for s, tr_, tp, el, c in itertools.product(SZ, ('低', '中', '高'), TOPS, ELS, COLS):
+        k_ = f'方案|{s}|{tr_}|{tp}|{el}|{c}'; TK[k_] = [f'尺寸={s}', f'档={tr_}', f'台面={tp}', f'主色={c}', '装=拆装', '形态=落地式', f'元素={el}', '颜色≥2', '子体≥4']
+        TK[k_ + '|少铺'] = TK[k_][:-2]; rows.append(dict(尺寸=s, 档=tr_, 台面=tp, 元素=el, 主色=c, k=k_))
+    Cn = pd.DataFrame(rows); Cn['p'] = cal(list(Cn['k'])); Cn['p少铺'] = cal([k + '|少铺' for k in Cn['k']])
+    sv, slo, shi = sales(list(Cn['k'])); Cn['件'], Cn['件lo'], Cn['件hi'] = sv, slo, shi
+    Cn['先例'] = [int(combo['size'].get((r.尺寸, r.台面, r.元素), 0)) for r in Cn.itertuples()]; Cn['先例做到'] = [int(combo['sum'].get((r.尺寸, r.台面, r.元素), 0)) for r in Cn.itertuples()]
+    g_ = lambda att, v: D.at[(att, v), '分级'] if (att, v) in D.index else '—'
+    Cn['市场'] = [f"尺寸 {g_('尺寸', r.尺寸)} · 台面 {g_('台面', r.台面)} · 主色 {g_('主色', r.主色)} · 元素 {g_('元素', r.元素)} · 尺寸×台面 {g_('尺寸 × 台面', f'{r.尺寸} × {r.台面}')}" for r in Cn.itertuples()]
+    avg = cal(list(tr.index)).mean()
+    pr = lambda s, t_: f"${price.at[(s, t_), 0.25]:.0f}–{price.at[(s, t_), 0.75]:.0f}" if (s, t_) in price.index else '价位无先例'
+    smo = tr[tr['y'] == 1].assign(s=[feat[u]['主尺寸段'][0] for u in tr[tr['y'] == 1].index]).groupby('s')['首次达线月龄'].median()
+    trs = tr.assign(s=[feat[u]['主尺寸段'][0] for u in tr.index])
+    q46 = lambda s, y_: trs[(trs['s'] == s) & (trs['y'] == y_)]['月销46'].quantile([0.25, 0.5, 0.75]).values
+    def sell(s):
+        a, b = q46(s, 1), q46(s, 0)
+        return f"{a[1]:,.0f}（{a[0]:,.0f}–{a[2]:,.0f}）/ {b[1]:,.0f}" if not np.isnan(a[1]) else '—'
+    best = Cn[Cn['先例'] >= 3].sort_values('p', ascending=False).drop_duplicates(['尺寸', '台面', '元素']).head(12)
+    worst = Cn[Cn['先例'] >= 3].sort_values('p').drop_duplicates(['尺寸', '台面', '元素']).head(6)
+    L += ['## 新品方案：在什么情况下、多久、卖到多少', '',
+          f'- 打分 = 做到概率（做到 = 上架 6 个月内小类前 50 或月销售额 $10 万），按最近半年上架的新品水平校准；当期平均每 10 个做到 {in10(avg)} 个。回测：AUC 0.62–0.66，打分前 30% 每 10 个做到 4.7–5.7，后 30% 2.4–2.9。',
+          f'- 月销 = 上架第 4–6 个月的月均件数。新品销量两极分化（做到的和没做到的差几倍），所以按情形给：同尺寸历史新家族里做到的、没做到的各卖多少。（直接回归月销和实际的秩相关 +0.29 至 +0.42，但 80% 区间宽到几十倍，不用。）做到的时间：训练里做到的家族一般第 {mo[0]:.0f}–{mo[2]:.0f} 个月首次达线。',
+          '- 默认条件：落地式、拆装、首月 ≥ 2 个颜色、≥ 4 个子体。只列 尺寸 × 台面 × 元素 有 ≥ 3 个历史新家族的方案（有依据）；"市场"列是这个方案各属性在上面市场评分里的分级。', '',
+          '| # | 方案 | 价位（同尺寸同档 25–75%） | 每 10 个做到（打分） | 只铺 1 色、≤ 2 子体时 | 上架后第 4–6 个月月均件：做到的（中位，25–75%）/ 没做到的中位 | 做到的话第几个月 | 历史先例 做到 / 家族 | 市场 |', '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |']
+    for i, r in enumerate(best.itertuples(), 1):
+        L.append(f"| {i} | {r.尺寸} · {r.档}档 · {r.台面} · {r.元素} · 主色{r.主色} | {pr(r.尺寸, r.档)} | **{in10(r.p)}** | {in10(r.p少铺)} | {sell(r.尺寸)} | 第 {smo.get(r.尺寸, mo[1]):.0f} 个月 | {r.先例做到} / {r.先例} | {r.市场} |")
+    L += ['', '**要避开的方案（有依据、打分最低）**', '', '| 方案 | 每 10 个做到 | 历史先例 | 市场 |', '| :--- | :--- | :--- | :--- |']
+    for r in worst.itertuples():
+        L.append(f"| {r.尺寸} · {r.档}档 · {r.台面} · {r.元素} · 主色{r.主色} | {in10(r.p)} | {r.先例做到} / {r.先例} | {r.市场} |")
+    b1 = best.iloc[0]
+    base_t = TK[b1.k]; alts = {'档': ['低', '中', '高'], '主色': COLS, '台面': TOPS, '元素': ELS, '尺寸': SZ}
+    L += ['', f'## 在什么情况下：同一方案（{b1.尺寸} · {b1.档}档 · {b1.台面} · {b1.元素} · 主色{b1.主色}）换一个条件，每 10 个做到几个', '', '| 条件 | 换成 → 每 10 个做到 |', '| :--- | :--- |']
+    for att, vs in alts.items():
+        cells = []
+        for v in vs:
+            kk = f'换|{att}|{v}'; TK[kk] = [x if not x.startswith(f'{att}=') else f'{att}={v}' for x in base_t]; cells.append(f"{v} {in10(cal([kk])[0])}")
+        L.append(f"| {att} | {'、'.join(cells)} |")
+    for lab, drop in (('首月颜色', '颜色≥2'), ('首月子体', '子体≥4')):
+        kk = f'换|{lab}'; TK[kk] = [x for x in base_t if x != drop]; L.append(f"| {lab} | 有（{drop}）{in10(b1.p)}、没有 {in10(cal([kk])[0])} |")
+    L += ['', '## 一句话结论（"什么东西、什么情况下、什么时间、达到什么"）', '',
+          f"1. **上什么**：{b1.尺寸} {b1.档}档（{pr(b1.尺寸, b1.档)}）{b1.台面} + {b1.元素}，主色{b1.主色}。**条件**：首月 ≥ 2 色、≥ 4 子体（只铺 1 色、≤ 2 子体时每 10 个做到从 {in10(b1.p)} 降到 {in10(b1.p少铺)}）。"
+          f"**时间**：{ms(T0 + 3)} 前上架。**达到**：每 10 个约 {in10(b1.p)} 个在第 {smo.get(b1.尺寸, mo[1]):.0f} 个月左右做到小类前 50 或月销售额 $10 万；做到的话上架后第 4–6 个月月均约 {q46(b1.尺寸, 1)[1]:,.0f} 件（同尺寸做到者 25–75%：{q46(b1.尺寸, 1)[0]:,.0f}–{q46(b1.尺寸, 1)[2]:,.0f}），没做到的中位 {q46(b1.尺寸, 0)[1]:,.0f} 件（多数第 4–6 个月已掉出榜单）。"]
+    A_ = D[D['分级'] == 'A'].sort_values('预计多卖', ascending=False).head(5); D_ = D[D['分级'] == 'D'].sort_values('近3月', ascending=False).head(5)
+    if len(A_): L.append('2. **在涨、可以多铺的方向（A 档）**：' + '；'.join(f"{att} {v}：份额 {F_(r[BASE])} → {W(6)} 约 {F_(r[BASE] * np.exp(r['预测6']))}（{F_(r[BASE] * np.exp(r['lo6']))}–{F_(r[BASE] * np.exp(r['hi6']))}），把握 {r['把握']:.0%}" for (att, v), r in A_.iterrows()) + '。')
+    if len(D_): L.append('3. **坑（D 档，少铺或不新上）**：' + '；'.join(f"{att} {v}：份额 {F_(r[BASE])} → {W(6)} 约 {F_(r[BASE] * np.exp(r['预测6']))}，把握 {r['把握']:.0%}" for (att, v), r in D_.iterrows()) + '。')
+    if T0 + 3 + 5 <= END or T0 + 3 <= END:
+        c = U[U['L'].between(T0, T0 + 3) & (U['L'] + 5 <= END)]
+        if len(c):
+            pc = pd.Series(cal(list(c.index)), index=c.index)
+            keyset = lambda S_: {(r.尺寸, r.台面, r.元素) for r in S_.itertuples()}
+            hit = lambda S_: [u for u in c.index if any((feat[u]['主尺寸段'][0], feat[u]['台面类型'][0], e) in keyset(S_) for e in feat[u]['元素'])]
+            hb, hw = hit(best), hit(worst)
+            L += ['', f'## 核对：{ASOF} 至 {ms(T0 + 3)} 上架的新家族之后怎样（{len(c)} 个，每 10 个做到 {in10(c["y"].mean())}）', '',
+                  f'- 和推荐方案同"尺寸 × 台面 × 元素"的：{len(hb)} 个，做到 {int(c.loc[hb, "y"].sum())} 个' + (f'（每 10 个 {in10(c.loc[hb, "y"].mean())}）' if hb else '') + '；',
+                  f'- 和避开方案同"尺寸 × 台面 × 元素"的：{len(hw)} 个，做到 {int(c.loc[hw, "y"].sum())} 个' + (f'（每 10 个 {in10(c.loc[hw, "y"].mean())}）' if hw else '') + '；',
+                  f'- 按每个新家族自己的打分：前 30% 每 10 个做到 {in10(c.loc[pc >= pc.quantile(0.7), "y"].mean())}，后 30% {in10(c.loc[pc <= pc.quantile(0.3), "y"].mean())}。']
+            L += ['', '按条件看这批新家族的实际（模型说 / 实际，每 10 个做到）：', '', '| 条件 | 有这个条件的新家族 | 模型说 | 实际 | 没有这个条件的 模型说 / 实际 |', '| :--- | ---: | :--- | :--- | :--- |']
+            for tok in ('档=高', '档=中', '档=低', '主色=原木', '主色=深木', '主色=白', '主色=黑', '主色=灰', '颜色≥2', '子体≥4', '台面=陶瓷一体', '台面=树脂一体', '台面=石材台面'):
+                w = [u for u in c.index if tok in TK[u]]; wo = [u for u in c.index if tok not in TK[u]]
+                if len(w) >= 4: L.append(f"| {tok} | {len(w)} | {in10(pc[w].mean())} | {in10(c.loc[w, 'y'].mean())} | {in10(pc[wo].mean())} / {in10(c.loc[wo, 'y'].mean())} |")
+    out = os.path.join(ROOT, f'solution-v2/开发建议/回归预测_{ASOF}.md'); open(out, 'w', encoding='utf-8').write('\n'.join(L) + '\n'); print('\n'.join(L))
