@@ -208,7 +208,12 @@ summary{cursor:pointer;padding:12px 0;font-weight:600}
     <span class="note" id="exportMsg"></span>
   </div>
   <div class="cards" id="resCards"></div>
+  <h2>综合利润</h2>
+  <p class="lead">填每个尺寸的预计销量（件数或比例都行，例如 3、2、1），默认 1:1。综合利润 = 各产品单件利润 × 销量之和；综合利润率 = 综合利润 ÷ 总销售额。</p>
+  <div class="row" style="margin-bottom:10px"><button class="btn sm" id="btnQtyReset">全部恢复 1:1</button></div>
+  <div class="tw" id="resMix"></div>
   <h2>利润汇总</h2>
+  <p class="lead">售价和采购成本可以直接在表里改，改完会同步到第 2 步并立即重算。</p>
   <div class="tw" id="resSummary"></div>
   <h2>包裹明细</h2>
   <p class="lead">与原表同口径的全部中间数据：英寸边长、体积重、计费重、围长、尾程异常类型、各项运费和 FBA 档位。</p>
@@ -546,7 +551,7 @@ function renderS4(){
   document.getElementById("quickParams").innerHTML=[fld("rate","汇率"),fld("promo","推广 %"),fld("fxLoss","汇损 %"),fld("refund","退款 %"),(products.some(p=>p.costCur==="RMB_TAX")?fld("tax","税点 %（RMB含税）"):`<label class="f">税点 %<input value="FOB 不适用" disabled style="width:100px;text-align:center"></label>`),
     ...P.sea.map((s,i)=>fld(`sea.${i}.rmb`,esc(s.name)+" RMB")),fld("fba.peakMode","FBA费率",{type:"select",options:[["auto","按日期"],["on","旺季"],["off","非旺季"]]})].join("")+`<span class="note">更多变量见“参数设置”</span>`;
   const R=products.map(p=>({p,r:calcProduct(p)}));
-  if(!R.length){ document.getElementById("resCards").innerHTML=`<p class="muted">还没有产品。回到第 1 步导入报价表，或加载示例数据。</p>`; document.getElementById("resSummary").innerHTML=""; document.getElementById("resDetail").innerHTML=""; return; }
+  if(!R.length){ document.getElementById("resCards").innerHTML=`<p class="muted">还没有产品。回到第 1 步导入报价表，或加载示例数据。</p>`; document.getElementById("resSummary").innerHTML=""; document.getElementById("resDetail").innerHTML=""; document.getElementById("resMix").innerHTML=""; return; }
   // cards
   document.getElementById("resCards").innerHTML=R.map(({p,r})=>`<div class="card">
     <div class="t">${esc(p.name)}<span>${p.pkgs.length}包 · 售价 ${money(r.price)}</span></div>
@@ -555,11 +560,12 @@ function renderS4(){
     </div>
     ${r.warn.length?`<div>${r.warn.map(w=>`<span class="chip warn">${esc(w)}</span>`).join(" ")}</div>`:""}
   </div>`).join("");
+  renderMix(R);
   // summary
   const sh=P.sea.map(s=>`<th class="grp" colspan="7">${esc(s.name)}</th>`).join("");
   const sh2=P.sea.map(()=>`<th>海运费 $</th><th>FBM利润</th><th>FBM利润率</th><th>CG利润</th><th>CG利润率</th><th>FBA利润</th><th>FBA利润率</th>`).join("");
   document.getElementById("resSummary").innerHTML=`<table><thead><tr><th rowspan="2">品名</th><th rowspan="2">品类</th><th rowspan="2">包裹</th><th rowspan="2">售价 $</th><th rowspan="2">采购成本 $</th><th rowspan="2">采购占比</th><th rowspan="2">推广 $</th><th rowspan="2">汇损 $</th><th rowspan="2">佣金 $</th><th rowspan="2">退款 $</th><th rowspan="2">FBM尾程合计 $</th><th rowspan="2">CG尾程合计 $</th><th rowspan="2">FBA费合计 $</th>${sh}</tr><tr>${sh2}</tr></thead><tbody>
-  ${R.map(({p,r})=>`<tr><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td class="c">${p.pkgs.length}</td><td class="n">${f2(r.price)}</td><td class="n">${f2(r.cost)}</td><td class="n">${pct(r.cost/r.price)}</td><td class="n">${f2(r.promo)}</td><td class="n">${f2(r.fx)}</td><td class="n">${f2(r.comm)}</td><td class="n">${f2(r.refund)}</td><td class="n">${f2(r.fbmShip)}</td><td class="n">${f2(r.cgShip)}</td><td class="n">${f2(r.fbaShip)}</td>
+  ${R.map(({p,r},pi)=>`<tr><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td class="c">${p.pkgs.length}</td><td><input type="number" step="any" data-sp="${pi}" data-k="price" value="${esc(p.price)}"></td><td><input type="number" step="any" data-sp="${pi}" data-k="costUSD" value="${isFinite(r.cost)?Math.round(r.cost*100)/100:""}" title="${esc(COST_CUR[p.costCur])}${p.costCur!=="USD"?"，按当前汇率/税点反算出厂价":""}"></td><td class="n">${pct(r.cost/r.price)}</td><td class="n">${f2(r.promo)}</td><td class="n">${f2(r.fx)}</td><td class="n">${f2(r.comm)}</td><td class="n">${f2(r.refund)}</td><td class="n">${f2(r.fbmShip)}</td><td class="n">${f2(r.cgShip)}</td><td class="n">${f2(r.fbaShip)}</td>
     ${r.sc.map(s=>`<td class="n">${f2(s.sea)}</td>${["fbm","cg","fba"].map(k=>`<td class="n ${cls(s[k])}">${money(s[k])}</td><td class="n ${cls(s[k])}">${pct(s[k]/r.price)}</td>`).join("")}`).join("")}</tr>`).join("")}</tbody></table>`;
   // detail
   const D=detailRows(R);
@@ -575,6 +581,26 @@ function detailRows(R){
   const rows=[], first=[];
   R.forEach(({p,r})=>r.pk.forEach((x,gi)=>{ first.push(gi===0); rows.push([gi?"":p.name,gi+1,x.cm[0],x.cm[1],x.cm[2],x.kg,x.J,x.K,x.L,x.M,x.N,x.O,x.Pw,x.R,x.V,x.W,x.U,...x.sea,x.tail,x.handling,x.surch,...(P.residential?[x.resi]:[]),x.bucket,x.cgShip,x.cgLb,x.cgPick,x.ltl,x.fl,x.fm,x.fn,x.fw,x.flg,x.fbaTier,x.fba]); }));
   return {head,rows,first,fmt:F,chip:chipCols};
+}
+document.getElementById("resSummary").addEventListener("change",e=>{ const t=e.target; if(t.dataset.sp===undefined) return; const p=products[+t.dataset.sp]; const v=t.value===""?"":num(t.value);
+  if(t.dataset.k==="price") p.price=v;
+  else { if(v===""){ p.cost=""; } else { const base=v-nz(p.adj); p.cost=Math.round((p.costCur==="RMB_TAX"? base*(1+P.tax/100)*P.rate : p.costCur==="RMB_NET"? base*P.rate : base)*10000)/10000; } }
+  save(); setTimeout(renderS4); });
+document.getElementById("resMix").addEventListener("change",e=>{ const t=e.target; if(t.dataset.qty===undefined) return; const v=num(t.value); products[+t.dataset.qty].qty=isFinite(v)&&v>=0?v:1; save(); setTimeout(renderS4); });
+document.getElementById("btnQtyReset").addEventListener("click",()=>{ products.forEach(p=>p.qty=1); save(); renderS4(); });
+const qtyOf=p=>{ const q=num(p.qty); return isFinite(q)&&q>=0?q:1; };
+function mixData(R){
+  const tq=R.reduce((a,{p})=>a+qtyOf(p),0), rev=R.reduce((a,{p,r})=>a+qtyOf(p)*r.price,0), cost=R.reduce((a,{p,r})=>a+qtyOf(p)*r.cost,0);
+  const tot=P.sea.map((s,i)=>({fbm:R.reduce((a,{p,r})=>a+qtyOf(p)*r.sc[i].fbm,0),cg:R.reduce((a,{p,r})=>a+qtyOf(p)*r.sc[i].cg,0),fba:R.reduce((a,{p,r})=>a+qtyOf(p)*r.sc[i].fba,0)}));
+  return {tq,rev,cost,tot};
+}
+function renderMix(R){
+  const M=mixData(R);
+  const h1=P.sea.map(s=>`<th class="grp" colspan="3">${esc(s.name)}　利润合计 $</th>`).join(""), h2=P.sea.map(()=>"<th>FBM</th><th>CG</th><th>FBA</th>").join("");
+  const body=R.map(({p,r},pi)=>{ const q=qtyOf(p); return `<tr><td>${esc(p.name)}</td><td><input type="number" min="0" step="any" data-qty="${pi}" value="${q}"></td><td class="n">${M.tq?pct(q/M.tq):"–"}</td><td class="n">${f2(r.price)}</td><td class="n">${f2(q*r.price)}</td>${r.sc.map(s=>["fbm","cg","fba"].map(k=>`<td class="n ${cls(s[k])}">${money(q*s[k])}</td>`).join("")).join("")}</tr>`; }).join("");
+  const foot=`<tr class="first"><td><b>合计</b></td><td class="n"><b>${f1(M.tq)}</b></td><td class="n">100%</td><td class="n">${M.tq?f2(M.rev/M.tq):"–"}<br><span class="note">平均售价</span></td><td class="n"><b>${f2(M.rev)}</b></td>${M.tot.map(t=>["fbm","cg","fba"].map(k=>`<td class="n ${cls(t[k])}"><b>${money(t[k])}</b></td>`).join("")).join("")}</tr>
+    <tr><td colspan="5" style="text-align:right"><b>综合利润率</b>　<span class="note">采购成本占比 ${M.rev?pct(M.cost/M.rev):"–"}</span></td>${M.tot.map(t=>["fbm","cg","fba"].map(k=>`<td class="n ${cls(t[k])}"><b>${M.rev?pct(t[k]/M.rev):"–"}</b></td>`).join("")).join("")}</tr>`;
+  document.getElementById("resMix").innerHTML=`<table><thead><tr><th rowspan="2">品名</th><th rowspan="2">销量</th><th rowspan="2">销量占比</th><th rowspan="2">售价 $</th><th rowspan="2">销售额 $</th>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}${foot}</tbody></table>`;
 }
 document.getElementById("quickParams").addEventListener("change",e=>{ const t=e.target; if(!t.dataset.path) return; setPath(t.dataset.path,t.type==="number"?(t.value===""?"":num(t.value)):t.value); save(); renderS4(); });
 
@@ -599,7 +625,12 @@ document.getElementById("btnExport").addEventListener("click",()=>{
     ...P.sea.map(s=>[`海运方案：${s.name}`,`${s.rmb} RMB / ${s.cbm} CBM = $${f2(nz(s.rmb)/nz(s.cbm)/P.rate)}/m³`]),
     ["FBA 燃油/物流附加费 %",P.fba.fuel],["FBA 体积重除数",P.fba.dimDiv],["FBA 费率",fbaPeak()?"旺季":"非旺季"],["FBA 旺季区间",P.fba.peakStart+" ~ "+P.fba.peakEnd],["导出日期",new Date().toLocaleString()]];
   const ws3=XLSX.utils.aoa_to_sheet(par); ws3["!cols"]=[{wch:26},{wch:40}];
-  XLSX.utils.book_append_sheet(wb,ws1,"利润汇总"); XLSX.utils.book_append_sheet(wb,ws2,"包裹明细"); XLSX.utils.book_append_sheet(wb,ws3,"参数");
+  const M=mixData(R); const mh=["品名","销量","销量占比","售价$","销售额$",...P.sea.flatMap(s=>[`[${s.name}]FBM利润合计$`,`[${s.name}]CG利润合计$`,`[${s.name}]FBA利润合计$`])];
+  const mix=[mh,...R.map(({p,r})=>{const q=qtyOf(p); return [p.name,q,M.tq?Math.round(q/M.tq*1000)/1000:"",r2(r.price),r2(q*r.price),...r.sc.flatMap(s=>[r2(q*s.fbm),r2(q*s.cg),r2(q*s.fba)])];}),
+    ["合计",M.tq,1,M.tq?r2(M.rev/M.tq):"",r2(M.rev),...M.tot.flatMap(t=>[r2(t.fbm),r2(t.cg),r2(t.fba)])],
+    ["综合利润率","","","","",...M.tot.flatMap(t=>[t.fbm,t.cg,t.fba].map(v=>M.rev?Math.round(v/M.rev*1000)/1000:""))]];
+  const ws0=XLSX.utils.aoa_to_sheet(mix); ws0["!cols"]=mh.map((h,i)=>({wch:i?14:22}));
+  XLSX.utils.book_append_sheet(wb,ws0,"综合利润"); XLSX.utils.book_append_sheet(wb,ws1,"利润汇总"); XLSX.utils.book_append_sheet(wb,ws2,"包裹明细"); XLSX.utils.book_append_sheet(wb,ws3,"参数");
   offer(`利润测算_${stamp()}.xlsx`,new Uint8Array(XLSX.write(wb,{bookType:"xlsx",type:"array"})),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 });
 document.getElementById("btnSaveJson").addEventListener("click",()=>offer(`利润测算方案_${stamp()}.json`,JSON.stringify({version:1,params:P,products},null,1),"application/json"));
