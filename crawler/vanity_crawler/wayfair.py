@@ -61,16 +61,35 @@ def collect_list(entry):
     cached = load_json(path)
     if cached and cached.get("done"):
         return cached["rows"]
-    pages = (target // 40) + 2
-    urls = [url0 if p == 1 else f"{url0}?curpage={p}" for p in range(1, pages + 1)]
-    with ThreadPoolExecutor(len(urls)) as ex:
-        htmls = list(ex.map(lambda u: _get(u, tries=4, min_cards=30), urls))
+    pdir = os.path.join(OUT, "listpages")
+
+    def page_cards(p):
+        f = os.path.join(pdir, f"{entry}_{p}.json")
+        got = load_json(f)
+        if got:
+            return got
+        s = _get(url0 if p == 1 else f"{url0}?curpage={p}", tries=4, min_cards=30)
+        cards = _cards(s) if s else None
+        if cards:
+            save_json(f, cards)
+        return cards
+
+    n = (target // 40) + 2
+    while True:
+        with ThreadPoolExecutor(n) as ex:
+            allp = list(ex.map(page_cards, range(1, n + 1)))
+        if any(c is None for c in allp):
+            bad = [i + 1 for i, c in enumerate(allp) if c is None]
+            print(entry, "list pages failed", bad, "- ranks stop before first gap", flush=True)
+            allp = allp[:bad[0] - 1]
+            break
+        organic = sum(1 for cs in allp for c in cs if not c["sponsored"])
+        if organic >= target * 1.15 or n >= 20:
+            break
+        n += 3
     rows, rank, seen = [], 0, set()
-    for p, s in enumerate(htmls, 1):
-        if not s:
-            print(entry, "list page failed", p, flush=True)
-            continue
-        for c in _cards(s):
+    for p, cs in enumerate(allp, 1):
+        for c in cs:
             if not c["sku"] or c["sku"] in seen:
                 continue
             seen.add(c["sku"])

@@ -113,7 +113,7 @@ def collect_product(entry, row):
     pid = row["商品ID"]
     path = os.path.join(OUT, "products", f"{pid}.json")
     cached = load_json(path)
-    if cached and cached.get("状态") in ("完整", "部分"):
+    if cached and (cached.get("状态") == "完整" or (cached.get("状态") == "部分" and "取不到" not in cached.get("备注", ""))):
         return cached
     st, s = _get(row["商品链接"])
     det, rev_path = {}, None
