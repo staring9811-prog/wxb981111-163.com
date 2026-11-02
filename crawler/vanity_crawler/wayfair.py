@@ -14,12 +14,17 @@ OUT = os.path.join(DATA, "wayfair")
 BUDGET = 10.0
 
 
-def _get(url, tries=3):
+def _get(url, tries=3, min_cards=0):
+    best = ""
     for _ in range(tries):
         st, b = bd.fetch(url, "wayfair", retries=0, budget_usd=BUDGET)
         if st == 200 and len(b) > 100000:
-            return b.decode("utf-8", "ignore")
-    return ""
+            s = b.decode("utf-8", "ignore")
+            if not min_cards or len(_cards(s)) >= min_cards:
+                return s
+            if len(_cards(s)) > len(_cards(best)) if best else True:
+                best = s
+    return best
 
 
 def _cards(s):
@@ -59,7 +64,7 @@ def collect_list(entry):
     pages = (target // 40) + 2
     urls = [url0 if p == 1 else f"{url0}?curpage={p}" for p in range(1, pages + 1)]
     with ThreadPoolExecutor(len(urls)) as ex:
-        htmls = list(ex.map(_get, urls))
+        htmls = list(ex.map(lambda u: _get(u, tries=4, min_cards=30), urls))
     rows, rank, seen = [], 0, set()
     for p, s in enumerate(htmls, 1):
         if not s:
