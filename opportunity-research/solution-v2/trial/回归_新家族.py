@@ -8,7 +8,9 @@
 3. 输入（只用家族首个在榜月的信息，第三版起；留出检验预登记）：属性（尺寸段多选、整装/拆装、柜体材质、台面类型、元素多选、形态、开放式、盆数、主色）、
    价格位置（子体价 ÷ 同月同尺寸段同装中位价，取家族中位数后取对数；低 / 中 / 高三档）、品牌力（上架当月同品牌其他单位数）、变体数、上架季度、
    时间信号（家族所属元素、台面类型、柜体材质、尺寸段在上架前一个月的 wen 原表指标：三档新品成功率、平均新品渗透率、单位 ASIN 贡献 ÷ 平均、份额增长比）。
-4. 比较框 = 主尺寸段 × 价格档 × 上架半年批次（2026-10-30 起；回归里的格子哑变量只用主尺寸段 × 价格档）：主尺寸段 = 家族首个在榜月里子体最多的尺寸段，并列时按尺寸从小到大排、取中间那个（偶数个取偏小的）。
+4. 比较框 = 主尺寸段 × 价格档 × 上架半年批次（2026-10-30 起；回归里的格子哑变量只用主尺寸段 × 价格档）：主尺寸段 = 家族首个在榜月里子体销量最多的尺寸段
+   （第四版起；子体销量 = 家族月销按子体流量词个数分，2024-10 至 2025-12 由卖家精灵 MCP 补拉，2026 用原有估算；没有子体销量的退回"子体最多的尺寸段，并列取中间"）。
+   带尺寸的发现（某属性 × 尺寸段 s）第四版起改在"s × s 那几个子体的价格档 × 批次"的格子里比，两边都有 s 的变体。
    组合预先指定（第三版起）：台面类型 × 尺寸段、柜体材质 × 尺寸段、元素 × 尺寸段，不再按交叉验证的微小改善搜索；两把尺（同尺寸段内对 log 价格的 R²、
    学习段交叉验证提升）只作描述。
 5. 模型：L2 逻辑回归（二元特征不缩放，样本少的格子自动往 0 收），含比较框哑变量；学习段（2024-10 至 2025-06 上架）按上架季度分块交叉验证选强度，
@@ -20,7 +22,7 @@
    回归只说明先后和强弱，原因写成可能的解释。
 用法：python3 -I 回归_新家族.py；DATA（输入表）、OUT_DIR（默认 input/data_v2/回归，不入库）、REPORT_MD（默认 solution-v2/回归_新家族_第一版.md）可改；
 VER（报告标题里的版本名）、PREV_LABEL / PREV_N（第 8 节对比的上一版是哪版、新家族几个）跟着换版本时改；
-FREEZE（冻结模型存到哪，默认 OUT_DIR/冻结_第三版.json，第三版定稿时写）；WITH_HOLD=1 时单位里多留 2026-04 起上架、观察期已走完的家族（段 = 留出），只给 留出检验.py 用。"""
+FREEZE（冻结模型存到哪，默认 OUT_DIR/冻结_{VER}.json）；CHILD_SALES（补拉的子体销量文件，不存在就按子体数定主尺寸）；WITH_HOLD=1 时单位里多留 2026-04 起上架、观察期已走完的家族（段 = 留出），只给 留出检验.py 用。"""
 import os, re, html, json, itertools, warnings, numpy as np, pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, log_loss
@@ -111,6 +113,14 @@ A['盆数'] = A['D3盆数'].fillna('单盆').astype(str)
 A['同格中位价'] = A.groupby(['m', A['尺寸段'].fillna('未知'), '装'])['价格'].transform('median')
 A['价比'] = A['价格'] / A['同格中位价']; A['价格档'] = A['价比'].map(tier)
 FIRST, LAST = A['m'].min(), A['m'].max()
+# 子体销量（第四版起，定主尺寸段用）：2024-10 至 2025-12 用补拉的（卖家精灵 MCP 当月流量词个数分家族月销，只覆盖回归新家族的观察期），2026 用原有估算
+CHILD = os.environ.get('CHILD_SALES', os.path.join(ROOT, 'input/data_v2/子体流量词/子体销量预估_2024-10至2025-12.csv'))
+A['子体销量'] = pd.to_numeric(A.get('子体月销（2026 原流程估算）'), errors='coerce')
+CHILD_N = 0
+if os.path.exists(CHILD):
+    _c = pd.read_csv(CHILD, encoding='utf-8-sig', dtype=str); _c['v'] = pd.to_numeric(_c['子体月销预估'], errors='coerce')
+    _c['m'] = _c['月'].map(mi); _v = A[['m', '子ASIN']].merge(_c[['m', '子ASIN', 'v']], on=['m', '子ASIN'], how='left')['v'].values
+    A['子体销量'] = np.where(pd.notna(_v), _v, A['子体销量']); CHILD_N = int(pd.notna(_v).sum())
 
 # ---------- 1. 单位：replace 规则 ----------
 up_ = {p: p for p in A['家族键'].unique()}
@@ -172,9 +182,15 @@ U['程度分'] = np.log(BSR_LINE / U['最好BSR'])
 # ---------- 3. 家族特征（只用上架时能知道的） ----------
 def modev(s, drop=('未知',)):
     s = s[~s.isin(drop)]; return s.mode().iloc[0] if len(s) else None
+MB_HOW = {}
 def main_band(gf):
-    """主尺寸段：首个在榜月里子体最多的尺寸段；并列时按尺寸从小到大排，取中间那个（偶数个取偏小的）。"""
-    n = gf.dropna(subset=['尺寸段']).groupby('尺寸段')['子ASIN'].nunique()
+    """主尺寸段（第四版起）：首个在榜月里子体销量最多的尺寸段；没有子体销量时退回子体最多的尺寸段，并列时按尺寸从小到大排，取中间那个（偶数个取偏小的）。"""
+    g2 = gf.dropna(subset=['尺寸段']); sv = g2.groupby('尺寸段')['子体销量'].sum(min_count=1)
+    if sv.notna().any() and sv.sum() > 0:
+        top = sv[sv == sv.max()].index
+        if len(top) == 1: MB_HOW[g2['单位'].iloc[0] if '单位' in g2 else None] = '销量'; return top[0]
+    if len(g2) and '单位' in g2: MB_HOW[g2['单位'].iloc[0]] = '子体数'
+    n = g2.groupby('尺寸段')['子ASIN'].nunique()
     if not len(n): return '未知'
     tie = sorted(n[n == n.max()].index, key=SIZE_ORDER.index)
     return tie[(len(tie) - 1) // 2]
@@ -190,7 +206,8 @@ for u, g in W.groupby('单位'):
                    开放式=['是' if gf['开放式'].any() else '否'], 盆数=['双盆' if gf['盆数'].eq('双盆').any() else (modev(gf['盆数']) or '单盆')],
                    主色=[modev(gf['主色']) or '未知'], 价格档=[tier(np.exp(np.nanmedian(np.log(gf['价比'])))) if gf['价比'].notna().any() else '未知'],
                    _价位=float(np.nanmedian(np.log(gf['价比']))) if gf['价比'].notna().any() else np.nan, _变体=gf['子ASIN'].nunique(),
-                   _颜色数=gf['主色'][gf['主色'] != '未知'].nunique(), _中位价=float(g['价格'].median()), _首月=F, _元素文字=elt or ['未知'])
+                   _颜色数=gf['主色'][gf['主色'] != '未知'].nunique(), _中位价=float(g['价格'].median()), _首月=F, _元素文字=elt or ['未知'],
+                   _档按尺寸={sz: tier(np.exp(np.nanmedian(np.log(g2['价比'])))) for sz, g2 in gf.dropna(subset=['尺寸段']).groupby('尺寸段') if g2['价比'].notna().any()})
 U = U[U.index.isin(feat)].copy()
 for u, f in feat.items():
     if u in U.index:
@@ -389,25 +406,36 @@ def ame(m, X, j, rows):
     else: X1.iloc[:, j] = X1.iloc[:, j] + 0.5; X0.iloc[:, j] = X0.iloc[:, j] - 0.5   # 连续特征：±0.5 个标准差
     return float((m.predict_proba(X1.values)[:, 1] - m.predict_proba(X0.values)[:, 1]).mean())
 # 比较框：主尺寸段或价格档不明的家族不进同格比较（回归里照常）
-S = pd.get_dummies(U['比较框'].where(~U['比较框'].str.contains('未知'))).astype(float).values
 # 品牌一票（2026-10-30）：同一比较框里，一个品牌每边只算一票（这一边各家族起来比例的平均）；同品牌同月常上好几个家族、结果一起好或一起差，不是独立的
-_kn = ~U['比较框'].str.contains('未知').values
-_gk = pd.Series(np.where(_kn, U['比较框'] + '|' + np.where(U['品牌键'].ne(''), U['品牌键'], U.index.astype(str)), None), index=U.index)
-GM = pd.get_dummies(_gk).astype(float)                      # 单位 × 品牌组（比较框不明的单位全 0）
-CELLS = sorted({k.rsplit('|', 1)[0] for k in GM.columns}); _ci = {c: i for i, c in enumerate(CELLS)}
-G_CELL = np.array([_ci[k.rsplit('|', 1)[0]] for k in GM.columns]); GM = GM.values
-CELL_L = np.array([U.loc[U['比较框'] == c, '段'].iloc[0] == '学习' for c in CELLS])   # 比较框含批次，每个框只属于一段
+# 第四版起带尺寸的发现（× 尺寸段=s）换一套框："s × s 那几个子体的价格档 × 批次"，两边家族都有 s 的变体（不再按主尺寸归格）
+def frame_of(sz):
+    if sz is None: return U['比较框'].where(~U['比较框'].str.contains('未知'))
+    return pd.Series([f"{sz}·{feat[u]['_档按尺寸'].get(sz, '未知')}·{U.at[u, '批次']}" if sz in feat[u]['尺寸段'] and feat[u]['_档按尺寸'].get(sz, '未知') != '未知' else None
+                      for u in U.index], index=U.index)
+FR = {}
+def fr(sz=None):
+    if sz in FR: return FR[sz]
+    fk = frame_of(sz); kn = fk.notna().values
+    gk = pd.Series(np.where(kn, fk.astype(str) + '|' + np.where(U['品牌键'].ne(''), U['品牌键'], U.index.astype(str)), None), index=U.index)
+    G = pd.get_dummies(gk).astype(float); cells = sorted({k.rsplit('|', 1)[0] for k in G.columns}); ci = {c: i for i, c in enumerate(cells)}
+    FR[sz] = dict(S=pd.get_dummies(fk).astype(float).values, kn=kn, GM=G.values, CELLS=cells, G_CELL=np.array([ci[k.rsplit('|', 1)[0]] for k in G.columns]),
+                  CELL_L=np.array([U.loc[fk == c, '段'].iloc[0] == '学习' for c in cells]))
+    return FR[sz]
+def size_of(col):
+    if '×' not in col: return None
+    return next((v for a, v in parse(col) if a == '尺寸段'), None)
+_kn = fr()['kn']
 # 每个候选特征的"有它 / 对照"成员（学习段、检验段），只算一次；打乱对照时只换结果
 idx = {u: i for i, u in enumerate(U.index)}; isL = lrn.values
-def votes(mem, y):
-    """品牌组的票：这一边有家族的品牌组，和它们这一边起来的比例。"""
-    cnt = mem.astype(float) @ GM; s = (mem * y).astype(float) @ GM; g = np.flatnonzero(cnt > 0)
-    return G_CELL[g], s[g] / cnt[g]
-def brand_cmp(inm, refm):
+def votes(mem, y, F=None):
+    """品牌组的票：这一边有家族的品牌组，和它们这一边起来的比例。F = 用哪套比较框（默认主尺寸框）。"""
+    F = F or fr(); cnt = mem.astype(float) @ F['GM']; s = (mem * y).astype(float) @ F['GM']; g = np.flatnonzero(cnt > 0)
+    return F['G_CELL'][g], s[g] / cnt[g]
+def brand_cmp(inm, refm, F=None):
     """格内能对上的品牌票数：所在框里对面也有票的，学习段、检验段各（有它, 对照）。"""
-    c1, _ = votes(inm, np.zeros(len(U))); c0, _ = votes(refm, np.zeros(len(U)))
-    n1, n0 = np.bincount(c1, minlength=len(CELLS)), np.bincount(c0, minlength=len(CELLS)); both = (n1 > 0) & (n0 > 0)
-    return [(int(n1[both & s].sum()), int(n0[both & s].sum())) for s in (CELL_L, ~CELL_L)]
+    F = F or fr(); c1, _ = votes(inm, np.zeros(len(U)), F); c0, _ = votes(refm, np.zeros(len(U)), F); K = len(F['CELLS'])
+    n1, n0 = np.bincount(c1, minlength=K), np.bincount(c0, minlength=K); both = (n1 > 0) & (n0 > 0)
+    return [(int(n1[both & s].sum()), int(n0[both & s].sum())) for s in (F['CELL_L'], ~F['CELL_L'])]
 cands, skip = [], {}
 for j, col in enumerate(XF.columns):
     if col.startswith('缺·') or ('未知' in col) or col.startswith('格='): continue
@@ -419,13 +447,14 @@ for j, col in enumerate(XF.columns):
     else:
         inm = (XF[col] == 1).values; refm = np.array([ref_group(u, col) for u in U.index]); nL, nT = int((inm & isL).sum()), int((inm & ~isL).sum())
     # 格内能对上的家族：所在比较框里对照组也有家族的"有它"家族数，反过来同理
-    cmp = [((inm & s).astype(float) @ S, (refm & s).astype(float) @ S) for s in (isL, ~isL)]
+    F_ = fr(size_of(col)); S_ = F_['S']
+    cmp = [((inm & s).astype(float) @ S_, (refm & s).astype(float) @ S_) for s in (isL, ~isL)]
     cmp = [(int(n1[n0 > 0].sum()), int(n0[n1 > 0].sum())) for n1, n0 in cmp]
-    bcmp = brand_cmp(inm, refm)
+    bcmp = brand_cmp(inm, refm, F_)
     if min(min(x) for x in bcmp) < MINF: skip[col] = f'同一比较框里能对上的品牌不到 {MINF} 个'; continue
     if not cont and '×' not in col and (inm & isL).mean() / isL.mean() > 0.6: skip[col] = '太普遍（学习段 > 60% 的家族都有），是基准'; continue
     sig = (tuple(np.flatnonzero(inm)), tuple(np.flatnonzero(refm)))
-    cands.append(dict(j=j, col=col, cont=cont, inm=inm, refm=refm, nL=nL, nT=nT, cmpL=cmp[0], cmpT=cmp[1], bL=bcmp[0], bT=bcmp[1], sig=sig))
+    cands.append(dict(j=j, col=col, cont=cont, inm=inm, refm=refm, nL=nL, nT=nT, cmpL=cmp[0], cmpT=cmp[1], bL=bcmp[0], bT=bcmp[1], sig=sig, F=F_))
 # 成员完全相同的只留最短的写法（如"MDF × Farmhouse"和"MDF × Farmhouse × 拆装"），互为对照的只留小的一边（如双盆 / 单盆）
 seen, keep = {}, []
 for c in sorted(cands, key=lambda c: (len(c['col']), c['col'])):
@@ -439,10 +468,10 @@ def diffs(y):
     yL, yT = np.where(isL, y, 0.0), np.where(~isL, y, 0.0)
     f = lambda M, yy, seg: (M * seg) @ yy / np.maximum((M * seg).sum(1), 1)
     return f(IN, yL, isL) - f(REF, yL, isL), f(IN, yT, ~isL) - f(REF, yT, ~isL)
-def _mh(c1, Y1, c0, Y0):
+def _mh(c1, Y1, c0, Y0, F=None):
     """同格差（品牌一票）：每个比较框内"有它的票 − 对照的票"起来比例之差，按 n1·n0/(n1+n0) 加权平均（n 是票数，格里两边都有票才算）。
     Y1、Y0 是（次数 × 票数）的起来比例；返回学习段、检验段各一个长度 = 次数的数组。"""
-    K = len(CELLS); n1, n0 = np.bincount(c1, minlength=K), np.bincount(c0, minlength=K)
+    F = F or fr(); CELL_L = F['CELL_L']; K = len(F['CELLS']); n1, n0 = np.bincount(c1, minlength=K), np.bincount(c0, minlength=K)
     H1 = np.zeros((len(c1), K)); H1[np.arange(len(c1)), c1] = 1
     H0 = np.zeros((len(c0), K)); H0[np.arange(len(c0)), c0] = 1
     w = np.where((n1 > 0) & (n0 > 0), n1 * n0 / np.maximum(n1 + n0, 1), 0.0)
@@ -451,8 +480,8 @@ def _mh(c1, Y1, c0, Y0):
 def mh(y):
     out = []
     for c in cands:
-        (c1, v1), (c0, v0) = votes(c['inm'], y), votes(c['refm'], y)
-        dl, dt = _mh(c1, v1[None], c0, v0[None]); out.append((dl[0], dt[0]))
+        (c1, v1), (c0, v0) = votes(c['inm'], y, c['F']), votes(c['refm'], y, c['F'])
+        dl, dt = _mh(c1, v1[None], c0, v0[None], c['F']); out.append((dl[0], dt[0]))
     out = np.array(out); return out[:, 0], out[:, 1]
 y0 = U['y'].values.astype(float)
 DL, DT = mh(y0)
@@ -465,8 +494,8 @@ FMOv = (U['首次达线月龄'].isna() | (U['首次达线月龄'] > U['_首月']
 def mh_sub(y, sub):
     out = []
     for c in cands:
-        (c1, v1), (c0, v0) = votes(c['inm'] & sub, y), votes(c['refm'] & sub, y)
-        with np.errstate(invalid='ignore', divide='ignore'): dl, dt = _mh(c1, v1[None], c0, v0[None])
+        (c1, v1), (c0, v0) = votes(c['inm'] & sub, y, c['F']), votes(c['refm'] & sub, y, c['F'])
+        with np.errstate(invalid='ignore', divide='ignore'): dl, dt = _mh(c1, v1[None], c0, v0[None], c['F'])
         out.append((dl[0], dt[0]))
     out = np.array(out); return out[:, 0], out[:, 1]
 DLf, DTf = mh_sub(y0, FMOv)
@@ -474,10 +503,10 @@ DLf, DTf = mh_sub(y0, FMOv)
 BRAND = np.where(U['品牌键'].ne(''), U['品牌键'], U.index.astype(str)); BNAME = U.groupby('品牌键')['品牌'].first()
 def drop_one(i):
     c, sg, worst = cands[i], np.sign(DL[i]), None
-    for b in pd.unique(BRAND[(c['inm'] | c['refm']) & _kn]):
+    for b in pd.unique(BRAND[(c['inm'] | c['refm']) & c['F']['kn']]):
         keep = BRAND != b
-        (c1, v1), (c0, v0) = votes(c['inm'] & keep, y0), votes(c['refm'] & keep, y0)
-        with np.errstate(invalid='ignore', divide='ignore'): dl, dt = (float(x[0]) for x in _mh(c1, v1[None], c0, v0[None]))
+        (c1, v1), (c0, v0) = votes(c['inm'] & keep, y0, c['F']), votes(c['refm'] & keep, y0, c['F'])
+        with np.errstate(invalid='ignore', divide='ignore'): dl, dt = (float(x[0]) for x in _mh(c1, v1[None], c0, v0[None], c['F']))
         sc = -1.0 if np.isnan(dl) or np.isnan(dt) else min(sg * dl, sg * dt)
         if worst is None or sc < worst[0]: worst = (sc, b, dl, dt)
     return worst
@@ -485,10 +514,10 @@ def drop_one(i):
 NPERM = int(os.environ.get('NPERM', 1000)); rng = np.random.default_rng(7)
 strength = np.where(OK, np.minimum(abs(DL), abs(DT)), np.nan); null_ok = np.zeros((len(cands), NPERM), bool); null_hit = np.zeros(len(cands))
 for i, c in enumerate(cands):
-    (c1, v1), (c0, v0) = votes(c['inm'], y0), votes(c['refm'], y0)
+    (c1, v1), (c0, v0) = votes(c['inm'], y0, c['F']), votes(c['refm'], y0, c['F'])
     oc, oy = np.r_[c1, c0], np.r_[v1, v0]; slots = np.argsort(oc, kind='stable')
     Yp = np.empty((NPERM, len(oc))); Yp[:, slots] = oy[np.argsort(oc[None, :] + rng.random((NPERM, len(oc))), axis=1)]
-    dl, dt = _mh(c1, Yp[:, :len(c1)], c0, Yp[:, len(c1):])
+    dl, dt = _mh(c1, Yp[:, :len(c1)], c0, Yp[:, len(c1):], c['F'])
     ok_p = (np.sign(dl) == np.sign(dt)) & (np.minimum(abs(dl), abs(dt)) >= 0.05); null_ok[i] = ok_p
     null_hit[i] = (ok_p & (np.minimum(abs(dl), abs(dt)) >= (strength[i] if OK[i] else 9))).sum()
 null_n = null_ok.sum(0)   # 各条分别打乱，没算条与条之间的相关
@@ -624,8 +653,8 @@ EXPLAIN = {   # 特征 → 可能的解释（看过结果后写的定性解释�
                                   '注意：不是说 24″ 陶瓷一体卖得不好，而是新进来的家族里起来的比例低于同尺寸其他台面。限制：一部分陶瓷一体是"盆材已知、没写台面"按一体盆推断的',
     '台面类型=陶瓷一体×尺寸段=36″': '可能的解释：同"陶瓷一体 × 24″"：36″ 也是单盆主力尺寸，陶瓷一体新家族多（见变化一列），挤进来的人多，每个新家族起来的机会小；同一价位档里比也低。'
                                   '限制：一部分陶瓷一体是按一体盆推断的；和 24″ 那条有重叠的家族（一个家族可以同时有 24″ 和 36″）。'
-                                  '2026 年子体销量核对（子体核对_主尺寸与36寸.md）：有 2026 子体销量的 36 个"有它"家族里，36″ 子体分到的销量占比中位约 1/3，只有 9 个主尺寸是 36″——'
-                                  '这条更准确的说法是"带 36″ 变体的陶瓷一体多尺寸家族"，不能直接读成"做 36″ 陶瓷一体单品"',
+                                  '第四版起在 36″ 的格子里比（两边都有 36″ 变体，价格档按 36″ 子体算）。子体销量核对（子体核对_主尺寸与36寸.md 第 4 节）：36″ 占家族首月销量一半以上和不到一半的两组，起来的比例差不多（35% 对 33%），'
+                                  '所以这条更像"陶瓷一体盆台起来得少"在 36″ 格子里的表现，不是 36″ 特有的',
     '台面类型=陶瓷一体×柜体材质=MDF': '可能的解释：对照几乎都是实木框架。同一尺寸、价位档、同期上架里比，陶瓷一体盆台配 MDF 柜体的起来得多，配实木框架的少：同价位下实木框架成本高，可能在尺寸、做工、配件或广告上让了步；也可能这个价位的买家更看重漆面颜色和造型，不太为"实木框架"多付钱。这和"实木能卖更高价"不矛盾：这里比的是同价位档里谁更容易起来，不是谁能卖得更贵。限制：对照只有十几个品牌；柜体材质来自文字，写实木框架的集中在少数品牌',
     '台面类型=陶瓷一体×柜体材质=MDF×盆数=单盆': '和"陶瓷一体 × MDF"几乎是同一批家族（陶瓷一体盆台多是单盆），见那条',
     '元素=夏克式': '可能的解释：夏克式是最主流的门型，这批新家族里约三分之一看图判为夏克式，进来的多，每个新家族起来的机会就小；同一尺寸、价位、批次里比也低。'
@@ -651,6 +680,10 @@ EXPLAIN = {   # 特征 → 可能的解释（看过结果后写的定性解释�
     '信号·元素·成功率3': '可能的解释：和"红利被分掉"一致：上架前一个月这个元素的三个月新品成功率越高，说明它正热、跟进的人扎堆，后进来的反而起来得少。'
                                  '也可能是均值回归：上个月刚冲高的元素，之后自然回落。比较框已分上架批次（半年），同一批次里比，去掉了大部分"晚上架就难起"的影响，批次内的时间趋势还在，所以时间信号最高只给"有迹象"。'
                                  '限制：第三版起元素用全市场看图标签算；后段格内能对上的品牌只有前段的一半左右（见指标一列）；时间信号放进模型后检验段反而变差（见第 2 节），单条可以参考，不宜进打分',
+    '信号·尺寸段·成功率3': '可能的解释：和元素那几条同一个逻辑：上架前一个月，家族所在尺寸段的三个月新品成功率越高，说明这个尺寸正热、新品扎堆，后进来的反而起来得少；也可能是均值回归。'
+                         '限制：两段格内能对上的都只有 8 个品牌；只看首月没过线的家族，差距缩到个位数（见稳健性）；时间信号最高只给"有迹象"',
+    '信号·柜体材质·成功率12': '可能的解释：同上，某种柜体材质过去一年新品成功率高，跟进的人多，后来者起来的比例反而低。'
+                           '限制：前段格内能对上的只有 7 个品牌；换成子体排名中位数判、或只看首月没过线的家族，后段差距都缩到个位数（见稳健性），不稳；时间信号最高只给"有迹象"',
     '信号·元素·成功率6': '和"上架前一月：所属元素的成功率3"是同一件事换个窗口（半年新品成功率），两条的家族、方向几乎一样，不要当成两条独立的规律；解释和限制见那条',
     '信号·元素·渗透率': '渗透率是三档成功率（3、6、12 个月）的平均，和"所属元素的成功率3 / 6"是同一件事，解释和限制见那两条',
     '信号·柜体材质·单位贡献比': '可能的解释：上架前一个月，这种柜体材质每个在榜子体平均卖得比品类平均多，说明需求还没被足够多的款分掉（供不应求），这时进来的新家族更容易起来；和元素那几条"越热越难起"方向相反：一个看的是新品扎堆（成功率），一个看的是每个款分到的量（单位贡献）。'
@@ -777,7 +810,9 @@ L = [f'# 回归{VER}：新家族上架后 6 个月起没起来', '',
      '### 比较框（2026-10-30 加）', '',
      'wen 2026-10-30 看组合表时问："这里没有价格、尺寸这个大维度的同比框吗？没有怎么对比？"——上一版的原始差是不分尺寸、价位混在一起比的，尺寸段又被两把尺挤出了重要属性、没进组合，和"比较要在同语境里做（同尺寸、相近价位）"不一致，所以补上。', '',
      '外部评判（wen 2026-10-30 转来）指出两点后又改了：起来的比例随上架时间一路降、上架前的时间信号又随时间涨，不分批次比会把"晚上架"当成发现，所以比较框再分上架批次；同品牌同月常上好几个家族、结果一起好或一起差，不是独立的，所以同格差按"一个品牌每边一票"。', '',
-     '- 比较框 = 主尺寸段 × 价格档 × 上架批次。主尺寸段 = 家族首个在榜月里子体最多的尺寸段；几个尺寸段子体一样多时，按尺寸从小到大排、取中间那个（偶数个取偏小的）。'
+     f'- 比较框 = 主尺寸段 × 价格档 × 上架批次。主尺寸段（第四版起）= 家族首个在榜月里子体销量最多的尺寸段（子体销量 = 家族月销按子体流量词个数分；{sum(v == "销量" for v in MB_HOW.values())} 个新家族这样定），'
+     f'没有子体销量或销量并列的 {sum(v == "子体数" for v in MB_HOW.values())} 个退回"子体最多的尺寸段，并列取中间"。'
+     '带尺寸的发现（某属性 × 尺寸段 s）改在"s × s 那几个子体的价格档 × 批次"的格子里比：有它和对照都有 s 的变体，不再看它们的主尺寸是不是 s。'
      '价格档 = 首个在榜月子体价格 ÷ 同月、同尺寸段、同整装/拆装的中位价，取家族中位数：< 0.85 低，> 1.15 高，其余中。'
      '上架批次 = ' + '、'.join(n for n, _, _ in BATCH) + '（半年一批，在学习、检验两段的分界处切开）。',
      '- 为什么：大尺寸单价高，月销不多就能过 $10 万销售额线，在榜的家族也少，进前 50 相对容易；同一尺寸里贵的和便宜的拼法也不同。不同尺寸、价位的家族混在一起比，差距可能只是尺寸或价位不同造成的。',
