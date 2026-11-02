@@ -16,7 +16,7 @@ def _wf_vp(badge):
     return "VP" if badge == "Verified Purchase" else ("non_VP" if not badge else "unknown")
 
 
-def wayfair_reviews(urls_by_sku, batch=25, cap=1000):
+def wayfair_reviews(urls_by_sku, batch=10, cap=300, max_charge_usd=3):
     """Returns {sku: (rows, complete_flag, n_returned)}; caches raw items per sku."""
     out, todo = {}, []
     for sku, url in urls_by_sku.items():
@@ -29,7 +29,7 @@ def wayfair_reviews(urls_by_sku, batch=25, cap=1000):
         chunk = todo[i:i + batch]
         items, run = apify.run_actor(WF_ACTOR, {"mode": "url", "urls": [u for _, u in chunk], "fetchReviews": True,
                                                 "maxReviewsPerProduct": cap, "reviewSort": "newest",
-                                                "maxItems": len(chunk)}, timeout_s=900)
+                                                "maxItems": len(chunk)}, timeout_s=290, max_charge_usd=max_charge_usd)
         print("apify wayfair batch", i // batch + 1, "items", len(items), "usd", run.get("usd"), flush=True)
         by = {str(it.get("sku", "")).upper(): it for it in items}
         for sku, _ in chunk:
@@ -82,7 +82,8 @@ def lowes_reviews(ids, batch=40, cap=500):
         got = {p: {"newest": [], "oldest": []} for p in chunk}
         for sort, key in (("newestFirst", "newest"), ("oldestFirst", "oldest")):
             items, run = apify.run_actor(LO_ACTOR, {"productIds": chunk, "maxReviewsPerProduct": cap, "sort": sort,
-                                                    "newerThan": YEAR_START, "includeRatingsOnly": True}, timeout_s=1800)
+                                                    "newerThan": YEAR_START, "includeRatingsOnly": True}, timeout_s=290,
+                                                   max_charge_usd=2)
             print("apify lowes batch", i // batch + 1, sort, "items", len(items), "usd", run.get("usd"), flush=True)
             for it in items:
                 p = str(it.get("productId"))

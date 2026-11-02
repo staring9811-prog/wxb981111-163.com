@@ -17,10 +17,11 @@ def _req(method, path, body=None, timeout=330):
         return e.code, e.read()[:500]
 
 
-def run_actor(actor, run_input, timeout_s=300):
-    """Run an actor synchronously; returns (items, run_info)."""
+def run_actor(actor, run_input, timeout_s=300, max_charge_usd=None):
+    """Run an actor synchronously; returns (items, run_info). max_charge_usd caps pay-per-event spend."""
     act = actor.replace("/", "~")
-    st, res = _req("POST", f"/acts/{act}/run-sync-get-dataset-items?timeout={timeout_s}", run_input, timeout=timeout_s + 30)
+    q = f"timeout={timeout_s}" + (f"&maxTotalChargeUsd={max_charge_usd}" if max_charge_usd else "")
+    st, res = _req("POST", f"/acts/{act}/run-sync-get-dataset-items?{q}", run_input, timeout=timeout_s + 30)
     if st not in (200, 201):
         raise RuntimeError(f"apify {actor} HTTP {st}: {res!r}"[:300])
     _, last = _req("GET", "/actor-runs?desc=1&limit=1")
