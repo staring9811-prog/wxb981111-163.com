@@ -4,6 +4,7 @@
   wen 选了的一律用 wen 的（自动采用的也会被改掉），没选的：自动采用的按已采用，待复核的留空。2026-11-02 起多一类"现代线条纹理"（wen 新加）。
 - 竖棱：fluted、reeded 看图不分；标题只写了 fluted 的拆成 fluted，只写了 reeded 的拆成 reeded，其余仍为竖棱（"纯色+竖棱"同理）。
 - 开放层板、腿离地、壁挂、一体盆台：两组一致（是 / 否）才采用，其余留空。
+- wen 复核选"看不出"的 = 不是浴室柜（wen 2026-11-02），记 非浴室柜 = True，统一打标时整个家族不纳入分析。
 输入目录 IN（默认 input/data_v2/看图补标，不入库）：清单_含链接.csv、清单2_含链接.csv（第二批，全市场；图片、家族键、子ASIN、品牌、标题、累计销量）、
 结果/A/*.csv 与 结果/B/*.csv（图片,元素,把握,开放层板,腿离地,壁挂,一体盆台；第二批文件名带"第二批_"前缀）、wen复核.json（{"k017": "夏克式", "k1203": ...}，可缺；编号 = k + 图片序号）。
 用法：python3 -I 看图标签_合并.py"""
@@ -35,13 +36,13 @@ for img, r in M.iterrows():
     if w and w != '看不出': e, how = split(w, r['标题']), 'wen 复核'
     elif r['自动采用']: e, how = split(r['A元素'], r['标题']), '两组一致（至少一组把握高）'
     else: e, how = None, ('待 wen 复核' if r['两组判完'] else '没判完')
-    rows.append(dict(家族键=r['家族键'], 代表子体=r['子ASIN'], 图片=img, 元素=e, 元素来源=how,
+    rows.append(dict(家族键=r['家族键'], 代表子体=r['子ASIN'], 图片=img, 元素=e, 元素来源=how, 非浴室柜=(w == '看不出'),
                      **{k: (r[f'A{k}'] if r[f'A{k}'] == r[f'B{k}'] and r[f'A{k}'] in ('是', '否') else None) for k in YN}))
 R = pd.DataFrame(rows)
 json.dump(rows, open(OUT, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 n, tot = len(R), M['累计销量'].sum()
 print(f'{n} 个家族键：', R['元素来源'].value_counts().to_dict())
-print('元素：', R['元素'].value_counts().to_dict())
+print('元素：', R['元素'].value_counts().to_dict(), '；wen 标不是浴室柜', int(R['非浴室柜'].sum()))
 for k in YN: print(f'{k}：两组一致可用 {int(R[k].notna().sum())}（是 {int(R[k].eq("是").sum())}）')
 q = M[M['两组判完'] & ~M['自动采用']]
 a = M[M['自动采用'] & M['复核'].notna()]
