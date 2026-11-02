@@ -13,6 +13,7 @@ BASE = "https://www.lowes.com"
 IMG = "https://mobileimages.lowes.com"
 OUT = os.path.join(DATA, "lowes")
 BUDGET = 10.0
+BATCH = 8  # review pages fetched in parallel per product
 
 
 def _state(b):
@@ -128,36 +129,51 @@ def collect_product(entry, row):
         out = {"状态": "失败", "备注": "商品页未取到或无评论页链接", "details": det, "reviews": []}
         save_json(path, out)
         return out
-    reviews, status, note, offset, first_ids = {}, "完整", "", 0, None
-    while True:
-        rst, _ = _get(f"{BASE}{rev_path}?offset={offset}")
+    reviews, status, note, first_ids = {}, "完整", "", None
+
+    def page(off):
+        rst, _ = _get(f"{BASE}{rev_path}?offset={off}")
         if not rst:
-            status, note = ("失败" if offset == 0 else "部分"), f"评论页 offset={offset} 取不到"
-            break
+            return off, None, 0
         rl = next(iter((rst.get("ratingList") or {}).values()), {}) or {}
-        res = rl.get("results") or []
-        if offset == 0:
-            first_ids = tuple(str(x.get("id")) for x in res)
-            if first_ids in _family_cache and first_ids:
-                src = _family_cache[first_ids]
-                srcd = load_json(os.path.join(OUT, "products", f"{src}.json")) or {}
-                if srcd.get("reviews"):
-                    rows = [dict(r, 商品ID=pid, 入口=entry) for r in srcd["reviews"]]
-                    out = {"状态": srcd["状态"], "备注": f"与 {src} 同系列共享评论", "details": det, "reviews": rows}
-                    save_json(path, out)
-                    return out
-        if not res:
-            break
+        return off, rl.get("results") or [], rl.get("totalResults") or 0
+
+    def absorb(res):
         old = False
         for r in _review_rows(entry, pid, res):
             if r["评论日期"] >= YEAR_START:
                 reviews[r["评论ID"]] = r
             else:
                 old = True
-        total = rl.get("totalResults") or 0
-        offset += 20
-        if old or offset >= total:
-            break
+        return old
+
+    _, res, total = page(0)
+    if res is None:
+        status, note = "失败", "评论页 offset=0 取不到"
+    else:
+        first_ids = tuple(str(x.get("id")) for x in res)
+        if first_ids and first_ids in _family_cache:
+            src = _family_cache[first_ids]
+            srcd = load_json(os.path.join(OUT, "products", f"{src}.json")) or {}
+            if srcd.get("reviews") is not None:
+                rows = [dict(r, 商品ID=pid, 入口=entry) for r in srcd["reviews"]]
+                out = {"状态": srcd["状态"], "备注": f"与 {src} 同系列共享评论", "details": det, "reviews": rows}
+                save_json(path, out)
+                return out
+        done = absorb(res) or not res
+        nxt = 20
+        while not done and nxt < total:
+            batch = [o for o in range(nxt, min(nxt + 20 * BATCH, total), 20)]
+            with ThreadPoolExecutor(len(batch)) as ex:
+                got = sorted(ex.map(page, batch))
+            for off, r, _t in got:
+                if r is None:
+                    status, note = "部分", f"评论页 offset={off} 取不到"
+                    done = True
+                    continue
+                if absorb(r) or not r:
+                    done = True
+            nxt += 20 * BATCH
     out = {"状态": status, "备注": note, "details": det, "reviews": list(reviews.values())}
     save_json(path, out)
     if first_ids and status == "完整":
