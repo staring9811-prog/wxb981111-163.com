@@ -71,3 +71,13 @@ crawler/
 ## 6. 下一步
 
 1. 你回复第 3、4 节 → 2. 配好 BD 后我做每平台 1 个商品的小样（列表 + 评论原始返回） → 3. 给你逐列表头确认 → 4. 正式采集并做成软件。
+
+## 7. 对齐进展（2026-11-02 更新，新会话从这里接着做）
+
+- 运行位置：**云端**。
+- BD：已在云环境 Network secrets 配置 `api.brightdata.com` + 路径 `/request`，Authorization: Bearer（代理自动注入，代码不读 BD_TOKEN）。Zone=`mcp_unlocker`（Web Unlocker API，Active，免费额度 5000）。本会话测试返回 401 “Auth method is not supported”，需新会话复测；仍 401 则核对 Token 是否为 Account settings 里的 API key。
+- 云端探测：api.brightdata.com 可达；brd.superproxy.io 代理端口不可达（只走 Unlocker API）；HDP 类目页直连 200、含完整商品 JSON，列表页可能无需 BD。
+- 预算：**每平台上限 10 美元**，分平台记账，接近上限即停并标“预算上限”。
+- HDP：无公开逐商品 BSR，用类目页 `sortby=topsellers`（降序）自然顺序；卡片有 Best Seller 徽章（只有是/否）。建议加“平台徽章”列，待确认。
+- 表头：见 SCHEMA.md v2（2 个 sheet，含打标用的标题/型号/卖点/描述/规格参数/图片），**待用户最终确认**。
+- 仍待确认：时间窗（建议 1—10 月完整月 + 11 月单列）、HDP 各前 100 且不展开、邮编 90013。
