@@ -81,3 +81,10 @@ crawler/
 - HDP：无公开逐商品 BSR，用类目页 `sortby=topsellers`（降序）自然顺序；卡片有 Best Seller 徽章（只有是/否）。建议加“平台徽章”列，待确认。
 - 表头：见 SCHEMA.md v2（2 个 sheet，含打标用的标题/型号/卖点/描述/规格参数/图片），**待用户最终确认**。
 - 仍待确认：时间窗（建议 1—10 月完整月 + 11 月单列）、HDP 各前 100 且不展开、邮编 90013。
+
+## 8. 新会话复测（2026-11-02，分支 claude/sharp-feynman-6kkqf3）
+
+- BD 复测仍 401 “Auth method is not supported”（带/不带 Authorization 头结果相同），说明新会话已生效、问题在密钥本身或 Header 格式。
+- 直连探测（无 BD）：HDP 带台面类目页 200（约 1.5MB，可直连）；Lowe's 榜单页 403；Wayfair 类目页 429。**Lowe's、Wayfair 必须等 BD 打通**。
+- 待用户核对 Network secrets：Value 只填 Account settings → API keys 里的 API key；认证方式选 Bearer 时 Value 不要再写 “Bearer ” 前缀（避免变成 “Bearer Bearer …”）；不要填 zone 密码或 Proxies 页的用户名/密码。改完开新会话复测。
+- 第 7 节 4 项口径仍待确认。
