@@ -1,4 +1,4 @@
-import json, os, re, time, random, urllib.request, urllib.error
+import json, os, re, time, random, urllib.request, urllib.error, urllib.parse
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
@@ -11,6 +11,7 @@ def direct_get(url, retries=3, delay=(1.0, 2.5)):
     last = (0, b"")
     for i in range(retries):
         time.sleep(random.uniform(*delay))
+        url = urllib.parse.quote(url, safe=":/?&=%#,+")
         req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"})
         try:
             with urllib.request.urlopen(req, timeout=60) as r:

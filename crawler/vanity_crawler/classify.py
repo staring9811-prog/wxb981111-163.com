@@ -20,7 +20,8 @@ def include_reason(title, category_hint=""):
     for pat, reason in NON_VANITY:
         if re.search(pat, t):
             # 'Vanity with ... Top' is a full vanity
-            if "top" in reason and re.search(r"vanity (cabinet )?with .*top", t):
+            if "台面" in reason and (re.search(r"vanity (cabinet )?with .*top", t)
+                                    or re.search(r"vanity (cabinet|base)\b", t) or "combo" in t):
                 continue
             return reason
     return "纳入"
