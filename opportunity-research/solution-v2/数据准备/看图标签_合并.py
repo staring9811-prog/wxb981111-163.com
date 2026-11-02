@@ -31,7 +31,8 @@ M['自动采用'] = M['两组判完'] & M['A元素'].eq(M['B元素']) & (M['A把
 M['复核'] = [WEN.get('k' + i[1:4]) for i in M.index]
 rows = []
 for img, r in M.iterrows():
-    if r['复核'] and r['复核'] != '看不出': e, how = split(r['复核'], r['标题']), 'wen 复核'
+    w = r['复核'] if isinstance(r['复核'], str) else None   # 没选的是空值（pandas 里会变成 NaN，不能直接当真假用）
+    if w and w != '看不出': e, how = split(w, r['标题']), 'wen 复核'
     elif r['自动采用']: e, how = split(r['A元素'], r['标题']), '两组一致（至少一组把握高）'
     else: e, how = None, ('待 wen 复核' if r['两组判完'] else '没判完')
     rows.append(dict(家族键=r['家族键'], 代表子体=r['子ASIN'], 图片=img, 元素=e, 元素来源=how,

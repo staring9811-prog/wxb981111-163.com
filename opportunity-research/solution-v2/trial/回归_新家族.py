@@ -16,7 +16,8 @@
 6. 发现表：同一比较框内比"有它 / 对照"，一个品牌每边一票，各格的差按票数 n1·n0/(n1+n0) 加权（同格差，Mantel–Haenszel 式）；学习段、检验段格内能对上的各至少 5 个品牌，
    两段同格差同号且都 ≥ 5 个百分点才收（回归系数只作展示）；打乱对照按品牌票在格内打乱；其余列"没站住的"。尺寸段、价格档本身不当发现，看分格成功率表。
    回归只说明先后和强弱，原因写成可能的解释。
-用法：python3 -I 回归_新家族.py；DATA（输入表）、OUT_DIR（默认 input/data_v2/回归，不入库）、REPORT_MD（默认 solution-v2/回归_新家族_第一版.md）可改。"""
+用法：python3 -I 回归_新家族.py；DATA（输入表）、OUT_DIR（默认 input/data_v2/回归，不入库）、REPORT_MD（默认 solution-v2/回归_新家族_第一版.md）可改；
+VER（报告标题里的版本名）、PREV_LABEL / PREV_N（第 8 节对比的上一版是哪版、新家族几个）跟着换版本时改。"""
 import os, re, html, json, itertools, warnings, numpy as np, pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, log_loss
@@ -26,6 +27,9 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 DATA = os.environ.get('DATA', os.path.join(ROOT, 'input/data_v2/统一打标/统一打标_分析用.pkl'))
 OUT = os.environ.get('OUT_DIR', os.path.join(ROOT, 'input/data_v2/回归'))
 REPORT = os.environ.get('REPORT_MD', os.path.join(ROOT, 'solution-v2/回归_新家族_第一版.md'))
+VER = os.environ.get('VER', '第一版')
+PREV_LABEL = os.environ.get('PREV_LABEL', '2026-10-30 比较框版，外部评判看的那版；这一版去重、比较框加批次、品牌一票、去掉系数门槛')
+PREV_N = os.environ.get('PREV_N', '379')
 os.makedirs(OUT, exist_ok=True)
 _SUM = os.path.join(os.path.dirname(DATA), '_work', 'tag', 'tagging_summary.json')
 TAG_VER = re.search(r'v\d+(?:\.\d+)?$', json.load(open(_SUM, encoding='utf-8'))['ruleVersion']).group(0) if os.path.exists(_SUM) else '未知'
@@ -88,7 +92,11 @@ A['台面类型'] = [top_type(t, s) for t, s in zip(A['D8台面材质'], A['D8�
 A['元素集_文字'] = A['D5元素'].map(lambda v: tuple(x for x in str(v).split('；') if x in ELEM) if pd.notna(v) else ())
 # 元素（2026-10-30 起）：家族的元素用看图标签（wen 的看图分类，第一批只看了回归里的新家族）；表里还没有看图列时退回文字元素。
 # 时间信号要全市场的元素，仍用文字元素（元素集_文字）
-A['元素集'] = A['元素（看图）'].map(lambda e: (e,) if isinstance(e, str) and e else ()) if '元素（看图）' in A else A['元素集_文字']
+def img_el(e):   # 标题拆出的 fluted / reeded 同时算上层的"竖棱"，所有竖棱一起比，fluted 也能单独看
+    if not (isinstance(e, str) and e): return ()
+    base = e.replace('fluted', '竖棱').replace('reeded', '竖棱')
+    return (base,) if base == e else (base, e)
+A['元素集'] = A['元素（看图）'].map(img_el) if '元素（看图）' in A else A['元素集_文字']
 IMG_EL = '元素（看图）' in A
 A['主色'] = A['D6柜体颜色'].map(lambda v: COLOR.get(str(v), '未知' if (pd.isna(v) or str(v) in UNK) else '其他'))
 A['形态'] = A['形态（怎么装）'].fillna('落地式').astype(str)
@@ -522,10 +530,10 @@ def traj(tok):
     return out
 def traj_txt(t):
     if not t: return '—'
-    s = '销量份额 ' + ' → '.join(pct(x['份额']) for x in t)
-    s += '；新家族（其中起来的）' + ' → '.join(f"{x['新家族']}（{x['起来']}）" if x['新家族'] else '0' for x in t[:3]) + ' → 观察中'
-    s += '；中位价 ' + ' → '.join('—' if pd.isna(x['中位价']) else f"${x['中位价']:.0f}" for x in t)
-    return s
+    new = '新家族（其中起来的）' + ' → '.join(f"{x['新家族']}（{x['起来']}）" if x['新家族'] else '0' for x in t[:3]) + ' → 观察中'
+    if all(pd.isna(x['份额']) for x in t): return new + '（看图元素只看了回归里的新家族，全市场份额、中位价不算）'
+    return ('销量份额 ' + ' → '.join(pct(x['份额']) for x in t) + '；' + new +
+            '；中位价 ' + ' → '.join('—' if pd.isna(x['中位价']) else f"${x['中位价']:.0f}" for x in t))
 def cohort_txt(col):
     v = U[col].astype(float); q1, q2 = v[lrn].quantile([1 / 3, 2 / 3]); out = []
     for name, a, b in PERIODS[:3]:
@@ -553,8 +561,8 @@ NAME = {'_价位': '价格位置', '_品牌力': '品牌力', '_变体': '变体
 DEF = {'_价位': '首次进榜那个月，子体价格 ÷ 同月、同尺寸段、同整装/拆装的中位价，取家族中位数',
        '_品牌力': '上架当月，同品牌在榜（家族月销 ≥ 50 / 60）的其他家族数',
        '_变体': '首次进榜那个月，家族里的子体数（尺寸 × 颜色等）', '_颜色数': '首次进榜那个月，家族里不同柜体颜色的个数'}
-AN = {'尺寸段': '家族首次进榜时有 {v} 的变体', '装': '{v}', '柜体材质': '柜体材质标为 {v}', '台面类型': '台面类型为{v}', '元素': '文字写了 {v}',
-      '形态': '形态为{v}', '开放式': '文字写了开放层板', '盆数': '家族首次进榜时有{v}的变体', '主色': '主色为{v}', '价格档': '价格在同格{v}档（同月、同尺寸段、同整装/拆装的中位价 ±15% 为中档）', '季度': '在 {v} 上架'}
+AN = {'尺寸段': '家族首次进榜时有 {v} 的变体', '装': '{v}', '柜体材质': '柜体材质标为 {v}', '台面类型': '台面类型为{v}', '元素': '看图元素为{v}' if IMG_EL else '文字写了 {v}',
+      '形态': '形态为{v}', '开放式': '有开放层板（文字写明或看图）' if IMG_EL else '文字写了开放层板', '盆数': '家族首次进榜时有{v}的变体', '主色': '主色为{v}', '价格档': '价格在同格{v}档（同月、同尺寸段、同整装/拆装的中位价 ±15% 为中档）', '季度': '在 {v} 上架'}
 def fname(c):
     if c in NAME: return NAME[c]
     if c.startswith('信号'): _, d, k = c.split('·'); return f'上架前一月：所属{d}的{k}'
@@ -607,6 +615,14 @@ EXPLAIN = {   # 特征 → 可能的解释（看过结果后写的定性解释�
                                   '限制：一部分陶瓷一体是按一体盆推断的；和 24″ 那条有重叠的家族（一个家族可以同时有 24″ 和 36″）',
     '台面类型=陶瓷一体×柜体材质=MDF': '可能的解释：对照几乎都是实木框架。同一尺寸、价位档、同期上架里比，陶瓷一体盆台配 MDF 柜体的起来得多，配实木框架的少：同价位下实木框架成本高，可能在尺寸、做工、配件或广告上让了步；也可能这个价位的买家更看重漆面颜色和造型，不太为"实木框架"多付钱。这和"实木能卖更高价"不矛盾：这里比的是同价位档里谁更容易起来，不是谁能卖得更贵。限制：对照只有十几个品牌；柜体材质来自文字，写实木框架的集中在少数品牌',
     '台面类型=陶瓷一体×柜体材质=MDF×盆数=单盆': '和"陶瓷一体 × MDF"几乎是同一批家族（陶瓷一体盆台多是单盆），见那条',
+    '元素=夏克式': '可能的解释：夏克式是最主流的门型，这批新家族里约三分之一看图判为夏克式，进来的多，每个新家族起来的机会就小；同一尺寸、价位、批次里比也低。'
+                '不是说夏克式卖得不好，而是新进来的夏克式家族起来的比例低于其他元素。限制：元素是看图判的（两组代理一致且至少一组把握高的自动采用，其余 wen 复核）',
+    '元素=夏克式×尺寸段=30″': '可能的解释：30″ 是单盆主力尺寸，夏克式在这里最挤（见变化一列，每半年十几个新家族），解释同"夏克式"',
+    '元素=夏克式×盆数=单盆×尺寸段=30″': '和"夏克式 × 30″"几乎是同一批家族（30″ 多是单盆），见那条',
+    '元素=农场风装饰饰条': '可能的解释：农场风（谷仓门、X 撑、中横挺门）在主图上看得见、好区分，同一尺寸、价位、批次里比起来得多；新家族数在减少（见变化一列），做的人少了。'
+                     '限制：换成子体排名中位数判，后段差距没了（见稳健性），不稳',
+    '元素=农场风装饰饰条×尺寸段=30″': '农场风的差距主要在 30″（24″ 两段方向相反）；后段能对上的只有 7 个品牌，其余同"农场风装饰饰条"',
+    '元素=农场风装饰饰条×盆数=单盆×尺寸段=30″': '和"农场风装饰饰条 × 30″"几乎是同一批家族，见那条',
     '新品牌': '可能的解释：上架当月同品牌没有别的家族在榜的，多是集中资源推一个款的卖家，广告、运营都压在这一个家族上；老品牌同时铺很多家族，每个家族分到的流量少。'
               '限制：只数得到在榜（月销 ≥ 50 / 60）的父体，"新品牌"可能有不在榜的老款',
     '主色=黑': '可能的解释：黑色的销量份额在涨，但涨的多是已在榜的老款（新家族数没跟着涨，见变化一列），新进来的黑色家族要和老款抢；同一尺寸、价位档里比也低。限制：有这条的家族不多',
@@ -715,7 +731,7 @@ for _, r in STAND.assign(_t=STAND['q'].ge(0.2).astype(int) + STAND['打乱p'].ge
                    f"{r['格内品牌学习'][0]}（{r['格内可比学习'][0]}）/ {r['格内品牌检验'][0]}（{r['格内可比检验'][0]}） | {r['打乱p']:.3f} | {r['q']:.2f} | "
                    f"{r['中位口径同格学习'] * 100:+.0f} / {r['中位口径同格检验'] * 100:+.0f} | {rel(r['特征'])} |")
 SUMMARY = SUMMARY or ['| （没有站住的） | | | | | | | |']
-L = ['# 回归第一版：新家族上架后 6 个月起没起来', '',
+L = [f'# 回归{VER}：新家族上架后 6 个月起没起来', '',
      (f'> **标签为打标技能 {TAG_VER}，元素和柜体结构已看图补标（回归里的新家族）。** 每条发现由 wen 逐条判断合不合理。' if IMG_EL else
       f'> **标签为打标技能 {TAG_VER}（四路审计修复后全部重打）。元素和柜体结构多数还要看图补，看图后再跑一次。** 每条发现由 wen 逐条判断合不合理。'),
      f'> 由 `trial/回归_新家族.py` 生成。数据：统一打标表 {ms(FIRST)} 至 {ms(LAST)}（卖家精灵 15 个月 + 2026 年月度表、v11 表），只用纳入浴室柜分析的行。做法见 state.json S2-45。', '',
@@ -821,14 +837,16 @@ if os.path.exists(PREV):
     def new_txt(c):
         if c not in FDi.index:
             if c.startswith('信号') and c not in SIGS: return '不是候选：学习段有这项的家族不到 30 个，没进模型（元素标签少，去重后更少）'
+            if IMG_EL and c.startswith('元素=') and c.split('=', 1)[1].split('×')[0] not in {v for f in feat.values() for v in f['元素']}:
+                return '不是候选：元素改用看图分类，没有这一类了（谷仓门、X 撑等并进了"农场风装饰饰条"）'
             return '不是候选：' + skip.get(c, '这一版模型里没有这一项（组合筛选结果变了，或学习段家族不到 3 个）')
         r = FDi.loc[c]; s = f"同格差 {r['同格差学习'] * 100:+.0f} / {r['同格差检验'] * 100:+.0f}，原始差 {r['原始差学习'] * 100:+.0f} / {r['原始差检验'] * 100:+.0f}"
         if r['站住']: return f"站住（{s}，格内打乱 p {r['打乱p']:.3f}）"
         why = ('两段同格差方向相反' if np.sign(r['同格差学习']) != np.sign(r['同格差检验']) else
                '同格差不到 5 个百分点')
         return f'没站住（{s}；{why}）'
-    L += ['## 8. 和上一版比（上一版 = 2026-10-30 比较框版，外部评判看的那版；这一版去重、比较框加批次、品牌一票、去掉系数门槛）', '',
-          f'上一版站住 {len(ps)} 条，这一版 {len(ns_)} 条。差的单位都是百分点，"前段 / 后段"。两版的新家族不完全一样（上一版 379 个，这一版去重后 {len(U)} 个），同名条目比的人群也变了。', '',
+    L += [f'## 8. 和上一版比（上一版 = {PREV_LABEL}）', '',
+          f'上一版站住 {len(ps)} 条，这一版 {len(ns_)} 条。差的单位都是百分点，"前段 / 后段"。' + (f'两版的新家族不完全一样（上一版 {PREV_N} 个，这一版 {len(U)} 个），同名条目比的人群也变了。' if str(len(U)) != PREV_N else '') + '', '',
           '| 变化 | 特征 | 上一版 | 这一版 |', '| :--- | :--- | :--- | :--- |']
     for title, group in (('消失', sorted(ps - ns_, key=lambda c: P.at[c, '打乱p'])), ('新出现', [c for c in STAND['特征'] if c not in ps]), ('两版都站住', [c for c in STAND['特征'] if c in ps])):
         for c in group: L.append(f'| {title} | {fname(c)} | {old_txt(c)} | {new_txt(c)} |')
