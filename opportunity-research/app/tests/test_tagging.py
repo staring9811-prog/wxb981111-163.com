@@ -318,3 +318,44 @@ def test_fill_groups_for_existing_noimage_tags(wen):
     assert tagging.fill_groups() == 2
     assert tagging.queued_groups() == len(tagging.queue()) == 1
     assert '共 1 组（同主图的合为一组' in wen.get('/').text and '共 <b class="num">1</b> 组' in wen.get('/tagging').text
+
+
+def test_design08_filter_counts_follow_tab_and_layout(wen):
+    """DESIGN-08（v8 复核）：切到“已确认”页签后，渠道与进队原因筛选上的数量按已确认条目计算，与列表条数一致；
+    “待确认”页签仍是待确认数。标题“自动打标进度”不换行、页头按钮保持一行（页面样式）。"""
+    from pdt.models import User
+    _queue_rows(130)
+    with session() as s:
+        uid = s.scalar(select(User.id).where(User.username == 'wen'))
+        am = list(s.scalars(select(Tag).where(Tag.channel == 'amazon').order_by(Tag.item_id).limit(3)))
+        lw = list(s.scalars(select(Tag).where(Tag.channel == 'lowes').order_by(Tag.item_id).limit(2)))
+        for t in am:
+            t.value, t.status, t.confirmed_by, t.confirm_mode = '竖棱', 'confirmed', uid, 'group'
+        for t in lw:
+            t.value, t.status, t.confirmed_by, t.confirm_mode = '石英石', 'confirmed', uid, 'single'
+    done = wen.get('/tagging', params={'tab': 'done'}).text
+    flt = done.split('id="queue-filters"')[1].split('id="queue"')[0]
+    assert '全部 <span class="count">5</span>' in flt and 'Amazon <span class="count">3</span>' in flt and "Lowe&#39;s <span class=\"count\">2</span>" in flt
+    assert 'Home Depot <span class="count">0</span>' in flt and 'Wayfair <span class="count">0</span>' in flt
+    assert '元素 <span class="count">3</span>' in flt and '低置信度 <span class="count">2</span>' in flt and '装：未知 <span class="count">0</span>' in flt
+    assert '共 <b class="num">5</b> 组 · 5 条' in flt
+    pend = wen.get('/tagging').text.split('id="queue-filters"')[1].split('id="queue"')[0]
+    assert '全部 <span class="count">130</span>' in pend and 'Amazon <span class="count">127</span>' in pend and "Lowe&#39;s <span class=\"count\">3</span>" in pend
+    assert '.section__head .section__title { flex: none; white-space: nowrap; }' in done
+    assert '.page-head__actions { flex: none; flex-wrap: nowrap; }' in done
+
+
+def test_design08_element_values_shown_in_chinese(wen):
+    """DESIGN-08（v8 复核）：元素取值的英文原值在打标确认页显示为中文（rattan → 藤编、rustic → 乡村风），表单提交的存储值不变。"""
+    from pdt.catconfig import value_name
+    assert value_name('rattan') == '藤编' and value_name('夏克式+rattan') == '夏克式+藤编' and value_name('rustic|竖棱') == '乡村风|竖棱'
+    with session() as s:
+        s.add(Product(channel='wayfair', item_id='W004918261', brand='Bay Isle Home', title="Bay Isle Home Kimbrough 30'' Single Bathroom Vanity with Rattan Doors",
+                      image_url='https://assets.wfcdn.com/im/30473922/rattan-vanity.jpg'))
+        s.add(Tag(channel='wayfair', item_id='W004918261', tag='元素', value='rattan', confidence=0.7, source='rule', status='queued', img_group='wf-rattan',
+                  candidates=[{'value': 'rattan', 'confidence': 0.7}, {'value': 'rustic', 'confidence': 0.2}]))
+    html = wen.get('/tagging', params={'channel': 'wayfair'}).text
+    q = html.split('id="queue"')[1]
+    assert 'value="rattan" checked>藤编' in q and 'value="rustic" >乡村风' in q
+    assert '<option value="rattan" selected>藤编</option>' in q and '<option value="rustic" >乡村风</option>' in q
+    assert not re.search(r'>[^<]*\b(rattan|rustic)\b[^<]*<', q.split('</section>')[0])

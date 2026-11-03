@@ -140,3 +140,30 @@ def test_estimate_tabs_anchor_not_under_topbar(wen):
     assert 'href="/data/channels?ch=wayfair#t-est"' in html and '<h2 class="section__title" id="t-est">' in html
     css = wen.get('/static/pdt.css').text
     assert '.section__title[id], .panel__title[id] { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }' in css
+
+
+def test_design07_channel_names_range_and_listed_total(wen):
+    """DESIGN-07（v8 复核）：并入来源记录里历史回补重建显示中文渠道名（Home Depot），不露出渠道键 homedepot；
+    副标题按实际数据范围（各渠道完整月最早至最晚）；月度并入表合计只加表中所列月份，并注明全部完整月合计；
+    估算对照商品名不重复品牌（品牌已在标题开头时不再前置）。"""
+    import re
+    from pdt.config import data_dir
+    from pdt.core import channels
+    channels.ingest_tracker_month(_rows('homedepot', 6), collected_on='2026-11-03')
+    channels.ingest_tracker_month(_rows('wayfair', 4, shared=0), collected_on='2026-11-03')
+    # Home Depot 历史回补重建批次：2025-01 至 2025-12，每月去重 VP 10 条、非 VP 2 条
+    with session() as s:
+        for m in range(1, 13):
+            s.add(Batch(channel='homedepot', month=f'2025-{m:02d}', source='backfill', file_path=str(data_dir() / 'backfill' / 'homedepot'),
+                        status='merged', checks={'rebuild': True, 'dedup': {'vp': 10, 'nonvp': 2}}, rows=40))
+    summ = channels.summary()['homedepot']
+    html = wen.get('/data/channels', params={'ch': 'homedepot'}).text
+    text = re.sub(r'<[^>]+>', '', html)
+    assert '历史回补重建 · Home Depot 回补缓存' in text
+    assert not re.search(r'>[^<]*\b(homedepot|lowes|wayfair)\b[^<]*<', html.split('<script', 1)[0])
+    assert '2025-01 至 2026-10 · 2 个渠道' in text
+    # 所列 12 个月 = 2025-03 至 2026-10（不含 2025-01、02）
+    listed = 12 * 10 + summ['reviews_complete'] - 12 * 12
+    assert '所列 12 个月合计' in text and '2025-03 至 2026-10 · 去重口径' in text
+    assert f'{listed:,.0f}全部 14 个完整月 {summ["reviews_complete"]:,.0f}' in text
+    assert 'Glacier Bay Glacier Bay' not in text and 'Glacier Bay Brindley 36 in. Single Sink' in text

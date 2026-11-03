@@ -1,5 +1,6 @@
 """品类配置（F27）：版本化保存，读取当前版本。默认值来自 PRD §3.3.12–3.3.14 与第二轮脚本 机会扫描.py。"""
 import copy
+import re
 
 from sqlalchemy import func, select
 
@@ -120,3 +121,15 @@ def channel_params(channel: str) -> tuple[int, dict]:
     v, cfg = current()
     c = (cfg.get("channels") or {}).get(channel) or {}
     return v, dict(backfill=dict(BACKFILL_DEFAULT, **(c.get("backfill") or {})), discount=dict(DISCOUNT_DEFAULT, **(c.get("discount") or {})))
+
+
+# ---------- 显示用词表（v8 复核）：标签取值的英文原值在页面上显示为中文；存储值不变 ----------
+VALUE_NAMES = {"rattan": "藤编", "rustic": "乡村风"}
+_VALUE_RE = re.compile(r"(?<![A-Za-z])(" + "|".join(VALUE_NAMES) + r")(?![A-Za-z])", re.I)
+
+
+def value_name(v) -> str:
+    """标签取值的显示名：组合值（如“夏克式+rattan”“rustic|竖棱”）里的英文原值逐个换成中文，其余原样。"""
+    if v is None:
+        return ""
+    return _VALUE_RE.sub(lambda m: VALUE_NAMES[m.group(1).lower()], str(v))

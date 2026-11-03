@@ -24,7 +24,7 @@
   <div>
     <nav class="crumbs" aria-label="面包屑"><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>其他渠道数据</span></nav>
     <h1>其他渠道数据与销量估算</h1>
-    <p class="page-head__sub">{% if months %}{{ months[0] }} 至 {{ months[-1] }} · {{ summ|length }} 个渠道 · {{ n_items|num }} 个商品 · 去重评论 {{ n_rev|num }} 条（含未完整月）。{% else %}还没有其他渠道数据。{% endif %}月销全部由评论估算，只在渠道内比较。</p>
+    <p class="page-head__sub">{% if span %}{{ span[0] }} 至 {{ span[1] }} · {{ summ|length }} 个渠道 · {{ n_items|num }} 个商品 · 去重评论 {{ n_rev|num }} 条（含未完整月）。{% else %}还没有其他渠道数据。{% endif %}月销全部由评论估算，只在渠道内比较。</p>
   </div>
   <div class="page-head__actions">
     <a class="btn" href="/tools/vp"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
@@ -53,15 +53,15 @@
 </div>
 
 <section class="section enter" style="--i:2" aria-labelledby="t-month">
-  <div class="section__head"><h2 class="section__title" id="t-month">月度并入状态</h2><span class="section__note">去重后评论条数 · 近 12 个月 · 未完整月份只作参考、不计入</span></div>
+  <div class="section__head"><h2 class="section__title" id="t-month">月度并入状态</h2><span class="section__note">去重后评论条数 · 近 12 个月 · 合计只加表中所列月份 · 未完整月份只作参考、不计入</span></div>
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th>渠道</th>{% for m in months %}<th class="t-num">{{ m[5:] }}</th>{% endfor %}<th class="t-num">完整月合计</th><th class="t-num">未完整（参考）</th></tr></thead>
+      <thead><tr><th>渠道</th>{% for m in months %}<th class="t-num">{{ m[5:] }}</th>{% endfor %}<th class="t-num">所列 {{ months|length }} 个月合计</th><th class="t-num">未完整（参考）</th></tr></thead>
       <tbody>
-      {% if months %}<tr class="table__divider"><td colspan="{{ months|length + 3 }}">{{ months[0][:4] }} 年 · 去重口径：有评论 ID 时按评论 ID；只有导出 Excel 时取文件“渠道月度汇总”的去重数</td></tr>{% endif %}
+      {% if months %}<tr class="table__divider"><td colspan="{{ months|length + 3 }}">{{ months[0] }} 至 {{ months[-1] }} · 去重口径：有评论 ID 时按评论 ID；只有导出 Excel 时取文件“渠道月度汇总”的去重数</td></tr>{% endif %}
       {% for c, v in summ.items() %}{% set bym = {} %}{% for m in v.months %}{% set _ = bym.update({m.month: m}) %}{% endfor %}
-      <tr><td class="cell-title t-nowrap">{{ v.name }}</td>{% for m in months %}<td class="t-num">{{ (bym.get(m) or {}).get('reviews', 0)|num }}</td>{% endfor %}
-        <td class="t-num strong">{{ v.reviews_complete|num }}</td><td class="t-num muted">{% for m in v.months if not m.complete %}{{ m.month }}：{{ m.reviews|num }}{% else %}—{% endfor %}</td></tr>
+      <tr><td class="cell-title t-nowrap">{{ v.name }}</td>{% for m in months %}<td class="t-num">{% if m in bym %}{{ bym[m].reviews|num }}{% else %}<span class="muted">—</span>{% endif %}</td>{% endfor %}
+        <td class="t-num strong">{{ listed_total[c]|num }}{% if v.reviews_complete != listed_total[c] %}<div class="cell-sub">全部 {{ v.months|selectattr('complete')|list|length }} 个完整月 {{ v.reviews_complete|num }}</div>{% endif %}</td><td class="t-num muted">{% for m in v.months if not m.complete %}{{ m.month }}：{{ m.reviews|num }}{% else %}—{% endfor %}</td></tr>
       {% else %}<tr><td colspan="3" class="muted">还没有其他渠道数据。</td></tr>{% endfor %}
       </tbody>
     </table>
@@ -207,7 +207,7 @@
       <thead><tr><th>商品</th><th class="t-num"><button class="th-sort" type="button" aria-sort="ascending">排名<svg class="icon"><use href="#ph-sort-ascending"/></svg></button></th><th class="t-num">VP（去重）</th><th class="t-num">非 VP（去重）</th><th class="t-num">评论换算月销</th><th class="t-num">排名平滑月销</th><th class="t-num"><button class="th-sort" type="button" data-sort-diff>差异<svg class="icon"><use href="#ph-sort-ascending"/></svg></button></th></tr></thead>
       <tbody>
       {% for r in compare %}
-        <tr><td><div class="cell-title">{{ r.brand }} {{ r.title[:70] }}</div><div class="cell-sub mono">{{ r.item_id }}</div></td><td class="t-num" data-sort="{{ r.rank if r.rank else 999999999 }}">{{ r.rank or '—' }}</td>
+        <tr><td><div class="cell-title">{% if r.brand and not (r.title or '').lower().startswith(r.brand.lower()) %}{{ r.brand }} {% endif %}{{ (r.title or '')[:70] }}</div><div class="cell-sub mono">{{ r.item_id }}</div></td><td class="t-num" data-sort="{{ r.rank if r.rank else 999999999 }}">{{ r.rank or '—' }}</td>
           <td class="t-num">{{ '%.1f'|format(r.vp) }}</td><td class="t-num">{{ '%.1f'|format(r.nonvp) }}</td>
           <td class="t-num">{{ r.units_review|num }}<span class="etag">估算</span></td>
           <td class="t-num">{% if r.units_rank is not none %}{{ r.units_rank|num }}<span class="etag">估算</span>{% else %}<span class="etag etag--nodata">不可用</span>{% endif %}</td>

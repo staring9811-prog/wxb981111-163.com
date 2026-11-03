@@ -229,3 +229,24 @@ def test_scan_action_column_sticky_when_all_columns(wen):
     assert re.search(r'<td class="t-nowrap col-op"><div class="cell-actions">.*?做决策卡', html, re.S)
     css = re.search(r'\.scan-table \.table \.col-op \{([^}]*)\}', html).group(1)
     assert 'position: sticky' in css and 'right: 0' in css and 'background: var(--surface)' in css
+
+
+def test_design10_no_frames_empty_state_and_value_column(wen):
+    """DESIGN-10（v8 复核）：Wayfair 商品“装”都看不出（规格、标题都没写）时没有可扫描的框——空状态写明“没有可扫描的框：N 个商品‘装’未知”
+    并链接到打标确认补上，不再显示误导的“没有符合筛选条件的单元”；“属性：取值”列有最小宽度，取值整词不断开。"""
+    from pdt.core import channels
+    titles = ["Wade Logan Arlo 30'' Free-standing Single Bathroom Vanity with Ceramic Top",
+              "Andover Mills Kinsley 36'' Single Bathroom Vanity with Engineered Stone Top",
+              "Birch Lane Hartwell 48'' Single Bathroom Vanity with Carrara Marble Top"]
+    rows = [{'平台': 'Wayfair', '商品ID': f'W00{4918260 + i}', '品牌': titles[i % 3].split()[0], '标题': titles[i % 3], '排名': i + 1, '价格': 459 + i,
+             'reviews': [{'评论ID': f'wf{i}-{m}-{k}', '评论日期': f'2026-{m:02d}-1{k}', 'VP状态': 'VP', '评分': 5} for m in range(1, 11) for k in range(3)]}
+            for i in range(6)]
+    channels.ingest_tracker_month(rows, collected_on='2026-11-03')
+    with session() as s:
+        unknown = {t.item_id for t in s.scalars(select(Tag).where(Tag.channel == 'wayfair', Tag.tag == '装')) if t.value == ''}
+    assert len(unknown) == 6
+    html = wen.get('/scan', params={'channel': 'wayfair'}).text
+    body = html.split('<tbody>')[1].split('</tbody>')[0]
+    assert '没有可扫描的框：6 个商品"装"未知、不进框' in body and 'href="/tagging?channel=wayfair&reason=assembly"' in body
+    assert '没有符合筛选条件的单元' not in body and '不到 200 件，不扫描' in body
+    assert '<th class="col-val">属性：取值</th>' in html and '.scan-table .col-val { min-width: 11em; }' in html

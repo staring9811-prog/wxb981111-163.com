@@ -5,12 +5,13 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 
+from .. import catconfig
 from ..auth import any_user
 from ..config import CHANNEL_NAMES
 from ..db import session
-from ..models import Batch, Card, Opportunity
+from ..models import Batch, Card, Opportunity, Product, Tag
 from ..models_data import ScanMeta
 from ..core import channel_model, pipeline, richness
 from ..core.scan import KINDS
@@ -96,6 +97,14 @@ def _results(channel, month, frame, vars, type, grade):
     return meta, rows, frames_all, summary, vars_
 
 
+def _asm_unknown(channel: str) -> int:
+    """“装”未知（不进框）的商品数：没有可扫描的框时，用来区分“缺分框标签”和“筛选为空”。"""
+    with session() as s:
+        return s.scalar(select(func.count(func.distinct(Tag.item_id))).select_from(Tag)
+                        .join(Product, (Product.channel == Tag.channel) & (Product.item_id == Tag.item_id))
+                        .where(Tag.channel == channel, Tag.tag == '装', Tag.value.in_(['', '未知']), Product.excluded.is_(False))) or 0
+
+
 @router.get('/scan')
 def scan_page(request: Request, channel: str = 'amazon', month: str = '', frame: str = '', vars: list[str] = Query(default=[]),
               type: list[str] = Query(default=[]), grade: list[str] = Query(default=[]), user=any_user):
@@ -110,8 +119,10 @@ def scan_page(request: Request, channel: str = 'amazon', month: str = '', frame:
     cfg = channel_cfg(channel) if channel != 'amazon' else None
     chst = channel_model.status(channel) if channel != 'amazon' else None
     rich = richness.saved(channel) if channel != 'amazon' and meta is not None else None
+    asm_unknown = _asm_unknown(channel) if meta is not None and not frames_all else 0
+    min_fu = (catconfig.current()[1].get('scan') or {}).get('min_frame_units', 200)
     return render(request, 'scan.html', 'PAGE-F20-01', '机会扫描', channel=channel, meta=meta, rows=rows, summary=summary, frames=frames_all, frame=frame,
-                  chst=chst, rich_window=(rich or {}).get('window'), none_key=NONE_KEY,
+                  chst=chst, rich_window=(rich or {}).get('window'), none_key=NONE_KEY, asm_unknown=asm_unknown, min_fu=min_fu,
                   vars=[k for k, v in ATTR_KEYS.items() if v in vars_], types=type, grades=grade, months=sorted(set(months) | set(merged), reverse=True),
                   month=meta.month if meta else month, cfg=cfg, icon=ICON, type_keys=TYPE_KEYS, grade_keys=GRADE_KEYS, attr_keys=ATTR_KEYS,
                   elapsed=round(time.time() - t0, 2), export_qs=request.url.query)

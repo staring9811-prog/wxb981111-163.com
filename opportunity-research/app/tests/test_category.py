@@ -135,3 +135,16 @@ def test_rules_tab_queue_count_same_as_tagging_queue(wen):
     n = re.search(r'当前确认队列 <span class="strong num" data-queue-n>(\d+)</span> 条', html).group(1)
     tag_page = wen.get('/tagging').text
     assert n == '2' and '待确认 <span class="count">2</span>' in tag_page
+
+
+def test_design18_tag_values_shown_in_chinese(wen):
+    """DESIGN-18（v8 复核）：品类配置扫描属性的取值与打标规则摘要里，元素英文原值显示为中文（rustic → 乡村风、rattan → 藤编）；存储值不变。"""
+    from pdt.models import Product, Tag
+    with session() as s:
+        s.add(Product(channel='wayfair', item_id='W003517742', brand='Loon Peak', title="Loon Peak Rustic 36'' Single Bathroom Vanity with Wood Top"))
+        s.add(Tag(channel='wayfair', item_id='W003517742', tag='元素', value='rustic', confidence=0.8, source='rule', status='auto'))
+    html = wen.get('/settings/category').text
+    assert '<span class="val">乡村风</span>' in html and '<span class="val">rustic</span>' not in html
+    assert 'Rattan → 藤编' in html
+    with session() as s:
+        assert s.query(Tag).filter_by(item_id='W003517742', tag='元素').one().value == 'rustic'

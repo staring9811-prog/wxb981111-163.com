@@ -478,3 +478,15 @@ def test_quote_metric_options_filled_before_quotes_load():
     assert fill < body.index('if(qlib.mode==="pending"||qlib.loading)') and fill < body.index("if(!qlib.items.length)")
     assert src.count('document.getElementById("qMetric").innerHTML=') == 1
     assert 'const METRICS=()=>[["cost","采购成本 $（换算美元，越低越好）"],["landed",' in src
+
+
+def test_design13_steps_single_number_and_nothing_to_collect(wen):
+    """DESIGN-13（v8 复核）：四步进度条每步只有圆圈编号一个序号（名称不再带“①”）；
+    费用弹窗在估算为“没有要采的内容”（nothing）时禁用“确认并开始”（Home Depot 回补没有要采的商品页时估算带 nothing、说明“没有需要采集的商品页”，见 test_backfill FLOW-27 用例）。"""
+    html = wen.get('/tools/vp').text
+    steps = html.split('aria-label="四步流程"')[1].split('</ol>')[0]
+    names = [x.split('</span>')[0] for x in steps.split('<span class="step__name">')[1:]]
+    assert names == ['采集列表', '评估费用', '采集评论', '导出 Excel']
+    assert '①完成后可评估' not in steps
+    js = wen.get('/static/costgate.js').text
+    assert "ok.disabled = !!e.nothing" in js

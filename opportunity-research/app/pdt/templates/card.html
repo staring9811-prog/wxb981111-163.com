@@ -68,6 +68,13 @@
   .chk-row { display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--text-sm); }
   @media (max-width: 1279px) { .card-layout { grid-template-columns: minmax(0, 1fr); } .card-side { position: static; } .charts { grid-template-columns: minmax(0, 1fr); } }
   #rich-table tr.is-oos td { color: var(--muted); background: var(--surface-warm); }
+  /* 丰富度对照：数字与渠道名不折行，读法列保留可读宽度；证据等级与“样本外”可同时显示，上下排 */
+  #rich-table th { white-space: nowrap; vertical-align: bottom; }
+  #rich-table td.t-num { white-space: nowrap; }
+  #rich-table td.rich-ev { white-space: nowrap; }
+  #rich-table td.rich-ev .badge { display: flex; width: max-content; }
+  #rich-table td.rich-ev .badge + .badge { margin-top: var(--space-1); }
+  #rich-table td:last-child { min-width: 13em; }
 </style>
 {% endblock %}
 
@@ -162,14 +169,15 @@
               <tr data-channel="{{ ch.channel }}">
                 <td class="cell-title ch-col">{{ ch.name }}</td>
                 {% if not ch.has_data %}
-                <td colspan="5" class="muted small">该渠道本月无数据</td>
+                <td class="t-num"><span class="etag etag--nodata">无数据</span><div class="cell-sub">该渠道本月无数据</div></td>
+                <td><span class="small muted">无数据</span></td>
                 {% else %}
                 <td class="t-num">{{ pc(ch.share_prev) }} → {{ pc(ch.share_now) }}{{ src(ch.name ~ ' 框内份额', ch.src, ('估算' if ch.estimated else 'n=' ~ (ch.families or 0))) }}</td>
                 <td>{% if ch.spark %}<svg class="spark mini {{ '' if ch.sample_ok else 'is-muted' }}" width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="{{ ch.spark }}"/></svg>{% endif %} <span class="small {{ '' if ch.sample_ok else 'muted' }}">{{ ch.direction if ch.sample_ok else '样本不足' }}</span></td>
+                {% endif %}
                 <td>{% if ch.hide_scores %}<span class="etag etag--nodata">不显示</span>{% elif ch.grade %}{{ ch.grade }}{% if ch.grasp is not none %} · 把握 {{ pc0(ch.grasp) }}{% endif %}{% if ch.evidence is not defined and not ch.verified %} <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
                 <td>{% if ch.evidence == '经回测' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测</span>{% elif ch.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% elif ch.evidence %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}{% if ch.evidence_note %}<div class="cell-sub">{{ ch.evidence_note }}</div>{% endif %}</td>
-                <td class="t-num">{{ ch.families or 0 }} 家族 · {{ ch.units|num }} 件/月</td>
-                {% endif %}
+                <td class="t-num">{{ ch.families or 0 }} 家族 · {{ (ch.units or 0)|num }} 件/月</td>
                 <td>{{ verdict_badge(ch.verdict) }}</td>
               </tr>
               {% endfor %}
@@ -185,15 +193,15 @@
         </div>
         <div class="table-wrap">
           <table class="table" id="rich-table">
-            <thead><tr><th>渠道</th><th class="t-num">Amazon 家族 / 价位段</th><th class="t-num">Amazon 份额 前 → 近</th><th class="t-num">本渠道家族 / 价位段</th><th class="t-num">差距 G</th><th>证据等级</th><th>读法</th></tr></thead>
+            <thead><tr><th>渠道</th><th class="t-num">Amazon<br>家族 / 价位段</th><th class="t-num">Amazon 份额<br>前 → 近</th><th class="t-num">本渠道<br>家族 / 价位段</th><th class="t-num">差距 G</th><th>证据等级</th><th>读法</th></tr></thead>
             <tbody>
             {% for ch in rich_rows %}{% set rc = ch.rich %}
-              <tr data-channel="{{ ch.channel }}" class="{{ 'is-oos' if rc.oos else '' }}"><td class="cell-title">{{ ch.name }}</td>
+              <tr data-channel="{{ ch.channel }}" class="{{ 'is-oos' if rc.oos else '' }}"><td class="cell-title ch-col">{{ ch.name }}</td>
                 <td class="t-num">{{ rc.az_fam }} / {{ rc.az_pb }}</td>
                 <td class="t-num">{{ pc((rc.az_trend[1] or {}).share if rc.az_trend|length > 1 else none) }} → {{ pc((rc.az_trend[-1] or {}).share if rc.az_trend else none) }}</td>
                 <td class="t-num">{% if rc.oos %}<span class="etag etag--nodata">0 / 0</span>{% else %}{{ rc.ch_fam }} / {{ rc.ch_pb }}{% endif %}</td>
                 <td class="t-num strong">{{ '%+.2f'|format(rc.G) }}<button class="etag" type="button" data-pop-title="差距 G" data-pop="{{ rc.src }}">来源</button></td>
-                <td>{% if rc.oos %}<span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本外</span>{% elif ch.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}</td>
+                <td class="rich-ev">{% if ch.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% if rc.oos %}<span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本外</span>{% endif %}</td>
                 <td class="small">{% if rc.oos %}该渠道样本外，仅参考：只看 Amazon 侧事实，不给该渠道把握与分级{% elif ch.evidence == '经回测（打折）' %}Amazon 结构领先：作加分信号，不作独立立项理由{% else %}只作事实对照（{{ '未回补，' if ch.evidence_note and '未回补' in ch.evidence_note else '' }}未检验）{% endif %}</td></tr>
             {% endfor %}
             </tbody>

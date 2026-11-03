@@ -84,3 +84,12 @@ def fmt_dt(v):
 templates.env.filters["num"] = fmt_num
 templates.env.filters["pct"] = fmt_pct
 templates.env.filters["dt"] = fmt_dt
+
+
+def fmt_value(v):
+    """标签取值显示名（英文原值显示为中文，词表见 catconfig.VALUE_NAMES）。"""
+    from ..catconfig import value_name
+    return value_name(v)
+
+
+templates.env.filters["vname"] = fmt_value

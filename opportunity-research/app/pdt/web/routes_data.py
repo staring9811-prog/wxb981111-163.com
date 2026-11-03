@@ -149,10 +149,16 @@ def channels_page(request: Request, ch: str = 'homedepot', fp: int = 1, user=ope
     imports = {}
     for b in recent:
         k = (b.source, b.file_path, b.created_at.strftime('%Y-%m-%d %H:%M'))
-        d = imports.setdefault(k, dict(source=SOURCE.get(b.source, b.source), file=b.file_path.split('/')[-1] if b.file_path else '', at=k[2], channels=set(), months=set(), reference=set()))
+        fn = b.file_path.split('/')[-1] if b.file_path else ''
+        if b.source == 'backfill':  # 回补缓存目录以渠道键命名，显示中文渠道名
+            fn = f"{CHANNEL_NAMES.get(fn, fn)} 回补缓存" if fn else ''
+        d = imports.setdefault(k, dict(source=SOURCE.get(b.source, b.source), file=fn, at=k[2], channels=set(), months=set(), reference=set()))
         d['channels'].add(CHANNEL_NAMES[b.channel])
         (d['reference'] if b.status == 'reference' else d['months']).add(b.month)
     months = sorted({m['month'] for v in summ.values() for m in v['months'] if m['complete']})[-12:]  # 月度并入状态只列近 12 个月（历史重建另列）
+    # 页面副标题按实际数据范围（各渠道完整月的最早至最晚）；月度表“所列月份合计”只加表中所列月份
+    span = (min(v['first'] for v in summ.values() if v['first']), max(v['last'] for v in summ.values() if v['last'])) if any(v['first'] for v in summ.values()) else None
+    listed_total = {c: sum(m['reviews'] for m in v['months'] if m['complete'] and m['month'] in months) for c, v in summ.items()}
     dedup = {}
     for c, v in summ.items():
         if v['last']:
@@ -161,7 +167,8 @@ def channels_page(request: Request, ch: str = 'homedepot', fp: int = 1, user=ope
     rebuild = {c: backfill.last_rebuild(c) for c in ('homedepot', 'lowes', 'wayfair')}
     fam_ch = next((c for c in ([ch] + list(rebuild)) if rebuild.get(c)), None)
     fams, n_fams, fpages = _families(fam_ch, fp) if fam_ch else ([], 0, 1)
-    return render(request, 'data_channels.html', 'PAGE-F28-01', '其他渠道数据', summ=summ, ch=ch, months=months, imports=list(imports.values())[:6],
+    return render(request, 'data_channels.html', 'PAGE-F28-01', '其他渠道数据', summ=summ, ch=ch, months=months, span=span, listed_total=listed_total,
+                  imports=list(imports.values())[:6],
                   compare=chm.compare(ch, 20) if ch in summ else [], dedup=dedup, rebuild=rebuild, fam_ch=fam_ch, fams=fams, n_fams=n_fams,
                   fp=min(max(1, fp), fpages), fpages=fpages, fam_per=FAM_PER)
 

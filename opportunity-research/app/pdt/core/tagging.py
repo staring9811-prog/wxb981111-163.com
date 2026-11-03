@@ -510,15 +510,24 @@ def queued_groups() -> int:
         return s.scalar(select(func.count()).select_from(sub)) or 0
 
 
-def counts():
+def _confirmed_q(*cols):
+    """已确认页签的口径（与 queue(status='confirmed') 一致）：人工确认过的标签，商品未被标为“不是本品类”。"""
+    return (select(*cols).select_from(Tag).join(Product, (Product.channel == Tag.channel) & (Product.item_id == Tag.item_id))
+            .where(Product.excluded.is_(False), Tag.status == 'confirmed', Tag.confirmed_by.is_not(None)))
+
+
+def counts(status: str = 'queued'):
+    """页签计数与筛选计数。by_channel / element / assembly / low / total 按 status 所指页签（queued 待确认 / confirmed 已确认）计算，
+    与该页签下列表的条数同口径；confirmed、excluded 是页签上的总数。"""
+    sq = _confirmed_q if status == 'confirmed' else _queued_q
     with session() as s:
-        base = _queued_q(Tag.channel, Tag.tag, func.count()).group_by(Tag.channel, Tag.tag)
+        base = sq(Tag.channel, Tag.tag, func.count()).group_by(Tag.channel, Tag.tag)
         q = {}
         for ch, tg, n in s.execute(base):
             q.setdefault(ch, {})[tg] = n
-        confirmed = s.scalar(select(func.count()).select_from(Tag).where(Tag.status == 'confirmed', Tag.confirmed_by.is_not(None))) or 0
+        confirmed = s.scalar(_confirmed_q(func.count())) or 0
         excluded = s.scalar(select(func.count()).select_from(Product).where(Product.excluded.is_(True))) or 0
-        assembly = s.scalar(_queued_q(func.count()).where(Tag.tag == '装', Tag.value == '', Tag.channel != 'amazon')) or 0
+        assembly = s.scalar(sq(func.count()).where(Tag.tag == '装', Tag.value == '', Tag.channel != 'amazon')) or 0
     total = sum(sum(v.values()) for v in q.values())
     element = sum(v.get('元素', 0) for v in q.values())
     return dict(by_channel={ch: sum(v.values()) for ch, v in q.items()}, element=element, assembly=assembly,

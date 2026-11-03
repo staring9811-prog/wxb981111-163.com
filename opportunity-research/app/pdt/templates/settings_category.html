@@ -65,7 +65,7 @@
           <thead><tr><th>参与扫描</th><th>属性</th><th>取值</th><th>打标方式</th></tr></thead>
           <tbody>
             {% for a in cfg.scan_attrs %}
-            <tr><td><label class="check"><input type="checkbox" data-path="scan_attrs.{{ loop.index0 }}.scan" data-type="bool"{% if a.scan %} checked{% endif %} aria-label="{{ a.attr }}参与扫描"></label></td><td class="cell-title">{{ a.attr }}</td><td>{% set vs = tag_values.get(a.tag, []) %}{% if vs %}<div class="vals">{% for v in vs[:12] %}<span class="val">{{ v }}</span>{% endfor %}</div>{% else %}<span class="small muted">打标后显示</span>{% endif %}</td><td>{{ a.method }}</td></tr>
+            <tr><td><label class="check"><input type="checkbox" data-path="scan_attrs.{{ loop.index0 }}.scan" data-type="bool"{% if a.scan %} checked{% endif %} aria-label="{{ a.attr }}参与扫描"></label></td><td class="cell-title">{{ a.attr }}</td><td>{% set vs = tag_values.get(a.tag, []) %}{% if vs %}<div class="vals">{% for v in vs[:12] %}<span class="val">{{ v|vname }}</span>{% endfor %}</div>{% else %}<span class="small muted">打标后显示</span>{% endif %}</td><td>{{ a.method }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -163,7 +163,7 @@
               <td class="t-num"><input class="input input--num w-num" value="{{ bp.discount.rank_corr }}" data-path="channels.{{ c.key }}.discount.rank_corr" data-type="num" aria-label="{{ c.name }} 秩相关减值"></td>
               <td class="t-num"><input class="input input--num w-num" value="{{ bp.discount.high_pp }}" data-path="channels.{{ c.key }}.discount.high_pp" data-type="num" aria-label="{{ c.name }} 高档减值"></td>
               <td class="t-num"><input class="input input--num w-num" value="{{ bp.discount.dir_cap }}" data-path="channels.{{ c.key }}.discount.dir_cap" data-type="num" aria-label="{{ c.name }} 方向对上限"> %</td>
-              <td class="small {{ '' if bf_state[c.key] else 'muted' }}">{% if bf_state[c.key] %}已回补 {{ bf_state[c.key].pages_listed|num }} 个商品页 · {{ bf_state[c.key].start }} 至 {{ bf_state[c.key].end }}{% else %}未回补 · 未验证{% endif %}</td></tr>
+              <td class="small {{ '' if bf_state[c.key] else 'muted' }}">{% if bf_state[c.key] %}已回补 {{ bf_state[c.key].pages_listed|num }} 个商品页 · {{ bf_state[c.key].start }} 至 {{ bf_state[c.key].end }} · {{ bf_ev[c.key] }}{% else %}未回补 · 未验证{% endif %}</td></tr>
             {% endif %}
             {% endfor %}
           </tbody>

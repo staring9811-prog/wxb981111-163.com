@@ -913,13 +913,14 @@ def est_backfill(params: dict) -> dict:
     if ch == 'homedepot':
         plan = _hd_plan(p)
         calls = plan['lists'] + round(plan['pages_new'] * TRIAL_REQ / TRIAL_PAGES) + plan['fam_todo'] * 4
-        if not calls:
-            note = f"本次没有要采的商品页（已完成 {plan['cached']} 个商品页）；确认后只按参数 v{p['config_version']} 重建历史"
+        if not calls:  # 没有要采的内容：弹窗显示说明并禁用“确认并开始”；按新参数重建走其他渠道数据页
+            note = (f"没有需要采集的商品页（已完成 {plan['cached']} 个商品页）；要按参数 v{p['config_version']} 重建历史，"
+                    f"到其他渠道数据页点“按当前参数重建”")
         else:
             note = (f"起始 {p['start']} · 每个类目前 {p['n']} 个商品页 · 新增约 {plan['pages_new']} 个商品页、{plan['fam_todo']} 个未完成家族；"
                     f"已完成的 {plan['cached']} 个商品页不重复请求。估算依据：2026-11-03 回补 598 个商品页共 2,884 次请求，按新增商品页折算。直连免费")
         return dict(service=None, channel=ch, calls=calls, usd_lo=0, usd_hi=0, minutes=round(calls * 1.7 / 60 + (1 if calls else 0), 1), note=note,
-                    stage='collect', params=p)
+                    stage='collect', params=p, nothing=not calls)
     services.client('brightdata')  # 未连接时抛 NotConnected，弹窗里说明（AC-F16-03）
     services.client('apify')
     ctx = rk_ctx(ch, p['start'], p['n'])

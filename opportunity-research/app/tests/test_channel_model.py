@@ -368,3 +368,49 @@ def test_flow11_evidence_levels_v8(hd_run):
     assert '没有符合筛选条件的单元' in h2
     # Amazon 表不加丰富度列（只有其他渠道有）
     assert 'Amazon 家族 / 价位段' not in h
+
+
+def _row(html, table_id, channel):
+    """取某表里某渠道那一行的纯文本。"""
+    tb = html.split(f'id="{table_id}"')[1].split('</table>')[0]
+    return _text(tb.split(f'data-channel="{channel}"')[1].split('</tr>')[0])
+
+
+def test_design12_card_unverified_channel_rows_and_richness(hd_run):
+    """DESIGN-12（v8 复核）：Home Depot 决策卡“30″ · 整装 · 落地式 · 主色黑”——
+    并排表里 Lowe's / Wayfair 仍按列显示（不再用横跨的“该渠道本月无数据”），分级“不显示”，证据等级“未验证”并写明原因（未回补）；
+    丰富度对照表的证据等级跟随渠道证据等级显示“未验证”，“样本外”作为单元级标记同时显示；读法列有最小宽度、表头分两行，不出现窄列。"""
+    c = hd_run
+    r = c.post('/cards', data=dict(channel='homedepot', frame='30″ · 整装 · 落地式', attr='主色', value='黑'), headers={'accept': 'application/json'})
+    html = c.get(f"/cards/{r.json()['id']}").text
+    chan = html.split('id="chan-table"')[1].split('</table>')[0]
+    assert 'colspan="5"' not in chan
+    for ch in ('lowes', 'wayfair'):
+        t = _row(html, 'chan-table', ch)
+        assert '不显示' in t and '未验证' in t and '未回补' in t and '不显示把握与分级' in t and '不上' in t, t
+        rt = _row(html, 'rich-table', ch)
+        assert '未验证' in rt and '样本外' in rt and '该渠道样本外，仅参考' in rt and '+4.80' in rt, rt
+    hd = _row(html, 'rich-table', 'homedepot')
+    assert '经回测（打折）' in hd and '样本外' not in hd and '121 / 6' in hd
+    assert '<th class="t-num">Amazon<br>家族 / 价位段</th>' in html and '#rich-table td:last-child { min-width: 13em; }' in html
+    assert '<td class="cell-title ch-col">Home Depot</td>' in html.split('id="rich-table"')[1]
+
+
+def test_design09_models_checklist_link_and_fold_hint(hd_run):
+    """DESIGN-09（v8 复核）：Amazon 视图前置清单“去确认”链接不随长说明竖排（链接不收缩、不换行）；
+    Home Depot 视图“逐个立项时点”折叠区带展开提示（文字 + 箭头，展开后变“收起明细”）。"""
+    c = hd_run
+    am = c.get('/models').text
+    assert '.checklist li a { flex: none; white-space: nowrap; }' in am
+    hd = c.get('/models', params={'channel': 'homedepot'}).text
+    fold = hd.split('<details class="fold"')[1].split('</summary>')[0]
+    assert '逐个立项时点' in fold and '<span class="fold__open">展开明细</span>' in fold and '<span class="fold__close">收起明细</span>' in fold
+    assert '#ph-caret-down' in fold and '.fold[open] .fold__hint .icon { transform: rotate(180deg); }' in hd
+
+
+def test_design18_channel_params_status_shows_evidence(hd_run):
+    """DESIGN-18（v8 复核）：品类配置“渠道参数”页签的历史回补表，Home Depot“现状”带证据等级“经回测（打折）”（读渠道最近一次回测）；
+    Lowe's / Wayfair 仍为“未回补 · 未验证”。"""
+    t = _text(hd_run.get('/settings/category', params={'tab': 'ch'}).text)
+    assert re.search(r'已回补 [\d,]+ 个商品页 · 2024-01 至 2026-10 · 经回测（打折）', t)
+    assert t.count('未回补 · 未验证') == 2

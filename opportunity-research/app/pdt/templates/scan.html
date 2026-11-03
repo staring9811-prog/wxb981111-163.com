@@ -24,6 +24,9 @@
   .star { color: var(--warn); font-weight: 600; }
   .cell-actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); }
   .cell-actions form { margin: 0; }
+  /* 属性：取值列给足宽度，取值整词不被拆开（如“农场风装饰饰条”） */
+  .scan-table .col-val { min-width: 11em; }
+  .scan-table td.col-val .cell-title { word-break: keep-all; }
   @media (max-width: 1279px) { .rules { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 {% endblock %}
@@ -121,7 +124,7 @@
     <div class="table-wrap">
       <table class="table">
         {% set oc = channel != 'amazon' %}{% set ncol = 14 if oc else 12 %}{% set c2 = ' col-2' if oc else '' %}
-        <thead><tr><th>机会类型</th><th>属性：取值</th><th class="t-num">{{ '估算月销' if oc else '月销' }}</th><th class="t-num">份额 前 → 近</th><th class="t-num col-2">家族</th><th class="t-num col-2">单款 ÷ 同框</th><th class="t-num{{ c2 }}">评分（同框）</th><th class="t-num{{ c2 }}">溢价 / 中位价</th><th class="t-num">新品占比（同框）</th><th class="t-num col-2">新家族做到（同框）</th>{% if oc %}<th class="t-num">Amazon 家族 / 价位段<div class="cell-sub">框内份额 前 → 近</div></th><th class="t-num">差距 G<div class="cell-sub">本渠道家族 / 价位段</div></th>{% endif %}<th>证据等级</th><th class="col-op"><span class="visually-hidden">操作</span></th></tr></thead>
+        <thead><tr><th>机会类型</th><th class="col-val">属性：取值</th><th class="t-num">{{ '估算月销' if oc else '月销' }}</th><th class="t-num">份额 前 → 近</th><th class="t-num col-2">家族</th><th class="t-num col-2">单款 ÷ 同框</th><th class="t-num{{ c2 }}">评分（同框）</th><th class="t-num{{ c2 }}">溢价 / 中位价</th><th class="t-num">新品占比（同框）</th><th class="t-num col-2">新家族做到（同框）</th>{% if oc %}<th class="t-num">Amazon 家族 / 价位段<div class="cell-sub">框内份额 前 → 近</div></th><th class="t-num">差距 G<div class="cell-sub">本渠道家族 / 价位段</div></th>{% endif %}<th>证据等级</th><th class="col-op"><span class="visually-hidden">操作</span></th></tr></thead>
         <tbody>
         {% set ns = namespace(fr='') %}
         {% for r in rows %}
@@ -132,7 +135,7 @@
           {% if r.oos %}
           <tr class="is-oos" data-frame="{{ r.frame }}" data-attr="{{ r.attr }}" data-type="样本外" data-grade="样本外">
             <td><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本外</span></td>
-            <td><span class="muted small">{{ r.attr }}：</span><span class="cell-title">{{ r.value }}</span></td>
+            <td class="col-val"><span class="muted small">{{ r.attr }}：</span><span class="cell-title">{{ r.value }}</span></td>
             <td class="t-num"><span class="etag etag--nodata">前 N 无家族</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td>
             <td class="t-num col-2">0</td><td class="t-num col-2"><span class="etag etag--nodata">无数据</span></td><td class="t-num col-2"><span class="etag etag--nodata">无数据</span></td><td class="t-num col-2"><span class="etag etag--nodata">无数据</span></td>
             <td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num col-2"><span class="etag etag--nodata">无数据</span></td>
@@ -144,7 +147,7 @@
           {% else %}
           <tr data-frame="{{ r.frame }}" data-attr="{{ r.attr }}" data-type="{{ r.flags|join(' ') or '未入四类' }}" data-grade="{{ r.evidence }}">
             <td>{% for k in r.flags %}<span class="badge"><svg class="icon"><use href="#ph-{{ icon[k] }}"/></svg>{{ k }}</span>{% if not loop.last %}<br>{% endif %}{% else %}<span class="small muted">未入四类</span>{% endfor %}</td>
-            <td><span class="muted small">{{ r.attr }}：</span><span class="cell-title">{{ r.value }}</span></td>
+            <td class="col-val"><span class="muted small">{{ r.attr }}：</span><span class="cell-title">{{ r.value }}</span></td>
             <td class="t-num">{{ m.units|num }}<button class="etag etag--n" type="button" data-pop-title="{{ r.attr }}：{{ r.value }} 月销" data-pop="框={{ r.frame }};渠道={{ channel_names[channel] }};近期={{ (m.recent or mm.recent)[0] }} 至 {{ (m.recent or mm.recent)[1] }};前期={{ (m.prev or mm.prev)[0] }} 至 {{ (m.prev or mm.prev)[1] }};在榜家族={{ m.families }}{% if oc %};月销口径=VP × {{ cfg.vp_coef|num }} + 非 VP × {{ cfg.nonvp_coef|num }}（品类配置）{% endif %}">{{ '估算' if oc else ('n=' ~ m.families) }}</button></td>
             <td class="t-num">{{ pct1(m.share_prev) }} → {{ pct1(m.share) }}</td>
             <td class="t-num col-2">{{ m.families }}</td>
@@ -163,7 +166,7 @@
           </tr>
           {% endif %}
         {% else %}
-          <tr><td colspan="{{ ncol }}" class="muted">{{ '没有符合筛选条件的单元。' if meta else '本渠道还没有已并入的数据，无法扫描。' }}</td></tr>
+          <tr><td colspan="{{ ncol }}" class="muted">{% if not meta %}本渠道还没有已并入的数据，无法扫描。{% elif not frames %}没有可扫描的框：{% if asm_unknown %}{{ asm_unknown|num }} 个商品"装"未知、不进框，<a href="/tagging?channel={{ channel }}&reason=assembly">去打标确认补上</a>；{% endif %}其余框近 6 个月{{ '估算' if oc else '' }}月销不到 {{ min_fu|num }} 件，不扫描。{% else %}没有符合筛选条件的单元。{% endif %}</td></tr>
         {% endfor %}
         </tbody>
       </table>

@@ -24,6 +24,8 @@
     var w = (e.warnings || []);
     q('warn').hidden = !w.length; q('warntext').textContent = w.join('；');
     q('error').hidden = true;
+    // 没有要采的内容（估算 nothing = true）：说明写在调用量下方，禁用“确认并开始”
+    var ok = modal.querySelector('[data-cost-ok]'); ok.disabled = !!e.nothing; ok.title = e.nothing ? '没有需要采集的商品页' : '';
     window.oppoOpen ? window.oppoOpen('#cmp-f16-01') : modal.setAttribute('aria-hidden', 'false');
   }
   document.addEventListener('click', function (ev) {

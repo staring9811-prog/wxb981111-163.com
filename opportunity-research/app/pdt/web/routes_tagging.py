@@ -53,13 +53,14 @@ def page(request: Request, channel: str = '', reason: str = '', tab: str = 'pend
     ch = channel if channel in CHANNEL_NAMES else None
     rs = reason if reason in ('element', 'low', 'assembly') else None
     cnt = tagging.counts()
+    fc = tagging.counts('confirmed') if tab == 'done' else cnt  # 筛选上的数量随当前页签
     groups = tagging.queue(ch, rs, 'queued' if tab == 'pending' else 'confirmed') if tab in ('pending', 'done') else []
     pages = max(1, -(-len(groups) // PER_PAGE))
     page = min(max(1, page), pages)
     excluded = _excluded() if tab == 'out' else []
     rules, thr, ver = tagging.rules_cfg()
     return render(request, 'tagging.html', 'PAGE-F18-01', '打标确认', groups=groups[(page - 1) * PER_PAGE:page * PER_PAGE], n_groups=len(groups),
-                  n_items=sum(len(g['items']) for g in groups), page=page, pages=pages, per_page=PER_PAGE, cnt=cnt, prog=_progress(), channel=ch or 'all',
+                  n_items=sum(len(g['items']) for g in groups), page=page, pages=pages, per_page=PER_PAGE, cnt=cnt, fc=fc, prog=_progress(), channel=ch or 'all',
                   reason=rs or 'all', tab=tab, excluded=excluded, thr=thr, ver=ver, rule_version=rules.get('rule_version', ''),
                   llm=services.connected('llm'), vision_todo=len(tagging.vision_targets()), untagged=sum(len(v) for v in tagging.untagged_items().values()),
                   tag_src=_tag_sources())

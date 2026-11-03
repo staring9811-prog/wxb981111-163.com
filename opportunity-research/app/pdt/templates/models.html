@@ -5,6 +5,15 @@
   .checklist li { display: flex; align-items: center; gap: var(--space-2); }
   .checklist .ok { color: var(--success); }
   .checklist .wait { color: var(--warn); }
+  .checklist li .icon { flex: none; }
+  .checklist li a { flex: none; white-space: nowrap; }  /* “去确认”链接不被长说明挤成竖排 */
+  .fold > summary { list-style: none; display: flex; align-items: baseline; gap: var(--space-2); }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold__hint { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--accent); white-space: nowrap; }
+  .fold__hint .icon { transition: transform var(--motion-fast) var(--ease-standard); }
+  .fold[open] .fold__hint .icon { transform: rotate(180deg); }
+  .fold .fold__close, .fold[open] .fold__open { display: none; }
+  .fold[open] .fold__close { display: inline; }
   .ver-head { text-align: center; }
   .table td.is-v9, .table th.is-v9 { background: var(--surface-warm); }
   .bias { display: flex; align-items: baseline; gap: var(--space-4); flex-wrap: wrap; }

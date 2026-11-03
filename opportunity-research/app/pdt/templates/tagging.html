@@ -18,6 +18,11 @@
   .inline { display: inline-flex; gap: var(--space-1); align-items: center; margin: 0; }
   .tab { text-decoration: none; }
   .other-input { width: 120px; min-height: 28px; font-size: var(--text-xs); }
+  /* 标题不被右侧长说明挤到换行；页头按钮保持一行，副标题自己折行 */
+  .section__head .section__title { flex: none; white-space: nowrap; }
+  .page-head > div:first-child { flex: 1; min-width: 0; }
+  .page-head__actions { flex: none; flex-wrap: nowrap; }
+  .page-head__actions .btn { white-space: nowrap; }
 </style>
 {% endblock %}
 {% block content %}
@@ -79,7 +84,7 @@
         {% for r in st.tags %}
           <tr><td class="cell-title">{{ r.tag }}</td><td class="t-num">{{ '%.0f%%'|format(r.cover * 100) }}</td>
             <td class="small">{% for k, v in r.sources %}{% if k in ('规格', '标题', '看图', '人工') %}<span class="etag">{{ k }}</span>{% else %}{{ k }}{% endif %} {{ '%.0f%%'|format(v * 100) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
-            <td class="small">{% for k, v in r.top[:3] %}{{ k }} {{ '%.0f%%'|format(v * 100) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+            <td class="small">{% for k, v in r.top[:3] %}{{ k|vname }} {{ '%.0f%%'|format(v * 100) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
             <td class="small">{{ {'装': '记"未知"，进确认队列，不默认拆装', '形态': '按落地式（与 Amazon 同口径），标低置信度', '元素': '进确认队列（看图打元素后）'}.get(r.tag, '低置信度进队列') }}</td></tr>
         {% endfor %}
         </tbody>
@@ -101,14 +106,14 @@
   {% if tab != 'out' %}
   <div class="filters" id="queue-filters">
     <span class="filters__label">渠道</span>
-    <a class="chip" href="/tagging?tab={{ tab }}&reason={{ reason }}&channel=all" aria-pressed="{{ 'true' if channel == 'all' else 'false' }}">全部 <span class="count">{{ cnt.total }}</span></a>
-    {% for c, n in channel_names.items() %}<a class="chip" href="/tagging?tab={{ tab }}&reason={{ reason }}&channel={{ c }}" aria-pressed="{{ 'true' if channel == c else 'false' }}">{{ n }} <span class="count">{{ cnt.by_channel.get(c, 0) }}</span></a>{% endfor %}
+    <a class="chip" href="/tagging?tab={{ tab }}&reason={{ reason }}&channel=all" aria-pressed="{{ 'true' if channel == 'all' else 'false' }}">全部 <span class="count">{{ fc.total }}</span></a>
+    {% for c, n in channel_names.items() %}<a class="chip" href="/tagging?tab={{ tab }}&reason={{ reason }}&channel={{ c }}" aria-pressed="{{ 'true' if channel == c else 'false' }}">{{ n }} <span class="count">{{ fc.by_channel.get(c, 0) }}</span></a>{% endfor %}
     <span class="filters__sep" aria-hidden="true"></span>
     <span class="filters__label">进队原因</span>
     <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=all" aria-pressed="{{ 'true' if reason == 'all' else 'false' }}">全部</a>
-    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=element" aria-pressed="{{ 'true' if reason == 'element' else 'false' }}">元素 <span class="count">{{ cnt.element }}</span></a>
-    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=low" aria-pressed="{{ 'true' if reason == 'low' else 'false' }}">低置信度 <span class="count">{{ cnt.low }}</span></a>
-    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=assembly" aria-pressed="{{ 'true' if reason == 'assembly' else 'false' }}">装：未知 <span class="count">{{ cnt.assembly }}</span></a>
+    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=element" aria-pressed="{{ 'true' if reason == 'element' else 'false' }}">元素 <span class="count">{{ fc.element }}</span></a>
+    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=low" aria-pressed="{{ 'true' if reason == 'low' else 'false' }}">低置信度 <span class="count">{{ fc.low }}</span></a>
+    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=assembly" aria-pressed="{{ 'true' if reason == 'assembly' else 'false' }}">装：未知 <span class="count">{{ fc.assembly }}</span></a>
     <span class="spacer"></span>
     <span class="small muted">共 <b class="num">{{ n_groups|num }}</b> 组 · {{ n_items|num }} 条，按组内商品数排序{% if pages > 1 %} · 第 {{ page }} / {{ pages }} 页，每页 {{ per_page }} 组{% endif %}</span>
   </div>
@@ -128,11 +133,11 @@
           <h3 class="qgroup__title" id="g{{ gi }}-title">{% if asm and tab == 'pending' %}这组是整装还是拆装？{% else %}这组的"{{ g.tag }}"是什么？{% endif %}</h3>
           {% if tab == 'pending' %}
           <div class="choice-group" role="radiogroup" aria-label="候选值">
-            {% for c in g.candidates[:6] %}<label class="choice"><input type="radio" name="value" value="{{ c.value }}" {% if loop.first and c.confidence %}checked{% endif %}>{{ c.value }}{% if c.confidence %} <span class="conf">{{ '%.2f'|format(c.confidence) }}</span>{% endif %}</label>{% endfor %}
+            {% for c in g.candidates[:6] %}<label class="choice"><input type="radio" name="value" value="{{ c.value }}" {% if loop.first and c.confidence %}checked{% endif %}>{{ c.value|vname }}{% if c.confidence %} <span class="conf">{{ '%.2f'|format(c.confidence) }}</span>{% endif %}</label>{% endfor %}
             {% if asm %}<label class="choice"><input type="radio" name="value" value="未知">仍不确定（保持未知，不进框）</label>
             {% else %}<label class="choice"><input type="radio" name="value" value="other">其他…<input class="input other-input" name="other" placeholder="填写" aria-label="其他值"></label>{% endif %}
           </div>
-          {% else %}<div class="small">已确认为 <b>{{ g['items'][0].value }}</b></div>{% endif %}
+          {% else %}<div class="small">已确认为 <b>{{ g['items'][0].value|vname }}</b></div>{% endif %}
         </div>
         {% if tab == 'pending' %}
         <div class="qgroup__actions">
@@ -147,9 +152,9 @@
           <tbody>
           {% for it in g['items'] %}
             <tr><td>{{ channel_names[it.channel] }}</td><td class="mono">{% if it.link %}<a class="tlink" href="{{ it.link }}" target="_blank" rel="noopener">{{ it.item_id }}</a>{% else %}{{ it.item_id }}{% endif %}</td>
-              <td><div class="cell-title">{{ it.title[:90] }}</div></td><td class="tag-line">{% for v, sl in it.others_tags %}{% if loop.first %}<b>{{ v }}</b>{% else %}{{ v }}{% endif %}{% if sl %}<span class="etag">{{ sl }}</span>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+              <td><div class="cell-title">{{ it.title[:90] }}</div></td><td class="tag-line">{% for v, sl in it.others_tags %}{% if loop.first %}<b>{{ v|vname }}</b>{% else %}{{ v|vname }}{% endif %}{% if sl %}<span class="etag">{{ sl }}</span>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</td>
               <td><form method="post" action="/tagging/items/{{ it.tag_id }}" class="inline"><input type="hidden" name="back" value="{{ back }}">
-                <select class="select" name="value" aria-label="本条{{ g.tag }}">{% if not it.value %}<option value="" selected>{{ '未知' if asm else '（未判断）' }}</option>{% endif %}{% for c in g.candidates %}<option {% if c.value == it.value %}selected{% endif %}>{{ c.value }}</option>{% endfor %}</select>
+                <select class="select" name="value" aria-label="本条{{ g.tag }}">{% if not it.value %}<option value="" selected>{{ '未知' if asm else '（未判断）' }}</option>{% endif %}{% for c in g.candidates %}<option value="{{ c.value }}" {% if c.value == it.value %}selected{% endif %}>{{ c.value|vname }}</option>{% endfor %}</select>
                 <button class="btn btn--ghost btn--sm" type="submit">单改</button></form></td>
               <td>{% if it.status == 'confirmed' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已确认{% if it.confirm_mode == 'single' %} · 单改{% endif %}</span><span class="etag">{{ it.source }}</span>{% else %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认{% if it.confidence %} · {{ '%.2f'|format(it.confidence) }}{% endif %}</span>{% endif %}</td>
               <td><button class="btn btn--ghost btn--sm" type="button" data-notcat data-action="/tagging/items/{{ it.tag_id }}" data-channel="{{ it.channel }}" data-item-id="{{ it.item_id }}" data-sub="只标这一个商品：{{ it.item_id }}">不是本品类</button></td></tr>

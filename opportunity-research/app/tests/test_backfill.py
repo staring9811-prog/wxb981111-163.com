@@ -206,7 +206,7 @@ def test_flow27_backfill_cancel_confirm_shard_resume(hd):
 
     # 再次评估同样的 N：没有要采的商品页
     j3 = _estimate(wen, start='2024-01', n=N)
-    assert j3['estimate']['calls'] == 0 and '没有要采的商品页' in j3['estimate']['note']
+    assert j3['estimate']['calls'] == 0 and '没有需要采集的商品页' in j3['estimate']['note'] and j3['estimate']['nothing'] is True
     wen.post(f"/jobs/{j3['id']}/cancel")
 
 

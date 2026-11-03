@@ -141,7 +141,7 @@ def tag_rule_rows(rules: dict) -> list[dict]:
         dict(tag="台面材质", method="规则", n=len(CANDIDATES["台面材质"]),
              summary=f"读台面描述归入 {len(CANDIDATES['台面材质'])} 种材质（{'、'.join(CANDIDATES['台面材质'][:6])} …）；分析时再归大类：{top}"),
         dict(tag="元素", method="规则 + 看图", n=len(em),
-             summary=f"标题关键词：{_arrow_items(em)}；判断不了的由大模型看主图，从 {len(vocab)} 个元素词里选；未配置大模型时进入人工确认。元素一律人工确认"),
+             summary=f"标题关键词：{_arrow_items({k: catconfig.value_name(v) for k, v in em.items()})}；判断不了的由大模型看主图，从 {len(vocab)} 个元素词里选；未配置大模型时进入人工确认。元素一律人工确认"),
         dict(tag="主色", method="规则", n=len(cm) + 1, summary=f"颜色词归类：{_arrow_items(cm, 8)}；其余颜色 → 其他"),
         dict(tag="柜体材质", method="规则", n=len([x for x in cab.split("；") if x.strip()]), summary=cab),
     ]
@@ -186,7 +186,9 @@ def category_page(request: Request, tab: str = "frame", user=operator_only):
     from ..core import backfill
     bf_params = {c["key"]: catconfig.channel_params(c["key"])[1] for c in channels if c["key"] != "amazon"}
     bf_state = {k: (backfill.last_rebuild(k) or {}).get("stats") for k in bf_params}
-    return render(request, "settings_category.html", "PAGE-F27-01", "品类配置", version=v, cfg=cfg, channels=channels, bf_params=bf_params, bf_state=bf_state,
+    from ..core import channel_model  # 现状带上证据等级：读该渠道最近一次回测
+    bf_ev = {k: channel_model.evidence(k) for k in bf_params}
+    return render(request, "settings_category.html", "PAGE-F27-01", "品类配置", version=v, cfg=cfg, channels=channels, bf_params=bf_params, bf_state=bf_state, bf_ev=bf_ev,
                   history=hist, current=hist[0] if hist else None, methods=METHODS, min_fit=chm.MIN_RANK_POINTS,
                   tag_values=_tag_values(), queue_n=queued_count(), thr=thr, tag_rows=tag_rule_rows(rules), rule_version=rules.get("rule_version", ""),
                   conf_text="、".join(f"{CONF_NAMES.get(k, k)} {float(v):.2f}" for k, v in conf.items()), vision_usd=rules.get("vision_usd_per_call") or [],
