@@ -37,7 +37,7 @@
     "REQ-F27-02"
   ],
   "current_stage": "design",
-  "current_substep": "entry-check",
+  "current_substep": "design-phase-II",
   "completed_stages": [
     "1",
     "2",
@@ -50,7 +50,7 @@
   ],
   "next_action": {
     "type": "ai",
-    "description": "PRD revision 7 已同步（加入其他渠道）；回到 Design：入口检查 → 设计决策蓝图"
+    "description": "Design 阶段 II：页面清单 → DESIGN/tokens 沿用并补充 → 18 页 MD+HTML → 串联扫描 → 技术方案 → 追溯矩阵"
   },
   "open_questions": [
     {
@@ -202,116 +202,13 @@
     "check_requirements_contract": "pass（104 个稳定对象）"
   },
   "design": {
-    "entry_check": {
-      "status": "passed",
-      "inputs": [
-        "output/PRD详细版.md@v5",
-        "output/requirements.md@rev5",
-        "output/requirements-analysis.md@rev5"
-      ],
-      "scope": "第一期"
-    },
-    "decisions": [
-      {
-        "id": "DD-1",
-        "decision": "导航：侧栏模块 + 首页本月工作台 8 步流程进度条",
-        "source": "用户选择"
-      },
-      {
-        "id": "DD-2",
-        "decision": "视觉：浅色冷静数据台，设计签名为数字旁的证据小标签（样本量、估算/实测/快照/回填）",
-        "source": "用户选择"
-      },
-      {
-        "id": "DD-3",
-        "decision": "屏幕：1366–1920 宽均可用，窄屏收起次要列",
-        "source": "用户选择"
-      },
-      {
-        "id": "DD-4",
-        "decision": "网页报告：一屏结论 + 可展开依据",
-        "source": "用户选择"
-      },
-      {
-        "id": "DEC-006",
-        "decision": "同月多次生成排序各存一个不可改快照；对账用当月最后一次导出时的快照，未导出则用最后一个",
-        "source": "用户选择"
-      },
-      {
-        "id": "DEC-007",
-        "decision": "立项记录保存后不可修改，录错追加更正记录，原记录标已更正",
-        "source": "用户选择"
-      },
-      {
-        "id": "DEC-015",
-        "decision": "交付为自带 Python 运行环境与依赖的离线安装包，解压双击启动",
-        "source": "用户选择"
-      },
-      {
-        "id": "DEC-005/008–014/016",
-        "decision": "见 output/设计决策蓝图.md 设计决定清单",
-        "source": "随蓝图确认"
-      }
-    ],
+    "round": 2,
     "blueprint": "output/设计决策蓝图.md",
-    "blueprint_confirmation": {
-      "status": "confirmed",
-      "confirmed_at_utc": "2026-10-26T14:22:40Z",
-      "source": "用户选择“确认，开始出页面（推荐）”；DEC-006 用当月最后导出的那版；DEC-007 不能改、追加更正；DEC-015 离线安装包"
+    "blueprint_confirmed": {
+      "at": "2026-11-03T06:04:06Z",
+      "source": "wen：沿用第一轮风格，蓝图确认，继续出页面"
     },
-    "deliverables": {
-      "blueprint": "output/设计决策蓝图.md",
-      "page_list": "output/页面清单.md",
-      "design_system": [
-        "output/DESIGN.md",
-        "output/tokens.css",
-        "output/pages/assets/app.css",
-        "output/pages/assets/app.js",
-        "output/pages/assets/icons.js"
-      ],
-      "pages": "output/pages/PAGE-*.md + .html（本期 26 页）",
-      "tech_plan": "output/技术方案.md",
-      "trace_matrix": "output/设计追溯矩阵.md",
-      "change_impact": "output/change-impact.md"
-    },
-    "link_scan": {
-      "run_at": "2026-10-26T16:06:15Z",
-      "local_links": 1043,
-      "missing_targets": 0,
-      "pages_without_inbound": 0,
-      "script_errors": 0,
-      "h_overflow_1440_1366": 0
-    },
-    "revision5_sync": {
-      "status": "done",
-      "at_utc": "2026-10-26T16:06:15Z",
-      "changed_sources": [
-        "AC-F07-03",
-        "AC-F07-10",
-        "AC-F07-11",
-        "AC-F07-14",
-        "AC-F11-03",
-        "AC-F11-06",
-        "REQ-F07-01",
-        "REQ-F07-03",
-        "REQ-F11-01"
-      ],
-      "pages_updated": [
-        "PAGE-F04-02",
-        "PAGE-F07-01",
-        "PAGE-F08-01",
-        "PAGE-F08-02",
-        "PAGE-F10-05",
-        "PAGE-F11-01",
-        "PAGE-F11-02",
-        "PAGE-F12-01",
-        "PAGE-F12-02",
-        "PAGE-F06-02",
-        "PAGE-F10-01",
-        "PAGE-F10-02"
-      ],
-      "trace_rows": 128
-    }
+    "source_revision": 7
   },
   "tdd": {
     "entry_check": {
