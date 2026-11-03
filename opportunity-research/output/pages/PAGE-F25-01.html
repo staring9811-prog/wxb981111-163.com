@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F25-01">
+  <title>审批 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .pick { cursor: pointer; }
+    .pick:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+    .sum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+    .sum__item { padding: var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius-md); background: var(--surface-warm); }
+    .sum__label { font-size: var(--text-xs); color: var(--muted); }
+    .sum__value { margin-top: 2px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .after { margin: 0; padding-left: 1.2em; font-size: var(--text-sm); color: var(--fg-2); }
+    .after li + li { margin-top: var(--space-1); }
+    .opinion { max-width: 320px; }
+    .stop { margin: 0; padding-left: 1.2em; font-size: var(--text-sm); }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <!-- 第二轮共用侧栏（所有页面原样复制，当前页的 a 加 aria-current="page"；按角色隐藏的项在页面说明里写明） -->
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+        <div class="nav__group">数据</div>
+        <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+        <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+        <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+        <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+        <div class="nav__group">决策</div>
+        <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+        <div class="nav__group">审批与台账</div>
+        <a class="nav__item" href="PAGE-F25-01.html" aria-current="page"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+        <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+        <div class="nav__group">工具</div>
+        <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+        <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+        <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+        <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+        <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+    <!-- 顶栏：左侧"浴室柜"品类标签；需要渠道的页面（PAGE-F20-01、PAGE-F21-01、PAGE-F21-02）在顶栏放渠道切换 seg：Amazon / Home Depot / Lowe's / Wayfair；右侧"wen · 操作者"用户菜单（退出登录 → PAGE-F15-01.html）。 -->
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>老板 · 审批者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <div class="crumbs"><span>审批与台账</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>审批</span></div>
+            <h1>审批</h1>
+            <p class="page-head__sub">决策卡立项和策略库"已验证"申请在这里拍板。批准、驳回、退回修改都会记录审批人、时间、结论和意见。</p>
+          </div>
+        </div>
+
+        <div class="tabs enter" style="--i:1" role="tablist" aria-label="审批列表">
+          <button class="tab" role="tab" type="button" aria-selected="true" aria-controls="tabTodo">待我审批 <span class="count">2</span></button>
+          <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="tabDone">已处理 <span class="count">5</span></button>
+        </div>
+
+        <!-- 待我审批 -->
+        <section id="tabTodo" role="tabpanel">
+          <div class="filters" data-filter-scope="#tblTodo">
+            <span class="filters__label">类型</span>
+            <button class="chip" type="button" data-filter="type:all" aria-pressed="true">全部 <span class="count">2</span></button>
+            <button class="chip" type="button" data-filter="type:card" aria-pressed="false">决策卡立项 <span class="count">1</span></button>
+            <button class="chip" type="button" data-filter="type:rule" aria-pressed="false">策略库改为已验证 <span class="count">1</span></button>
+          </div>
+
+          <div class="grid-main-side">
+            <div class="table-wrap enter" style="--i:2">
+              <table class="table" id="tblTodo">
+                <thead><tr><th>类型</th><th>对象</th><th>主渠道 · 版本</th><th>提交人</th><th>提交时间</th></tr></thead>
+                <tbody>
+                  <tr class="pick is-selected" data-type="card" data-detail="dCard" tabindex="0">
+                    <td><span class="badge badge--accent"><svg class="icon"><use href="#ph-cards"/></svg>决策卡立项</span></td>
+                    <td><div class="cell-title">树脂一体 · 30″ 拆装 · 落地式</div><div class="cell-sub">增长型 · 市场把握 B · 做到概率 52% / 47%（扣偏差）</div></td>
+                    <td>Amazon · v3</td><td>wen</td><td class="num t-nowrap">11-03 10:12</td>
+                  </tr>
+                  <tr class="pick" data-type="rule" data-detail="dRule" tabindex="0">
+                    <td><span class="badge"><svg class="icon"><use href="#ph-stack"/></svg>策略库改为已验证</span></td>
+                    <td><div class="cell-title">首月 ≥ 2 色、≥ 4 子体</div><div class="cell-sub">历史观察 → 已验证</div></td>
+                    <td>策略库 · v2</td><td>wen</td><td class="num t-nowrap">11-02 16:40</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 详情：决策卡 -->
+            <aside class="panel enter" style="--i:3" id="dCard" aria-label="审批详情">
+              <div class="panel__head">
+                <div><h2 class="panel__title">树脂一体 · 30″ 拆装 · 落地式</h2><div class="small muted">决策卡 v3 · wen 11-03 10:12 提交</div></div>
+                <a class="btn btn--sm" href="PAGE-F21-02.html"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>看全文</span></a>
+              </div>
+              <div class="panel__body stack">
+                <div class="sum">
+                  <div class="sum__item"><div class="sum__label">分渠道结论</div><div class="sum__value">Amazon 上 · Wayfair 观察</div></div>
+                  <div class="sum__item"><div class="sum__label">市场把握 · 份额区间</div><div class="sum__value">B · 10.5%–14.0%<span class="etag">n=27 月</span></div></div>
+                  <div class="sum__item"><div class="sum__label">做到概率 原值 / 扣偏差</div><div class="sum__value">52% / 47%<span class="etag">推导</span></div></div>
+                  <div class="sum__item"><div class="sum__label">Amazon FBA 单件利润</div><div class="sum__value">$13.35 · 5.4%<span class="etag">推导</span></div></div>
+                </div>
+                <div>
+                  <div class="small muted">看到这些就停</div>
+                  <ul class="stop">
+                    <li>前 3 个月评分 &lt; 4.2</li>
+                    <li>第 2–3 个月月销 &lt; 40 件</li>
+                    <li>竞品把价格压到同框 0.75 倍以下</li>
+                  </ul>
+                </div>
+
+                <fieldset class="field" style="border:0;padding:0;margin:0">
+                  <legend class="field__label">结论<span class="req">*</span></legend>
+                  <div class="choice-group" role="radiogroup">
+                    <label class="choice"><input type="radio" name="dec" value="批准" checked>批准</label>
+                    <label class="choice"><input type="radio" name="dec" value="驳回">驳回</label>
+                    <label class="choice"><input type="radio" name="dec" value="退回修改">退回修改</label>
+                  </div>
+                </fieldset>
+                <label class="field"><span class="field__label">意见</span><textarea class="textarea" id="opCard">先上原木和白两色，盆的排水孔按标准 1-1/4 英寸改，首批 300 套。</textarea><span class="field__hint">驳回和退回修改时必填</span></label>
+
+                <div class="banner" id="afterApprove">
+                  <svg class="icon"><use href="#ph-lock-simple"/></svg>
+                  <div class="banner__body">
+                    <div class="banner__title">批准后</div>
+                    <ul class="after">
+                      <li>卡片锁定为只读版本 v3，数字保存为批准时的快照；之后数据更新只提示"有新数据"</li>
+                      <li>自动在 <a href="PAGE-F26-01.html">预测台账</a> 登记这张卡的预测（预计上架 2027-06）</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div class="panel__foot row"><span class="spacer"></span><button class="btn btn--primary" type="button" id="btnSubmit" data-target="card"><svg class="icon"><use href="#ph-seal-check"/></svg><span>提交审批结论</span></button></div>
+            </aside>
+
+            <!-- 详情：策略库 -->
+            <aside class="panel" id="dRule" aria-label="审批详情" hidden>
+              <div class="panel__head">
+                <div><h2 class="panel__title">首月 ≥ 2 色、≥ 4 子体</h2><div class="small muted">策略库 SL-03 · 申请人 wen · 11-02 16:40</div></div>
+                <a class="btn btn--sm" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>看条目</span></a>
+              </div>
+              <div class="panel__body stack">
+                <div class="row"><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span><svg class="icon"><use href="#ph-arrow-right"/></svg><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已验证</span></div>
+                <dl class="kv">
+                  <dt>结论</dt><dd>新家族首月就铺 ≥ 2 个颜色、≥ 4 个子体，6 个月内做到的比例更高</dd>
+                  <dt>申请依据</dt><dd>台账已对账 3 条中，满足条件的 2 条做到 2 条，不满足的 1 条未做到；历史新家族 214 个中，满足条件的做到率 38%（n=61），不满足的 17%（n=153）</dd>
+                  <dt>当前版本</dt><dd>v2 · 2026-10-20 修改</dd>
+                </dl>
+                <fieldset class="field" style="border:0;padding:0;margin:0">
+                  <legend class="field__label">结论<span class="req">*</span></legend>
+                  <div class="choice-group" role="radiogroup">
+                    <label class="choice"><input type="radio" name="dec2" value="批准">批准</label>
+                    <label class="choice"><input type="radio" name="dec2" value="驳回" checked>驳回</label>
+                    <label class="choice"><input type="radio" name="dec2" value="退回修改">退回修改</label>
+                  </div>
+                </fieldset>
+                <label class="field"><span class="field__label">意见</span><textarea class="textarea">台账只对账了 3 条，等满 10 条再申请。</textarea></label>
+                <div class="banner"><svg class="icon"><use href="#ph-info"/></svg><div class="banner__body">批准后条目状态改为"已验证"并生成新版本 v3；驳回则保持"历史观察"。</div></div>
+              </div>
+              <div class="panel__foot row"><span class="spacer"></span><button class="btn btn--primary" type="button" data-toast="已记录：驳回，条目保持历史观察"><svg class="icon"><use href="#ph-seal-check"/></svg><span>提交审批结论</span></button></div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- 已处理 -->
+        <section id="tabDone" role="tabpanel" hidden>
+          <div class="filters" data-filter-scope="#tblDone">
+            <span class="filters__label">结论</span>
+            <button class="chip" type="button" data-filter="res:all" aria-pressed="true">全部 <span class="count">5</span></button>
+            <button class="chip" type="button" data-filter="res:ok" aria-pressed="false">批准 <span class="count">2</span></button>
+            <button class="chip" type="button" data-filter="res:no" aria-pressed="false">驳回 <span class="count">2</span></button>
+            <button class="chip" type="button" data-filter="res:back" aria-pressed="false">退回修改 <span class="count">1</span></button>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="tblDone">
+              <thead><tr><th>类型</th><th>对象</th><th>结论</th><th>审批人</th><th><button class="th-sort" type="button" aria-sort="descending">审批时间<svg class="icon"><use href="#ph-caret-down"/></svg></button></th><th>意见</th><th>结果</th></tr></thead>
+              <tbody>
+                <tr data-res="ok"><td>决策卡立项</td><td><a class="tlink" href="PAGE-F21-02.html">岗石 · 48″ 整装 · 落地式</a><div class="cell-sub">v2 · Amazon</div></td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>批准</span></td><td>老板</td><td class="num t-nowrap" data-sort="2026-10-21">2026-10-21 15:30</td><td class="opinion">先上白和海军蓝两色，台面用岗石不要石英石。</td><td><span class="lock"><svg class="icon"><use href="#ph-lock-simple"/></svg>已锁定 v2</span><br><a class="small" href="PAGE-F26-01.html">已登记台账 TZ-2026-07</a></td></tr>
+                <tr data-res="back"><td>决策卡立项</td><td><a class="tlink" href="PAGE-F21-02.html">竖棱 · 24″ 拆装 · 悬浮式</a><div class="cell-sub">v1 · Wayfair</div></td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-arrow-left"/></svg>退回修改</span></td><td>老板</td><td class="num t-nowrap" data-sort="2026-10-15">2026-10-15 11:05</td><td class="opinion">差评只归类了 Amazon 的，补上 Wayfair 的再提。</td><td class="small muted">已回到草稿，wen 修改中</td></tr>
+                <tr data-res="no"><td>决策卡立项</td><td><a class="tlink" href="PAGE-F21-02.html">黑色柜体 · 30″ 拆装 · 落地式</a><div class="cell-sub">v1 · Amazon</div></td><td><span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>驳回</span></td><td>老板</td><td class="num t-nowrap" data-sort="2026-10-08">2026-10-08 17:20</td><td class="opinion">市场把握 D 档，不做。</td><td class="small muted">卡片状态：已驳回</td></tr>
+                <tr data-res="no"><td>策略库改为已验证</td><td><a class="tlink" href="PAGE-F25-02.html">老板：评分做好就起量</a><div class="cell-sub">未验证经验 → 已验证</div></td><td><span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>驳回</span></td><td>老板</td><td class="num t-nowrap" data-sort="2026-09-30">2026-09-30 10:45</td><td class="opinion">回测没支持，保持未验证经验。</td><td class="small muted">状态保持：未验证经验</td></tr>
+                <tr data-res="ok"><td>策略库改为已验证</td><td><a class="tlink" href="PAGE-F25-02.html">只在同一框里比较</a><div class="cell-sub">历史观察 → 已验证</div></td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>批准</span></td><td>老板</td><td class="num t-nowrap" data-sort="2026-09-22">2026-09-22 14:10</td><td class="opinion">同意，跨框比的结论都作废。</td><td class="small muted">已生效：已验证 v3</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pager"><span>共 5 条</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button></div></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- 审批确认弹窗 -->
+  <div class="modal" id="dlgConfirm" role="dialog" aria-modal="true" aria-labelledby="cfTitle" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="cfTitle">确认批准：树脂一体 · 30″ 拆装 · 落地式</h2><p class="modal__sub">提交后不能撤回</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body stack">
+        <dl class="kv">
+          <dt>审批人</dt><dd>老板</dd>
+          <dt>时间</dt><dd class="num">2026-11-03 15:08</dd>
+          <dt>结论</dt><dd id="cfDec">批准</dd>
+          <dt>意见</dt><dd id="cfOp">先上原木和白两色，盆的排水孔按标准 1-1/4 英寸改，首批 300 套。</dd>
+        </dl>
+        <div class="banner" id="cfAfter"><svg class="icon"><use href="#ph-lock-simple"/></svg><div class="banner__body">卡片锁定为只读版本 v3，并自动登记到预测台账。</div></div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="button" data-close id="cfOk">确认提交</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var rows = document.querySelectorAll('#tblTodo tr.pick');
+      function pick(tr) {
+        Array.prototype.forEach.call(rows, function (r) {
+          r.classList.toggle('is-selected', r === tr);
+          document.getElementById(r.getAttribute('data-detail')).hidden = r !== tr;
+        });
+      }
+      Array.prototype.forEach.call(rows, function (tr) {
+        tr.addEventListener('click', function () { pick(tr); });
+        tr.addEventListener('keydown', function (e) { if (e.key === 'Enter') pick(tr); });
+      });
+      var after = document.getElementById('afterApprove');
+      Array.prototype.forEach.call(document.querySelectorAll('input[name="dec"]'), function (r) {
+        r.addEventListener('change', function () { after.hidden = r.value !== '批准'; });
+      });
+      document.getElementById('btnSubmit').addEventListener('click', function () {
+        var dec = document.querySelector('input[name="dec"]:checked').value;
+        var op = document.getElementById('opCard');
+        if (dec !== '批准' && !op.value.trim()) { op.setAttribute('aria-invalid', 'true'); op.focus(); window.oppoToast('驳回或退回修改时请填写意见'); return; }
+        op.removeAttribute('aria-invalid');
+        document.getElementById('cfTitle').textContent = '确认' + dec + '：树脂一体 · 30″ 拆装 · 落地式';
+        document.getElementById('cfDec').textContent = dec;
+        document.getElementById('cfOp').textContent = op.value.trim() || '无';
+        document.getElementById('cfAfter').hidden = dec !== '批准';
+        window.oppoOpen('#dlgConfirm');
+      });
+      document.getElementById('cfOk').addEventListener('click', function () {
+        var dec = document.getElementById('cfDec').textContent;
+        window.oppoToast(dec === '批准' ? '已批准：卡片锁定为 v3，已登记台账 TZ-2026-08' : '已记录：' + dec + '，卡片回到 wen 处理');
+      });
+    })();
+  </script>
+</body>
+</html>

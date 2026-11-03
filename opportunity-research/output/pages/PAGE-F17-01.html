@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F17-01">
+  <title>Amazon 月度数据 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .steps--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .batch-meta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); margin-bottom: var(--space-4); font-size: var(--text-sm); color: var(--muted); }
+    .batch-meta strong { color: var(--fg); font-weight: 600; }
+    .progress { display: flex; align-items: center; gap: var(--space-4); }
+    .progress .meter { flex: 1; margin-top: 0; height: 8px; }
+    .progress__num { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .star { color: var(--warn); font-weight: 600; }
+    .check-detail { font-size: var(--text-xs); color: var(--muted); }
+    .cov { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); font-size: var(--text-xs); }
+    .cov b { font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums; }
+    .batch-actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-4); }
+    @media (max-width: 1279px) { .steps.steps--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); } .steps--5 .step::after { display: block; } }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+        <div class="nav__group">数据</div>
+        <a class="nav__item" href="PAGE-F17-01.html" aria-current="page"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+        <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+        <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+        <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+        <div class="nav__group">决策</div>
+        <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+        <div class="nav__group">审批与台账</div>
+        <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+        <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+        <div class="nav__group">工具</div>
+        <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+        <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+        <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+        <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+        <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="job" data-state="pulling" hidden><svg class="icon spin"><use href="#ph-circle-notch"/></svg>拉取 Amazon 2026-10<span class="job__bar"><i style="width:64%"></i></span><span class="num">64%</span></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter">
+          <div>
+            <nav class="crumbs" aria-label="面包屑"><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>Amazon 月度数据</span></nav>
+            <h1>Amazon 月度数据</h1>
+            <p class="page-head__sub">每月用卖家精灵接口拉上月浴室柜类目全量，自动核对后再并入分析。</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn" type="button" data-open="#d-upload"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>手动上传</span></button>
+            <button class="btn btn--primary" type="button" data-open="#m-month"><svg class="icon"><use href="#ph-download-simple"/></svg><span>拉取数据</span></button>
+          </div>
+        </div>
+
+        <!-- 默认状态：2026-10 疑似月份错误 -->
+        <div data-state="blocked">
+          <ol class="steps steps--5 enter" style="--i:1" aria-label="2026-10 批次进度">
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">选月份</span><span class="step__meta">2026-10</span></span></li>
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">费用评估</span><span class="step__meta">11-02 14:04 确认</span></span></li>
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">拉取</span><span class="step__meta">2,850 / 2,850 · 续拉 1 次</span></span></li>
+            <li class="step step--blocked"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-warning-octagon"/></svg></span><span class="step__name">核对</span><span class="step__meta">疑似月份错误</span></span></li>
+            <li class="step step--todo"><span class="step__link"><span class="step__dot">5</span><span class="step__name">并入</span><span class="step__meta">不可并入</span></span></li>
+          </ol>
+
+          <section class="section enter" style="--i:2" aria-labelledby="t-batch">
+            <div class="section__head">
+              <h2 class="section__title" id="t-batch">当前批次 · 2026-10</h2>
+              <span class="section__note">批次 #1 · 卖家精灵接口</span>
+            </div>
+            <div class="banner banner--block" role="alert">
+              <svg class="icon"><use href="#ph-warning-octagon"/></svg>
+              <div class="banner__body">
+                <div class="banner__title">2026-10 疑似月份错误，未并入分析</div>
+                <div class="small">"上月购买标"日期为 2026-09；与 2026-09 小类排名完全相同的 ASIN 占 99.9%（阈值 10%）。卖家精灵很可能还没更新 10 月数据，等其更新后重新拉取，或手动导出上传。</div>
+              </div>
+              <div class="banner__actions">
+                <button class="btn btn--sm" type="button" data-open="#d-upload">手动上传</button>
+                <button class="btn btn--sm" type="button" data-open="#cmp-f16-01">重新拉取</button>
+              </div>
+            </div>
+
+            <div class="grid-main-side" style="margin-top: var(--space-5);">
+              <div class="panel">
+                <div class="panel__head"><h3 class="panel__title">核对结果</h3><span class="section__note">11-02 15:13 核对 · 对照月份 2026-09</span></div>
+                <div class="table-wrap table-wrap--flush">
+                  <table class="table">
+                    <thead><tr><th>核对项</th><th>本批</th><th>阈值</th><th>结论</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td><div class="cell-title">月份误标 · 上月购买标日期</div><div class="cell-sub">须落在所标月份</div></td>
+                        <td class="num">2026-09-01 至 09-30<div class="check-detail">应在 2026-10</div></td>
+                        <td class="small muted">在所标月份内</td>
+                        <td><span class="badge badge--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg>阻断</span></td>
+                      </tr>
+                      <tr>
+                        <td><div class="cell-title">月份误标 · 与上月排名完全相同</div><div class="cell-sub">两月都出现的 ASIN 中，小类排名一样的比例</div></td>
+                        <td class="num">99.9%<button class="etag etag--n" type="button" data-pop-title="排名重合" data-pop="两月都出现=2,847 个 ASIN;排名完全相同=2,844 个;对照=2026-09 并入版本;依据=AC-F17-03">n=2,847</button></td>
+                        <td class="small muted">&gt; 10% 判月份错误</td>
+                        <td><span class="badge badge--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg>阻断</span></td>
+                      </tr>
+                      <tr>
+                        <td><div class="cell-title">品类总月销变化</div><div class="cell-sub">与上月相比</div></td>
+                        <td class="num">+0.1%<span class="etag">估算</span><div class="check-detail">158,410 件 vs 158,260 件</div></td>
+                        <td class="small muted">±30% 内</td>
+                        <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td>
+                      </tr>
+                      <tr>
+                        <td><div class="cell-title">家族键月间一致率</div><div class="cell-sub">同一父体家族两月归属一致</div></td>
+                        <td class="num">99.8%<span class="etag etag--n">n=1,912</span></td>
+                        <td class="small muted">≥ 90%</td>
+                        <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td>
+                      </tr>
+                      <tr>
+                        <td><div class="cell-title">标签覆盖率</div><div class="cell-sub">每个标签有取值的商品占比</div></td>
+                        <td><div class="cov"><span>尺寸 <b>99%</b></span><span>拆装 <b>97%</b></span><span>形态 <b>98%</b></span><span>台面 <b>96%</b></span><span>台面材质 <b>95%</b></span><span>主色 <b>99%</b></span><span>柜体材质 <b>96%</b></span></div></td>
+                        <td class="small muted">每项 ≥ 95%</td>
+                        <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="panel__foot">疑似月份错误的批次不能并入。品类总量、家族键与覆盖率阈值为系统设定值。</div>
+              </div>
+
+              <div class="panel">
+                <div class="panel__head"><h3 class="panel__title">拉取进度</h3><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已完成</span></div>
+                <div class="panel__body">
+                  <div class="progress"><span class="progress__num">2,850</span><span class="muted small">/ 2,850 ASIN</span><div class="meter"><i style="width:100%"></i></div></div>
+                </div>
+                <div class="table-wrap table-wrap--flush">
+                  <table class="table">
+                    <thead><tr><th>次序</th><th>发起</th><th class="t-num">拉取</th><th>结束</th><th class="t-num">计费</th></tr></thead>
+                    <tbody>
+                      <tr><td>第 1 次</td><td class="num">11-02 14:05</td><td class="t-num">1,920</td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>中断</span><div class="cell-sub">14:28 网络超时</div></td><td class="t-num">$19.20</td></tr>
+                      <tr><td>第 2 次 · 续拉</td><td class="num">11-02 14:31</td><td class="t-num">930</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span><div class="cell-sub">15:12</div></td><td class="t-num">$9.30</td></tr>
+                    </tbody>
+                    <tfoot><tr><td colspan="2" class="small muted" style="padding: var(--space-2) var(--space-3);">合计 · 已拉部分未重复调用</td><td class="t-num strong" style="padding: var(--space-2) var(--space-3);">2,850</td><td></td><td class="t-num strong" style="padding: var(--space-2) var(--space-3);">$28.50</td></tr></tfoot>
+                  </table>
+                </div>
+                <div class="panel__foot"><a class="tlink" href="PAGE-F16-02.html">费用记录</a></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- #pulling：拉取中 -->
+        <div data-state="pulling" hidden>
+          <ol class="steps steps--5" aria-label="2026-10 批次进度">
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">选月份</span><span class="step__meta">2026-10</span></span></li>
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">费用评估</span><span class="step__meta">已确认 $28.50–29.50</span></span></li>
+            <li class="step step--current"><span class="step__link"><span class="step__dot">3</span><span class="step__name">拉取</span><span class="step__meta">64% · 1,824 / 2,850</span></span></li>
+            <li class="step step--todo"><span class="step__link"><span class="step__dot">4</span><span class="step__name">核对</span><span class="step__meta">拉完自动开始</span></span></li>
+            <li class="step step--todo"><span class="step__link"><span class="step__dot">5</span><span class="step__name">并入</span><span class="step__meta">待核对</span></span></li>
+          </ol>
+          <section class="section" aria-labelledby="t-pull">
+            <div class="section__head"><h2 class="section__title" id="t-pull">当前批次 · 2026-10</h2><span class="section__note">批次 #2 · 卖家精灵接口 · 同一月份同时只运行一个拉取任务</span></div>
+            <div class="panel">
+              <div class="panel__body">
+                <div class="progress"><span class="progress__num" id="pull-num">1,824</span><span class="muted small">/ 2,850 ASIN · 拉取商品月度字段</span><div class="meter"><i id="pull-bar" style="width:64%"></i></div><span class="num strong" id="pull-pct">64%</span></div>
+                <p class="field__hint" style="margin-top: var(--space-2);">可随时暂停，已拉部分会保存；中断或暂停后继续时只拉缺的部分，不重复计费。预计还需 12 分钟。</p>
+                <div class="batch-actions"><button class="btn" type="button" id="pause"><svg class="icon"><use href="#ph-timer"/></svg><span>暂停</span></button></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- #anomaly：核对异常待确认 -->
+        <div data-state="anomaly" hidden>
+          <ol class="steps steps--5" aria-label="2026-10 批次进度">
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">选月份</span><span class="step__meta">2026-10</span></span></li>
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">费用评估</span><span class="step__meta">已确认</span></span></li>
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">拉取</span><span class="step__meta">2,868 / 2,868</span></span></li>
+            <li class="step step--attention"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-warning"/></svg></span><span class="step__name">核对</span><span class="step__meta">1 项异常</span></span></li>
+            <li class="step step--current"><span class="step__link"><span class="step__dot">5</span><span class="step__name">并入</span><span class="step__meta">待 wen 确认</span></span></li>
+          </ol>
+          <section class="section" aria-labelledby="t-ano">
+            <div class="section__head"><h2 class="section__title" id="t-ano">当前批次 · 2026-10</h2><span class="section__note">批次 #2 · 卖家精灵接口 · 11-12 拉取</span></div>
+            <div class="banner banner--warn" role="status">
+              <svg class="icon"><use href="#ph-warning"/></svg>
+              <div class="banner__body"><div class="banner__title">核对有 1 项异常，需确认后才能并入</div><div class="small">家族键月间一致率 86%，低于 90%。月份误标检测已通过。</div></div>
+            </div>
+            <div class="panel" style="margin-top: var(--space-5);">
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>核对项</th><th>本批</th><th>阈值</th><th>结论</th></tr></thead>
+                  <tbody>
+                    <tr><td class="cell-title">月份误标 · 上月购买标日期</td><td class="num">2026-10-01 至 10-31</td><td class="small muted">在所标月份内</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td></tr>
+                    <tr><td class="cell-title">月份误标 · 与上月排名完全相同</td><td class="num">3.2%<span class="etag etag--n">n=2,801</span></td><td class="small muted">&gt; 10% 判月份错误</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td></tr>
+                    <tr><td class="cell-title">品类总月销变化</td><td class="num">+12.4%<span class="etag">估算</span><div class="check-detail">177,880 件 vs 158,260 件</div></td><td class="small muted">±30% 内</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td></tr>
+                    <tr><td class="cell-title">家族键月间一致率</td><td class="num">86%<span class="etag etag--n">n=1,934</span><div class="check-detail">272 个家族的父体归属与 9 月不同，集中在变体字段改版后的品牌</div></td><td class="small muted">≥ 90%</td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>异常</span></td></tr>
+                    <tr><td class="cell-title">标签覆盖率</td><td><div class="cov"><span>尺寸 <b>99%</b></span><span>拆装 <b>97%</b></span><span>形态 <b>98%</b></span><span>台面 <b>96%</b></span><span>台面材质 <b>95%</b></span><span>主色 <b>99%</b></span><span>柜体材质 <b>96%</b></span></div></td><td class="small muted">每项 ≥ 95%</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="batch-actions">
+              <button class="btn" type="button" data-toast="已放弃 2026-10 批次 #2，原始数据保留">放弃本批</button>
+              <button class="btn" type="button" data-open="#m-confirm"><svg class="icon"><use href="#ph-git-merge"/></svg><span>确认异常并入</span></button>
+            </div>
+          </section>
+        </div>
+
+        <section class="section enter" style="--i:3" aria-labelledby="t-hist">
+          <div class="section__head">
+            <h2 class="section__title" id="t-hist">历史月份</h2>
+            <span class="section__note">共 25 个月（2024-10 起）· 原始数据与并入版本保留至少 36 个月</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>月份</th><th>来源</th><th class="t-num">ASIN</th><th class="t-num">品类总月销</th><th>状态</th><th>异常原因</th><th>并入时间</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="num strong">2026-10</td><td>卖家精灵接口</td><td class="t-num">2,850</td><td class="t-num"><span class="etag etag--nodata">无数据 · 未并入</span></td>
+                  <td><span class="badge badge--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg>疑似月份错误</span></td>
+                  <td class="small">与 2026-09 排名重合 99.9%</td><td class="muted">—</td><td></td>
+                </tr>
+                <tr>
+                  <td class="num strong">2026-09<span class="star">*</span></td><td>v11 表导入</td><td class="t-num">2,831</td><td class="t-num">158,260<span class="etag">估算</span></td>
+                  <td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>已并入*</span></td>
+                  <td class="small">数据来源切换（v11 表），家族键月间一致率 84%</td><td class="num small">10-06 11:20</td><td><a class="tlink small" href="PAGE-F20-01.html">查看扫描</a></td>
+                </tr>
+                <tr>
+                  <td class="num strong">2026-08<span class="star">*</span></td><td>v11 表导入</td><td class="t-num">2,806</td><td class="t-num">151,930<span class="etag">估算</span></td>
+                  <td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>已并入*</span></td>
+                  <td class="small">数据来源切换（v11 表），家族键月间一致率 85%</td><td class="num small">09-05 16:42</td><td><a class="tlink small" href="PAGE-F20-01.html">查看扫描</a></td>
+                </tr>
+                <tr>
+                  <td class="num strong">2026-07<span class="star">*</span></td><td>v11 表导入</td><td class="t-num">2,790</td><td class="t-num">176,480<span class="etag">估算</span></td>
+                  <td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>已并入*</span></td>
+                  <td class="small">数据来源切换（v11 表），家族键月间一致率 83%</td><td class="num small">08-04 10:15</td><td><a class="tlink small" href="PAGE-F20-01.html">查看扫描</a></td>
+                </tr>
+                <tr>
+                  <td class="num strong">2026-06<span class="star">*</span></td><td>v11 表导入</td><td class="t-num">2,744</td><td class="t-num">149,120<span class="etag">估算</span></td>
+                  <td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>已并入*</span></td>
+                  <td class="small">来源切换首月，家族键月间一致率 81%</td><td class="num small">07-03 14:08</td><td><a class="tlink small" href="PAGE-F20-01.html">查看扫描</a></td>
+                </tr>
+                <tr>
+                  <td class="num strong">2026-05</td><td>卖家精灵导出</td><td class="t-num">2,712</td><td class="t-num">147,350<span class="etag">估算</span></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已并入</span></td>
+                  <td class="muted">—</td><td class="num small">06-04 09:51</td><td><a class="tlink small" href="PAGE-F20-01.html">查看扫描</a></td>
+                </tr>
+                <tr>
+                  <td class="num strong">2026-04</td><td>卖家精灵导出</td><td class="t-num">2,698</td><td class="t-num">139,870<span class="etag">估算</span></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已并入</span></td>
+                  <td class="muted">—</td><td class="num small">05-06 15:30</td><td><a class="tlink small" href="PAGE-F20-01.html">查看扫描</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pager"><span>每页 50 条 · 第 1 页 · 显示最近 7 个月</span><div class="pager__pages"><button class="btn btn--sm btn--ghost" type="button" data-toast="已展开 2024-10 至 2026-03">展开更早 18 个月</button></div></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal" id="m-month" role="dialog" aria-modal="true" aria-labelledby="m-month-t" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="m-month-t">拉取月份</h2><p class="modal__sub">卖家精灵接口 · 浴室柜类目全部商品</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body">
+        <div class="field">
+          <label class="field__label" for="pick-month">月份<span class="req">*</span></label>
+          <select class="select" id="pick-month"><option selected>2026-10（上一个自然月）</option><option>2026-09</option><option>2026-08</option><option>2026-07</option></select>
+          <p class="field__hint">拉取字段：ASIN、父体、品牌、价格、月销、小类排名、评分、评分数、上架日期、变体、图片、链接。已并入的月份再次拉取会生成新批次，旧版本保留。</p>
+        </div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="button" id="to-cmp"><span>下一步：评估费用</span><svg class="icon"><use href="#ph-arrow-right"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CMP-F16-01 费用评估确认弹窗（共用组件，定义见 PAGE-F16-02） -->
+  <div class="modal" id="cmp-f16-01" role="dialog" aria-modal="true" aria-labelledby="cmp-t" aria-hidden="true" data-component="CMP-F16-01">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="cmp-t">确认费用后开始</h2><p class="modal__sub">拉取 Amazon 2026-10 浴室柜类目月度数据 · 卖家精灵</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body">
+        <div class="stats">
+          <div class="stat"><div class="stat__label">预计调用量</div><div class="stat__value num">2,850–2,950<span class="stat__unit">次</span></div><div class="stat__meta">约 2,850 个 ASIN<span class="etag">估算</span></div></div>
+          <div class="stat"><div class="stat__label">预计费用</div><div class="stat__value num">$28.50–29.50</div><div class="stat__meta">按 $0.01 / 次<span class="etag">估算</span></div></div>
+          <div class="stat"><div class="stat__label">预计耗时</div><div class="stat__value num">25–40<span class="stat__unit">分钟</span></div><div class="stat__meta">可中断，续拉不重复计费</div></div>
+        </div>
+        <dl class="kv" style="margin-top: var(--space-4);">
+          <dt>本月额度</dt><dd class="num">已用 3,120 / 5,000 次；本次后预计 5,970–6,070 次</dd>
+        </dl>
+        <div class="banner banner--warn" style="margin-top: var(--space-4);">
+          <svg class="icon"><use href="#ph-warning"/></svg>
+          <div class="banner__body"><div class="banner__title">预计超过本月上限 5,000 次</div><div class="small">达到上限时自动停止，已拉数据保留；调高上限后续拉，已成功部分不重复计费。</div></div>
+          <div class="banner__actions"><a class="btn btn--sm" href="PAGE-F16-02.html">调整上限</a></div>
+        </div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="button" id="cmp-ok"><svg class="icon"><use href="#ph-play"/></svg><span>确认并开始</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="m-confirm" role="dialog" aria-modal="true" aria-labelledby="m-confirm-t" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="m-confirm-t">确认异常并入 2026-10</h2><p class="modal__sub">批次 #2 · 卖家精灵接口</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body stack">
+        <dl class="kv">
+          <dt>异常项</dt><dd>家族键月间一致率 86%（阈值 ≥ 90%，n=1,934）</dd>
+          <dt>异常原因</dt><dd>家族键月间一致率低于阈值：272 个家族父体归属与 2026-09 不同</dd>
+        </dl>
+        <div class="field">
+          <label class="field__label" for="c-note">补充说明</label>
+          <textarea class="textarea" id="c-note">卖家精灵 10 月起变体字段改版，部分品牌父体重新归并；抽查 20 个家族属实，销量口径未变。</textarea>
+          <p class="field__hint">选填，会与异常原因一起显示。</p>
+        </div>
+        <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">并入后该月在所有图表和决策卡中带 * 标记，并注明异常原因。</div></div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="button" id="do-merge"><span>确认并入</span></button>
+      </div>
+    </div>
+  </div>
+
+  <aside class="drawer" id="d-upload" role="dialog" aria-modal="true" aria-labelledby="d-upload-t" aria-hidden="true">
+    <div class="drawer__head">
+      <div><h2 class="drawer__title" id="d-upload-t">手动上传</h2><p class="drawer__sub">卖家精灵接口不可用时的后备；核对规则与接口拉取相同</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="drawer__body stack-lg">
+      <div class="field">
+        <label class="field__label" for="u-month">月份<span class="req">*</span></label>
+        <select class="select" id="u-month"><option>2026-10</option><option>2026-09</option></select>
+      </div>
+      <div class="field">
+        <span class="field__label">文件<span class="req">*</span></span>
+        <label class="dropzone" for="u-file">
+          <svg class="icon"><use href="#ph-file-xls"/></svg>
+          <span><span class="strong">选择或拖入卖家精灵导出文件</span><br><span class="small muted">.xlsx / .csv，与"类目选品"导出同格式</span></span>
+          <input class="visually-hidden" id="u-file" type="file" accept=".xlsx,.csv">
+        </label>
+      </div>
+      <div class="banner banner--block">
+        <svg class="icon"><use href="#ph-warning-octagon"/></svg>
+        <div class="banner__body"><div class="banner__title">上次上传未通过格式检查</div><div class="small">浴室柜_类目选品_2026-10.xlsx 缺少"小类排名"列（第 1 行表头）。请在卖家精灵"类目选品"里勾选全部字段后重新导出。</div></div>
+      </div>
+    </div>
+    <div class="drawer__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--primary" type="button" data-close data-toast="已上传，正在核对 2026-10"><span>上传并核对</span></button>
+    </div>
+  </aside>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var state = location.hash === '#pulling' ? 'pulling' : location.hash === '#anomaly' ? 'anomaly' : 'blocked';
+      document.querySelectorAll('[data-state]').forEach(function (el) { el.hidden = el.getAttribute('data-state') !== state; });
+      document.getElementById('to-cmp').addEventListener('click', function () {
+        window.oppoClose('#m-month');
+        setTimeout(function () { window.oppoOpen('#cmp-f16-01'); }, 220);
+      });
+      document.getElementById('cmp-ok').addEventListener('click', function () {
+        window.oppoClose('#cmp-f16-01');
+        location.hash = 'pulling';
+        location.reload();
+      });
+      document.getElementById('do-merge').addEventListener('click', function () {
+        window.oppoClose('#m-confirm');
+        window.oppoToast('已并入 2026-10*，已触发新商品打标');
+      });
+      var pause = document.getElementById('pause');
+      if (pause) pause.addEventListener('click', function () {
+        var label = pause.querySelector('span');
+        var paused = label.textContent === '暂停';
+        label.textContent = paused ? '继续拉取' : '暂停';
+        window.oppoToast(paused ? '已暂停，已拉 1,824 个已保存' : '继续拉取缺的 1,026 个');
+      });
+    })();
+  </script>
+</body>
+</html>

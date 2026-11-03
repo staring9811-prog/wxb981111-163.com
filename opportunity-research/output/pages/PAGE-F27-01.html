@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F27-01">
+  <title>品类配置 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .vals { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+    .val { display: inline-flex; align-items: center; height: 22px; padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-warm); font-size: var(--text-xs); color: var(--fg-2); white-space: nowrap; }
+    .thr { display: flex; align-items: center; gap: var(--space-4); }
+    .thr input[type="range"] { width: 240px; accent-color: var(--fg); }
+    .thr input[type="range"]:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+    .w-num { width: 88px; }
+    .table .input, .table .select { min-height: 28px; padding: 2px var(--space-2); }
+    .catbar { display: flex; align-items: center; gap: var(--space-3); }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <!-- 第二轮共用侧栏（所有页面原样复制，当前页的 a 加 aria-current="page"；按角色隐藏的项在页面说明里写明） -->
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+        <div class="nav__group">数据</div>
+        <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+        <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+        <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+        <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+        <div class="nav__group">决策</div>
+        <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+        <div class="nav__group">审批与台账</div>
+        <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+        <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+        <div class="nav__group">工具</div>
+        <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+        <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+        <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+        <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+        <a class="nav__item" href="PAGE-F27-01.html" aria-current="page"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+    <!-- 顶栏：左侧"浴室柜"品类标签；需要渠道的页面（PAGE-F20-01、PAGE-F21-01、PAGE-F21-02）在顶栏放渠道切换 seg：Amazon / Home Depot / Lowe's / Wayfair；右侧"wen · 操作者"用户菜单（退出登录 → PAGE-F15-01.html）。 -->
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="version">参数 v3</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <div class="crumbs"><span>设置</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>品类配置</span></div>
+            <h1>品类配置 · 浴室柜</h1>
+            <p class="page-head__sub">分框维度、扫描属性、打标规则、低置信度阈值，以及各渠道的评论换算系数、估算方法和成功线。保存后生成新参数版本，之后的销量估算、机会扫描和台账判定使用新值。</p>
+          </div>
+          <div class="page-head__actions">
+            <span class="small muted" data-dirty-hint hidden>有未保存的修改</span>
+            <button class="btn btn--primary" type="button" data-open="#dlgSave"><svg class="icon"><use href="#ph-check"/></svg><span>保存为新版本</span></button>
+          </div>
+        </div>
+
+        <div class="banner enter" style="--i:1">
+          <svg class="icon"><use href="#ph-info"/></svg>
+          <div class="banner__body catbar"><span>品类</span><span class="badge badge--accent"><svg class="icon"><use href="#ph-cube"/></svg>浴室柜 Bathroom Vanity</span><span class="small muted">第一版只开浴室柜一个品类。当前在用：参数 v3 · wen · 2026-11-03 15:40</span></div>
+        </div>
+
+        <form class="section" data-guard onsubmit="return false">
+          <div class="tabs enter" style="--i:2" role="tablist" aria-label="配置分区">
+            <button class="tab" role="tab" type="button" aria-selected="true" aria-controls="tFrame">分框与属性</button>
+            <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="tTag">打标规则</button>
+            <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="tCh">渠道参数</button>
+            <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="tVer">参数版本 <span class="count">3</span></button>
+          </div>
+
+          <!-- 分框与属性 -->
+          <section id="tFrame" role="tabpanel" class="stack-lg">
+            <section class="panel">
+              <div class="panel__head"><h2 class="panel__title">分框维度</h2><span class="section__note">一切比较都在框内进行；默认 尺寸段 × 拆装 × 形态</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>顺序</th><th>维度</th><th>取值</th><th>来源标签</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+                  <tbody>
+                    <tr><td class="num">1</td><td class="cell-title">尺寸段</td><td><div class="vals"><span class="val">24″</span><span class="val">30″</span><span class="val">36″</span><span class="val">48″</span><span class="val">60″</span><span class="val">72″</span></div></td><td>宽度（英寸，按最近尺寸段归入）</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="num">2</td><td class="cell-title">拆装</td><td><div class="vals"><span class="val">拆装</span><span class="val">整装</span></div></td><td>标题与规格中的组装方式</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="num">3</td><td class="cell-title">形态</td><td><div class="vals"><span class="val">落地式</span><span class="val">悬浮式</span></div></td><td>安装方式（看图 + 规格）</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__foot">共 24 个框；近 6 个月月销 &lt; 200 件的框不扫描。</div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__head"><h2 class="panel__title">扫描属性</h2><button class="btn btn--sm" type="button" data-toast="已新增一行属性，填写后保存"><svg class="icon"><use href="#ph-plus"/></svg><span>新增属性</span></button></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>参与扫描</th><th>属性</th><th>取值</th><th>打标方式</th></tr></thead>
+                  <tbody>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="台面材质参与扫描"></label></td><td class="cell-title">台面材质</td><td><div class="vals"><span class="val">陶瓷一体</span><span class="val">树脂一体</span><span class="val">岗石</span><span class="val">石英石</span><span class="val">大理石</span><span class="val">无台面</span></div></td><td>规则</td></tr>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="元素参与扫描"></label></td><td class="cell-title">元素</td><td><div class="vals"><span class="val">竖棱</span><span class="val">农场风</span><span class="val">夏克式</span><span class="val">横板条</span><span class="val">藤编</span><span class="val">无明显元素</span></div></td><td>看图（大模型）</td></tr>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="主色参与扫描"></label></td><td class="cell-title">主色</td><td><div class="vals"><span class="val">白</span><span class="val">原木</span><span class="val">深木</span><span class="val">黑</span><span class="val">灰</span><span class="val">蓝绿</span></div></td><td>规则 + 看图</td></tr>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="柜体材质参与扫描"></label></td><td class="cell-title">柜体材质</td><td><div class="vals"><span class="val">实木</span><span class="val">胶合板</span><span class="val">MDF</span><span class="val">颗粒板</span></div></td><td>规则</td></tr>
+                    <tr><td><label class="check"><input type="checkbox" aria-label="价格档参与扫描"></label></td><td class="cell-title">价格档</td><td><div class="vals"><span class="val">低</span><span class="val">中</span><span class="val">高</span></div></td><td>规则（框内价比三分位）</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <!-- 打标规则 -->
+          <section id="tTag" role="tabpanel" class="stack-lg" hidden>
+            <section class="panel">
+              <div class="panel__head"><h2 class="panel__title">低置信度阈值</h2></div>
+              <div class="panel__body stack">
+                <div class="thr">
+                  <input type="range" min="0.5" max="0.95" step="0.05" value="0.75" id="thr" aria-label="低置信度阈值">
+                  <span class="strong num" id="thrVal">0.75</span>
+                  <span class="small muted">置信度低于阈值的标签进入 <a href="PAGE-F18-01.html">打标确认</a> 队列；元素始终进入确认队列</span>
+                </div>
+                <p class="small muted">按 2026-10 数据：阈值 0.75 时进入确认队列 <span class="strong num" id="thrN">37</span> 条（四个渠道合计）。</p>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel__head"><h2 class="panel__title">打标规则</h2><span class="section__note">四个渠道用同一套规则，确认队列标明渠道</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>标签</th><th>方式</th><th>规则摘要</th><th class="t-num">规则数</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+                  <tbody>
+                    <tr><td class="cell-title">尺寸段</td><td>规则</td><td class="small">标题 / 规格中的宽度英寸数，22–26 归 24″，28–32 归 30″ …</td><td class="t-num">6</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="cell-title">拆装</td><td>规则</td><td class="small">含 "assembly required" / "RTA" 归拆装；"fully assembled" 归整装</td><td class="t-num">9</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="cell-title">形态</td><td>规则 + 看图</td><td class="small">"wall mounted" / "floating" 归悬浮式；无关键词时看主图</td><td class="t-num">5</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="cell-title">台面材质</td><td>规则</td><td class="small">"resin" + "integrated" 归树脂一体；"ceramic" 归陶瓷一体 …</td><td class="t-num">14</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="cell-title">元素</td><td>看图</td><td class="small">大模型看主图判断；未配置大模型时全部进入人工确认</td><td class="t-num">6</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="cell-title">主色 / 柜体材质</td><td>规则 + 看图</td><td class="small">颜色词表 + 主图主色；材质关键词</td><td class="t-num">21</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <!-- 渠道参数 -->
+          <section id="tCh" role="tabpanel" class="stack-lg" hidden>
+            <section class="panel">
+              <div class="panel__head"><h2 class="panel__title">销量估算</h2><span class="section__note">估算月销 = VP 条数 × VP 系数 + 非 VP 条数 × 非 VP 系数；Wayfair 只有 Verified Purchase 计 VP，只在渠道内比较</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>渠道</th><th>估算方法</th><th class="t-num">VP 系数（件 / 条）</th><th class="t-num">非 VP 系数（件 / 条）</th><th>榜单排名平滑</th></tr></thead>
+                  <tbody>
+                    <tr><td class="cell-title">Amazon</td><td colspan="4" class="small muted">销量来自卖家精灵月销，不做换算</td></tr>
+                    <tr><td class="cell-title">Home Depot</td><td><span class="seg" role="group" aria-label="Home Depot 估算方法"><button class="seg__opt" type="button" aria-pressed="true">评论换算</button><button class="seg__opt" type="button" aria-pressed="false">榜单排名平滑</button></span></td><td class="t-num"><input class="input input--num w-num" value="50" aria-label="Home Depot VP 系数"></td><td class="t-num"><input class="input input--num w-num" value="20" aria-label="Home Depot 非 VP 系数"></td><td class="small">可用 · 拟合商品 61 个</td></tr>
+                    <tr><td class="cell-title">Lowe's</td><td><span class="seg" role="group" aria-label="Lowe's 估算方法"><button class="seg__opt" type="button" aria-pressed="true">评论换算</button><button class="seg__opt" type="button" aria-pressed="false">榜单排名平滑</button></span></td><td class="t-num"><input class="input input--num w-num" value="50" aria-label="Lowe's VP 系数"></td><td class="t-num"><input class="input input--num w-num" value="20" aria-label="Lowe's 非 VP 系数"></td><td class="small">可用 · 拟合商品 88 个</td></tr>
+                    <tr><td class="cell-title">Wayfair</td><td><span class="seg" role="group" aria-label="Wayfair 估算方法"><button class="seg__opt" type="button" aria-pressed="true">评论换算</button><button class="seg__opt" type="button" aria-pressed="false">榜单排名平滑</button></span></td><td class="t-num"><input class="input input--num w-num" value="50" aria-label="Wayfair VP 系数"></td><td class="t-num"><input class="input input--num w-num" value="20" aria-label="Wayfair 非 VP 系数"></td><td class="small">可用 · 拟合商品 54 个</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__foot">榜单排名平滑：用同时有排名和评论换算销量的商品拟合排名—销量曲线；这类商品少于 10 个时不提供该方法。两种方法的对照在 <a href="PAGE-F28-01.html">其他渠道数据</a> 查看。</div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__head"><h2 class="panel__title">成功线</h2><span class="section__note">上架 6 个月内任一月满足任一条即为做到；同系列商品合并计算；用于 <a href="PAGE-F26-01.html">预测台账</a> 判定</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>渠道</th><th>进入榜单</th><th class="t-num">榜单名次 ≤</th><th>或</th><th class="t-num">月度门槛</th><th>依据</th></tr></thead>
+                  <tbody>
+                    <tr><td class="cell-title">Amazon</td><td>小类 BSR</td><td class="t-num"><input class="input input--num w-num" value="50" aria-label="Amazon 名次"></td><td class="muted">或 SPU 月销售额 ≥</td><td class="t-num"><input class="input input--num w-num" value="100000" aria-label="Amazon 月销售额美元"> $</td><td class="small muted">方案书成功线</td></tr>
+                    <tr><td class="cell-title">Home Depot</td><td>类目 Top Sellers</td><td class="t-num"><input class="input input--num w-num" value="50" aria-label="Home Depot 名次"></td><td class="muted">或估算月销 ≥</td><td class="t-num"><input class="input input--num w-num" value="250" aria-label="Home Depot 月销件数"> 件</td><td class="small muted">带台面类目第 50 名附近约 244 件</td></tr>
+                    <tr><td class="cell-title">Lowe's</td><td>Best Sellers 榜</td><td class="t-num"><input class="input input--num w-num" value="50" aria-label="Lowe's 名次"></td><td class="muted">或估算月销 ≥</td><td class="t-num"><input class="input input--num w-num" value="150" aria-label="Lowe's 月销件数"> 件</td><td class="small muted">带台面榜前 50 名中位 148 件</td></tr>
+                    <tr><td class="cell-title">Wayfair</td><td>主类目</td><td class="t-num"><input class="input input--num w-num" value="50" aria-label="Wayfair 名次"></td><td class="muted">或估算月销 ≥</td><td class="t-num"><input class="input input--num w-num" value="120" aria-label="Wayfair 月销件数"> 件</td><td class="small muted">主类目前 50 名中位 120 件</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__foot">默认值依据 2026 年 1–10 月数据：Home Depot 3,325、Lowe's 3,850、Wayfair 7,394 条去重评论。</div>
+            </section>
+          </section>
+
+          <!-- 参数版本 -->
+          <section id="tVer" role="tabpanel" hidden>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>版本</th><th>保存人</th><th>时间</th><th>修改内容</th><th>状态</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">v3</td><td>wen</td><td class="num">2026-11-03 15:40</td><td>成功线初版：Home Depot 250 件、Lowe's 150 件、Wayfair 120 件；榜前 50</td><td><span class="badge badge--accent"><svg class="icon"><use href="#ph-check-circle"/></svg>当前在用</span></td></tr>
+                  <tr><td class="mono">v2</td><td>wen</td><td class="num">2026-11-03 11:20</td><td>加入 Home Depot / Lowe's / Wayfair 评论换算：VP 50、非 VP 20；估算方法默认评论换算</td><td class="small muted">已被 v3 替代</td></tr>
+                  <tr><td class="mono">v1</td><td>wen</td><td class="num">2026-10-28 09:05</td><td>浴室柜初始配置：分框 尺寸段 × 拆装 × 形态；5 个扫描属性；低置信度阈值 0.75</td><td class="small muted">已被 v2 替代</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="page-foot">销量估算、机会扫描和台账判定的结果上都注明所用参数版本。旧版本只供查看，不能回滚覆盖已用于判定的结果。</p>
+          </section>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <!-- 保存新版本 -->
+  <div class="modal" id="dlgSave" role="dialog" aria-modal="true" aria-labelledby="svTitle" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head"><div><h2 class="modal__title" id="svTitle">保存为参数 v4</h2><p class="modal__sub">之后的销量估算、机会扫描和台账判定使用新值</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+      <div class="modal__body stack">
+        <div class="diff">
+          <span class="diff__key">Wayfair 成功线</span><span class="diff__old">估算月销 ≥ 120 件</span><span class="diff__new">估算月销 ≥ 130 件</span>
+          <span class="diff__key">低置信度阈值</span><span class="diff__old">0.75</span><span class="diff__new">0.80</span>
+        </div>
+        <label class="field"><span class="field__label">修改说明<span class="req">*</span></span><input class="input" id="svNote" placeholder="例：按 11 月 Wayfair 前 50 名中位数调高"></label>
+        <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">已对账的台账条目保留判定时的参数版本，不会被改写。阈值变化会影响下一次打标的确认队列。</div></div>
+      </div>
+      <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" id="btnSave" data-save>保存 v4</button></div>
+    </div>
+  </div>
+
+  <!-- 维度 / 规则编辑 -->
+  <aside class="drawer" id="dwDim" role="dialog" aria-modal="true" aria-labelledby="dimTitle" aria-hidden="true">
+    <div class="drawer__head"><div><h2 class="drawer__title" id="dimTitle">尺寸段</h2><p class="drawer__sub">分框维度 · 规则打标</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="drawer__body">
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>取值</th><th class="t-num">宽度下限 in</th><th class="t-num">宽度上限 in</th></tr></thead>
+          <tbody>
+            <tr><td>24″</td><td class="t-num"><input class="input input--num w-num" value="22"></td><td class="t-num"><input class="input input--num w-num" value="26"></td></tr>
+            <tr><td>30″</td><td class="t-num"><input class="input input--num w-num" value="28"></td><td class="t-num"><input class="input input--num w-num" value="32"></td></tr>
+            <tr><td>36″</td><td class="t-num"><input class="input input--num w-num" value="34"></td><td class="t-num"><input class="input input--num w-num" value="38"></td></tr>
+            <tr><td>48″</td><td class="t-num"><input class="input input--num w-num" value="46"></td><td class="t-num"><input class="input input--num w-num" value="50"></td></tr>
+            <tr><td>60″</td><td class="t-num"><input class="input input--num w-num" value="58"></td><td class="t-num"><input class="input input--num w-num" value="62"></td></tr>
+            <tr><td>72″</td><td class="t-num"><input class="input input--num w-num" value="70"></td><td class="t-num"><input class="input input--num w-num" value="74"></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted" style="margin-top:var(--space-3)">不在任何区间的商品标为低置信度，进入打标确认。</p>
+    </div>
+    <div class="drawer__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-close data-toast="已修改，保存为新版本后生效">完成</button></div>
+  </aside>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var thr = document.getElementById('thr');
+      var counts = { '0.5': 12, '0.55': 15, '0.6': 19, '0.65': 24, '0.7': 30, '0.75': 37, '0.8': 46, '0.85': 58, '0.9': 73, '0.95': 92 };
+      thr.addEventListener('input', function () {
+        var v = parseFloat(thr.value);
+        document.getElementById('thrVal').textContent = v.toFixed(2);
+        document.getElementById('thrN').textContent = counts[String(v)] || '';
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.seg'), function (seg) {
+        seg.addEventListener('click', function (e) {
+          var b = e.target.closest('.seg__opt');
+          if (!b) return;
+          Array.prototype.forEach.call(seg.children, function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        });
+      });
+      document.getElementById('btnSave').addEventListener('click', function () {
+        var n = document.getElementById('svNote');
+        if (!n.value.trim()) { n.setAttribute('aria-invalid', 'true'); n.focus(); return; }
+        n.removeAttribute('aria-invalid');
+        window.oppoClose('#dlgSave');
+        window.oppoToast('已保存参数 v4，之后的估算、扫描和判定使用新值');
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F28-01">
+  <title>其他渠道数据与销量估算 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .ch-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }
+    .ch .panel__body { display: grid; gap: var(--space-3); }
+    .ch__nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+    .ch__nums dt { font-size: var(--text-xs); color: var(--muted); }
+    .ch__nums dd { margin: 0; font-family: var(--font-display); font-size: var(--text-xl); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .ch .kv { font-size: var(--text-xs); }
+    .method { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-4); }
+    .method .panel__body { font-size: var(--text-sm); }
+    .method .formula { margin-top: var(--space-1); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-2); }
+    .diff-up { color: var(--warn); }
+    .ex { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+    .ex .stat__value { font-size: var(--text-xl); }
+    @media (max-width: 1279px) { .ch-grid, .ex { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 767px) { .method { grid-template-columns: minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+        <div class="nav__group">数据</div>
+        <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+        <a class="nav__item" href="PAGE-F28-01.html" aria-current="page"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+        <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+        <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+        <div class="nav__group">决策</div>
+        <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+        <div class="nav__group">审批与台账</div>
+        <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+        <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+        <div class="nav__group">工具</div>
+        <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+        <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+        <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+        <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+        <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter">
+          <div>
+            <nav class="crumbs" aria-label="面包屑"><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>其他渠道数据</span></nav>
+            <h1>其他渠道数据与销量估算</h1>
+            <p class="page-head__sub">2026-01 至 2026-10 · 3 个渠道 · 650 个商品 · 去重评论 14,569 条。月销全部由评论估算，只在渠道内比较。</p>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+            <button class="btn btn--primary" type="button" data-open="#d-upload"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>上传追踪器导出</span></button>
+          </div>
+        </div>
+
+        <div class="ch-grid enter" style="--i:1">
+          <section class="panel ch" aria-labelledby="c-hd">
+            <div class="panel__head"><h2 class="panel__title" id="c-hd">Home Depot</h2><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>2026-10 已并入</span></div>
+            <div class="panel__body">
+              <dl class="ch__nums"><div><dt>商品</dt><dd>210</dd></div><div><dt>去重评论</dt><dd>3,325</dd></div><div><dt>覆盖月份</dt><dd>10 / 10</dd></div></dl>
+              <dl class="kv"><dt>估算方法</dt><dd>评论换算 VP×50 + 非 VP×20<span class="etag">参数 v1</span></dd><dt>排名平滑</dt><dd>可用 · 锚点 46 个</dd></dl>
+            </div>
+          </section>
+          <section class="panel ch" aria-labelledby="c-lw">
+            <div class="panel__head"><h2 class="panel__title" id="c-lw">Lowe's</h2><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>2026-10 已并入</span></div>
+            <div class="panel__body">
+              <dl class="ch__nums"><div><dt>商品</dt><dd>190</dd></div><div><dt>去重评论</dt><dd>3,850</dd></div><div><dt>覆盖月份</dt><dd>10 / 10</dd></div></dl>
+              <dl class="kv"><dt>估算方法</dt><dd>评论换算 VP×50 + 非 VP×20<span class="etag">参数 v1</span></dd><dt>排名平滑</dt><dd>可用 · 锚点 31 个</dd></dl>
+            </div>
+          </section>
+          <section class="panel ch" aria-labelledby="c-wf">
+            <div class="panel__head"><h2 class="panel__title" id="c-wf">Wayfair</h2><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>2026-10 已并入</span></div>
+            <div class="panel__body">
+              <dl class="ch__nums"><div><dt>商品</dt><dd>250</dd></div><div><dt>去重评论</dt><dd>7,394</dd></div><div><dt>覆盖月份</dt><dd>10 / 10</dd></div></dl>
+              <dl class="kv"><dt>估算方法</dt><dd>评论换算 VP×50 + 非 VP×20<span class="etag">参数 v1</span></dd><dt>排名平滑</dt><dd>不可用 · 锚点 8 个（需 ≥ 10）</dd></dl>
+              <div class="banner banner--warn"><svg class="icon"><use href="#ph-info"/></svg><div class="banner__body small">Wayfair 只有 Verified Purchase 计 VP，口径与另两个渠道不同；绝对销量只在 Wayfair 内比较。</div></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="section enter" style="--i:2" aria-labelledby="t-month">
+          <div class="section__head">
+            <h2 class="section__title" id="t-month">月度并入状态</h2>
+            <span class="section__note">去重后评论条数 · 未完整月份只作参考、不计入</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>渠道</th><th class="t-num">01</th><th class="t-num">02</th><th class="t-num">03</th><th class="t-num">04</th><th class="t-num">05</th><th class="t-num">06</th><th class="t-num">07</th><th class="t-num">08</th><th class="t-num">09</th><th class="t-num">10</th><th class="t-num">1–10 月</th></tr>
+              </thead>
+              <tbody>
+                <tr class="table__divider"><td colspan="12">2026 年 · 01–09 月来自上传（追踪器 10-12 导出）；10 月来自评论 VP 追踪（11-02 完成）</td></tr>
+                <tr><td class="cell-title t-nowrap">Home Depot</td><td class="t-num">248</td><td class="t-num">262</td><td class="t-num">301</td><td class="t-num">318</td><td class="t-num">342</td><td class="t-num">356</td><td class="t-num">371</td><td class="t-num">349</td><td class="t-num">366</td><td class="t-num">412</td><td class="t-num strong">3,325</td></tr>
+                <tr><td class="cell-title t-nowrap">Lowe's</td><td class="t-num">301</td><td class="t-num">322</td><td class="t-num">358</td><td class="t-num">377</td><td class="t-num">402</td><td class="t-num">415</td><td class="t-num">418</td><td class="t-num">401</td><td class="t-num">401</td><td class="t-num">455</td><td class="t-num strong">3,850</td></tr>
+                <tr><td class="cell-title t-nowrap">Wayfair</td><td class="t-num">612</td><td class="t-num">640</td><td class="t-num">701</td><td class="t-num">735</td><td class="t-num">760</td><td class="t-num">778</td><td class="t-num">742</td><td class="t-num">728</td><td class="t-num">827</td><td class="t-num">871</td><td class="t-num strong">7,394</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="panel" style="margin-top: var(--space-4);">
+            <div class="panel__head"><h3 class="panel__title">并入来源记录</h3></div>
+            <ul class="list">
+              <li class="list__item">
+                <svg class="icon list__icon list__icon--ok"><use href="#ph-git-merge"/></svg>
+                <div class="list__body">
+                  <div class="list__title">评论 VP 追踪 · 2026-10 采集完成后自动并入</div>
+                  <div class="list__desc">2026-11-02 14:30 · Home Depot / Lowe's / Wayfair · 650 个商品，去重评论 1,738 条 · 已按商品 ID 与渠道关联打标结果，新商品 23 个进入打标</div>
+                </div>
+                <a class="list__action tlink small" href="PAGE-F23-01.html">查看采集</a>
+              </li>
+              <li class="list__item">
+                <svg class="icon list__icon list__icon--warn"><use href="#ph-file-xls"/></svg>
+                <div class="list__body">
+                  <div class="list__title">上传 评论月度VP_导出_20261012.xlsx（商品月度明细）</div>
+                  <div class="list__desc">2026-10-12 16:05 · 并入 2026-01 至 2026-09 共 9 个完整月；2026-10（截至 10-12）未完整，只作参考，不计入</div>
+                </div>
+                <span class="list__action badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>1 个月仅参考</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:3" aria-labelledby="t-est">
+          <div class="section__head">
+            <h2 class="section__title" id="t-est">估算方法对照 · 2026-10</h2>
+            <a class="btn btn--sm" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>在品类配置中修改系数或方法</span></a>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="渠道">
+            <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="e-hd">Home Depot</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="e-lw">Lowe's</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="e-wf">Wayfair</button>
+          </div>
+
+          <div class="method">
+            <div class="panel"><div class="panel__body"><div class="row"><strong>评论换算</strong><span class="badge badge--accent">在用</span></div><div class="formula">月销 = VP 条数 × 50 + 非 VP 条数 × 20 · 参数 v1（2026-11-03）</div></div></div>
+            <div class="panel"><div class="panel__body"><div class="row"><strong>榜单排名平滑</strong><span class="badge badge--watch">对照</span></div><div class="formula">用同时有排名和评论换算销量的商品（锚点）拟合排名—销量平滑曲线，按排名换算；锚点 &lt; 10 个不提供</div></div></div>
+          </div>
+
+          <div id="e-hd" role="tabpanel">
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>商品</th><th class="t-num"><button class="th-sort" type="button" aria-sort="ascending">排名</button></th><th class="t-num">VP</th><th class="t-num">非 VP</th><th class="t-num">评论换算月销</th><th class="t-num">排名平滑月销</th><th class="t-num"><button class="th-sort" type="button">差异</button></th></tr></thead>
+                <tbody>
+                  <tr><td><div class="cell-title">Glacier Bay Bannister 36 in. 单盆带台面</div><div class="cell-sub mono">316245372</div></td><td class="t-num">3</td><td class="t-num">6</td><td class="t-num">4</td><td class="t-num">380<span class="etag">估算</span></td><td class="t-num">352<span class="etag">估算</span></td><td class="t-num" data-sort="-7.4">−7.4%</td></tr>
+                  <tr><td><div class="cell-title">Home Decorators Collection Sonoma 48 in. 双盆</div><div class="cell-sub"><span class="mono">313920557</span> · 系列 4 款共享评论</div></td><td class="t-num">7</td><td class="t-num">3</td><td class="t-num">5</td><td class="t-num">250<span class="etag">估算</span></td><td class="t-num">268<span class="etag">估算</span></td><td class="t-num" data-sort="7.2">+7.2%</td></tr>
+                  <tr><td><div class="cell-title">Glacier Bay Everdean 30 in.</div><div class="cell-sub mono">320877104</div></td><td class="t-num">12</td><td class="t-num">2</td><td class="t-num">6</td><td class="t-num">220<span class="etag">估算</span></td><td class="t-num">205<span class="etag">估算</span></td><td class="t-num" data-sort="-6.8">−6.8%</td></tr>
+                  <tr><td><div class="cell-title">Home Decorators Collection Merryfield 24 in.</div><div class="cell-sub mono">305110942</div></td><td class="t-num">18</td><td class="t-num">1</td><td class="t-num">7</td><td class="t-num">190<span class="etag">估算</span></td><td class="t-num">171<span class="etag">估算</span></td><td class="t-num" data-sort="-10">−10.0%</td></tr>
+                  <tr><td><div class="cell-title">Eviva Smile 30 in. 壁挂</div><div class="cell-sub mono">309642218</div></td><td class="t-num">35</td><td class="t-num">1</td><td class="t-num">2</td><td class="t-num">90<span class="etag">估算</span></td><td class="t-num">118<span class="etag">估算</span></td><td class="t-num diff-up" data-sort="31.1">+31.1%</td></tr>
+                  <tr><td><div class="cell-title">Glacier Bay Shaila 61 in. 双盆</div><div class="cell-sub mono">317004385</div></td><td class="t-num">52</td><td class="t-num">0</td><td class="t-num">3</td><td class="t-num">60<span class="etag">估算</span></td><td class="t-num">84<span class="etag">估算</span></td><td class="t-num diff-up" data-sort="40">+40.0%</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pager"><span>Home Depot 2026-10 · 210 个商品 · 锚点 46 个 · 每页 50 条</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button><button class="pager__btn" type="button">2</button><button class="pager__btn" type="button">3</button><button class="pager__btn" type="button">4</button><button class="pager__btn" type="button">5</button></div></div>
+          </div>
+
+          <div id="e-lw" role="tabpanel" hidden>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>商品</th><th class="t-num">排名</th><th class="t-num">VP</th><th class="t-num">非 VP</th><th class="t-num">评论换算月销</th><th class="t-num">排名平滑月销</th><th class="t-num">差异</th></tr></thead>
+                <tbody>
+                  <tr><td><div class="cell-title">allen + roth Presley 36 in. 单盆带台面</div><div class="cell-sub mono">5013462871</div></td><td class="t-num">2</td><td class="t-num">7</td><td class="t-num">3</td><td class="t-num">410<span class="etag">估算</span></td><td class="t-num">388<span class="etag">估算</span></td><td class="t-num">−5.4%</td></tr>
+                  <tr><td><div class="cell-title">Style Selections Euro 30 in.</div><div class="cell-sub mono">5001877230</div></td><td class="t-num">9</td><td class="t-num">2</td><td class="t-num">4</td><td class="t-num">180<span class="etag">估算</span></td><td class="t-num">196<span class="etag">估算</span></td><td class="t-num">+8.9%</td></tr>
+                  <tr><td><div class="cell-title">Project Source 24 in. 白色</div><div class="cell-sub mono">1000456812</div></td><td class="t-num">21</td><td class="t-num">1</td><td class="t-num">3</td><td class="t-num">110<span class="etag">估算</span></td><td class="t-num">124<span class="etag">估算</span></td><td class="t-num">+12.7%</td></tr>
+                  <tr><td><div class="cell-title">allen + roth Kingscote 60 in. 双盆</div><div class="cell-sub mono">5013470559</div></td><td class="t-num">40</td><td class="t-num">0</td><td class="t-num">4</td><td class="t-num">80<span class="etag">估算</span></td><td class="t-num">97<span class="etag">估算</span></td><td class="t-num diff-up">+21.3%</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pager"><span>Lowe's 2026-10 · 190 个商品 · 锚点 31 个</span></div>
+          </div>
+
+          <div id="e-wf" role="tabpanel" hidden>
+            <div class="banner banner--warn" style="margin-bottom: var(--space-3);">
+              <svg class="icon"><use href="#ph-warning"/></svg>
+              <div class="banner__body"><div class="banner__title">榜单排名平滑法不可用</div><div class="small">Wayfair 同时有排名和评论换算销量的商品只有 8 个，少于 10 个，不提供该方法。只有 Verified Purchase 计 VP，绝对销量只在 Wayfair 内比较。</div></div>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>商品</th><th class="t-num">排名</th><th class="t-num">VP</th><th class="t-num">非 VP</th><th class="t-num">评论换算月销</th><th class="t-num">排名平滑月销</th></tr></thead>
+                <tbody>
+                  <tr><td><div class="cell-title">Wade Logan Arlo 36'' 单盆</div><div class="cell-sub mono">W005412873</div></td><td class="t-num">5</td><td class="t-num">9</td><td class="t-num">2</td><td class="t-num">490<span class="etag">估算</span></td><td class="t-num"><span class="etag etag--nodata">不可用</span></td></tr>
+                  <tr><td><div class="cell-title">Andover Mills Darcy 30''</div><div class="cell-sub mono">W003981246</div></td><td class="t-num">14</td><td class="t-num">4</td><td class="t-num">1</td><td class="t-num">220<span class="etag">估算</span></td><td class="t-num"><span class="etag etag--nodata">不可用</span></td></tr>
+                  <tr><td><div class="cell-title">Latitude Run Kayla 48'' 双盆</div><div class="cell-sub mono">W004470318</div></td><td class="t-num">27</td><td class="t-num">3</td><td class="t-num">0</td><td class="t-num">150<span class="etag">估算</span></td><td class="t-num"><span class="etag etag--nodata">不可用</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pager"><span>Wayfair 2026-10 · 250 个商品 · 锚点 8 个</span></div>
+          </div>
+        </section>
+
+        <section class="section enter" style="--i:4" aria-labelledby="t-dedup">
+          <div class="section__head">
+            <h2 class="section__title" id="t-dedup">同系列去重</h2>
+            <span class="section__note">渠道或单元合计时按评论 ID 去重，不重复计入同系列商品</span>
+          </div>
+          <div class="panel">
+            <div class="panel__body">
+              <p>Home Decorators Collection <strong>Sonoma 系列</strong> 30 / 36 / 48 / 60 in. 共 4 个商品共享同一批评论。2026-10 每个商品页都显示同样 8 条评论：去重前合计 32 条，去重后 8 条。单个商品仍显示其页面上的评论数，合计只算一次。</p>
+              <div class="ex">
+                <div class="stat"><div class="stat__label">Home Depot · 2026-10</div><div class="stat__value num">503 → 412<span class="stat__unit">条</span></div><div class="stat__meta">23 个系列 / 71 个商品共享评论</div></div>
+                <div class="stat"><div class="stat__label">Lowe's · 2026-10</div><div class="stat__value num">521 → 455<span class="stat__unit">条</span></div><div class="stat__meta">17 个系列 / 49 个商品共享评论</div></div>
+                <div class="stat"><div class="stat__label">Wayfair · 2026-10</div><div class="stat__value num">902 → 871<span class="stat__unit">条</span></div><div class="stat__meta">9 个系列 / 22 个商品共享评论</div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <aside class="drawer" id="d-upload" role="dialog" aria-modal="true" aria-labelledby="d-upload-t" aria-hidden="true">
+    <div class="drawer__head">
+      <div><h2 class="drawer__title" id="d-upload-t">上传追踪器导出</h2><p class="drawer__sub">评论 VP 追踪器导出的 Excel，需含"商品月度明细"表；按同一口径并入</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="drawer__body stack-lg">
+      <label class="dropzone" for="u-file">
+        <svg class="icon"><use href="#ph-file-xls"/></svg>
+        <span><span class="strong">评论月度VP_导出_20261103.xlsx</span><br><span class="small muted">已识别"商品月度明细"表 · 3 个渠道 · 2026-09 至 2026-11</span></span>
+        <input class="visually-hidden" id="u-file" type="file" accept=".xlsx">
+      </label>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>月份</th><th>是否完整</th><th class="t-num">商品</th><th class="t-num">评论（去重后）</th><th>处理</th></tr></thead>
+          <tbody>
+            <tr><td class="num">2026-09</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完整</span></td><td class="t-num">648</td><td class="t-num">1,594</td><td class="small">已有数据（上传 10-12），按同一口径覆盖，评论按 ID 去重</td></tr>
+            <tr><td class="num">2026-10</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完整</span></td><td class="t-num">650</td><td class="t-num">1,738</td><td class="small">已有数据（追踪 11-02），按同一口径覆盖</td></tr>
+            <tr><td class="num">2026-11</td><td><span class="badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>未完整（截至 11-02）</span></td><td class="t-num">650</td><td class="t-num">96</td><td class="small">只作参考，不计入</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="field__hint">文件里没有"商品月度明细"表时无法并入，请用评论 VP 追踪器的"导出 Excel"重新导出。</p>
+    </div>
+    <div class="drawer__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--primary" type="button" data-close data-toast="已并入 2026-09、2026-10；2026-11 只作参考"><span>并入</span></button>
+    </div>
+  </aside>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F16-02">
+  <title>预算与费用记录 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .limit-input { display: flex; align-items: center; gap: var(--space-2); justify-content: flex-end; }
+    .limit-input .input { width: 110px; }
+    .limit-input .select { width: 104px; }
+    .ratio { display: flex; align-items: center; gap: var(--space-2); min-width: 160px; }
+    .ratio .meter { flex: 1; margin-top: 0; }
+    .ratio .num { width: 36px; text-align: right; font-size: var(--text-xs); }
+    .est { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-4) 0; }
+    .est .stat { padding: var(--space-3) var(--space-4); }
+    .est .stat__value { font-size: var(--text-xl); }
+    .table tfoot td { padding: var(--space-2) var(--space-3); border-top: 1px solid var(--border); background: var(--surface-warm); font-weight: 600; }
+    @media (max-width: 767px) { .est { grid-template-columns: minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+        <div class="nav__group">数据</div>
+        <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+        <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+        <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+        <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+        <div class="nav__group">决策</div>
+        <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+        <div class="nav__group">审批与台账</div>
+        <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+        <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+        <div class="nav__group">工具</div>
+        <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+        <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+        <a class="nav__item" href="PAGE-F16-02.html" aria-current="page"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+        <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+        <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter">
+          <div>
+            <nav class="crumbs" aria-label="面包屑"><span>设置</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>预算与费用</span></nav>
+            <h1>预算与费用记录</h1>
+            <p class="page-head__sub">每个按量计费的服务设月度上限，到上限自动停止新调用，已采数据保留。</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn" type="button" data-open="#cmp-f16-01"><svg class="icon"><use href="#ph-eye"/></svg><span>预览费用评估弹窗</span></button>
+          </div>
+        </div>
+
+        <form class="section enter" style="--i:1; margin-top:0" data-guard aria-labelledby="t-limit" onsubmit="return false">
+          <div class="section__head">
+            <h2 class="section__title" id="t-limit">月度上限</h2>
+            <span class="section__note">统计区间 2026-11-01 至今（北京时间），每月 1 日重新累计</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>服务</th><th>本月已花</th><th>已用比例</th><th>状态</th><th class="t-num">月度上限<span class="req" style="color:var(--danger)">*</span> · 计费单位</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="cell-title">卖家精灵</span><div class="cell-sub">Amazon 月度数据、Amazon 差评</div></td>
+                  <td class="num">3,120 次<span class="etag">约 $31.20</span></td>
+                  <td><div class="ratio"><div class="meter"><i style="width:62%"></i></div><span class="num">62%</span></div></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span></td>
+                  <td><div class="limit-input"><label class="visually-hidden" for="l1">卖家精灵上限</label><input class="input input--num" id="l1" value="5000"><select class="select" aria-label="卖家精灵计费单位"><option>调用次数</option><option>美元</option></select></div></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-title">Bright Data</span><div class="cell-sub">Lowe's / Wayfair 页面</div></td>
+                  <td class="num">$65.60</td>
+                  <td><div class="ratio"><div class="meter meter--warn"><i style="width:82%"></i></div><span class="num">82%</span></div></td>
+                  <td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>接近上限</span></td>
+                  <td><div class="limit-input"><label class="visually-hidden" for="l2">Bright Data 上限</label><input class="input input--num" id="l2" value="80.00"><select class="select" aria-label="Bright Data 计费单位"><option>美元</option><option>调用次数</option></select></div></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-title">Apify</span><div class="cell-sub">Lowe's / Wayfair 评论</div></td>
+                  <td class="num">$27.90</td>
+                  <td><div class="ratio"><div class="meter"><i style="width:47%"></i></div><span class="num">47%</span></div></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span></td>
+                  <td><div class="limit-input"><label class="visually-hidden" for="l3">Apify 上限</label><input class="input input--num" id="l3" value="60.00"><select class="select" aria-label="Apify 计费单位"><option>美元</option><option>调用次数</option></select></div></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-title">大模型</span><div class="cell-sub">当前提供方 Claude · <a class="tlink" href="PAGE-F16-01.html">切换</a></div></td>
+                  <td class="num">$18.75</td>
+                  <td><div class="ratio"><div class="meter"><i style="width:38%"></i></div><span class="num">38%</span></div></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span></td>
+                  <td><div class="limit-input"><label class="visually-hidden" for="l4">大模型上限</label><input class="input input--num" id="l4" value="50.00"><select class="select" aria-label="大模型计费单位"><option>美元</option><option>调用次数</option></select></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row" style="margin-top: var(--space-3);">
+            <span class="field__hint">已用达到 80% 显示"接近上限"；达到 100% 停止该服务的新调用，已采数据保留。</span>
+            <span class="spacer"></span>
+            <span class="small" style="color:var(--warn)" data-dirty-hint hidden>有未保存的修改</span>
+            <button class="btn btn--primary" type="button" id="save-limit" data-save><span>保存上限</span></button>
+          </div>
+        </form>
+
+        <section class="section enter" style="--i:2" aria-labelledby="t-rec">
+          <div class="section__head"><h2 class="section__title" id="t-rec">费用记录</h2></div>
+          <div class="tabs" role="tablist">
+            <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="p-detail">明细</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="p-month">按月汇总</button>
+          </div>
+
+          <div id="p-detail" role="tabpanel">
+            <div class="filters" data-filter-scope="#t-detail">
+              <label class="visually-hidden" for="r-month">月份</label>
+              <select class="select" id="r-month" style="width:auto"><option>2026-11</option><option>2026-10</option><option>2026-09</option></select>
+              <span class="filters__sep"></span>
+              <span class="filters__label">服务</span>
+              <button class="chip" type="button" data-filter="svc:all" aria-pressed="true">全部</button>
+              <button class="chip" type="button" data-filter="svc:ss" aria-pressed="false">卖家精灵</button>
+              <button class="chip" type="button" data-filter="svc:bd" aria-pressed="false">Bright Data</button>
+              <button class="chip" type="button" data-filter="svc:ap" aria-pressed="false">Apify</button>
+              <button class="chip" type="button" data-filter="svc:llm" aria-pressed="false">大模型</button>
+              <span class="spacer"></span>
+              <span class="small muted">共 <span data-filter-count>10</span> 条</span>
+              <button class="btn btn--sm" type="button" data-toast="已导出 费用明细_2026-11.xlsx"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></button>
+            </div>
+            <div class="table-wrap">
+              <table class="table" id="t-detail">
+                <thead>
+                  <tr>
+                    <th><button class="th-sort" type="button" aria-sort="descending">时间<svg class="icon"><use href="#ph-caret-down"/></svg></button></th>
+                    <th>服务</th><th>任务</th>
+                    <th class="t-num">数量</th>
+                    <th class="t-num"><button class="th-sort" type="button">金额</button></th>
+                    <th>来源</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-svc="llm"><td class="num t-nowrap" data-sort="11030940">11-03 09:40</td><td>大模型 · Claude</td><td>看图打元素 · 2026-10 其他渠道新商品</td><td class="t-num">412 张图</td><td class="t-num">$13.30</td><td><a class="tlink small" href="PAGE-F18-01.html">打标确认</a></td></tr>
+                  <tr data-svc="ss"><td class="num t-nowrap" data-sort="11021512">11-02 15:12</td><td>卖家精灵</td><td>拉取 Amazon 2026-10（续拉）</td><td class="t-num">930 次</td><td class="t-num">$9.30</td><td><a class="tlink small" href="PAGE-F17-01.html">Amazon 月度数据</a></td></tr>
+                  <tr data-svc="ap"><td class="num t-nowrap" data-sort="11021426">11-02 14:26</td><td>Apify</td><td>评论 VP 追踪 · Wayfair 评论 2026-10</td><td class="t-num">7,120 条</td><td class="t-num">$14.60</td><td><a class="tlink small" href="PAGE-F23-01.html">评论 VP 追踪</a></td></tr>
+                  <tr data-svc="bd"><td class="num t-nowrap" data-sort="11021420">11-02 14:20</td><td>Bright Data</td><td>评论 VP 追踪 · Wayfair 页面 2026-10</td><td class="t-num">250 页</td><td class="t-num">$38.40</td><td><a class="tlink small" href="PAGE-F23-01.html">评论 VP 追踪</a></td></tr>
+                  <tr data-svc="ss"><td class="num t-nowrap" data-sort="11021405">11-02 14:05</td><td>卖家精灵</td><td>拉取 Amazon 2026-10（中断于 1,920 / 2,850）</td><td class="t-num">1,920 次</td><td class="t-num">$19.20</td><td><a class="tlink small" href="PAGE-F17-01.html">Amazon 月度数据</a></td></tr>
+                  <tr data-svc="ap"><td class="num t-nowrap" data-sort="11021305">11-02 13:05</td><td>Apify</td><td>评论 VP 追踪 · Lowe's 评论 2026-10</td><td class="t-num">6,480 条</td><td class="t-num">$13.30</td><td><a class="tlink small" href="PAGE-F23-01.html">评论 VP 追踪</a></td></tr>
+                  <tr data-svc="bd"><td class="num t-nowrap" data-sort="11011650">11-01 16:50</td><td>Bright Data</td><td>评论 VP 追踪 · Lowe's 页面 2026-10</td><td class="t-num">190 页</td><td class="t-num">$27.20</td><td><a class="tlink small" href="PAGE-F23-01.html">评论 VP 追踪</a></td></tr>
+                  <tr data-svc="llm"><td class="num t-nowrap" data-sort="11011530">11-01 15:30</td><td>大模型 · Claude</td><td>差评归类 · 30 英寸 · 整装 · 落地｜岩板</td><td class="t-num">214 条</td><td class="t-num">$4.80</td><td><a class="tlink small" href="PAGE-F21-02.html">决策卡</a></td></tr>
+                  <tr data-svc="llm"><td class="num t-nowrap" data-sort="11011502">11-01 15:02</td><td>大模型 · Claude</td><td>叙述草稿 · 30 英寸 · 整装 · 落地｜岩板</td><td class="t-num">1 次</td><td class="t-num">$0.65</td><td><a class="tlink small" href="PAGE-F21-02.html">决策卡</a></td></tr>
+                  <tr data-svc="ss"><td class="num t-nowrap" data-sort="11011130">11-01 11:30</td><td>卖家精灵</td><td>差评拉取 · 30 英寸 · 整装 · 落地｜岩板</td><td class="t-num">270 次</td><td class="t-num">$2.70</td><td><a class="tlink small" href="PAGE-F21-02.html">决策卡</a></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pager"><span>每页 50 条 · 第 1 页 · 本月合计 $143.45</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button></div></div>
+          </div>
+
+          <div id="p-month" role="tabpanel" hidden>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>月份</th><th class="t-num">卖家精灵</th><th class="t-num">Bright Data</th><th class="t-num">Apify</th><th class="t-num">大模型</th><th class="t-num">合计</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="num">2026-11 <span class="etag">截至 11-03</span></td><td class="t-num">$31.20</td><td class="t-num">$65.60</td><td class="t-num">$27.90</td><td class="t-num">$18.75</td><td class="t-num strong">$143.45</td></tr>
+                  <tr><td class="num">2026-10</td><td class="t-num">$29.40</td><td class="t-num">$71.80</td><td class="t-num">$31.50</td><td class="t-num">$42.10</td><td class="t-num strong">$174.80</td></tr>
+                  <tr><td class="num">2026-09</td><td class="t-num">$28.90</td><td class="t-num">$69.20</td><td class="t-num">$30.10</td><td class="t-num"><span class="etag etag--nodata">无数据 · 未连接</span></td><td class="t-num strong">$128.20</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="field__hint" style="margin-top: var(--space-2);">费用按调用量和服务单价估算，与服务商账单可能有小幅差异。Home Depot 直连采集不计费。</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- CMP-F16-01 费用评估确认弹窗（共用组件） -->
+  <div class="modal" id="cmp-f16-01" role="dialog" aria-modal="true" aria-labelledby="cmp-t" aria-hidden="true" data-component="CMP-F16-01">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="cmp-t">确认费用后开始</h2><p class="modal__sub">拉取 Amazon 2026-10 浴室柜类目月度数据 · 卖家精灵</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body">
+        <div class="est">
+          <div class="stat"><div class="stat__label">预计调用量</div><div class="stat__value num">2,850–2,950<span class="stat__unit">次</span></div><div class="stat__meta">约 2,850 个 ASIN<span class="etag">估算</span></div></div>
+          <div class="stat"><div class="stat__label">预计费用</div><div class="stat__value num">$28.50–29.50</div><div class="stat__meta">按 $0.01 / 次<span class="etag">估算</span></div></div>
+          <div class="stat"><div class="stat__label">预计耗时</div><div class="stat__value num">25–40<span class="stat__unit">分钟</span></div><div class="stat__meta">可中断，续拉不重复计费</div></div>
+        </div>
+        <dl class="kv">
+          <dt>本月额度</dt><dd class="num">已用 3,120 / 5,000 次；本次后预计 5,970–6,070 次</dd>
+          <dt>已拉部分</dt><dd>无（上一批被判为疑似月份错误，本次为卖家精灵更新后重新拉取）</dd>
+        </dl>
+        <div class="banner banner--warn" style="margin-top: var(--space-4);">
+          <svg class="icon"><use href="#ph-warning"/></svg>
+          <div class="banner__body">
+            <div class="banner__title">预计超过本月上限 5,000 次</div>
+            <div class="small">达到上限时自动停止，已拉数据保留；调高上限后续拉，已成功部分不重复计费。</div>
+          </div>
+          <div class="banner__actions"><a class="btn btn--sm" href="#t-limit" data-close>调整上限</a></div>
+        </div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="button" id="cmp-ok"><svg class="icon"><use href="#ph-play"/></svg><span>确认并开始</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      document.getElementById('save-limit').addEventListener('click', function () {
+        var bd = parseFloat(document.getElementById('l2').value);
+        document.querySelectorAll('[data-dirty-hint]').forEach(function (h) { h.hidden = true; });
+        window.oppoToast(bd < 65.6 ? 'Bright Data 新上限低于本月已花 $65.60，已立即停止其新调用' : '已保存上限，立即生效');
+      });
+      document.querySelectorAll('.limit-input .input').forEach(function (inp) {
+        inp.addEventListener('blur', function () {
+          var v = parseFloat(inp.value);
+          inp.setAttribute('aria-invalid', String(!(v > 0)));
+        });
+      });
+      document.getElementById('cmp-ok').addEventListener('click', function () {
+        window.oppoClose('#cmp-f16-01');
+        window.oppoToast('已开始拉取 Amazon 2026-10，进度见 Amazon 月度数据页');
+      });
+    })();
+  </script>
+</body>
+</html>

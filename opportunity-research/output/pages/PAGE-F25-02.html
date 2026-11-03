@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F25-02">
+  <title>策略库 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .rule { max-width: 520px; }
+    .vers { margin: 0; padding: 0; list-style: none; }
+    .ver { position: relative; padding: 0 0 var(--space-5) var(--space-6); border-left: 1px solid var(--border); margin-left: 6px; }
+    .ver:last-child { border-left-color: transparent; padding-bottom: 0; }
+    .ver::before { content: ""; position: absolute; left: -6px; top: 4px; width: 11px; height: 11px; border-radius: 50%; background: var(--surface); border: 2px solid var(--border-control); }
+    .ver--cur::before { border-color: var(--fg); background: var(--fg); }
+    .ver__head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--text-sm); }
+    .ver__body { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--fg-2); }
+    .ver .diff { margin-top: var(--space-2); }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <!-- 第二轮共用侧栏（所有页面原样复制，当前页的 a 加 aria-current="page"；按角色隐藏的项在页面说明里写明） -->
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+        <div class="nav__group">数据</div>
+        <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+        <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+        <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+        <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+        <div class="nav__group">决策</div>
+        <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+        <div class="nav__group">审批与台账</div>
+        <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+        <a class="nav__item" href="PAGE-F25-02.html" aria-current="page"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+        <div class="nav__group">工具</div>
+        <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+        <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+        <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+        <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+        <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+    <!-- 顶栏：左侧"浴室柜"品类标签；需要渠道的页面（PAGE-F20-01、PAGE-F21-01、PAGE-F21-02）在顶栏放渠道切换 seg：Amazon / Home Depot / Lowe's / Wayfair；右侧"wen · 操作者"用户菜单（退出登录 → PAGE-F15-01.html）。 -->
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <div class="crumbs"><span>审批与台账</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>策略库</span></div>
+            <h1>策略库</h1>
+            <p class="page-head__sub">分框信号、条件表和经验结论。每条带状态，修改产生新版本，旧版本保留；改为"已验证"必须经老板批准。</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn btn--primary" type="button" data-open="#dlgNew"><svg class="icon"><use href="#ph-plus"/></svg><span>新增结论</span></button>
+          </div>
+        </div>
+
+        <div class="stats enter" style="--i:1">
+          <div class="stat"><div class="stat__label"><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已验证</span></div><div class="stat__value">1<span class="stat__unit">条</span></div><div class="stat__meta">经老板批准</div></div>
+          <div class="stat"><div class="stat__label"><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></div><div class="stat__value">3<span class="stat__unit">条</span></div><div class="stat__meta">其中 1 条申请已验证，待审批</div></div>
+          <div class="stat"><div class="stat__label"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></div><div class="stat__value">2<span class="stat__unit">条</span></div><div class="stat__meta">只作参考，不进决策卡结论</div></div>
+        </div>
+
+        <section class="section enter" style="--i:2">
+          <div class="filters" data-filter-scope="#tblRules">
+            <span class="filters__label">状态</span>
+            <button class="chip" type="button" data-filter="st:all" aria-pressed="true">全部 <span class="count">6</span></button>
+            <button class="chip" type="button" data-filter="st:verified" aria-pressed="false">已验证 <span class="count">1</span></button>
+            <button class="chip" type="button" data-filter="st:observed" aria-pressed="false">历史观察 <span class="count">3</span></button>
+            <button class="chip" type="button" data-filter="st:unverified" aria-pressed="false">未验证经验 <span class="count">2</span></button>
+            <span class="filters__sep"></span>
+            <span class="filters__label">类型</span>
+            <button class="chip" type="button" data-filter="kind:signal" data-multi aria-pressed="false">分框信号</button>
+            <button class="chip" type="button" data-filter="kind:cond" data-multi aria-pressed="false">条件表</button>
+            <button class="chip" type="button" data-filter="kind:exp" data-multi aria-pressed="false">经验</button>
+            <span class="spacer"></span>
+            <label class="search"><svg class="icon"><use href="#ph-magnifying-glass"/></svg><input class="input" type="search" placeholder="搜索结论" aria-label="搜索结论"></label>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="tblRules">
+              <thead><tr><th>编号</th><th>结论</th><th>类型</th><th>状态</th><th class="t-num">版本</th><th>依据</th><th><button class="th-sort" type="button" aria-sort="descending">更新<svg class="icon"><use href="#ph-caret-down"/></svg></button></th><th><span class="visually-hidden">操作</span></th></tr></thead>
+              <tbody>
+                <tr data-st="verified" data-kind="exp"><td class="mono">SL-06</td><td class="rule"><div class="cell-title">只在同一框里比较：跨"尺寸段 × 拆装 × 形态"的结论不成立</div></td><td>经验</td><td><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已验证</span></td><td class="t-num">v3</td><td class="small">第一轮教训 2；老板 2026-09-22 批准</td><td class="num t-nowrap" data-sort="2026-09-22">2026-09-22</td><td><button class="btn btn--sm" type="button" data-open="#drawer">查看</button></td></tr>
+                <tr data-st="observed" data-kind="signal"><td class="mono">SL-01</td><td class="rule"><div class="cell-title">分框信号：新品占比高于同框，份额之后继续变大</div></td><td>分框信号</td><td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td><td class="t-num">v3</td><td class="small">第九版市场层回测：新品占比为经回测信号<span class="etag etag--n">n=412 框·月</span></td><td class="num t-nowrap" data-sort="2026-10-28">2026-10-28</td><td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#drawer">查看</button> <button class="btn btn--ghost btn--sm" type="button" data-open="#dlgApply">申请已验证</button></td></tr>
+                <tr data-st="observed" data-kind="cond"><td class="mono">SL-03</td><td class="rule"><div class="cell-title">首月 ≥ 2 色、≥ 4 子体</div><div class="cell-sub"><span class="badge badge--warn"><svg class="icon"><use href="#ph-hourglass"/></svg>申请已验证 · 待老板审批</span></div></td><td>条件表</td><td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td><td class="t-num">v2</td><td class="small">新家族满足条件做到率 38%（n=61），不满足 17%（n=153）</td><td class="num t-nowrap" data-sort="2026-11-02">2026-11-02</td><td><button class="btn btn--sm" type="button" data-open="#drawer">查看</button></td></tr>
+                <tr data-st="observed" data-kind="signal"><td class="mono">SL-02</td><td class="rule"><div class="cell-title">分框信号：近 6 个月份额比前 6 个月高 ≥ 2 个百分点</div></td><td>分框信号</td><td><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></td><td class="t-num">v2</td><td class="small">第九版市场层回测：份额斜率<span class="etag etag--n">n=412 框·月</span></td><td class="num t-nowrap" data-sort="2026-10-28">2026-10-28</td><td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#drawer">查看</button> <button class="btn btn--ghost btn--sm" type="button" data-open="#dlgApply">申请已验证</button></td></tr>
+                <tr data-st="unverified" data-kind="exp"><td class="mono">SL-04</td><td class="rule"><div class="cell-title">老板：评分做好就起量</div></td><td>经验</td><td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td><td class="t-num">v1</td><td class="small">老板经验；2026-09-30 申请已验证被驳回</td><td class="num t-nowrap" data-sort="2026-09-30">2026-09-30</td><td><button class="btn btn--sm" type="button" data-open="#drawer">查看</button></td></tr>
+                <tr data-st="unverified" data-kind="exp"><td class="mono">SL-05</td><td class="rule"><div class="cell-title">30″ 及以下，新品从拆装切入比整装容易</div></td><td>经验</td><td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span></td><td class="t-num">v1</td><td class="small">wen 2026-10 评审会提出</td><td class="num t-nowrap" data-sort="2026-10-16">2026-10-16</td><td><button class="btn btn--sm" type="button" data-open="#drawer">查看</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pager"><span>共 <span data-filter-count>6</span> 条</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button></div></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- 条目抽屉 -->
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dwTitle" aria-hidden="true">
+    <div class="drawer__head">
+      <div><h2 class="drawer__title" id="dwTitle">首月 ≥ 2 色、≥ 4 子体</h2><p class="drawer__sub">SL-03 · 条件表 · 当前 v2</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="drawer__body stack-lg">
+      <div class="banner banner--warn"><svg class="icon"><use href="#ph-hourglass"/></svg><div class="banner__body"><div class="banner__title">申请改为"已验证"，待老板审批</div><div class="small">wen 2026-11-02 16:40 申请。批准前状态保持"历史观察"。<a href="PAGE-F25-01.html">去审批页</a></div></div></div>
+
+      <div class="tabs" role="tablist" aria-label="条目内容">
+        <button class="tab" role="tab" type="button" aria-selected="true" aria-controls="dwCur">当前版本</button>
+        <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="dwEdit">修改</button>
+        <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="dwHist">版本历史 <span class="count">2</span></button>
+      </div>
+
+      <section id="dwCur" role="tabpanel" class="stack">
+        <dl class="kv">
+          <dt>状态</dt><dd><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></dd>
+          <dt>结论</dt><dd>新家族首月就铺 ≥ 2 个颜色、≥ 4 个子体，6 个月内做到的比例更高</dd>
+          <dt>适用框</dt><dd>全部框</dd>
+          <dt>依据</dt><dd>2024-10 至 2026-09 新家族 214 个：满足条件的做到率 38%<span class="etag etag--n">n=61</span>，不满足的 17%<span class="etag etag--n">n=153</span>；台账已对账 3 条中，满足条件的 2 条都做到</dd>
+          <dt>引用它的决策卡</dt><dd><a href="PAGE-F21-02.html">树脂一体 · 30″ 拆装 · 落地式</a></dd>
+          <dt>版本</dt><dd class="num">v2 · wen · 2026-10-20</dd>
+        </dl>
+      </section>
+
+      <section id="dwEdit" role="tabpanel" hidden>
+        <form class="stack" data-guard onsubmit="return false">
+          <label class="field"><span class="field__label">结论<span class="req">*</span></span><textarea class="textarea">新家族首月就铺 ≥ 2 个颜色、≥ 4 个子体，6 个月内做到的比例更高</textarea></label>
+          <label class="field"><span class="field__label">状态<span class="req">*</span></span>
+            <select class="select"><option>未验证经验</option><option selected>历史观察</option></select>
+            <span class="field__hint">改为"已验证"要走申请，经老板批准后生效</span></label>
+          <label class="field"><span class="field__label">依据<span class="req">*</span></span><textarea class="textarea">2024-10 至 2026-09 新家族 214 个：满足条件的做到率 38%（n=61），不满足的 17%（n=153）</textarea></label>
+          <label class="field"><span class="field__label">修改说明<span class="req">*</span></span><input class="input" placeholder="例：补充 2026-10 的新家族"></label>
+          <p class="small muted" data-dirty-hint hidden>有未保存的修改。保存后生成 v3，v2 保留在版本历史里。</p>
+        </form>
+      </section>
+
+      <section id="dwHist" role="tabpanel" hidden>
+        <ol class="vers">
+          <li class="ver ver--cur">
+            <div class="ver__head"><span class="strong">v2</span><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span><span class="muted small">wen · 2026-10-20</span></div>
+            <div class="ver__body">状态由"未验证经验"改为"历史观察"，补上做到率依据。</div>
+            <div class="diff">
+              <span class="diff__key">状态</span><span class="diff__old">未验证经验</span><span class="diff__new">历史观察</span>
+              <span class="diff__key">依据</span><span class="diff__old">树脂决策卡样板经验</span><span class="diff__new">新家族 214 个：38%（n=61）对 17%（n=153）</span>
+            </div>
+          </li>
+          <li class="ver">
+            <div class="ver__head"><span class="strong">v1</span><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span><span class="muted small">wen · 2026-10-05</span></div>
+            <div class="ver__body">新增：首月 ≥ 2 色、≥ 4 子体。依据：树脂决策卡样板经验。</div>
+          </li>
+        </ol>
+      </section>
+    </div>
+    <div class="drawer__foot">
+      <button class="btn" type="button" aria-disabled="true" title="已有待审批申请"><svg class="icon"><use href="#ph-seal-check"/></svg><span>申请改为已验证</span></button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" data-close>关闭</button>
+      <button class="btn btn--primary" type="button" data-save data-toast="已保存为 v3，v2 保留在版本历史里">保存为新版本</button>
+    </div>
+  </aside>
+
+  <!-- 新增结论 -->
+  <div class="modal" id="dlgNew" role="dialog" aria-modal="true" aria-labelledby="newTitle" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head"><div><h2 class="modal__title" id="newTitle">新增结论</h2><p class="modal__sub">新条目只能是"未验证经验"或"历史观察"</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+      <div class="modal__body">
+        <div class="form-grid">
+          <label class="field span-2"><span class="field__label">结论<span class="req">*</span></span><textarea class="textarea" id="newText" placeholder="例：同框中位价或更低的新进入者更容易进前 50"></textarea></label>
+          <label class="field"><span class="field__label">类型<span class="req">*</span></span><select class="select"><option>分框信号</option><option>条件表</option><option selected>经验</option></select></label>
+          <label class="field"><span class="field__label">状态<span class="req">*</span></span><select class="select"><option selected>未验证经验</option><option>历史观察</option></select></label>
+          <label class="field span-2"><span class="field__label">依据<span class="req">*</span></span><textarea class="textarea" placeholder="数据范围、样本量或出处"></textarea></label>
+        </div>
+      </div>
+      <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" id="btnNew">保存为 v1</button></div>
+    </div>
+  </div>
+
+  <!-- 申请改为已验证 -->
+  <div class="modal" id="dlgApply" role="dialog" aria-modal="true" aria-labelledby="apTitle" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head"><div><h2 class="modal__title" id="apTitle">申请改为"已验证"</h2><p class="modal__sub">提交后进入老板的待审批；批准前状态不变</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+      <div class="modal__body"><label class="field"><span class="field__label">申请依据<span class="req">*</span></span><textarea class="textarea" placeholder="写清回测或台账对账结果，带样本量"></textarea></label></div>
+      <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-close data-toast="已提交申请，等待老板审批">提交申请</button></div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      document.getElementById('btnNew').addEventListener('click', function () {
+        var t = document.getElementById('newText');
+        if (!t.value.trim()) { t.setAttribute('aria-invalid', 'true'); t.focus(); return; }
+        t.removeAttribute('aria-invalid');
+        window.oppoClose('#dlgNew');
+        window.oppoToast('已新增 SL-07 · v1');
+      });
+    })();
+  </script>
+</body>
+</html>

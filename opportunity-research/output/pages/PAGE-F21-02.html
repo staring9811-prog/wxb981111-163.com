@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F21-02">
+  <title>决策卡详情 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .card-layout { display: grid; grid-template-columns: minmax(0, 1fr) 248px; gap: var(--space-6); align-items: start; }
+    .card-side { position: sticky; top: calc(var(--topbar-h) + var(--space-4)); display: flex; flex-direction: column; gap: var(--space-4); }
+    .toc { margin: 0; padding: var(--space-2); list-style: none; counter-reset: toc; }
+    .toc a { display: flex; gap: var(--space-2); padding: 4px var(--space-2); border-radius: var(--radius-sm); color: var(--fg-2); text-decoration: none; font-size: var(--text-sm); }
+    .toc a::before { counter-increment: toc; content: counter(toc); width: 18px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .toc a:hover { background: var(--surface-raised); color: var(--fg); }
+    .toc a:active { background: var(--border-soft); }
+    .toc a:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+    .toc a.is-on { color: var(--fg); font-weight: 600; background: var(--surface-raised); }
+    .csec { margin-top: var(--space-6); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+    .csec__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-soft); }
+    .csec__title { display: flex; align-items: baseline; gap: var(--space-2); font-size: var(--text-lg); font-weight: 600; }
+    .csec__no { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); }
+    .csec__body { padding: var(--space-4) var(--space-5); }
+    .csec__body > * + * { margin-top: var(--space-4); }
+    .csec .table-wrap { border-radius: var(--radius-md); }
+    .decision { display: flex; gap: var(--space-4); align-items: flex-start; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-warm); }
+    .decision__verdict { flex: none; }
+    .decision__text { flex: 1; min-width: 0; font-size: var(--text-sm); }
+    .marks { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .verdict-go { background: var(--success-tint); color: var(--success); }
+    .spark.mini { display: inline-block; vertical-align: middle; }
+    .spark.mini .spark__line { stroke-width: 1.5; }
+    .spark.mini.is-muted .spark__line { stroke: var(--viz-deemph); }
+    .spark.mini.is-muted .spark__dot { fill: var(--muted); }
+    .chart { width: 100%; height: auto; }
+    .chart .chart__line--ref { fill: none; stroke: var(--viz-deemph); stroke-width: 2; stroke-dasharray: 4 3; }
+    .chart .chart__ref { stroke: var(--viz-ref); stroke-width: 1; stroke-dasharray: 2 3; }
+    .charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+    .chart-card { padding: var(--space-3) var(--space-4); border: 1px solid var(--border-soft); border-radius: var(--radius-md); }
+    .chart-card__title { font-size: var(--text-sm); font-weight: 600; }
+    .chart-card__note { font-size: var(--text-xs); color: var(--muted); }
+    .legend { display: inline-flex; align-items: center; gap: var(--space-3); font-size: var(--text-xs); color: var(--muted); }
+    .legend i { display: inline-block; width: 14px; height: 2px; margin-right: 4px; vertical-align: middle; background: var(--viz-series-1); }
+    .legend i.ref { background: var(--viz-deemph); }
+    .bet td:first-child { width: 168px; color: var(--muted); font-size: var(--text-xs); }
+    .bet td:last-child { color: var(--fg-2); font-size: var(--text-xs); }
+    .bet .big { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .arrow { color: var(--muted); margin: 0 var(--space-1); }
+    .narr { position: relative; }
+    .narr__head { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+    .narr__title { font-size: var(--text-sm); font-weight: 600; }
+    .narr .textarea[readonly] { background: var(--surface-warm); color: var(--fg-2); }
+    .stoplist { margin: 0; padding: 0; list-style: none; }
+    .stoplist li { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-2) 0; border-bottom: 1px solid var(--border-soft); font-size: var(--text-sm); }
+    .stoplist li:last-child { border-bottom: 0; }
+    .stoplist .icon { margin-top: 3px; color: var(--warn); }
+    .rv { display: grid; grid-template-columns: minmax(0, 1fr) 168px; gap: var(--space-3); align-items: start; padding: var(--space-3) 0; border-bottom: 1px solid var(--border-soft); font-size: var(--text-sm); }
+    .rv:last-child { border-bottom: 0; }
+    .rv__quote { color: var(--fg); }
+    .rv__meta { margin-top: 2px; font-size: var(--text-xs); color: var(--muted); }
+    .rv .select { min-height: 28px; padding: 2px var(--space-2); font-size: var(--text-xs); }
+    .timeline { margin: 0; padding: 0 var(--space-4) var(--space-3); list-style: none; font-size: var(--text-xs); }
+    .timeline li { position: relative; padding: var(--space-2) 0 var(--space-2) var(--space-4); border-left: 1px solid var(--border); color: var(--fg-2); }
+    .timeline li::before { content: ""; position: absolute; left: -4px; top: 13px; width: 7px; height: 7px; border-radius: 50%; background: var(--border-control); }
+    .timeline li.is-now::before { background: var(--accent); }
+    .timeline b { color: var(--fg); font-weight: 600; }
+    .thumb { width: 96px; height: 96px; flex: none; border: 1px solid var(--border); border-radius: var(--radius-md); }
+    .snap-only { display: none; }
+    body[data-view="approved"] .snap-only { display: inline-flex; }
+    .approve-box { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+    .approve-box .btn { width: 100%; }
+    .approve-box .btn + .btn { margin-top: var(--space-2); }
+    .ch-col { white-space: nowrap; }
+    #sku-table td { white-space: nowrap; }
+    .drawer__body .table-wrap { margin-top: var(--space-3); }
+    .cost-rows { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-2) var(--space-5); font-size: var(--text-sm); }
+    .cost-rows dt { color: var(--muted); }
+    .cost-rows dd { margin: 0; font-variant-numeric: tabular-nums; }
+    @media (max-width: 1279px) {
+      .card-layout { grid-template-columns: minmax(0, 1fr); }
+      .card-side { position: static; }
+      .charts { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 767px) {
+      .decision { flex-direction: column; }
+      .rv { grid-template-columns: minmax(0, 1fr); }
+    }
+    .thumb { --t-wall: var(--surface-raised); --t-top: var(--surface); --t-body: var(--fg-2); --t-stroke: var(--fg-2); --t-line: var(--surface); }
+  </style>
+</head>
+<body data-view="draft">
+<script src="assets/icons.js"></script>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="img-vanity" viewBox="0 0 72 72"><rect style="fill:var(--t-wall)" width="72" height="72"/><rect style="fill:var(--t-top);stroke:var(--t-stroke);stroke-width:1" x="10" y="20" width="52" height="6" rx="1"/><rect style="fill:var(--t-body);stroke:var(--t-stroke);stroke-width:1" x="12" y="26" width="48" height="30"/><line style="stroke:var(--t-line);stroke-width:0.8" x1="36" y1="26" x2="36" y2="56"/><line style="stroke:var(--t-line);stroke-width:0.8" x1="20" y1="30" x2="20" y2="52"/><line style="stroke:var(--t-line);stroke-width:0.8" x1="52" y1="30" x2="52" y2="52"/><line style="stroke:var(--t-line);stroke-width:0.8" x1="20" y1="30" x2="32" y2="52"/><line style="stroke:var(--t-line);stroke-width:0.8" x1="32" y1="30" x2="20" y2="52"/><rect style="fill:var(--t-stroke)" x="14" y="56" width="3" height="7"/><rect style="fill:var(--t-stroke)" x="55" y="56" width="3" height="7"/></symbol>
+  </defs>
+</svg>
+<div class="app">
+  <aside class="sidebar" aria-label="主导航">
+    <div class="sidebar__brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+      <span>品类机会判定台</span>
+    </div>
+    <nav class="nav">
+      <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+      <div class="nav__group">数据</div>
+      <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+      <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+      <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+      <div class="nav__group">分析</div>
+      <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+      <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+      <div class="nav__group">决策</div>
+      <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+      <div class="nav__group">审批与台账</div>
+      <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+      <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+      <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+      <div class="nav__group">工具</div>
+      <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+      <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+      <div class="nav__group">设置</div>
+      <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+      <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+      <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+      <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+    </nav>
+    <div class="sidebar__foot">
+      <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar__category">浴室柜</span>
+      <div class="seg" role="group" aria-label="查看渠道">
+        <button class="seg__opt" type="button" data-ch="amazon" aria-pressed="true">Amazon</button>
+        <button class="seg__opt" type="button" data-ch="hd" aria-pressed="false">Home Depot</button>
+        <button class="seg__opt" type="button" data-ch="lowes" aria-pressed="false">Lowe's</button>
+        <button class="seg__opt" type="button" data-ch="wayfair" aria-pressed="false">Wayfair</button>
+      </div>
+      <span class="spacer"></span>
+      <span class="small muted">视角</span>
+      <div class="seg" role="group" aria-label="视角">
+        <button class="seg__opt" type="button" data-view-btn="draft" aria-pressed="true">操作者 · 草稿</button>
+        <button class="seg__opt" type="button" data-view-btn="pending" aria-pressed="false">审批者 · 待审批</button>
+        <button class="seg__opt" type="button" data-view-btn="approved" aria-pressed="false">已批准</button>
+      </div>
+      <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg><span data-who>wen · 操作者</span></span>
+      <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>退出登录</span></a>
+    </header>
+
+    <main class="content">
+      <div class="banner banner--ok enter" style="--i:0">
+        <svg class="icon"><use href="#ph-seal-check"/></svg>
+        <div class="banner__body">市场评分本月通过有效性检验（第九版，2026-10-08 重算：D 档之后变大 19%，把握分档逐档上升）。<a href="PAGE-F19-01.html">看回测</a></div>
+      </div>
+      <div class="banner banner--stale" data-view-show="approved" hidden>
+        <svg class="icon"><use href="#ph-arrows-clockwise"/></svg>
+        <div class="banner__body"><div class="banner__title">有新数据</div><div>2026-10 Amazon 月度数据已并入（2026-11-06）。本卡保持批准时（2026-11-05 15:10）的数字快照，不会自动改变；需要按新数据重看时，另存为新草稿。</div></div>
+        <div class="banner__actions"><button class="btn btn--sm" type="button" data-toast="已另存为新草稿：树脂一体 · 30″ 拆装 · 落地式（第 3 版），用最新数据重新生成数字">另存为新草稿</button></div>
+      </div>
+
+      <div class="page-head enter" style="--i:1; margin-top: var(--space-4)">
+        <div>
+          <nav class="crumbs" aria-label="面包屑"><a href="PAGE-F15-02.html">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><a href="PAGE-F21-01.html">决策卡</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>树脂一体 · 30″ 拆装 · 落地式</span></nav>
+          <div class="row">
+            <h1>树脂一体 · 30″ 拆装 · 落地式</h1>
+            <span class="badge" data-view-show="draft"><svg class="icon"><use href="#ph-note-pencil"/></svg>草稿</span>
+            <span class="badge badge--warn" data-view-show="pending" hidden><svg class="icon"><use href="#ph-hourglass"/></svg>待审批</span>
+            <span class="badge badge--pass" data-view-show="approved" hidden><svg class="icon"><use href="#ph-seal-check"/></svg>已批准</span>
+          </div>
+          <p class="page-head__sub">台面材质：树脂 · 增长型 · 主渠道 Amazon · 站在 2026-10，数据 2024-10 至 2026-09 · 立项到上架约 8 个月（约 2027-06 上架）· 第 2 版</p>
+          <p class="page-head__sub" data-view-show="draft"><span class="lock"><svg class="icon"><use href="#ph-check"/></svg>叙述已自动保存 · 2026-11-03 10:38</span></p>
+          <p class="page-head__sub" data-view-show="approved" hidden><span class="lock"><svg class="icon"><use href="#ph-lock-simple"/></svg>只读版本 · 第 2 版 · 老板 2026-11-05 15:10 批准 · 已登记 <a href="PAGE-F26-01.html">预测台账</a></span></p>
+        </div>
+        <div class="page-head__actions">
+          <button class="btn" type="button" data-toast="已导出 决策卡_树脂一体_30寸拆装落地_v2.xlsx"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出</span></button>
+          <button class="btn btn--primary" type="button" data-view-show="draft" data-open="#modal-submit"><svg class="icon"><use href="#ph-seal-check"/></svg><span>提交审批</span></button>
+        </div>
+      </div>
+
+      <div class="card-layout">
+        <div>
+          <!-- 1 分框决策 -->
+          <section class="csec enter" style="--i:2; margin-top: 0" id="s1" aria-labelledby="s1-t">
+            <div class="csec__head"><h2 class="csec__title" id="s1-t"><span class="csec__no">01</span>分框决策</h2><span class="section__note">只和同一个"尺寸 × 拆装 × 形态"框里的其他台面材质比</span></div>
+            <div class="csec__body">
+              <div class="decision">
+                <span class="badge verdict-go decision__verdict"><svg class="icon"><use href="#ph-flag"/></svg>上</span>
+                <div class="decision__text">
+                  <div class="strong">30″ 拆装 · 落地式：$230–260，农场风或竖棱，主色原木或白，首月 ≥ 2 色、≥ 4 子体，评分目标 ≥ 4.3</div>
+                  <div class="muted" style="margin-top: var(--space-1)">盆和柜体按差评清单改：标准排水孔、溢水口、可固定、耐划；少零件、长螺丝。份额在涨，新品做到率是几个候选里最高的，主流价位已有多个 SKU 长期在榜；现有树脂款评分比同框低，留有做好的空间。</div>
+                </div>
+              </div>
+
+              <div>
+                <div class="row" style="margin-bottom: var(--space-2)">
+                  <h3>同一机会在四个渠道</h3>
+                  <span class="spacer"></span>
+                  <div class="marks">
+                    <span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>多渠道印证：Amazon、Home Depot 都在涨</span>
+                    <span class="badge badge--warn"><svg class="icon"><use href="#ph-split-horizontal"/></svg>渠道分歧：Wayfair 在跌</span>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead><tr><th>渠道</th><th class="t-num">框内份额 前 → 近</th><th>趋势（近 4 季）</th><th>分级 / 把握</th><th class="t-num">样本量</th><th>这个渠道</th></tr></thead>
+                    <tbody>
+                      <tr><td class="cell-title ch-col">Amazon</td><td class="t-num">8.4% → 11.5%<button class="etag etag--n" type="button" data-pop-title="Amazon 框内份额" data-pop="框=30″ · 拆装 · 落地式;取值=台面材质：树脂;前期=2025-10 至 2026-03;近期=2026-04 至 2026-09;样本数=37 个在榜家族，近期月均 549 件;来源=机会扫描 2026-10-08">n=37</button><span class="etag etag--snap snap-only">快照</span></td><td><svg class="spark mini " width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="4.0,20.0 33.3,15.2 62.7,10.0 92.0,11.6"/><circle class="spark__dot" cx="92.0" cy="11.6" r="3"/></svg> <span class="small">涨</span></td><td>B · 把握 57%</td><td class="t-num">37 家族 · 549 件/月</td><td><span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>上</span></td></tr>
+                      <tr><td class="cell-title ch-col">Home Depot</td><td class="t-num">6.1% → 9.8%<button class="etag etag--n" type="button" data-pop-title="Home Depot 框内份额" data-pop="框=30″ · 拆装 · 落地式;前期=2025-10 至 2026-03;近期=2026-04 至 2026-09;样本数=6 个家族，估算月销 180 件;口径=VP × 50 + 非 VP × 20（参数 v1），按评论 ID 去重;来源=评论 VP 追踪 2026-10-31">估算</button></td><td><svg class="spark mini " width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="4.0,18.7 33.3,14.8 62.7,9.7 92.0,7.6"/><circle class="spark__dot" cx="92.0" cy="7.6" r="3"/></svg> <span class="small">涨</span></td><td>C <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span></td><td class="t-num">6 家族 · 180 件/月</td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td></tr>
+                      <tr><td class="cell-title ch-col">Lowe's</td><td class="t-num">3.0% → 4.1%<button class="etag etag--n" type="button" data-pop-title="Lowe's 框内份额" data-pop="框=30″ · 拆装 · 落地式;近期=2026-04 至 2026-09;样本数=2 个家族，估算月销 40 件;说明=框估算月销 140 件，不到 200 件，不扫描">估算</button></td><td><svg class="spark mini is-muted" width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="4.0,16.0 33.3,12.4 62.7,7.6 92.0,9.4"/><circle class="spark__dot" cx="92.0" cy="9.4" r="3"/></svg> <span class="small muted">样本不足</span></td><td><span class="etag etag--nodata">无数据</span></td><td class="t-num">2 家族 · 40 件/月</td><td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>不上</span></td></tr>
+                      <tr><td class="cell-title ch-col">Wayfair</td><td class="t-num">14.2% → 10.6%<button class="etag etag--n" type="button" data-pop-title="Wayfair 框内份额" data-pop="框=30″ · 拆装 · 落地式;前期=2025-10 至 2026-03;近期=2026-04 至 2026-09;样本数=9 个家族，估算月销 161 件;口径=只有 Verified Purchase 计 VP，只在 Wayfair 内比较">估算</button></td><td><svg class="spark mini " width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="4.0,6.4 33.3,10.0 62.7,14.8 92.0,17.2"/><circle class="spark__dot" cx="92.0" cy="17.2" r="3"/></svg> <span class="small">跌</span></td><td>D <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span></td><td class="t-num">9 家族 · 161 件/月</td><td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>不上</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">各渠道只在本渠道内比较份额，不比较绝对销量；其他渠道月销为评论换算估算。分级规则经 Amazon 回测，其他渠道未回测。</p>
+              </div>
+
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th>同取值的其他框</th><th>决策</th><th>一句话</th></tr></thead>
+                  <tbody>
+                    <tr><td class="cell-title">24″ 拆装 · 落地式</td><td>第二个尺寸，等 30″ 的结果</td><td class="small">份额 2.0% → 13.3%，但近两季没有新进入者，JUMMICO 一家独大</td></tr>
+                    <tr><td class="cell-title">36″ / 48″ / 60″ 拆装 · 落地式</td><td>见 <a href="PAGE-F21-01.html">竖棱 × 树脂卡</a>；36″ 观察</td><td class="small">36″ 树脂份额 8.3% → 15.0%，新家族 6 个做到 4 个</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2 我们在赌什么 -->
+          <section class="csec enter" style="--i:3" id="s2" aria-labelledby="s2-t">
+            <div class="csec__head"><h2 class="csec__title" id="s2-t"><span class="csec__no">02</span>我们在赌什么</h2><span class="section__note">数字由系统计算，点小标签看来源；只能改叙述</span></div>
+            <div class="csec__body">
+              <div class="table-wrap">
+                <table class="table bet">
+                  <thead><tr><th>项目</th><th>数字</th><th>读法</th></tr></thead>
+                  <tbody>
+                    <tr><td>机会类型</td><td><span class="badge"><svg class="icon"><use href="#ph-trend-up"/></svg>增长型</span> <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测</span><div style="margin-top: var(--space-1)">份额 <span class="num">8.4%</span><span class="arrow">→</span><span class="num">11.5%</span>，新品占比 <span class="num">43%</span>（同框 <span class="num">33%</span>）<button class="etag" type="button" data-pop-title="份额与新品占比" data-pop="框=30″ · 拆装 · 落地式;前期=2025-10 至 2026-03;近期=2026-04 至 2026-09;样本数=37 个在榜家族;新品=上架 ≤ 6 个月">n=37</button></div></td><td>份额走势和新品占比是经过回测的信号</td></tr>
+                    <tr><td>市场评分（第九版）</td><td><span class="big">把握 57%</span> · B 档<button class="etag" type="button" data-pop-title="市场评分" data-pop="框=30″ · 拆装 · 落地式;单元=台面材质：树脂;时点=2026-09;窗口=立项后第 6–10 个月;样本数=近 6 个月 37 个家族;规则=第九版，2026-10-08 重算">第九版</button><span class="etag etag--snap snap-only">快照</span>
+                      <div style="margin-top: var(--space-1)"><span class="small muted">立项后 6–10 个月份额</span>
+                        <span class="ibar" tabindex="0" data-tip="预测 13.1%|80% 区间 9.6%–17.4%|现在 11.5%"><svg width="180" height="16" viewBox="0 0 180 16" aria-hidden="true"><line class="ibar__track" x1="0" x2="180" y1="8" y2="8"/><rect class="ibar__band" x="69" y="3" width="56" height="10" rx="2"/><line class="ibar__avg" x1="83" x2="83" y1="1" y2="15"/><circle class="ibar__dot" cx="94" cy="8" r="4"/></svg></span><span class="ibar-text">13.1%（80% 区间 9.6%–17.4%）· 竖线为现在 11.5%</span></div></td><td>有一半多的把握份额继续变大；B 档回测之后变大 60%</td></tr>
+                    <tr><td>新品做到概率（每 10 个）<br><span class="small">中档 · 树脂一体 · 原木 / 白</span></td><td><span class="small muted">模型原值</span> <span class="num">6.4 / 6.2</span><span class="arrow">→</span><span class="small muted">扣偏差 1.2 后</span> <span class="big">5.2 / 5.0</span><button class="etag" type="button" data-pop-title="新品做到概率" data-pop="模型=新品层，只用开发能定的属性;校准=(a) 最近半年;模型偏差=+1.2（近批预测 4.8 − 实际 3.6，2026-10-08）;样本数=近批检验新家族 204 个">偏差 +1.2</button><span class="etag etag--snap snap-only">快照</span></td><td>模型近批偏高约 1 个，按每 10 个约 5 个预期</td></tr>
+                    <tr><td>框内历史做到率</td><td>含树脂的新家族 <span class="num">6</span> 个做到 <span class="num">5</span> 个；同框其他 <span class="num">79</span> 个做到 <span class="num">37</span> 个 · <span class="num">p = 0.11</span><button class="etag" type="button" data-pop-title="框内历史做到率" data-pop="框=30″ · 拆装 · 落地式;月份=2024-10 至 2026-09，已走完 6 个月观察期的新家族;样本数=6 + 79 = 85 个新家族;做到=6 个月内任一月小类 BSR ≤ 50 或 SPU 月销售额 ≥ $10 万;检验=Fisher 精确检验">n=85</button></td><td>接近但没到显著；方向是好的</td></tr>
+                    <tr><td>拟定价位实测成交<br><span class="small">子体 × 月</span></td><td>$200–250：<span class="num">86</span> 次，月销中位 <span class="num">25</span> 件，最高 <span class="num">214</span> 件<button class="etag" type="button" data-pop-title="$200–250 价格带" data-pop="框=30″ · 拆装 · 落地式;取值=台面材质：树脂;月份=2024-10 至 2026-09;样本数=31 个子体、86 个子体 × 月">n=86</button><br>$250–300：<span class="num">91</span> 次，月销中位 <span class="num">21</span> 件，最高 <span class="num">132</span> 件<button class="etag" type="button" data-pop-title="$250–300 价格带" data-pop="框=30″ · 拆装 · 落地式;取值=台面材质：树脂;月份=2024-10 至 2026-09;样本数=25 个子体、91 个子体 × 月">n=91</button></td><td>主流价位成交充足，不是孤例</td></tr>
+                    <tr><td>评分</td><td>树脂 <span class="num">4.09</span>，同框 <span class="num">4.27</span><button class="etag" type="button" data-pop-title="评分" data-pop="框=30″ · 拆装 · 落地式;月份=2026-04 至 2026-09;样本数=37 个家族（按销量加权）">n=37</button></td><td>现有树脂款做得比同框差一截；差评里 23% 是树脂盆本身的问题，28% 是装配，都是具体、可改的问题</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="narr" id="narr-consumer">
+                <div class="narr__head">
+                  <span class="narr__title">为消费者解决了什么问题</span>
+                  <span class="badge badge--warn" data-ai-badge><svg class="icon"><use href="#ph-lightbulb"/></svg>AI 草稿</span>
+                  <span class="spacer"></span>
+                  <button class="btn btn--sm" type="button" data-view-show="draft" data-cost="draft"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>重新起草叙述</span></button>
+                </div>
+                <textarea class="textarea" rows="5" aria-label="为消费者解决了什么问题" data-narr>30″ 拆装落地里，陶瓷一体占 72%、190 个家族，款式高度同质。树脂一体可以把台面和盆做成一体、颜色可选（如灰、黑台面），在同样的 $230–250 里给出"不一样的样子"。现在的赢家都在同框中位价或更低，并且同一款铺 3 个颜色。机会：同价位，把评分从 4.0 做到 4.3 以上。（推测，待问答验证）</textarea>
+                <p class="field__hint">由 Claude 起草（2026-11-03 10:30）。编辑后"AI 草稿"标记去掉。</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3 看到什么就停 -->
+          <section class="csec enter" style="--i:4" id="s3" aria-labelledby="s3-t">
+            <div class="csec__head"><h2 class="csec__title" id="s3-t"><span class="csec__no">03</span>看到什么就停</h2><span class="section__note">批准后写入预测台账，上架后自动对照</span></div>
+            <div class="csec__body">
+              <ul class="stoplist">
+                <li><svg class="icon"><use href="#ph-warning"/></svg><span>前 3 个月评分 &lt; 4.2</span></li>
+                <li><svg class="icon"><use href="#ph-warning"/></svg><span>第 2–3 个月月销 &lt; 40 件</span></li>
+                <li><svg class="icon"><use href="#ph-warning"/></svg><span>JUMMICO 等把价格压到同框 0.75 倍以下（现在是 0.79<button class="etag" type="button" data-pop-title="JUMMICO 价比" data-pop="框=30″ · 拆装 · 落地式;SKU=B0H452LRTC、B0H459BRL6、B0H457SGJD;月份=2026-08*;价比=价格 ÷ 同月同框中位价">2026-08*</button>）</span></li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- 4 被放弃的选项 -->
+          <section class="csec enter" style="--i:5" id="s4" aria-labelledby="s4-t">
+            <div class="csec__head"><h2 class="csec__title" id="s4-t"><span class="csec__no">04</span>被放弃的选项</h2></div>
+            <div class="csec__body">
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th>选项</th><th>处理</th><th>为什么</th></tr></thead>
+                  <tbody>
+                    <tr><td class="cell-title">同取值做 24″ 拆装 · 落地式</td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span></td><td class="small">份额 2.0% → 13.3%，但近两季没有新进入者，JUMMICO 一家独大；等 30″ 的结果</td></tr>
+                    <tr><td class="cell-title">$300–400 价位（竖棱树脂高价款）</td><td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td><td class="small">$300–400 有 72 个子体 × 月，月销中位只有 11 件，是 $200–250 的一半不到 <button class="etag" type="button" data-pop-title="$300–400 价格带" data-pop="框=30″ · 拆装 · 落地式;月份=2024-10 至 2026-09;样本数=29 个子体、72 个子体 × 月">n=72</button></td></tr>
+                    <tr><td class="cell-title">陶瓷一体（同框主流）</td><td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td><td class="small">占 72%、190 个家族，款式高度同质，靠价格竞争</td></tr>
+                    <tr><td class="cell-title">Wayfair、Lowe's 同步上</td><td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span></td><td class="small">Wayfair 树脂份额在跌（14.2% → 10.6%）、评分 3.88；Lowe's 这个框量太小（估算 140 件/月）</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 5 大数据层 -->
+          <section class="csec enter" style="--i:5" id="s5" aria-labelledby="s5-t">
+            <div class="csec__head"><h2 class="csec__title" id="s5-t"><span class="csec__no">05</span>大数据层：时间线</h2><span class="section__note" data-ch-label>Amazon · 2024Q4 至 2026Q3 · * 来自 v11 表，打折看</span></div>
+            <div class="csec__body">
+              <div data-ch-panel="amazon">
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead><tr><th>季度</th><th class="t-num">树脂月销</th><th class="t-num">框内份额</th><th class="t-num">中位价（溢价）</th><th class="t-num">评分 树脂 / 框</th><th class="t-num">新品占比 树脂 / 框</th><th class="t-num">在榜家族</th></tr></thead>
+                    <tbody>
+                      <tr><td class="num">2024Q4</td><td class="t-num">297</td><td class="t-num">8.7%</td><td class="t-num">$290（1.16）</td><td class="t-num">4.02 / 4.14</td><td class="t-num">0% / 4%</td><td class="t-num">5</td></tr>
+                      <tr><td class="num">2025Q1</td><td class="t-num">132</td><td class="t-num">7.5%</td><td class="t-num">$250（1.04）</td><td class="t-num">4.13 / 4.17</td><td class="t-num">6% / 44%</td><td class="t-num">5</td></tr>
+                      <tr><td class="num">2025Q2</td><td class="t-num">207</td><td class="t-num">10.0%</td><td class="t-num">$260（1.04）</td><td class="t-num">4.29 / 4.18</td><td class="t-num">16% / 42%</td><td class="t-num">7</td></tr>
+                      <tr><td class="num">2025Q3</td><td class="t-num">188</td><td class="t-num">6.8%</td><td class="t-num">$270（1.12）</td><td class="t-num">4.16 / 4.26</td><td class="t-num">11% / 31%</td><td class="t-num">7</td></tr>
+                      <tr><td class="num">2025Q4</td><td class="t-num">169</td><td class="t-num">7.0%</td><td class="t-num">$270（1.13）</td><td class="t-num">4.28 / 4.26</td><td class="t-num">10% / 13%</td><td class="t-num">9</td></tr>
+                      <tr><td class="num">2026Q1</td><td class="t-num">339</td><td class="t-num">9.4%</td><td class="t-num">$236（0.90）</td><td class="t-num">3.98 / 4.28</td><td class="t-num">61% / 40%</td><td class="t-num">10</td></tr>
+                      <tr><td class="num">2026Q2</td><td class="t-num">533</td><td class="t-num">12.0%</td><td class="t-num">$270（0.93）</td><td class="t-num">4.20 / 4.23</td><td class="t-num">58% / 36%</td><td class="t-num">18</td></tr>
+                      <tr><td class="num">2026Q3*</td><td class="t-num">564</td><td class="t-num">11.2%</td><td class="t-num">$240（0.83）</td><td class="t-num">3.98 / 4.30</td><td class="t-num">28% / 30%</td><td class="t-num">24</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <ul class="small" style="margin-top: var(--space-3); color: var(--fg-2)">
+                  <li>2025 年树脂还比同框贵 4%–16%，在榜家族只有 5–9 个。</li>
+                  <li>2026Q1 起新品大量进入（新品占比 61%），价格降到同框以下，在榜家族从 10 个涨到 24 个，月销翻倍。</li>
+                  <li>现在处于"平价化、放量"阶段，类似竖棱 2025 年中的位置；但评分在往下走（3.98），新进入者质量参差。</li>
+                </ul>
+                <details open style="margin-top: var(--space-4)">
+                  <summary class="strong">展开趋势与价格带</summary>
+                  <div class="charts" style="margin-top: var(--space-3)">
+                    <div class="chart-card"><div class="chart-card__title">框内份额</div><div class="chart-card__note">树脂销量 ÷ 框内台面材质已知的销量</div><svg class="spark chart" viewBox="0 0 320 140" role="img" aria-label="树脂在 30″ 拆装落地框内的份额，逐季"><line class="spark__grid" x1="40" x2="300" y1="108.0" y2="108.0"/><text class="spark__label" x="34" y="111.0" text-anchor="end">0%</text><line class="spark__grid" x1="40" x2="300" y1="75.9" y2="75.9"/><text class="spark__label" x="34" y="78.9" text-anchor="end">5%</text><line class="spark__grid" x1="40" x2="300" y1="43.7" y2="43.7"/><text class="spark__label" x="34" y="46.7" text-anchor="end">10%</text><text class="spark__label" x="40.0" y="128" text-anchor="middle">24Q4</text><text class="spark__label" x="114.3" y="128" text-anchor="middle">25Q2</text><text class="spark__label" x="188.6" y="128" text-anchor="middle">25Q4</text><text class="spark__label" x="262.9" y="128" text-anchor="middle">26Q2</text><text class="spark__label" x="300.0" y="128" text-anchor="middle">26Q3*</text><polyline class="spark__line" points="40.0,52.1 77.1,59.8 114.3,43.7 151.4,64.3 188.6,63.0 225.7,47.6 262.9,30.9 300.0,36.0"/><circle class="spark__dot" cx="40.0" cy="52.1" r="4" tabindex="0" data-tip="8.7%|2024Q4 · 树脂份额"/><circle class="spark__dot" cx="77.1" cy="59.8" r="4" tabindex="0" data-tip="7.5%|2025Q1 · 树脂份额"/><circle class="spark__dot" cx="114.3" cy="43.7" r="4" tabindex="0" data-tip="10%|2025Q2 · 树脂份额"/><circle class="spark__dot" cx="151.4" cy="64.3" r="4" tabindex="0" data-tip="6.8%|2025Q3 · 树脂份额"/><circle class="spark__dot" cx="188.6" cy="63.0" r="4" tabindex="0" data-tip="7%|2025Q4 · 树脂份额"/><circle class="spark__dot" cx="225.7" cy="47.6" r="4" tabindex="0" data-tip="9.4%|2026Q1 · 树脂份额"/><circle class="spark__dot" cx="262.9" cy="30.9" r="4" tabindex="0" data-tip="12%|2026Q2 · 树脂份额"/><circle class="spark__dot" cx="300.0" cy="36.0" r="4" tabindex="0" data-tip="11.2%|2026Q3* · 树脂份额"/><text class="spark__value" x="300.0" y="27.0" text-anchor="middle">11.2%</text></svg></div>
+                    <div class="chart-card"><div class="chart-card__title">新品占比</div><div class="legend"><span><i></i>树脂</span><span><i class="ref"></i>同框</span></div><svg class="spark chart" viewBox="0 0 320 140" role="img" aria-label="新品占比：树脂与同框，逐季"><line class="spark__grid" x1="40" x2="300" y1="108.0" y2="108.0"/><text class="spark__label" x="34" y="111.0" text-anchor="end">0%</text><line class="spark__grid" x1="40" x2="300" y1="69.4" y2="69.4"/><text class="spark__label" x="34" y="72.4" text-anchor="end">30%</text><line class="spark__grid" x1="40" x2="300" y1="30.9" y2="30.9"/><text class="spark__label" x="34" y="33.9" text-anchor="end">60%</text><text class="spark__label" x="40.0" y="128" text-anchor="middle">24Q4</text><text class="spark__label" x="114.3" y="128" text-anchor="middle">25Q2</text><text class="spark__label" x="188.6" y="128" text-anchor="middle">25Q4</text><text class="spark__label" x="262.9" y="128" text-anchor="middle">26Q2</text><text class="spark__label" x="300.0" y="128" text-anchor="middle">26Q3*</text><polyline class="spark__line" points="40.0,108.0 77.1,100.3 114.3,87.4 151.4,93.9 188.6,95.1 225.7,29.6 262.9,33.4 300.0,72.0"/><polyline class="chart__line--ref" points="40.0,102.9 77.1,51.4 114.3,54.0 151.4,68.1 188.6,91.3 225.7,56.6 262.9,61.7 300.0,69.4"/><circle class="spark__dot" cx="40.0" cy="108.0" r="4" tabindex="0" data-tip="0%|2024Q4 · 树脂|同框 4%"/><circle class="spark__dot" cx="77.1" cy="100.3" r="4" tabindex="0" data-tip="6%|2025Q1 · 树脂|同框 44%"/><circle class="spark__dot" cx="114.3" cy="87.4" r="4" tabindex="0" data-tip="16%|2025Q2 · 树脂|同框 42%"/><circle class="spark__dot" cx="151.4" cy="93.9" r="4" tabindex="0" data-tip="11%|2025Q3 · 树脂|同框 31%"/><circle class="spark__dot" cx="188.6" cy="95.1" r="4" tabindex="0" data-tip="10%|2025Q4 · 树脂|同框 13%"/><circle class="spark__dot" cx="225.7" cy="29.6" r="4" tabindex="0" data-tip="61%|2026Q1 · 树脂|同框 40%"/><circle class="spark__dot" cx="262.9" cy="33.4" r="4" tabindex="0" data-tip="58%|2026Q2 · 树脂|同框 36%"/><circle class="spark__dot" cx="300.0" cy="72.0" r="4" tabindex="0" data-tip="28%|2026Q3* · 树脂|同框 30%"/><text class="spark__value" x="300.0" y="63.0" text-anchor="middle">28%</text></svg></div>
+                    <div class="chart-card"><div class="chart-card__title">溢价率</div><div class="chart-card__note">价格 ÷ 同月同框中位价</div><svg class="spark chart" viewBox="0 0 320 140" role="img" aria-label="树脂溢价率（价格 ÷ 同框中位价），逐季"><line class="spark__grid" x1="40" x2="300" y1="91.6" y2="91.6"/><text class="spark__label" x="34" y="94.6" text-anchor="end">0.80</text><line class="spark__grid" x1="40" x2="300" y1="58.9" y2="58.9"/><text class="spark__label" x="34" y="61.9" text-anchor="end">1.00</text><line class="spark__grid" x1="40" x2="300" y1="26.2" y2="26.2"/><text class="spark__label" x="34" y="29.2" text-anchor="end">1.20</text><line class="chart__ref" x1="40" x2="300" y1="58.9" y2="58.9"/><text class="spark__label" x="300" y="54.9" text-anchor="end">同框中位 1.00</text><text class="spark__label" x="40.0" y="128" text-anchor="middle">24Q4</text><text class="spark__label" x="114.3" y="128" text-anchor="middle">25Q2</text><text class="spark__label" x="188.6" y="128" text-anchor="middle">25Q4</text><text class="spark__label" x="262.9" y="128" text-anchor="middle">26Q2</text><text class="spark__label" x="300.0" y="128" text-anchor="middle">26Q3*</text><polyline class="spark__line" points="40.0,32.7 77.1,52.4 114.3,52.4 151.4,39.3 188.6,37.6 225.7,75.3 262.9,70.4 300.0,86.7"/><circle class="spark__dot" cx="40.0" cy="32.7" r="4" tabindex="0" data-tip="1.16|2024Q4 · 溢价"/><circle class="spark__dot" cx="77.1" cy="52.4" r="4" tabindex="0" data-tip="1.04|2025Q1 · 溢价"/><circle class="spark__dot" cx="114.3" cy="52.4" r="4" tabindex="0" data-tip="1.04|2025Q2 · 溢价"/><circle class="spark__dot" cx="151.4" cy="39.3" r="4" tabindex="0" data-tip="1.12|2025Q3 · 溢价"/><circle class="spark__dot" cx="188.6" cy="37.6" r="4" tabindex="0" data-tip="1.13|2025Q4 · 溢价"/><circle class="spark__dot" cx="225.7" cy="75.3" r="4" tabindex="0" data-tip="0.90|2026Q1 · 溢价"/><circle class="spark__dot" cx="262.9" cy="70.4" r="4" tabindex="0" data-tip="0.93|2026Q2 · 溢价"/><circle class="spark__dot" cx="300.0" cy="86.7" r="4" tabindex="0" data-tip="0.83|2026Q3* · 溢价"/><text class="spark__value" x="300.0" y="77.7" text-anchor="middle">0.83</text></svg></div>
+                  </div>
+                  <div class="grid-2" style="margin-top: var(--space-4)">
+                    <div>
+                      <h3 style="margin-bottom: var(--space-2)">价格带构成（30″ 拆装落地 · 树脂，子体 × 月）</h3>
+                      <div class="hbars">
+                        <span class="hbar__label">&lt; $200</span><span class="hbar__track"><span class="hbar__bar" style="width:5.5%" tabindex="0" data-tip="5 次|4 个子体 · 月销中位 13 件 · 最高 51 件 · 评分中位 4.2"></span></span><span class="hbar__value">5 · 中位 13 件</span>
+                        <span class="hbar__label">$200–250</span><span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:94.5%" tabindex="0" data-tip="86 次|31 个子体 · 月销中位 25 件 · 最高 214 件 · 评分中位 4.3"></span></span><span class="hbar__value">86 · 中位 25 件</span>
+                        <span class="hbar__label">$250–300</span><span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:100%" tabindex="0" data-tip="91 次|25 个子体 · 月销中位 21 件 · 最高 132 件 · 评分中位 4.2"></span></span><span class="hbar__value">91 · 中位 21 件</span>
+                        <span class="hbar__label">$300–400</span><span class="hbar__track"><span class="hbar__bar" style="width:79.1%" tabindex="0" data-tip="72 次|29 个子体 · 月销中位 11 件 · 最高 95 件 · 评分中位 4.2"></span></span><span class="hbar__value">72 · 中位 11 件</span>
+                        <span class="hbar__label">≥ $400</span><span class="hbar__track"><span class="hbar__bar" style="width:6.6%" tabindex="0" data-tip="6 次|6 个子体 · 月销中位 3 件 · 最高 3 件 · 评分中位 4.8"></span></span><span class="hbar__value">6 · 中位 3 件</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 style="margin-bottom: var(--space-2)">近期框内各台面材质（2026-04 至 09）</h3>
+                      <div class="table-wrap">
+                        <table class="table">
+                          <thead><tr><th>台面材质</th><th class="t-num">月销</th><th class="t-num">份额</th><th class="t-num">在榜家族</th><th class="t-num">溢价</th><th class="t-num">评分</th></tr></thead>
+                          <tbody>
+                            <tr><td>陶瓷</td><td class="t-num">3,409</td><td class="t-num">71.7%</td><td class="t-num">152</td><td class="t-num">0.83</td><td class="t-num">4.29</td></tr>
+                            <tr><td>木板</td><td class="t-num">703</td><td class="t-num">14.8%</td><td class="t-num">54</td><td class="t-num">1.01</td><td class="t-num">4.29</td></tr>
+                            <tr class="is-selected"><td class="cell-title">树脂</td><td class="t-num">549</td><td class="t-num">11.5%</td><td class="t-num">37</td><td class="t-num">0.86</td><td class="t-num">4.09</td></tr>
+                            <tr><td>岗石</td><td class="t-num">64</td><td class="t-num">1.4%</td><td class="t-num">4</td><td class="t-num">0.69</td><td class="t-num">4.39</td></tr>
+                            <tr><td>岩板</td><td class="t-num">18</td><td class="t-num">0.4%</td><td class="t-num">3</td><td class="t-num">1.22</td><td class="t-num">4.46</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </details>
+              </div>
+              <div data-ch-panel="hd" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead><tr><th>季度</th><th class="t-num">树脂估算月销</th><th class="t-num">框内份额</th><th class="t-num">中位价（溢价）</th><th class="t-num">评分 树脂 / 框</th><th class="t-num">在榜家族</th></tr></thead>
+                    <tbody>
+                      <tr><td class="num">2025Q4</td><td class="t-num">96 <span class="etag">估算</span></td><td class="t-num">6.1%</td><td class="t-num">$279（1.04）</td><td class="t-num">4.30 / 4.31</td><td class="t-num">3</td></tr>
+                      <tr><td class="num">2026Q1</td><td class="t-num">121 <span class="etag">估算</span></td><td class="t-num">7.4%</td><td class="t-num">$269（0.98）</td><td class="t-num">4.26 / 4.30</td><td class="t-num">4</td></tr>
+                      <tr><td class="num">2026Q2</td><td class="t-num">163 <span class="etag">估算</span></td><td class="t-num">9.1%</td><td class="t-num">$259（0.92）</td><td class="t-num">4.22 / 4.30</td><td class="t-num">5</td></tr>
+                      <tr><td class="num">2026Q3</td><td class="t-num">180 <span class="etag">估算</span></td><td class="t-num">9.8%</td><td class="t-num">$259（0.91）</td><td class="t-num">4.21 / 4.30</td><td class="t-num">6</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div data-ch-panel="lowes" hidden>
+                <div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">Lowe's 这个框样本不足</div><div class="empty__desc">30″ 拆装 · 落地式在 Lowe's 估算月销 140 件，不到 200 件，没有逐季趋势。树脂只有 2 个家族。</div></div>
+              </div>
+              <div data-ch-panel="wayfair" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead><tr><th>季度</th><th class="t-num">树脂估算月销</th><th class="t-num">框内份额</th><th class="t-num">中位价（溢价）</th><th class="t-num">评分 树脂 / 框</th><th class="t-num">在榜家族</th></tr></thead>
+                    <tbody>
+                      <tr><td class="num">2025Q4</td><td class="t-num">214 <span class="etag">估算</span></td><td class="t-num">14.2%</td><td class="t-num">$249（0.90）</td><td class="t-num">4.02 / 4.24</td><td class="t-num">7</td></tr>
+                      <tr><td class="num">2026Q1</td><td class="t-num">196 <span class="etag">估算</span></td><td class="t-num">13.0%</td><td class="t-num">$245（0.88）</td><td class="t-num">3.95 / 4.25</td><td class="t-num">8</td></tr>
+                      <tr><td class="num">2026Q2</td><td class="t-num">172 <span class="etag">估算</span></td><td class="t-num">11.4%</td><td class="t-num">$239（0.85）</td><td class="t-num">3.90 / 4.25</td><td class="t-num">9</td></tr>
+                      <tr><td class="num">2026Q3</td><td class="t-num">161 <span class="etag">估算</span></td><td class="t-num">10.6%</td><td class="t-num">$236（0.84）</td><td class="t-num">3.88 / 4.25</td><td class="t-num">9</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">Wayfair 只有 "Verified Purchase" 计 VP，月销口径和其他渠道不同，只在 Wayfair 内比较。</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6 SKU 层 -->
+          <section class="csec enter" style="--i:5" id="s6" aria-labelledby="s6-t">
+            <div class="csec__head"><h2 class="csec__title" id="s6-t"><span class="csec__no">06</span>SKU 层</h2><span class="section__note" data-ch-label-sku>Amazon · 30″ 拆装 · 落地式 77 个子 ASIN，按峰值月销排 · 点行展开</span></div>
+            <div class="csec__body">
+              <div data-ch-panel="amazon">
+                <div class="table-wrap">
+                  <table class="table" id="sku-table">
+                    <thead><tr><th>子 ASIN</th><th>品牌</th><th>规格</th><th class="t-num">价格（价比）</th><th class="t-num">评分</th><th>首次在榜 / 在榜月数</th><th>峰值：月份、月销</th><th>最好排名 / 首次进前 50</th></tr></thead>
+                    <tbody>
+                      <tr data-sku="B0H452LRTC" tabindex="0"><td class="mono">B0H452LRTC</td><td>JUMMICO</td><td>树脂 · 农场风装饰饰条 · 黑</td><td class="t-num">$225–230（0.79）</td><td class="t-num">4.0–4.1</td><td class="num">2026-06* / 2</td><td class="num">2026-08*：214 件</td><td class="num">7 / 2026-06</td></tr>
+                      <tr data-sku="B0H459BRL6" tabindex="0"><td class="mono">B0H459BRL6</td><td>JUMMICO</td><td>树脂 · 农场风装饰饰条 · 白</td><td class="t-num">$230（0.79）</td><td class="t-num">4.0–4.1</td><td class="num">2026-06* / 2</td><td class="num">2026-08*：184 件</td><td class="num">7 / 2026-06</td></tr>
+                      <tr data-sku="B0D1QHH3QW" tabindex="0"><td class="mono">B0D1QHH3QW</td><td>AMERLIFE</td><td>树脂 · 农场风装饰饰条 · 灰</td><td class="t-num">$240–320（1.12）</td><td class="t-num">3.7–4.4</td><td class="num">2024-11 / 21</td><td class="num">2024-11：132 件</td><td class="num">3 / 2024-11</td></tr>
+                      <tr data-sku="B0D8KQVKN6" tabindex="0"><td class="mono">B0D8KQVKN6</td><td>AMERLIFE</td><td>树脂 · 农场风装饰饰条 · 白</td><td class="t-num">$238–300（1.11）</td><td class="t-num">3.7–4.4</td><td class="num">2024-10 / 22</td><td class="num">2024-11：132 件</td><td class="num">3 / 2024-10</td></tr>
+                      <tr data-sku="B0DY7SKD52" tabindex="0"><td class="mono">B0DY7SKD52</td><td>DELUXE LIVING</td><td>树脂 · 夏克式 · 深木</td><td class="t-num">$235–270（1.04）</td><td class="t-num">3.6–5.0</td><td class="num">2025-03 / 19</td><td class="num">2026-01：100 件</td><td class="num">8 / 2025-03</td></tr>
+                      <tr data-sku="B0GTP9HCCX" tabindex="0"><td class="mono">B0GTP9HCCX</td><td>CARPETNAL</td><td>树脂 · 竖棱 · 深木</td><td class="t-num">$310（1.07）</td><td class="t-num">1.0–4.7</td><td class="num">2026-04 / 4</td><td class="num">2026-08*：95 件</td><td class="num">2 / 2026-04</td></tr>
+                      <tr data-sku="B0GSQKH3HV" tabindex="0"><td class="mono">B0GSQKH3HV</td><td>NOVAMAISON</td><td>树脂 · 竖棱 · 原木</td><td class="t-num">$310（1.08）</td><td class="t-num">4.2–5.0</td><td class="num">2026-04 / 4</td><td class="num">2026-04：92 件</td><td class="num">17 / 2026-05</td></tr>
+                      <tr data-sku="B0DNSSXD21" tabindex="0"><td class="mono">B0DNSSXD21</td><td>eclife</td><td>树脂 · 横板条 · 深木</td><td class="t-num">$230–300（1.00）</td><td class="t-num">4.4–5.0</td><td class="num">2025-01 / 18</td><td class="num">2025-11：62 件</td><td class="num">6 / 2025-01</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="pager"><span>第 1 页，共 10 页 · 77 个子 ASIN</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button><button class="pager__btn" type="button">2</button><button class="pager__btn" type="button">3</button></div></div>
+              </div>
+              <div data-ch-panel="hd" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead><tr><th>商品 ID</th><th>品牌</th><th>规格</th><th class="t-num">价格（价比）</th><th class="t-num">评分</th><th>峰值：月份、估算月销</th><th>最好类目排名</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">330582417</td><td>Glacier Bay</td><td>树脂 · 农场风装饰饰条 · 白</td><td class="t-num">$249（0.92）</td><td class="t-num">4.3</td><td class="num">2026-08：110 件 <span class="etag">估算</span></td><td class="num">38</td></tr>
+                      <tr><td class="mono">329847105</td><td>Home Decorators Collection</td><td>树脂 · 竖棱 · 原木</td><td class="t-num">$279（1.03）</td><td class="t-num">4.4</td><td class="num">2026-07：70 件 <span class="etag">估算</span></td><td class="num">61</td></tr>
+                      <tr><td class="mono">331206658</td><td>JUMMICO</td><td>树脂 · 农场风装饰饰条 · 黑</td><td class="t-num">$239（0.88）</td><td class="t-num">4.0</td><td class="num">2026-09：60 件 <span class="etag">估算</span></td><td class="num">72</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div data-ch-panel="lowes" hidden>
+                <div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">Lowe's 只有 2 个树脂家族</div><div class="empty__desc">样本不足，不列 SKU 层。</div></div>
+              </div>
+              <div data-ch-panel="wayfair" hidden>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead><tr><th>商品 ID</th><th>品牌</th><th>规格</th><th class="t-num">价格（价比）</th><th class="t-num">评分</th><th>峰值：月份、估算月销</th><th>最好类目排名</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">W100392871</td><td>Latitude Run</td><td>树脂 · 竖棱 · 原木</td><td class="t-num">$259（1.06）</td><td class="t-num">3.9</td><td class="num">2025-12：60 件 <span class="etag">估算</span></td><td class="num">44</td></tr>
+                      <tr><td class="mono">W111873540</td><td>Wade Logan</td><td>树脂 · 农场风装饰饰条 · 灰</td><td class="t-num">$229（0.94）</td><td class="t-num">3.8</td><td class="num">2026-01：50 件 <span class="etag">估算</span></td><td class="num">57</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 7 差评归类 -->
+          <section class="csec enter" style="--i:5" id="s7" aria-labelledby="s7-t">
+            <div class="csec__head">
+              <h2 class="csec__title" id="s7-t"><span class="csec__no">07</span>差评归类</h2>
+              <button class="btn btn--sm" type="button" data-view-show="draft" data-cost="reviews"><svg class="icon"><use href="#ph-download-simple"/></svg><span>拉差评</span></button>
+            </div>
+            <div class="csec__body">
+              <p class="small muted">已拉 2026-11-03：Amazon 8 个 SKU、1–3 星 64 条（卖家精灵，每个最多 30 条）；Home Depot / Lowe's / Wayfair：本卡关联商品在评论 VP 追踪明细里没有 1–3 星评论 · 归类：Claude · 每条只归一个主要原因</p>
+              <div class="grid-2">
+                <div>
+                  <div class="hbars" id="rv-bars">
+                    <span class="hbar__label">装配 / 做工</span><span class="hbar__track"><span class="hbar__bar" data-tip="" data-cat="装配 / 做工" tabindex="0"></span></span><span class="hbar__value" data-val="装配 / 做工"></span>
+                    <span class="hbar__label strong">树脂盆本身</span><span class="hbar__track"><span class="hbar__bar hbar__bar--focus" data-tip="" data-cat="树脂盆本身" tabindex="0"></span></span><span class="hbar__value" data-val="树脂盆本身"></span>
+                    <span class="hbar__label">柜体材料</span><span class="hbar__track"><span class="hbar__bar" data-tip="" data-cat="柜体材料" tabindex="0"></span></span><span class="hbar__value" data-val="柜体材料"></span>
+                    <span class="hbar__label">结构 / 设计</span><span class="hbar__track"><span class="hbar__bar" data-tip="" data-cat="结构 / 设计" tabindex="0"></span></span><span class="hbar__value" data-val="结构 / 设计"></span>
+                    <span class="hbar__label">运输</span><span class="hbar__track"><span class="hbar__bar" data-tip="" data-cat="运输" tabindex="0"></span></span><span class="hbar__value" data-val="运输"></span>
+                    <span class="hbar__label">服务</span><span class="hbar__track"><span class="hbar__bar" data-tip="" data-cat="服务" tabindex="0"></span></span><span class="hbar__value" data-val="服务"></span>
+                    <span class="hbar__label">不明</span><span class="hbar__track"><span class="hbar__bar" data-tip="" data-cat="不明" tabindex="0"></span></span><span class="hbar__value" data-val="不明"></span>
+                  </div>
+                  <p class="small muted" style="margin-top: var(--space-2)">共 <span class="num">64</span> 条 <span class="etag etag--n">n=64</span> · 人工改判 <span class="num" data-manual-count>0</span> 条</p>
+                </div>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead><tr><th>原因</th><th>我们要怎么做</th></tr></thead>
+                    <tbody>
+                      <tr><td class="t-nowrap">装配 / 做工</td><td class="small">少零件、孔位准、说明清楚、预装滑轨</td></tr>
+                      <tr><td class="t-nowrap strong">树脂盆本身</td><td class="small">标准 1-1/4 英寸排水孔、带溢水口、盆底有固定点、表面耐划、盆做深防溅水</td></tr>
+                      <tr><td class="t-nowrap">柜体材料</td><td class="small">不用软颗粒板，用长螺丝；详情页不写"实木"</td></tr>
+                      <tr><td class="t-nowrap">结构 / 设计</td><td class="small">腿和侧板一起受力；背板留管路空间；尺寸写清楚</td></tr>
+                      <tr><td class="t-nowrap">运输 / 服务 / 不明</td><td class="small">包装加强；退货流程</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <details>
+                <summary class="strong">按 SKU 看（8 个）</summary>
+                <div class="table-wrap" style="margin-top: var(--space-3)">
+                  <table class="table">
+                    <thead><tr><th>子 ASIN</th><th>框</th><th>品牌</th><th class="t-num">1–3 星</th><th class="t-num">装配</th><th class="t-num">树脂盆</th><th class="t-num">柜体</th><th class="t-num">结构</th><th class="t-num">运输</th><th class="t-num">服务</th><th class="t-num">不明</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">B0D1QHH3QW</td><td>30″</td><td>AMERLIFE</td><td class="t-num">5</td><td class="t-num">3</td><td class="t-num">1</td><td class="t-num">1</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">0</td></tr>
+                      <tr><td class="mono">B0G6V2RTH5</td><td>30″</td><td>JUMMICO</td><td class="t-num">10</td><td class="t-num">2</td><td class="t-num">5</td><td class="t-num">2</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">1</td></tr>
+                      <tr><td class="mono">B0GTPW41ZP</td><td>30″</td><td>CARPETNAL</td><td class="t-num">4</td><td class="t-num">1</td><td class="t-num">1</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">2</td></tr>
+                      <tr><td class="mono">B0DY7SKD52</td><td>30″</td><td>DELUXE LIVING</td><td class="t-num">12</td><td class="t-num">5</td><td class="t-num">0</td><td class="t-num">3</td><td class="t-num">1</td><td class="t-num">2</td><td class="t-num">1</td><td class="t-num">0</td></tr>
+                      <tr><td class="mono">B0F32ZR5NK</td><td>24″</td><td>YITAHOME</td><td class="t-num">18</td><td class="t-num">4</td><td class="t-num">3</td><td class="t-num">2</td><td class="t-num">6</td><td class="t-num">1</td><td class="t-num">0</td><td class="t-num">2</td></tr>
+                      <tr><td class="mono">B0FK3V5WMD</td><td>24″</td><td>JUMMICO</td><td class="t-num">13</td><td class="t-num">3</td><td class="t-num">4</td><td class="t-num">1</td><td class="t-num">2</td><td class="t-num">0</td><td class="t-num">1</td><td class="t-num">2</td></tr>
+                      <tr><td class="mono">B0GVF4MFPV</td><td>60″</td><td>CARPETNAL</td><td class="t-num">2</td><td class="t-num">0</td><td class="t-num">1</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">0</td><td class="t-num">1</td></tr>
+                      <tr><td class="mono">B0GSRGXB63</td><td>60″</td><td>NOVAMAISON</td><td class="t-num">0</td><td class="t-num" colspan="7"><span class="etag etag--nodata">无数据</span> <span class="small muted">没有 1–3 星评论</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+
+              <div>
+                <div class="row" style="margin-bottom: var(--space-1)"><h3>评论原文与归类</h3><span class="spacer"></span><span class="small muted">显示 8 / 64 条</span></div>
+                <div id="rv-list">
+                  <div class="rv"><div><div class="rv__quote">"The drain hole is 1-3/4 inches. Your standard bathroom sink drain hole is 1-1/4 inches"</div><div class="rv__meta">B0G6V2RTH5 · JUMMICO · 2 星 · 2026-07</div></div><select class="select" aria-label="归类" data-prev="树脂盆本身"><option>装配 / 做工</option><option selected>树脂盆本身</option><option>柜体材料</option><option>结构 / 设计</option><option>运输</option><option>服务</option><option>不明</option></select></div>
+                  <div class="rv"><div><div class="rv__quote">"Sink is plastic and has no overflow drain so standard drains do not work with it"</div><div class="rv__meta">B0FK3V5WMD · JUMMICO · 1 星 · 2026-05</div></div><select class="select" aria-label="归类" data-prev="树脂盆本身"><option>装配 / 做工</option><option selected>树脂盆本身</option><option>柜体材料</option><option>结构 / 设计</option><option>运输</option><option>服务</option><option>不明</option></select></div>
+                  <div class="rv"><div><div class="rv__quote">"There's no way to mount the sink to the cabinet bc of honey comb shaping on the underside"</div><div class="rv__meta">B0F32ZR5NK · YITAHOME · 2 星 · 2026-02</div></div><select class="select" aria-label="归类" data-prev="树脂盆本身"><option>装配 / 做工</option><option selected>树脂盆本身</option><option>柜体材料</option><option>结构 / 设计</option><option>运输</option><option>服务</option><option>不明</option></select></div>
+                  <div class="rv"><div><div class="rv__quote">"The directions are atrocious and the drawers are nearly impossible to align"</div><div class="rv__meta">B0DY7SKD52 · DELUXE LIVING · 2 星 · 2026-01</div></div><select class="select" aria-label="归类" data-prev="装配 / 做工"><option selected>装配 / 做工</option><option>树脂盆本身</option><option>柜体材料</option><option>结构 / 设计</option><option>运输</option><option>服务</option><option>不明</option></select></div>
+                  <div class="rv"><div><div class="rv__quote">"Too many pieces… about 35 pieces"</div><div class="rv__meta">B0D1QHH3QW · AMERLIFE · 3 星 · 2025-09</div></div><select class="select" aria-label="归类" data-prev="装配 / 做工"><option selected>装配 / 做工</option><option>树脂盆本身</option><option>柜体材料</option><option>结构 / 设计</option><option>运输</option><option>服务</option><option>不明</option></select></div>
+                  <div class="rv"><div><div class="rv__quote">"The particle board is extremely soft… cam bolts pull out… drawer slides are attached using very short 3/8-inch screws"</div><div class="rv__meta">B0DY7SKD52 · DELUXE LIVING · 1 星 · 2025-12</div></div><select class="select" aria-label="归类" data-prev="柜体材料"><option>装配 / 做工</option><option>树脂盆本身</option><option selected>柜体材料</option><option>结构 / 设计</option><option>运输</option><option>服务</option><option>不明</option></select></div>
+                  <div class="rv"><div><div class="rv__quote">"Installed 2, within a month both collapsed at the front leg attachments"</div><div class="rv__meta">B0F32ZR5NK · YITAHOME · 1 星 · 2026-04</div></div><select class="select" aria-label="归类" data-prev="结构 / 设计"><option>装配 / 做工</option><option>树脂盆本身</option><option>柜体材料</option><option selected>结构 / 设计</option><option>运输</option><option>服务</option><option>不明</option></select></div>
+                  <div class="rv"><div><div class="rv__quote">"water splashes out of basin"</div><div class="rv__meta">B0GTPW41ZP · CARPETNAL · 3 星 · 2026-06* · 大模型判为"不明"</div></div><select class="select" aria-label="归类" data-prev="不明"><option>装配 / 做工</option><option>树脂盆本身</option><option>柜体材料</option><option>结构 / 设计</option><option>运输</option><option>服务</option><option selected>不明</option></select></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 8 钱 -->
+          <section class="csec enter" style="--i:5" id="s8" aria-labelledby="s8-t">
+            <div class="csec__head">
+              <h2 class="csec__title" id="s8-t"><span class="csec__no">08</span>钱</h2>
+              <a class="btn btn--sm" href="PAGE-F24-01.html" data-view-show="draft"><svg class="icon"><use href="#ph-scales"/></svg><span>测算利润（带入 30″、$240）</span></a>
+            </div>
+            <div class="csec__body">
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th>情形</th><th>依据</th><th class="t-num">月销</th><th class="t-num">月销售额（按 $240）</th></tr></thead>
+                  <tbody>
+                    <tr><td class="cell-title">一般（单个子体）</td><td class="small">$200–250 价格带"子体 × 月"中位</td><td class="t-num">25 件<button class="etag" type="button" data-pop-title="一般" data-pop="框=30″ · 拆装 · 落地式;价格带=$200–250;月份=2024-10 至 2026-09;样本数=86 个子体 × 月">n=86</button></td><td class="t-num">约 $6,000</td></tr>
+                    <tr><td class="cell-title">做到（家族）</td><td class="small">同框含树脂、做到的新家族，第 4–6 个月中位</td><td class="t-num">89 件<button class="etag" type="button" data-pop-title="做到" data-pop="框=30″ · 拆装 · 落地式;月份=上架后第 4–6 个月;样本数=5 个做到的新家族">n=5</button></td><td class="t-num">约 $21,000</td></tr>
+                    <tr><td class="cell-title">好（家族，3 色）</td><td class="small">JUMMICO 2026-08*：3 个颜色合计</td><td class="t-num">约 560 件<button class="etag" type="button" data-pop-title="好" data-pop="框=30″ · 拆装 · 落地式;SKU=B0H452LRTC + B0H459BRL6 + B0H457SGJD;月份=2026-08*;样本数=3 个子体">n=3</button></td><td class="t-num">约 $13 万</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <div class="row" style="margin-bottom: var(--space-2)"><h3>利润（关联方案回写）</h3><span class="spacer"></span><span class="small muted">方案"树脂一体30寸_拆装落地_v2"· 2026-11-03 16:20 保存 · 随方案更新</span></div>
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead><tr><th>渠道 / 方式</th><th class="t-num">售价</th><th class="t-num">单件利润</th><th class="t-num">利润率</th><th class="t-num">保本价</th></tr></thead>
+                    <tbody>
+                      <tr><td>Amazon FBA</td><td class="t-num">$239.99</td><td class="t-num">$31.40</td><td class="t-num">13.1%</td><td class="t-num">$201.50</td></tr>
+                      <tr><td>Amazon FBM</td><td class="t-num">$239.99</td><td class="t-num">$36.80</td><td class="t-num">15.3%</td><td class="t-num">$196.00</td></tr>
+                      <tr><td>Home Depot</td><td class="t-num">$249.00</td><td class="t-num">$28.60</td><td class="t-num">11.5%</td><td class="t-num">$214.20</td></tr>
+                      <tr><td>Lowe's</td><td class="t-num">$249.00</td><td class="t-num">$26.10</td><td class="t-num">10.5%</td><td class="t-num">$217.40</td></tr>
+                      <tr><td>Wayfair</td><td class="t-num">$229.00</td><td class="t-num">$19.70</td><td class="t-num">8.6%</td><td class="t-num">$205.80</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="small muted" style="margin-top: var(--space-2)">数字来自 <a href="PAGE-F24-01.html">利润测算</a> 的关联方案，本卡不能直接改；在利润测算里改方案并保存后，这里随之更新。</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 9 上架后跟踪 -->
+          <section class="csec enter" style="--i:5" id="s9" aria-labelledby="s9-t">
+            <div class="csec__head"><h2 class="csec__title" id="s9-t"><span class="csec__no">09</span>上架后跟踪</h2><span class="section__note">批准后自动登记 <a href="PAGE-F26-01.html">预测台账</a>，满 6 个月自动对账</span></div>
+            <div class="csec__body">
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th>时间点</th><th>看什么</th><th>目标</th></tr></thead>
+                  <tbody>
+                    <tr><td class="cell-title">前 3 个月</td><td>评分、家族月销、小类排名</td><td>评分 ≥ 4.3，月销 ≥ 60 件，进小类前 100</td></tr>
+                    <tr><td class="cell-title">6 个月（Amazon）</td><td>做到判定</td><td>任一月小类 BSR ≤ 50 或 SPU 月销售额 ≥ $10 万</td></tr>
+                    <tr><td class="cell-title">6 个月（Home Depot，观察）</td><td>做到判定</td><td>类目 Top Sellers 前 50，或估算月销 ≥ 250 件</td></tr>
+                    <tr><td class="cell-title">一直</td><td>JUMMICO 的价格</td><td>不低于同框 0.75 倍</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 10 数据限制 -->
+          <section class="csec enter" style="--i:5" id="s10" aria-labelledby="s10-t">
+            <div class="csec__head"><h2 class="csec__title" id="s10-t"><span class="csec__no">10</span>数据限制</h2></div>
+            <div class="csec__body">
+              <ul class="stack small" style="color: var(--fg-2)">
+                <li>树脂是台面材质标签；"信息不足"的行未计入。</li>
+                <li>2026-06 至 09 来自 v11 表（标 *），家族键月间一致性低，这几个月的份额变化要打折看。</li>
+                <li>差评样本 64 条；NOVAMAISON 没有差评，CARPETNAL 60″ 只有 2 条。</li>
+                <li>Home Depot / Lowe's / Wayfair 月销是评论换算估算（VP × 50 + 非 VP × 20，参数 v1），分级规则在这些渠道未回测；Lowe's 这个框样本不足。</li>
+                <li>"为消费者解决了什么问题"是推测，待问答验证。</li>
+              </ul>
+            </div>
+          </section>
+        </div>
+
+        <aside class="card-side" aria-label="卡片导航与审批">
+          <div class="panel">
+            <ol class="toc" id="toc">
+              <li><a href="#s1">分框决策</a></li>
+              <li><a href="#s2">我们在赌什么</a></li>
+              <li><a href="#s3">看到什么就停</a></li>
+              <li><a href="#s4">被放弃的选项</a></li>
+              <li><a href="#s5">大数据层</a></li>
+              <li><a href="#s6">SKU 层</a></li>
+              <li><a href="#s7">差评归类</a></li>
+              <li><a href="#s8">钱</a></li>
+              <li><a href="#s9">上架后跟踪</a></li>
+              <li><a href="#s10">数据限制</a></li>
+            </ol>
+          </div>
+          <div class="approve-box" data-view-show="pending" hidden>
+            <h3 style="margin-bottom: var(--space-2)">审批</h3>
+            <p class="small muted" style="margin-bottom: var(--space-3)">wen 于 2026-11-03 10:42 提交第 2 版。批准后锁定为只读版本，并登记预测台账。</p>
+            <button class="btn btn--primary" type="button" data-decide="批准"><svg class="icon"><use href="#ph-check-circle"/></svg><span>批准</span></button>
+            <button class="btn" type="button" data-decide="退回修改"><svg class="icon"><use href="#ph-arrow-left"/></svg><span>退回修改</span></button>
+            <button class="btn btn--danger" type="button" data-decide="驳回"><svg class="icon"><use href="#ph-x-circle"/></svg><span>驳回</span></button>
+          </div>
+          <div class="panel">
+            <div class="panel__head"><h3 class="panel__title">版本与审批记录</h3></div>
+            <ol class="timeline">
+              <li data-view-show="approved" hidden class="is-now"><b>老板 批准</b> · 2026-11-05 15:10<br>"先做 30″，24″ 等结果。盆的排水孔必须是标准件。"</li>
+              <li data-view-show="pending approved" hidden><b>wen 提交第 2 版</b> · 2026-11-03 10:42</li>
+              <li><b>wen 编辑叙述</b> · 2026-11-03 10:38</li>
+              <li><b>老板 退回修改</b> · 2026-11-01 18:05<br>"补差评归类和钱。"</li>
+              <li><b>wen 提交第 1 版</b> · 2026-10-31 09:20</li>
+              <li><b>从机会扫描生成草稿</b> · 2026-10-30 14:02 · 用时 18 秒</li>
+            </ol>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- SKU 展开抽屉 -->
+<aside class="drawer" id="drawer-sku" role="dialog" aria-modal="true" aria-labelledby="sku-title" aria-hidden="true">
+  <div class="drawer__head">
+    <div><h2 class="drawer__title" id="sku-title">B0H452LRTC</h2><p class="drawer__sub" data-sku-sub>JUMMICO · 树脂 · 农场风装饰饰条 · 黑 · 30″ · 拆装 · 落地式</p></div>
+    <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+  </div>
+  <div class="drawer__body">
+    <div class="row" style="align-items: flex-start; gap: var(--space-4)">
+      <svg class="thumb" role="img" aria-label="主图"><use href="#img-vanity"/></svg>
+      <dl class="kv" style="flex: 1">
+        <dt>子 ASIN</dt><dd><a data-sku-link href="https://www.amazon.com/dp/B0H452LRTC" target="_blank" rel="noopener"><span data-sku-asin>B0H452LRTC</span> <svg class="icon"><use href="#ph-arrow-square-out"/></svg></a></dd>
+        <dt>首次进前 50</dt><dd data-sku-top50>2026-06（第 1 个在榜月）</dd>
+        <dt>最好排名</dt><dd data-sku-best>小类第 7 名</dd>
+      </dl>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>月份</th><th class="t-num">价格</th><th class="t-num">价比</th><th class="t-num">评分</th><th class="t-num">月销</th><th class="t-num">小类排名</th></tr></thead>
+        <tbody data-sku-rows></tbody>
+      </table>
+    </div>
+    <p class="small muted" style="margin-top: var(--space-2)">月销 = 卖家精灵估算的子体月销；价比 = 价格 ÷ 同月同框中位价；排名 = 小类 BSR。* 来自 v11 表。</p>
+  </div>
+  <div class="drawer__foot"><button class="btn" type="button" data-close>关闭</button></div>
+</aside>
+
+<!-- 费用评估确认弹窗（CMP-F16-01） -->
+<div class="modal" id="modal-cost" role="dialog" aria-modal="true" aria-labelledby="cost-title" aria-hidden="true">
+  <div class="modal__dialog">
+    <div class="modal__head"><div><h2 class="modal__title" id="cost-title">费用评估：拉差评并归类</h2><p class="modal__sub" data-cost-sub>本卡 8 个 SKU · 1–3 星 · 每个最多 30 条</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body stack">
+      <dl class="cost-rows" data-cost-rows></dl>
+      <div>
+        <div class="row small"><span class="muted" data-budget-label>卖家精灵 本月已花 $38.20 / 上限 $100.00</span></div>
+        <div class="meter"><i style="width:38%" data-budget-bar></i></div>
+      </div>
+      <p class="small muted">确认后才开始；中断后重跑，已成功的部分不重复调用、不重复计费。达到月度上限会自动停，已拉数据保留。</p>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-cost-ok><svg class="icon"><use href="#ph-play"/></svg><span>确认并开始</span></button></div>
+  </div>
+</div>
+
+<!-- 提交审批 -->
+<div class="modal" id="modal-submit" role="dialog" aria-modal="true" aria-labelledby="submit-title" aria-hidden="true">
+  <div class="modal__dialog">
+    <div class="modal__head"><div><h2 class="modal__title" id="submit-title">提交审批</h2><p class="modal__sub">树脂一体 · 30″ 拆装 · 落地式 · 第 2 版</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body stack">
+      <ul class="small" style="color: var(--fg-2)">
+        <li>十项内容齐全；"为消费者解决了什么问题"仍是 AI 草稿，建议编辑后再提交。</li>
+        <li>提交后叙述不能再改，审批者可以批准、驳回或退回修改。</li>
+      </ul>
+      <div class="field"><label class="field__label" for="submit-note">给审批者的说明</label><textarea class="textarea" id="submit-note">按上次意见补了差评归类（64 条）和利润方案回写。</textarea></div>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-submit-ok><svg class="icon"><use href="#ph-seal-check"/></svg><span>提交</span></button></div>
+  </div>
+</div>
+
+<!-- 审批决定 -->
+<div class="modal" id="modal-decide" role="dialog" aria-modal="true" aria-labelledby="decide-title" aria-hidden="true">
+  <div class="modal__dialog">
+    <div class="modal__head"><div><h2 class="modal__title" id="decide-title">批准立项</h2><p class="modal__sub">树脂一体 · 30″ 拆装 · 落地式 · 第 2 版 · 审批人 老板</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body stack">
+      <p class="small" data-decide-desc>批准后本卡锁定为只读版本，数字保持现在的快照，并自动登记预测台账。</p>
+      <div class="field"><label class="field__label" for="decide-note">意见<span class="req" data-decide-req hidden>*</span></label><textarea class="textarea" id="decide-note">先做 30″，24″ 等结果。盆的排水孔必须是标准件。</textarea><span class="field__error" data-decide-err hidden><svg class="icon"><use href="#ph-warning"/></svg>退回修改和驳回需要写意见</span></div>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-decide-ok><span>确认批准</span></button></div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+  var doc = document;
+
+  /* ── 视角切换（演示操作者 / 审批者 / 已批准） ── */
+  var SETTINGS = ['PAGE-F16-01.html', 'PAGE-F16-02.html', 'PAGE-F15-03.html', 'PAGE-F27-01.html'];
+  function setView(v) {
+    doc.body.setAttribute('data-view', v);
+    doc.querySelectorAll('[data-view-btn]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-view-btn') === v)); });
+    doc.querySelectorAll('[data-view-show]').forEach(function (el) { el.hidden = el.getAttribute('data-view-show').split(' ').indexOf(v) < 0; });
+    var editable = v === 'draft';
+    doc.querySelectorAll('[data-narr]').forEach(function (t) { t.readOnly = !editable; });
+    doc.querySelectorAll('#rv-list select').forEach(function (s) { s.disabled = !editable; });
+    doc.querySelector('[data-who]').textContent = v === 'pending' ? '老板 · 审批者' : 'wen · 操作者';
+    var approver = v === 'pending';
+    doc.querySelectorAll('.nav__item').forEach(function (a) { if (SETTINGS.indexOf(a.getAttribute('href')) >= 0) a.hidden = approver; });
+    doc.querySelectorAll('.nav__group').forEach(function (g) { if (g.textContent.trim() === '设置') g.hidden = approver; });
+  }
+  doc.querySelectorAll('[data-view-btn]').forEach(function (b) { b.addEventListener('click', function () { setView(b.getAttribute('data-view-btn')); }); });
+
+  /* ── 渠道切换：大数据层与 SKU 层看哪个渠道 ── */
+  var CHN = { amazon: 'Amazon', hd: 'Home Depot', lowes: "Lowe's", wayfair: 'Wayfair' };
+  doc.querySelectorAll('.seg__opt[data-ch]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var ch = btn.getAttribute('data-ch');
+      doc.querySelectorAll('.seg__opt[data-ch]').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+      doc.querySelectorAll('[data-ch-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-ch-panel') !== ch; });
+      doc.querySelector('[data-ch-label]').textContent = CHN[ch] + (ch === 'amazon' ? ' · 2024Q4 至 2026Q3 · * 来自 v11 表，打折看' : ' · 估算月销 · 只在本渠道内比较');
+      doc.querySelector('[data-ch-label-sku]').textContent = CHN[ch] + ' · 30″ 拆装 · 落地式' + (ch === 'amazon' ? ' 77 个子 ASIN，按峰值月销排 · 点行展开' : '');
+    });
+  });
+
+  /* ── AI 草稿标记：编辑后去掉 ── */
+  var narr = doc.querySelector('[data-narr]');
+  narr.addEventListener('input', function () {
+    var badge = doc.querySelector('[data-ai-badge]');
+    if (badge) badge.hidden = true;
+    narr.nextElementSibling.textContent = 'wen 已编辑（2026-11-03 10:45 自动保存）。';
+  });
+
+  /* ── 差评占比，可改判 ── */
+  var counts = { '装配 / 做工': 18, '树脂盆本身': 15, '柜体材料': 9, '结构 / 设计': 9, '运输': 3, '服务': 2, '不明': 8 };
+  var manual = 0;
+  function drawBars() {
+    var total = 64, max = 0;
+    Object.keys(counts).forEach(function (k) { if (counts[k] > max) max = counts[k]; });
+    doc.querySelectorAll('#rv-bars .hbar__bar').forEach(function (bar) {
+      var k = bar.getAttribute('data-cat');
+      var pct = Math.round(counts[k] / total * 100);
+      bar.style.width = (counts[k] / max * 100) + '%';
+      bar.setAttribute('data-tip', counts[k] + ' 条（' + pct + '%）|' + k);
+      doc.querySelector('[data-val="' + k + '"]').textContent = counts[k] + ' 条 · ' + pct + '%';
+    });
+    doc.querySelector('[data-manual-count]').textContent = String(manual);
+  }
+  doc.querySelectorAll('#rv-list select').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      var prev = sel.getAttribute('data-prev');
+      counts[prev] -= 1; counts[sel.value] += 1;
+      sel.setAttribute('data-prev', sel.value);
+      var meta = sel.parentNode.querySelector('.rv__meta');
+      if (!meta.querySelector('.etag')) { manual += 1; meta.insertAdjacentHTML('beforeend', ' <span class="etag">人工修改</span>'); }
+      drawBars();
+      window.oppoToast('已改判为"' + sel.value + '"，占比已重算');
+    });
+  });
+  drawBars();
+
+  /* ── 费用评估确认弹窗 ── */
+  var COST = {
+    reviews: {
+      title: '费用评估：拉差评并归类', sub: '本卡 8 个 SKU · 1–3 星 · 每个最多 30 条',
+      rows: [['服务', '卖家精灵（评论）+ 大模型 Claude（归类）'], ['预计调用量', '卖家精灵 8 次；大模型归类 64–240 条'], ['预计费用', '$0.45–$1.00'], ['预计耗时', '约 2–4 分钟']],
+      budget: '卖家精灵 本月已花 $38.20 / 上限 $100.00', bar: 38,
+      done: '差评已拉取并归类：Amazon 64 条，已记入费用记录'
+    },
+    draft: {
+      title: '费用评估：起草叙述', sub: '用大模型起草"为消费者解决了什么问题"',
+      rows: [['服务', '大模型 Claude'], ['预计调用量', '1 次，约 6,000 tokens'], ['预计费用', '$0.02–$0.05'], ['预计耗时', '约 20 秒']],
+      budget: '大模型 本月已花 $4.60 / 上限 $30.00', bar: 15,
+      done: '已起草，标为"AI 草稿"；编辑后去掉标记'
+    }
+  };
+  var costKind = null;
+  doc.querySelectorAll('[data-cost]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      costKind = btn.getAttribute('data-cost');
+      var c = COST[costKind];
+      doc.getElementById('cost-title').textContent = c.title;
+      doc.querySelector('[data-cost-sub]').textContent = c.sub;
+      var dl = doc.querySelector('[data-cost-rows]');
+      dl.innerHTML = '';
+      c.rows.forEach(function (r) { dl.insertAdjacentHTML('beforeend', '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'); });
+      doc.querySelector('[data-budget-label]').textContent = c.budget;
+      doc.querySelector('[data-budget-bar]').style.width = c.bar + '%';
+      window.oppoOpen('#modal-cost');
+    });
+  });
+  doc.querySelector('[data-cost-ok]').addEventListener('click', function () {
+    var c = COST[costKind];
+    window.oppoClose('#modal-cost');
+    if (costKind === 'draft') {
+      var badge = doc.querySelector('[data-ai-badge]');
+      badge.hidden = false;
+      narr.nextElementSibling.textContent = '由 Claude 起草（2026-11-03 10:50）。编辑后"AI 草稿"标记去掉。';
+    }
+    window.oppoToast(c.done);
+  });
+
+  /* ── 提交审批 ── */
+  doc.querySelector('[data-submit-ok]').addEventListener('click', function () {
+    window.oppoClose('#modal-submit');
+    window.oppoToast('已提交审批，等待老板处理；叙述已锁定');
+    setView('pending');
+  });
+
+  /* ── 审批：批准 / 驳回 / 退回修改 ── */
+  var decision = '批准';
+  doc.querySelectorAll('[data-decide]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      decision = btn.getAttribute('data-decide');
+      var ok = doc.querySelector('[data-decide-ok]');
+      doc.getElementById('decide-title').textContent = decision === '批准' ? '批准立项' : decision;
+      doc.querySelector('[data-decide-desc]').textContent = decision === '批准' ? '批准后本卡锁定为只读版本，数字保持现在的快照，并自动登记预测台账。' :
+        decision === '驳回' ? '驳回后本卡状态为"已驳回"，不登记台账。' : '退回后本卡回到草稿，wen 修改后可再次提交。';
+      doc.querySelector('[data-decide-req]').hidden = decision === '批准';
+      doc.getElementById('decide-note').value = decision === '批准' ? '先做 30″，24″ 等结果。盆的排水孔必须是标准件。' : '';
+      ok.className = 'btn ' + (decision === '驳回' ? 'btn--danger' : 'btn--primary');
+      ok.querySelector('span').textContent = '确认' + decision;
+      doc.querySelector('[data-decide-err]').hidden = true;
+      window.oppoOpen('#modal-decide');
+    });
+  });
+  doc.querySelector('[data-decide-ok]').addEventListener('click', function () {
+    var note = doc.getElementById('decide-note').value.trim();
+    if (decision !== '批准' && !note) { doc.querySelector('[data-decide-err]').hidden = false; return; }
+    window.oppoClose('#modal-decide');
+    if (decision === '批准') { setView('approved'); window.oppoToast('已批准，卡片锁定为只读版本并登记预测台账'); }
+    else if (decision === '退回修改') { setView('draft'); window.oppoToast('已退回修改，卡片回到草稿'); }
+    else { window.oppoToast('已驳回，记录审批人、时间和意见'); }
+  });
+
+  /* ── SKU 展开抽屉 ── */
+  var SKU = {
+    B0H452LRTC: { sub: 'JUMMICO · 树脂 · 农场风装饰饰条 · 黑', top50: '2026-06（第 1 个在榜月）', best: '小类第 7 名', rows: [['2026-06*', '$225', '0.79', '4.1', '141', '7'], ['2026-07*', '$230', '0.80', '4.1', '176', '9'], ['2026-08*', '$230', '0.79', '4.0', '214', '7'], ['2026-09*', '$229', '0.79', '4.0', '188', '10']] },
+    B0H459BRL6: { sub: 'JUMMICO · 树脂 · 农场风装饰饰条 · 白', top50: '2026-06（第 1 个在榜月）', best: '小类第 7 名', rows: [['2026-06*', '$230', '0.80', '4.1', '120', '7'], ['2026-07*', '$230', '0.80', '4.0', '151', '11'], ['2026-08*', '$230', '0.79', '4.0', '184', '7'], ['2026-09*', '$230', '0.79', '4.0', '163', '12']] },
+    B0D1QHH3QW: { sub: 'AMERLIFE · 树脂 · 农场风装饰饰条 · 灰', top50: '2024-11（第 1 个在榜月）', best: '小类第 3 名', rows: [['2024-11', '$289', '1.13', '4.1', '132', '3'], ['2025-07', '$280', '1.12', '4.2', '115', '16'], ['2025-08', '$320', '1.30', '4.2', '89', '24'], ['2025-09', '$320', '1.39', '4.2', '64', '30'], ['2025-10', '$320', '1.33', '4.2', '96', '28'], ['2025-11', '$280', '1.17', '4.2', '87', '22']] },
+    B0D8KQVKN6: { sub: 'AMERLIFE · 树脂 · 农场风装饰饰条 · 白', top50: '2024-10（第 1 个在榜月）', best: '小类第 3 名', rows: [['2024-10', '$300', '1.15', '4.1', '118', '5'], ['2024-11', '$300', '1.13', '4.1', '132', '3'], ['2024-12', '$289', '1.11', '4.2', '104', '6'], ['2025-01', '$280', '1.12', '4.2', '77', '11'], ['2025-02', '$270', '1.09', '4.3', '70', '14'], ['2025-03', '$260', '1.05', '4.4', '81', '9']] },
+    B0DY7SKD52: { sub: 'DELUXE LIVING · 树脂 · 夏克式 · 深木', top50: '2025-03（第 1 个在榜月）', best: '小类第 8 名', rows: [['2025-11', '$250', '0.96', '4.5', '71', '15'], ['2025-12', '$260', '1.02', '4.6', '88', '11'], ['2026-01', '$270', '1.04', '4.7', '100', '8'], ['2026-02', '$270', '1.05', '4.6', '83', '12'], ['2026-03', '$265', '1.01', '4.4', '69', '18'], ['2026-04', '$255', '0.98', '4.2', '58', '22']] },
+    B0GTP9HCCX: { sub: 'CARPETNAL · 树脂 · 竖棱 · 深木', top50: '2026-04（第 1 个在榜月）', best: '小类第 2 名', rows: [['2026-04', '$310', '1.07', '4.7', '88', '2'], ['2026-05', '$310', '1.07', '3.6', '70', '9'], ['2026-06*', '$310', '1.06', '2.3', '52', '31'], ['2026-08*', '$310', '1.07', '1.0', '95', '14']] },
+    B0GSQKH3HV: { sub: 'NOVAMAISON · 树脂 · 竖棱 · 原木', top50: '2026-05（第 2 个在榜月）', best: '小类第 17 名', rows: [['2026-04', '$310', '1.08', '5.0', '92', '61'], ['2026-05', '$310', '1.08', '4.6', '78', '17'], ['2026-06*', '$310', '1.07', '4.4', '64', '24'], ['2026-07*', '$310', '1.08', '4.2', '55', '33']] },
+    B0DNSSXD21: { sub: 'eclife · 树脂 · 横板条 · 深木', top50: '2025-01（第 1 个在榜月）', best: '小类第 6 名', rows: [['2025-09', '$270', '1.07', '4.5', '41', '19'], ['2025-10', '$260', '1.04', '4.6', '55', '12'], ['2025-11', '$250', '1.00', '4.6', '62', '6'], ['2025-12', '$240', '0.98', '4.5', '48', '14']] }
+  };
+  function openSku(tr) {
+    var id = tr.getAttribute('data-sku');
+    var d = SKU[id];
+    doc.getElementById('sku-title').textContent = id;
+    doc.querySelector('[data-sku-sub]').textContent = d.sub + ' · 30″ · 拆装 · 落地式';
+    doc.querySelector('[data-sku-asin]').textContent = id;
+    doc.querySelector('[data-sku-link]').setAttribute('href', 'https://www.amazon.com/dp/' + id);
+    doc.querySelector('[data-sku-top50]').textContent = d.top50;
+    doc.querySelector('[data-sku-best]').textContent = d.best;
+    var body = doc.querySelector('[data-sku-rows]');
+    body.innerHTML = '';
+    d.rows.forEach(function (r) {
+      body.insertAdjacentHTML('beforeend', '<tr><td class="num">' + r[0] + '</td><td class="t-num">' + r[1] + '</td><td class="t-num">' + r[2] + '</td><td class="t-num">' + r[3] + '</td><td class="t-num">' + r[4] + '</td><td class="t-num">' + r[5] + '</td></tr>');
+    });
+    doc.querySelectorAll('#sku-table tbody tr').forEach(function (t) { t.classList.toggle('is-selected', t === tr); });
+    window.oppoOpen('#drawer-sku');
+  }
+  doc.querySelectorAll('#sku-table tbody tr').forEach(function (tr) {
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', function () { openSku(tr); });
+    tr.addEventListener('keydown', function (e) { if (e.key === 'Enter') openSku(tr); });
+  });
+
+  /* ── 目录高亮 ── */
+  var links = Array.prototype.slice.call(doc.querySelectorAll('#toc a'));
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        links.forEach(function (a) { a.classList.toggle('is-on', a.getAttribute('href') === '#' + en.target.id); });
+      });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    doc.querySelectorAll('.csec').forEach(function (s) { io.observe(s); });
+  }
+
+  setView('draft');
+})();
+</script>
+</body>
+</html>

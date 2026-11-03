@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F26-01">
+  <title>预测台账 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .judge { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+    .judge .ch { font-size: var(--text-2xs); color: var(--muted); margin-right: 2px; }
+    .crit { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: var(--space-2) var(--space-4); align-items: center; font-size: var(--text-sm); }
+    .lines { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+    .line { padding: var(--space-3) var(--space-4); border: 1px solid var(--border-soft); border-radius: var(--radius-md); background: var(--surface-warm); font-size: var(--text-sm); }
+    .line__ch { font-weight: 600; }
+    .stoplist { margin: 0; padding-left: 1.2em; font-size: var(--text-sm); }
+    @media (max-width: 1279px) { .lines { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <!-- 第二轮共用侧栏（所有页面原样复制，当前页的 a 加 aria-current="page"；按角色隐藏的项在页面说明里写明） -->
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+        <div class="nav__group">数据</div>
+        <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+        <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+        <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+        <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+        <div class="nav__group">决策</div>
+        <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+        <div class="nav__group">审批与台账</div>
+        <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+        <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <a class="nav__item" href="PAGE-F26-01.html" aria-current="page"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+        <div class="nav__group">工具</div>
+        <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+        <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+        <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+        <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+        <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+    <!-- 顶栏：左侧"浴室柜"品类标签；需要渠道的页面（PAGE-F20-01、PAGE-F21-01、PAGE-F21-02）在顶栏放渠道切换 seg：Amazon / Home Depot / Lowe's / Wayfair；右侧"wen · 操作者"用户菜单（退出登录 → PAGE-F15-01.html）。 -->
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="version version--optional">参数 v3</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <div class="crumbs"><span>审批与台账</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>预测台账</span></div>
+            <h1>预测台账</h1>
+            <p class="page-head__sub">决策卡批准即登记预测；预计上架后满 6 个月且对应月份数据已并入，自动判定是否做到。各渠道分别判定，不合并成一个结论。</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn" type="button" data-toast="已导出：预测台账_20261103.xlsx"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></button>
+          </div>
+        </div>
+
+        <div class="banner banner--warn enter" style="--i:1">
+          <svg class="icon"><use href="#ph-link-simple"/></svg>
+          <div class="banner__body"><div class="banner__title">1 条待关联：陶瓷一体 · 30″ 整装 · 落地式</div><div class="small">预计 2026-07 上架，已超过 3 个月仍未关联自家 ASIN，无法对账。</div></div>
+          <div class="banner__actions"><button class="btn btn--sm" type="button" data-open="#dlgLink">关联自家 ASIN</button></div>
+        </div>
+
+        <div class="stats section enter" style="--i:2">
+          <div class="stat"><div class="stat__label">已登记</div><div class="stat__value">7<span class="stat__unit">条</span></div><div class="stat__meta">最近：岗石 · 48″ 整装 · 落地式（10-21）</div></div>
+          <div class="stat"><div class="stat__label">跟踪中</div><div class="stat__value">2<span class="stat__unit">条</span></div><div class="stat__meta">未满 6 个月</div></div>
+          <div class="stat"><div class="stat__label">本月到期</div><div class="stat__value">1<span class="stat__unit">条</span></div><div class="stat__meta">Wayfair 10 月数据并入后对账</div></div>
+          <div class="stat"><div class="stat__label">已对账</div><div class="stat__value">3<span class="stat__unit">条</span></div><div class="stat__meta">Amazon 做到 2/3 · Home Depot 0/1</div></div>
+        </div>
+
+        <!-- 准确率汇总 -->
+        <section class="section enter" style="--i:3">
+          <div class="section__head"><h2 class="section__title">准确率汇总</h2><span class="section__note">只计已对账条目；判定用 Amazon 成功线，其他渠道单列</span></div>
+          <div class="grid-2">
+            <section class="panel">
+              <div class="panel__head"><h3 class="panel__title">市场层 · 按分级</h3><span class="badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>数据不全</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>分级</th><th class="t-num">已对账</th><th class="t-num">份额实际变大</th><th class="t-num">实际做到</th></tr></thead>
+                  <tbody>
+                    <tr><td>A</td><td class="t-num">1</td><td class="t-num">100%<span class="etag etag--n">1/1</span></td><td class="t-num">100%<span class="etag etag--n">1/1</span></td></tr>
+                    <tr><td>B</td><td class="t-num">1</td><td class="t-num">100%<span class="etag etag--n">1/1</span></td><td class="t-num">100%<span class="etag etag--n">1/1</span></td></tr>
+                    <tr><td>C</td><td class="t-num">0</td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td></tr>
+                    <tr><td>D</td><td class="t-num">1</td><td class="t-num">0%<span class="etag etag--n">0/1</span></td><td class="t-num">0%<span class="etag etag--n">0/1</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__body">
+                <div class="crit">
+                  <span>D 档之后变大比例 ≤ 30%</span><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>达标 · 0%（0/1）</span>
+                  <span>把握分档后变大比例逐档上升</span><span class="badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>数据不全 · C 档无对账</span>
+                </div>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel__head"><h3 class="panel__title">新品层 · 按做到概率分档（扣偏差后）</h3><span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>未达标</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>做到概率</th><th class="t-num">已对账</th><th class="t-num">实际做到</th></tr></thead>
+                  <tbody>
+                    <tr><td>≥ 50%</td><td class="t-num">1</td><td class="t-num">100%<span class="etag etag--n">1/1</span></td></tr>
+                    <tr><td>40%–50%</td><td class="t-num">1</td><td class="t-num">100%<span class="etag etag--n">1/1</span></td></tr>
+                    <tr><td>&lt; 40%</td><td class="t-num">1</td><td class="t-num">0%<span class="etag etag--n">0/1</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__body">
+                <div class="crit">
+                  <span>打分前 20% 做到率 ≥ 平均的 2 倍</span><span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>未达标 · 1.5 倍</span>
+                </div>
+                <p class="small muted" style="margin-top:var(--space-2)">前 20%：100%（1/1）；平均：67%（2/3）。有效标准来自解题方案书。</p>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <!-- 成功线 -->
+        <section class="section enter" style="--i:4">
+          <div class="section__head"><h2 class="section__title">各渠道成功线</h2><span class="section__note">上架 6 个月内任一月满足任一条即为做到；同系列商品合并计算 · 参数 v3，可在 <a href="PAGE-F27-01.html">品类配置</a> 里改</span></div>
+          <div class="lines">
+            <div class="line"><div class="line__ch">Amazon</div><div>小类 BSR ≤ 50</div><div class="muted small">或 SPU 月销售额 ≥ $10 万</div></div>
+            <div class="line"><div class="line__ch">Home Depot</div><div>类目 Top Sellers 前 50</div><div class="muted small">或估算月销 ≥ 250 件</div></div>
+            <div class="line"><div class="line__ch">Lowe's</div><div>Best Sellers 榜前 50</div><div class="muted small">或估算月销 ≥ 150 件</div></div>
+            <div class="line"><div class="line__ch">Wayfair</div><div>主类目前 50</div><div class="muted small">或估算月销 ≥ 120 件</div></div>
+          </div>
+        </section>
+
+        <!-- 台账列表 -->
+        <section class="section enter" style="--i:5">
+          <div class="filters" data-filter-scope="#tblLedger">
+            <span class="filters__label">状态</span>
+            <button class="chip" type="button" data-filter="st:all" aria-pressed="true">全部 <span class="count">7</span></button>
+            <button class="chip" type="button" data-filter="st:track" aria-pressed="false">跟踪中 <span class="count">2</span></button>
+            <button class="chip" type="button" data-filter="st:due" aria-pressed="false">本月到期 <span class="count">1</span></button>
+            <button class="chip" type="button" data-filter="st:done" aria-pressed="false">已对账 <span class="count">3</span></button>
+            <button class="chip" type="button" data-filter="st:link" aria-pressed="false">待关联 <span class="count">1</span></button>
+            <span class="filters__sep"></span>
+            <span class="filters__label">渠道</span>
+            <button class="chip" type="button" data-filter="ch:amz" data-multi aria-pressed="false">Amazon</button>
+            <button class="chip" type="button" data-filter="ch:hd" data-multi aria-pressed="false">Home Depot</button>
+            <button class="chip" type="button" data-filter="ch:lw" data-multi aria-pressed="false">Lowe's</button>
+            <button class="chip" type="button" data-filter="ch:wf" data-multi aria-pressed="false">Wayfair</button>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="tblLedger">
+              <thead><tr><th>编号</th><th>决策卡 · 分框</th><th>版本</th><th><button class="th-sort" type="button" aria-sort="descending">登记时间<svg class="icon"><use href="#ph-caret-down"/></svg></button></th><th>市场把握 · 份额区间</th><th class="t-num">做到概率 原值 / 扣偏差</th><th>预计上架</th><th>状态</th><th>判定（分渠道）</th></tr></thead>
+              <tbody>
+                <tr data-st="track" data-ch="amz"><td class="mono">TZ-2026-07</td><td><a class="tlink" href="PAGE-F21-02.html">岗石 · 48″ 整装 · 落地式</a></td><td>v2</td><td class="num t-nowrap" data-sort="2026-10-21">2026-10-21</td><td>B · 7.0%–10.5%</td><td class="t-num">47% / 42%</td><td class="num">2027-05</td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>跟踪中</span></td><td><div class="judge"><span><span class="ch">Amazon</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>观察中</span></span></div></td></tr>
+                <tr data-st="track" data-ch="amz lw"><td class="mono">TZ-2026-05</td><td><a class="tlink" href="PAGE-F21-02.html">岗石 · 60″ 整装 · 落地式</a></td><td>v1</td><td class="num t-nowrap" data-sort="2026-06-10">2026-06-10</td><td>B · 9.0%–13.5%</td><td class="t-num">44% / 39%</td><td class="num">2026-12</td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>跟踪中</span></td><td><div class="judge"><span><span class="ch">Amazon</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>观察中</span></span><span><span class="ch">Lowe's</span><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>观察中</span></span></div></td></tr>
+                <tr data-st="due" data-ch="amz wf"><td class="mono">TZ-2026-03</td><td><a class="tlink" href="PAGE-F21-02.html">竖棱 · 30″ 拆装 · 悬浮式</a></td><td>v1</td><td class="num t-nowrap" data-sort="2026-03-02">2026-03-02</td><td>B · 6.5%–11.0%</td><td class="t-num">50% / 45%</td><td class="num">2026-05</td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-calendar-blank"/></svg>本月到期</span></td><td><div class="judge"><span><span class="ch">Amazon</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-check-circle"/></svg>做到</span></span><span><span class="ch">Wayfair</span><span class="badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>数据不全 · 等 10 月并入</span></span></div></td></tr>
+                <tr data-st="link" data-ch="amz"><td class="mono">TZ-2026-02</td><td><a class="tlink" href="PAGE-F21-02.html">陶瓷一体 · 30″ 整装 · 落地式</a></td><td>v1</td><td class="num t-nowrap" data-sort="2026-02-14">2026-02-14</td><td>C · 4.0%–7.5%</td><td class="t-num">38% / 33%</td><td class="num">2026-07</td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-link-simple"/></svg>待关联</span></td><td><button class="btn btn--sm" type="button" data-open="#dlgLink">关联自家 ASIN</button></td></tr>
+                <tr data-st="done" data-ch="amz"><td class="mono">TZ-2025-07</td><td><a class="tlink" href="PAGE-F21-02.html">黑色柜体 · 36″ 拆装 · 落地式</a></td><td>v1</td><td class="num t-nowrap" data-sort="2025-09-10">2025-09-10</td><td>D · 3.0%–7.0%</td><td class="t-num">29% / 25%</td><td class="num">2026-03</td><td><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已对账</span></td><td><div class="judge"><span><span class="ch">Amazon</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>未做到</span></span><span class="badge badge--warn"><svg class="icon"><use href="#ph-flag"/></svg>触发停止条件</span></div></td></tr>
+                <tr data-st="done" data-ch="amz hd" class="is-selected"><td class="mono">TZ-2025-05</td><td><button class="tlink" type="button" data-open="#drawer" style="border:0;background:none;padding:0;font:inherit;cursor:pointer">竖棱 · 24″ 拆装 · 落地式</button></td><td>v1</td><td class="num t-nowrap" data-sort="2025-08-05">2025-08-05</td><td>A · 9.0%–16.0%</td><td class="t-num">61% / 56%</td><td class="num">2026-02</td><td><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已对账</span></td><td><div class="judge"><span><span class="ch">Amazon</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-check-circle"/></svg>做到</span></span><span><span class="ch">Home Depot</span><span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>未做到</span></span></div></td></tr>
+                <tr data-st="done" data-ch="amz"><td class="mono">TZ-2025-03</td><td><a class="tlink" href="PAGE-F21-02.html">夏克式 · 30″ 拆装 · 落地式</a></td><td>v2</td><td class="num t-nowrap" data-sort="2025-06-18">2025-06-18</td><td>B · 6.0%–11.0%</td><td class="t-num">48% / 43%</td><td class="num">2026-01</td><td><span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已对账</span></td><td><div class="judge"><span><span class="ch">Amazon</span><span class="badge badge--hit"><svg class="icon"><use href="#ph-check-circle"/></svg>做到</span></span></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pager"><span>共 <span data-filter-count>7</span> 条 · 点"竖棱 · 24″ 拆装 · 落地式"看登记与对账明细</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button></div></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- 台账明细 -->
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dwTitle" aria-hidden="true">
+    <div class="drawer__head">
+      <div><h2 class="drawer__title" id="dwTitle">竖棱 · 24″ 拆装 · 落地式</h2><p class="drawer__sub">TZ-2025-05 · 决策卡 v1 · 2026-11-03 自动对账</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="drawer__body stack-lg">
+      <section>
+        <h3 style="margin-bottom:var(--space-3)">登记内容</h3>
+        <dl class="kv">
+          <dt>登记时间</dt><dd class="num">2025-08-05 16:12（批准即登记）</dd>
+          <dt>版本</dt><dd>决策卡 v1 <span class="lock"><svg class="icon"><use href="#ph-lock-simple"/></svg>批准快照</span></dd>
+          <dt>分框</dt><dd>24″ · 拆装 · 落地式；取值：竖棱</dd>
+          <dt>市场把握与份额区间</dt><dd class="num">A · 立项后 6–10 个月份额 9.0%–16.0%<span class="etag">80% 区间</span></dd>
+          <dt>做到概率</dt><dd class="num">原值 61% · 扣偏差 56%<span class="etag">模型偏差 +5 个百分点</span></dd>
+          <dt>停止条件</dt><dd><ul class="stoplist"><li>前 3 个月评分 &lt; 4.2</li><li>第 2–3 个月月销 &lt; 40 件</li></ul></dd>
+          <dt>预计上架</dt><dd class="num">2026-02</dd>
+          <dt>上架渠道</dt><dd>Amazon、Home Depot</dd>
+          <dt>自家商品</dt><dd><span class="fp">B0FQ7M2K4D</span>（Amazon）· <span class="fp">HD 318204677</span>（Home Depot）</dd>
+        </dl>
+      </section>
+      <section>
+        <h3 style="margin-bottom:var(--space-3)">分渠道对账（2026-02 至 2026-07）</h3>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>渠道</th><th>成功线</th><th>6 个月内最好表现</th><th>判定</th></tr></thead>
+            <tbody>
+              <tr><td>Amazon</td><td class="small">小类 BSR ≤ 50 或 SPU 月销售额 ≥ $10 万</td><td class="small num">2026-05 小类 BSR 38；2026-06 SPU 月销售额 $11.2 万<span class="etag">实测</span></td><td><span class="badge badge--hit"><svg class="icon"><use href="#ph-check-circle"/></svg>做到</span></td></tr>
+              <tr><td>Home Depot</td><td class="small">类目榜前 50 或估算月销 ≥ 250 件</td><td class="small num">最好榜第 72 名（2026-06）；估算月销最高 190 件（VP 3 × 50 + 非 VP 2 × 20）<span class="etag">估算</span></td><td><span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>未做到</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted" style="margin-top:var(--space-2)">同系列 4 个子体合并计算，评论按评论 ID 去重。判定参数：品类配置 v3。</p>
+      </section>
+      <section>
+        <h3 style="margin-bottom:var(--space-3)">停止条件</h3>
+        <div class="crit">
+          <span>前 3 个月评分 &lt; 4.2</span><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>未触发 · 4.4</span>
+          <span>第 2–3 个月月销 &lt; 40 件</span><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>未触发 · 126 / 158 件</span>
+        </div>
+      </section>
+    </div>
+    <div class="drawer__foot"><a class="btn" href="PAGE-F21-02.html">打开决策卡</a><button class="btn" type="button" data-close>关闭</button></div>
+  </aside>
+
+  <!-- 关联自家 ASIN -->
+  <div class="modal" id="dlgLink" role="dialog" aria-modal="true" aria-labelledby="lkTitle" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head"><div><h2 class="modal__title" id="lkTitle">关联自家 ASIN · 陶瓷一体 · 30″ 整装 · 落地式</h2><p class="modal__sub">TZ-2026-02 · 预计 2026-07 上架 · 关联后从实际上架月起算 6 个月</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+      <div class="modal__body">
+        <div class="form-grid">
+          <label class="field span-2"><span class="field__label">Amazon 子 ASIN<span class="req">*</span></span><input class="input mono" id="asin" placeholder="例：B0H452LRTC，多个用逗号分隔"><span class="field__hint">同系列子体都填上，对账时合并计算</span></label>
+          <label class="field"><span class="field__label">实际上架月份<span class="req">*</span></span><input class="input" type="month" value="2026-09"></label>
+          <label class="field"><span class="field__label">其他渠道商品 ID</span><input class="input mono" placeholder="该卡未登记其他渠道"></label>
+        </div>
+      </div>
+      <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" id="btnLink">关联</button></div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      document.getElementById('btnLink').addEventListener('click', function () {
+        var a = document.getElementById('asin');
+        if (!/^B0[0-9A-Z]{8}(\s*,\s*B0[0-9A-Z]{8})*$/.test(a.value.trim())) { a.setAttribute('aria-invalid', 'true'); a.focus(); window.oppoToast('ASIN 格式不对：10 位，以 B0 开头'); return; }
+        a.removeAttribute('aria-invalid');
+        window.oppoClose('#dlgLink');
+        window.oppoToast('已关联，TZ-2026-02 转为跟踪中');
+      });
+    })();
+  </script>
+</body>
+</html>

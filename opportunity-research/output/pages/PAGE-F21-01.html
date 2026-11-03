@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F21-01">
+  <title>决策卡列表 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .status-draft { background: var(--surface-warm); color: var(--fg-2); border-color: var(--border); }
+    .card-sub { margin-top: 2px; font-size: var(--text-xs); color: var(--muted); }
+  </style>
+</head>
+<body>
+<script src="assets/icons.js"></script>
+<div class="app">
+  <aside class="sidebar" aria-label="主导航">
+    <div class="sidebar__brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+      <span>品类机会判定台</span>
+    </div>
+    <nav class="nav">
+      <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+      <div class="nav__group">数据</div>
+      <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+      <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+      <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+      <div class="nav__group">分析</div>
+      <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+      <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+      <div class="nav__group">决策</div>
+      <a class="nav__item" href="PAGE-F21-01.html" aria-current="page"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+      <div class="nav__group">审批与台账</div>
+      <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+      <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+      <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+      <div class="nav__group">工具</div>
+      <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+      <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+      <div class="nav__group">设置</div>
+      <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+      <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+      <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+      <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+    </nav>
+    <div class="sidebar__foot">
+      <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar__category">浴室柜</span>
+      <div class="seg" role="group" aria-label="主渠道">
+        <button class="seg__opt" type="button" data-ch="amazon" aria-pressed="true">Amazon</button>
+        <button class="seg__opt" type="button" data-ch="hd" aria-pressed="false">Home Depot</button>
+        <button class="seg__opt" type="button" data-ch="lowes" aria-pressed="false">Lowe's</button>
+        <button class="seg__opt" type="button" data-ch="wayfair" aria-pressed="false">Wayfair</button>
+      </div>
+      <span class="spacer"></span>
+      <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+      <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>退出登录</span></a>
+    </header>
+
+    <main class="content">
+      <div class="page-head enter" style="--i:0">
+        <div>
+          <nav class="crumbs" aria-label="面包屑"><a href="PAGE-F15-02.html">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>决策</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>决策卡</span></nav>
+          <h1>决策卡</h1>
+          <p class="page-head__sub">主渠道 <span data-ch-name>Amazon</span> · 每张卡对应一个"框 × 属性取值"机会 · 新卡从机会扫描的"做决策卡"生成</p>
+        </div>
+        <div class="page-head__actions">
+          <button class="btn" type="button" data-toast="已导出 决策卡列表_20261103.xlsx（4 张）"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></button>
+          <a class="btn btn--primary" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-plus"/></svg><span>去机会扫描新建</span></a>
+        </div>
+      </div>
+
+      <section class="enter" style="--i:1" aria-label="决策卡筛选与列表">
+        <div class="filters" data-filter-scope="#cards">
+          <span class="filters__label">状态</span>
+          <button class="chip" type="button" data-filter="status:all" aria-pressed="true">全部 <span class="count">4</span></button>
+          <button class="chip" type="button" data-filter="status:draft" aria-pressed="false">草稿 <span class="count">1</span></button>
+          <button class="chip" type="button" data-filter="status:pending" aria-pressed="false">待审批 <span class="count">1</span></button>
+          <button class="chip" type="button" data-filter="status:approved" aria-pressed="false">已批准 <span class="count">1</span></button>
+          <button class="chip" type="button" data-filter="status:rejected" aria-pressed="false">已驳回 <span class="count">1</span></button>
+          <button class="chip" type="button" data-filter="status:tracking" aria-pressed="false">跟踪中 <span class="count">0</span></button>
+          <button class="chip" type="button" data-filter="status:reconciled" aria-pressed="false">已对账 <span class="count">0</span></button>
+          <span class="filters__sep" aria-hidden="true"></span>
+          <span class="filters__label">分框</span>
+          <button class="chip" type="button" data-filter="frame:all" aria-pressed="true">全部</button>
+          <button class="chip" type="button" data-filter="frame:30-ko-floor" aria-pressed="false">30″ · 拆装 · 落地式</button>
+          <button class="chip" type="button" data-filter="frame:24-ko-float" aria-pressed="false">24″ · 拆装 · 悬浮式</button>
+          <button class="chip" type="button" data-filter="frame:60-ko-floor" aria-pressed="false">60″ · 拆装 · 落地式</button>
+          <span class="spacer"></span>
+          <label class="search"><svg class="icon"><use href="#ph-magnifying-glass"/></svg><input class="input" type="search" placeholder="搜卡名、属性取值" aria-label="搜索决策卡" id="card-search"></label>
+        </div>
+
+        <div class="table-wrap" id="cards-wrap">
+          <table class="table" id="cards">
+            <thead>
+              <tr>
+                <th>决策卡（属性取值）</th>
+                <th>主渠道</th>
+                <th>分框</th>
+                <th>状态</th>
+                <th><button class="th-sort" type="button" aria-sort="descending">更新时间<svg class="icon"><use href="#ph-sort-ascending"/></svg></button></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-href="PAGE-F21-02.html" data-status="pending" data-frame="30-ko-floor" data-ch="amazon">
+                <td><a class="tlink" href="PAGE-F21-02.html">台面材质：树脂一体</a><div class="card-sub">增长型 · 第 2 版 · 提交人 wen</div></td>
+                <td>Amazon</td>
+                <td><span class="segname"><span>30″</span><span>拆装</span><span>落地式</span></span></td>
+                <td><span class="badge badge--warn"><svg class="icon"><use href="#ph-hourglass"/></svg>待审批</span></td>
+                <td class="num t-nowrap" data-sort="20261103 1042">2026-11-03 10:42</td>
+                <td><svg class="icon muted"><use href="#ph-caret-right"/></svg></td>
+              </tr>
+              <tr data-href="PAGE-F21-02.html" data-status="draft" data-frame="60-ko-floor" data-ch="amazon">
+                <td><a class="tlink" href="PAGE-F21-02.html">元素 × 台面材质：竖棱 × 树脂一体</a><div class="card-sub">增长型 · 第 1 版 · 叙述含 AI 草稿</div></td>
+                <td>Amazon</td>
+                <td><span class="segname"><span>60″</span><span>拆装</span><span>落地式</span></span></td>
+                <td><span class="badge status-draft"><svg class="icon"><use href="#ph-note-pencil"/></svg>草稿</span></td>
+                <td class="num t-nowrap" data-sort="20261102 1730">2026-11-02 17:30</td>
+                <td><svg class="icon muted"><use href="#ph-caret-right"/></svg></td>
+              </tr>
+              <tr data-href="PAGE-F21-02.html" data-status="approved" data-frame="24-ko-float" data-ch="amazon">
+                <td><a class="tlink" href="PAGE-F21-02.html">元素：竖棱</a><div class="card-sub">增长型 · 第 3 版 · 已登记预测台账 <span class="badge badge--stale"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg>有新数据</span></div></td>
+                <td>Amazon</td>
+                <td><span class="segname"><span>24″</span><span>拆装</span><span>悬浮式</span></span></td>
+                <td><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已批准</span></td>
+                <td class="num t-nowrap" data-sort="20261030 1615">2026-10-30 16:15</td>
+                <td><svg class="icon muted"><use href="#ph-caret-right"/></svg></td>
+              </tr>
+              <tr data-href="PAGE-F21-02.html" data-status="rejected" data-frame="30-ko-floor" data-ch="amazon">
+                <td><a class="tlink" href="PAGE-F21-02.html">台面材质：岗石</a><div class="card-sub">价格缺口型 · 第 2 版 · 意见："拟定价位成交观测太少"</div></td>
+                <td>Amazon</td>
+                <td><span class="segname"><span>30″</span><span>拆装</span><span>落地式</span></span></td>
+                <td><span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>已驳回</span></td>
+                <td class="num t-nowrap" data-sort="20261029 1120">2026-10-29 11:20</td>
+                <td><svg class="icon muted"><use href="#ph-caret-right"/></svg></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="empty" id="cards-empty" hidden>
+          <svg class="icon"><use href="#ph-cards"/></svg>
+          <div class="empty__title">还没有以 <span data-ch-name>Home Depot</span> 为主渠道的决策卡</div>
+          <div class="empty__desc">在机会扫描里切到这个渠道，选一个机会点"做决策卡"。</div>
+          <a class="btn" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>去机会扫描</span></a>
+        </div>
+
+        <div class="pager" id="cards-pager"><span>共 <b class="num" data-filter-count>4</b> 张 · 每页 50 张</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button></div></div>
+      </section>
+
+      <p class="page-foot">状态流转：草稿 → 待审批 → 已批准 / 已驳回 / 退回修改（回到草稿）；已批准的卡自动登记 <a href="PAGE-F26-01.html">预测台账</a>，上架后为"跟踪中"，满 6 个月对账后为"已对账"。审批在 <a href="PAGE-F25-01.html">审批</a> 页或卡片详情里完成。</p>
+    </main>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+  var doc = document;
+  var NAMES = { amazon: 'Amazon', hd: 'Home Depot', lowes: "Lowe's", wayfair: 'Wayfair' };
+  function render(ch) {
+    var rows = doc.querySelectorAll('#cards tbody tr');
+    var any = false;
+    rows.forEach(function (tr) {
+      var mine = tr.getAttribute('data-ch') === ch;
+      tr.toggleAttribute('data-other-ch', !mine);
+      if (!mine) tr.hidden = true; else any = true;
+    });
+    doc.getElementById('cards-wrap').hidden = !any;
+    doc.getElementById('cards-pager').hidden = !any;
+    doc.getElementById('cards-empty').hidden = any;
+    doc.querySelectorAll('[data-ch-name]').forEach(function (el) { el.textContent = NAMES[ch]; });
+    if (any) doc.querySelector('.chip[data-filter="status:all"]').click();
+  }
+  doc.querySelectorAll('.seg__opt[data-ch]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      doc.querySelectorAll('.seg__opt[data-ch]').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+      render(btn.getAttribute('data-ch'));
+    });
+  });
+  doc.getElementById('card-search').addEventListener('input', function (e) {
+    var q = e.target.value.trim();
+    doc.querySelectorAll('#cards tbody tr').forEach(function (tr) {
+      if (tr.hasAttribute('data-other-ch')) return;
+      tr.hidden = q !== '' && tr.textContent.indexOf(q) < 0;
+    });
+  });
+})();
+</script>
+</body>
+</html>

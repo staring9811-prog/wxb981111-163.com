@@ -21,7 +21,39 @@
 <body>
   <script src="assets/icons.js"></script>
   <div class="app">
-<!--@SIDEBAR-->
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+        <div class="nav__group">数据</div>
+        <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+        <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+        <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+        <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+        <div class="nav__group">决策</div>
+        <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+        <div class="nav__group">审批与台账</div>
+        <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+        <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+        <div class="nav__group">工具</div>
+        <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+        <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+        <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+        <a class="nav__item" href="PAGE-F15-03.html" aria-current="page"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+        <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
     <div class="main">
       <header class="topbar">
         <span class="topbar__category">浴室柜</span>
@@ -147,7 +179,7 @@
                 <tr data-type="spend"><td class="num t-nowrap" data-sort="20261101 1010">2026-11-01 10:10</td><td class="mono">wen</td><td><span class="badge badge--accent">花钱任务</span></td><td>Bright Data + Apify · 评论 VP 追踪 2026-10（Lowe's、Wayfair），确认预计 $88–$102</td><td class="mono">192.168.1.23</td></tr>
                 <tr data-type="key"><td class="num t-nowrap" data-sort="20261031 1002">2026-10-31 10:02</td><td class="mono">wen</td><td><span class="badge">密钥变更</span></td><td>更换 Bright Data 密钥（••••a91f → ••••7d3c）<a class="tlink small" href="PAGE-F16-01.html"> 密钥与大模型</a></td><td class="mono">192.168.1.23</td></tr>
                 <tr data-type="login"><td class="num t-nowrap" data-sort="20261030 0857">2026-10-30 08:57</td><td class="mono">lixiaomei</td><td><span class="badge">登录</span></td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>登录失败</span> 账号或密码不正确</td><td class="mono">192.168.1.57</td></tr>
-                <tr data-type="key"><td class="num t-nowrap" data-sort="20261029 1130">2026-10-29 11:30</td><td class="mono">wen</td><td><span class="badge">密钥变更</span></td><td>大模型提供方由 OpenAI 改为 Claude，保存 Claude 密钥 ••••Xc4M</td><td class="mono">192.168.1.23</td></tr>
+                <tr data-type="key"><td class="num t-nowrap" data-sort="20261029 1130">2026-10-29 11:30</td><td class="mono">wen</td><td><span class="badge">密钥变更</span></td><td>大模型提供方由 OpenAI 改为 Claude，保存 Claude 密钥 ••••Xc4M，删除 OpenAI 密钥 ••••p2Lq</td><td class="mono">192.168.1.23</td></tr>
                 <tr data-type="approve"><td class="num t-nowrap" data-sort="20261020 1622">2026-10-20 16:22</td><td class="mono">zhoujianguo</td><td><span class="badge">审批</span></td><td>批准策略库条目"Lowe's 以整装为主，拆装款份额低"改为已验证，意见："依据够，可以用"</td><td class="mono">192.168.1.40</td></tr>
               </tbody>
             </table>

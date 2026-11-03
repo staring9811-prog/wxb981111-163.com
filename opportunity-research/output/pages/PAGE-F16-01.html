@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F16-01">
+  <title>密钥与大模型 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .svc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }
+    .svc { display: flex; flex-direction: column; }
+    .svc .panel__body { flex: 1; }
+    .svc__use { font-size: var(--text-xs); color: var(--muted); }
+    .svc__mask { margin-top: var(--space-4); font-family: var(--font-mono); font-size: var(--text-lg); letter-spacing: var(--tracking-ui); color: var(--fg); }
+    .svc .kv { margin-top: var(--space-3); font-size: var(--text-xs); }
+    .svc__actions { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-soft); }
+    .svc__result { margin-top: var(--space-3); }
+    .llm { margin-top: var(--space-6); }
+    .llm__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+    .slot { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); }
+    .slot.is-current { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+    .slot__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+    .slot .svc__actions { padding: var(--space-3) 0 0; border-top: 0; }
+    @media (max-width: 1279px) { .svc-grid { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 767px) { .llm__grid { grid-template-columns: minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+        <div class="nav__group">数据</div>
+        <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+        <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+        <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+        <div class="nav__group">分析</div>
+        <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+        <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+        <div class="nav__group">决策</div>
+        <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+        <div class="nav__group">审批与台账</div>
+        <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+        <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+        <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+        <div class="nav__group">工具</div>
+        <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+        <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+        <div class="nav__group">设置</div>
+        <a class="nav__item" href="PAGE-F16-01.html" aria-current="page"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+        <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+        <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+        <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter">
+          <div>
+            <nav class="crumbs" aria-label="面包屑"><span>设置</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>密钥与大模型</span></nav>
+            <h1>密钥与大模型</h1>
+            <p class="page-head__sub">密钥只保存在本机加密存储，页面只显示后 4 位。月度上限在 <a href="PAGE-F16-02.html">预算与费用</a> 设置。</p>
+          </div>
+        </div>
+
+        <div class="svc-grid">
+          <section class="panel svc enter" style="--i:1" aria-labelledby="s1">
+            <div class="panel__head">
+              <h2 class="panel__title" id="s1">卖家精灵</h2>
+              <span class="badge badge--ok" data-status><svg class="icon"><use href="#ph-check-circle"/></svg>可用</span>
+            </div>
+            <div class="panel__body">
+              <p class="svc__use">Amazon 月度数据拉取、Amazon 差评拉取</p>
+              <div class="svc__mask" data-mask>••••7Q2k</div>
+              <dl class="kv">
+                <dt>保存于</dt><dd class="num">2026-10-08 10:21</dd>
+                <dt>最近测试</dt><dd class="num" data-tested>2026-11-02 14:00 · 可用</dd>
+              </dl>
+            </div>
+            <div class="svc__actions">
+              <button class="btn btn--sm" type="button" data-test="ok"><svg class="icon"><use href="#ph-play"/></svg><span>测试</span></button>
+              <button class="btn btn--sm" type="button" data-replace="卖家精灵"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>更换</span></button>
+              <span class="spacer"></span>
+              <button class="btn btn--sm btn--danger" type="button" data-delete="卖家精灵" data-deps="Amazon 月度数据拉取、Amazon 差评拉取">删除</button>
+            </div>
+          </section>
+
+          <section class="panel svc enter" style="--i:2" aria-labelledby="s2">
+            <div class="panel__head">
+              <h2 class="panel__title" id="s2">Bright Data</h2>
+              <span class="badge badge--ok" data-status><svg class="icon"><use href="#ph-check-circle"/></svg>可用</span>
+            </div>
+            <div class="panel__body">
+              <p class="svc__use">评论 VP 追踪：Lowe's / Wayfair 页面采集</p>
+              <div class="svc__mask" data-mask>••••7d3c</div>
+              <dl class="kv">
+                <dt>保存于</dt><dd class="num">2026-10-31 10:02（更换）</dd>
+                <dt>最近测试</dt><dd class="num" data-tested>2026-10-31 10:02 · 可用</dd>
+              </dl>
+            </div>
+            <div class="svc__actions">
+              <button class="btn btn--sm" type="button" data-test="ok"><svg class="icon"><use href="#ph-play"/></svg><span>测试</span></button>
+              <button class="btn btn--sm" type="button" data-replace="Bright Data"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>更换</span></button>
+              <span class="spacer"></span>
+              <button class="btn btn--sm btn--danger" type="button" data-delete="Bright Data" data-deps="评论 VP 追踪的 Lowe's / Wayfair 页面采集（只采 Home Depot）">删除</button>
+            </div>
+          </section>
+
+          <section class="panel svc enter" style="--i:3" aria-labelledby="s3">
+            <div class="panel__head">
+              <h2 class="panel__title" id="s3">Apify</h2>
+              <span class="badge badge--block" data-status><svg class="icon"><use href="#ph-warning-octagon"/></svg>失败</span>
+            </div>
+            <div class="panel__body">
+              <p class="svc__use">评论 VP 追踪：Lowe's / Wayfair 评论采集</p>
+              <div class="svc__mask" data-mask>••••m8Rt</div>
+              <dl class="kv">
+                <dt>保存于</dt><dd class="num">2026-10-08 10:26</dd>
+                <dt>最近测试</dt><dd class="num" data-tested>2026-11-03 08:50 · 失败</dd>
+              </dl>
+              <div class="banner banner--block svc__result" data-result>
+                <svg class="icon"><use href="#ph-warning-octagon"/></svg>
+                <div class="banner__body"><div class="banner__title">额度</div><div class="small">Apify 账户本月额度不足，请到 Apify 后台充值后重新测试。</div></div>
+              </div>
+            </div>
+            <div class="svc__actions">
+              <button class="btn btn--sm" type="button" data-test="ok"><svg class="icon"><use href="#ph-play"/></svg><span>测试</span></button>
+              <button class="btn btn--sm" type="button" data-replace="Apify"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>更换</span></button>
+              <span class="spacer"></span>
+              <button class="btn btn--sm btn--danger" type="button" data-delete="Apify" data-deps="评论 VP 追踪的 Lowe's / Wayfair 评论采集（只采 Home Depot）">删除</button>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel llm enter" style="--i:4" aria-labelledby="s4">
+          <div class="panel__head">
+            <div>
+              <h2 class="panel__title" id="s4">大模型</h2>
+              <p class="svc__use">看图打元素、差评归类、叙述草稿都使用所选提供方</p>
+            </div>
+            <span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>可用 · Claude</span>
+          </div>
+          <div class="panel__body">
+            <div class="field">
+              <span class="field__label" id="prov-l">提供方</span>
+              <div class="choice-group" role="radiogroup" aria-labelledby="prov-l">
+                <label class="choice"><input type="radio" name="prov" value="Claude" checked>Claude</label>
+                <label class="choice"><input type="radio" name="prov" value="OpenAI">OpenAI</label>
+              </div>
+            </div>
+            <div class="llm__grid">
+              <div class="slot is-current" data-slot="Claude">
+                <div class="slot__head"><strong>Claude 密钥</strong><span class="badge badge--ok" data-status><svg class="icon"><use href="#ph-check-circle"/></svg>可用</span></div>
+                <div class="svc__mask" data-mask>••••Xc4M</div>
+                <dl class="kv"><dt>保存于</dt><dd class="num">2026-10-29 11:30</dd><dt>最近测试</dt><dd class="num" data-tested>2026-11-03 09:15 · 可用</dd></dl>
+                <div class="svc__actions">
+                  <button class="btn btn--sm" type="button" data-test="ok"><svg class="icon"><use href="#ph-play"/></svg><span>测试</span></button>
+                  <button class="btn btn--sm" type="button" data-replace="Claude"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>更换</span></button>
+                  <span class="spacer"></span>
+                  <button class="btn btn--sm btn--danger" type="button" data-delete="Claude" data-deps="看图打元素、差评归类、叙述草稿（当前所选提供方；删除后元素全部进入人工确认、差评只显示原文、不起草叙述）">删除</button>
+                </div>
+              </div>
+              <div class="slot" data-slot="OpenAI">
+                <div class="slot__head"><strong>OpenAI 密钥</strong><span class="badge badge--nodata"><svg class="icon"><use href="#ph-link-simple"/></svg>未连接</span></div>
+                <p class="field__hint" style="margin-top: var(--space-3);">尚未填写。只有选为提供方时才会被调用。</p>
+                <div class="svc__actions">
+                  <button class="btn btn--sm" type="button" data-replace="OpenAI"><svg class="icon"><use href="#ph-plus"/></svg><span>填写密钥</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <p class="page-foot">密钥只保存在本机加密存储；页面、导出文件、日志中都不会出现完整密钥。保存、更换、删除和切换提供方都记入<a href="PAGE-F15-03.html">审计日志</a>。</p>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal" id="m-key" role="dialog" aria-modal="true" aria-labelledby="m-key-t" aria-hidden="true">
+    <form class="modal__dialog" id="f-key" novalidate>
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="m-key-t">更换 <span data-key-svc>Bright Data</span> 密钥</h2><p class="modal__sub">保存后只保存在本机加密存储，页面此后只显示后 4 位</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body">
+        <div class="field">
+          <label class="field__label" for="k-val">密钥<span class="req">*</span></label>
+          <input class="input mono" id="k-val" type="password" autocomplete="off" spellcheck="false">
+          <div class="field__error" id="k-err" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>请填写密钥</div>
+          <p class="field__hint">保存后自动测试一次。已开始的任务用旧密钥跑完，之后的调用使用新密钥。</p>
+        </div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="submit"><span>保存</span></button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal" id="m-del" role="dialog" aria-modal="true" aria-labelledby="m-del-t" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="m-del-t">删除 <span data-del-svc>Apify</span> 密钥？</h2></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body">
+        <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">删除后依赖该服务的功能显示"未连接"，不会发起调用：<span data-del-deps></span>。</div></div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--danger" type="button" id="do-del">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var okBadge = '<svg class="icon"><use href="#ph-check-circle"/></svg>可用';
+      function card(el) { return el.closest('.slot') || el.closest('.svc'); }
+      function now() { return '2026-11-03 10:' + String(20 + Math.floor(Math.random() * 30)); }
+      document.querySelectorAll('[data-test]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var label = b.querySelector('span');
+          b.disabled = true; label.textContent = '测试中…';
+          setTimeout(function () {
+            var c = card(b);
+            b.disabled = false; label.textContent = '测试';
+            var st = c.querySelector('[data-status]');
+            st.className = 'badge badge--ok'; st.innerHTML = okBadge;
+            c.querySelector('[data-tested]').textContent = now() + ' · 可用';
+            var r = c.querySelector('[data-result]'); if (r) r.remove();
+            window.oppoToast(c.querySelector('h2, strong').textContent.replace(' 密钥', '') + ' 测试可用');
+          }, 900);
+        });
+      });
+      var target = null;
+      document.querySelectorAll('[data-replace]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          target = card(b);
+          var svc = b.getAttribute('data-replace');
+          var filled = !!target.querySelector('[data-mask]');
+          document.getElementById('m-key-t').innerHTML = (filled ? '更换 ' : '填写 ') + svc + ' 密钥';
+          document.getElementById('k-val').value = '';
+          document.getElementById('k-err').hidden = true;
+          window.oppoOpen('#m-key');
+        });
+      });
+      document.getElementById('f-key').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var v = document.getElementById('k-val').value.trim();
+        if (!v) { document.getElementById('k-err').hidden = false; document.getElementById('k-val').setAttribute('aria-invalid', 'true'); return; }
+        var mask = target.querySelector('[data-mask]');
+        if (mask) mask.textContent = '••••' + v.slice(-4);
+        window.oppoClose('#m-key');
+        window.oppoToast('已保存，页面只显示后 4 位：••••' + v.slice(-4));
+      });
+      document.querySelectorAll('[data-delete]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          target = card(b);
+          document.querySelector('[data-del-svc]').textContent = b.getAttribute('data-delete');
+          document.querySelector('[data-del-deps]').textContent = b.getAttribute('data-deps');
+          window.oppoOpen('#m-del');
+        });
+      });
+      document.getElementById('do-del').addEventListener('click', function () {
+        var st = target.querySelector('[data-status]');
+        st.className = 'badge badge--nodata'; st.innerHTML = '<svg class="icon"><use href="#ph-link-simple"/></svg>未连接';
+        var mask = target.querySelector('[data-mask]'); if (mask) mask.textContent = '未填写';
+        window.oppoClose('#m-del');
+        window.oppoToast('已删除密钥，依赖功能显示"未连接"');
+      });
+      document.querySelectorAll('input[name=prov]').forEach(function (r) {
+        r.addEventListener('change', function () {
+          document.querySelectorAll('.slot').forEach(function (s) { s.classList.toggle('is-current', s.getAttribute('data-slot') === r.value); });
+          window.oppoToast(r.value === 'OpenAI'
+            ? 'OpenAI 尚未填写密钥，大模型功能将显示未连接'
+            : '大模型提供方已改为 Claude，看图打标、差评归类、叙述草稿都将使用 Claude');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
