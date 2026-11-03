@@ -13,8 +13,9 @@
   },
   "stage_confirmations": {
     "stage1_shared_understanding": {
-      "status": "pending",
-      "confirmed_at_utc": null
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-11-03T05:40:08Z",
+      "source": "wen：对，开始写 PRD（场景锚点第二轮 V1）"
     }
   },
   "contract_revision": 5,
@@ -29,15 +30,17 @@
     "REQ-F07-03",
     "REQ-F11-01"
   ],
-  "current_stage": "1",
-  "current_substep": "round2-stage1-interview",
-  "completed_stages": [],
+  "current_stage": "2",
+  "current_substep": "round2-goals-proposal",
+  "completed_stages": [
+    "1"
+  ],
   "skipped_stages": [
     "3"
   ],
   "next_action": {
-    "type": "user",
-    "description": "PRD 阶段 1 闸门：请 wen 确认场景锚点（第二轮）scene-anchor.md"
+    "type": "ai",
+    "description": "阶段 2–4：整理目标、方案 V1（继承已确认范围），然后阶段 5 写 requirements.md + PRD详细版 + requirements-analysis（第二轮）"
   },
   "open_questions": [
     {
@@ -142,6 +145,14 @@
       "priority": "P1",
       "status": "resolved",
       "answer": "先评估费用和时间、wen 确认再跑；每个服务设月度上限，到了自动停；有记账",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-14",
+      "node": "大模型提供方",
+      "priority": "P2",
+      "status": "resolved",
+      "answer": "兼容多家，设置页里选（Claude / OpenAI 等，各填各的 key）",
       "source": "wen 2026-11-03"
     }
   ],
