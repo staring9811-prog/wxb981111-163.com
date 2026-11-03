@@ -121,12 +121,21 @@ class SellerSprite:
 
     def reviews(self, asin: str, stars=None, limit: int = 100, **query):
         """拉一个 ASIN 的评论。返回 (rows, cost_calls)。"""
-        body = dict(query, asin=asin, size=limit)
-        if stars:
-            body["stars"] = list(stars)
-        data = self._call("POST", self.cfg["review_path"], body)
-        rows = (data or {}).get("items", data) if isinstance(data, dict) else (data or [])
-        return list(rows or []), 1
+        # 参数名按卖家精灵 review 接口（2026-11-03 经 MCP 实测）：marketplace、asin、starList、page、size（每页最多 20），
+        # 返回 data.items、data.hasNextPage；评论没有 ID、date 为毫秒时间戳（由 core/reviews._norm 归一）。
+        rows, calls, page = [], 0, 1
+        while len(rows) < limit:
+            body = dict(query, marketplace=query.get("marketplace", "US"), asin=asin, page=page, size=min(20, limit - len(rows)))
+            if stars:
+                body["starList"] = list(stars)
+            data = self._call("POST", self.cfg["review_path"], body)
+            calls += 1
+            got = (data or {}).get("items", []) if isinstance(data, dict) else (data or [])
+            rows += list(got or [])
+            if not got or not (isinstance(data, dict) and data.get("hasNextPage")):
+                break
+            page += 1
+        return rows[:limit], calls
 
 
 # ---------------------------------------------------------------- Bright Data（Web Unlocker 异步接口，沿用 reviewkit 的调用方式）
