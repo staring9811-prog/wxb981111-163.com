@@ -564,6 +564,7 @@ summary:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 | 成败 | 数据不全 | `badge--incomplete` | `warning` |
 | 成败 | 老品 | `badge--old` | `archive` |
 | 回测与判定卡 | 达标 / 已达标 | `badge--pass` | `seal-check` |
+| 证据等级（v8） | 经回测（打折）：小平台评论重建历史回测达标，只用排序与坑 | `badge--pass`，文字必须带"（打折）" | `seal-check` |
 | 回测与判定卡 | 达标（截面） | `badge--cross` | `seal-check` |
 | 回测与判定卡 | 未达标 | `badge--fail` | `x-circle` |
 | 回测与判定卡 | 未验证 | `badge--unverified` | `seal-question` |

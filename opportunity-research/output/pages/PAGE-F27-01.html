@@ -189,6 +189,23 @@
               </div>
               <div class="panel__foot">默认值依据 2026 年 1–10 月数据：Home Depot 3,325、Lowe's 3,850、Wayfair 7,394 条去重评论。</div>
             </section>
+
+            <!-- v8 回补与打折参数（AC-F27-04） -->
+            <section class="panel" id="bfParams">
+              <div class="panel__head"><h2 class="panel__title">历史回补与打折规则</h2><span class="section__note">用于 <a href="PAGE-F23-01.html#backfill">历史回补</a>、<a href="PAGE-F19-01.html">渠道回测</a> 和扫描、决策卡上的打折后读法</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>渠道</th><th>回补起始月份</th><th class="t-num">商品页数 N（每个类目）</th><th class="t-num">秩相关减值</th><th class="t-num">把握 ≥ 70% 档减值（百分点）</th><th class="t-num">方向对上限</th><th>现状</th></tr></thead>
+                  <tbody>
+                    <tr><td class="cell-title">Amazon</td><td colspan="6" class="small muted">全量月度数据，不回补、不打折</td></tr>
+                    <tr><td class="cell-title">Home Depot</td><td><input class="input" type="month" value="2024-01" aria-label="Home Depot 回补起始月份" style="width:150px"></td><td class="t-num"><input class="input input--num w-num" value="300" aria-label="Home Depot 商品页数 N"></td><td class="t-num"><input class="input input--num w-num" value="0.1" aria-label="Home Depot 秩相关减值"></td><td class="t-num"><input class="input input--num w-num" value="15" aria-label="Home Depot 高档减值"></td><td class="t-num"><input class="input input--num w-num" value="60" aria-label="Home Depot 方向对上限"> %</td><td class="small">已回补 598 个商品页 · 经回测（打折）</td></tr>
+                    <tr><td class="cell-title">Lowe's</td><td><input class="input" type="month" value="2024-01" aria-label="Lowe's 回补起始月份" style="width:150px"></td><td class="t-num"><input class="input input--num w-num" value="300" aria-label="Lowe's 商品页数 N"></td><td class="t-num"><input class="input input--num w-num" value="0.1" aria-label="Lowe's 秩相关减值"></td><td class="t-num"><input class="input input--num w-num" value="15" aria-label="Lowe's 高档减值"></td><td class="t-num"><input class="input input--num w-num" value="60" aria-label="Lowe's 方向对上限"> %</td><td class="small muted">未回补 · 未验证</td></tr>
+                    <tr><td class="cell-title">Wayfair</td><td><input class="input" type="month" value="2024-01" aria-label="Wayfair 回补起始月份" style="width:150px"></td><td class="t-num"><input class="input input--num w-num" value="300" aria-label="Wayfair 商品页数 N"></td><td class="t-num"><input class="input input--num w-num" value="0.1" aria-label="Wayfair 秩相关减值"></td><td class="t-num"><input class="input input--num w-num" value="15" aria-label="Wayfair 高档减值"></td><td class="t-num"><input class="input input--num w-num" value="60" aria-label="Wayfair 方向对上限"> %</td><td class="small muted">未回补 · 未验证</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__foot">打折后读法 = 秩相关减去减值；把握 ≥ 70% 档之后变大比例减去减值；方向对按不超过上限看。默认值来自幸存者偏差模拟（只留今天前 200 个家族重做 Amazon 回测）。Home Depot 前 300 的 201–300 名仍贡献约 9%，N 加大只采新增排名的商品页。保存后之后的回补、回测与打折后读法用新值，结果上注明参数版本。</div>
+            </section>
           </section>
 
           <!-- 参数版本 -->
@@ -218,9 +235,10 @@
         <div class="diff">
           <span class="diff__key">Wayfair 成功线</span><span class="diff__old">估算月销 ≥ 120 件</span><span class="diff__new">估算月销 ≥ 130 件</span>
           <span class="diff__key">低置信度阈值</span><span class="diff__old">0.75</span><span class="diff__new">0.80</span>
+          <span class="diff__key">Home Depot 商品页数 N</span><span class="diff__old">每个类目 300</span><span class="diff__new">每个类目 400</span>
         </div>
         <label class="field"><span class="field__label">修改说明<span class="req">*</span></span><input class="input" id="svNote" placeholder="例：按 11 月 Wayfair 前 50 名中位数调高"></label>
-        <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">已对账的台账条目保留判定时的参数版本，不会被改写。阈值变化会影响下一次打标的确认队列。</div></div>
+        <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">已对账的台账条目保留判定时的参数版本，不会被改写。阈值变化会影响下一次打标的确认队列。回补参数只影响之后发起的回补；打折规则变化后，渠道回测与扫描、决策卡上的打折后读法下一次重算时用新值，已批准决策卡的快照不变。</div></div>
       </div>
       <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" id="btnSave" data-save>保存 v4</button></div>
     </div>

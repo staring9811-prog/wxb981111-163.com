@@ -452,9 +452,10 @@
           var bd = (listReq2 * 0.0015).toFixed(2);
           dlg.querySelector('[data-bf-sub]').textContent = '起始 ' + start + ' · 每个类目前 ' + n + ' 个商品页 · 分两次确认：先采列表与规格，按真实商品数再估评论费用';
           rows.innerHTML = '<tr>' + cell('列表 + 商品页规格（Bright Data）', '') + cell(p) + cell('约 ' + listReq2) + cell('$' + bd) + cell('$0.00') + cell('约 ' + Math.round(listReq2 * 3 / 60) + ' 分钟') + '</tr>' +
-            '<tr>' + cell('全部历史评论（Apify）', '') + cell(p) + cell('<span class="etag etag--nodata">列表采完后估算</span>') + cell('$0.00') + cell('<span class="etag etag--nodata">列表采完后估算</span>') + cell('<span class="etag etag--nodata">列表采完后估算</span>') + '</tr>' +
+            '<tr>' + cell('全部历史评论（Apify）', '') + cell(p) + cell('<span class="etag etag--nodata">待估</span>') + cell('$0.00') + cell('<span class="etag etag--nodata">待估</span>') + cell('<span class="etag etag--nodata">待估</span>') + '</tr>' +
             '<tr data-pin-bottom>' + cell('本次确认', 'strong') + cell(p) + cell('约 ' + listReq2, 't-num strong') + cell('$' + bd, 't-num strong') + cell('$0.00', 't-num strong') + cell('约 ' + Math.round(listReq2 * 3 / 60) + ' 分钟', 't-num strong') + '</tr>';
           kv.innerHTML = '<dt>本次新增费用</dt><dd class="num"><span class="strong">$' + bd + '</span><span class="etag">估算</span> · 只含列表与规格</dd>' +
+            '<dt>评论费用</dt><dd>列表采完后按真实商品数与评论数估算，再弹一次确认</dd>' +
             '<dt>Bright Data 本月</dt><dd class="num">已花 $14.20 / 上限 $40.00</dd>' +
             '<dt>Apify 本月</dt><dd class="num">已花 $21.60 / 上限 $60.00</dd>' +
             '<dt>达到上限时</dt><dd>月度上限先到即停，已采数据保留，可续采</dd>';

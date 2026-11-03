@@ -64,6 +64,12 @@
   <div class="main">
     <header class="topbar">
       <span class="topbar__category">浴室柜</span>
+      <div class="seg" role="group" aria-label="渠道">
+        <button class="seg__opt" type="button" data-ch="amazon" aria-pressed="true">Amazon</button>
+        <button class="seg__opt" type="button" data-ch="hd" aria-pressed="false">Home Depot</button>
+        <button class="seg__opt" type="button" data-ch="lowes" aria-pressed="false">Lowe's</button>
+        <button class="seg__opt" type="button" data-ch="wayfair" aria-pressed="false">Wayfair</button>
+      </div>
       <span class="spacer"></span>
       <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
       <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>退出登录</span></a>
@@ -73,15 +79,18 @@
       <div class="page-head enter" style="--i:0">
         <div>
           <nav class="crumbs" aria-label="面包屑"><a href="PAGE-F15-02.html">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>分析</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>模型与回测</span></nav>
-          <h1>模型与回测</h1>
-          <p class="page-head__sub">当前结果：第九版规则 · 数据到 2026-09 · 2026-10-08 重算 · 立项到上架约 8 个月，预测立项后第 6–10 个月</p>
+          <h1>模型与回测 · <span data-ch-name>Amazon</span></h1>
+          <p class="page-head__sub" data-ch-sub>当前结果：第九版规则 · 数据到 2026-09 · 2026-10-08 重算 · 立项到上架约 8 个月，预测立项后第 6–10 个月</p>
         </div>
         <div class="page-head__actions">
           <button class="btn" type="button" data-toast="已导出 模型与回测_第九版_202609.xlsx"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></button>
-          <button class="btn btn--primary" type="button" id="btn-recalc" aria-disabled="true" data-tip="2026-10 还有 37 条标签待确认|确认完才能重算 2026-10"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>重算（含 2026-10）</span></button>
+          <button class="btn btn--primary" type="button" id="btn-recalc" data-ch-only="amazon" aria-disabled="true" data-tip="2026-10 还有 37 条标签待确认|确认完才能重算 2026-10"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>重算（含 2026-10）</span></button>
+          <button class="btn btn--primary" type="button" id="btn-recalc-hd" data-ch-only="hd" hidden aria-disabled="true" data-tip="Home Depot 还有 6 条标签待确认|含 2 条装：未知，确认完才能重算"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>重算 Home Depot</span></button>
+          <a class="btn btn--primary" href="PAGE-F23-01.html#backfill" data-ch-only="lowes wayfair" hidden><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>去历史回补</span></a>
         </div>
       </div>
 
+      <div data-ch-panel="amazon">
       <div class="banner banner--ok enter" style="--i:1" role="status">
         <svg class="icon"><use href="#ph-seal-check"/></svg>
         <div class="banner__body">
@@ -225,6 +234,121 @@
         </div>
         <p class="page-foot">x5 新品占比和预测窗口是看过 2026 年诊断后定的，严格的样本外检验要等 2026-10 起的数据。2026-06 至 09 来自 v11 表，带 * 的月份份额变化要打折看。</p>
       </section>
+      </div>
+
+      <!-- v8 分渠道回测（REQ-F19-03、AC-F19-05、AC-F19-06） -->
+      <div data-ch-panel="hd" hidden>
+        <div class="banner banner--ok" role="status">
+          <svg class="icon"><use href="#ph-seal-check"/></svg>
+          <div class="banner__body">
+            <div class="banner__title">Home Depot 渠道回测达标 · 证据等级 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span></div>
+            <div>框 × 属性粒度，把握四档之后变大 36% → 43% → 53% → 61% 逐档上升；D 档之后变大 22%（≤ 30%）<button class="etag etag--n" type="button" data-pop-title="Home Depot D 档" data-pop="粒度=框（尺寸段 × 装 × 形态）× 属性取值;时点=2025-04 至 2026-02 共 11 个;结果=立项后第 6–8 个月;D 档=把握 ≤ 30% 的大单元（近 3 个月月均 ≥ 200 件）;样本数=193 个单元 × 时点（同一单元跨时点重复，不独立）">n=193</button>。只看排序和坑，把握不当概率用。</div>
+          </div>
+        </div>
+
+        <div class="grid-main-side section">
+          <section class="panel" aria-labelledby="hd-pre">
+            <div class="panel__head"><h2 class="panel__title" id="hd-pre">重建历史与重算前置</h2><span class="badge badge--unverified"><svg class="icon"><use href="#ph-hourglass"/></svg>等标签确认</span></div>
+            <div class="panel__body">
+              <ul class="checklist">
+                <li><svg class="icon ok"><use href="#ph-check-circle"/></svg>重建历史 2024-01 至 2026-10，共 34 个月（≥ 20 个月）<a href="PAGE-F28-01.html#rebuild">看重建</a></li>
+                <li><svg class="icon ok"><use href="#ph-check-circle"/></svg>历史回补：598 个商品页、219 个评论家族、0 截断（2026-11-03）</li>
+                <li><svg class="icon wait"><use href="#ph-warning"/></svg>打标确认：Home Depot 还有 6 条待确认（含 2 条"装：未知"）<a href="PAGE-F18-01.html">去确认</a></li>
+              </ul>
+              <div class="section__note" style="margin-top: var(--space-3)">只用 Home Depot 数据，按"尺寸 × 装 × 形态"框 × 属性取值重算评分，信号：份额斜率 b6、新品占比 x5、Amazon 侧丰富度（同尺寸段 × 形态 × 属性取值、不分拆装的 Amazon 家族数）；滚动回测后按打折规则同时给出打折后的读法。不调用外部服务，不花钱。</div>
+            </div>
+          </section>
+          <section class="panel" aria-labelledby="hd-rule">
+            <div class="panel__head"><h2 class="panel__title" id="hd-rule">渠道证据等级</h2><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span></div>
+            <div class="panel__body">
+              <div class="rule-card"><div class="rule-card__head"><span>把握分档逐档上升</span><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>达标</span></div><div class="small muted">36% → 43% → 53% → 61%</div></div>
+              <div class="rule-card"><div class="rule-card__head"><span>D 档之后变大 ≤ 30%</span><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>达标</span></div><div class="small muted">本次 22%</div></div>
+              <div class="preview">
+                <div class="preview__label">打折规则（品类配置 · 参数 v3）</div>
+                <dl class="kv small"><dt>秩相关</dt><dd>减 0.1</dd><dt>把握 ≥ 70% 档</dt><dd>之后变大比例减 15 个百分点</dd><dt>方向对</dt><dd>按 ≤ 60% 看</dd></dl>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="section" aria-labelledby="hd-bt">
+          <div class="section__head"><h2 class="section__title" id="hd-bt">滚动回测：原值与打折后</h2><span class="section__note">立项时点 2025-04 至 2026-02（11 个），看立项后第 6–8 个月；每个时点约 257 个单元（大单元 75 个）</span></div>
+          <div class="grid-2">
+            <div class="panel">
+              <div class="panel__head"><h3 class="panel__title">把握分档：之后实际份额变大的比例</h3><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>逐档上升</span></div>
+              <div class="panel__body">
+                <div class="hbars" role="list">
+                  <span class="hbar__label">≤ 30%</span><span class="hbar__track"><span class="hbar__bar" style="width:59%" tabindex="0" data-tip="36%|821 个单元 × 时点|打折后：不改（规则只调 ≥ 70% 档）"></span></span><span class="hbar__value">36% <span class="etag etag--n">n=821</span></span>
+                  <span class="hbar__label">30–50%</span><span class="hbar__track"><span class="hbar__bar" style="width:70.5%" tabindex="0" data-tip="43%|1,553 个单元 × 时点"></span></span><span class="hbar__value">43% <span class="etag etag--n">n=1,553</span></span>
+                  <span class="hbar__label">50–70%</span><span class="hbar__track"><span class="hbar__bar" style="width:86.9%" tabindex="0" data-tip="53%|430 个单元 × 时点"></span></span><span class="hbar__value">53% <span class="etag etag--n">n=430</span></span>
+                  <span class="hbar__label">≥ 70%</span><span class="hbar__track"><span class="hbar__bar hbar__bar--focus" style="width:100%" tabindex="0" data-tip="61%|23 个单元 × 时点，样本少|打折后 46%"></span></span><span class="hbar__value">61% → 46% <span class="etag etag--n">n=23</span></span>
+                </div>
+              </div>
+              <div class="panel__foot">全部单元之后变大 43%。同一单元在 11 个时点重复出现，合计数不独立。</div>
+            </div>
+            <div class="panel">
+              <div class="panel__head"><h3 class="panel__title">回测表</h3><span class="section__note">打折后 = 按打折规则的读法</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>指标</th><th class="t-num">原值</th><th class="t-num is-v9">打折后</th></tr></thead>
+                  <tbody>
+                    <tr><td>秩相关 · 全部单元</td><td class="t-num">+0.12</td><td class="t-num is-v9">+0.02</td></tr>
+                    <tr><td>秩相关 · 大单元（≥ 200 件）</td><td class="t-num">+0.39</td><td class="t-num is-v9 strong">+0.29</td></tr>
+                    <tr><td>方向对 · 大单元</td><td class="t-num">67%</td><td class="t-num is-v9">≤ 60%</td></tr>
+                    <tr><td>把握 ≥ 70% 之后变大</td><td class="t-num">61% <span class="etag etag--n">n=23</span></td><td class="t-num is-v9">46%</td></tr>
+                    <tr><td>把握 ≤ 30% 之后变大</td><td class="t-num">36% <span class="etag etag--n">n=821</span></td><td class="t-num is-v9">36%</td></tr>
+                    <tr><td>D 档之后变大</td><td class="t-num">22% <span class="etag etag--n">n=193</span></td><td class="t-num is-v9">22%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__foot">读法：大单元排序可用（打折后仍约 +0.29），坑认得出；全部单元排序打折后接近 0，不用；把握不当概率用。</div>
+            </div>
+          </div>
+
+          <div class="section__head" style="margin-top: var(--space-6)"><h3 class="section__title">信号</h3><span class="section__note">Home Depot 没有站内搜索数据，没有 x3 搜索同比</span></div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>信号</th><th>意思</th><th class="t-num">单信号秩相关 全部 / 大单元</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">b6</td><td>份额斜率（近 6 个月）</td><td class="t-num">+0.10 / +0.16</td><td class="small">弱于 x5</td></tr>
+                <tr><td class="mono">x5</td><td>新品占比差（单元 − 品类）</td><td class="t-num">+0.14 / +0.28</td><td class="small">新品 = 首条评论后 ≤ 6 个月</td></tr>
+                <tr><td class="mono">Amazon 侧丰富度</td><td>同尺寸段 × 形态 × 属性取值（不分拆装）的 Amazon 家族数</td><td class="t-num">+0.11 / +0.11 → +0.17 / +0.20<button class="etag" type="button" data-pop-title="加入 Amazon 侧丰富度前后" data-pop="检验=按单元分组 5 折交叉验证，11 个时点平均秩相关;基础=b6、x5、x2、x4：+0.11 / +0.11;加差距 G家族=+0.17 / +0.20;只加 Amazon 家族数=+0.22 / +0.21;回归系数=Amazon 侧 +0.148（t 4.32），本渠道家族数 +0.066（方向与稀缺相反）;读法=Amazon 结构领先，不是本渠道少所以会涨">候选</button></td><td class="small">加入前 → 加入后；作用来自 Amazon 侧</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="page-foot">重建历史只含今天仍在两个类目前 300 的商品（幸存者偏差），所以按打折规则看。只按框（每个时点约 22 个单元）太少、无区分力，不用；大属性不分框只作参考。数字来自 2026-11-03 Home Depot 回测小试（solution-v2/开发建议/小平台_HD回测小试.md）。</p>
+        </section>
+      </div>
+
+      <div data-ch-panel="lowes" hidden>
+        <div class="banner banner--unverified" role="status">
+          <svg class="icon"><use href="#ph-seal-question"/></svg>
+          <div class="banner__body"><div class="banner__title">Lowe's 渠道未验证 · 未回补</div><div>重建月份 10 个（2026-01 至 2026-10，只有月度追踪），不到 20 个月，不能做渠道回测。Lowe's 的机会证据等级为"未验证"，扫描和决策卡不显示把握与分级。</div></div>
+        </div>
+        <div class="panel section">
+          <div class="empty">
+            <svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>
+            <div class="empty__title">还没有 Lowe's 的回测结果</div>
+            <div class="empty__desc">先在评论 VP 追踪里做历史回补（默认从 2024-01、每个类目前 300 个商品页，经 Bright Data / Apify，先评估费用再确认），重建满 20 个月后回到这里重算。</div>
+            <a class="btn" href="PAGE-F23-01.html#backfill"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>去历史回补</span></a>
+          </div>
+        </div>
+      </div>
+
+      <div data-ch-panel="wayfair" hidden>
+        <div class="banner banner--unverified" role="status">
+          <svg class="icon"><use href="#ph-seal-question"/></svg>
+          <div class="banner__body"><div class="banner__title">Wayfair 渠道未验证 · 未回补</div><div>重建月份 10 个（2026-01 至 2026-10，只有月度追踪），不到 20 个月，不能做渠道回测。Wayfair 的机会证据等级为"未验证"，扫描和决策卡不显示把握与分级。</div></div>
+        </div>
+        <div class="panel section">
+          <div class="empty">
+            <svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>
+            <div class="empty__title">还没有 Wayfair 的回测结果</div>
+            <div class="empty__desc">先在评论 VP 追踪里做历史回补（默认从 2024-01、每个类目前 300 个商品页，经 Bright Data / Apify，先评估费用再确认），重建满 20 个月后回到这里重算。Wayfair 只有 Verified Purchase 计 VP，回测只在 Wayfair 内比较。</div>
+            <a class="btn" href="PAGE-F23-01.html#backfill"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>去历史回补</span></a>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </div>
@@ -238,6 +362,27 @@
     if (btn.getAttribute('aria-disabled') === 'true') {
       window.oppoToast('2026-10 还有 37 条标签待确认，确认完才能重算');
     }
+  });
+  document.getElementById('btn-recalc-hd').addEventListener('click', function () {
+    window.oppoToast('Home Depot 还有 6 条标签待确认（含 2 条"装：未知"），确认完才能重算');
+  });
+
+  /* 渠道切换：其他渠道只用该渠道数据，显示重建月份、回测原值与打折后、渠道证据等级 */
+  var CH = {
+    amazon: { name: 'Amazon', sub: '当前结果：第九版规则 · 数据到 2026-09 · 2026-10-08 重算 · 立项到上架约 8 个月，预测立项后第 6–10 个月' },
+    hd: { name: 'Home Depot', sub: '当前结果：渠道模型 · 重建历史 2024-01 至 2026-10（34 个月）· 2026-11-03 回测 · 只用 Home Depot 数据 · 打折规则参数 v3' },
+    lowes: { name: "Lowe's", sub: '未验证：历史未回补，重建月份 10 个（< 20 个月）' },
+    wayfair: { name: 'Wayfair', sub: '未验证：历史未回补，重建月份 10 个（< 20 个月）' }
+  };
+  document.querySelectorAll('.seg__opt[data-ch]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var ch = b.getAttribute('data-ch');
+      document.querySelectorAll('.seg__opt[data-ch]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      document.querySelectorAll('[data-ch-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-ch-panel') !== ch; });
+      document.querySelectorAll('[data-ch-only]').forEach(function (el) { el.hidden = el.getAttribute('data-ch-only').split(' ').indexOf(ch) < 0; });
+      document.querySelector('[data-ch-name]').textContent = CH[ch].name;
+      document.querySelector('[data-ch-sub]').textContent = CH[ch].sub;
+    });
   });
 })();
 </script>

@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-11-03T13:51:50Z",
+  "last_updated_at_utc": "2026-11-03T14:17:20Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -36,8 +36,8 @@
     "REQ-F26-03",
     "REQ-F27-02"
   ],
-  "current_stage": "design",
-  "current_substep": "v8 增量设计：小平台回测",
+  "current_stage": "goal",
+  "current_substep": "revision 8 契约完成，待开发小平台回测增量",
   "completed_stages": [
     "1",
     "2",
@@ -50,7 +50,7 @@
   "skipped_stages": [
     "3"
   ],
-  "next_action": "Design：change-impact、蓝图增量、受影响页面与技术方案、追溯矩阵 → TDD",
+  "next_action": "开发 revision 8：历史回补（F23）、历史重建与家族（F28）、规格打标（F18）、分渠道回测与经回测（打折）（F19 / F20）、Amazon 侧丰富度（F29）、参数（F27）、限速（NFR-013）；按 TDD 验收契约逐条验证",
   "open_questions": [
     {
       "id": "OQ-R2-01",
@@ -280,6 +280,10 @@
     {
       "at": "2026-11-03T13:51:50Z",
       "event": "PRD v8 / requirements revision 8：小平台回测增量（REQ-F18-04、F19-03、F23-02、F28-03、F29-03、AC-F27-04、NFR-013；REQ-F20-01 rev 2），校验通过"
+    },
+    {
+      "at": "2026-11-03T14:17:20Z",
+      "event": "Design v8（蓝图 §11 wen 确认、7 页增量、技术方案附录、追溯 128 行）与 TDD revision 8（FLOW-27～32、RULE-09，61 行，校验通过）完成"
     }
   ]
 }
