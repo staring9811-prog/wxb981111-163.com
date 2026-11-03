@@ -247,7 +247,10 @@ def scan_months(channel: str) -> list[str]:
 
 
 def after_merge(channel: str, month: str):
-    """并入后：预计算该渠道最新月份的扫描（后台）。评分重算由操作者在模型页发起（需标签确认完）。"""
+    """并入后：检查到期台账并对账（SEQ-F26-01），再预计算该渠道最新月份的扫描（后台）。评分重算由操作者在模型页发起（需标签确认完）。"""
+    from . import ledger
+    ledger.reconcile_due()
+
     def _go():
         try:
             rescan(channel)

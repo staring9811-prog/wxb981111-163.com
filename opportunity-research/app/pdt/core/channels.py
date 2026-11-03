@@ -162,6 +162,8 @@ def _write(items: pd.DataFrame, L: pd.DataFrame, source: str, file_path: str, co
         tagging.tag_products(ch, ids, last)
     refresh_rank_method()
     panel.bump()
+    from . import ledger
+    ledger.reconcile_due()  # 其他渠道月份并入后同样检查到期台账（SEQ-F26-01）
     return stat
 
 
