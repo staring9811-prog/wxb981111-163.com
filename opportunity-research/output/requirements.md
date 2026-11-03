@@ -4,20 +4,20 @@
 
 - work_type: feature
 - workflow_mode: standard
-- revision: 7
+- revision: 8
 - scope: 第一版
 - source_prd: PRD详细版.md
 - status: active
 
-> 第二轮（2026-11-03）：承接第二轮《解题方案书》与场景锚点（wen 确认）。第一轮 F01–F14、NFR-001～006 全部 retired（见文末），ID 不复用；第二轮从 F15、NFR-007 起编。第一版 = 浴室柜、在 wen 电脑运行局域网共享、F15–F29 全部交付。revision 7（2026-11-03）：wen 要求把 Home Depot / Lowe's / Wayfair 加入第一版，新增 F28、F29，F18、F26、F27 各增一条 REQ。
+> 第二轮（2026-11-03）：承接第二轮《解题方案书》与场景锚点（wen 确认）。第一轮 F01–F14、NFR-001～006 全部 retired（见文末），ID 不复用；第二轮从 F15、NFR-007 起编。第一版 = 浴室柜、在 wen 电脑运行局域网共享、F15–F29 全部交付。revision 7（2026-11-03）：wen 要求把 Home Depot / Lowe's / Wayfair 加入第一版，新增 F28、F29，F18、F26、F27 各增一条 REQ。revision 8（2026-11-03）：小平台回测增量（方案书 §10）——F18、F19、F23、F28、F29 各增一条 REQ，F27 增一条 AC，REQ-F20-01 证据等级语义变更（revision 2），新增 NFR-013。
 
 ## External capability configuration
 
 | Capability | Credential owner | Configuration actor | Surface | Scope | Lifecycle | Stage | Requirement IDs |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 卖家精灵接口（Amazon 月度数据、Amazon 评论） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F17-01, REQ-F22-01 |
-| Bright Data（Lowe's / Wayfair 页面） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F23-01 |
-| Apify（Lowe's / Wayfair 评论） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F23-01 |
+| Bright Data（Lowe's / Wayfair 页面） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F23-01, REQ-F23-02 |
+| Apify（Lowe's / Wayfair 评论） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F23-01, REQ-F23-02 |
 | 大模型（Claude / OpenAI 等，看图打元素、差评归类、叙述草稿） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F18-01, REQ-F21-03, REQ-F22-02 |
 
 ## Capability prerequisites
@@ -27,6 +27,7 @@
 | 卖家精灵接口可用、能按月拉浴室柜类目全量 | ready | wen | 2024-10 至 2025-12 月度数据与评论已用卖家精灵 MCP 拉取（solution-v2/数据准备/卖家精灵导出_2025-03至12_核对.md；evidence/差评_*.md） | 拉取失败时 wen 手动导出上传同格式文件（F17 导入核对照常） | 第一版 | REQ-F17-01, REQ-F22-01 |
 | Bright Data、Apify 账号与 IP 白名单 | ready | wen | 评论月度 VP 追踪器已在用（tools/评论月度VP追踪器/services.md） | 只采 Home Depot（直连免费），Lowe's / Wayfair 跳过 | 第一版 | REQ-F23-01 |
 | 大模型密钥（至少一家） | committed | wen | wen 2026-11-03 确认由其在设置页填写；截止：第一版联调开始前 | 元素全部进入人工确认；差评只显示原文、不归类；不起草叙述 | 第一版 | REQ-F18-01, REQ-F22-02, REQ-F21-03 |
+| Home Depot 公开页面直连（列表、商品页规格、评论接口） | ready | wen | 2026-11-03 小试：两个类目各前 300 个商品页、约 2,900 次请求无 403 / 429（solution-v2/开发建议/小平台_HD回测小试.md） | 降速重试；仍失败时该渠道回补暂停并提示，已采部分保留 | 第一版 | REQ-F23-02 |
 | wen 电脑作为运行机、局域网可访问 | ready | wen | wen 2026-11-03 选择"你的电脑上运行，局域网共享" | 只在 wen 本机使用，决策卡导出分享 | 第一版 | REQ-F15-01 |
 
 ## Feature F15 · 账号与角色
@@ -407,6 +408,24 @@ WHEN Home Depot / Lowe's / Wayfair 的一批商品（标题、规格、图片）
 THE SYSTEM SHALL 用同一套打标规则和看图打元素给它们打全部标签，元素与低置信度标签进入同一个确认队列，并标明渠道
 ```
 
+### REQ-F18-04 · 其他渠道按商品页规格打标
+
+- Story: US-F18-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F18-08 · 规格优先
+
+- Parent: REQ-F18-04
+- Priority: P0
+- EARS:
+
+```text
+WHEN Home Depot / Lowe's / Wayfair 商品带有商品页规格（宽度、是否需要组装、安装方式、台面材质、柜体材质、颜色）
+THE SYSTEM SHALL 优先按规格字段给尺寸段、装、形态、台面材质、柜体材质、主色打标，规格缺失时才用标题规则；没有依据时"装"标为未知并进入确认队列，不默认为拆装
+```
+
 ## Feature F19 · 模型更新与回测
 
 ### US-F19-01 · 新数据并入后重算市场评分和新品打分，并看到回测是否仍然有效
@@ -475,6 +494,35 @@ WHEN 回测显示 D 档之后变大比例 > 30%，或把握分档不再逐档上
 THE SYSTEM SHALL 在首页和每张决策卡顶部显示"市场评分本月未通过有效性检验"
 ```
 
+### REQ-F19-03 · 分渠道模型与回测
+
+- Story: US-F19-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F19-05 · 渠道回测
+
+- Parent: REQ-F19-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 某个其他渠道的重建历史达到 20 个月以上，wen 发起该渠道重算
+THE SYSTEM SHALL 只用该渠道数据，按"尺寸 × 拆装 × 形态"框 × 属性取值重算评分（信号：份额斜率、新品占比、Amazon 侧丰富度）并滚动回测，显示把握分档后之后变大比例、D 档之后变大比例、秩相关（全部 / 大单元），并按打折规则（秩相关减 0.1、把握 ≥ 70% 档减 15 个百分点、方向对按 ≤ 60% 看）同时显示打折后的读法
+```
+
+### AC-F19-06 · 渠道证据等级
+
+- Parent: REQ-F19-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 某渠道最近一次回测的把握分档逐档上升且 D 档之后变大比例 ≤ 30%
+THE SYSTEM SHALL 该渠道机会的证据等级为"经回测（打折）"；不满足或尚未回测时为"未验证"，且不显示把握与分级
+```
+
 ## Feature F20 · 机会扫描
 
 ### US-F20-01 · 在"尺寸 × 拆装 × 形态"框里看各属性取值的四类机会
@@ -489,7 +537,7 @@ THE SYSTEM SHALL 在首页和每张决策卡顶部显示"市场评分本月未�
 
 - Story: US-F20-01
 - Stage: 第一版
-- Revision: 1
+- Revision: 2
 - Status: active
 
 ### AC-F20-01 · 四类机会
@@ -522,7 +570,7 @@ THE SYSTEM SHALL 只和同一个"尺寸 × 拆装 × 形态"框里的其他取�
 
 ```text
 WHEN 列出任一机会
-THE SYSTEM SHALL 同时显示它的证据等级（经回测 / 历史观察 / 未验证）
+THE SYSTEM SHALL 同时显示它的证据等级（经回测 / 经回测（打折） / 历史观察 / 未验证）；其他渠道按该渠道最近一次回测结果给出（F19）
 ```
 
 ### REQ-F20-02 · 筛选
@@ -756,6 +804,35 @@ THE SYSTEM SHALL 提供与原工具相同的项目设置和"采集列表 → 评
 ```text
 WHEN 评论 VP 追踪调用 Bright Data / Apify
 THE SYSTEM SHALL 使用 F16 设置页的密钥与月度上限，费用计入同一记账
+```
+
+### REQ-F23-02 · 历史回补
+
+- Story: US-F23-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F23-03 · 回补采集
+
+- Parent: REQ-F23-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN wen 为某渠道发起"历史回补"（起始月份默认 2024-01，商品页数 N 默认 300）并确认费用
+THE SYSTEM SHALL 按类目榜单排序取前 N 个商品页（排除广告位），采集每个商品页的全部历史评论（日期、星级、是否 Verified Purchase）与商品页规格，可断点续采；Home Depot 直连，Lowe's / Wayfair 经 Bright Data / Apify
+```
+
+### AC-F23-04 · 翻页上限
+
+- Parent: REQ-F23-02
+- Priority: P1
+- EARS:
+
+```text
+WHEN 某商品页的评论数超过站点单一排序可翻到的上限
+THE SYSTEM SHALL 按星级（再按是否 Verified Purchase）分片补采，并报告仍被截断的商品页数
 ```
 
 ## Feature F24 · 利润测算（并入）
@@ -1059,6 +1136,17 @@ WHEN wen 在品类配置里修改某渠道的评论换算系数（默认 1 条 V
 THE SYSTEM SHALL 之后的销量估算、机会扫描和台账判定使用新值，并在页面上注明所用参数版本
 ```
 
+### AC-F27-04 · 回补与打折参数可改
+
+- Parent: REQ-F27-02
+- Priority: P1
+- EARS:
+
+```text
+WHEN wen 在品类配置里修改某渠道的历史回补起始月份、商品页数 N 或打折规则（秩相关减值、高档减值、方向对上限）
+THE SYSTEM SHALL 之后的回补、回测与打折后读法使用新值，并在页面注明参数版本
+```
+
 ## Feature F28 · 其他渠道数据与销量估算
 
 ### US-F28-01 · 把 Home Depot / Lowe's / Wayfair 的月度评论数据变成可比较的月度销量估算
@@ -1138,6 +1226,46 @@ WHEN 同一系列的多个商品共享同一批评论
 THE SYSTEM SHALL 计算渠道或单元合计时按评论 ID 去重，不重复计入同系列商品
 ```
 
+### REQ-F28-03 · 历史重建
+
+- Story: US-F28-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F28-06 · 按评论日期重建
+
+- Parent: REQ-F28-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 某渠道历史回补（F23）完成
+THE SYSTEM SHALL 按评论日期把每个商品页 2024-01 起的逐月 VP / 非 VP 评论数换算成估算月销（同 AC-F28-03 口径），以首条评论月作为上架月，并入该渠道分析库
+```
+
+### AC-F28-07 · 评论家族合并
+
+- Parent: REQ-F28-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 多个商品页（同系列不同尺寸 / 颜色）共享同一批评论
+THE SYSTEM SHALL 按评论重叠把它们合并为一个评论家族，家族作为该渠道的分析与份额计算单位，评论只计一次
+```
+
+### AC-F28-08 · 覆盖与换手
+
+- Parent: REQ-F28-03
+- Priority: P1
+- EARS:
+
+```text
+WHEN 用户打开其他渠道数据页
+THE SYSTEM SHALL 显示该渠道重建历史的月份范围、商品页数、家族数、评论数、前 N 覆盖估计（按排名分段的评论量递减外推）与前 50 名半年重合率，并注明幸存者偏差（只含当前仍在榜的商品）
+```
+
 ## Feature F29 · 分渠道机会与跨渠道印证
 
 ### US-F29-01 · 每个渠道单独按框扫机会，在决策卡里并排看同一机会在各渠道的方向
@@ -1206,6 +1334,35 @@ WHEN 同一机会在两个及以上渠道方向一致（都在涨或都在跌）
 THE SYSTEM SHALL 在卡片上标"多渠道印证"并列出一致的渠道；方向相反时标"渠道分歧"
 ```
 
+### REQ-F29-03 · 跨渠道供给丰富度
+
+- Story: US-F29-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F29-05 · Amazon 侧丰富度信号
+
+- Parent: REQ-F29-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 扫描或决策卡显示某个其他渠道的单元
+THE SYSTEM SHALL 同时显示 Amazon 同尺寸段 × 形态 × 属性取值（不分拆装）近 6 个月的家族数、价位段数、份额走势，以及该渠道对应的家族数、价位段数和差距值 ln((Amazon 家族数 + 1) / (该渠道家族数 + 1))；Amazon 侧丰富度作为该渠道评分的信号之一，证据等级随该渠道（F19）
+```
+
+### AC-F29-06 · 样本外单元
+
+- Parent: REQ-F29-03
+- Priority: P1
+- EARS:
+
+```text
+WHEN 某单元在该渠道前 N 个商品页里没有任何家族
+THE SYSTEM SHALL 标"该渠道样本外，仅参考"，只显示 Amazon 侧事实，不给该渠道的把握与分级
+```
+
 ## Non-functional requirements
 
 ### NFR-007 · 局域网访问
@@ -1249,6 +1406,13 @@ THE SYSTEM SHALL 在卡片上标"多渠道印证"并列出一致的渠道；方�
 - Revision: 1
 - Status: active
 - Measure: 原始拉取数据与每月并入版本保留至少 36 个月，可回看任一历史月份的扫描与评分
+
+### NFR-013 · 回补礼貌限速
+
+- Applies-to: REQ-F23-02
+- Revision: 1
+- Status: active
+- Measure: 直连采集同一站点的相邻请求间隔 ≥ 1 秒，单个请求失败重试 ≤ 3 次；遇 403 / 429 自动降速并记录次数；中断后续采不重复请求已完成的商品页
 
 ## Retired（第一轮，revision 5 及以前）
 

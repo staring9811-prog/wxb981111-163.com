@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-11-03T09:47:28Z",
+  "last_updated_at_utc": "2026-11-03T13:51:50Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -28,7 +28,7 @@
       "source": "wen 2026-11-03：第一版全做（F15–F27）+ 追加其他渠道（F28、F29），只做浴室柜"
     }
   },
-  "contract_revision": 7,
+  "contract_revision": 8,
   "source_ids_changed": [
     "F28",
     "F29",
@@ -36,8 +36,8 @@
     "REQ-F26-03",
     "REQ-F27-02"
   ],
-  "current_stage": "goal",
-  "current_substep": "第一版开发与集成验收完成：51/54 通过，3 项待 wen 实测",
+  "current_stage": "design",
+  "current_substep": "v8 增量设计：小平台回测",
   "completed_stages": [
     "1",
     "2",
@@ -50,7 +50,7 @@
   "skipped_stages": [
     "3"
   ],
-  "next_action": "wen 在本人电脑运行 app/启动.bat 或 启动.command，局域网另一设备访问（SMOKE-01）；设置页填真实密钥并提供卖家精灵接口文档（RULE-08）；账号页暂缓（DESIGN-03）；之后做组合套装 / 跨站点 / 小平台调研 / 实用水槽",
+  "next_action": "Design：change-impact、蓝图增量、受影响页面与技术方案、追溯矩阵 → TDD",
   "open_questions": [
     {
       "id": "OQ-R2-01",
@@ -276,6 +276,10 @@
     {
       "at": "2026-11-03T09:47:28Z",
       "event": "第一版开发完成：113 个测试通过；五轮独立视觉复核后 16/17 页通过（账号页暂缓）；验收结果 51 pass / 3 pending"
+    },
+    {
+      "at": "2026-11-03T13:51:50Z",
+      "event": "PRD v8 / requirements revision 8：小平台回测增量（REQ-F18-04、F19-03、F23-02、F28-03、F29-03、AC-F27-04、NFR-013；REQ-F20-01 rev 2），校验通过"
     }
   ]
 }
