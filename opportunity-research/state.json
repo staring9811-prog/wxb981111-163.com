@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-11-03T06:31:02Z",
+  "last_updated_at_utc": "2026-11-03T09:47:28Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -37,7 +37,7 @@
     "REQ-F27-02"
   ],
   "current_stage": "goal",
-  "current_substep": "待开发：用 /goal 按 output/tests/TDD验收契约.md 开发与验收",
+  "current_substep": "第一版开发与集成验收完成：51/54 通过，3 项待 wen 实测",
   "completed_stages": [
     "1",
     "2",
@@ -50,7 +50,7 @@
   "skipped_stages": [
     "3"
   ],
-  "next_action": "新开 Code 对话，用完整 /goal 命令开发第一版并逐条验收；RULE-08 需 wen 在设置页填真实密钥后执行",
+  "next_action": "wen 在本人电脑运行 app/启动.bat 或 启动.command，局域网另一设备访问（SMOKE-01）；设置页填真实密钥并提供卖家精灵接口文档（RULE-08）；账号页暂缓（DESIGN-03）；之后做组合套装 / 跨站点 / 小平台调研 / 实用水槽",
   "open_questions": [
     {
       "id": "OQ-R2-01",
@@ -272,6 +272,10 @@
     {
       "at": "2026-11-03T06:31:02Z",
       "event": "TDD 第二轮完成：验收契约按 revision 7 重写，校验通过"
+    },
+    {
+      "at": "2026-11-03T09:47:28Z",
+      "event": "第一版开发完成：113 个测试通过；五轮独立视觉复核后 16/17 页通过（账号页暂缓）；验收结果 51 pass / 3 pending"
     }
   ]
 }
