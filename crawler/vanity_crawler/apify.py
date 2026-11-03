@@ -29,6 +29,33 @@ def run_actor(actor, run_input, timeout_s=300, max_charge_usd=None):
     return res, {"id": run.get("id"), "usd": run.get("usageTotalUsd")}
 
 
+def run_actor_async(actor, run_input, timeout_s=3600, max_charge_usd=None, poll=20):
+    """Start a run, wait for it, then page through its dataset. Returns (items, run_info).
+    Items from a run that timed out / hit the charge cap are still returned (status in run_info)."""
+    import time
+    act = actor.replace("/", "~")
+    q = f"timeout={timeout_s}" + (f"&maxTotalChargeUsd={max_charge_usd}" if max_charge_usd else "")
+    st, res = _req("POST", f"/acts/{act}/runs?{q}", run_input, timeout=60)
+    if st not in (200, 201):
+        raise RuntimeError(f"apify start {actor} HTTP {st}: {res!r}"[:300])
+    run = res["data"]
+    while run.get("status") in ("READY", "RUNNING", "TIMING-OUT", "ABORTING"):
+        time.sleep(poll)
+        st, res = _req("GET", f"/actor-runs/{run['id']}", timeout=60)
+        if st == 200:
+            run = res["data"]
+    items, off = [], 0
+    while True:
+        st, page = _req("GET", f"/datasets/{run['defaultDatasetId']}/items?format=json&offset={off}&limit=1000", timeout=120)
+        if st != 200 or not page:
+            break
+        items += page
+        off += len(page)
+        if len(page) < 1000:
+            break
+    return items, {"id": run["id"], "status": run.get("status"), "usd": run.get("usageTotalUsd")}
+
+
 def usage_this_month():
     st, res = _req("GET", "/users/me/usage/monthly")
     return res if st == 200 else None

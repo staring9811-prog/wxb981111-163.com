@@ -27,9 +27,11 @@ def wayfair_reviews(urls_by_sku, batch=10, cap=300, max_charge_usd=3):
             todo.append((sku, url))
     for i in range(0, len(todo), batch):
         chunk = todo[i:i + batch]
-        items, run = apify.run_actor(WF_ACTOR, {"mode": "url", "urls": [u for _, u in chunk], "fetchReviews": True,
-                                                "maxReviewsPerProduct": cap, "reviewSort": "newest",
-                                                "maxItems": len(chunk)}, timeout_s=290, max_charge_usd=max_charge_usd)
+        items, run = apify.run_actor_async(WF_ACTOR, {"mode": "url", "urls": [u for _, u in chunk], "fetchReviews": True,
+                                                      "maxReviewsPerProduct": cap, "reviewSort": "newest",
+                                                      "maxItems": len(chunk)}, timeout_s=3600, max_charge_usd=max_charge_usd)
+        if run.get("status") != "SUCCEEDED":
+            print("  WARNING run", run, flush=True)
         print("apify wayfair batch", i // batch + 1, "items", len(items), "usd", run.get("usd"), flush=True)
         by = {str(it.get("sku", "")).upper(): it for it in items}
         for sku, _ in chunk:
@@ -81,9 +83,11 @@ def lowes_reviews(ids, batch=40, cap=500):
         chunk = todo[i:i + batch]
         got = {p: {"newest": [], "oldest": []} for p in chunk}
         for sort, key in (("newestFirst", "newest"), ("oldestFirst", "oldest")):
-            items, run = apify.run_actor(LO_ACTOR, {"productIds": chunk, "maxReviewsPerProduct": cap, "sort": sort,
-                                                    "newerThan": YEAR_START, "includeRatingsOnly": True}, timeout_s=290,
-                                                   max_charge_usd=2)
+            items, run = apify.run_actor_async(LO_ACTOR, {"productIds": chunk, "maxReviewsPerProduct": cap, "sort": sort,
+                                                          "newerThan": YEAR_START, "includeRatingsOnly": True},
+                                               timeout_s=3600, max_charge_usd=3)
+            if run.get("status") != "SUCCEEDED":
+                print("  WARNING run", run, flush=True)
             print("apify lowes batch", i // batch + 1, sort, "items", len(items), "usd", run.get("usd"), flush=True)
             for it in items:
                 p = str(it.get("productId"))
