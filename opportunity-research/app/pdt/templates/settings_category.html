@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .vals { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .val { display: inline-flex; align-items: center; height: 22px; padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-warm); font-size: var(--text-xs); color: var(--fg-2); white-space: nowrap; }
+  .thr { display: flex; align-items: center; gap: var(--space-4); }
+  .thr input[type="range"] { width: 240px; accent-color: var(--fg); }
+  .thr input[type="range"]:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+  .w-num { width: 88px; }
+  .table .input, .table .select { min-height: 28px; padding: 2px var(--space-2); }
+  .catbar { display: flex; align-items: center; gap: var(--space-3); }
+  .rules-json { width: 100%; min-height: 360px; font-family: var(--font-mono); font-size: var(--text-xs); }
+  .seg__opt[disabled] { opacity: .45; cursor: not-allowed; }
+  .ver-changes { margin: 0; padding-left: 1.1em; font-size: var(--text-xs); color: var(--muted); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <div class="crumbs"><span>设置</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>品类配置</span></div>
+    <h1>品类配置 · 浴室柜</h1>
+    <p class="page-head__sub">分框维度、扫描属性、打标规则、低置信度阈值，以及各渠道的评论换算系数、估算方法和成功线。保存后生成新参数版本，之后的销量估算、机会扫描和台账判定使用新值。</p>
+  </div>
+  <div class="page-head__actions">
+    <span class="small muted" data-dirty-hint hidden>有未保存的修改</span>
+    <button class="btn btn--primary" type="button" id="btnPreview"><svg class="icon"><use href="#ph-check"/></svg><span>保存为新版本</span></button>
+  </div>
+</div>
+
+<div class="banner enter" style="--i:1">
+  <svg class="icon"><use href="#ph-info"/></svg>
+  <div class="banner__body catbar"><span>品类</span><span class="badge badge--accent"><svg class="icon"><use href="#ph-cube"/></svg>浴室柜 Bathroom Vanity</span><span class="small muted">第一版只开浴室柜一个品类。当前在用：参数 v{{ version }}{% if current %} · {{ current.by }} · {{ current.at|dt }}{% endif %}</span></div>
+</div>
+
+<form class="section" data-guard onsubmit="return false" id="f-cfg">
+  <div class="tabs enter" style="--i:2" role="tablist" aria-label="配置分区">
+    <button class="tab" role="tab" type="button" aria-selected="{{ 'true' if tab == 'frame' else 'false' }}" aria-controls="tFrame">分框与属性</button>
+    <button class="tab" role="tab" type="button" aria-selected="{{ 'true' if tab == 'tag' else 'false' }}" aria-controls="tTag">打标规则</button>
+    <button class="tab" role="tab" type="button" aria-selected="{{ 'true' if tab == 'ch' else 'false' }}" aria-controls="tCh">渠道参数</button>
+    <button class="tab" role="tab" type="button" aria-selected="{{ 'true' if tab == 'ver' else 'false' }}" aria-controls="tVer">参数版本 <span class="count">{{ history|length }}</span></button>
+  </div>
+
+  <!-- 分框与属性 -->
+  <section id="tFrame" role="tabpanel" class="stack-lg"{% if tab != 'frame' %} hidden{% endif %}>
+    <section class="panel">
+      <div class="panel__head"><h2 class="panel__title">分框维度</h2><span class="section__note">一切比较都在框内进行；默认 尺寸段 × 拆装 × 形态</span></div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table">
+          <thead><tr><th>顺序</th><th>维度</th><th>取值</th><th>来源标签</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+          <tbody>
+            {% for d in cfg.frame_dims %}
+            <tr><td class="num">{{ loop.index }}</td><td class="cell-title">{{ d.dim }}</td><td><div class="vals" data-vals="frame_dims.{{ loop.index0 }}.values">{% for v in d['values'] %}<span class="val">{{ v }}</span>{% endfor %}</div></td><td>标签“{{ d.tag }}”</td><td><button class="btn btn--sm" type="button" data-open="#dwDim{{ loop.index0 }}">编辑</button></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% set n_frames = namespace(v=1) %}{% for d in cfg.frame_dims %}{% set n_frames.v = n_frames.v * (d['values']|length) %}{% endfor %}
+      <div class="panel__foot">共 {{ n_frames.v }} 个框；近 6 个月月销 &lt; {{ cfg.scan.min_frame_units }} 件的框不扫描。</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel__head"><h2 class="panel__title">扫描属性</h2><button class="btn btn--sm" type="button" data-open="#dwAttr"><svg class="icon"><use href="#ph-plus"/></svg><span>新增属性</span></button></div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table" id="t-attrs">
+          <thead><tr><th>参与扫描</th><th>属性</th><th>取值</th><th>打标方式</th></tr></thead>
+          <tbody>
+            {% for a in cfg.scan_attrs %}
+            <tr><td><label class="check"><input type="checkbox" data-path="scan_attrs.{{ loop.index0 }}.scan" data-type="bool"{% if a.scan %} checked{% endif %} aria-label="{{ a.attr }}参与扫描"></label></td><td class="cell-title">{{ a.attr }}</td><td>{% set vs = tag_values.get(a.tag, []) %}{% if vs %}<div class="vals">{% for v in vs[:12] %}<span class="val">{{ v }}</span>{% endfor %}</div>{% else %}<span class="small muted">打标后显示</span>{% endif %}</td><td>{{ a.method }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- 打标规则 -->
+  <section id="tTag" role="tabpanel" class="stack-lg"{% if tab != 'tag' %} hidden{% endif %}>
+    <section class="panel">
+      <div class="panel__head"><h2 class="panel__title">低置信度阈值</h2></div>
+      <div class="panel__body stack">
+        <div class="thr">
+          <input type="range" min="0.5" max="0.95" step="0.05" value="{{ thr }}" id="thr" data-path="low_conf_threshold" data-type="num" aria-label="低置信度阈值">
+          <span class="strong num" id="thrVal">{{ '%.2f'|format(thr) }}</span>
+          <span class="small muted">置信度低于阈值的标签进入 <a href="/tagging">打标确认</a> 队列；元素始终进入确认队列</span>
+        </div>
+        <p class="small muted">按当前标签：阈值 {{ '%.2f'|format(thr) }} 时进入确认队列 <span class="strong num">{{ queue_n|num }}</span> 条（四个渠道合计）。改阈值后保存，下一次打标按新阈值分流。</p>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel__head"><h2 class="panel__title">打标规则</h2><span class="section__note">四个渠道用同一套规则，确认队列标明渠道</span><button class="btn btn--sm" type="button" data-open="#dwRules">编辑 JSON</button></div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table">
+          <thead><tr><th>标签</th><th>方式</th><th>规则摘要</th><th class="t-num">规则数</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+          <tbody>
+            {% for tag, r in cfg.tag_rules.items() %}
+            <tr><td class="cell-title">{{ tag }}</td><td>{{ r.method if r is mapping and r.method else ('规则' if r else '—') }}</td><td class="small">{% if r is mapping and r.summary %}{{ r.summary }}{% else %}{{ (r|tojson)[:120] }}{% endif %}</td><td class="t-num">{% if r is mapping and r.rules is defined %}{{ r.rules|length }}{% else %}{{ r|length }}{% endif %}</td><td><button class="btn btn--sm" type="button" data-open="#dwRules">编辑</button></td></tr>
+            {% else %}
+            <tr><td colspan="5"><div class="muted small" style="padding: var(--space-4); text-align:center;">还没有打标规则。打标模块首次运行时写入默认关键词规则，也可点“编辑 JSON”直接填写。</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- 渠道参数 -->
+  <section id="tCh" role="tabpanel" class="stack-lg"{% if tab != 'ch' %} hidden{% endif %}>
+    <section class="panel">
+      <div class="panel__head"><h2 class="panel__title">销量估算</h2><span class="section__note">估算月销 = VP 条数 × VP 系数 + 非 VP 条数 × 非 VP 系数；Wayfair 只有 Verified Purchase 计 VP，只在渠道内比较</span></div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table">
+          <thead><tr><th>渠道</th><th>估算方法</th><th class="t-num">VP 系数（件 / 条）</th><th class="t-num">非 VP 系数（件 / 条）</th><th>榜单排名平滑</th></tr></thead>
+          <tbody>
+            {% for c in channels %}
+            {% if c.key == 'amazon' %}
+            <tr><td class="cell-title">Amazon</td><td colspan="4" class="small muted">销量来自卖家精灵月销，不做换算</td></tr>
+            {% else %}
+            <tr data-ch="{{ c.key }}"><td class="cell-title">{{ c.name }}</td>
+              <td><span class="seg" role="group" aria-label="{{ c.name }} 估算方法" data-path="channels.{{ c.key }}.method">{% for m, mn in methods.items() %}<button class="seg__opt" type="button" data-value="{{ m }}" aria-pressed="{{ 'true' if c.cfg.method == m else 'false' }}"{% if m == 'rank' and c.fit < min_fit %} disabled title="拟合商品不足 {{ min_fit }} 个，暂不能用排名平滑"{% endif %}>{{ mn }}</button>{% endfor %}</span></td>
+              <td class="t-num"><input class="input input--num w-num" value="{{ c.cfg.vp_coef }}" data-path="channels.{{ c.key }}.vp_coef" data-type="num" aria-label="{{ c.name }} VP 系数"></td>
+              <td class="t-num"><input class="input input--num w-num" value="{{ c.cfg.nonvp_coef }}" data-path="channels.{{ c.key }}.nonvp_coef" data-type="num" aria-label="{{ c.name }} 非 VP 系数"></td>
+              <td class="small">{% if c.fit >= min_fit %}可用 · 拟合商品 {{ c.fit }} 个{% else %}<span class="muted">拟合商品不足 {{ min_fit }} 个，暂不能用排名平滑（现有 {{ c.fit }} 个）</span>{% endif %}</td></tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="panel__foot">榜单排名平滑：用同时有排名和评论换算销量的商品拟合排名—销量曲线；这类商品少于 {{ min_fit }} 个时不提供该方法。两种方法的对照在 <a href="/data/channels">其他渠道数据</a> 查看。</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel__head"><h2 class="panel__title">成功线</h2><span class="section__note">上架 6 个月内任一月满足任一条即为做到；同系列商品合并计算；用于 <a href="/ledger">预测台账</a> 判定</span></div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table">
+          <thead><tr><th>渠道</th><th>进入榜单</th><th class="t-num">榜单名次 ≤</th><th>或</th><th class="t-num">月度门槛</th><th>依据</th></tr></thead>
+          <tbody>
+            {% for c in channels %}{% set sc = c.cfg.success or {} %}
+            {% if c.key == 'amazon' %}
+            <tr><td class="cell-title">Amazon</td><td>小类 BSR</td><td class="t-num"><input class="input input--num w-num" value="{{ sc.bsr_top }}" data-path="channels.amazon.success.bsr_top" data-type="num" aria-label="Amazon 名次"></td><td class="muted">或 SPU 月销售额 ≥</td><td class="t-num"><input class="input input--num w-num" value="{{ sc.spu_revenue }}" data-path="channels.amazon.success.spu_revenue" data-type="num" aria-label="Amazon 月销售额美元"> $</td><td class="small muted">方案书成功线</td></tr>
+            {% else %}
+            <tr><td class="cell-title">{{ c.name }}</td><td>{{ {'homedepot': '类目 Top Sellers', 'lowes': 'Best Sellers 榜', 'wayfair': '主类目'}.get(c.key, '榜单') }}</td><td class="t-num"><input class="input input--num w-num" value="{{ sc.rank_top }}" data-path="channels.{{ c.key }}.success.rank_top" data-type="num" aria-label="{{ c.name }} 名次"></td><td class="muted">或估算月销 ≥</td><td class="t-num"><input class="input input--num w-num" value="{{ sc.units }}" data-path="channels.{{ c.key }}.success.units" data-type="num" aria-label="{{ c.name }} 月销件数"> 件</td><td class="small muted">{{ {'homedepot': '带台面类目第 50 名附近约 244 件', 'lowes': '带台面榜前 50 名中位 148 件', 'wayfair': '主类目前 50 名中位 120 件'}.get(c.key, '') }}</td></tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="panel__foot">默认值依据 2026 年 1–10 月数据：Home Depot 3,325、Lowe's 3,850、Wayfair 7,394 条去重评论。</div>
+    </section>
+  </section>
+
+  <!-- 参数版本 -->
+  <section id="tVer" role="tabpanel"{% if tab != 'ver' %} hidden{% endif %}>
+    <div class="table-wrap">
+      <table class="table" id="t-ver">
+        <thead><tr><th>版本</th><th>保存人</th><th>时间</th><th>修改内容</th><th>状态</th></tr></thead>
+        <tbody>
+          {% for h in history %}
+          <tr><td class="mono">v{{ h.version }}</td><td>{{ h.by }}</td><td class="num t-nowrap">{{ h.at|dt }}</td><td>{% if h.note %}<div>{{ h.note }}</div>{% endif %}{% if h.changes %}<ul class="ver-changes">{% for d in h.changes[:8] %}<li>{{ d.label }}：{{ d.old }} → {{ d.new }}</li>{% endfor %}{% if h.changes|length > 8 %}<li>…另 {{ h.changes|length - 8 }} 项</li>{% endif %}</ul>{% endif %}</td><td>{% if loop.first %}<span class="badge badge--accent"><svg class="icon"><use href="#ph-check-circle"/></svg>当前在用</span>{% else %}<span class="small muted">已被 v{{ history[loop.index0 - 1].version }} 替代</span>{% endif %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="page-foot">销量估算、机会扫描和台账判定的结果上都注明所用参数版本。旧版本只供查看，不能回滚覆盖已用于判定的结果。</p>
+  </section>
+</form>
+<script type="application/json" id="cfg-json">{{ cfg|tojson }}</script>
+{% endblock %}
+
+{% block modals %}
+<div class="modal" id="dlgSave" role="dialog" aria-modal="true" aria-labelledby="svTitle" aria-hidden="true">
+  <form class="modal__dialog" method="post" action="/settings/category" id="f-save">
+    <input type="hidden" name="data" id="svData">
+    <input type="hidden" name="tab" id="svTab" value="{{ tab }}">
+    <div class="modal__head"><div><h2 class="modal__title" id="svTitle">保存为参数 v{{ version + 1 }}</h2><p class="modal__sub">之后的销量估算、机会扫描和台账判定使用新值</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body stack">
+      <div class="diff" id="svDiff"></div>
+      <label class="field"><span class="field__label">修改说明<span class="req">*</span></span><input class="input" id="svNote" name="note" placeholder="例：按 11 月 Wayfair 前 50 名中位数调高"></label>
+      <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">已对账的台账条目保留判定时的参数版本，不会被改写。阈值变化会影响下一次打标的确认队列。</div></div>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="submit" id="btnSave" data-save>保存 v{{ version + 1 }}</button></div>
+  </form>
+</div>
+
+{% for d in cfg.frame_dims %}
+<aside class="drawer" id="dwDim{{ loop.index0 }}" role="dialog" aria-modal="true" aria-labelledby="dimTitle{{ loop.index0 }}" aria-hidden="true">
+  <div class="drawer__head"><div><h2 class="drawer__title" id="dimTitle{{ loop.index0 }}">{{ d.dim }}</h2><p class="drawer__sub">分框维度 · 来源标签“{{ d.tag }}”</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+  <div class="drawer__body">
+    <label class="field"><span class="field__label">取值（用顿号或逗号分隔）</span><input class="input" form="f-cfg" data-path="frame_dims.{{ loop.index0 }}.values" data-type="list" value="{{ d['values']|join('、') }}"></label>
+    <p class="small muted" style="margin-top:var(--space-3)">取值要与打标结果一致；不在任何取值内的商品标为低置信度，进入打标确认。修改分框维度从下一次扫描起生效，已批准决策卡的快照不变。</p>
+  </div>
+  <div class="drawer__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-close data-done>完成</button></div>
+</aside>
+{% endfor %}
+
+<aside class="drawer" id="dwRules" role="dialog" aria-modal="true" aria-labelledby="rulesTitle" aria-hidden="true">
+  <div class="drawer__head"><div><h2 class="drawer__title" id="rulesTitle">打标规则</h2><p class="drawer__sub">JSON：标签 → 规则（关键词、区间、看图）</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+  <div class="drawer__body">
+    <textarea class="input rules-json" form="f-cfg" data-path="tag_rules" data-type="json" spellcheck="false" aria-label="打标规则 JSON">{{ cfg.tag_rules|tojson(indent=2) }}</textarea>
+    <div class="field__error" id="rulesErr" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>不是有效的 JSON 对象</div>
+  </div>
+  <div class="drawer__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-close data-done>完成</button></div>
+</aside>
+
+<aside class="drawer" id="dwAttr" role="dialog" aria-modal="true" aria-labelledby="attrTitle" aria-hidden="true">
+  <div class="drawer__head"><div><h2 class="drawer__title" id="attrTitle">新增扫描属性</h2><p class="drawer__sub">需打标模块能产出对应标签</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+  <div class="drawer__body stack">
+    <label class="field"><span class="field__label">属性名<span class="req">*</span></span><input class="input" id="naAttr" placeholder="例：价格档"></label>
+    <label class="field"><span class="field__label">来源标签<span class="req">*</span></span><input class="input" id="naTag" placeholder="与打标结果里的标签名一致"></label>
+    <label class="field"><span class="field__label">打标方式</span><select class="select" id="naMethod"><option>规则</option><option>规则 + 看图</option><option>看图（大模型）</option></select></label>
+  </div>
+  <div class="drawer__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" id="naDone">完成</button></div>
+</aside>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var cfg = JSON.parse(document.getElementById('cfg-json').textContent);
+    var extraAttrs = [];
+    function dirty() { document.querySelectorAll('[data-dirty-hint]').forEach(function (h) { h.hidden = false; }); }
+    var thr = document.getElementById('thr');
+    thr.addEventListener('input', function () { document.getElementById('thrVal').textContent = parseFloat(thr.value).toFixed(2); dirty(); });
+    document.querySelectorAll('.seg').forEach(function (seg) {
+      seg.addEventListener('click', function (e) {
+        var b = e.target.closest('.seg__opt');
+        if (!b || b.disabled) return;
+        Array.prototype.forEach.call(seg.children, function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        dirty();
+      });
+    });
+    document.querySelectorAll('[data-path]').forEach(function (el) { el.addEventListener('change', dirty); });
+    document.querySelectorAll('[data-done]').forEach(function (b) { b.addEventListener('click', function () { window.oppoToast('已修改，保存为新版本后生效'); }); });
+
+    function setPath(obj, path, val) {
+      var ks = path.split('.'), o = obj;
+      for (var i = 0; i < ks.length - 1; i++) { var k = /^\d+$/.test(ks[i]) ? +ks[i] : ks[i]; if (o[k] == null) o[k] = {}; o = o[k]; }
+      o[ks[ks.length - 1]] = val;
+    }
+    function build() {
+      var next = JSON.parse(JSON.stringify(cfg));
+      var err = '';
+      document.querySelectorAll('[data-path]').forEach(function (el) {
+        var path = el.getAttribute('data-path'), t = el.getAttribute('data-type'), v;
+        if (el.classList.contains('seg')) {
+          var on = el.querySelector('[aria-pressed="true"]'); if (!on) return; v = on.getAttribute('data-value');
+        } else if (t === 'bool') v = el.checked;
+        else if (t === 'num') { v = parseFloat(String(el.value).replace(/,/g, '')); if (isNaN(v)) { err = '请填正数'; el.setAttribute('aria-invalid', 'true'); return; } el.removeAttribute('aria-invalid'); }
+        else if (t === 'list') v = el.value.split(/[、,，\s]+/).filter(Boolean);
+        else if (t === 'json') { try { v = JSON.parse(el.value || '{}'); document.getElementById('rulesErr').hidden = true; } catch (e) { err = '打标规则不是有效的 JSON'; document.getElementById('rulesErr').hidden = false; return; } }
+        else v = el.value;
+        setPath(next, path, v);
+      });
+      next.scan_attrs = (next.scan_attrs || []).concat(extraAttrs);
+      return { cfg: next, err: err };
+    }
+    document.getElementById('naDone').addEventListener('click', function () {
+      var a = document.getElementById('naAttr').value.trim(), t = document.getElementById('naTag').value.trim();
+      if (!a || !t) { window.oppoToast('请填写属性名和来源标签'); return; }
+      extraAttrs.push({ attr: a, tag: t, scan: true, method: document.getElementById('naMethod').value });
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><span class="badge badge--accent">新增</span></td><td class="cell-title"></td><td><span class="small muted">打标后显示</span></td><td></td>';
+      tr.children[1].textContent = a; tr.children[3].textContent = document.getElementById('naMethod').value;
+      document.querySelector('#t-attrs tbody').appendChild(tr);
+      window.oppoClose('#dwAttr'); dirty();
+      window.oppoToast('已新增属性 ' + a + '，保存为新版本后生效');
+    });
+
+    function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    document.getElementById('btnPreview').addEventListener('click', function () {
+      var r = build();
+      if (r.err) { window.oppoToast(r.err); return; }
+      var fd = new FormData(); fd.append('data', JSON.stringify(r.cfg));
+      fetch('/settings/category/preview', { method: 'POST', body: fd, headers: { accept: 'application/json' } })
+        .then(function (res) { return res.json().then(function (j) { j._status = res.status; return j; }); })
+        .then(function (j) {
+          if (j._status >= 400) { window.oppoToast(j.detail || '校验未通过'); return; }
+          if (!j.changes.length) { window.oppoToast('没有修改，参数仍为 v' + j.version); return; }
+          document.getElementById('svDiff').innerHTML = j.changes.map(function (c) {
+            return '<span class="diff__key">' + esc(c.label) + '</span><span class="diff__old">' + esc(c.old) + '</span><span class="diff__new">' + esc(c.new) + '</span>';
+          }).join('');
+          document.getElementById('svTitle').textContent = '保存为参数 v' + j.next_version;
+          document.getElementById('btnSave').textContent = '保存 v' + j.next_version;
+          document.getElementById('svData').value = JSON.stringify(r.cfg);
+          var sel = document.querySelector('[role=tab][aria-selected=true]');
+          document.getElementById('svTab').value = { tFrame: 'frame', tTag: 'tag', tCh: 'ch', tVer: 'ver' }[sel.getAttribute('aria-controls')];
+          window.oppoOpen('#dlgSave');
+        });
+    });
+    document.getElementById('f-save').addEventListener('submit', function (e) {
+      var n = document.getElementById('svNote');
+      if (!n.value.trim()) { e.preventDefault(); n.setAttribute('aria-invalid', 'true'); n.focus(); return; }
+      document.getElementById('btnSave').disabled = true;
+    });
+  })();
+</script>
+{% endblock %}

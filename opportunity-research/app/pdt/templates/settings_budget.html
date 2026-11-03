@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% macro usage_badge(u) -%}
+{% if u.status == 'nc' %}<a class="badge badge--nodata" href="/settings/keys"><svg class="icon"><use href="#ph-link-simple"/></svg>未连接</a>
+{%- elif u.status == 'cap' %}<span class="badge badge--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg>已达上限，已停止新调用</span>
+{%- elif u.status == 'warn' %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>接近上限</span>
+{%- elif u.status == 'nocap' %}<span class="badge"><svg class="icon"><use href="#ph-info"/></svg>未设上限</span>
+{%- else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span>{% endif %}
+{%- endmacro %}
+{% block head %}
+<style>
+  .limit-input { display: flex; align-items: center; gap: var(--space-2); justify-content: flex-end; }
+  .limit-input .input { width: 110px; }
+  .limit-input .select { width: 104px; }
+  .ratio { display: flex; align-items: center; gap: var(--space-2); min-width: 160px; }
+  .ratio .meter { flex: 1; margin-top: 0; }
+  .ratio .num { width: 36px; text-align: right; font-size: var(--text-xs); }
+  .est { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-4) 0; }
+  .est .stat { padding: var(--space-3) var(--space-4); }
+  .est .stat__value { font-size: var(--text-xl); }
+  .table tfoot td { padding: var(--space-2) var(--space-3); border-top: 1px solid var(--border); background: var(--surface-warm); font-weight: 600; }
+  a.chip { text-decoration: none; }
+  @media (max-width: 767px) { .est { grid-template-columns: minmax(0, 1fr); } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head enter">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><span>设置</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>预算与费用</span></nav>
+    <h1>预算与费用记录</h1>
+    <p class="page-head__sub">每个按量计费的服务设月度上限，到上限自动停止新调用，已采数据保留。</p>
+  </div>
+  <div class="page-head__actions">
+    <button class="btn" type="button" data-cost-kind="cost_demo" data-cost-month="{{ cur_month }}" data-cost-target="" data-cost-params='{}'><svg class="icon"><use href="#ph-eye"/></svg><span>预览费用评估弹窗</span></button>
+  </div>
+</div>
+
+<form class="section enter" style="--i:1; margin-top:0" data-guard aria-labelledby="t-limit" method="post" action="/settings/budget" id="f-limit" novalidate>
+  <div class="section__head">
+    <h2 class="section__title" id="t-limit">月度上限</h2>
+    <span class="section__note">统计区间 {{ cur_month }}-01 至今，每月 1 日重新累计</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>服务</th><th>本月已花</th><th>已用比例</th><th>状态</th><th class="t-num">月度上限<span class="req" style="color:var(--danger)">*</span> · 计费单位</th></tr>
+      </thead>
+      <tbody>
+        {% for u in usage %}
+        <tr data-svc="{{ u.service }}">
+          <td><span class="cell-title">{{ services[u.service] }}</span><div class="cell-sub">{% if u.service == 'sellersprite' %}Amazon 月度数据、Amazon 差评{% elif u.service == 'brightdata' %}Lowe's / Wayfair 页面{% elif u.service == 'apify' %}Lowe's / Wayfair 评论{% else %}当前提供方 {{ llm_provider }} · <a class="tlink" href="/settings/keys">切换</a>{% endif %}</div></td>
+          <td class="num">{% if u.unit == 'calls' %}{{ u.spent_qty|num }} 次<span class="etag">约 ${{ u.spent_usd|num(2) }}</span>{% else %}${{ u.spent_usd|num(2) }}{% endif %}</td>
+          <td>{% if u.pct is not none %}<div class="ratio"><div class="meter{% if u.status == 'cap' %} meter--danger{% elif u.status == 'warn' %} meter--warn{% endif %}" role="meter" aria-valuenow="{{ u.pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ services[u.service] }}已用 {{ u.pct }}%"><i style="width:{{ [u.pct, 100]|min }}%"></i></div><span class="num">{{ u.pct }}%</span></div>{% else %}<span class="muted small">未设上限</span>{% endif %}</td>
+          <td>{{ usage_badge(u) }}</td>
+          <td><div class="limit-input"><label class="visually-hidden" for="l-{{ u.service }}">{{ services[u.service] }}上限</label><input class="input input--num" id="l-{{ u.service }}" name="cap_{{ u.service }}" inputmode="decimal" value="{% if u.cap is not none %}{{ '%d'|format(u.cap) if u.unit == 'calls' else '%.2f'|format(u.cap) }}{% endif %}" placeholder="未设"><select class="select" name="unit_{{ u.service }}" aria-label="{{ services[u.service] }}计费单位"><option value="calls"{% if u.unit == 'calls' %} selected{% endif %}>调用次数</option><option value="usd"{% if u.unit == 'usd' %} selected{% endif %}>美元</option></select></div></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="row" style="margin-top: var(--space-3);">
+    <span class="field__hint">已用达到 {{ warn_pct }}% 显示"接近上限"；达到 100% 停止该服务的新调用，已采数据保留。</span>
+    <span class="spacer"></span>
+    <span class="small" style="color:var(--warn)" data-dirty-hint hidden>有未保存的修改</span>
+    <button class="btn btn--primary" type="submit" id="save-limit" data-save><span>保存上限</span></button>
+  </div>
+</form>
+
+<section class="section enter" style="--i:2" aria-labelledby="t-rec">
+  <div class="section__head"><h2 class="section__title" id="t-rec">费用记录</h2></div>
+  <div class="tabs" role="tablist">
+    <button class="tab" type="button" role="tab" aria-selected="{{ 'true' if tab == 'detail' else 'false' }}" aria-controls="p-detail">明细</button>
+    <button class="tab" type="button" role="tab" aria-selected="{{ 'true' if tab == 'month' else 'false' }}" aria-controls="p-month">按月汇总</button>
+  </div>
+
+  <div id="p-detail" role="tabpanel"{% if tab != 'detail' %} hidden{% endif %}>
+    <form class="filters" method="get" action="/settings/budget">
+      <input type="hidden" name="svc" value="{{ fsvc }}">
+      <label class="visually-hidden" for="r-month">月份</label>
+      <select class="select" id="r-month" name="month" style="width:auto" onchange="this.form.submit()">{% for m in months %}<option{% if m == month %} selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+      <span class="filters__sep"></span>
+      <span class="filters__label">服务</span>
+      <a class="chip" href="?month={{ month }}&svc=all" aria-pressed="{{ 'true' if fsvc == 'all' else 'false' }}">全部</a>
+      {% for k, n in services.items() %}<a class="chip" href="?month={{ month }}&svc={{ k }}" aria-pressed="{{ 'true' if fsvc == k else 'false' }}">{{ n }}</a>
+      {% endfor %}
+      <span class="spacer"></span>
+      <span class="small muted">共 {{ detail_total }} 条</span>
+      <a class="btn btn--sm" href="/settings/ledger/export?view=detail&month={{ month }}&svc={{ fsvc }}"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></a>
+    </form>
+    <div class="table-wrap">
+      <table class="table" id="t-detail">
+        <thead>
+          <tr>
+            <th><button class="th-sort" type="button" aria-sort="descending">时间<svg class="icon"><use href="#ph-caret-down"/></svg></button></th>
+            <th>服务</th><th>任务</th>
+            <th class="t-num">数量</th>
+            <th class="t-num"><button class="th-sort" type="button">金额</button></th>
+            <th>来源</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in detail %}
+          <tr data-svc="{{ r.service }}"><td class="num t-nowrap" data-sort="{{ r.at.strftime('%Y%m%d%H%M%S') }}">{{ r.at.strftime('%m-%d %H:%M') }}</td><td>{{ r.service_name }}{% if r.service == 'llm' %} · {{ llm_provider }}{% endif %}</td><td>{{ r.task }}</td><td class="t-num">{{ r.qty|num }}{% if r.service == 'sellersprite' %} 次{% endif %}</td><td class="t-num" data-sort="{{ r.amount }}">${{ r.amount|num(2) }}</td><td>{% if r.source_href %}<a class="tlink small" href="{{ r.source_href }}">{{ r.source }}</a>{% else %}<span class="small">{{ r.source }}</span>{% endif %}</td></tr>
+          {% else %}
+          <tr><td colspan="6"><div class="muted" style="padding: var(--space-6); text-align:center;">这个月还没有花钱的调用。发起拉取、采集或打标后，每笔调用会记在这里。</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="pager"><span>每页 50 条 · 第 1 页 · {{ month }} 合计 ${{ detail_sum|num(2) }}</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button></div></div>
+  </div>
+
+  <div id="p-month" role="tabpanel"{% if tab != 'month' %} hidden{% endif %}>
+    <div class="row" style="justify-content:flex-end; margin-bottom: var(--space-3);"><a class="btn btn--sm" href="/settings/ledger/export?view=month"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></a></div>
+    <div class="table-wrap">
+      <table class="table" id="t-month">
+        <thead>
+          <tr><th>月份</th>{% for n in services.values() %}<th class="t-num">{{ n }}</th>{% endfor %}<th class="t-num">合计</th></tr>
+        </thead>
+        <tbody>
+          {% for r in monthly %}
+          <tr data-month="{{ r.month }}"><td class="num">{{ r.month }}{% if r.month == cur_month %} <span class="etag">截至 {{ today.strftime('%m-%d') }}</span>{% endif %}</td>{% for k in services %}<td class="t-num">{% if r.services[k] is none %}<span class="etag etag--nodata">无数据</span>{% else %}${{ r.services[k]|num(2) }}{% endif %}</td>{% endfor %}<td class="t-num strong" data-total>${{ r.total|num(2) }}</td></tr>
+          {% else %}
+          <tr><td colspan="6"><div class="muted" style="padding: var(--space-6); text-align:center;">还没有任何费用记录。</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="field__hint" style="margin-top: var(--space-2);">费用按调用量和服务单价估算，与服务商账单可能有小幅差异。Home Depot 直连采集不计费。</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block modals %}{% include "_cost_modal.html" %}{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var form = document.getElementById('f-limit');
+    form.querySelectorAll('.limit-input .input').forEach(function (inp) {
+      inp.addEventListener('blur', function () {
+        if (!inp.value.trim()) { inp.removeAttribute('aria-invalid'); return; }
+        var v = parseFloat(inp.value.replace(/,/g, ''));
+        var unit = inp.parentNode.querySelector('select').value;
+        inp.setAttribute('aria-invalid', String(!(v > 0) || (unit === 'calls' && v !== Math.round(v))));
+      });
+    });
+    form.addEventListener('submit', function (e) {
+      if (form.querySelector('[aria-invalid="true"]')) { e.preventDefault(); window.oppoToast('请填写大于 0 的上限；调用次数需为整数'); return; }
+      var b = document.getElementById('save-limit'); b.disabled = true; b.querySelector('span').textContent = '保存中…';
+    });
+  })();
+</script>
+{% endblock %}

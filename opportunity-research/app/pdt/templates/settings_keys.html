@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% macro status_badge(sec) -%}
+{% if not sec %}<span class="badge badge--nodata" data-status><svg class="icon"><use href="#ph-link-simple"/></svg>未连接</span>
+{%- elif sec.test_status == 'ok' %}<span class="badge badge--ok" data-status><svg class="icon"><use href="#ph-check-circle"/></svg>可用</span>
+{%- elif sec.test_status %}<span class="badge badge--block" data-status><svg class="icon"><use href="#ph-warning-octagon"/></svg>失败</span>
+{%- else %}<span class="badge" data-status><svg class="icon"><use href="#ph-info"/></svg>未测试</span>{% endif %}
+{%- endmacro %}
+{% macro tested(sec) -%}
+<dl class="kv">
+  <dt>保存于</dt><dd class="num">{{ sec.updated_at|dt }}</dd>
+  <dt>最近测试</dt><dd class="num" data-tested>{% if sec.tested_at %}{{ sec.tested_at|dt }} · {{ '可用' if sec.test_status == 'ok' else '失败' }}{% else %}尚未测试{% endif %}</dd>
+</dl>
+{% if sec.test_status and sec.test_status != 'ok' %}
+<div class="banner banner--block svc__result" data-result>
+  <svg class="icon"><use href="#ph-warning-octagon"/></svg>
+  <div class="banner__body"><div class="banner__title">{{ status_name[sec.test_status] }}</div><div class="small">{{ sec.test_msg }}</div></div>
+</div>
+{% endif %}
+{%- endmacro %}
+{% macro actions(slot, name, sec, deps) -%}
+<div class="svc__actions">
+  {% if sec %}
+  <button class="btn btn--sm" type="submit" form="test-{{ slot }}" data-test="{{ slot }}"><svg class="icon"><use href="#ph-play"/></svg><span>测试</span></button>
+  <button class="btn btn--sm" type="button" data-replace="{{ slot }}" data-name="{{ name }}" data-filled="1"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>更换</span></button>
+  <span class="spacer"></span>
+  <button class="btn btn--sm btn--danger" type="button" data-delete="{{ slot }}" data-name="{{ name }}" data-deps="{{ deps }}">删除</button>
+  {% else %}
+  <button class="btn btn--sm" type="button" data-replace="{{ slot }}" data-name="{{ name }}"><svg class="icon"><use href="#ph-plus"/></svg><span>填写密钥</span></button>
+  {% endif %}
+</div>
+{%- endmacro %}
+{% block head %}
+<style>
+  .svc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }
+  .svc { display: flex; flex-direction: column; }
+  .svc .panel__body { flex: 1; }
+  .svc__use { font-size: var(--text-xs); color: var(--muted); }
+  .svc__mask { margin-top: var(--space-4); font-family: var(--font-mono); font-size: var(--text-lg); letter-spacing: var(--tracking-ui); color: var(--fg); }
+  .svc .kv { margin-top: var(--space-3); font-size: var(--text-xs); }
+  .svc__actions { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-soft); }
+  .svc__result { margin-top: var(--space-3); }
+  .llm { margin-top: var(--space-6); }
+  .llm__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+  .slot { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); }
+  .slot.is-current { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+  .slot__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+  .slot .svc__actions { padding: var(--space-3) 0 0; border-top: 0; }
+  .slot__cfg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-4); }
+  .slot__cfg .field__label { font-size: var(--text-xs); }
+  @media (max-width: 1279px) { .svc-grid { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 767px) { .llm__grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head enter">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><span>设置</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>密钥与大模型</span></nav>
+    <h1>密钥与大模型</h1>
+    <p class="page-head__sub">密钥只保存在本机加密存储，页面只显示后 4 位。月度上限在 <a href="/settings/budget">预算与费用</a> 设置。</p>
+  </div>
+</div>
+
+<div class="svc-grid">
+  {% for c in cards %}
+  <section class="panel svc enter" style="--i:{{ loop.index }}" aria-labelledby="s-{{ c.slot }}" data-slot="{{ c.slot }}">
+    <div class="panel__head">
+      <h2 class="panel__title" id="s-{{ c.slot }}">{{ c.name }}</h2>
+      {{ status_badge(c.sec) }}
+    </div>
+    <div class="panel__body">
+      <p class="svc__use">{{ c.use }}</p>
+      {% if c.sec %}
+      <div class="svc__mask" data-mask>••••{{ c.sec.last4 }}</div>
+      {{ tested(c.sec) }}
+      {% else %}
+      <div class="svc__mask muted" data-mask>未填写</div>
+      <p class="field__hint" style="margin-top: var(--space-3);">未连接：{{ c.use }} 当前不可用，不会发起调用。</p>
+      {% endif %}
+    </div>
+    {{ actions(c.slot, c.name, c.sec, c.deps) }}
+  </section>
+  {% endfor %}
+</div>
+
+{% set cur = llm.provider %}
+{% set cur_slot = (slots|selectattr('provider', 'equalto', cur)|first) %}
+<section class="panel llm enter" style="--i:4" aria-labelledby="s4">
+  <div class="panel__head">
+    <div>
+      <h2 class="panel__title" id="s4">大模型</h2>
+      <p class="svc__use">看图打元素、差评归类、叙述草稿都使用所选提供方</p>
+    </div>
+    {% if not cur_slot.sec %}<span class="badge badge--nodata"><svg class="icon"><use href="#ph-link-simple"/></svg>未连接 · {{ providers[cur] }}</span>
+    {% elif cur_slot.sec.test_status == 'ok' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>可用 · {{ providers[cur] }}</span>
+    {% elif cur_slot.sec.test_status %}<span class="badge badge--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg>失败 · {{ providers[cur] }}</span>
+    {% else %}<span class="badge"><svg class="icon"><use href="#ph-info"/></svg>未测试 · {{ providers[cur] }}</span>{% endif %}
+  </div>
+  <form class="panel__body" method="post" action="/settings/llm" id="f-llm">
+    <div class="field">
+      <span class="field__label" id="prov-l">提供方</span>
+      <div class="choice-group" role="radiogroup" aria-labelledby="prov-l">
+        {% for p, n in providers.items() %}<label class="choice"><input type="radio" name="provider" value="{{ p }}"{% if p == cur %} checked{% endif %}>{{ n }}</label>{% endfor %}
+      </div>
+    </div>
+    <div class="llm__grid">
+      {% for sl in slots %}
+      <div class="slot{% if sl.provider == cur %} is-current{% endif %}" data-slot="{{ sl.slot }}">
+        <div class="slot__head"><strong>{{ providers[sl.provider] }} 密钥</strong>{{ status_badge(sl.sec) }}</div>
+        {% if sl.sec %}
+        <div class="svc__mask" data-mask>••••{{ sl.sec.last4 }}</div>
+        {{ tested(sl.sec) }}
+        {% else %}
+        <p class="field__hint" style="margin-top: var(--space-3);">尚未填写。只有选为提供方时才会被调用。</p>
+        {% endif %}
+        <div class="slot__cfg">
+          <div class="field"><label class="field__label" for="{{ sl.provider }}-base">接口地址（可空）</label><input class="input mono" id="{{ sl.provider }}-base" name="{{ sl.provider }}_base_url" value="{{ sl.cfg.base_url or '' }}" placeholder="{{ '默认 https://api.anthropic.com' if sl.provider == 'claude' else '默认 https://api.openai.com/v1，兼容接口填其地址' }}"></div>
+          <div class="field"><label class="field__label" for="{{ sl.provider }}-model">模型名</label><input class="input mono" id="{{ sl.provider }}-model" name="{{ sl.provider }}_model" value="{{ sl.cfg.model or '' }}" placeholder="{{ 'claude-opus-5-5' if sl.provider == 'claude' else 'gpt-4o' }}"></div>
+          {% if sl.provider == 'openai' %}
+          <div class="field"><label class="field__label" for="openai-pin">输入单价（$/百万 token）</label><input class="input input--num" id="openai-pin" name="openai_price_in" value="{{ sl.cfg.price_in or '' }}" placeholder="2.5"></div>
+          <div class="field"><label class="field__label" for="openai-pout">输出单价（$/百万 token）</label><input class="input input--num" id="openai-pout" name="openai_price_out" value="{{ sl.cfg.price_out or '' }}" placeholder="10"></div>
+          {% endif %}
+        </div>
+        {{ actions(sl.slot, providers[sl.provider], sl.sec, sl.deps ~ ('（当前所选提供方；删除后元素全部进入人工确认、差评只显示原文、不起草叙述）' if sl.provider == cur else '')) }}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="row" style="margin-top: var(--space-4);"><span class="field__hint">切换提供方即保存；接口地址和模型名改完点“保存大模型设置”。</span><span class="spacer"></span><button class="btn btn--sm" type="submit">保存大模型设置</button></div>
+  </form>
+</section>
+
+<p class="page-foot">密钥只保存在本机加密存储；页面、导出文件、日志中都不会出现完整密钥。保存、更换、删除和切换提供方都记入<a href="/accounts?tab=audit&type=key">审计日志</a>。</p>
+{% endblock %}
+
+{% block modals %}
+{% for sl in cards + slots %}{% if sl.sec %}<form id="test-{{ sl.slot }}" method="post" action="/settings/keys/{{ sl.slot }}/test" data-test-form hidden></form>{% endif %}{% endfor %}
+<div class="modal" id="m-key" role="dialog" aria-modal="true" aria-labelledby="m-key-t" aria-hidden="true">
+  <form class="modal__dialog" id="f-key" method="post" novalidate>
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="m-key-t">填写密钥</h2><p class="modal__sub">保存后只保存在本机加密存储，页面此后只显示后 4 位</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label class="field__label" for="k-val">密钥<span class="req">*</span></label>
+        <input class="input mono" id="k-val" name="value" type="password" autocomplete="off" spellcheck="false">
+        <div class="field__error" id="k-err" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>请填写密钥</div>
+        <p class="field__hint">保存后自动测试一次。已开始的任务用旧密钥跑完，之后的调用使用新密钥。</p>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--primary" type="submit"><span>保存</span></button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="m-del" role="dialog" aria-modal="true" aria-labelledby="m-del-t" aria-hidden="true">
+  <form class="modal__dialog" id="f-del" method="post">
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="m-del-t">删除 <span data-del-svc></span> 密钥？</h2></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">删除后依赖该服务的功能显示"未连接"，不会发起调用：<span data-del-deps></span>。</div></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--danger" type="submit" id="do-del">删除</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    document.querySelectorAll('[data-test-form]').forEach(function (f) {
+      f.addEventListener('submit', function () {
+        var b = document.querySelector('[form="' + f.id + '"]');
+        b.disabled = true; b.querySelector('span').textContent = '测试中…';
+      });
+    });
+    document.querySelectorAll('[data-replace]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var name = b.getAttribute('data-name');
+        document.getElementById('m-key-t').textContent = (b.hasAttribute('data-filled') ? '更换 ' : '填写 ') + name + ' 密钥';
+        document.getElementById('f-key').action = '/settings/keys/' + b.getAttribute('data-replace');
+        document.getElementById('k-val').value = '';
+        document.getElementById('k-err').hidden = true;
+        window.oppoOpen('#m-key');
+      });
+    });
+    document.getElementById('f-key').addEventListener('submit', function (e) {
+      var v = document.getElementById('k-val');
+      if (!v.value.trim()) { e.preventDefault(); document.getElementById('k-err').hidden = false; v.setAttribute('aria-invalid', 'true'); return; }
+      var btn = e.target.querySelector('[type=submit]'); btn.disabled = true; btn.querySelector('span').textContent = '保存并测试中…';
+    });
+    document.querySelectorAll('[data-delete]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelector('[data-del-svc]').textContent = b.getAttribute('data-name');
+        document.querySelector('[data-del-deps]').textContent = b.getAttribute('data-deps');
+        document.getElementById('f-del').action = '/settings/keys/' + b.getAttribute('data-delete') + '/delete';
+        window.oppoOpen('#m-del');
+      });
+    });
+    document.querySelectorAll('input[name=provider]').forEach(function (r) {
+      r.addEventListener('change', function () { document.getElementById('f-llm').submit(); });
+    });
+  })();
+</script>
+{% endblock %}

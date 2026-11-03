@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-4); }
+  .roles .panel__body { font-size: var(--text-xs); color: var(--muted); }
+  .roles .panel__body strong { display: block; margin-bottom: 2px; font-size: var(--text-sm); color: var(--fg); }
+  .is-off td { color: var(--muted); }
+  .role-pick { display: grid; gap: var(--space-2); }
+  .role-pick .choice { align-items: flex-start; }
+  .role-pick .choice small { display: block; font-weight: 400; color: var(--muted); }
+  a.chip { text-decoration: none; }
+  @media (max-width: 767px) { .roles { grid-template-columns: minmax(0, 1fr); } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head enter">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><span>设置</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>账号</span></nav>
+    <h1>账号管理</h1>
+    <p class="page-head__sub">只有操作者能建账号；不开放注册，忘记密码由操作者在这里重置。</p>
+  </div>
+  <div class="page-head__actions">
+    <button class="btn btn--primary" type="button" data-open="#m-create"><svg class="icon"><use href="#ph-plus"/></svg><span>新建账号</span></button>
+  </div>
+</div>
+
+<div class="tabs enter" style="--i:1" role="tablist">
+  <button class="tab" type="button" role="tab" aria-selected="{{ 'true' if tab == 'accounts' else 'false' }}" aria-controls="p-accounts">账号 <span class="count">{{ users|length }}</span></button>
+  <button class="tab" type="button" role="tab" aria-selected="{{ 'true' if tab == 'audit' else 'false' }}" aria-controls="p-audit">审计日志</button>
+</div>
+
+<section id="p-accounts" role="tabpanel" class="enter" style="--i:2"{% if tab != 'accounts' %} hidden{% endif %}>
+  <div class="roles">
+    <div class="panel"><div class="panel__body"><strong>操作者</strong>全部操作，包括设置、拉数据、写决策卡、提交审批</div></div>
+    <div class="panel"><div class="panel__body"><strong>审批者</strong>看全部，审批和留意见；不能编辑内容</div></div>
+    <div class="panel"><div class="panel__body"><strong>只读</strong>只能看机会扫描、决策卡、台账</div></div>
+  </div>
+  <div class="table-wrap">
+    <table class="table" id="t-accounts">
+      <thead>
+        <tr><th>姓名</th><th>账号</th><th>角色</th><th>状态</th><th>最近登录</th><th>创建时间</th><th class="t-num">操作</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr{% if not u.active %} class="is-off"{% endif %} data-user="{{ u.username }}">
+          <td><span class="cell-title">{{ u.name }}</span>{% if u.id == me.id %}<div class="cell-sub">当前登录</div>{% endif %}</td>
+          <td class="mono">{{ u.username }}</td>
+          <td><span class="badge{% if u.role == 'operator' %} badge--accent{% endif %}">{{ roles[u.role] }}</span></td>
+          <td>{% if u.active %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span>{% else %}<span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>已停用</span>{% endif %}</td>
+          <td class="{{ 'num t-nowrap' if u.last_login else 'muted' }}">{{ u.last_login|dt if u.last_login else '从未登录' }}</td>
+          <td class="num t-nowrap muted">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+          <td class="t-num t-nowrap">{% if u.active %}<button class="btn btn--sm" type="button" data-reset="{{ u.id }}" data-who="{{ u.name }}（{{ u.username }}）">重置密码</button>{% if u.id != me.id %} <button class="btn btn--sm btn--danger" type="button" data-disable="{{ u.id }}" data-who="{{ u.name }}（{{ u.username }}）">停用</button>{% endif %}{% else %}<span class="small">已停用</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="p-audit" role="tabpanel"{% if tab != 'audit' %} hidden{% endif %}>
+  <form class="filters" method="get" action="/accounts">
+    <input type="hidden" name="tab" value="audit">
+    <input type="hidden" name="type" value="{{ ftype }}">
+    <span class="filters__label">类型</span>
+    <a class="chip" href="?tab=audit&type=all&user={{ fuser|urlencode }}&month={{ fmonth }}" aria-pressed="{{ 'true' if ftype == 'all' else 'false' }}">全部</a>
+    {% for k in filter_kinds %}<a class="chip" href="?tab=audit&type={{ k }}&user={{ fuser|urlencode }}&month={{ fmonth }}" aria-pressed="{{ 'true' if ftype == k else 'false' }}">{{ kinds[k] }}</a>
+    {% endfor %}
+    <span class="filters__sep"></span>
+    <label class="visually-hidden" for="a-user">账号</label>
+    <select class="select" id="a-user" name="user" style="width:auto" onchange="this.form.submit()"><option value="">全部账号</option>{% for u in users %}<option{% if fuser == u.username %} selected{% endif %}>{{ u.username }}</option>{% endfor %}</select>
+    <label class="visually-hidden" for="a-month">月份</label>
+    <select class="select" id="a-month" name="month" style="width:auto" onchange="this.form.submit()"><option value="">全部月份</option>{% for m in months %}<option{% if fmonth == m %} selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+    <span class="spacer"></span>
+    <span class="small muted">共 {{ audit_total }} 条 · 只记录登录、审批、密钥变更、花钱任务及账号变动</span>
+    <a class="btn btn--sm" href="/audit/export?type={{ ftype }}&user={{ fuser|urlencode }}&month={{ fmonth }}"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></a>
+  </form>
+  <div class="table-wrap">
+    <table class="table" id="t-audit">
+      <thead>
+        <tr><th><button class="th-sort" type="button" aria-sort="descending">时间<svg class="icon"><use href="#ph-caret-down"/></svg></button></th><th>账号</th><th>类型</th><th>内容</th><th>来源地址</th></tr>
+      </thead>
+      <tbody>
+        {% for a in audit %}
+        <tr data-type="{{ a.kind }}"><td class="num t-nowrap" data-sort="{{ a.at.strftime('%Y%m%d%H%M%S') }}">{{ a.at|dt }}</td><td class="mono">{{ a.username }}</td><td><span class="badge{% if a.kind == 'spend' %} badge--accent{% endif %}">{{ a.kind_name }}</span></td><td>{{ a.content }}{% if a.kind == 'spend' %} <a class="tlink small" href="/settings/budget">费用记录</a>{% elif a.kind == 'key' %} <a class="tlink small" href="/settings/keys">密钥与大模型</a>{% endif %}</td><td class="mono">{{ a.ip or '—' }}</td></tr>
+        {% else %}
+        <tr><td colspan="5"><div class="muted" style="padding: var(--space-6); text-align:center;">没有符合条件的记录。换个类型或日期范围试试。</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="pager"><span>每页 50 条 · 第 {{ page }} 页</span><div class="pager__pages">{% for p in range(1, pages + 1) %}<a class="pager__btn" href="?tab=audit&type={{ ftype }}&user={{ fuser|urlencode }}&month={{ fmonth }}&page={{ p }}"{% if p == page %} aria-current="page"{% endif %}>{{ p }}</a>{% endfor %}</div></div>
+</section>
+{% endblock %}
+
+{% block modals %}
+<div class="modal" id="m-create" role="dialog" aria-modal="true" aria-labelledby="m-create-t" aria-hidden="true">
+  <form class="modal__dialog" id="f-create" method="post" action="/accounts" novalidate>
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="m-create-t">新建账号</h2><p class="modal__sub">创建后把账号和初始密码当面告诉本人</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="form-grid">
+        <div class="field"><label class="field__label" for="c-name">姓名<span class="req">*</span></label><input class="input" id="c-name" name="name" required></div>
+        <div class="field"><label class="field__label" for="c-acc">账号<span class="req">*</span></label><input class="input" id="c-acc" name="username" required autocomplete="off"><div class="field__error" id="c-acc-err" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg><span>账号已存在</span></div></div>
+        <fieldset class="field span-2" style="border:0;padding:0;margin:0">
+          <legend class="field__label">角色<span class="req">*</span></legend>
+          <div class="role-pick">
+            <label class="choice"><input type="radio" name="role" value="operator"><span>操作者<small>全部操作，包括设置</small></span></label>
+            <label class="choice"><input type="radio" name="role" value="approver"><span>审批者<small>看全部，审批和留意见，不能编辑</small></span></label>
+            <label class="choice"><input type="radio" name="role" value="readonly" checked><span>只读<small>只能看机会扫描、决策卡、台账</small></span></label>
+          </div>
+        </fieldset>
+        <div class="field"><label class="field__label" for="c-pw">初始密码<span class="req">*</span></label><input class="input" id="c-pw" name="password" type="password" autocomplete="new-password" required></div>
+        <div class="field"><label class="field__label" for="c-pw2">确认密码<span class="req">*</span></label><input class="input" id="c-pw2" name="password2" type="password" autocomplete="new-password" required><div class="field__error" id="c-pw-err" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>两次输入的密码不一致</div></div>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--primary" type="submit"><span>创建账号</span></button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="m-reset" role="dialog" aria-modal="true" aria-labelledby="m-reset-t" aria-hidden="true">
+  <form class="modal__dialog" id="f-reset" method="post" novalidate>
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="m-reset-t">重置密码</h2><p class="modal__sub" data-reset-who></p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="form-grid">
+        <div class="field"><label class="field__label" for="r-pw">新密码<span class="req">*</span></label><input class="input" id="r-pw" name="password" type="password" autocomplete="new-password"></div>
+        <div class="field"><label class="field__label" for="r-pw2">确认新密码<span class="req">*</span></label><input class="input" id="r-pw2" name="password2" type="password" autocomplete="new-password"><div class="field__error" id="r-pw-err" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>两次输入的密码不一致</div></div>
+        <p class="field__hint span-2">重置后此人需用新密码登录。</p>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--primary" type="submit"><span>重置密码</span></button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="m-disable" role="dialog" aria-modal="true" aria-labelledby="m-disable-t" aria-hidden="true">
+  <form class="modal__dialog" id="f-disable" method="post">
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="m-disable-t">停用 <span data-disable-who></span>？</h2></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">该账号已登录的会话会在下一次操作时失效并回到登录页；审批记录和审计日志保留。</div></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--danger" type="submit" id="do-disable">停用</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var existing = {{ users|map(attribute='username')|list|tojson }};
+    document.querySelectorAll('[data-reset]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelector('[data-reset-who]').textContent = b.getAttribute('data-who');
+        document.getElementById('f-reset').action = '/accounts/' + b.getAttribute('data-reset') + '/reset';
+        window.oppoOpen('#m-reset');
+      });
+    });
+    document.querySelectorAll('[data-disable]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelector('[data-disable-who]').textContent = b.getAttribute('data-who');
+        document.getElementById('f-disable').action = '/accounts/' + b.getAttribute('data-disable') + '/disable';
+        window.oppoOpen('#m-disable');
+      });
+    });
+    function busy(form) { var b = form.querySelector('[type=submit]'); b.disabled = true; b.classList.add('is-loading'); }
+    var acc = document.getElementById('c-acc');
+    function checkAcc() {
+      var dup = existing.indexOf(acc.value.trim()) >= 0;
+      acc.setAttribute('aria-invalid', String(dup));
+      var err = document.getElementById('c-acc-err');
+      err.querySelector('span').textContent = '账号 ' + acc.value.trim() + ' 已存在';
+      err.hidden = !dup;
+      return !dup;
+    }
+    acc.addEventListener('blur', checkAcc);
+    function pwPair(a, b, errId) {
+      var bad = b.value && a.value !== b.value;
+      b.setAttribute('aria-invalid', String(!!bad));
+      document.getElementById(errId).hidden = !bad;
+      return !bad;
+    }
+    var pw = document.getElementById('c-pw'), pw2 = document.getElementById('c-pw2');
+    pw2.addEventListener('blur', function () { pwPair(pw, pw2, 'c-pw-err'); });
+    document.getElementById('f-create').addEventListener('submit', function (e) {
+      var ok = true;
+      [document.getElementById('c-name'), acc, pw, pw2].forEach(function (el) {
+        var empty = !el.value.trim();
+        if (empty) { el.setAttribute('aria-invalid', 'true'); ok = false; }
+      });
+      ok = checkAcc() && pwPair(pw, pw2, 'c-pw-err') && ok;
+      if (!ok) { e.preventDefault(); return; }
+      busy(e.target);
+    });
+    var rpw = document.getElementById('r-pw'), rpw2 = document.getElementById('r-pw2');
+    document.getElementById('f-reset').addEventListener('submit', function (e) {
+      if (!rpw.value) { rpw.setAttribute('aria-invalid', 'true'); e.preventDefault(); return; }
+      if (!pwPair(rpw, rpw2, 'r-pw-err')) { e.preventDefault(); return; }
+      busy(e.target);
+    });
+    document.getElementById('f-disable').addEventListener('submit', function (e) { busy(e.target); });
+  })();
+</script>
+{% endblock %}

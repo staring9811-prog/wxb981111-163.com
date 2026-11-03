@@ -1,4 +1,211 @@
 {% extends "base.html" %}
+{% block head %}
+<style>
+  .wb-main > * + * { margin-top: var(--space-6); }
+  .wb-side > * + * { margin-top: var(--space-6); }
+  .wb-big { display: flex; align-items: baseline; gap: var(--space-2); }
+  .wb-big .hero-figure { font-size: var(--text-4xl); }
+  .wb-split { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-4); }
+  .wb-split dt { font-size: var(--text-xs); color: var(--muted); }
+  .wb-split dd { margin: 0; font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .spend { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  .spend__row .row { justify-content: space-between; font-size: var(--text-sm); }
+  .spend__row .meter { margin-top: var(--space-2); }
+  .links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+  .links .card-link .row { font-weight: 600; }
+  .links .card-link p { margin-top: var(--space-1); font-size: var(--text-xs); color: var(--muted); }
+  .star { color: var(--warn); font-weight: 600; }
+  .wb-none { padding: var(--space-4) var(--space-5); font-size: var(--text-sm); color: var(--muted); }
+  @media (max-width: 1279px) { .links { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 767px) { .links, .wb-split { grid-template-columns: minmax(0, 1fr); } }
+</style>
+{% endblock %}
 {% block content %}
-<div class="page-head enter"><div><h1>工作台</h1><p class="page-head__sub">{{ today }}</p></div></div>
+{% set role = user.role %}
+<div class="page-head enter">
+  <div>
+    <h1>工作台</h1>
+    <p class="page-head__sub">{{ today }} · 本月处理上月（{{ data_month }}）数据</p>
+  </div>
+</div>
+
+{% set v = validity %}
+{% if v.kind == 'fail' %}
+<div class="banner banner--warn enter" style="--i:1" role="alert" data-validity="fail">
+  <svg class="icon"><use href="#ph-warning"/></svg>
+  <div class="banner__body">
+    <div class="banner__title">市场评分本月未通过有效性检验</div>
+    <div class="small">{{ v.msg or '回测显示 D 档之后变大比例超过 30%，或把握分档不再逐档上升。' }}依据 {{ v.month }} 数据的重算（{{ v.at|dt }}），在通过前不要据此立项。</div>
+  </div>
+  {% if role != 'readonly' %}<div class="banner__actions"><a class="btn btn--sm" href="/models">查看回测</a></div>{% endif %}
+</div>
+{% elif v.kind == 'pass' %}
+<div class="banner banner--ok enter" style="--i:1" role="status" data-validity="pass">
+  <svg class="icon"><use href="#ph-seal-check"/></svg>
+  <div class="banner__body">
+    <div class="banner__title">市场评分本月通过有效性检验</div>
+    <div class="small">{{ v.msg }}{% if v.msg %} {% endif %}依据 {{ v.month }} 数据的重算（{{ v.at|dt }}）。</div>
+  </div>
+  {% if role != 'readonly' %}<div class="banner__actions"><a class="btn btn--sm" href="/models">查看回测</a></div>{% endif %}
+</div>
+{% elif v.kind == 'stale' %}
+<div class="banner banner--warn enter" style="--i:1" role="status" data-validity="stale">
+  <svg class="icon"><use href="#ph-hourglass"/></svg>
+  <div class="banner__body">
+    <div class="banner__title">本月尚未重算，以下沿用 {{ v.month }} 结论</div>
+    <div class="small">{{ v.month }} 的有效性检验：通过。{{ v.msg }}</div>
+  </div>
+  {% if role != 'readonly' %}<div class="banner__actions"><a class="btn btn--sm" href="/models">查看回测</a></div>{% endif %}
+</div>
+{% else %}
+<div class="banner enter" style="--i:1" role="status" data-validity="none">
+  <svg class="icon"><use href="#ph-info"/></svg>
+  <div class="banner__body"><div class="banner__title">还没有市场评分</div><div class="small">数据并入后在模型与回测页做第一次重算，通过有效性检验后再看机会。</div></div>
+</div>
+{% endif %}
+
+<div class="grid-main-side section"{% if role == 'readonly' %} style="grid-template-columns: minmax(0, 1fr)"{% endif %}>
+  <div class="wb-main">
+    {% if data_rows is defined %}
+    <section class="panel enter" style="--i:2" aria-labelledby="t-data" data-block="data">
+      <div class="panel__head">
+        <h2 class="panel__title" id="t-data">本月数据状态</h2>
+        <span class="section__note">数据月份 {{ data_month }} · 由 wen 手动发起，不做定时任务</span>
+      </div>
+      {% if no_data %}
+      <div class="empty">
+        <svg class="icon"><use href="#ph-package"/></svg>
+        <div class="empty__desc">还没有任何月份的数据。先在 Amazon 月度数据页拉取第一批。</div>
+        <a class="btn btn--primary btn--sm" href="/data/amazon">去拉取</a>
+      </div>
+      {% else %}
+      <div class="table-wrap table-wrap--flush">
+        <table class="table">
+          <thead>
+            <tr><th>渠道</th><th>月份</th><th>状态</th><th>核对说明</th><th>更新时间</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for r in data_rows %}
+            <tr data-href="{{ r.href }}" data-channel="{{ r.channel }}">
+              <td><span class="cell-title">{{ r.name }}</span></td>
+              <td class="t-nowrap num">{{ r.month }}</td>
+              <td><span class="badge badge--{{ r.tone }}"><svg class="icon"><use href="#ph-{{ r.icon }}"/></svg>{{ r.label }}</span></td>
+              <td><div>{{ r.note or '—' }}</div>{% if r.last_merged %}<div class="cell-sub">上一个已并入月份：{{ r.last_merged|replace('*', '') }}{% if '*' in r.last_merged %}<span class="star">*</span>（数据来源切换）{% endif %}</div>{% endif %}{% if r.channel == 'wayfair' %}<div class="cell-sub">VP 口径不同，只在渠道内比较</div>{% endif %}</td>
+              <td class="t-nowrap muted small">{{ r.at.strftime('%m-%d %H:%M') if r.at else '—' }}</td>
+              <td class="t-nowrap">{% if r.action %}<a class="btn btn--sm" href="{{ r.href }}">去处理</a>{% else %}<a class="tlink small" href="{{ r.href }}">查看</a>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <div class="grid-2"{% if tags is not defined %} style="grid-template-columns: minmax(0, 1fr)"{% endif %}>
+      {% if tags is defined %}
+      <section class="panel enter" style="--i:3" aria-labelledby="t-tags" data-block="tags">
+        <div class="panel__head">
+          <h2 class="panel__title" id="t-tags">待确认标签</h2>
+          <a class="btn btn--sm" href="/tagging">去确认</a>
+        </div>
+        {% if tags.total %}
+        <div class="panel__body">
+          <div class="wb-big"><span class="hero-figure num" data-tag-total>{{ tags.total|num }}</span><span class="muted">条 · 元素 {{ tags.elem|num }}、低置信度 {{ tags.low|num }}</span></div>
+          <dl class="wb-split">
+            {% for name, n in tags.by_channel %}<div><dt>{{ name }}</dt><dd>{{ n|num }}</dd></div>{% endfor %}
+          </dl>
+        </div>
+        <div class="panel__foot">{% if tags.groups %}同主图分为 {{ tags.groups|num }} 组，一组确认一次{% else %}逐条确认{% endif %}</div>
+        {% else %}
+        <div class="wb-none">本月没有待确认标签。</div>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <section class="panel enter" style="--i:3" aria-labelledby="t-recon" data-block="recon">
+        <div class="panel__head">
+          <h2 class="panel__title" id="t-recon">本月到期对账</h2>
+          <a class="tlink small" href="/ledger">预测台账</a>
+        </div>
+        {% if due %}
+        <ul class="list">
+          {% for d in due %}
+          <li class="list__item">
+            <svg class="icon list__icon list__icon--{{ d.tone }}"><use href="#ph-{{ d.icon }}"/></svg>
+            <div class="list__body">
+              <a class="list__title tlink" href="/ledger">{{ d.title }}</a>
+              <div class="list__desc">{{ d.desc }}</div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="wb-none">本月没有到期对账的台账条目。</div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+
+  {% if role != 'readonly' %}
+  <aside class="wb-side">
+    <section class="panel enter" style="--i:2" aria-labelledby="t-appr" data-block="approvals">
+      <div class="panel__head">
+        <h2 class="panel__title" id="t-appr">{{ '待我审批' if role == 'approver' else '等待审批' }} <span class="badge badge--warn num">{{ approvals|length }}</span></h2>
+        <a class="tlink small" href="/approvals">审批</a>
+      </div>
+      {% if approvals %}
+      <ul class="list">
+        {% for a in approvals %}
+        <li class="list__item">
+          <svg class="icon list__icon"><use href="#ph-{{ a.icon }}"/></svg>
+          <div class="list__body">
+            <a class="list__title tlink" href="{{ a.href }}">{{ a.title }}</a>
+            <div class="list__desc">{{ a.desc }}</div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="wb-none">{{ '没有待你审批的事项。' if role == 'approver' else '没有等待审批的提交。' }}</div>
+      {% endif %}
+    </section>
+
+    {% if spend is defined %}
+    <section class="panel enter" style="--i:3" aria-labelledby="t-spend" data-block="spend">
+      <div class="panel__head">
+        <h2 class="panel__title" id="t-spend">本月花费 / 上限</h2>
+        <a class="tlink small" href="/settings/budget">预算与费用</a>
+      </div>
+      <div class="panel__body spend">
+        {% for u in spend %}
+        <div class="spend__row" data-svc="{{ u.service }}">
+          {% set amt = (u.spent_qty|num ~ (' / ' ~ u.cap|num if u.cap is not none else '') ~ ' 次') if u.unit == 'calls' else ('$' ~ u.spent_usd|num(2) ~ (' / $' ~ u.cap|num(2) if u.cap is not none else '')) %}
+          <div class="row"><span>{{ u.name }}</span><span class="num">{{ amt }}{% if u.pct is not none %}<span class="etag{% if u.status in ('warn', 'cap') %} etag--snap{% endif %}">{{ u.pct }}%</span>{% endif %}</span></div>
+          {% if u.pct is not none %}<div class="meter{% if u.status == 'cap' %} meter--danger{% elif u.status == 'warn' %} meter--warn{% endif %}" role="meter" aria-valuenow="{{ u.pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ u.name }}已用 {{ u.pct }}%"><i style="width:{{ [u.pct, 100]|min }}%"></i></div>{% endif %}
+          {% if u.status == 'nc' %}<div class="field__hint">未连接 · <a href="/settings/keys">去填写密钥</a></div>
+          {% elif u.status == 'cap' %}<div class="field__hint" style="color: var(--danger)">已达上限，已停止新调用</div>
+          {% elif u.status == 'warn' %}<div class="field__hint">接近上限：已用超过 80%，达到上限后自动停止新调用</div>
+          {% elif u.status == 'nocap' %}<div class="field__hint">未设上限 · <a href="/settings/budget">去设置</a></div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="panel__foot">统计区间 {{ today[:8] }}01 至今</div>
+    </section>
+    {% endif %}
+  </aside>
+  {% endif %}
+</div>
+
+<section class="section enter" style="--i:4" aria-labelledby="t-links">
+  <div class="section__head"><h2 class="section__title" id="t-links">常用入口</h2></div>
+  <div class="links">
+    <a class="card-link" href="/scan"><div class="row"><svg class="icon"><use href="#ph-target"/></svg>机会扫描</div><p>按尺寸 × 拆装 × 形态分框，四个渠道分开看</p></a>
+    <a class="card-link" href="/cards"><div class="row"><svg class="icon"><use href="#ph-cards"/></svg>决策卡</div><p>{{ links.cards }}</p></a>
+    <a class="card-link" href="/ledger"><div class="row"><svg class="icon"><use href="#ph-book-open-text"/></svg>预测台账</div><p>{{ links.ledger }}</p></a>
+    <a class="card-link" href="/strategies"><div class="row"><svg class="icon"><use href="#ph-stack"/></svg>策略库</div><p>{{ links.strategies }}</p></a>
+  </div>
+</section>
+
+<p class="page-foot">数据每月由 wen 手动发起更新，系统不做定时任务。</p>
 {% endblock %}
