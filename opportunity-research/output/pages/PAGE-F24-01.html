@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F24-01">
+  <title>利润测算 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .linkcard { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    .linkcard__body { flex: 1; min-width: 0; }
+    .linkcard__title { font-weight: 600; }
+    .stepnav { display: flex; gap: var(--space-1); margin-bottom: var(--space-5); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .stepnav .tab .n { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1px solid var(--border-control); border-radius: 50%; font-size: var(--text-2xs); font-variant-numeric: tabular-nums; }
+    .stepnav .tab[aria-selected="true"] .n { border-color: var(--fg); color: var(--fg); }
+    .cellv { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.3; }
+    .cellv .big { font-weight: 600; color: var(--fg); }
+    .cellv .sm { font-size: var(--text-2xs); color: var(--muted); }
+    .neg { color: var(--danger); }
+    .gray { color: var(--muted); }
+    .table .input { min-height: 28px; padding: 2px var(--space-2); }
+    .w-num { width: 84px; }
+    .w-sm { width: 64px; }
+    .wf { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 0; font-size: var(--text-sm); }
+    .wf > * { padding: var(--space-1) 0; border-bottom: 1px solid var(--border-soft); }
+    .wf .tot { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--fg-2); }
+    .param-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4) var(--space-5); }
+    .saved { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--muted); }
+    @media (max-width: 1279px) { .param-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+<!--NAV-->
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <div class="crumbs"><span>工具</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>利润测算</span></div>
+            <h1>利润测算 · 树脂一体30寸_v3</h1>
+            <p class="page-head__sub">报价表 → 确认 → Amazon（FBM / CG / FBA）与 Lowe's / Home Depot / Wayfair 利润。方案存在系统上，局域网内有权限的人看到同一份。</p>
+          </div>
+          <div class="page-head__actions">
+            <span class="saved"><svg class="icon"><use href="#ph-check-circle"/></svg>已保存到系统 · 11-03 14:20</span>
+            <button class="btn" type="button" data-toast="已导出：利润测算_20261103_1420.xlsx"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></button>
+            <button class="btn" type="button" data-toast="已导出：利润测算方案_20261103_1420.json"><svg class="icon"><use href="#ph-download-simple"/></svg><span>方案 .json</span></button>
+          </div>
+        </div>
+
+        <div class="linkcard enter" style="--i:1">
+          <svg class="icon icon--lg"><use href="#ph-link-simple"/></svg>
+          <div class="linkcard__body">
+            <div class="linkcard__title">关联决策卡：<a href="PAGE-F21-02.html">树脂一体 · 30″ 拆装 · 落地式</a> <span class="badge">草稿 v3</span></div>
+            <div class="small muted">已从卡片带入：尺寸 30″（包装 84 × 53 × 92 cm）、拟定售价 $245（卡片价位 $230–260）。保存后卡片"钱"一节显示各渠道单件利润、利润率、保本价，并随方案更新。</div>
+          </div>
+          <button class="btn btn--primary" type="button" data-open="#dlgWriteback"><svg class="icon"><use href="#ph-arrow-up-right"/></svg><span>保存并回写决策卡</span></button>
+        </div>
+
+        <div class="section enter" style="--i:2">
+          <div class="stepnav" role="tablist" aria-label="利润测算步骤">
+            <button class="tab" role="tab" aria-selected="false" aria-controls="p1" type="button"><span class="n">1</span>导入报价表</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="p2" type="button"><span class="n">2</span>确认尺寸与价格</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="p3" type="button"><span class="n">3</span>参数设置</button>
+            <button class="tab" role="tab" aria-selected="true" aria-controls="p4" type="button"><span class="n">4</span>利润测算表</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="p5" type="button"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史库 <span class="count">6</span></button>
+          </div>
+
+          <!-- 1 导入报价表 -->
+          <section id="p1" role="tabpanel" hidden>
+            <div class="grid-main-side">
+              <div class="stack-lg">
+                <label class="dropzone">
+                  <svg class="icon"><use href="#ph-upload-simple"/></svg>
+                  <span><span class="strong">把报价表拖到这里，或点击选择</span><br><span class="small muted">.xlsx / .xls / .csv；自动识别品名、尺寸、毛重、出厂价、售价等列。品名为空的行当作上一个产品的第 2、3… 个包裹。</span></span>
+                  <input type="file" class="visually-hidden" accept=".xlsx,.xls,.csv">
+                </label>
+                <div class="row">
+                  <button class="btn btn--sm" type="button" data-toast="已新建产品，到第 2 步填写"><svg class="icon"><use href="#ph-plus"/></svg><span>手动新建产品</span></button>
+                  <button class="btn btn--sm" type="button" data-toast="已打开方案：树脂一体30寸_v2.json"><svg class="icon"><use href="#ph-folder-open"/></svg><span>打开已保存的方案 (.json)</span></button>
+                </div>
+                <section class="panel">
+                  <div class="panel__head"><h2 class="panel__title">确认列对应关系 · 嘉宏报价_20261101.xlsx</h2><span class="section__note">识别不对的列手动选择；没有的字段选"（无）"</span></div>
+                  <div class="panel__body">
+                    <div class="param-grid">
+                      <label class="field"><span class="field__label">工作表</span><select class="select"><option>2026Q4 报价</option></select></label>
+                      <label class="field"><span class="field__label">表头所在行</span><input class="input input--num" value="3"></label>
+                      <label class="field"><span class="field__label">尺寸单位</span><select class="select"><option selected>cm</option><option>inch</option></select></label>
+                      <label class="field"><span class="field__label">重量单位</span><select class="select"><option selected>kg</option><option>lb</option></select></label>
+                      <label class="field"><span class="field__label">出厂价币种</span><select class="select"><option selected>RMB 含税</option><option>RMB 未税</option><option>USD FOB（不含税）</option></select></label>
+                      <label class="field"><span class="field__label">默认品类</span><select class="select"><option selected>家具</option><option>其他</option></select></label>
+                      <label class="field span-2"><span class="field__label">导入方式</span><span class="choice-group"><label class="choice"><input type="radio" name="imp" checked>替换当前产品</label><label class="choice"><input type="radio" name="imp">追加到当前产品</label></span></label>
+                    </div>
+                  </div>
+                  <div class="table-wrap table-wrap--flush">
+                    <table class="table">
+                      <thead><tr><th>字段</th><th>对应列</th><th>示例值</th></tr></thead>
+                      <tbody>
+                        <tr><td>品名 / 型号</td><td><select class="select"><option>B 列 · 型号</option></select></td><td>RV30-ON</td></tr>
+                        <tr><td>材质 / 描述</td><td><select class="select"><option>C 列 · 描述</option></select></td><td>树脂一体盆台，原木色，双门缓关</td></tr>
+                        <tr><td>尺寸（长 × 宽 × 高）</td><td><select class="select"><option>F 列 · 外箱尺寸</option></select></td><td>84*53*92</td></tr>
+                        <tr><td>毛重</td><td><select class="select"><option>G 列 · 毛重</option></select></td><td>38</td></tr>
+                        <tr><td>出厂价</td><td><select class="select"><option>H 列 · 含税价</option></select></td><td>760</td></tr>
+                        <tr><td>售价（List Price $）</td><td><select class="select"><option>（无）</option></select></td><td><span class="etag etag--nodata">无数据</span></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="panel__foot row"><span>识别到 4 个产品、5 个包裹</span><span class="spacer"></span><button class="btn btn--sm" type="button" data-toast="已导入 4 个产品">导入并确认<svg class="icon"><use href="#ph-arrow-right"/></svg></button></div>
+                </section>
+              </div>
+              <aside class="panel">
+                <div class="panel__head"><h2 class="panel__title">当前方案</h2></div>
+                <div class="panel__body">
+                  <dl class="kv">
+                    <dt>方案</dt><dd>树脂一体30寸_v3</dd>
+                    <dt>产品</dt><dd class="num">4 个产品、5 个包裹</dd>
+                    <dt>保存位置</dt><dd>系统（wen 电脑），局域网共享</dd>
+                    <dt>最后保存</dt><dd class="num">2026-11-03 14:20 · wen</dd>
+                  </dl>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <!-- 2 确认尺寸与价格 -->
+          <section id="p2" role="tabpanel" hidden>
+            <p class="small muted" style="margin-bottom:var(--space-3)">灰色是默认值：上架价 = Amazon 售价 × 系数，促销价 = 上架价 × (1 − 默认折扣)；只填促销价时，上架价按折扣反推。采购成本按币种换算：RMB 含税价 ÷ (1 + 税点) ÷ 汇率。</p>
+            <div class="filters">
+              <span class="filters__label">批量设置</span>
+              <select class="select" style="width:120px" aria-label="品类"><option>家具</option><option>其他</option></select>
+              <button class="btn btn--sm" type="button" data-toast="已把品类「家具」应用到全部 4 个产品">品类应用到全部</button>
+              <span class="filters__sep"></span>
+              <span class="seg" role="group" aria-label="FBM 旺季"><button class="seg__opt" type="button" aria-pressed="true">非旺季</button><button class="seg__opt" type="button" aria-pressed="false">旺季</button></span>
+              <button class="btn btn--sm" type="button" data-toast="已把 FBM 非旺季应用到全部">FBM 旺季应用到全部</button>
+              <span class="spacer"></span>
+              <button class="btn btn--sm" type="button" data-toast="已新增产品"><svg class="icon"><use href="#ph-plus"/></svg><span>新增产品</span></button>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>品名</th><th>材质 / 描述</th><th>包裹</th><th class="t-num">长 cm</th><th class="t-num">宽 cm</th><th class="t-num">高 cm</th><th class="t-num">毛重 kg</th><th class="t-num">出厂价 ¥</th><th class="t-num">采购成本 $</th><th class="t-num">Amazon 售价 $</th><th class="t-num">Wayfair 促销价 $</th><th>品类</th></tr></thead>
+                <tbody>
+                  <tr><td class="cell-title">RV30-ON</td><td>树脂一体，原木，双门缓关</td><td>1/1</td><td class="t-num"><input class="input input--num w-sm" value="84"></td><td class="t-num"><input class="input input--num w-sm" value="53"></td><td class="t-num"><input class="input input--num w-sm" value="92"></td><td class="t-num"><input class="input input--num w-sm" value="38"></td><td class="t-num"><input class="input input--num w-num" value="760"></td><td class="t-num">94.72</td><td class="t-num"><input class="input input--num w-num" value="245"><span class="etag">卡片带入</span></td><td class="t-num gray">253.80</td><td>家具</td></tr>
+                  <tr><td class="cell-title">RV30-WH</td><td>树脂一体，白，双门缓关</td><td>1/1</td><td class="t-num"><input class="input input--num w-sm" value="84"></td><td class="t-num"><input class="input input--num w-sm" value="53"></td><td class="t-num"><input class="input input--num w-sm" value="92"></td><td class="t-num"><input class="input input--num w-sm" value="38"></td><td class="t-num"><input class="input input--num w-num" value="760"></td><td class="t-num">94.72</td><td class="t-num"><input class="input input--num w-num" value="245"><span class="etag">卡片带入</span></td><td class="t-num gray">253.80</td><td>家具</td></tr>
+                  <tr><td class="cell-title" rowspan="2">RV30-2P</td><td rowspan="2">树脂一体，柜体与盆台分包</td><td>1/2</td><td class="t-num"><input class="input input--num w-sm" value="84"></td><td class="t-num"><input class="input input--num w-sm" value="52"></td><td class="t-num"><input class="input input--num w-sm" value="80"></td><td class="t-num"><input class="input input--num w-sm" value="30"></td><td class="t-num" rowspan="2"><input class="input input--num w-num" value="820"></td><td class="t-num" rowspan="2">102.20</td><td class="t-num" rowspan="2"><input class="input input--num w-num" value="259"></td><td class="t-num gray" rowspan="2">268.31</td><td rowspan="2">家具</td></tr>
+                  <tr><td>2/2</td><td class="t-num"><input class="input input--num w-sm" value="82"></td><td class="t-num"><input class="input input--num w-sm" value="52"></td><td class="t-num"><input class="input input--num w-sm" value="22"></td><td class="t-num"><input class="input input--num w-sm" value="14"></td></tr>
+                  <tr><td class="cell-title">RV24-ON</td><td>树脂一体，原木，24″</td><td>1/1</td><td class="t-num"><input class="input input--num w-sm" value="68"></td><td class="t-num"><input class="input input--num w-sm" value="50"></td><td class="t-num"><input class="input input--num w-sm" value="92"></td><td class="t-num"><input class="input input--num w-sm" value="32"></td><td class="t-num"><input class="input input--num w-num" value="640"></td><td class="t-num">79.77</td><td class="t-num"><input class="input input--num w-num" value="199"></td><td class="t-num gray">206.16</td><td>家具</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="row" style="margin-top:var(--space-3)"><span class="small muted">售价 $245 来自决策卡拟定售价，可在这里改。</span><span class="spacer"></span><button class="btn btn--sm" type="button" data-toast="已生成利润测算表">生成利润测算表<svg class="icon"><use href="#ph-arrow-right"/></svg></button></div>
+          </section>
+
+          <!-- 3 参数设置 -->
+          <section id="p3" role="tabpanel" hidden>
+            <div class="row" style="margin-bottom:var(--space-4)"><span class="small muted">所有可变变量都在这里，改完立即作用于利润测算表，并随方案保存在系统上。百分比按"%"填写。</span><span class="spacer"></span><button class="btn btn--sm" type="button" data-toast="已读取运费表：尾程 150 档、CG 12 档、异常附加费 8 条"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>从 Excel 导入运费表</span></button><button class="btn btn--sm btn--danger" type="button" data-toast="再点一次确认恢复默认参数">恢复默认参数</button></div>
+            <div class="stack-lg">
+              <section class="panel">
+                <div class="panel__head"><h2 class="panel__title">基础变量</h2></div>
+                <div class="panel__body"><div class="param-grid">
+                  <label class="field"><span class="field__label">汇率 RMB/USD</span><input class="input input--num" value="7.10"></label>
+                  <label class="field"><span class="field__label">税点 %（RMB 含税）</span><input class="input input--num" value="13"></label>
+                  <label class="field"><span class="field__label">汇损 %</span><input class="input input--num" value="1"></label>
+                  <label class="field"><span class="field__label">推广 %</span><input class="input input--num" value="6"></label>
+                  <label class="field"><span class="field__label">其他 %（退货等）</span><input class="input input--num" value="3"></label>
+                  <label class="field"><span class="field__label">目标利润率 %</span><input class="input input--num" value="15"><span class="field__hint">反推目标促销价</span></label>
+                  <label class="field"><span class="field__label">尾程燃油附加费 %</span><input class="input input--num" value="16"></label>
+                  <label class="field"><span class="field__label">FBM 体积重除数</span><input class="input input--num" value="250"></label>
+                </div></div>
+              </section>
+              <div class="grid-2">
+                <section class="panel">
+                  <div class="panel__head"><h2 class="panel__title">平台佣金</h2><span class="section__note">家具：阈值以下低档，超出部分高档</span></div>
+                  <div class="panel__body"><div class="form-grid">
+                    <label class="field"><span class="field__label">家具佣金阈值 $</span><input class="input input--num" value="200"></label>
+                    <label class="field"><span class="field__label">家具 ≤ 阈值 %</span><input class="input input--num" value="15"></label>
+                    <label class="field"><span class="field__label">家具超出部分 %</span><input class="input input--num" value="10"></label>
+                    <label class="field"><span class="field__label">其他品类 %</span><input class="input input--num" value="15"></label>
+                  </div></div>
+                </section>
+                <section class="panel">
+                  <div class="panel__head"><h2 class="panel__title">海运方案（整柜）</h2><button class="btn btn--sm" type="button" data-toast="已新增海运方案"><svg class="icon"><use href="#ph-plus"/></svg><span>新增</span></button></div>
+                  <div class="table-wrap table-wrap--flush"><table class="table">
+                    <thead><tr><th>方案名称</th><th class="t-num">整柜价 RMB</th><th class="t-num">计算体积 CBM</th><th class="t-num">$/m³</th></tr></thead>
+                    <tbody>
+                      <tr><td>FOB整柜·近三个月</td><td class="t-num">22,000</td><td class="t-num">65</td><td class="t-num">47.67</td></tr>
+                      <tr><td>FOB整柜·近六个月</td><td class="t-num">19,500</td><td class="t-num">65</td><td class="t-num">42.25</td></tr>
+                    </tbody>
+                  </table></div>
+                </section>
+              </div>
+              <section class="panel">
+                <div class="panel__head"><h2 class="panel__title">平台参数（Lowe's / Home Depot / Wayfair）</h2><span class="section__note">结算价 = 前台价 ÷ 加价倍率；利润 = 结算价 − 采购成本 − 海运费 − 物流费 − 平台订单费 − 结算价 × 比例费</span></div>
+                <div class="table-wrap table-wrap--flush"><table class="table">
+                  <thead><tr><th>平台</th><th>发货方</th><th class="t-num">加价倍率</th><th class="t-num">上架价系数（× Amazon 售价）</th><th class="t-num">默认促销折扣 %</th><th class="t-num">平台订单费 $/单</th><th class="t-num">比例费 %</th></tr></thead>
+                  <tbody>
+                    <tr><td>Lowe's</td><td><select class="select"><option selected>我们发货（尾程 + 燃油）</option><option>平台发货（只付订单处理费）</option><option>平台仓（无尾程费用）</option></select></td><td class="t-num"><input class="input input--num w-sm" value="1.35"></td><td class="t-num"><input class="input input--num w-sm" value="1.15"></td><td class="t-num"><input class="input input--num w-sm" value="10"></td><td class="t-num"><input class="input input--num w-sm" value="0"></td><td class="t-num"><input class="input input--num w-sm" value="3"></td></tr>
+                    <tr><td>Home Depot</td><td><select class="select"><option selected>我们发货（尾程 + 燃油）</option><option>平台发货（只付订单处理费）</option><option>平台仓（无尾程费用）</option></select></td><td class="t-num"><input class="input input--num w-sm" value="1.35"></td><td class="t-num"><input class="input input--num w-sm" value="1.15"></td><td class="t-num"><input class="input input--num w-sm" value="10"></td><td class="t-num"><input class="input input--num w-sm" value="1.80"></td><td class="t-num"><input class="input input--num w-sm" value="3"></td></tr>
+                    <tr><td>Wayfair</td><td><select class="select"><option selected>我们发货（尾程 + 燃油）</option><option>平台发货（只付订单处理费）</option><option>平台仓（无尾程费用）</option></select></td><td class="t-num"><input class="input input--num w-sm" value="1.40"></td><td class="t-num"><input class="input input--num w-sm" value="1.15"></td><td class="t-num"><input class="input input--num w-sm" value="10"></td><td class="t-num"><input class="input input--num w-sm" value="0"></td><td class="t-num"><input class="input input--num w-sm" value="3"></td></tr>
+                  </tbody>
+                </table></div>
+              </section>
+              <div class="grid-2">
+                <details class="panel"><summary class="panel__head"><span class="panel__title">FBA 配送费 · 9 档</span><span class="section__note">按顺序匹配第一个满足条件的档位</span></summary>
+                  <div class="table-wrap table-wrap--flush"><table class="table">
+                    <thead><tr><th>档位</th><th class="t-num">最长边 ≤</th><th class="t-num">重量 ≤ lb</th><th class="t-num">非旺季基础费 $</th><th class="t-num">续重 $/lb</th></tr></thead>
+                    <tbody>
+                      <tr><td>大号大件</td><td class="t-num">59</td><td class="t-num">50</td><td class="t-num">9.61</td><td class="t-num">0.38</td></tr>
+                      <tr><td>超大件 0–50 lb</td><td class="t-num">无限制</td><td class="t-num">50</td><td class="t-num">26.33</td><td class="t-num">0.38</td></tr>
+                      <tr><td>超大件 50–70 lb</td><td class="t-num">无限制</td><td class="t-num">70</td><td class="t-num">40.12</td><td class="t-num">0.75</td></tr>
+                      <tr><td>超大件 70–150 lb</td><td class="t-num">无限制</td><td class="t-num">150</td><td class="t-num">54.81</td><td class="t-num">0.75</td></tr>
+                      <tr><td>超大件 150 lb+</td><td class="t-num">无限制</td><td class="t-num">无限制</td><td class="t-num">194.95</td><td class="t-num">0.83</td></tr>
+                    </tbody>
+                  </table></div>
+                </details>
+                <details class="panel"><summary class="panel__head"><span class="panel__title">FBM / CG 尾程费率表</span><span class="section__note">尾程 150 档 · CG 12 档 · 异常附加费 8 条</span></summary>
+                  <div class="panel__body small muted">FBM 尾程合计 = (尾程派送 + 订单处理 + 异常附加 + 住宅附加) × (1 + 燃油附加费 %)。所有地址默认为住宅地址。</div>
+                </details>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4 利润测算表 -->
+          <section id="p4" role="tabpanel">
+            <div class="filters">
+              <span class="filters__label">海运方案</span>
+              <select class="select" style="width:200px" aria-label="海运方案"><option selected>FOB整柜·近三个月</option><option>FOB整柜·近六个月</option></select>
+              <span class="spacer"></span>
+              <button class="btn btn--sm" type="button" data-toast="已保存到历史库：树脂一体30寸_v4"><svg class="icon"><use href="#ph-archive"/></svg><span>保存到历史库</span></button>
+            </div>
+
+            <section class="panel">
+              <div class="panel__head"><h2 class="panel__title">全渠道对比</h2><span class="section__note">平台以促销价为主：大字是促销利润与利润率，小字是按上架价算的利润率。促销价可直接改</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>产品</th><th class="t-num">Amazon 售价 $</th><th class="t-num">FBM</th><th class="t-num">CG</th><th class="t-num">FBA</th><th class="t-num">Lowe's 促销价 $</th><th class="t-num">Lowe's</th><th class="t-num">Home Depot</th><th class="t-num">Wayfair</th></tr></thead>
+                  <tbody>
+                    <tr><td><div class="cell-title">RV30-ON</div><div class="cell-sub">30″ · 原木 · 单包</div></td><td class="t-num">245.00</td>
+                      <td class="t-num"><div class="cellv"><span class="big">$23.15</span><span class="sm">9.4%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$26.45</span><span class="sm">10.8%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$13.35</span><span class="sm">5.4%</span></div></td>
+                      <td class="t-num"><input class="input input--num w-num" value="253.80" aria-label="Lowe's 促销价"></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$19.60 · 10.4%</span><span class="sm">上架 14.9%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$17.80 · 9.5%</span><span class="sm">上架 14.0%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$11.20 · 6.2%</span><span class="sm">上架 10.9%</span></div></td></tr>
+                    <tr><td><div class="cell-title">RV30-WH</div><div class="cell-sub">30″ · 白 · 单包</div></td><td class="t-num">245.00</td>
+                      <td class="t-num"><div class="cellv"><span class="big">$23.15</span><span class="sm">9.4%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$26.45</span><span class="sm">10.8%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$13.35</span><span class="sm">5.4%</span></div></td>
+                      <td class="t-num"><input class="input input--num w-num" value="253.80" aria-label="Lowe's 促销价"></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$19.60 · 10.4%</span><span class="sm">上架 14.9%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$17.80 · 9.5%</span><span class="sm">上架 14.0%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$11.20 · 6.2%</span><span class="sm">上架 10.9%</span></div></td></tr>
+                    <tr><td><div class="cell-title">RV30-2P</div><div class="cell-sub">30″ · 双包</div></td><td class="t-num">259.00</td>
+                      <td class="t-num"><div class="cellv"><span class="big">$9.84</span><span class="sm">3.8%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$14.06</span><span class="sm">5.4%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big neg">−$6.12</span><span class="sm">−2.4%</span></div></td>
+                      <td class="t-num"><input class="input input--num w-num" value="268.31" aria-label="Lowe's 促销价"></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$8.90 · 4.5%</span><span class="sm">上架 9.4%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$7.10 · 3.6%</span><span class="sm">上架 8.5%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$0.40 · 0.2%</span><span class="sm">上架 5.3%</span></div></td></tr>
+                    <tr><td><div class="cell-title">RV24-ON</div><div class="cell-sub">24″ · 原木 · 单包</div></td><td class="t-num">199.00</td>
+                      <td class="t-num"><div class="cellv"><span class="big">$18.62</span><span class="sm">9.4%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$21.30</span><span class="sm">10.7%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$12.08</span><span class="sm">6.1%</span></div></td>
+                      <td class="t-num"><input class="input input--num w-num" value="206.16" aria-label="Lowe's 促销价"></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$14.25 · 9.3%</span><span class="sm">上架 13.9%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$12.45 · 8.2%</span><span class="sm">上架 12.9%</span></div></td>
+                      <td class="t-num"><div class="cellv"><span class="big">$7.60 · 5.2%</span><span class="sm">上架 9.9%</span></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <div class="grid-2 section">
+              <section class="panel">
+                <div class="panel__head"><h2 class="panel__title">保本 / 目标价</h2><span class="section__note">前台价最低能打到多少；目标利润率 15%</span></div>
+                <div class="table-wrap table-wrap--flush"><table class="table">
+                  <thead><tr><th>产品</th><th class="t-num">Amazon FBA</th><th class="t-num">Lowe's</th><th class="t-num">Home Depot</th><th class="t-num">Wayfair</th></tr></thead>
+                  <tbody>
+                    <tr><td>RV30-ON</td><td class="t-num">$229 / $286</td><td class="t-num">$227 / $281</td><td class="t-num">$229 / $283</td><td class="t-num">$238 / $296</td></tr>
+                    <tr><td>RV30-WH</td><td class="t-num">$229 / $286</td><td class="t-num">$227 / $281</td><td class="t-num">$229 / $283</td><td class="t-num">$238 / $296</td></tr>
+                    <tr><td>RV30-2P</td><td class="t-num">$267 / $331</td><td class="t-num">$256 / $317</td><td class="t-num">$258 / $319</td><td class="t-num">$268 / $333</td></tr>
+                    <tr><td>RV24-ON</td><td class="t-num">$184 / $229</td><td class="t-num">$186 / $231</td><td class="t-num">$189 / $234</td><td class="t-num">$195 / $243</td></tr>
+                  </tbody>
+                </table></div>
+              </section>
+              <section class="panel">
+                <div class="panel__head"><h2 class="panel__title">综合利润</h2><button class="btn btn--ghost btn--sm" type="button" data-toast="销量比例已全部恢复 1:1">全部恢复 1:1</button></div>
+                <div class="panel__body" style="padding-bottom:var(--space-2)"><div class="row small"><span class="muted">销量比例</span>
+                  <label>RV30-ON <input class="input input--num w-sm" value="3"></label><label>RV30-WH <input class="input input--num w-sm" value="2"></label><label>RV30-2P <input class="input input--num w-sm" value="1"></label><label>RV24-ON <input class="input input--num w-sm" value="1"></label></div></div>
+                <div class="table-wrap table-wrap--flush"><table class="table">
+                  <thead><tr><th>渠道</th><th class="t-num">合计利润 $</th><th class="t-num">合计销售额 $</th><th class="t-num">综合利润率</th></tr></thead>
+                  <tbody>
+                    <tr><td>Amazon FBM</td><td class="t-num">152.21</td><td class="t-num">1,683.00</td><td class="t-num">9.0%</td></tr>
+                    <tr><td>Amazon CG</td><td class="t-num">185.11</td><td class="t-num">1,683.00</td><td class="t-num">11.0%</td></tr>
+                    <tr><td>Amazon FBA</td><td class="t-num">72.71</td><td class="t-num">1,683.00</td><td class="t-num">4.3%</td></tr>
+                    <tr><td>Lowe's</td><td class="t-num">121.15</td><td class="t-num">1,743.47</td><td class="t-num">6.9%</td></tr>
+                    <tr><td>Home Depot</td><td class="t-num">108.55</td><td class="t-num">1,743.47</td><td class="t-num">6.2%</td></tr>
+                    <tr><td>Wayfair</td><td class="t-num">64.00</td><td class="t-num">1,743.47</td><td class="t-num">3.7%</td></tr>
+                  </tbody>
+                </table></div>
+              </section>
+            </div>
+
+            <div class="grid-main-side section">
+              <section class="panel">
+                <div class="panel__head"><h2 class="panel__title">利润明细 · RV30-ON</h2>
+                  <label class="row small"><span class="muted">渠道</span><select class="select" style="width:160px" id="chSel"><option>Amazon FBA</option><option>Amazon FBM</option><option>Amazon CG</option><option selected>Lowe's</option><option>Home Depot</option><option>Wayfair</option></select></label>
+                </div>
+                <div class="panel__body">
+                  <div class="wf" id="wf">
+                    <span>促销价（前台）</span><span class="num">$253.80</span>
+                    <span>结算价（÷ 加价倍率 1.35）</span><span class="num">$188.00</span>
+                    <span>− 采购成本（¥760 ÷ 1.13 ÷ 7.10）</span><span class="num">−$94.72</span>
+                    <span>− 海运费（0.410 m³ × $47.67）</span><span class="num">−$19.54</span>
+                    <span>− 物流费（FBM 尾程合计，含燃油 16%）</span><span class="num">−$48.50</span>
+                    <span>− 平台订单费</span><span class="num">$0.00</span>
+                    <span>− 比例费（结算价 × 3%）</span><span class="num">−$5.64</span>
+                    <span class="tot">利润 · 利润率（÷ 结算价）</span><span class="num tot">$19.60 · 10.4%</span>
+                  </div>
+                </div>
+              </section>
+              <details class="panel">
+                <summary class="panel__head"><span class="panel__title">包裹明细</span><span class="section__note">英寸边长、体积重、计费重、围长、尾程异常、FBA 档位</span></summary>
+                <div class="table-wrap table-wrap--flush"><table class="table">
+                  <thead><tr><th>包裹</th><th class="t-num">计费重 lb</th><th class="t-num">长+围长 in</th><th>FBA 档位</th></tr></thead>
+                  <tbody>
+                    <tr><td>RV30-ON</td><td class="t-num">84</td><td class="t-num">146.4</td><td>超大件 70–150 lb</td></tr>
+                    <tr><td>RV30-2P 1/2</td><td class="t-num">69</td><td class="t-num">134.6</td><td>超大件 50–70 lb</td></tr>
+                    <tr><td>RV30-2P 2/2</td><td class="t-num">31</td><td class="t-num">90.6</td><td>超大件 0–50 lb</td></tr>
+                    <tr><td>RV24-ON</td><td class="t-num">71</td><td class="t-num">137.4</td><td>超大件 70–150 lb</td></tr>
+                  </tbody>
+                </table></div>
+              </details>
+            </div>
+          </section>
+
+          <!-- 历史库 -->
+          <section id="p5" role="tabpanel" hidden>
+            <div class="banner" style="margin-bottom:var(--space-4)"><svg class="icon"><use href="#ph-database"/></svg><div class="banner__body">每次"保存到历史库"都存一个完整版本（产品、尺寸、价格、销量和全部参数），保存在系统（wen 电脑）上，局域网内有权限的人都能看到同一份。"打开"会把该版本载入为当前测算。</div><div class="banner__actions"><button class="btn btn--sm" type="button" data-toast="已保存到历史库：树脂一体30寸_v4">保存当前测算为新版本</button></div></div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>名称（可改）</th><th>保存时间</th><th>保存人</th><th class="t-num">产品数</th><th>包含产品</th><th>关联决策卡</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr class="is-selected"><td><input class="input" value="树脂一体30寸_v3" aria-label="方案名称"></td><td class="num">2026-11-03 14:20</td><td>wen</td><td class="t-num">4</td><td>RV30-ON、RV30-WH 等 4 款</td><td><a class="tlink" href="PAGE-F21-02.html">树脂一体 · 30″ 拆装 · 落地式</a></td><td><span class="badge badge--accent">当前</span></td></tr>
+                  <tr><td><input class="input" value="树脂一体30寸_v2" aria-label="方案名称"></td><td class="num">2026-10-30 17:05</td><td>wen</td><td class="t-num">3</td><td>RV30-ON、RV30-WH、RV24-ON</td><td><a class="tlink" href="PAGE-F21-02.html">树脂一体 · 30″ 拆装 · 落地式</a></td><td class="row"><button class="btn btn--sm" type="button" data-open="#dlgOpen">打开</button><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除" data-toast="再点一次确认删除"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                  <tr><td><input class="input" value="岗石48寸整装_报价1012" aria-label="方案名称"></td><td class="num">2026-10-12 11:48</td><td>wen</td><td class="t-num">3</td><td>GR48-WH、GR48-NV、GR48-OK</td><td><a class="tlink" href="PAGE-F21-02.html">岗石 · 48″ 整装 · 落地式</a></td><td class="row"><button class="btn btn--sm" type="button" data-open="#dlgOpen">打开</button><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除" data-toast="再点一次确认删除"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                  <tr><td><input class="input" value="竖棱60寸_报价0928" aria-label="方案名称"></td><td class="num">2026-09-28 16:30</td><td>wen</td><td class="t-num">2</td><td>FL60-OK、FL60-WH</td><td><span class="muted">未关联</span></td><td class="row"><button class="btn btn--sm" type="button" data-open="#dlgOpen">打开</button><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除" data-toast="再点一次确认删除"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                  <tr><td><input class="input" value="FLUTED 三抽屉 36寸" aria-label="方案名称"></td><td class="num">2026-09-15 10:12</td><td>wen</td><td class="t-num">2</td><td>36寸 双包、36寸 双包（图一）</td><td><span class="muted">未关联</span></td><td class="row"><button class="btn btn--sm" type="button" data-open="#dlgOpen">打开</button><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除" data-toast="再点一次确认删除"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                  <tr><td><input class="input" value="夏克式30寸_定价复核" aria-label="方案名称"></td><td class="num">2026-08-21 15:02</td><td>wen</td><td class="t-num">2</td><td>SK30-WH、SK30-GR</td><td><a class="tlink" href="PAGE-F21-02.html">夏克式 · 30″ 拆装 · 落地式</a></td><td class="row"><button class="btn btn--sm" type="button" data-open="#dlgOpen">打开</button><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除" data-toast="再点一次确认删除"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 保存并回写 -->
+  <div class="modal" id="dlgWriteback" role="dialog" aria-modal="true" aria-labelledby="wbTitle" aria-hidden="true">
+    <div class="modal__dialog modal__dialog--wide">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="wbTitle">保存并回写决策卡</h2><p class="modal__sub">树脂一体 · 30″ 拆装 · 落地式 · "钱"一节</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body stack">
+        <label class="field"><span class="field__label">回写哪个产品<span class="req">*</span></span><select class="select"><option selected>RV30-ON · 30″ · 原木 · 单包</option><option>RV30-WH · 30″ · 白 · 单包</option><option>RV30-2P · 30″ · 双包</option></select></label>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>渠道</th><th class="t-num">单件利润</th><th class="t-num">利润率</th><th class="t-num">保本价</th></tr></thead>
+            <tbody>
+              <tr><td>Amazon FBA</td><td class="t-num">$13.35</td><td class="t-num">5.4%</td><td class="t-num">$229</td></tr>
+              <tr><td>Amazon FBM</td><td class="t-num">$23.15</td><td class="t-num">9.4%</td><td class="t-num">$217</td></tr>
+              <tr><td>Amazon CG</td><td class="t-num">$26.45</td><td class="t-num">10.8%</td><td class="t-num">$212</td></tr>
+              <tr><td>Lowe's</td><td class="t-num">$19.60</td><td class="t-num">10.4%</td><td class="t-num">$227</td></tr>
+              <tr><td>Home Depot</td><td class="t-num">$17.80</td><td class="t-num">9.5%</td><td class="t-num">$229</td></tr>
+              <tr><td>Wayfair</td><td class="t-num">$11.20</td><td class="t-num">6.2%</td><td class="t-num">$238</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted">方案保存为"树脂一体30寸_v3"并与卡片关联。之后方案再保存，卡片上的数字随之更新；卡片已批准时，批准快照不变，卡片提示"有新数据"。</p>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <a class="btn btn--primary" href="PAGE-F21-02.html">保存并回到决策卡</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 打开历史版本 -->
+  <div class="modal" id="dlgOpen" role="dialog" aria-modal="true" aria-labelledby="openTitle" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head"><div><h2 class="modal__title" id="openTitle">替换当前测算？</h2><p class="modal__sub">打开后当前测算会被这个版本替换</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+      <div class="modal__body"><p>当前测算"树脂一体30寸_v3"已保存在历史库，可以随时再打开。</p></div>
+      <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-close data-toast="已打开历史版本">打开</button></div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var sel = document.getElementById('chSel');
+      sel.addEventListener('change', function () { window.oppoToast('利润明细已切换到：' + sel.value); });
+      Array.prototype.forEach.call(document.querySelectorAll('.seg__opt'), function (b) {
+        b.addEventListener('click', function () {
+          Array.prototype.forEach.call(b.parentNode.children, function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

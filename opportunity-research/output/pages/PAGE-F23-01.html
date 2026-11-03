@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F23-01">
+  <title>评论 VP 追踪 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .steps--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .proj { display: flex; align-items: center; gap: var(--space-2); }
+    .proj .select { width: 200px; }
+    .svc { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); font-size: var(--text-sm); }
+    .svc__item { display: inline-flex; align-items: center; gap: var(--space-2); }
+    .entries .input { min-width: 0; }
+    .entries .input--url { min-width: 260px; }
+    .entries .input--n { width: 72px; }
+    .entries .select { min-width: 112px; }
+    .runbtns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+    .runbtns .btn { justify-content: flex-start; }
+    .prog { display: grid; grid-template-columns: 88px minmax(0, 1fr) max-content; gap: var(--space-2) var(--space-3); align-items: center; font-size: var(--text-sm); }
+    .prog .meter { margin-top: 0; }
+    .log { margin: 0; padding: var(--space-3) var(--space-4); max-height: 180px; overflow: auto; background: var(--surface-warm); border-radius: 0 0 var(--radius-lg) var(--radius-lg); font-family: var(--font-mono); font-size: var(--text-2xs); line-height: 1.7; color: var(--fg-2); white-space: pre-wrap; }
+    .files { margin: 0; padding: 0; list-style: none; }
+    .files li { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-5); border-bottom: 1px solid var(--border-soft); font-size: var(--text-sm); }
+    .files li:last-child { border-bottom: 0; }
+    .t-partial { color: var(--muted); }
+    .kw { min-height: 60px; }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+<!--NAV-->
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="job" aria-live="polite"><svg class="icon spin"><use href="#ph-circle-notch"/></svg>采集评论 · Wayfair 168/250<span class="job__bar"><i style="width:67%"></i></span>67%</span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter" style="--i:0">
+          <div>
+            <div class="crumbs"><span>工具</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>评论 VP 追踪</span></div>
+            <h1>评论 VP 追踪</h1>
+            <p class="page-head__sub">按月统计 Home Depot / Lowe's / Wayfair 商品评论的 VP / 非 VP 数量；口径与原追踪器一致，每一步都可断点续跑。</p>
+          </div>
+          <div class="page-head__actions">
+            <label class="proj"><span class="visually-hidden">选择项目</span>
+              <select class="select" id="projSel" aria-label="选择项目">
+                <option selected>浴室柜_2026</option>
+                <option>马桶架_2026</option>
+              </select>
+            </label>
+            <button class="btn" type="button" data-open="#dlgCopy"><svg class="icon"><use href="#ph-copy"/></svg><span>复制为新项目</span></button>
+            <button class="btn" type="button" data-save data-toast="设置已保存：浴室柜_2026"><svg class="icon"><use href="#ph-check"/></svg><span>保存设置</span></button>
+          </div>
+        </div>
+
+        <div class="banner enter" style="--i:1">
+          <svg class="icon"><use href="#ph-fingerprint"/></svg>
+          <div class="banner__body">
+            <div class="svc">
+              <span class="svc__item"><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>Bright Data 已连接</span><span class="fp">···· 7f3a</span></span>
+              <span class="svc__item"><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>Apify 已连接</span><span class="fp">···· k29Q</span></span>
+              <span class="svc__item"><span class="badge"><svg class="icon"><use href="#ph-info"/></svg>Home Depot 直连，免费</span></span>
+            </div>
+            <p class="small muted" style="margin-top:4px">密钥在 <a href="PAGE-F16-01.html">密钥与大模型</a> 里填写；月度上限与费用记录共用 <a href="PAGE-F16-02.html">预算与费用</a>。本页不保存密钥。</p>
+          </div>
+        </div>
+
+        <ol class="steps steps--4 section enter" style="--i:2" aria-label="四步流程">
+          <li class="step step--done"><a class="step__link" href="#panelLists"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">① 采集列表</span><span class="step__meta">6 个入口 · 选中 650/650</span></a></li>
+          <li class="step step--done"><a class="step__link" href="#panelEst"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">② 评估费用</span><span class="step__meta">$5.10–$5.78 · 约 4.3 小时</span></a></li>
+          <li class="step step--current"><a class="step__link" href="#panelRun" aria-current="step"><span class="step__dot">3</span><span class="step__name">③ 采集评论</span><span class="step__meta">进行中 · 518/650 商品</span></a></li>
+          <li class="step step--todo"><a class="step__link" href="#panelExport"><span class="step__dot">4</span><span class="step__name">④ 导出 Excel</span><span class="step__meta">采集完成后可导出</span></a></li>
+        </ol>
+
+        <div class="grid-main-side section">
+          <!-- 左：项目设置 -->
+          <form class="stack-lg" data-guard aria-label="项目设置" onsubmit="return false">
+            <section class="panel enter" style="--i:3">
+              <div class="panel__head"><h2 class="panel__title">1. 项目与时间窗</h2><span class="section__note">时间窗决定统计哪些月份；时间窗越长，评论越多、费用越高</span></div>
+              <div class="panel__body">
+                <div class="form-grid">
+                  <label class="field"><span class="field__label">项目名<span class="req">*</span></span><input class="input" value="浴室柜_2026"></label>
+                  <label class="field"><span class="field__label">品类<span class="req">*</span></span><input class="input" value="浴室柜 Bathroom Vanity"></label>
+                  <label class="field"><span class="field__label">起始日期<span class="req">*</span></span><input class="input" type="date" value="2026-01-01"></label>
+                  <label class="field"><span class="field__label">最后一个完整月的月底<span class="req">*</span></span><input class="input" type="date" value="2026-10-31"><span class="field__hint">未完整月份只作参考，不并入分析库</span></label>
+                  <label class="check span-2"><input type="checkbox" checked>当月未完整的数据也采，单列"未完整"</label>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel enter" style="--i:4" id="panelLists">
+              <div class="panel__head"><h2 class="panel__title">2. 渠道与落地页</h2><button class="btn btn--sm" type="button" data-toast="已添加一个入口，填写后保存"><svg class="icon"><use href="#ph-plus"/></svg><span>添加入口</span></button></div>
+              <div class="panel__body" style="padding-bottom:var(--space-2)">
+                <p class="small muted">有 BSR 的渠道（Lowe's Best Sellers）选"BSR / 热销榜"取前 N；没有 BSR 的渠道（Home Depot 按 Top Sellers、Wayfair 按默认排序）选"类目落地页"或"关键词落地页"。排除广告会跳过 Sponsored 并顺延补足 N；父体去重把同一款不同颜色 / 尺寸只算一个（Lowe's 按父体 ID，Home Depot 按共享评论，Wayfair 列表本身按款）。</p>
+              </div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table entries">
+                  <thead><tr><th>启用</th><th>名称</th><th>平台</th><th>落地页类型</th><th>网址 / 关键词</th><th class="t-num">前 N</th><th>排除广告</th><th>父体去重</th><th class="t-num">选中 / 目标</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+                  <tbody>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="启用 Lowes带台面榜"></label></td><td><input class="input" value="Lowes带台面榜" aria-label="入口名称"></td><td><select class="select" aria-label="平台"><option selected>Lowe's</option><option>Home Depot</option><option>Wayfair</option></select></td><td><select class="select" aria-label="落地页类型"><option selected>BSR / 热销榜</option><option>类目落地页</option><option>关键词落地页</option></select></td><td><input class="input input--url mono" value="lowes.com/pl/bathroom-vanities-with-tops/4294684460" aria-label="网址"></td><td class="t-num"><input class="input input--num input--n" value="100" aria-label="前 N"></td><td><label class="check"><input type="checkbox" checked aria-label="排除广告"></label></td><td><label class="check"><input type="checkbox" aria-label="父体去重"></label></td><td class="t-num">100 / 100</td><td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除入口" data-toast="已删除入口，保存后生效"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="启用 Lowes无台面榜"></label></td><td><input class="input" value="Lowes无台面榜" aria-label="入口名称"></td><td><select class="select" aria-label="平台"><option selected>Lowe's</option><option>Home Depot</option><option>Wayfair</option></select></td><td><select class="select" aria-label="落地页类型"><option selected>BSR / 热销榜</option><option>类目落地页</option><option>关键词落地页</option></select></td><td><input class="input input--url mono" value="lowes.com/pl/bathroom-vanities-without-tops/4294684459" aria-label="网址"></td><td class="t-num"><input class="input input--num input--n" value="100" aria-label="前 N"></td><td><label class="check"><input type="checkbox" checked aria-label="排除广告"></label></td><td><label class="check"><input type="checkbox" aria-label="父体去重"></label></td><td class="t-num">100 / 100</td><td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除入口" data-toast="已删除入口，保存后生效"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="启用 HDP带台面"></label></td><td><input class="input" value="HDP带台面" aria-label="入口名称"></td><td><select class="select" aria-label="平台"><option>Lowe's</option><option selected>Home Depot</option><option>Wayfair</option></select></td><td><select class="select" aria-label="落地页类型"><option>BSR / 热销榜</option><option selected>类目落地页</option><option>关键词落地页</option></select></td><td><input class="input input--url mono" value="homedepot.com/b/Bath-Bathroom-Vanities-with-Tops/N-5yc1vZcfw5" aria-label="网址"></td><td class="t-num"><input class="input input--num input--n" value="100" aria-label="前 N"></td><td><label class="check"><input type="checkbox" checked aria-label="排除广告"></label></td><td><label class="check"><input type="checkbox" aria-label="父体去重"></label></td><td class="t-num">100 / 100</td><td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除入口" data-toast="已删除入口，保存后生效"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="启用 HDP无台面"></label></td><td><input class="input" value="HDP无台面" aria-label="入口名称"></td><td><select class="select" aria-label="平台"><option>Lowe's</option><option selected>Home Depot</option><option>Wayfair</option></select></td><td><select class="select" aria-label="落地页类型"><option>BSR / 热销榜</option><option selected>类目落地页</option><option>关键词落地页</option></select></td><td><input class="input input--url mono" value="homedepot.com/b/Bath-Bathroom-Vanities-without-Tops/N-5yc1vZcfv9" aria-label="网址"></td><td class="t-num"><input class="input input--num input--n" value="100" aria-label="前 N"></td><td><label class="check"><input type="checkbox" checked aria-label="排除广告"></label></td><td><label class="check"><input type="checkbox" aria-label="父体去重"></label></td><td class="t-num">100 / 100</td><td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除入口" data-toast="已删除入口，保存后生效"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="启用 Wayfair主类目"></label></td><td><input class="input" value="Wayfair主类目" aria-label="入口名称"></td><td><select class="select" aria-label="平台"><option>Lowe's</option><option>Home Depot</option><option selected>Wayfair</option></select></td><td><select class="select" aria-label="落地页类型"><option>BSR / 热销榜</option><option selected>类目落地页</option><option>关键词落地页</option></select></td><td><input class="input input--url mono" value="wayfair.com/bed-bath/sb0/bathroom-vanities-c527058.html" aria-label="网址"></td><td class="t-num"><input class="input input--num input--n" value="200" aria-label="前 N"></td><td><label class="check"><input type="checkbox" checked aria-label="排除广告"></label></td><td><label class="check"><input type="checkbox" aria-label="父体去重"></label></td><td class="t-num">200 / 200</td><td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除入口" data-toast="已删除入口，保存后生效"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                    <tr><td><label class="check"><input type="checkbox" checked aria-label="启用 Wayfair无台面类目"></label></td><td><input class="input" value="Wayfair无台面类目" aria-label="入口名称"></td><td><select class="select" aria-label="平台"><option>Lowe's</option><option>Home Depot</option><option selected>Wayfair</option></select></td><td><select class="select" aria-label="落地页类型"><option>BSR / 热销榜</option><option selected>类目落地页</option><option>关键词落地页</option></select></td><td><input class="input input--url mono" value="wayfair.com/bed-bath/sb0/vanity-bases-c527056.html" aria-label="网址"></td><td class="t-num"><input class="input input--num input--n" value="50" aria-label="前 N"></td><td><label class="check"><input type="checkbox" checked aria-label="排除广告"></label></td><td><label class="check"><input type="checkbox" aria-label="父体去重"></label></td><td class="t-num">50 / 50</td><td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除入口" data-toast="已删除入口，保存后生效"><svg class="icon"><use href="#ph-x"/></svg></button></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__foot"><label class="check"><input type="checkbox">跨入口去重：同一商品 / 父体已被前面的入口选中时，后面的入口跳过并顺延</label></div>
+            </section>
+
+            <section class="panel enter" style="--i:5">
+              <div class="panel__head"><h2 class="panel__title">3. 品类筛选（只留目标品类）</h2><span class="section__note">被排除的商品在 Excel"商品"表里留排除原因</span></div>
+              <div class="panel__body">
+                <div class="form-grid">
+                  <label class="field span-2"><span class="field__label">内置规则</span><select class="select"><option>无（只用下面的关键词）</option><option selected>浴室柜</option></select></label>
+                  <label class="field"><span class="field__label">标题必须含（任一，逗号分隔）</span><textarea class="textarea kw" placeholder="例：vanity, bathroom cabinet"></textarea></label>
+                  <label class="field"><span class="field__label">标题含这些就排除</span><textarea class="textarea kw" placeholder="例：mirror, faucet only"></textarea></label>
+                  <label class="field span-2"><span class="field__label">但含这些仍保留</span><input class="input" placeholder="例：vanity with"></label>
+                </div>
+              </div>
+            </section>
+
+            <div class="grid-2">
+              <section class="panel enter" style="--i:5">
+                <div class="panel__head"><h2 class="panel__title">4. 评论少的商品</h2></div>
+                <div class="panel__body stack">
+                  <label class="field"><span class="field__label">页面累计评论数低于（条，0 = 不启用）</span><input class="input input--num" style="width:120px" value="0"></label>
+                  <div class="choice-group" role="radiogroup" aria-label="评论少的商品如何处理">
+                    <label class="choice"><input type="radio" name="low" checked>照常区分 VP / 非 VP</label>
+                    <label class="choice"><input type="radio" name="low">只计月度合计</label>
+                    <label class="choice"><input type="radio" name="low">不采集（省钱）</label>
+                  </div>
+                </div>
+              </section>
+              <section class="panel enter" style="--i:5">
+                <div class="panel__head"><h2 class="panel__title">5. 本项目预算（美元）</h2></div>
+                <div class="panel__body stack">
+                  <div class="form-grid">
+                    <label class="field"><span class="field__label">Bright Data · Lowe's</span><input class="input input--num" value="10"></label>
+                    <label class="field"><span class="field__label">Bright Data · Wayfair</span><input class="input input--num" value="10"></label>
+                    <label class="field"><span class="field__label">Apify · Lowe's</span><input class="input input--num" value="10"></label>
+                    <label class="field"><span class="field__label">Apify · Wayfair</span><input class="input input--num" value="15"></label>
+                  </div>
+                  <p class="field__hint">本项目预算与 <a href="PAGE-F16-02.html">设置页月度上限</a> 任一先到即停，已采数据保留。</p>
+                  <label class="check"><input type="checkbox" checked>Excel 附评论明细（作证据用）</label>
+                </div>
+              </section>
+            </div>
+          </form>
+
+          <!-- 右：运行 -->
+          <div class="stack-lg">
+            <section class="panel enter" style="--i:3" id="panelRun">
+              <div class="panel__head"><h2 class="panel__title">运行</h2><span class="badge badge--accent"><svg class="icon spin"><use href="#ph-circle-notch"/></svg>运行中</span></div>
+              <div class="panel__body stack">
+                <div class="runbtns">
+                  <button class="btn" type="button" data-simulate="列表已是最新：6 个入口，选中 650/650，未重复请求" data-loading-text="检查列表…"><svg class="icon"><use href="#ph-list-numbers"/></svg><span>① 采集列表</span></button>
+                  <button class="btn" type="button" data-open="#dlgCost"><svg class="icon"><use href="#ph-timer"/></svg><span>② 评估费用</span></button>
+                  <button class="btn" type="button" aria-disabled="true" title="正在采集"><svg class="icon"><use href="#ph-play"/></svg><span>③ 采集评论</span></button>
+                  <button class="btn" type="button" aria-disabled="true" title="采集完成后可导出"><svg class="icon"><use href="#ph-file-xls"/></svg><span>④ 导出 Excel</span></button>
+                </div>
+                <div class="prog" aria-label="各平台采集进度">
+                  <span>Home Depot</span><div class="meter"><i style="width:100%"></i></div><span class="num small">200/200 完成</span>
+                  <span>Lowe's</span><div class="meter"><i style="width:100%"></i></div><span class="num small">200/200 完成</span>
+                  <span>Wayfair</span><div class="meter"><i style="width:67%"></i></div><span class="num small">168/250</span>
+                </div>
+                <p class="small muted">已成功的商品不会重复调用、不会重复计费。中断后点"③ 采集评论"即从断点继续。</p>
+                <div class="row"><button class="btn btn--sm" type="button" data-toast="已暂停，进度已保存：Wayfair 168/250"><svg class="icon"><use href="#ph-minus"/></svg><span>暂停</span></button><span class="spacer"></span><button class="btn btn--ghost btn--sm" type="button" data-open="#dlgCost"><span>一键全部</span><svg class="icon"><use href="#ph-arrow-right"/></svg></button></div>
+              </div>
+            </section>
+
+            <section class="panel enter" style="--i:4" id="panelEst">
+              <div class="panel__head"><h2 class="panel__title">时间与费用评估</h2><span class="section__note">11-03 09:40 · 用列表真实商品数估算</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>平台</th><th class="t-num">商品</th><th class="t-num">预计评论</th><th class="t-num">费用区间</th></tr></thead>
+                  <tbody>
+                    <tr><td>Home Depot</td><td class="t-num">200</td><td class="t-num">3,100–3,600</td><td class="t-num">$0.00</td></tr>
+                    <tr><td>Lowe's</td><td class="t-num">200</td><td class="t-num">3,500–4,200</td><td class="t-num">$1.31–$1.39</td></tr>
+                    <tr><td>Wayfair</td><td class="t-num">250</td><td class="t-num">6,800–8,000</td><td class="t-num">$3.79–$4.39</td></tr>
+                    <tr data-pin-bottom><td class="strong">合计</td><td class="t-num strong">650</td><td class="t-num">13,400–15,800</td><td class="t-num strong">$5.10–$5.78<span class="etag">估算</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel enter" style="--i:5">
+              <div class="panel__head"><h2 class="panel__title">本月已花费</h2><a class="small" href="PAGE-F16-02.html">费用记录</a></div>
+              <div class="panel__body stack">
+                <div>
+                  <div class="row"><span class="small">Bright Data</span><span class="spacer"></span><span class="num small"><span class="strong">$14.20</span> / 上限 $40.00</span></div>
+                  <div class="meter"><i style="width:35.5%"></i></div>
+                </div>
+                <div>
+                  <div class="row"><span class="small">Apify</span><span class="spacer"></span><span class="num small"><span class="strong">$21.60</span> / 上限 $60.00</span></div>
+                  <div class="meter"><i style="width:36%"></i></div>
+                </div>
+                <p class="small muted">本次运行：BD Lowe's 412 次、Wayfair 260 次（$1.01）；Apify Lowe's $0.41、Wayfair $2.47。全部计入同一记账。</p>
+              </div>
+            </section>
+
+            <section class="panel enter" style="--i:5" id="panelExport">
+              <div class="panel__head"><h2 class="panel__title">导出文件</h2><span class="section__note">每个平台一个文件</span></div>
+              <ul class="files">
+                <li><svg class="icon"><use href="#ph-file-xls"/></svg><a href="#" data-toast="开始下载：浴室柜_2026_HomeDepot_20261102.xlsx">浴室柜_2026_HomeDepot_20261102.xlsx</a></li>
+                <li><svg class="icon"><use href="#ph-file-xls"/></svg><a href="#" data-toast="开始下载：浴室柜_2026_Lowes_20261102.xlsx">浴室柜_2026_Lowes_20261102.xlsx</a></li>
+                <li><svg class="icon"><use href="#ph-file-xls"/></svg><a href="#" data-toast="开始下载：浴室柜_2026_Wayfair_20261102.xlsx">浴室柜_2026_Wayfair_20261102.xlsx</a></li>
+              </ul>
+              <div class="panel__foot">工作表：月度趋势、入口月度汇总、商品、评论明细。上一次导出为 11-02 完整版。</div>
+            </section>
+
+            <section class="panel enter" style="--i:5">
+              <div class="panel__head"><h2 class="panel__title">日志</h2></div>
+              <pre class="log" aria-label="运行日志">11-03 10:02  ③ 继续采集：跳过已完成 482 个商品
+11-03 10:02  Home Depot 200/200 已完成（直连，0 费用）
+11-03 10:05  Lowe's 200/200 已完成；Apify 新增 $0.41
+11-03 10:31  Wayfair 第 2 轮（300 条）：W004817762 已取 286 条
+11-03 10:44  Wayfair 168/250；Apify 累计 $2.47
+11-03 10:44  W003921455 超过 1000 条，标"部分"</pre>
+            </section>
+          </div>
+        </div>
+
+        <section class="section enter" style="--i:5">
+          <div class="section__head">
+            <h2 class="section__title">入口月度汇总（上一次完整导出）</h2>
+            <span class="section__note">2026-01 至 2026-10 · 按评论 ID 去重，同系列共享评论不重复算 · Wayfair 只有 "Verified Purchase" 计 VP</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>渠道</th><th class="t-num">1 月</th><th class="t-num">2 月</th><th class="t-num">3 月</th><th class="t-num">4 月</th><th class="t-num">5 月</th><th class="t-num">6 月</th><th class="t-num">7 月</th><th class="t-num">8 月</th><th class="t-num">9 月</th><th class="t-num">10 月</th><th class="t-num">1–10 月合计</th><th class="t-num">VP / 非 VP</th><th class="t-num">VP 占比</th><th class="t-num">11 月（未完整）</th></tr></thead>
+              <tbody>
+                <tr><td class="cell-title">Home Depot</td><td class="t-num">268</td><td class="t-num">251</td><td class="t-num">297</td><td class="t-num">330</td><td class="t-num">352</td><td class="t-num">371</td><td class="t-num">365</td><td class="t-num">362</td><td class="t-num">380</td><td class="t-num">349</td><td class="t-num strong">3,325<span class="etag">实测</span></td><td class="t-num">2,394 / 931</td><td class="t-num">72.0%<span class="etag etag--n">n=3,325</span></td><td class="t-num t-partial">41<span class="etag etag--fill">参考</span></td></tr>
+                <tr><td class="cell-title">Lowe's</td><td class="t-num">310</td><td class="t-num">292</td><td class="t-num">348</td><td class="t-num">381</td><td class="t-num">402</td><td class="t-num">415</td><td class="t-num">433</td><td class="t-num">428</td><td class="t-num">437</td><td class="t-num">404</td><td class="t-num strong">3,850<span class="etag">实测</span></td><td class="t-num">3,157 / 693</td><td class="t-num">82.0%<span class="etag etag--n">n=3,850</span></td><td class="t-num t-partial">52<span class="etag etag--fill">参考</span></td></tr>
+                <tr><td class="cell-title">Wayfair</td><td class="t-num">612</td><td class="t-num">571</td><td class="t-num">680</td><td class="t-num">735</td><td class="t-num">768</td><td class="t-num">790</td><td class="t-num">802</td><td class="t-num">812</td><td class="t-num">830</td><td class="t-num">794</td><td class="t-num strong">7,394<span class="etag">实测</span></td><td class="t-num">4,881 / 2,513</td><td class="t-num">66.0%<span class="etag etag--n">n=7,394</span></td><td class="t-num t-partial">96<span class="etag etag--fill">参考</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="page-foot">VP 口径：Home Depot、Lowe's 用评论自带的 verifiedPurchaser 标记；Wayfair 每条评论只有一个徽章，只有 "Verified Purchase" 计 VP，Incentivized、Wayfair Professional 等计非 VP。采集完成的完整月份会并入 <a href="PAGE-F28-01.html">其他渠道数据</a>。</p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- 费用评估确认弹窗（CMP-F16-01） -->
+  <div class="modal" id="dlgCost" role="dialog" aria-modal="true" aria-labelledby="dlgCostTitle" aria-hidden="true">
+    <div class="modal__dialog modal__dialog--wide">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="dlgCostTitle">确认费用：采集评论 · 浴室柜_2026</h2><p class="modal__sub">用 ① 列表的真实商品数估算，实际以采集结果为准；已采过的商品不会重复计费</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body stack">
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>平台</th><th class="t-num">待采商品</th><th class="t-num">预计窗口内评论</th><th class="t-num">BD 请求 / 费用</th><th class="t-num">Apify 费用</th><th class="t-num">预计耗时</th></tr></thead>
+            <tbody>
+              <tr><td>Home Depot</td><td class="t-num">0<span class="etag">已完成</span></td><td class="t-num">0</td><td class="t-num">0 / $0.00</td><td class="t-num">$0.00</td><td class="t-num">0 分钟</td></tr>
+              <tr><td>Lowe's</td><td class="t-num">0<span class="etag">已完成</span></td><td class="t-num">0</td><td class="t-num">0 / $0.00</td><td class="t-num">$0.00</td><td class="t-num">0 分钟</td></tr>
+              <tr><td>Wayfair</td><td class="t-num">82</td><td class="t-num">2,200–2,700</td><td class="t-num">85 / $0.13</td><td class="t-num">$1.07–$1.40</td><td class="t-num">约 35 分钟</td></tr>
+              <tr data-pin-bottom><td class="strong">合计</td><td class="t-num">82</td><td class="t-num">2,200–2,700</td><td class="t-num strong">$0.13</td><td class="t-num strong">$1.07–$1.40</td><td class="t-num strong">约 35 分钟</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <dl class="kv">
+          <dt>本次新增费用</dt><dd class="num"><span class="strong">$1.20–$1.53</span><span class="etag">估算</span> · 只计 Wayfair 剩余 82 个商品</dd>
+          <dt>Bright Data 本月</dt><dd class="num">已花 $14.20 / 上限 $40.00</dd>
+          <dt>Apify 本月</dt><dd class="num">已花 $21.60 / 上限 $60.00</dd>
+          <dt>达到上限时</dt><dd>本项目预算或月度上限任一先到即停，已采数据保留</dd>
+        </dl>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="button" data-close data-toast="已开始采集：Wayfair 剩余 82 个商品"><svg class="icon"><use href="#ph-play"/></svg><span>确认并开始</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 复制为新项目 -->
+  <div class="modal" id="dlgCopy" role="dialog" aria-modal="true" aria-labelledby="dlgCopyTitle" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="dlgCopyTitle">复制为新项目</h2><p class="modal__sub">复制浴室柜_2026 的全部设置，改品类后保存</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body">
+        <label class="field"><span class="field__label">新项目名<span class="req">*</span></span><input class="input" id="newProj" placeholder="例：马桶_2026"><span class="field__hint">项目名不能和已有项目重复</span></label>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="button" id="btnCopy">复制</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var sel = document.getElementById('projSel');
+      sel.addEventListener('change', function () { window.oppoToast('已切换项目：' + sel.value); });
+      document.getElementById('btnCopy').addEventListener('click', function () {
+        var input = document.getElementById('newProj');
+        var name = input.value.trim();
+        if (!name) { input.setAttribute('aria-invalid', 'true'); input.focus(); return; }
+        input.removeAttribute('aria-invalid');
+        window.oppoClose('#dlgCopy');
+        window.oppoToast('已创建项目：' + name);
+      });
+    })();
+  </script>
+</body>
+</html>

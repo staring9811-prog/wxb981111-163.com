@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F15-03">
+  <title>账号管理 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-4); }
+    .roles .panel__body { font-size: var(--text-xs); color: var(--muted); }
+    .roles .panel__body strong { display: block; margin-bottom: 2px; font-size: var(--text-sm); color: var(--fg); }
+    .is-off td { color: var(--muted); }
+    .role-pick { display: grid; gap: var(--space-2); }
+    .role-pick .choice { align-items: flex-start; }
+    .role-pick .choice small { display: block; font-weight: 400; color: var(--muted); }
+    @media (max-width: 767px) { .roles { grid-template-columns: minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+<!--@SIDEBAR-->
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter">
+          <div>
+            <nav class="crumbs" aria-label="面包屑"><span>设置</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>账号</span></nav>
+            <h1>账号管理</h1>
+            <p class="page-head__sub">只有操作者能建账号；不开放注册，忘记密码由操作者在这里重置。</p>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn btn--primary" type="button" data-open="#m-create"><svg class="icon"><use href="#ph-plus"/></svg><span>新建账号</span></button>
+          </div>
+        </div>
+
+        <div class="tabs enter" style="--i:1" role="tablist">
+          <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="p-accounts">账号 <span class="count">6</span></button>
+          <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="p-audit">审计日志</button>
+        </div>
+
+        <section id="p-accounts" role="tabpanel" class="enter" style="--i:2">
+          <div class="roles">
+            <div class="panel"><div class="panel__body"><strong>操作者</strong>全部操作，包括设置、拉数据、写决策卡、提交审批</div></div>
+            <div class="panel"><div class="panel__body"><strong>审批者</strong>看全部，审批和留意见；不能编辑内容</div></div>
+            <div class="panel"><div class="panel__body"><strong>只读</strong>只能看机会扫描、决策卡、台账</div></div>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="t-accounts">
+              <thead>
+                <tr><th>姓名</th><th>账号</th><th>角色</th><th>状态</th><th>最近登录</th><th>创建时间</th><th class="t-num">操作</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="cell-title">wen</span><div class="cell-sub">产品开发 · 当前登录</div></td>
+                  <td class="mono">wen</td>
+                  <td><span class="badge badge--accent">操作者</span></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span></td>
+                  <td class="num t-nowrap">2026-11-03 09:12</td>
+                  <td class="num t-nowrap muted">2026-10-08</td>
+                  <td class="t-num"><button class="btn btn--sm" type="button" data-reset="wen（wen）">重置密码</button></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-title">周建国</span><div class="cell-sub">老板</div></td>
+                  <td class="mono">zhoujianguo</td>
+                  <td><span class="badge">审批者</span></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span></td>
+                  <td class="num t-nowrap">2026-11-01 17:36</td>
+                  <td class="num t-nowrap muted">2026-10-08</td>
+                  <td class="t-num t-nowrap"><button class="btn btn--sm" type="button" data-reset="周建国（zhoujianguo）">重置密码</button> <button class="btn btn--sm btn--danger" type="button" data-disable="周建国（zhoujianguo）">停用</button></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-title">李晓梅</span><div class="cell-sub">运营</div></td>
+                  <td class="mono">lixiaomei</td>
+                  <td><span class="badge">只读</span></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span></td>
+                  <td class="num t-nowrap">2026-10-30 09:02</td>
+                  <td class="num t-nowrap muted">2026-10-09</td>
+                  <td class="t-num t-nowrap"><button class="btn btn--sm" type="button" data-reset="李晓梅（lixiaomei）">重置密码</button> <button class="btn btn--sm btn--danger" type="button" data-disable="李晓梅（lixiaomei）">停用</button></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-title">陈志强</span><div class="cell-sub">采购</div></td>
+                  <td class="mono">chenzhiqiang</td>
+                  <td><span class="badge">只读</span></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span></td>
+                  <td class="num t-nowrap">2026-10-28 14:21</td>
+                  <td class="num t-nowrap muted">2026-10-09</td>
+                  <td class="t-num t-nowrap"><button class="btn btn--sm" type="button" data-reset="陈志强（chenzhiqiang）">重置密码</button> <button class="btn btn--sm btn--danger" type="button" data-disable="陈志强（chenzhiqiang）">停用</button></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-title">王磊</span><div class="cell-sub">研发</div></td>
+                  <td class="mono">wanglei</td>
+                  <td><span class="badge">只读</span></td>
+                  <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>正常</span></td>
+                  <td class="muted">从未登录</td>
+                  <td class="num t-nowrap muted">2026-10-27</td>
+                  <td class="t-num t-nowrap"><button class="btn btn--sm" type="button" data-reset="王磊（wanglei）">重置密码</button> <button class="btn btn--sm btn--danger" type="button" data-disable="王磊（wanglei）">停用</button></td>
+                </tr>
+                <tr class="is-off">
+                  <td><span class="cell-title">赵敏</span><div class="cell-sub">运营 · 已离职</div></td>
+                  <td class="mono">zhaomin</td>
+                  <td><span class="badge">只读</span></td>
+                  <td><span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>已停用</span></td>
+                  <td class="num t-nowrap">2026-10-20 16:48</td>
+                  <td class="num t-nowrap">2026-10-09</td>
+                  <td class="t-num small">10-31 停用</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="p-audit" role="tabpanel" hidden>
+          <div class="filters" data-filter-scope="#t-audit">
+            <span class="filters__label">类型</span>
+            <button class="chip" type="button" data-filter="type:all" aria-pressed="true">全部</button>
+            <button class="chip" type="button" data-filter="type:login" aria-pressed="false">登录</button>
+            <button class="chip" type="button" data-filter="type:approve" aria-pressed="false">审批</button>
+            <button class="chip" type="button" data-filter="type:key" aria-pressed="false">密钥变更</button>
+            <button class="chip" type="button" data-filter="type:spend" aria-pressed="false">花钱任务</button>
+            <span class="filters__sep"></span>
+            <label class="visually-hidden" for="a-user">账号</label>
+            <select class="select" id="a-user" style="width:auto"><option>全部账号</option><option>wen</option><option>zhoujianguo</option><option>lixiaomei</option><option>chenzhiqiang</option><option>wanglei</option><option>zhaomin</option></select>
+            <label class="visually-hidden" for="a-month">月份</label>
+            <select class="select" id="a-month" style="width:auto"><option>2026-11</option><option>2026-10</option><option>2026-09</option></select>
+            <span class="spacer"></span>
+            <span class="small muted">共 <span data-filter-count>8</span> 条 · 只记录登录、审批、密钥变更、花钱任务</span>
+            <button class="btn btn--sm" type="button" data-toast="已导出审计日志_2026-11.xlsx"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></button>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="t-audit">
+              <thead>
+                <tr><th><button class="th-sort" type="button" aria-sort="descending">时间<svg class="icon"><use href="#ph-caret-down"/></svg></button></th><th>账号</th><th>类型</th><th>内容</th><th>来源地址</th></tr>
+              </thead>
+              <tbody>
+                <tr data-type="login"><td class="num t-nowrap" data-sort="20261103 0912">2026-11-03 09:12</td><td class="mono">wen</td><td><span class="badge">登录</span></td><td>登录成功</td><td class="mono">192.168.1.23</td></tr>
+                <tr data-type="spend"><td class="num t-nowrap" data-sort="20261102 1512">2026-11-02 15:12</td><td class="mono">wen</td><td><span class="badge badge--accent">花钱任务</span></td><td>卖家精灵 · 拉取 Amazon 2026-10 续拉 930 次，$9.30 <a class="tlink small" href="PAGE-F16-02.html">费用记录</a></td><td class="mono">192.168.1.23</td></tr>
+                <tr data-type="spend"><td class="num t-nowrap" data-sort="20261102 1405">2026-11-02 14:05</td><td class="mono">wen</td><td><span class="badge badge--accent">花钱任务</span></td><td>卖家精灵 · 拉取 Amazon 2026-10，中断于 1,920 / 2,850（网络超时），$19.20</td><td class="mono">192.168.1.23</td></tr>
+                <tr data-type="spend"><td class="num t-nowrap" data-sort="20261101 1010">2026-11-01 10:10</td><td class="mono">wen</td><td><span class="badge badge--accent">花钱任务</span></td><td>Bright Data + Apify · 评论 VP 追踪 2026-10（Lowe's、Wayfair），确认预计 $88–$102</td><td class="mono">192.168.1.23</td></tr>
+                <tr data-type="key"><td class="num t-nowrap" data-sort="20261031 1002">2026-10-31 10:02</td><td class="mono">wen</td><td><span class="badge">密钥变更</span></td><td>更换 Bright Data 密钥（••••a91f → ••••7d3c）<a class="tlink small" href="PAGE-F16-01.html"> 密钥与大模型</a></td><td class="mono">192.168.1.23</td></tr>
+                <tr data-type="login"><td class="num t-nowrap" data-sort="20261030 0857">2026-10-30 08:57</td><td class="mono">lixiaomei</td><td><span class="badge">登录</span></td><td><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>登录失败</span> 账号或密码不正确</td><td class="mono">192.168.1.57</td></tr>
+                <tr data-type="key"><td class="num t-nowrap" data-sort="20261029 1130">2026-10-29 11:30</td><td class="mono">wen</td><td><span class="badge">密钥变更</span></td><td>大模型提供方由 OpenAI 改为 Claude，保存 Claude 密钥 ••••Xc4M</td><td class="mono">192.168.1.23</td></tr>
+                <tr data-type="approve"><td class="num t-nowrap" data-sort="20261020 1622">2026-10-20 16:22</td><td class="mono">zhoujianguo</td><td><span class="badge">审批</span></td><td>批准策略库条目"Lowe's 以整装为主，拆装款份额低"改为已验证，意见："依据够，可以用"</td><td class="mono">192.168.1.40</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pager"><span>每页 50 条 · 第 1 页</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button></div></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal" id="m-create" role="dialog" aria-modal="true" aria-labelledby="m-create-t" aria-hidden="true">
+    <form class="modal__dialog" id="f-create" novalidate>
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="m-create-t">新建账号</h2><p class="modal__sub">创建后把账号和初始密码当面告诉本人</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body">
+        <div class="form-grid">
+          <div class="field"><label class="field__label" for="c-name">姓名<span class="req">*</span></label><input class="input" id="c-name" value="刘芳" required></div>
+          <div class="field"><label class="field__label" for="c-acc">账号<span class="req">*</span></label><input class="input" id="c-acc" value="liufang" required><div class="field__error" id="c-acc-err" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>账号 liufang 已存在</div></div>
+          <fieldset class="field span-2" style="border:0;padding:0;margin:0">
+            <legend class="field__label">角色<span class="req">*</span></legend>
+            <div class="role-pick">
+              <label class="choice"><input type="radio" name="role" value="operator"><span>操作者<small>全部操作，包括设置</small></span></label>
+              <label class="choice"><input type="radio" name="role" value="approver"><span>审批者<small>看全部，审批和留意见，不能编辑</small></span></label>
+              <label class="choice"><input type="radio" name="role" value="readonly" checked><span>只读<small>只能看机会扫描、决策卡、台账</small></span></label>
+            </div>
+          </fieldset>
+          <div class="field"><label class="field__label" for="c-pw">初始密码<span class="req">*</span></label><input class="input" id="c-pw" type="password" autocomplete="new-password" required></div>
+          <div class="field"><label class="field__label" for="c-pw2">确认密码<span class="req">*</span></label><input class="input" id="c-pw2" type="password" autocomplete="new-password" required><div class="field__error" id="c-pw-err" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>两次输入的密码不一致</div></div>
+        </div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="submit"><span>创建账号</span></button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal" id="m-reset" role="dialog" aria-modal="true" aria-labelledby="m-reset-t" aria-hidden="true">
+    <form class="modal__dialog" id="f-reset" novalidate>
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="m-reset-t">重置密码</h2><p class="modal__sub" data-reset-who>李晓梅（lixiaomei）</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body">
+        <div class="form-grid">
+          <div class="field"><label class="field__label" for="r-pw">新密码<span class="req">*</span></label><input class="input" id="r-pw" type="password" autocomplete="new-password"></div>
+          <div class="field"><label class="field__label" for="r-pw2">确认新密码<span class="req">*</span></label><input class="input" id="r-pw2" type="password" autocomplete="new-password"></div>
+          <p class="field__hint span-2">重置后此人需用新密码登录。</p>
+        </div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="submit"><span>重置密码</span></button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal" id="m-disable" role="dialog" aria-modal="true" aria-labelledby="m-disable-t" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="m-disable-t">停用 <span data-disable-who>李晓梅（lixiaomei）</span>？</h2></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body">
+        <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">该账号已登录的会话会在下一次操作时失效并回到登录页；审批记录和审计日志保留。</div></div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--danger" type="button" id="do-disable">停用</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var who = '';
+      document.querySelectorAll('[data-reset]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          who = b.getAttribute('data-reset');
+          document.querySelector('[data-reset-who]').textContent = who;
+          window.oppoOpen('#m-reset');
+        });
+      });
+      document.querySelectorAll('[data-disable]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          who = b.getAttribute('data-disable');
+          document.querySelector('[data-disable-who]').textContent = who;
+          window.oppoOpen('#m-disable');
+          document.getElementById('do-disable').onclick = function () {
+            var tr = b.closest('tr');
+            tr.classList.add('is-off');
+            tr.children[3].innerHTML = '<span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>已停用</span>';
+            tr.lastElementChild.innerHTML = '<span class="small">11-03 停用</span>';
+            window.oppoClose('#m-disable');
+            window.oppoToast('已停用 ' + who + '，其会话将在下一次操作时失效');
+          };
+        });
+      });
+      document.getElementById('f-reset').addEventListener('submit', function (e) {
+        e.preventDefault();
+        window.oppoClose('#m-reset');
+        window.oppoToast('已重置 ' + who + ' 的密码');
+      });
+      var acc = document.getElementById('c-acc');
+      var existing = ['wen', 'zhoujianguo', 'lixiaomei', 'chenzhiqiang', 'wanglei', 'zhaomin'];
+      acc.addEventListener('blur', function () {
+        var dup = existing.indexOf(acc.value.trim()) >= 0;
+        acc.setAttribute('aria-invalid', String(dup));
+        var err = document.getElementById('c-acc-err');
+        err.lastChild.textContent = '账号 ' + acc.value.trim() + ' 已存在';
+        err.hidden = !dup;
+      });
+      var pw = document.getElementById('c-pw'), pw2 = document.getElementById('c-pw2');
+      pw2.addEventListener('blur', function () {
+        var bad = pw2.value && pw.value !== pw2.value;
+        pw2.setAttribute('aria-invalid', String(!!bad));
+        document.getElementById('c-pw-err').hidden = !bad;
+      });
+      document.getElementById('f-create').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var name = document.getElementById('c-name');
+        var invalid = false;
+        [name, acc, pw, pw2].forEach(function (el) {
+          var empty = !el.value.trim();
+          if (empty) el.setAttribute('aria-invalid', 'true');
+          invalid = invalid || empty || el.getAttribute('aria-invalid') === 'true';
+        });
+        if (invalid) return;
+        var role = document.querySelector('input[name=role]:checked').parentNode.querySelector('span').firstChild.textContent;
+        window.oppoClose('#m-create');
+        window.oppoToast('已创建账号 ' + name.value + '（' + role + '）');
+      });
+    })();
+  </script>
+</body>
+</html>

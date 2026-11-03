@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F15-02">
+  <title>工作台 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .wb-main > * + * { margin-top: var(--space-6); }
+    .wb-side > * + * { margin-top: var(--space-6); }
+    .wb-big { display: flex; align-items: baseline; gap: var(--space-2); }
+    .wb-big .hero-figure { font-size: var(--text-4xl); }
+    .wb-split { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-4); }
+    .wb-split dt { font-size: var(--text-xs); color: var(--muted); }
+    .wb-split dd { margin: 0; font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .spend { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+    .spend__row .row { justify-content: space-between; font-size: var(--text-sm); }
+    .spend__row .meter { margin-top: var(--space-2); }
+    .links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+    .links .card-link .row { font-weight: 600; }
+    .links .card-link p { margin-top: var(--space-1); font-size: var(--text-xs); color: var(--muted); }
+    .star { color: var(--warn); font-weight: 600; }
+    @media (max-width: 1279px) { .links { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 767px) { .links, .wb-split { grid-template-columns: minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <script src="assets/icons.js"></script>
+  <div class="app">
+<!--@SIDEBAR-->
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg><span data-role-name>wen · 操作者</span></span>
+        <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html">退出登录</a>
+      </header>
+
+      <main class="content">
+        <div class="page-head enter">
+          <div>
+            <h1>工作台</h1>
+            <p class="page-head__sub">2026-11-03 · 本月处理上月（2026-10）数据</p>
+          </div>
+        </div>
+
+        <div class="banner banner--ok enter" style="--i:1" role="status">
+          <svg class="icon"><use href="#ph-seal-check"/></svg>
+          <div class="banner__body">
+            <div class="banner__title">市场评分本月通过有效性检验</div>
+            <div class="small">D 档之后变大 24%<button class="etag etag--n" type="button" data-pop-title="D 档之后变大比例" data-pop="样本=D 档单元 n=186;阈值=≤ 30%（AC-F19-04）;把握分档=A 61% · B 44% · C 33% · D 24%，逐档上升;回测版本=2026-09 并入后重算（2026-10-07）">n=186</button>，阈值 ≤ 30%；把握分档逐档上升。依据 2026-09 并入后的重算，2026-10 数据并入后会重新检验。</div>
+          </div>
+          <div class="banner__actions" data-roles="operator approver"><a class="btn btn--sm" href="PAGE-F19-01.html">查看回测</a></div>
+        </div>
+
+        <div class="grid-main-side section">
+          <div class="wb-main">
+            <section class="panel enter" style="--i:2" data-roles="operator" aria-labelledby="t-data">
+              <div class="panel__head">
+                <h2 class="panel__title" id="t-data">本月数据状态</h2>
+                <span class="section__note">数据月份 2026-10 · 由 wen 手动发起，不做定时任务</span>
+              </div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead>
+                    <tr><th>渠道</th><th>月份</th><th>状态</th><th>核对说明</th><th>更新时间</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    <tr data-href="PAGE-F17-01.html">
+                      <td><span class="cell-title">Amazon</span></td>
+                      <td class="t-nowrap num">2026-10</td>
+                      <td><span class="badge badge--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg>疑似月份错误</span></td>
+                      <td><div>与 2026-09 小类排名完全相同的 ASIN 占 99.9%<button class="etag etag--n" type="button" data-pop-title="排名重合比例" data-pop="两月都出现的 ASIN=2,847;排名完全相同=2,844;阈值=> 10% 判疑似月份错误（AC-F17-03）;上月购买标日期=2026-09（不在所标月份）">n=2,847</button>，未并入</div><div class="cell-sub">上一个已并入月份：2026-09<span class="star">*</span>（数据来源切换）</div></td>
+                      <td class="t-nowrap muted small">11-02 15:12</td>
+                      <td class="t-nowrap"><a class="btn btn--sm" href="PAGE-F17-01.html">去处理</a></td>
+                    </tr>
+                    <tr data-href="PAGE-F28-01.html">
+                      <td><span class="cell-title">Home Depot</span></td>
+                      <td class="t-nowrap num">2026-10</td>
+                      <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已采集并入</span></td>
+                      <td>评论 VP 追踪完成，210 个商品，本月评论 412 条<span class="etag">去重后</span></td>
+                      <td class="t-nowrap muted small">11-02 10:40</td>
+                      <td class="t-nowrap"><a class="tlink small" href="PAGE-F28-01.html">查看</a></td>
+                    </tr>
+                    <tr data-href="PAGE-F28-01.html">
+                      <td><span class="cell-title">Lowe's</span></td>
+                      <td class="t-nowrap num">2026-10</td>
+                      <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已采集并入</span></td>
+                      <td>评论 VP 追踪完成，190 个商品，本月评论 455 条<span class="etag">去重后</span></td>
+                      <td class="t-nowrap muted small">11-02 13:05</td>
+                      <td class="t-nowrap"><a class="tlink small" href="PAGE-F28-01.html">查看</a></td>
+                    </tr>
+                    <tr data-href="PAGE-F28-01.html">
+                      <td><span class="cell-title">Wayfair</span></td>
+                      <td class="t-nowrap num">2026-10</td>
+                      <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已采集并入</span></td>
+                      <td>评论 VP 追踪完成，250 个商品，本月评论 871 条<span class="etag">去重后</span><div class="cell-sub">VP 口径不同，只在渠道内比较</div></td>
+                      <td class="t-nowrap muted small">11-02 14:26</td>
+                      <td class="t-nowrap"><a class="tlink small" href="PAGE-F28-01.html">查看</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <div class="grid-2">
+              <section class="panel enter" style="--i:3" data-roles="operator" aria-labelledby="t-tags">
+                <div class="panel__head">
+                  <h2 class="panel__title" id="t-tags">待确认标签</h2>
+                  <a class="btn btn--sm" href="PAGE-F18-01.html">去确认</a>
+                </div>
+                <div class="panel__body">
+                  <div class="wb-big"><span class="hero-figure num">37</span><span class="muted">条 · 元素 29、低置信度 8</span></div>
+                  <dl class="wb-split">
+                    <div><dt>Amazon</dt><dd>21</dd></div>
+                    <div><dt>Home Depot</dt><dd>6</dd></div>
+                    <div><dt>Lowe's</dt><dd>4</dd></div>
+                    <div><dt>Wayfair</dt><dd>6</dd></div>
+                  </dl>
+                </div>
+                <div class="panel__foot">同主图分为 14 组，一组确认一次</div>
+              </section>
+
+              <section class="panel enter" style="--i:3" data-roles="operator approver readonly" aria-labelledby="t-recon">
+                <div class="panel__head">
+                  <h2 class="panel__title" id="t-recon">本月到期对账</h2>
+                  <a class="tlink small" href="PAGE-F26-01.html">预测台账</a>
+                </div>
+                <ul class="list">
+                  <li class="list__item">
+                    <svg class="icon list__icon list__icon--warn"><use href="#ph-hourglass"/></svg>
+                    <div class="list__body">
+                      <div class="list__title">TZ-2026-004 · 36 英寸 · 整装 · 落地｜双盆</div>
+                      <div class="list__desc">满 6 个月：2026-10 · Amazon 等待数据（2026-10 未并入）· Home Depot 已判定做到（估算月销 268 件 ≥ 250）</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon list__icon--ok"><use href="#ph-check-circle"/></svg>
+                    <div class="list__body">
+                      <div class="list__title">TZ-2026-002 · 24 英寸 · 拆装 · 壁挂｜开放层板</div>
+                      <div class="list__desc">满 6 个月：2026-09 · Amazon 已自动对账：做到（2026-07 小类 BSR 38）</div>
+                    </div>
+                  </li>
+                  <li class="list__item">
+                    <svg class="icon list__icon list__icon--warn"><use href="#ph-link-simple"/></svg>
+                    <div class="list__body">
+                      <div class="list__title">TZ-2026-006 · 48 英寸 · 整装 · 落地｜岩板台面</div>
+                      <div class="list__desc">待关联：预计上架 2026-07，已超 3 个月仍未关联自家 ASIN</div>
+                    </div>
+                  </li>
+                </ul>
+              </section>
+            </div>
+          </div>
+
+          <aside class="wb-side">
+            <section class="panel enter" style="--i:2" data-roles="operator approver" aria-labelledby="t-appr">
+              <div class="panel__head">
+                <h2 class="panel__title" id="t-appr"><span data-appr-title>等待审批</span> <span class="badge badge--warn num">2</span></h2>
+                <a class="tlink small" href="PAGE-F25-01.html">审批</a>
+              </div>
+              <ul class="list">
+                <li class="list__item">
+                  <svg class="icon list__icon"><use href="#ph-cards"/></svg>
+                  <div class="list__body">
+                    <a class="list__title tlink" href="PAGE-F21-02.html">30 英寸 · 整装 · 落地｜台面材质 = 岩板</a>
+                    <div class="list__desc">决策卡立项 · wen 提交于 11-01 17:20 · 主渠道 Amazon</div>
+                  </div>
+                </li>
+                <li class="list__item">
+                  <svg class="icon list__icon"><use href="#ph-stack"/></svg>
+                  <div class="list__body">
+                    <a class="list__title tlink" href="PAGE-F25-02.html">带抽屉的 24 英寸窄柜在 Wayfair 份额更稳定</a>
+                    <div class="list__desc">策略库申请改为"已验证" · wen 提交于 10-30 09:45</div>
+                  </div>
+                </li>
+              </ul>
+            </section>
+
+            <section class="panel enter" style="--i:3" data-roles="operator" aria-labelledby="t-spend">
+              <div class="panel__head">
+                <h2 class="panel__title" id="t-spend">本月花费 / 上限</h2>
+                <a class="tlink small" href="PAGE-F16-02.html">预算与费用</a>
+              </div>
+              <div class="panel__body spend">
+                <div class="spend__row">
+                  <div class="row"><span>卖家精灵</span><span class="num">3,120 / 5,000 次<span class="etag">62%</span></span></div>
+                  <div class="meter" role="meter" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" aria-label="卖家精灵已用 62%"><i style="width:62%"></i></div>
+                </div>
+                <div class="spend__row">
+                  <div class="row"><span>Bright Data</span><span class="num">$65.60 / $80.00<span class="etag etag--snap">82%</span></span></div>
+                  <div class="meter meter--warn" role="meter" aria-valuenow="82" aria-valuemin="0" aria-valuemax="100" aria-label="Bright Data 已用 82%"><i style="width:82%"></i></div>
+                  <div class="field__hint">已用超过 80%，达到上限后自动停止新调用</div>
+                </div>
+                <div class="spend__row">
+                  <div class="row"><span>Apify</span><span class="num">$27.90 / $60.00<span class="etag">47%</span></span></div>
+                  <div class="meter" role="meter" aria-valuenow="47" aria-valuemin="0" aria-valuemax="100" aria-label="Apify 已用 47%"><i style="width:47%"></i></div>
+                </div>
+                <div class="spend__row">
+                  <div class="row"><span>大模型 · Claude</span><span class="num">$18.75 / $50.00<span class="etag">38%</span></span></div>
+                  <div class="meter" role="meter" aria-valuenow="38" aria-valuemin="0" aria-valuemax="100" aria-label="大模型已用 38%"><i style="width:38%"></i></div>
+                </div>
+              </div>
+              <div class="panel__foot">统计区间 2026-11-01 至今</div>
+            </section>
+          </aside>
+        </div>
+
+        <section class="section enter" style="--i:4" aria-labelledby="t-links">
+          <div class="section__head"><h2 class="section__title" id="t-links">常用入口</h2></div>
+          <div class="links">
+            <a class="card-link" href="PAGE-F20-01.html"><div class="row"><svg class="icon"><use href="#ph-target"/></svg>机会扫描</div><p>按尺寸 × 拆装 × 形态分框，四个渠道分开看</p></a>
+            <a class="card-link" href="PAGE-F21-01.html"><div class="row"><svg class="icon"><use href="#ph-cards"/></svg>决策卡</div><p>12 张 · 草稿 3、待审批 1、跟踪中 6</p></a>
+            <a class="card-link" href="PAGE-F26-01.html"><div class="row"><svg class="icon"><use href="#ph-book-open-text"/></svg>预测台账</div><p>8 条登记 · 已对账 3</p></a>
+            <a class="card-link" href="PAGE-F25-02.html"><div class="row"><svg class="icon"><use href="#ph-stack"/></svg>策略库</div><p>23 条结论 · 已验证 5</p></a>
+          </div>
+        </section>
+
+        <p class="page-foot">数据每月由 wen 手动发起更新，系统不做定时任务。</p>
+      </main>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var role = location.hash === '#approver' ? 'approver' : location.hash === '#readonly' ? 'readonly' : 'operator';
+      var names = { operator: 'wen · 操作者', approver: '周建国 · 审批者', readonly: '李晓梅 · 只读' };
+      var navAllow = {
+        approver: ['PAGE-F15-02', 'PAGE-F19-01', 'PAGE-F20-01', 'PAGE-F21-01', 'PAGE-F25-01', 'PAGE-F25-02', 'PAGE-F26-01', 'PAGE-F24-01'],
+        readonly: ['PAGE-F15-02', 'PAGE-F20-01', 'PAGE-F21-01', 'PAGE-F25-02', 'PAGE-F26-01', 'PAGE-F24-01']
+      };
+      document.querySelector('[data-role-name]').textContent = names[role];
+      document.querySelectorAll('[data-roles]').forEach(function (el) {
+        if (el.getAttribute('data-roles').split(' ').indexOf(role) < 0) el.remove();
+      });
+      if (role === 'approver') document.querySelector('[data-appr-title]').textContent = '待我审批';
+      if (role !== 'operator') {
+        var allow = navAllow[role];
+        document.querySelectorAll('.nav__item').forEach(function (a) {
+          var id = a.getAttribute('href').replace('.html', '');
+          if (allow.indexOf(id) < 0) a.remove();
+        });
+        document.querySelectorAll('.nav__group').forEach(function (g) {
+          var next = g.nextElementSibling;
+          if (!next || next.classList.contains('nav__group')) g.remove();
+        });
+        var side = document.querySelector('.wb-side');
+        if (side && !side.children.length) { side.remove(); document.querySelector('.grid-main-side').style.gridTemplateColumns = 'minmax(0, 1fr)'; }
+      }
+    })();
+  </script>
+</body>
+</html>
