@@ -115,6 +115,13 @@ td.pc input{width:84px}
 .hb input[type=number]{width:52px;padding:2px 4px;font-size:12px}
 .hb .btn{padding:2px 7px;font-size:11px}
 .card .kv{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+.aiprev td input.wide{width:170px}
+.aiprev td input.key{width:120px}
+.pk{font-family:var(--f-num);font-size:12px;white-space:nowrap}
+tr.bad td{background:var(--warn-soft)}
+.qgrp{margin-bottom:14px}
+.qgrp h3{display:flex;gap:8px;align-items:baseline}
+td.best{outline:2px solid var(--pos);outline-offset:-2px}
 .toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:var(--r);font-size:13px;z-index:20}
 @media (prefers-reduced-motion:no-preference){.btn,nav.steps button{transition:background .15s,border-color .15s}}
 </style>
@@ -127,6 +134,7 @@ td.pc input{width:84px}
     <button data-step="3"><b>3</b>参数设置</button>
     <button data-step="4"><b>4</b>利润测算表</button>
     <button data-step="5">历史库<span class="chip" id="histCount" style="padding:0 6px">0</span></button>
+    <button data-step="6">报价库<span class="chip" id="quoteCount" style="padding:0 6px">0</span></button>
   </nav>
 </div></header>
 
@@ -148,10 +156,45 @@ td.pc input{width:84px}
         <input type="file" id="jsonFile" accept=".json" hidden>
       </div>
     </div>
+    <div class="panel" id="aiPanel">
+      <h3>AI 识别任意格式的工厂报价单</h3>
+      <p class="note">支持 Excel / CSV、报价单截图或照片（PNG / JPG）；PDF 仅在本地填了 API Key 时可用。AI 会找出每个产品的型号、外箱尺寸、毛重、出厂价和币种，你核对后导入，可同时存进“报价库”做版本和工厂对比。</p>
+      <input type="file" id="aiFile" accept=".xlsx,.xls,.xlsm,.csv,.png,.jpg,.jpeg,.webp,.pdf" aria-label="选择报价单文件">
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="btnAi">开始 AI 识别</button><button class="btn" id="btnAiStop" hidden>停止</button><span class="note" id="aiMode"></span></div>
+      <p class="note" id="aiStatus" role="status"></p>
+      <details id="aiCfg" style="margin-top:8px"><summary>AI 接口设置（本地文件或想用其他模型时）</summary>
+        <p class="note">在 claude.ai 链接里打开、且这里选“自动”时，直接用你的 Claude 账号，不需要 Key。下载到本地打开、或想换别家模型时，在这里接自己的 API。Key 只存在这个浏览器里，只发给你填的接口地址。</p>
+        <div class="kv" style="margin-top:6px">
+          <label class="f">接口类型<select id="aiProv"><option value="auto">自动（claude.ai 里用 Claude 账号）</option><option value="anthropic">Anthropic（Claude API）</option><option value="openai">OpenAI 兼容接口（DeepSeek / 通义千问 / Kimi / 豆包 / OpenAI 等）</option></select></label>
+          <label class="f">接口地址<input id="aiBase" placeholder="https://api.openai.com/v1"></label>
+          <label class="f">模型名<input id="aiModel" placeholder="例如 deepseek-chat、qwen-vl-max"></label>
+          <label class="f">API Key<input type="password" id="aiKey" placeholder="填写后保存" autocomplete="off"></label>
+        </div>
+        <div class="row" style="margin-top:8px"><button class="btn sm" id="btnAiKeySave">保存设置</button><button class="btn sm danger" id="btnAiKeyClear">清除 Key</button></div>
+        <p class="note">OpenAI 兼容接口填到 /v1 为止（程序会自动加 /chat/completions）。识别截图需要选支持图片的模型；PDF 只有 Anthropic 接口支持。有些服务不允许浏览器直接调用（跨域限制），会提示“连接失败”，这时需要换服务或加一层中转。</p>
+      </details>
+    </div>
     <div class="panel">
       <h3>当前项目</h3>
       <p class="note" id="projInfo"></p>
       <p class="note">数据自动保存在本浏览器里；换电脑或清缓存前，请在第 4 步“保存方案”导出 .json。</p>
+    </div>
+  </div>
+  <div id="aiArea" hidden>
+    <h2>核对 AI 识别结果</h2>
+    <p class="lead">黄色框都能改。标黄的行缺尺寸、毛重或价格，请补全或删除。“对比键”用来在报价库里对齐不同工厂的同一规格。</p>
+    <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+      <div class="row">
+        <label class="f">工厂<input id="aiFactory" style="width:180px"></label>
+        <label class="f">报价版本<input id="aiVersion" style="width:200px"></label>
+        <label class="f">报价日期<input id="aiDate" type="date"></label>
+        <label class="f">导入方式<select id="aiMode2"><option value="replace">替换当前产品</option><option value="append">追加到当前产品</option></select></label>
+      </div>
+      <div class="tw aiprev" id="aiTable"></div>
+      <div class="row end"><span class="note" id="aiCount"></span>
+        <button class="btn" id="btnAiSaveQ">只存进报价库</button>
+        <button class="btn" id="btnAiImport">只导入为当前产品</button>
+        <button class="btn primary" id="btnAiBoth">导入并存进报价库 →</button></div>
     </div>
   </div>
   <div id="mapArea" hidden>
@@ -169,7 +212,7 @@ td.pc input{width:84px}
       </div>
       <div class="kv" id="mapFields"></div>
       <div class="tw" id="mapPreview" style="max-height:320px"></div>
-      <div class="row end"><span class="note" id="mapCount"></span><button class="btn primary" id="btnImport">导入并确认 →</button></div>
+      <div class="row end"><span class="note" id="mapCount"></span><button class="btn" id="btnAiThis">识别不对？让 AI 识别这份文件</button><button class="btn primary" id="btnImport">导入并确认 →</button></div>
     </div>
   </div>
 </section>
@@ -218,6 +261,30 @@ td.pc input{width:84px}
   <details><summary>FBM 尾程派送费 + 订单处理费（按计费重 lb，1–150）</summary><p class="note">FBM 尾程合计 = (尾程派送 + 订单处理 + 异常附加 + 住宅附加) × (1 + 燃油附加费%)，燃油费率在“基础变量”里改。</p><div class="tw" id="pTail" style="max-height:420px"></div></details>
   <details style="margin-top:8px"><summary>FBM 尾程异常附加费</summary><div class="tw" id="pSurch"></div></details>
   <details style="margin-top:8px"><summary>CG 尾程收费标准</summary><div class="tw" id="pCg"></div></details>
+</section>
+
+<!-- AI preview lives in step 1 -->
+<!-- STEP 6 -->
+<section id="s6" hidden>
+  <h2>报价库</h2>
+  <p class="lead">每份工厂报价存成一个版本（工厂 + 版本名 + 日期）。勾选几个版本对比：同一工厂的不同版本 = 看涨价降价；不同工厂 = 比谁便宜、谁的包装更省运费。按“对比键”（例如 30寸 落地式）把同规格产品对齐。</p>
+  <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+    <div class="row"><span class="muted">把当前产品存为报价版本：</span>
+      <input id="qFactory" list="qFactoryList" placeholder="工厂名" style="width:160px" aria-label="工厂名"><datalist id="qFactoryList"></datalist>
+      <input id="qVersion" placeholder="版本名（如 2026-11 报价）" style="width:200px" aria-label="版本名">
+      <input id="qDate" type="date" aria-label="报价日期">
+      <button class="btn primary" id="btnQSave">保存</button>
+      <span style="flex:1"></span><span class="note" id="qMode"></span></div>
+  </div>
+  <div id="qMsg"></div>
+  <h2>所有报价版本</h2>
+  <div id="qList"></div>
+  <h2>报价对比</h2>
+  <div class="row" style="margin-bottom:10px">
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">对比指标<select id="qMetric"></select></label>
+    <span class="note" id="qSelNote"></span><span style="flex:1"></span>
+    <button class="btn sm" id="btnQExport">导出对比 Excel</button></div>
+  <div class="tw" id="qCompare"></div>
 </section>
 
 <!-- STEP 5 -->
@@ -287,7 +354,7 @@ function platDefaults(){ return {
   wf:{on:true,upPct:15,markup:2.1,disc:25,ship:"none",fixed:0,ads:10,fx:1,comm:4,refund:5,storage:2,outbound:4}}; }
 function defaultParams(){ return {
   rate:6.8, promo:10, fxLoss:1, refund:8, tax:13, residential:false,
-  listFactor:1.15, targetMargin:15, bulk:{plat:"all",pct:15,r99:true,promo:true}, seaView:0, detailChan:"amz:fbm", scenChan:"amz:fbm", showAmz:{fbm:true,cg:true,fba:true}, plat:platDefaults(),
+  listFactor:1.15, targetMargin:15, bulk:{plat:"all",pct:15,r99:true,promo:true}, seaView:0, detailChan:"amz:fbm", scenChan:"amz:fbm", qMetric:"cost", showAmz:{fbm:true,cg:true,fba:true}, plat:platDefaults(),
   commission:{threshold:200, furnLow:15, furnHigh:10, 汽配:12, 工业机械:12, 农机花园:15, 其他:15},
   sea:[{name:"FOB整柜·近三个月",rmb:100891,cbm:68},{name:"FOB整柜·近六个月",rmb:62891,cbm:68}],
   fbm:{dimDiv:250, lbPerKg:2.2046226, ceilLb:2.2, fuel:29.5},
@@ -476,12 +543,12 @@ document.addEventListener("change",e=>{ const t=e.target; if(t.dataset&&t.datase
 document.addEventListener("click",e=>{ const t=e.target.closest("[data-happly]"); if(!t) return; const k=t.dataset.happly, inp=t.parentElement.querySelector("[data-hpct]"); applyUp([k], inp&&inp.value!==""?num(inp.value):nz(P.plat[k].upPct)); });
 
 /* ---------------- step navigation ---------------- */
-function go(n){ step=n; for(let i=1;i<=5;i++) document.getElementById("s"+i).hidden=i!==n;
+function go(n){ step=n; for(let i=1;i<=6;i++) document.getElementById("s"+i).hidden=i!==n;
   document.querySelectorAll("#steps button").forEach(b=>{ if(+b.dataset.step===n) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current"); });
   render(); try{ localStorage.setItem("pc_step",n);}catch(e){} window.scrollTo(0,0); }
 document.getElementById("steps").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) go(+b.dataset.step); });
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-go]"); if(b) go(+b.dataset.go); });
-function render(){ renderBulk(); if(step===1) renderS1(); if(step===2) renderS2(); if(step===3) renderS3(); if(step===4) renderS4(); if(step===5) renderS5(); }
+function render(){ renderBulk(); if(step===1) renderS1(); if(step===2) renderS2(); if(step===3) renderS3(); if(step===4) renderS4(); if(step===5) renderS5(); if(step===6) renderS6(); }
 
 /* ---------------- step 1: import ---------------- */
 const FIELDS=[
@@ -503,11 +570,12 @@ const FIELDS=[
   {k:"wfList",label:"Wayfair 上架价",pats:[]}
 ];
 const norm=s=>String(s??"").replace(/\s+/g," ").trim();
-function renderS1(){
+function renderS1(){ aiModeText();
   const n=products.length, k=products.reduce((a,p)=>a+p.pkgs.length,0);
   document.getElementById("projInfo").textContent = n? `已有 ${n} 个产品、${k} 个包裹。导入新报价表时可选择替换或追加。` : "还没有产品。";
 }
-function readFile(f){
+let lastFile=null;
+function readFile(f){ lastFile=f;
   const r=new FileReader();
   r.onload=e=>{ try{ wbIn=XLSX.read(new Uint8Array(e.target.result),{type:"array"}); setupMap(); }catch(err){ toast("无法读取这个文件："+err.message); } };
   r.readAsArrayBuffer(f);
@@ -598,7 +666,7 @@ function renderS2(){
       if(gi===0&&[g.l,g.w,g.h,g.kg].some(v=>!(nz(v)>0))) issues.push(`${p.name}：包裹尺寸或毛重不完整`);
       const pc= nz(g.l)*nz(g.w)*nz(g.h)/1e6;
       const head = gi? "" : `
-        <td rowspan="${n}"><input class="wide" data-p="${pi}" data-k="name" value="${esc(p.name)}"></td>
+        <td rowspan="${n}"><input class="wide" data-p="${pi}" data-k="name" value="${esc(p.name)}"><br><input class="wide" data-p="${pi}" data-k="key" value="${esc(p.key||"")}" placeholder="对比键：${esc(autoKey(p.name))}" title="对比键：报价库里对齐不同工厂同一规格用，例如 30寸 落地式" style="margin-top:4px;font-size:12px"></td>
         <td rowspan="${n}"><textarea data-p="${pi}" data-k="desc">${esc(p.desc)}</textarea></td>
         <td rowspan="${n}"><input data-p="${pi}" data-k="supplier" value="${esc(p.supplier)}" style="width:90px"></td>
         <td rowspan="${n}"><select data-p="${pi}" data-k="category">${catOpts(p.category)}</select></td>
@@ -883,6 +951,221 @@ document.getElementById("btnExport").addEventListener("click",()=>{
 });
 document.getElementById("btnSaveJson").addEventListener("click",()=>offer(`利润测算方案_${stamp()}.json`,JSON.stringify({version:1,params:P,products},null,1),"application/json"));
 
+/* ================= AI quote recognition ================= */
+let sampleFn=null, aiCtl=null, aiResult=null;
+const AI_MODEL="claude-opus-5-5";
+const aiCfg=()=>{ const d={prov:"auto",base:"",model:"",key:""}; try{ return Object.assign(d,JSON.parse(localStorage.getItem("pc_ai_cfg")||"{}")); }catch(e){ return d; } };
+const aiKey=()=>aiCfg().key;
+/* Which channel a call will use: Claude via the claude.ai viewer, or the user's own Anthropic / OpenAI-compatible API. */
+function aiChannel(){ const c=aiCfg(); if(c.prov==="auto") return sampleFn?"sample":c.key?(c.base?"openai":"anthropic"):"none"; if(!c.key) return sampleFn&&c.prov==="auto"?"sample":"none"; return c.prov; }
+function aiModeText(){ const el=document.getElementById("aiMode"); if(!el) return; const c=aiCfg(), ch=aiChannel();
+  el.textContent=ch==="sample"?"使用你的 Claude 账号识别":ch==="anthropic"?`使用 Anthropic API（${c.model||AI_MODEL}）`:ch==="openai"?`使用 ${c.base||"OpenAI 兼容接口"}（${c.model||"未填模型"}）`:"尚未连接 AI：在 claude.ai 链接里打开，或在下方“AI 接口设置”接入你的 API";
+  const pv=document.getElementById("aiProv"); if(pv&&document.activeElement!==pv){ pv.value=c.prov; document.getElementById("aiBase").value=c.base; document.getElementById("aiModel").value=c.model; document.getElementById("aiKey").placeholder=c.key?"已保存（重新填写可替换）":"填写后保存"; } }
+function autoKey(name){ const m=String(name||"").match(/(\d{2,3})\s*(寸|"|”|''|inch|in\b|英寸)/i); return m?m[1]+"寸":String(name||"").trim(); }
+const today=()=>{ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const fileB64=f=>new Promise((ok,no)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]); r.onerror=()=>no(r.error); r.readAsDataURL(f); });
+function sheetText(wb){ const MAX=70000; let out="", cut=false;
+  for(const n of wb.SheetNames){ const csv=XLSX.utils.sheet_to_csv(wb.Sheets[n],{blankrows:false}).split("\n").filter(l=>l.replace(/,/g,"").trim()).join("\n"); const part=`\n### 工作表：${n}\n${csv}\n`;
+    if(out.length+part.length>MAX){ out+=part.slice(0,Math.max(0,MAX-out.length)); cut=true; break; } out+=part; }
+  return {text:out,cut}; }
+function aiPrompt(body){
+  const keys=[...new Set(qlib.items.flatMap(q=>(q.items||[]).map(i=>i.key)).filter(Boolean))].slice(0,80);
+  return `你是外贸采购助理。下面是一份工厂报价单，格式不固定（可能有多个工作表、合并单元格、中英文混排、一个产品占多行、多包裹）。请提取每个产品的报价信息。
+
+只输出一个 JSON 对象，不要任何解释文字。格式：
+{"factory":"工厂名，找不到就空字符串","quote_date":"YYYY-MM-DD，找不到就空字符串","items":[{"name":"型号或品名","desc":"材质/颜色/配置，简短","match_key":"规格键","price":数字或null,"price_currency":"USD 或 RMB","price_tax":"FOB 或 含税 或 未税","moq":数字或null,"packages":[{"l":数字,"w":数字,"h":数字,"dim_unit":"cm 或 mm 或 in","weight":数字或null,"weight_unit":"kg 或 lb"}],"notes":"拿不准的地方，没有就空字符串"}]}
+
+规则：
+1. packages 用外箱/纸箱/包装尺寸和毛重，不要用产品本身尺寸或净重；一个产品分几个箱子就列几个 package。
+2. 有多档价格时优先取 FOB 美元价；只有人民币价时取人民币，并按表里写法标含税或未税（看不出来标“含税”并在 notes 说明）。
+3. 同一型号只是颜色不同、价格和包装都相同，合并成一条，颜色写进 desc。
+4. match_key 用于跨工厂对比同一规格，格式如“30寸 落地式”“24寸 单盆”：尺寸写成“数字+寸”，再加最能区分款式的一两个词。${keys.length?"已有这些规格键，同规格请原样复用："+keys.join("、"):""}
+5. 不要编造：表里没有的数填 null，并在 notes 说明。
+
+报价单内容：
+${body}`; }
+function parseLoose(t){ try{ return JSON.parse(t); }catch(e){} const a=t.indexOf("{"), b=t.lastIndexOf("}"); if(a>=0&&b>a){ try{ return JSON.parse(t.slice(a,b+1)); }catch(e){} } throw {code:"invalid_json",message:"AI 返回的不是有效 JSON"}; }
+async function aiCall(prompt,{images=[],pdf=null,signal,onProgress}={}){
+  const ch=aiChannel(), cfg=aiCfg();
+  if(ch==="sample"){
+    if(pdf) throw {code:"pdf",message:"在 claude.ai 里识别 PDF 暂不支持：请把 PDF 截图成图片上传，或另存为 Excel。"};
+    return await sampleFn.json(prompt,{signal,modelTier:"default",images:images.length?images:undefined,onText:({text})=>onProgress&&onProgress(text.length)});
+  }
+  const key=cfg.key; if(ch==="none"||!key) throw {code:"no_ai",message:"没有可用的 AI：请在 claude.ai 链接里打开这个页面，或在“AI 接口设置”里接入你的 API。"};
+  if(ch==="openai"){
+    if(pdf) throw {code:"pdf",message:"OpenAI 兼容接口不支持直接读 PDF：请截图成图片，或另存为 Excel。"};
+    if(!cfg.model) throw {code:"no_model",message:"请在“AI 接口设置”里填写模型名。"};
+    const base=(cfg.base||"https://api.openai.com/v1").replace(/\/+$/,"").replace(/\/chat\/completions$/,"");
+    const content=images.length?[{type:"text",text:prompt},...await Promise.all(images.map(async f=>({type:"image_url",image_url:{url:`data:${f.type||"image/png"};base64,${await fileB64(f)}`}})))]:prompt;
+    let res; try{ res=await fetch(base+"/chat/completions",{method:"POST",signal,headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model:cfg.model,messages:[{role:"user",content}]})}); }
+    catch(e){ if(e&&e.name==="AbortError") throw {code:"cancelled"}; throw {code:"network",message:"连接失败：接口地址不对，或这家服务不允许浏览器直接调用（跨域限制）。"}; }
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok) throw {code:"http_"+res.status,message:(j.error&&(j.error.message||j.error))||("请求失败 "+res.status)};
+    const c0=j.choices&&j.choices[0]; if(c0&&c0.finish_reason==="length") throw {code:"too_long",message:"报价单太长，AI 没写完。请拆成几个文件分别识别。"};
+    return parseLoose(String(c0&&c0.message&&c0.message.content||""));
+  }
+  const content=[]; for(const f of images) content.push({type:"image",source:{type:"base64",media_type:f.type||"image/png",data:await fileB64(f)}});
+  if(pdf) content.push({type:"document",source:{type:"base64",media_type:"application/pdf",data:await fileB64(pdf)}});
+  content.push({type:"text",text:prompt});
+  const model=cfg.model||AI_MODEL, base=(cfg.base||"https://api.anthropic.com").replace(/\/+$/,"").replace(/\/v1(\/messages)?$/,"");
+  const fb=/^claude-(opus-5-5|opus-5|fable-5-1)$/.test(model);
+  let res; try{ res=await fetch(base+"/v1/messages",{method:"POST",signal,headers:Object.assign({"content-type":"application/json","x-api-key":key,"anthropic-version":"2026-10-21","anthropic-dangerous-direct-browser-access":"true"},fb?{"anthropic-beta":"server-side-fallback-2026-07-01"}:{}),
+    body:JSON.stringify(Object.assign({model,max_tokens:16000,messages:[{role:"user",content}]},fb?{fallbacks:"default",output_config:{effort:"medium"}}:{}))}); }
+  catch(e){ if(e&&e.name==="AbortError") throw {code:"cancelled"}; throw {code:"network",message:"连接 Anthropic API 失败，请检查网络或接口地址。"}; }
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok) throw {code:"http_"+res.status,message:(j.error&&j.error.message)||("请求失败 "+res.status)};
+  if(j.stop_reason==="refusal") throw {code:"refused",message:"AI 拒绝处理这份内容。"};
+  if(j.stop_reason==="max_tokens") throw {code:"too_long",message:"报价单太长，AI 没写完。请拆成几个文件分别识别。"};
+  return parseLoose((j.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(""));
+}
+function normItems(raw){
+  const cv=(v,u)=>{ const n=num(v); if(!isFinite(n)) return ""; u=String(u||"cm").toLowerCase(); return +(u==="mm"?n/10:u.startsWith("in")?n*2.54:n).toFixed(2); };
+  const wv=(v,u)=>{ const n=num(v); if(!isFinite(n)) return ""; return +(/lb/i.test(u||"")?n*0.45359237:n).toFixed(3); };
+  return (Array.isArray(raw)?raw:[]).map(it=>{ const cur=String(it.price_currency||"USD").toUpperCase().includes("RMB")||/CNY|人民币|¥/.test(it.price_currency||"")?(/未税|不含税/.test(it.price_tax||"")?"RMB_NET":"RMB_TAX"):"USD";
+    const pk=(Array.isArray(it.packages)?it.packages:[]).map(g=>({l:cv(g.l,g.dim_unit),w:cv(g.w,g.dim_unit),h:cv(g.h,g.dim_unit),kg:wv(g.weight,g.weight_unit)}));
+    return {key:String(it.match_key||autoKey(it.name)||"").trim(),name:String(it.name||"").trim()||"未命名",desc:String(it.desc||""),cost:isFinite(num(it.price))?num(it.price):"",costCur:cur,moq:isFinite(num(it.moq))?num(it.moq):"",pkgs:pk.length?pk:[{l:"",w:"",h:"",kg:""}],notes:String(it.notes||"")}; }); }
+async function aiRun(file){
+  if(!file){ toast("先选择报价单文件"); return; }
+  const st=document.getElementById("aiStatus"), stop=document.getElementById("btnAiStop"), go_=document.getElementById("btnAi");
+  const ext=(file.name.split(".").pop()||"").toLowerCase(); let prompt, images=[], pdf=null, note="";
+  try{
+    if(["png","jpg","jpeg","webp"].includes(ext)){ images=[file]; prompt=aiPrompt("（见附带的报价单图片）"); }
+    else if(ext==="pdf"){ pdf=file; prompt=aiPrompt("（见附带的 PDF 报价单）"); }
+    else { const wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:"array"}); const t=sheetText(wb); if(t.cut) note="（表格太长，只发送了前约 7 万字，后面的产品请拆分文件再识别）"; prompt=aiPrompt(t.text); }
+  }catch(e){ st.textContent="读不了这个文件："+(e.message||e); return; }
+  aiCtl=new AbortController(); stop.hidden=false; go_.disabled=true; const t0=Date.now(); let chars=0;
+  const tick=setInterval(()=>{ st.textContent=`AI 识别中… 已用 ${Math.round((Date.now()-t0)/1000)} 秒${chars?`，已输出 ${chars} 字`:""}${note}`; },1000);
+  st.textContent="AI 识别中…"+note;
+  try{
+    const out=await aiCall(prompt,{images,pdf,signal:aiCtl.signal,onProgress:n=>{chars=n;}});
+    const items=normItems(out&&out.items);
+    if(!items.length){ st.textContent="AI 没有在这份文件里找到产品报价。"; return; }
+    aiResult={factory:String(out.factory||""),date:/^\d{4}-\d{2}-\d{2}$/.test(out.quote_date||"")?out.quote_date:today(),items,file:file.name};
+    st.textContent=`识别完成：${items.length} 个产品，用时 ${Math.round((Date.now()-t0)/1000)} 秒。请在下方核对。${note}`;
+    showAi();
+  }catch(e){
+    const msg={cancelled:"已停止。",not_granted:"你没有允许这个页面使用 Claude。",rate_limited:"调用太频繁或已达用量上限，请稍后再试。",sampling_disabled:"你的账号当前不能在页面里使用 Claude。",invalid_json:"AI 返回的格式不对，请再试一次。",refused:"AI 拒绝处理这份内容。"}[e&&e.code];
+    st.textContent=msg||("识别失败："+((e&&e.message)||e));
+  }finally{ clearInterval(tick); stop.hidden=true; go_.disabled=false; aiCtl=null; }
+}
+function showAi(){ const a=document.getElementById("aiArea"); a.hidden=false;
+  document.getElementById("aiFactory").value=aiResult.factory; document.getElementById("aiDate").value=aiResult.date;
+  document.getElementById("aiVersion").value=`${aiResult.date} 报价`; renderAiTable(); a.scrollIntoView({behavior:"smooth"}); }
+const itemBad=it=>!(nz(it.cost)>0)||it.pkgs.some(g=>[g.l,g.w,g.h,g.kg].some(v=>!(nz(v)>0)));
+function renderAiTable(){
+  const it=aiResult.items, ccy=(v,i)=>`<select data-ai="${i}" data-k="costCur">${Object.entries(COST_CUR).map(([k,l])=>`<option value="${k}" ${k===v?"selected":""}>${l}</option>`).join("")}</select>`;
+  document.getElementById("aiTable").innerHTML=`<table><thead><tr><th>#</th><th>对比键</th><th>品名 / 型号</th><th>描述</th><th>包裹（长×宽×高 cm · 毛重 kg）</th><th>出厂价</th><th>币种</th><th>MOQ</th><th>AI 备注</th><th></th></tr></thead><tbody>${it.map((x,i)=>`<tr class="${itemBad(x)?"bad":""}">
+    <td class="c">${i+1}</td><td><input class="key" data-ai="${i}" data-k="key" value="${esc(x.key)}"></td><td><input class="wide" data-ai="${i}" data-k="name" value="${esc(x.name)}"></td>
+    <td class="note" style="max-width:220px;white-space:normal">${esc(x.desc)}</td>
+    <td class="pk">${x.pkgs.map(g=>`${f1(num(g.l))}×${f1(num(g.w))}×${f1(num(g.h))} · ${f1(num(g.kg))}`).join("<br>")}</td>
+    <td><input type="number" step="any" data-ai="${i}" data-k="cost" value="${esc(x.cost)}"></td><td>${ccy(x.costCur,i)}</td><td class="n">${esc(x.moq)}</td>
+    <td style="max-width:220px;white-space:normal">${x.notes?`<span class="chip warn" style="white-space:normal">${esc(x.notes)}</span>`:""}</td>
+    <td><button class="btn sm danger" data-aidel="${i}">删</button></td></tr>`).join("")}</tbody></table>`;
+  const bad=it.filter(itemBad).length; document.getElementById("aiCount").textContent=`${it.length} 个产品${bad?`，${bad} 个缺数据（导入后可在第 2 步补）`:""}`;
+}
+document.getElementById("aiTable").addEventListener("change",e=>{ const t=e.target; if(t.dataset.ai===undefined) return; const x=aiResult.items[+t.dataset.ai]; x[t.dataset.k]=t.dataset.k==="cost"?(t.value===""?"":num(t.value)):t.value; setTimeout(renderAiTable); });
+document.getElementById("aiTable").addEventListener("click",e=>{ const b=e.target.closest("[data-aidel]"); if(!b) return; aiResult.items.splice(+b.dataset.aidel,1); renderAiTable(); });
+const findByKey=key=>{ const k=String(key||"").trim().toLowerCase(); return k?products.find(p=>String(p.key||autoKey(p.name)).trim().toLowerCase()===k):null; };
+/* Quote items → products. Prices (Amazon + platforms) carry over from current products with the same match key. */
+function itemsToProducts(items,factory){ const pk=allPeak()==="旺季"?"旺季":"非旺季";
+  return items.map(x=>{ const old=findByKey(x.key); return {id:uid(),name:x.name,key:x.key,desc:x.desc,supplier:factory||"",category:old?old.category:"家具",peak:old?old.peak:pk,
+    price:old?old.price:"",prices:old?clone(old.prices||{}):{},qty:old?old.qty:undefined,cost:x.cost,costCur:x.costCur,adj:0,pkgs:clone(x.pkgs)}; }); }
+function aiMeta(){ return {factory:document.getElementById("aiFactory").value.trim(),version:document.getElementById("aiVersion").value.trim(),date:document.getElementById("aiDate").value||today()}; }
+function aiImport(){ const m=aiMeta(), ps=itemsToProducts(aiResult.items,m.factory); const kept=ps.filter(p=>nz(p.price)>0).length;
+  products=document.getElementById("aiMode2").value==="append"?products.concat(ps):ps; save(); toast(`已导入 ${ps.length} 个产品${kept?`，${kept} 个沿用了原来的售价`:""}`); }
+async function aiSaveQ(){ const m=aiMeta(); if(!m.factory){ toast("先填工厂名"); document.getElementById("aiFactory").focus(); return false; }
+  return await qSave({factory:m.factory,version:m.version||`${m.date} 报价`,date:m.date,source:aiResult.file||"",items:clone(aiResult.items).map(({notes,...x})=>x)}); }
+document.getElementById("btnAi").addEventListener("click",()=>aiRun(document.getElementById("aiFile").files[0]));
+document.getElementById("btnAiThis").addEventListener("click",()=>aiRun(lastFile));
+document.getElementById("btnAiStop").addEventListener("click",()=>aiCtl&&aiCtl.abort());
+document.getElementById("btnAiImport").addEventListener("click",()=>{ aiImport(); go(2); });
+document.getElementById("btnAiSaveQ").addEventListener("click",async()=>{ if(await aiSaveQ()) go(6); });
+document.getElementById("btnAiBoth").addEventListener("click",async()=>{ if(!(await aiSaveQ())) return; aiImport(); go(2); });
+document.getElementById("btnAiKeySave").addEventListener("click",()=>{ const c=aiCfg(), v=document.getElementById("aiKey").value.trim();
+  c.prov=document.getElementById("aiProv").value; c.base=document.getElementById("aiBase").value.trim(); c.model=document.getElementById("aiModel").value.trim(); if(v) c.key=v;
+  if(c.prov==="openai"&&!c.model){ toast("OpenAI 兼容接口需要填写模型名"); return; }
+  try{ localStorage.setItem("pc_ai_cfg",JSON.stringify(c)); }catch(e){} document.getElementById("aiKey").value=""; aiModeText(); toast("AI 接口设置已保存在本浏览器"); });
+document.getElementById("btnAiKeyClear").addEventListener("click",()=>{ const c=aiCfg(); c.key=""; try{ localStorage.setItem("pc_ai_cfg",JSON.stringify(c)); }catch(e){} aiModeText(); toast("已清除 API Key"); });
+document.getElementById("aiProv").addEventListener("change",e=>{ const v=e.target.value, b=document.getElementById("aiBase"), m=document.getElementById("aiModel");
+  b.placeholder=v==="openai"?"https://api.deepseek.com/v1":"https://api.anthropic.com"; m.placeholder=v==="openai"?"例如 deepseek-chat、qwen-vl-max":AI_MODEL; });
+
+/* ================= quote library: versions + comparison ================= */
+const qlib={mode:"pending",items:[],col:null,loading:false,err:""};
+let qSel=new Set();
+function quotesChanged(){ document.getElementById("quoteCount").textContent=qlib.items.length; if(step===6) renderS6(); }
+function saveLocalQ(){ try{ localStorage.setItem("pc_quotes",JSON.stringify(qlib.items)); return true; }catch(e){ toast("本浏览器存储空间不足，请删除一些旧报价"); return false; } }
+function initQuotes(db,id){ qlib.mode="cloud"; qlib.loading=true; qlib.col=db.doc("data/users/"+id+"/lib").collection("quotes"); quotesChanged();
+  qlib.col.orderBy("savedAtMs","desc").onSnapshot(snap=>{ qlib.loading=false; qlib.items=snap.docs.map(d=>Object.assign({id:d.id},d.data())); quotesChanged(); },
+    err=>{ qlib.loading=false; qlib.err=err&&err.code||"unavailable"; quotesChanged(); }); }
+async function qSave(q){
+  if(qlib.mode==="pending"){ toast("报价库还在连接，请稍等几秒"); return false; }
+  if(!q.items||!q.items.length){ toast("没有产品可以保存"); return false; }
+  const rec=Object.assign({},q,{savedAtMs:Date.now(),count:q.items.length});
+  try{ if(qlib.mode==="cloud") await qlib.col.add(rec); else { qlib.items.unshift(Object.assign({id:uid()},rec)); if(!saveLocalQ()){ qlib.items.shift(); return false; } quotesChanged(); }
+    toast(`已存进报价库：${q.factory} · ${q.version}`); return true; }
+  catch(e){ toast(e&&e.code==="quota_exceeded"?"报价库已满，请删除一些旧版本":"保存失败，请稍后再试"); return false; } }
+async function qUpdate(id,patch){ try{ if(qlib.mode==="cloud") await qlib.col.doc(id).update(patch); else { const it=qlib.items.find(x=>x.id===id); if(it){ Object.assign(it,patch); saveLocalQ(); quotesChanged(); } } }catch(e){ toast("修改失败，请稍后再试"); } }
+async function qDelete(id){ try{ if(qlib.mode==="cloud") await qlib.col.doc(id).delete(); else { qlib.items=qlib.items.filter(x=>x.id!==id); saveLocalQ(); quotesChanged(); } qSel.delete(id); toast("已删除"); }catch(e){ toast("删除失败，请稍后再试"); } }
+function qGroups(){ const g={}; qlib.items.forEach(q=>{ (g[q.factory||"未填工厂"]=g[q.factory||"未填工厂"]||[]).push(q); }); Object.values(g).forEach(a=>a.sort((x,y)=>String(y.date).localeCompare(String(x.date))||y.savedAtMs-x.savedAtMs)); return g; }
+function qSelected(){ let ids=[...qSel].filter(id=>qlib.items.some(q=>q.id===id)); if(!ids.length) ids=Object.values(qGroups()).map(a=>a[0].id);
+  return ids.map(id=>qlib.items.find(q=>q.id===id)).sort((a,b)=>String(a.factory).localeCompare(String(b.factory))||String(a.date).localeCompare(String(b.date))); }
+/* A quote item priced like a product, so the same engine gives cost, freight and profit. */
+function itemCalc(it,q){ const old=findByKey(it.key); return calcProduct({id:"q",name:it.name,category:old?old.category:"家具",peak:"非旺季",price:old?old.price:"",prices:old?old.prices:{},cost:it.cost,costCur:it.costCur,adj:0,pkgs:it.pkgs||[]}); }
+const METRICS=()=>[["cost","采购成本 $（换算美元，越低越好）"],["landed","落地成本 $ = 采购 + 海运 + FBM 尾程（越低越好）"],...chanList().map(c=>["profit:"+c.id,`${c.name} 利润 $（按当前售价，越高越好）`])];
+function qMetricVal(r,m){ const si=seaIdx(); if(m==="cost") return r.cost; if(m==="landed") return r.cost+r.sc[si].sea+r.fbmShip;
+  const id=m.slice(7), [g,k]=id.split(":"), v=chanVal(r,g==="amz"?{amz:k}:{plat:k},si); return v.ok?v.profit:NaN; }
+function qCompareData(){ const Q=qSelected(), m=P.qMetric||"cost", rows=new Map();
+  Q.forEach((q,qi)=>{ const seen={}; (q.items||[]).forEach(it=>{ let k=(it.key||autoKey(it.name)||it.name).trim(); seen[k]=(seen[k]||0)+1; if(seen[k]>1) k=k+" · "+it.name;
+    if(!rows.has(k)) rows.set(k,Array(Q.length).fill(null)); const r=itemCalc(it,q), cbm=(it.pkgs||[]).reduce((a,g)=>a+nz(g.l)*nz(g.w)*nz(g.h)/1e6,0), kg=(it.pkgs||[]).reduce((a,g)=>a+nz(g.kg),0);
+    rows.get(k)[qi]={it,val:qMetricVal(r,m),cbm,kg,n:(it.pkgs||[]).length}; }); });
+  return {Q,m,rows:[...rows.entries()].sort((a,b)=>a[0].localeCompare(b[0],"zh-Hans-CN",{numeric:true}))}; }
+function renderS6(){
+  document.getElementById("qMode").textContent=qlib.mode==="cloud"?"保存在你的 claude.ai 账号里，只有你能看到":qlib.mode==="local"?"保存在本浏览器里（清缓存会丢失）":"正在连接报价库…";
+  document.getElementById("qMsg").innerHTML=qlib.err?`<p class="msg">报价库暂时连不上，刷新页面后再试。</p>`:"";
+  const G=qGroups(), fs=Object.keys(G).sort((a,b)=>a.localeCompare(b,"zh-Hans-CN"));
+  document.getElementById("qFactoryList").innerHTML=fs.map(f=>`<option value="${esc(f)}">`).join("");
+  if(!document.getElementById("qDate").value) document.getElementById("qDate").value=today();
+  if(qlib.mode==="pending"||qlib.loading){ document.getElementById("qList").innerHTML=`<p class="muted">正在读取报价库…</p>`; document.getElementById("qCompare").innerHTML=""; return; }
+  if(!qlib.items.length){ document.getElementById("qList").innerHTML=`<p class="muted">还没有报价版本。在第 1 步用 AI 识别报价单后“存进报价库”，或在上面把当前产品存为一个版本。</p>`; document.getElementById("qCompare").innerHTML=""; document.getElementById("qSelNote").textContent=""; return; }
+  const sel=new Set(qSelected().map(q=>q.id)), auto=!qSel.size;
+  document.getElementById("qList").innerHTML=fs.map(f=>`<div class="qgrp"><h3>${esc(f)} <span class="note">${G[f].length} 个版本</span></h3><div class="tw"><table><thead><tr><th>对比</th><th>版本名（可改）</th><th>报价日期</th><th>产品数</th><th>平均采购成本 $</th><th>来源文件</th><th>操作</th></tr></thead><tbody>${G[f].map(q=>{
+    const cs=(q.items||[]).map(it=>itemCalc(it,q).cost).filter(isFinite), avg=cs.length?cs.reduce((a,b)=>a+b,0)/cs.length:NaN;
+    return `<tr><td class="c"><input type="checkbox" data-qsel="${esc(q.id)}" ${sel.has(q.id)?"checked":""} aria-label="选中对比"></td>
+      <td><input class="wide" style="width:200px" data-qname="${esc(q.id)}" value="${esc(q.version||"")}"></td><td><input type="date" data-qdate="${esc(q.id)}" value="${esc(q.date||"")}"></td>
+      <td class="c">${esc(q.count||(q.items||[]).length)}</td><td class="n">${f2(avg)}</td><td class="note">${esc(q.source||"")}</td>
+      <td style="white-space:nowrap"><button class="btn sm" data-qact="open" data-id="${esc(q.id)}">导入为当前产品</button> <button class="btn sm danger" data-qact="del" data-id="${esc(q.id)}">删除</button></td></tr>`; }).join("")}</tbody></table></div></div>`).join("");
+  const ms=METRICS(); if(!ms.some(x=>x[0]===P.qMetric)) P.qMetric="cost";
+  document.getElementById("qMetric").innerHTML=ms.map(([v,l])=>`<option value="${v}" ${v===P.qMetric?"selected":""}>${esc(l)}</option>`).join("");
+  const D=qCompareData(), hi=D.m!=="cost"&&D.m!=="landed";
+  document.getElementById("qSelNote").textContent=(auto?"未勾选时默认对比每个工厂的最新版本。":`已选 ${D.Q.length} 个版本。`)+` 海运方案：${P.sea[seaIdx()].name}`;
+  const head=`<tr><th>对比键</th>${D.Q.map(q=>`<th>${esc(q.factory||"未填工厂")}<br><span class="note">${esc(q.version||"")} · ${esc(q.date||"")}</span></th>`).join("")}</tr>`;
+  const body=D.rows.map(([k,cells])=>{ const vals=cells.map(c=>c&&isFinite(c.val)?c.val:NaN), ok=vals.filter(isFinite), best=ok.length>1&&Math.max(...ok)!==Math.min(...ok)?(hi?Math.max(...ok):Math.min(...ok)):NaN, base=vals.find(isFinite);
+    return `<tr><td><b>${esc(k)}</b></td>${cells.map((c,i)=>{ if(!c) return `<td class="muted">—</td>`; const v=vals[i];
+      const d=isFinite(v)&&isFinite(base)&&base!==0&&i>0&&v!==base?` <span class="note">${v>base?"+":""}${pct((v-base)/Math.abs(base))}</span>`:"";
+      return `<td class="n ${isFinite(v)&&v===best?"best":""}" title="${esc(c.it.name)}">${isFinite(v)?money(v):'<span class="muted">缺售价</span>'}${d}<br><span class="note">${esc(c.it.name)} · ${f2(c.cbm)} m³ · ${f1(c.kg)} kg · ${c.n}包</span></td>`; }).join("")}</tr>`; }).join("");
+  document.getElementById("qCompare").innerHTML=`<table><thead>${head}</thead><tbody>${body}</tbody></table><p class="note" style="padding:6px 10px">绿框 = 这一行最优；百分比 = 相对第一列的变化。利润指标按当前项目里同对比键产品的售价计算，没有对应产品显示“缺售价”。</p>`;
+}
+document.getElementById("btnQSave").addEventListener("click",async()=>{ const f=document.getElementById("qFactory").value.trim(); if(!f){ toast("先填工厂名"); return; }
+  const d=document.getElementById("qDate").value||today(), v=document.getElementById("qVersion").value.trim()||`${d} 报价`;
+  const items=products.map(p=>({key:(p.key||autoKey(p.name)).trim(),name:p.name,desc:p.desc||"",cost:p.cost,costCur:p.costCur,moq:"",pkgs:clone(p.pkgs)}));
+  if(await qSave({factory:f,version:v,date:d,source:"当前产品",items})) document.getElementById("qVersion").value=""; });
+const s6=document.getElementById("s6");
+s6.addEventListener("change",e=>{ const t=e.target;
+  if(t.dataset.qsel!==undefined){ if(!qSel.size) qSelected().forEach(q=>qSel.add(q.id)); if(t.checked) qSel.add(t.dataset.qsel); else qSel.delete(t.dataset.qsel); renderS6(); }
+  else if(t.dataset.qname!==undefined){ const v=t.value.trim(); if(v) qUpdate(t.dataset.qname,{version:v}); }
+  else if(t.dataset.qdate!==undefined){ if(t.value) qUpdate(t.dataset.qdate,{date:t.value}); }
+  else if(t.id==="qMetric"){ P.qMetric=t.value; save(); renderS6(); } });
+s6.addEventListener("click",e=>{ const b=e.target.closest("[data-qact]"); if(!b) return; const q=qlib.items.find(x=>x.id===b.dataset.id); if(!q) return;
+  const confirm2=label=>{ if(b.dataset.confirm==="1") return true; b.dataset.confirm="1"; const old=b.textContent; b.textContent=label; setTimeout(()=>{ if(b.isConnected){ b.dataset.confirm=""; b.textContent=old; } },3000); return false; };
+  if(b.dataset.qact==="open"&&confirm2("替换当前产品?")){ const ps=itemsToProducts(q.items||[],q.factory); products=ps; save(); toast(`已导入 ${q.factory} · ${q.version}（${ps.length} 个产品，售价按对比键沿用）`); go(2); }
+  if(b.dataset.qact==="del"&&confirm2("确认删除?")) qDelete(q.id); });
+document.getElementById("btnQExport").addEventListener("click",()=>{ if(typeof XLSX==="undefined"||!XLSX.write){ toast("表格组件没加载，联网后再试"); return; }
+  const D=qCompareData(), lab=(METRICS().find(x=>x[0]===D.m)||[,""])[1];
+  const aoa=[[`对比指标：${lab}；海运方案：${P.sea[seaIdx()].name}`],["对比键",...D.Q.flatMap(q=>[`${q.factory}·${q.version}(${q.date}) 品名`,`${q.factory}·${q.version} 数值`,"体积 m³","毛重 kg","包数"])],
+    ...D.rows.map(([k,cells])=>[k,...cells.flatMap(c=>c?[c.it.name,isFinite(c.val)?Math.round(c.val*100)/100:"",Math.round(c.cbm*10000)/10000,Math.round(c.kg*100)/100,c.n]:["","","","",""])])];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),"报价对比");
+  offer(`报价对比_${stamp()}.xlsx`,new Uint8Array(XLSX.write(wb,{bookType:"xlsx",type:"array"})),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); });
+
 /* ---------------- boot ---------------- */
 /* ---------------- history library ---------------- */
 const hist={mode:"pending",items:[],col:null,slow:false,err:""};
@@ -895,9 +1178,11 @@ async function initHistory(){
   for(let i=0;i<20&&!(window.claude&&typeof window.claude.use==="function");i++) await new Promise(r=>setTimeout(r,100));
   if(window.claude&&typeof window.claude.use==="function"){
     window.claude.use("downloads").then(d=>{dl=d;}).catch(()=>{});
+    window.claude.use("sample").then(sm=>{ sampleFn=sm||null; aiModeText(); }).catch(()=>{});
     try{
       const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
       const id=user?await user.id():null;
+      if(db&&id) initQuotes(db,id);
       if(db&&id){
         hist.mode="cloud"; hist.col=db.doc("data/users/"+id+"/lib").collection("history"); hist.loading=true; histChanged();
         const timer=setTimeout(()=>{ hist.slow=true; histChanged(); },10000);
@@ -908,6 +1193,7 @@ async function initHistory(){
     }catch(e){}
   }
   hist.mode="local"; hist.items=load("pc_history")||[]; histChanged();
+  if(qlib.mode==="pending"){ qlib.mode="local"; qlib.items=load("pc_quotes")||[]; quotesChanged(); }
 }
 async function histSave(name){
   if(hist.mode==="pending"){ toast("历史库还在连接，请稍等几秒再保存"); return; }
@@ -962,6 +1248,7 @@ ht.addEventListener("click",e=>{ const b=e.target.closest("[data-hact]"); if(!b)
   if(act==="json") offer(`${it.name.replace(/[\\/:*?"<>|]/g,"_")}.json`,JSON.stringify({version:1,name:it.name,savedAt:it.savedAt,params:it.params,products:it.products},null,1),"application/json");
 });
 initHistory();
+setTimeout(()=>{ if(qlib.mode==="pending"){ qlib.mode="local"; qlib.items=load("pc_quotes")||[]; quotesChanged(); } aiModeText(); },12000);
 // fill keys added in newer versions
 function migrate(){ const d=defaultParams(); for(const k in d) if(P[k]===undefined) P[k]=d[k]; for(const k in d.fba) if(P.fba[k]===undefined) P.fba[k]=d.fba[k]; for(const k in d.commission) if(P.commission[k]===undefined) P.commission[k]=d.commission[k]; for(const k in d.fbm) if(P.fbm[k]===undefined) P.fbm[k]=d.fbm[k];
   for(const k in d.showAmz) if(P.showAmz[k]===undefined) P.showAmz[k]=d.showAmz[k];
@@ -970,6 +1257,6 @@ function migrate(){ const d=defaultParams(); for(const k in d) if(P[k]===undefin
   if(!(nz(P.seaView)>=0&&nz(P.seaView)<P.sea.length)) P.seaView=0;
   products.forEach(p=>{ if(!p.prices||typeof p.prices!=="object") p.prices={}; }); }
 migrate();
-let st=4; try{ st=+(localStorage.getItem("pc_step")||4)||4; if(st<1||st>5) st=4; }catch(e){}
+let st=4; try{ st=+(localStorage.getItem("pc_step")||4)||4; if(st<1||st>6) st=4; }catch(e){}
 go(st);
 </script>
