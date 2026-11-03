@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-11-03T03:11:24Z",
+  "last_updated_at_utc": "2026-11-03T05:44:18Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -16,9 +16,19 @@
       "status": "confirmed",
       "confirmed_at_utc": "2026-11-03T05:40:08Z",
       "source": "wen：对，开始写 PRD（场景锚点第二轮 V1）"
+    },
+    "stage4_5_v1": {
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-11-03T05:44:18Z",
+      "source": "方案即场景锚点 V1（wen 2026-11-03 确认\"对，开始写 PRD\"），无新增业务取舍"
+    },
+    "stage4_6_mvp": {
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-11-03T05:44:18Z",
+      "source": "wen 2026-11-03：第一版全做（F15–F27），只做浴室柜"
     }
   },
-  "contract_revision": 5,
+  "contract_revision": 6,
   "source_ids_changed": [
     "AC-F07-03",
     "AC-F07-10",
@@ -30,17 +40,21 @@
     "REQ-F07-03",
     "REQ-F11-01"
   ],
-  "current_stage": "2",
-  "current_substep": "round2-goals-proposal",
+  "current_stage": "design",
+  "current_substep": "handoff",
   "completed_stages": [
-    "1"
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
   ],
   "skipped_stages": [
     "3"
   ],
   "next_action": {
     "type": "ai",
-    "description": "阶段 2–4：整理目标、方案 V1（继承已确认范围），然后阶段 5 写 requirements.md + PRD详细版 + requirements-analysis（第二轮）"
+    "description": "PRD 核心完成（第二轮 revision 6）；下一步进入 Design 大师（读取 design-master SKILL.md，以 revision 6 为输入，第一轮设计产物作废，按增量规则标 stale）"
   },
   "open_questions": [
     {
@@ -158,209 +172,33 @@
   ],
   "key_decisions_made": [
     {
-      "id": "D-1",
-      "decision": "要改进的决策：产品经理立项选哪些细分；主结果=立项命中率，次=研究效率与可复现性",
-      "stage": "solution",
-      "source": "解题方案书 §1–2（用户确认）"
+      "id": "KD-R2-01",
+      "decision": "在 wen 电脑运行、局域网共享",
+      "source": "wen 2026-11-03"
     },
     {
-      "id": "D-2",
-      "decision": "成功线：上架6个月内满足其一——小类BSR前50（ASIN层），或SPU任一月销售额≥$10万（见 D-24、D-25）",
-      "stage": "solution",
-      "source": "解题方案书 §2"
+      "id": "KD-R2-02",
+      "decision": "利润测算台与评论 VP 追踪器并入同一系统",
+      "source": "wen 2026-11-03"
     },
     {
-      "id": "D-3",
-      "decision": "路线A：竞品新品回测→机会判定卡；输出排序+区间+立项锦囊；策略库由产品经理维护",
-      "stage": "solution",
-      "source": "解题方案书 §5"
-    },
-    {
-      "id": "D-4",
-      "decision": "有效标准：后期批次前20%细分命中率≥平均2倍且优于任一现有单指标，达标才交付使用；之后每月台账、6个月对账",
-      "stage": "solution",
-      "source": "解题方案书 §6"
-    },
-    {
-      "id": "D-5",
-      "decision": "SPU：一个设计含各尺寸各颜色；竞品按同品牌+同款式归并",
-      "stage": "solution",
-      "source": "解题方案书 §4"
-    },
-    {
-      "id": "D-6",
-      "decision": "销量按SKU用子体月销量估算向上累加；评分优先子体，缺失用父体并标来源",
-      "stage": "solution",
-      "source": "解题方案书 §4（用户字段规则）"
-    },
-    {
-      "id": "D-7",
-      "decision": "数据全部来自卖家精灵（历史月份、新品全量、BSR/价格历史），POE可选交叉核对，不用Keepa",
-      "stage": "solution",
-      "source": "解题方案书 §4"
-    },
-    {
-      "id": "D-8",
-      "decision": "分三期：一期=亚马逊美国·浴室柜完整链路（导入→字段规则→新品批次→信号→回测→判定卡与锦囊→台账→策略库），按品类配置搭建；二期=接第二个品类验证复用；三期=接 HDP/Lowe's/Wayfair",
-      "stage": "1",
-      "source": "用户选择（PRD 第1轮，2026-10-26）"
-    },
-    {
-      "id": "D-9",
-      "decision": "评论痛点信号第一期一开始就做，三类信号一起回测",
-      "stage": "1",
-      "source": "用户选择（PRD 第1轮）"
-    },
-    {
-      "id": "D-10",
-      "decision": "类型属性（材质、元素、形态）缺失时一律按父体值回填并标来源；颜色、尺寸不回填；用户接受部分家族柜体材质等回填有误的风险（小试⑤：柜体材质约35%家族内不一致）。盆数随尺寸变化，按尺寸类属性处理、不按父体回填（AI 解释，待用户如有异议再改）",
-      "stage": "1",
-      "source": "用户选择（PRD 第1轮）+ AI 对盆数的解释"
-    },
-    {
-      "id": "D-11",
-      "decision": "多人使用：各品类产品经理（5–8个品类）为直接使用者；老板与下游开发、采购、运营为结果接收方；卖家精灵 MCP 额度每月4000次",
-      "stage": "1",
-      "source": "用户原话（PRD 第1轮）"
-    },
-    {
-      "id": "D-12",
-      "decision": "角色权限：产品经理只能改自己负责品类的字段规则、策略库和立项记录，可查看所有品类结果；老板与下游开发、采购、运营只读查看结论、依据和台账并可导出；另设管理员管理账号、密钥和额度",
-      "stage": "1",
-      "source": "用户选择（PRD 第2轮）"
-    },
-    {
-      "id": "D-13",
-      "decision": "额度不足时加购卖家精灵额度，一次性完成历史回填与评论采集",
-      "stage": "1",
-      "source": "用户选择（PRD 第2轮）"
-    },
-    {
-      "id": "D-14",
-      "decision": "研究效率目标：新品类首次跑通（字段确认+历史回填+首次回测）≤5个工作日；之后每月自动更新，人工≤半天（看结果、处理异常提示）；基线为一次品类研究约20天",
-      "stage": "1",
-      "source": "用户选择（PRD 第2轮）"
-    },
-    {
-      "id": "D-15",
-      "decision": "先单机后上服务器：第一期在 wen 的电脑上运行，生成 Excel 和网页报告文件手动分发；之后迁到服务器实现多人共用与权限（D-12 在服务器阶段生效）",
-      "stage": "1",
-      "source": "用户选择（PRD 第3轮）；已知公司目前没有服务器（用户原话）"
-    },
-    {
-      "id": "D-16",
-      "decision": "第一期使用方式：本机小网页（只在 wen 电脑上可访问），点按钮运行、在网页上确认字段和看结果；第二期上服务器时复用",
-      "stage": "1",
-      "source": "用户选择（PRD 第3轮）"
-    },
-    {
-      "id": "D-17",
-      "decision": "第二期接第二个品类时迁到服务器，届时启用多人共用与角色权限（D-12）",
-      "stage": "1",
-      "source": "用户选择（PRD 第3轮）"
-    },
-    {
-      "id": "D-18",
-      "decision": "大模型步骤（打标、评论痛点提取）第一期不在小网页内自动调用（无 API 密钥），由对话中的 Codex/Claude Code 或上游数据流程完成；第一期由 wen 提供处理好的干净数据；卖家精灵 MCP 密钥可供小网页使用",
-      "stage": "1",
-      "source": "用户原话（PRD 第4轮）"
-    },
-    {
-      "id": "D-19",
-      "decision": "拆分项目：数据拉取（卖家精灵 MCP、销量估算、打标、评论与痛点提取）另立数据项目；本项目只做机会判定，第一期用 wen 提供的数据跑通，本次 PRD 写清数据接口约定",
-      "stage": "1",
-      "source": "用户选择（PRD 第5轮）"
-    },
-    {
-      "id": "D-20",
-      "decision": "效率目标只算本系统内时间：首跑=从导入数据到第一次回测结果（含字段约定确认）≤5个工作日；月更=导入、看异常、看结果、记录立项 ≤半天；数据准备时间由数据项目另定",
-      "stage": "1",
-      "source": "用户选择（PRD 阶段1闸门）"
-    },
-    {
-      "id": "D-21",
-      "decision": "回测控制可观察干扰因素（卖家/品牌实力、上架月份、价格定位、变体数、配送方式、疑似重新上架），不可观察因素写为局限",
-      "stage": "1",
-      "source": "AI 推荐，用户随共同理解确认"
-    },
-    {
-      "id": "D-22",
-      "decision": "先用 2026.06–09 数据转换的样例包跑通流程；真实数据包 wen 承诺下周提供（截止 2026-11-06）",
-      "stage": "5",
-      "source": "用户原话（2026-10-26）"
-    },
-    {
-      "id": "D-23",
-      "decision": "第一期加入截面模式：用最近几个月数据 + 同期全部新品（含没卖起来的），控制上架月龄建模，早批次建模、晚批次检验；结论标'截面口径，待历史回测确认'，历史模式结论优先",
-      "stage": "design→PRD 变更",
-      "source": "用户选择（2026-10-26，设计阶段提出）"
-    },
-    {
-      "id": "D-24",
-      "decision": "成功线 GMV 条件更正为月度口径：SPU 任一月销售额 ≥ $20 万（不是 6 个月累计）；截面模式按 SPU 上架月龄对齐新品周期",
-      "stage": "PRD 变更",
-      "source": "用户原话（2026-10-26）"
-    },
-    {
-      "id": "D-25",
-      "decision": "成功线月度 GMV 阈值为 10 万美元：BSR 保持前 50，月 SPU 销售额 ≥ $10 万即算成功",
-      "stage": "PRD 变更",
-      "source": "用户原话（2026-10-26）"
-    },
-    {
-      "id": "D-26",
-      "decision": "参照人群只用起量新品（任一月父体月销 ≥ 60 件），历史与截面两种模式一致；未起量新品不进分母",
-      "stage": "PRD 变更",
-      "source": "用户选择“只用起量新品”（2026-10-26）；两种模式统一为 AI 依据同一理由推论"
-    },
-    {
-      "id": "D-27",
-      "decision": "策略库规则按动作判断是否升为已验证：立项候选规则倍数 ≥ 2、放弃规则倍数 ≤ 0.5；观察规则对账只记录倍数不升级。规则倍数 = 适用细分对应批次起量新 SPU 的实际命中率 ÷ 同批次全类目平均",
-      "stage": "design→PRD 变更",
-      "source": "用户选择“按动作分别判断（推荐）”（2026-10-26）"
-    },
-    {
-      "id": "D-28",
-      "decision": "回测达标只与算得出的现用指标比较：缺数据的指标不参与比较并在报告列出原因，可比较的少于 1 个时结论为“未达标：数据不足”",
-      "stage": "design→PRD 变更",
-      "source": "用户选择“只和算得出的指标比（推荐）”（2026-10-26，针对截面模式）；历史模式按同一规则处理为 AI 依据同一理由推论"
-    },
-    {
-      "id": "D-29",
-      "decision": "数据接口约定 C1、C2 增加可选字段“五点描述”；未提供时不生成“五点描述相同”的合并建议，对照显示无数据",
-      "stage": "design→PRD 变更",
-      "source": "用户选择“约定里加为可选字段（推荐）”（2026-10-26）"
+      "id": "KD-R2-03",
+      "decision": "Amazon 数据由卖家精灵接口自动拉，手动上传作后备",
+      "source": "wen 2026-11-03"
     }
   ],
   "category": "generic",
   "deliverables": {
-    "scene_anchor": "scene-anchor.md",
-    "proposal_v0": "proposal-v0.md",
-    "proposal_v1": "proposal-v1.md",
-    "debate_log": "debate-log.md",
-    "assumptions": "assumptions.md",
-    "conversation": null,
-    "evidence": [
-      "evidence/额度测算.md"
-    ],
-    "drafts": [],
-    "final_prd": "output/PRD详细版.md",
-    "requirements_contract": "output/requirements.md",
-    "requirements_analysis": "output/requirements-analysis.md",
-    "bugfix_contract": null,
-    "prd_summary": null,
-    "prd_dev": null,
-    "ppt_outline": null,
-    "ppt_pages": [],
-    "tdd_contract": "output/tests/TDD验收契约.md"
+    "prd": "output/PRD详细版.md",
+    "requirements": "output/requirements.md（revision 6）",
+    "analysis": "output/requirements-analysis.md（P0=0、P1=0）"
   },
   "validation": {
+    "at": "2026-11-03T05:44:18Z",
     "check_evidence": "pass",
     "check_format": "pass",
     "check_consistency": "pass",
-    "check_requirements_contract": "pass",
-    "run_at": "2026-10-26T15:55:08Z",
-    "revision": 5
+    "check_requirements_contract": "pass（104 个稳定对象）"
   },
   "design": {
     "entry_check": {
