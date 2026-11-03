@@ -4,12 +4,12 @@
 
 - work_type: feature
 - workflow_mode: standard
-- revision: 6
+- revision: 7
 - scope: 第一版
 - source_prd: PRD详细版.md
 - status: active
 
-> 第二轮（2026-11-03）：承接第二轮《解题方案书》与场景锚点（wen 确认）。第一轮 F01–F14、NFR-001～006 全部 retired（见文末），ID 不复用；第二轮从 F15、NFR-007 起编。第一版 = 浴室柜、在 wen 电脑运行局域网共享、F15–F27 全部交付。
+> 第二轮（2026-11-03）：承接第二轮《解题方案书》与场景锚点（wen 确认）。第一轮 F01–F14、NFR-001～006 全部 retired（见文末），ID 不复用；第二轮从 F15、NFR-007 起编。第一版 = 浴室柜、在 wen 电脑运行局域网共享、F15–F29 全部交付。revision 7（2026-11-03）：wen 要求把 Home Depot / Lowe's / Wayfair 加入第一版，新增 F28、F29，F18、F26、F27 各增一条 REQ。
 
 ## External capability configuration
 
@@ -387,6 +387,24 @@ THE SYSTEM SHALL 该标签状态变为"已确认"，下一次扫描和评分使�
 ```text
 WHEN wen 把某商品标为"看不出 / 不是本品类"
 THE SYSTEM SHALL 该商品不进入本品类的任何分析
+```
+
+### REQ-F18-03 · 其他渠道商品打标
+
+- Story: US-F18-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F18-07 · 同一套规则
+
+- Parent: REQ-F18-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN Home Depot / Lowe's / Wayfair 的一批商品（标题、规格、图片）入库
+THE SYSTEM SHALL 用同一套打标规则和看图打元素给它们打全部标签，元素与低置信度标签进入同一个确认队列，并标明渠道
 ```
 
 ## Feature F19 · 模型更新与回测
@@ -955,6 +973,35 @@ WHEN 台账条目超过预计上架月份 3 个月仍未关联到自家 ASIN
 THE SYSTEM SHALL 标"待关联"并提示 wen
 ```
 
+### REQ-F26-03 · 分渠道成功线
+
+- Story: US-F26-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F26-05 · 各渠道判定
+
+- Parent: REQ-F26-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 一条台账登记的上架渠道包含 Home Depot / Lowe's / Wayfair
+THE SYSTEM SHALL 按该渠道的成功线判定是否做到：上架 6 个月内任一月进入该渠道类目榜前 50，或估算月销达到该渠道阈值（默认 Home Depot 250 件、Lowe's 150 件、Wayfair 120 件，可在品类配置里改）；同系列商品合并计算
+```
+
+### AC-F26-06 · 分渠道显示
+
+- Parent: REQ-F26-03
+- Priority: P1
+- EARS:
+
+```text
+WHEN 一条台账涉及多个渠道
+THE SYSTEM SHALL 分别显示每个渠道的判定结果，不合并成一个结论
+```
+
 ## Feature F27 · 品类配置
 
 ### US-F27-01 · 第一版只跑浴室柜，但分框维度、属性和打标规则可配置
@@ -992,6 +1039,171 @@ THE SYSTEM SHALL 可查看和修改该品类的分框维度（浴室柜默认：
 ```text
 WHEN 第一版
 THE SYSTEM SHALL 只提供浴室柜一个品类可运行；新建其他品类的入口不出现
+```
+
+### REQ-F27-02 · 渠道参数
+
+- Story: US-F27-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F27-03 · 换算与成功线可改
+
+- Parent: REQ-F27-02
+- Priority: P1
+- EARS:
+
+```text
+WHEN wen 在品类配置里修改某渠道的评论换算系数（默认 1 条 VP = 50 件、1 条非 VP = 20 件）或成功线
+THE SYSTEM SHALL 之后的销量估算、机会扫描和台账判定使用新值，并在页面上注明所用参数版本
+```
+
+## Feature F28 · 其他渠道数据与销量估算
+
+### US-F28-01 · 把 Home Depot / Lowe's / Wayfair 的月度评论数据变成可比较的月度销量估算
+
+- Role: 操作者
+- Goal: 把 Home Depot / Lowe's / Wayfair 的月度评论数据变成可比较的月度销量估算
+- Value: 其他渠道也能和 Amazon 一样分框看份额和趋势
+- Stage: 第一版
+- Status: active
+
+### REQ-F28-01 · 数据进入
+
+- Story: US-F28-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F28-01 · 从评论追踪进入
+
+- Parent: REQ-F28-01
+- Priority: P0
+- EARS:
+
+```text
+WHEN 评论 VP 追踪（F23）完成一个月份的采集
+THE SYSTEM SHALL 把各渠道商品、排名、月度 VP / 非 VP 评论数并入分析库，按商品 ID 与渠道关联打标结果
+```
+
+### AC-F28-02 · 上传已有导出
+
+- Parent: REQ-F28-01
+- Priority: P1
+- EARS:
+
+```text
+WHEN wen 上传评论 VP 追踪器导出的 Excel（含"商品月度明细"表）
+THE SYSTEM SHALL 按同一口径并入，并核对月份为完整月（未完整月份只作参考，不计入）
+```
+
+### REQ-F28-02 · 销量估算
+
+- Story: US-F28-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F28-03 · 评论换算法
+
+- Parent: REQ-F28-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 用户查看任一其他渠道商品或单元的月销
+THE SYSTEM SHALL 按"VP 条数 × VP 系数 + 非 VP 条数 × 非 VP 系数"（默认 50 / 20）给出估算月销，并注明方法与系数
+```
+
+### AC-F28-04 · 排名平滑法
+
+- Parent: REQ-F28-02
+- Priority: P1
+- EARS:
+
+```text
+WHEN wen 在品类配置里把某渠道的估算方法切换为"榜单排名平滑"
+THE SYSTEM SHALL 按该渠道榜单排名的平滑趋势换算月销（排名—销量曲线用同时有排名和评论换算销量的商品拟合；这类商品少于 10 个时不提供该方法并提示），并注明方法；两种方法可在同一页面对照
+```
+
+### AC-F28-05 · 系列去重
+
+- Parent: REQ-F28-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 同一系列的多个商品共享同一批评论
+THE SYSTEM SHALL 计算渠道或单元合计时按评论 ID 去重，不重复计入同系列商品
+```
+
+## Feature F29 · 分渠道机会与跨渠道印证
+
+### US-F29-01 · 每个渠道单独按框扫机会，在决策卡里并排看同一机会在各渠道的方向
+
+- Role: 操作者
+- Goal: 每个渠道单独按框扫机会，在决策卡里并排看同一机会在各渠道的方向
+- Value: 能得出"只上 Wayfair"这类分渠道结论，并用多渠道信号互相印证
+- Stage: 第一版
+- Status: active
+
+### REQ-F29-01 · 分渠道扫描
+
+- Story: US-F29-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F29-01 · 每渠道单独扫
+
+- Parent: REQ-F29-01
+- Priority: P0
+- EARS:
+
+```text
+WHEN wen 在机会扫描里选择渠道（Amazon / Home Depot / Lowe's / Wayfair）
+THE SYSTEM SHALL 用同样的"尺寸 × 拆装 × 形态"框和四类机会规则，只用该渠道的数据扫描
+```
+
+### AC-F29-02 · 渠道内比较
+
+- Parent: REQ-F29-01
+- Priority: P0
+- EARS:
+
+```text
+WHEN 任一其他渠道指标
+THE SYSTEM SHALL 只在该渠道内比较，不跨渠道比较绝对销量（Wayfair 的 VP 口径不同）
+```
+
+### REQ-F29-02 · 决策卡分渠道
+
+- Story: US-F29-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F29-03 · 并排显示
+
+- Parent: REQ-F29-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 一张决策卡生成
+THE SYSTEM SHALL 在"分框决策"里并排显示同一机会（同框、同属性取值）在 Amazon、Home Depot、Lowe's、Wayfair 的份额、趋势、分级与样本量，并给出每个渠道"上 / 不上 / 观察"
+```
+
+### AC-F29-04 · 跨渠道印证
+
+- Parent: REQ-F29-02
+- Priority: P1
+- EARS:
+
+```text
+WHEN 同一机会在两个及以上渠道方向一致（都在涨或都在跌）
+THE SYSTEM SHALL 在卡片上标"多渠道印证"并列出一致的渠道；方向相反时标"渠道分歧"
 ```
 
 ## Non-functional requirements

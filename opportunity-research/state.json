@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-11-03T05:44:18Z",
+  "last_updated_at_utc": "2026-11-03T05:59:14Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -24,24 +24,20 @@
     },
     "stage4_6_mvp": {
       "status": "confirmed",
-      "confirmed_at_utc": "2026-11-03T05:44:18Z",
-      "source": "wen 2026-11-03：第一版全做（F15–F27），只做浴室柜"
+      "confirmed_at_utc": "2026-11-03T05:59:14Z",
+      "source": "wen 2026-11-03：第一版全做（F15–F27）+ 追加其他渠道（F28、F29），只做浴室柜"
     }
   },
-  "contract_revision": 6,
+  "contract_revision": 7,
   "source_ids_changed": [
-    "AC-F07-03",
-    "AC-F07-10",
-    "AC-F07-11",
-    "AC-F07-14",
-    "AC-F11-03",
-    "AC-F11-06",
-    "REQ-F07-01",
-    "REQ-F07-03",
-    "REQ-F11-01"
+    "F28",
+    "F29",
+    "REQ-F18-03",
+    "REQ-F26-03",
+    "REQ-F27-02"
   ],
   "current_stage": "design",
-  "current_substep": "handoff",
+  "current_substep": "entry-check",
   "completed_stages": [
     "1",
     "2",
@@ -54,7 +50,7 @@
   ],
   "next_action": {
     "type": "ai",
-    "description": "PRD 核心完成（第二轮 revision 6）；下一步进入 Design 大师（读取 design-master SKILL.md，以 revision 6 为输入，第一轮设计产物作废，按增量规则标 stale）"
+    "description": "PRD revision 7 已同步（加入其他渠道）；回到 Design：入口检查 → 设计决策蓝图"
   },
   "open_questions": [
     {
@@ -184,6 +180,11 @@
     {
       "id": "KD-R2-03",
       "decision": "Amazon 数据由卖家精灵接口自动拉，手动上传作后备",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "KD-R2-04",
+      "decision": "第一版加入 Home Depot / Lowe's / Wayfair：分渠道扫描、决策卡并排；评论换算销量（VP×50、非VP×20，可改）+ 榜单排名平滑法；成功线 AI 提议默认值",
       "source": "wen 2026-11-03"
     }
   ],

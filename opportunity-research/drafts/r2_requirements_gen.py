@@ -2,8 +2,8 @@ import sys
 sys.path.insert(0,'.')
 exec(open('spec.py',encoding='utf-8').read())
 role=lambda r: '审批者' if '老板' in r else '操作者'
-L=['# 品类机会判定台 Requirements Contract','','## Metadata','','- work_type: feature','- workflow_mode: standard','- revision: 6','- scope: 第一版','- source_prd: PRD详细版.md','- status: active','',
-'> 第二轮（2026-11-03）：承接第二轮《解题方案书》与场景锚点（wen 确认）。第一轮 F01–F14、NFR-001～006 全部 retired（见文末），ID 不复用；第二轮从 F15、NFR-007 起编。第一版 = 浴室柜、在 wen 电脑运行局域网共享、F15–F27 全部交付。','',
+L=['# 品类机会判定台 Requirements Contract','','## Metadata','','- work_type: feature','- workflow_mode: standard','- revision: 7','- scope: 第一版','- source_prd: PRD详细版.md','- status: active','',
+'> 第二轮（2026-11-03）：承接第二轮《解题方案书》与场景锚点（wen 确认）。第一轮 F01–F14、NFR-001～006 全部 retired（见文末），ID 不复用；第二轮从 F15、NFR-007 起编。第一版 = 浴室柜、在 wen 电脑运行局域网共享、F15–F29 全部交付。revision 7（2026-11-03）：wen 要求把 Home Depot / Lowe\'s / Wayfair 加入第一版，新增 F28、F29，F18、F26、F27 各增一条 REQ。','',
 '## External capability configuration','','| Capability | Credential owner | Configuration actor | Surface | Scope | Lifecycle | Stage | Requirement IDs |','| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |']
 for cap,ids in (('卖家精灵接口（Amazon 月度数据、Amazon 评论）','REQ-F16-01, REQ-F17-01, REQ-F22-01'),('Bright Data（Lowe\'s / Wayfair 页面）','REQ-F16-01, REQ-F23-01'),('Apify（Lowe\'s / Wayfair 评论）','REQ-F16-01, REQ-F23-01'),('大模型（Claude / OpenAI 等，看图打元素、差评归类、叙述草稿）','REQ-F16-01, REQ-F18-01, REQ-F21-03, REQ-F22-02')):
     L.append(f'| {cap} | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | {ids} |')
