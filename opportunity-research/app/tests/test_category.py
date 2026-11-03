@@ -85,3 +85,27 @@ def test_category_operator_only(app_env, client):
         r = c.post("/settings/category", data={"data": "{}", "note": "越权"}, headers={"accept": "application/json"})
         assert r.status_code == 403 and r.json()["detail"] == "无权限"
     assert catconfig.current()[0] == 1
+
+
+def test_tag_rules_tab_chinese_summary(wen):
+    """DESIGN-18（补）：“打标规则”页签按业务标签（尺寸段、拆装、形态、台面材质、元素、主色、柜体材质）分行显示中文摘要，
+    不出现内部字段名与 \\uXXXX 转义；“编辑”抽屉里的 JSON 中文正常显示。"""
+    import re
+    html = wen.get("/settings/category", params={"tab": "tag"}).text
+    body = html.split("<h2 class=\"panel__title\">打标规则</h2>")[1].split("</table>")[0]
+    tags = re.findall(r'<tr><td class="cell-title">([^<]+)</td>', body)
+    assert tags == ["尺寸段", "拆装", "形态", "台面材质", "元素", "主色", "柜体材质"]
+    for raw in ("color_map", "vision_prompt", "element_map", "size_bands", "rule_version", "\\u"):
+        assert raw not in body, raw
+    assert "27–33 英寸 → 30″" in body and "Fluted / Reeded → 竖棱" in body and "胡桃木色 / 深咖啡色 / 棕色 → 深木" in body
+    assert "树脂 / Cultured Marble → 树脂一体" in body
+    drawer = html.split('id="dwRules"')[1].split("</textarea>")[0]
+    assert "\\u" not in drawer
+    v, cfg = catconfig.current()
+    if cfg.get("tag_rules"):
+        assert "夏克式" in drawer
+    # 保存过带中文的打标规则后，编辑框里中文原样显示
+    cfg["tag_rules"] = dict(cfg.get("tag_rules") or {}, color_map={"白色": "白", "胡桃木色": "深木"})
+    catconfig.save(cfg, None)
+    drawer = wen.get("/settings/category", params={"tab": "tag"}).text.split('id="dwRules"')[1].split("</textarea>")[0]
+    assert '&#34;胡桃木色&#34;: &#34;深木&#34;' in drawer and "\\u" not in drawer

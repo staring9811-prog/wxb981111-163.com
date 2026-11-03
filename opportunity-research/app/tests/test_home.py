@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from conftest import login_as, make_user
 from pdt import auth, costgate
 from pdt.db import Base, session
-from pdt.models import Approval, Batch, Budget, Card, CostRecord, Forecast, ModelRun, Secret, Tag, User
+from pdt.models import Approval, Batch, Budget, Card, CostRecord, Forecast, ModelRun, Product, Secret, Tag, User
 from pdt.web.routes_home import _data_month
 
 
@@ -29,6 +29,11 @@ def _seed(dm):
         s.add(Batch(channel="amazon", month=dm, source="api", status="suspect_month",
                     anomaly_reason="与上月小类排名完全相同的 ASIN 占 99.9%（阈值 10%），未并入"))
         s.add(Batch(channel="homedepot", month=dm, source="tracker", status="merged", rows=210))
+        s.add_all([
+            Product(channel="amazon", item_id="B0CXK7R2QW", brand="Sweetcrispy", title="30 Inch Bathroom Vanity with Sink, Fluted Doors"),
+            Product(channel="amazon", item_id="B0D1M9TZ4P", brand="Kahomvis", title="30 Inch Farmhouse Bathroom Vanity with Barn Door"),
+            Product(channel="lowes", item_id="5014452871", brand="allen + roth", title="allen + roth Presley 36-in Gray Bathroom Vanity"),
+        ])
         s.add_all([
             Tag(channel="amazon", item_id="B0CXK7R2QW", tag="元素", value="竖棱", source="vision", status="queued", img_group="g1"),
             Tag(channel="amazon", item_id="B0D1M9TZ4P", tag="元素", value="农场风", source="vision", status="queued", img_group="g1"),
@@ -89,6 +94,49 @@ def test_home_by_role(app_env, wen):
     assert "设置" not in _nav(r) and 'href="/approvals"' not in _nav(r) and "查看回测" not in r
     for word in ("机会扫描", "决策卡", "预测台账", "策略库"):
         assert word in r
+
+
+def test_home_batch_status_all_chinese(wen):
+    """DESIGN-02：本月数据状态表里所有批次状态都显示中文（其他渠道未完整月 reference = “仅参考（未完整月）”），不出现英文原始值。"""
+    from pdt.web.routes_home import BATCH_STATUS
+    dm = _data_month(date.today())
+    for st in ("suspect_month", "anomaly", "ok", "merged", "reference", "superseded", "rejected"):
+        assert st in BATCH_STATUS and re.search(r"[\u4e00-\u9fff]", BATCH_STATUS[st][0])
+    with session() as s:
+        s.add(Batch(channel="amazon", month=dm, source="api", status="merged", rows=2961))
+        s.add(Batch(channel="wayfair", month=dm, source="tracker", status="reference", rows=184))
+        s.add(Batch(channel="lowes", month=dm, source="tracker", status="superseded", rows=203))
+        s.add(Batch(channel="homedepot", month=dm, source="tracker", status="rejected", rows=0))
+    html = wen.get("/").text
+    block = html.split('data-block="data"')[1].split("</section>")[0]
+    assert "仅参考（未完整月）" in block and "已被新版本替换" in block and "已退回" in block
+    for raw in ("reference", "superseded", "rejected", "merged"):
+        assert f"</svg>{raw}<" not in block
+
+
+def test_queued_count_same_everywhere(wen):
+    """DESIGN-08 / DESIGN-02：侧栏“打标确认”角标、工作台待确认数、打标确认页待确认数同一口径——已标“不是本品类”的商品不计入。"""
+    from pdt.core import tagging
+    with session() as s:
+        s.add_all([
+            Product(channel="amazon", item_id="B0CXK7R2QW", brand="Sweetcrispy", title="30 Inch Bathroom Vanity with Sink, Fluted Doors"),
+            Product(channel="amazon", item_id="B0D1M9TZ4P", brand="Kahomvis", title="30 Inch Farmhouse Bathroom Vanity with Barn Door"),
+            Product(channel="amazon", item_id="B0BWX3KQ7L", brand="VASAGLE", title="Bathroom Floor Storage Cabinet with Doors", excluded=True),
+        ])
+        s.add_all([
+            Tag(channel="amazon", item_id="B0CXK7R2QW", tag="元素", value="竖棱", source="vision", status="queued", img_group="g1"),
+            Tag(channel="amazon", item_id="B0D1M9TZ4P", tag="元素", value="农场风", source="vision", status="queued", img_group="g1"),
+            Tag(channel="amazon", item_id="B0BWX3KQ7L", tag="元素", value="", source="rule", status="queued", img_group="g2"),
+            Tag(channel="amazon", item_id="B0BWX3KQ7L", tag="尺寸段", value="24″", confidence=0.5, source="rule", status="queued", img_group="g2"),
+        ])
+    assert tagging.queued_count() == tagging.counts()["total"] == 2
+    home = wen.get("/").text
+    assert re.search(r"data-tag-total>(\d+)<", home).group(1) == "2"
+    assert re.search(r'href="/tagging".*?nav__count">(\d+)<', _nav(home)).group(1) == "2"
+    assert "同主图分为 1 组" in home
+    tag_page = wen.get("/tagging").text
+    assert re.search(r'href="/tagging".*?nav__count">(\d+)<', _nav(tag_page)).group(1) == "2"
+    assert '待确认 <span class="count">2</span>' in tag_page
 
 
 def test_home_validity_pass_and_stale(wen):

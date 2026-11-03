@@ -20,7 +20,9 @@
 </style>
 {% endblock %}
 {% block content %}
-{% set back = '/tagging?channel=' ~ channel ~ '&reason=' ~ reason ~ '&tab=' ~ tab %}
+{% from "_pager.html" import pager %}
+{% set qs = 'channel=' ~ channel ~ '&reason=' ~ reason ~ '&tab=' ~ tab %}
+{% set back = '/tagging?' ~ qs ~ '&page=' ~ page %}
 <div class="page-head enter" style="--i:0">
   <div>
     <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>打标确认</span></nav>
@@ -29,6 +31,7 @@
   </div>
   <div class="page-head__actions">
     <a class="btn" href="/settings/category"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>打标规则与阈值</span></a>
+    <a class="btn" href="/tagging/export?{{ qs }}" data-export><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></a>
     <form method="post" action="/tagging/run" class="inline"><button class="btn" type="submit" {% if not untagged %}disabled title="没有未打标的新商品"{% endif %}><svg class="icon"><use href="#ph-list-checks"/></svg><span>规则打标{% if untagged %}（{{ untagged }}）{% endif %}</span></button></form>
     {% if llm %}
     <button class="btn btn--primary" type="button" data-cost-kind="vision_tag" data-cost-month="{{ prog[0].month if prog else '' }}" data-cost-params="{}" {% if not vision_todo %}disabled title="没有需要看图的商品"{% endif %}><svg class="icon"><use href="#ph-eye"/></svg><span>看图打元素（{{ vision_todo }}）</span></button>
@@ -84,7 +87,7 @@
     <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=element" aria-pressed="{{ 'true' if reason == 'element' else 'false' }}">元素 <span class="count">{{ cnt.element }}</span></a>
     <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=low" aria-pressed="{{ 'true' if reason == 'low' else 'false' }}">低置信度 <span class="count">{{ cnt.low }}</span></a>
     <span class="spacer"></span>
-    <span class="small muted">显示 <b class="num">{{ groups|length }}</b> 组（共 {{ n_groups }} 组，按组内商品数排序）</span>
+    <span class="small muted">共 <b class="num">{{ n_groups|num }}</b> 组 · {{ n_items|num }} 条，按组内商品数排序{% if pages > 1 %} · 第 {{ page }} / {{ pages }} 页，每页 {{ per_page }} 组{% endif %}</span>
   </div>
 
   <div class="qgroups" id="queue">
@@ -108,7 +111,7 @@
         {% if tab == 'pending' %}
         <div class="qgroup__actions">
           <button class="btn" type="submit"><svg class="icon"><use href="#ph-check"/></svg><span>应用到整组（{{ g['items']|length }}）</span></button>
-          <button class="btn btn--ghost btn--sm" type="submit" formaction="/tagging/groups/exclude"><svg class="icon"><use href="#ph-prohibit"/></svg><span>看不出 / 不是本品类</span></button>
+          <button class="btn btn--ghost btn--sm" type="button" data-notcat data-action="/tagging/groups/exclude" data-img-group="{{ g.img_group }}" data-sub="本组 {{ g['items']|length }} 个商品"><svg class="icon"><use href="#ph-prohibit"/></svg><span>看不出 / 不是本品类</span></button>
         </div>
         {% endif %}
       </form>
@@ -123,7 +126,7 @@
                 <select class="select" name="value" aria-label="本条{{ g.tag }}">{% if not it.value %}<option value="" selected>（未判断）</option>{% endif %}{% for c in g.candidates %}<option {% if c.value == it.value %}selected{% endif %}>{{ c.value }}</option>{% endfor %}</select>
                 <button class="btn btn--ghost btn--sm" type="submit">单改</button></form></td>
               <td>{% if it.status == 'confirmed' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已确认{% if it.confirm_mode == 'single' %} · 单改{% endif %}</span>{% else %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认{% if it.confidence %} · {{ '%.2f'|format(it.confidence) }}{% endif %}</span>{% endif %}</td>
-              <td><form method="post" action="/tagging/items/{{ it.tag_id }}" class="inline"><input type="hidden" name="action" value="exclude"><input type="hidden" name="channel" value="{{ it.channel }}"><input type="hidden" name="item_id" value="{{ it.item_id }}"><input type="hidden" name="back" value="{{ back }}"><button class="btn btn--ghost btn--sm" type="submit">不是本品类</button></form></td></tr>
+              <td><button class="btn btn--ghost btn--sm" type="button" data-notcat data-action="/tagging/items/{{ it.tag_id }}" data-channel="{{ it.channel }}" data-item-id="{{ it.item_id }}" data-sub="只标这一个商品：{{ it.item_id }}">不是本品类</button></td></tr>
           {% endfor %}
           </tbody>
         </table>
@@ -133,6 +136,7 @@
     <div class="banner banner--ok"><svg class="icon"><use href="#ph-check-circle"/></svg><div class="banner__body"><div class="banner__title">{{ '确认队列已清空' if tab == 'pending' else '还没有人工确认的标签' }}</div><div class="small">{% if tab == 'pending' %}可以到 <a href="/models">模型与回测</a> 重算。{% endif %}</div></div></div>
   {% endfor %}
   </div>
+  {% if pages > 1 %}{{ pager(page, pages, '/tagging?' ~ qs ~ '&', '第 ' ~ page ~ ' 页，共 ' ~ pages ~ ' 页 · ' ~ n_groups ~ ' 组') }}{% endif %}
   {% else %}
   <div class="table-wrap">
     <table class="table">
@@ -149,9 +153,36 @@
   {% endif %}
 </section>
 {% endblock %}
-{% block modals %}{% include "_cost_modal.html" %}{% endblock %}
+{% block modals %}{% include "_cost_modal.html" %}
+<div class="modal" id="modal-notcat" role="dialog" aria-modal="true" aria-labelledby="notcat-title" aria-hidden="true">
+  <form class="modal__dialog" method="post" id="notcat-form">
+    <input type="hidden" name="back" value="{{ back }}"><input type="hidden" name="action" value="exclude">
+    <input type="hidden" name="img_group" value=""><input type="hidden" name="channel" value=""><input type="hidden" name="item_id" value="">
+    <div class="modal__head"><div><h2 class="modal__title" id="notcat-title">标为"看不出 / 不是本品类"</h2><p class="modal__sub" data-notcat-sub>本组 1 个商品</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body stack">
+      <p>标记后，这些商品不进入浴室柜的任何分析：不计入份额、机会扫描、市场评分、新品打分和决策卡。</p>
+      <p class="small muted">可在"不是本品类"标签页恢复，恢复后下一次扫描生效。</p>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--danger" type="submit" data-notcat-confirm><svg class="icon"><use href="#ph-prohibit"/></svg><span>确认标记</span></button></div>
+  </form>
+</div>
+{% endblock %}
 {% block scripts %}
 <script>
+/* “看不出 / 不是本品类”先弹确认，确认后才提交 */
+(function () {
+  var form = document.getElementById('notcat-form');
+  document.querySelectorAll('[data-notcat]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      form.setAttribute('action', btn.getAttribute('data-action'));
+      form.elements.img_group.value = btn.getAttribute('data-img-group') || '';
+      form.elements.channel.value = btn.getAttribute('data-channel') || '';
+      form.elements.item_id.value = btn.getAttribute('data-item-id') || '';
+      form.querySelector('[data-notcat-sub]').textContent = btn.getAttribute('data-sub');
+      window.oppoOpen('#modal-notcat');
+    });
+  });
+})();
 window.addEventListener('pdt:job-started', function (e) {
   var id = e.detail && e.detail.id; if (!id) return;
   (function poll() { fetch('/jobs/' + id, { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) {

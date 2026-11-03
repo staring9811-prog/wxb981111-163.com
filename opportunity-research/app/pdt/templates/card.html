@@ -316,13 +316,16 @@
         {% if ch.skus %}
         <div class="table-wrap"><table class="table sku-table" id="sku-{{ ch.channel }}">
           <thead><tr><th>{{ '子 ASIN' if ch.channel == 'amazon' else '商品 ID' }}</th><th>品牌</th><th>规格</th><th class="t-num">价格（价比）</th><th class="t-num">评分</th><th>首次在榜 / 在榜月数</th><th>峰值：月份、{{ '估算' if ch.estimated else '' }}月销</th><th>最好排名 / 首次进前 50</th></tr></thead>
-          <tbody>{% for k in ch.skus %}{% set prices = k.series|map(attribute='price')|select('number')|list %}{% set ratings = k.series|map(attribute='rating')|select('number')|list %}{% set ratios = k.series|map(attribute='price_ratio')|select('number')|list|sort %}
-            <tr data-sku="{{ ch.channel }}:{{ loop.index0 }}" tabindex="0"><td class="mono">{{ k.item_id }}</td><td>{{ k.brand }}</td><td>{{ k.spec }}</td>
+          <tbody>{% for k in ch.skus %}{% set pg = loop.index0 // 20 + 1 %}{% set prices = k.series|map(attribute='price')|select('number')|list %}{% set ratings = k.series|map(attribute='rating')|select('number')|list %}{% set ratios = k.series|map(attribute='price_ratio')|select('number')|list|sort %}
+            <tr data-sku="{{ ch.channel }}:{{ loop.index0 }}" data-sku-page="{{ pg }}" tabindex="0"{% if pg > 1 %} hidden{% endif %}><td class="mono">{{ k.item_id }}</td><td>{{ k.brand }}</td><td>{{ k.spec }}</td>
               <td class="t-num">{% if prices %}${{ prices|min|num }}{% if prices|min != prices|max %}–{{ prices|max|num }}{% endif %}{% else %}—{% endif %}{% if ratios %}（{{ '%.2f'|format(ratios[ratios|length // 2]) }}）{% endif %}</td>
               <td class="t-num">{% if ratings %}{{ '%.1f'|format(ratings|min) }}–{{ '%.1f'|format(ratings|max) }}{% else %}—{% endif %}</td>
               <td class="num">{{ k.first_month }} / {{ k.months_listed }}</td><td class="num">{{ k.peak_month }}：{{ k.peak_units|num }} 件{% if ch.estimated %} <span class="etag">估算</span>{% endif %}</td>
               <td class="num">{{ k.best_rank|num }} / {{ k.first_top50 or '没进' }}</td></tr>{% endfor %}</tbody>
         </table></div>
+        {% set nk = ch.skus|length %}{% set npg = (nk + 19) // 20 %}{% set idw = '子 ASIN' if ch.channel == 'amazon' else '商品' %}
+        <div class="pager" data-sku-pager="{{ ch.channel }}"><span>{% if ch.n_skus is not defined and nk >= 20 %}共 {{ nk }} 个{{ idw }}（本卡生成时只保存了峰值月销前 20 个，重新生成后显示全部）{% else %}<span data-sku-pg-label>第 1 页，共 {{ npg }} 页</span> · {{ nk }} 个{{ idw }} · 每页 20 个{% endif %}</span>
+          {% if npg > 1 %}<div class="pager__pages">{% for p in range(1, npg + 1) %}<button class="pager__btn" type="button" data-sku-goto="{{ p }}"{% if p == 1 %} aria-current="page"{% endif %}>{{ p }}</button>{% endfor %}</div>{% endif %}</div>
         {% elif ch.has_data and not ch.sample_ok %}
         <div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">{{ ch.name }} 只有 {{ ch.families or 0 }} 个{{ card.value }}家族</div><div class="empty__desc">样本不足，不列 SKU 层。</div></div>
         {% else %}
@@ -610,6 +613,19 @@
   });
 
   /* SKU 展开抽屉 */
+  /* 06 SKU 层分页：每页 20 个 */
+  doc.querySelectorAll('[data-sku-pager]').forEach(function (pager) {
+    var table = doc.getElementById('sku-' + pager.getAttribute('data-sku-pager'));
+    pager.querySelectorAll('[data-sku-goto]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var p = btn.getAttribute('data-sku-goto');
+        table.querySelectorAll('tbody tr[data-sku-page]').forEach(function (tr) { tr.hidden = tr.getAttribute('data-sku-page') !== p; });
+        pager.querySelectorAll('[data-sku-goto]').forEach(function (b) { if (b === btn) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+        var lb = pager.querySelector('[data-sku-pg-label]');
+        if (lb) lb.textContent = '第 ' + p + ' 页，共 ' + pager.querySelectorAll('[data-sku-goto]').length + ' 页';
+      });
+    });
+  });
   var SKU = JSON.parse(doc.getElementById('sku-data').textContent);
   var KEYS = JSON.parse(doc.getElementById('chan-keys').textContent);
   function fmt(v, d) { return v == null ? '—' : Number(v).toLocaleString('en-US', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }

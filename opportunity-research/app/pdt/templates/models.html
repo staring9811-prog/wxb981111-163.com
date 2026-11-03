@@ -30,9 +30,10 @@
     <p class="page-head__sub">{% if run %}当前结果：第九版规则 · 数据到 {{ run.month }}{% if run.month in (pre.star_months or {}) %}*{% endif %} · {{ run.created_at|dt }} 重算 · 立项到上架约 8 个月，预测立项后第 6–10 个月{% else %}还没有重算结果{% endif %}</p>
   </div>
   <div class="page-head__actions">
+    {% if run %}<a class="btn" href="/models/export"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></a>{% endif %}
     {% if user.role == 'operator' %}
     <form method="post" action="/models/rescore" style="display:inline">
-      <button class="btn btn--primary" type="submit" id="btn-recalc" {% if reason %}disabled aria-disabled="true" title="{{ reason }}"{% endif %}><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>{{ '正在重算…' if state.running else '重算（含 ' ~ (pre.last.amazon or '—') ~ '）' }}</span></button>
+      <button class="btn btn--primary" type="submit" id="btn-recalc" {% if reason %}disabled aria-disabled="true" title="{{ reason }}"{% endif %}><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>{{ '正在重算…' if state.running else '重算（含 ' ~ (pre.next or '—') ~ '）' }}</span></button>
     </form>
     {% endif %}
   </div>
@@ -54,11 +55,12 @@
 
 <div class="grid-main-side section enter" style="--i:2">
   <section class="panel" aria-labelledby="sec-pre">
-    <div class="panel__head"><h2 class="panel__title" id="sec-pre">下一次重算：{{ pre.last.amazon or '—' }}</h2>
-      {% if pre.pending %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-hourglass"/></svg>等标签确认</span>{% elif state.running %}<span class="badge badge--watch">重算中 · {{ state.step }}</span>{% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>可重算</span>{% endif %}</div>
+    <div class="panel__head"><h2 class="panel__title" id="sec-pre">下一次重算：{{ pre.next or '—' }}</h2>
+      {% if pre.blocked %}<span class="badge badge--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg>等待并入</span>{% elif pre.pending %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-hourglass"/></svg>等标签确认</span>{% elif state.running %}<span class="badge badge--watch">重算中 · {{ state.step }}</span>{% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>可重算</span>{% endif %}</div>
     <div class="panel__body">
       <ul class="checklist">
-        {% if pre.last.amazon %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>Amazon {{ pre.last.amazon }} 已并入（{{ pre.merged_at|dt }}）</li>{% else %}<li><svg class="icon wait"><use href="#ph-warning"/></svg>Amazon 还没有已并入的月份 <a href="/data/amazon">去并入</a></li>{% endif %}
+        {% if pre.blocked %}<li><svg class="icon wait"><use href="#ph-warning-octagon"/></svg>Amazon {{ pre.blocked }} <a href="/data/amazon">去处理</a></li>{% endif %}
+        {% if pre.last.amazon %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>Amazon {{ pre.last.amazon }} 已并入（{{ pre.merged_at|dt }}）{% if pre.blocked %}，已重算{% endif %}</li>{% else %}<li><svg class="icon wait"><use href="#ph-warning"/></svg>Amazon 还没有已并入的月份 <a href="/data/amazon">去并入</a></li>{% endif %}
         {% for ch in ['homedepot', 'lowes', 'wayfair'] %}{% if pre.last[ch] %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>{{ channel_names[ch] }} {{ pre.last[ch] }} 已并入</li>{% else %}<li><svg class="icon wait"><use href="#ph-info"/></svg>{{ channel_names[ch] }} 暂无数据（不影响 Amazon 市场评分）</li>{% endif %}{% endfor %}
         {% if pre.pending %}<li><svg class="icon wait"><use href="#ph-warning"/></svg>打标确认：还有 {{ pre.pending }} 条待确认 <a href="/tagging">去确认</a></li>{% else %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>打标确认：{{ pre.last.amazon or '当月' }} 无待确认</li>{% endif %}
       </ul>

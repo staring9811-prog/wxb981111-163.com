@@ -40,34 +40,81 @@ async def _form(request: Request) -> dict:
 
 
 # ---------------------------------------------------------------- 列表
+def _list_rows(s, channel: str) -> list[dict]:
+    rows = []
+    for c in s.scalars(select(Card).where(Card.channel == channel).order_by(Card.updated_at.desc(), Card.id.desc())):
+        n = (c.snapshot or {}).get("numbers") if c.snapshot else c.numbers
+        kind = ((n or {}).get("bet") or {}).get("kind") or ""
+        sub = [kind or "无机会类型", f"第 {c.version} 版"]
+        narr = c.narrative or {}
+        if c.status == "draft" and narr.get("consumer_ai"):
+            sub.append("叙述含 AI 草稿")
+        if c.status == "pending":
+            a = s.scalar(select(Approval).where(Approval.obj_type == "card", Approval.obj_id == c.id, Approval.status == "pending"))
+            u = s.get(User, a.submitted_by) if a and a.submitted_by else None
+            sub.append(f"提交人 {u.name if u else '—'}")
+        if c.status in cardcore.LOCKED:
+            sub.append("已登记预测台账")
+        if c.status == "rejected":
+            a = s.scalar(select(Approval).where(Approval.obj_type == "card", Approval.obj_id == c.id, Approval.decision == "reject").order_by(Approval.id.desc()))
+            if a:
+                sub.append(f"意见：“{a.comment}”")
+        rows.append(dict(c=c, name=f"{c.attr}：{c.value}", sub=" · ".join(sub), new=bool(cardcore.has_new_data(s, c)),
+                         fkey=c.frame.replace(" · ", "-").replace("″", "")))
+    return rows
+
+
+def _filtered(rows, status, frame, q, sort):
+    """按状态 / 分框 / 搜索词筛选，按更新时间排序（sort=asc 由早到晚，默认由近到远）。"""
+    out = [r for r in rows if (status in ("", "all") or r["c"].status == status) and (frame in ("", "all") or r["c"].frame == frame)
+           and (not q or q in f"{r['name']} {r['c'].frame}")]
+    if sort == "asc":
+        out.reverse()
+    return out
+
+
+CARDS_PER_PAGE = 20
+
+
 @router.get("/cards")
-def cards_list(request: Request, channel: str = "amazon", user=any_user):
+def cards_list(request: Request, channel: str = "amazon", status: str = "", frame: str = "", q: str = "", sort: str = "desc", page: int = 1,
+               user=any_user):
+    channel = channel if channel in CHANNELS else "amazon"
+    q = q.strip()
+    with session() as s:
+        rows = _list_rows(s, channel)
+    counts = {k: sum(1 for r in rows if r["c"].status == k) for k in cardcore.STATUS_NAMES}
+    frames = sorted({r["c"].frame for r in rows})
+    shown = _filtered(rows, status, frame, q, sort)
+    pages = max(1, -(-len(shown) // CARDS_PER_PAGE))
+    page = min(max(1, page), pages)
+    return render(request, "cards.html", "PAGE-F21-01", "决策卡", rows=rows, shown=shown[(page - 1) * CARDS_PER_PAGE:page * CARDS_PER_PAGE],
+                  n_shown=len(shown), page=page, pages=pages, per_page=CARDS_PER_PAGE, counts=counts, frames=frames, channel=channel,
+                  status=status if status in cardcore.STATUS_NAMES else "all", frame=frame if frame in frames else "all", q=q,
+                  sort="asc" if sort == "asc" else "desc", status_names=cardcore.STATUS_NAMES, channels=CHANNELS)
+
+
+@router.get("/cards/export")
+def cards_list_export(channel: str = "amazon", status: str = "", frame: str = "", q: str = "", sort: str = "desc", user=any_user):
+    """导出当前渠道、当前筛选下的决策卡列表（不分页）。"""
+    from openpyxl import Workbook
+    from ..config import CHANNEL_NAMES
     channel = channel if channel in CHANNELS else "amazon"
     with session() as s:
-        rows = []
-        for c in s.scalars(select(Card).where(Card.channel == channel).order_by(Card.updated_at.desc())):
-            n = (c.snapshot or {}).get("numbers") if c.snapshot else c.numbers
-            kind = ((n or {}).get("bet") or {}).get("kind") or ""
-            sub = [kind or "无机会类型", f"第 {c.version} 版"]
-            narr = c.narrative or {}
-            if c.status == "draft" and narr.get("consumer_ai"):
-                sub.append("叙述含 AI 草稿")
-            if c.status == "pending":
-                a = s.scalar(select(Approval).where(Approval.obj_type == "card", Approval.obj_id == c.id, Approval.status == "pending"))
-                u = s.get(User, a.submitted_by) if a and a.submitted_by else None
-                sub.append(f"提交人 {u.name if u else '—'}")
-            if c.status in cardcore.LOCKED:
-                sub.append("已登记预测台账")
-            if c.status == "rejected":
-                a = s.scalar(select(Approval).where(Approval.obj_type == "card", Approval.obj_id == c.id, Approval.decision == "reject").order_by(Approval.id.desc()))
-                if a:
-                    sub.append(f"意见：“{a.comment}”")
-            rows.append(dict(c=c, name=f"{c.attr}：{c.value}", sub=" · ".join(sub), new=bool(cardcore.has_new_data(s, c)),
-                             fkey=c.frame.replace(" · ", "-").replace("″", "")))
-        counts = {k: sum(1 for r in rows if r["c"].status == k) for k in cardcore.STATUS_NAMES}
-        frames = sorted({r["c"].frame for r in rows})
-    return render(request, "cards.html", "PAGE-F21-01", "决策卡", rows=rows, counts=counts, frames=frames, channel=channel,
-                  status_names=cardcore.STATUS_NAMES, channels=CHANNELS)
+        shown = _filtered(_list_rows(s, channel), status, frame, q.strip(), sort)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "决策卡"
+    ws.append(["编号", "决策卡（属性取值）", "说明", "主渠道", "分框", "状态", "有新数据", "更新时间"])
+    for r in shown:
+        c = r["c"]
+        ws.append([c.id, r["name"], r["sub"], CHANNEL_NAMES[c.channel], c.frame, cardcore.STATUS_NAMES.get(c.status, c.status), "是" if r["new"] else "",
+                   c.updated_at.strftime("%Y-%m-%d %H:%M") if c.updated_at else ""])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": "attachment; filename*=UTF-8''" + quote(f"决策卡_{CHANNEL_NAMES[channel]}.xlsx")})
 
 
 @router.post("/cards")

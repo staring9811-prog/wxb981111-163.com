@@ -37,6 +37,10 @@ def _batch_view(b: Batch, total=None) -> dict:
                 checks=b.checks or {}, total=total, job_id=b.job_id)
 
 
+def _check_total(b: Batch):
+    return next((i.get('cur_total') for i in (b.checks or {}).get('items') or [] if i.get('key') == 'total_change'), None)
+
+
 @router.get('/data/amazon')
 def amazon_page(request: Request, batch: int | None = None, user=operator_only):
     with session() as s:
@@ -46,7 +50,8 @@ def amazon_page(request: Request, batch: int | None = None, user=operator_only):
         for j in jobs:
             s.expunge(j)
         notes = {n.batch_id: n.text for n in s.scalars(select(DataNote).where(DataNote.kind == 'anomaly_confirm'))}
-        views = [_batch_view(b, totals.get(b.id)) for b in bs]
+        # 品类总月销：本批快照合计；未并入批次同样显示（与核对表“品类总月销变化”的本批数同一口径），没有快照时取核对结果
+        views = [_batch_view(b, totals.get(b.id) if totals.get(b.id) is not None else _check_total(b)) for b in bs]
     for v in views:
         v['note'] = notes.get(v['id'], '')
     # 当前批次：指定的；否则最新一个待处理（核对中 / 疑似 / 异常 / 通过）；否则最近并入的

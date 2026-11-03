@@ -214,3 +214,70 @@ def test_cards_list_filters(seeded):
     assert "台面材质：树脂" in h and 'data-filter="status:draft"' in h and "草稿 <span class=\"count\">1</span>" in h
     assert "30″ · 拆装 · 落地式" in h
     assert "还没有以 Wayfair 为主渠道的决策卡" in seeded.get("/cards?channel=wayfair").text
+
+
+def _many_cards(n=25):
+    from datetime import datetime, timedelta
+    from pdt.db import session
+    from pdt.models import Card
+    vals = ["树脂", "岗石", "陶瓷", "石英石", "岩板"]
+    t0 = datetime(2026, 10, 1, 9, 30)
+    with session() as s:
+        for i in range(n):
+            s.add(Card(channel="amazon", frame=ds.FRAME if i % 2 else ds.FRAME24, attr="台面材质", value=f"{vals[i % 5]}{i:02d}",
+                       status="draft" if i % 3 else "pending", updated_at=t0 + timedelta(hours=i)))
+
+
+def test_cards_list_paging_sort_export(wen):
+    """DESIGN-11（补）：决策卡列表每页 20 张、显示总数与页码；“更新时间”可排序；筛选条件翻页保持；页头“导出 Excel”导出当前筛选下全部卡。"""
+    import io
+    from openpyxl import load_workbook
+    _many_cards(25)
+    h = wen.get("/cards?channel=amazon").text
+    names = re.findall(r'<a class="tlink" href="/cards/\d+">台面材质：(\S+?)</a>', h)
+    assert len(names) == 20 and names[0] == "岩板24" and "共 25 张 · 每页 20 张 · 第 1 / 2 页" in h
+    assert 'aria-sort="descending"' in h and 'href="/cards?channel=amazon&amp;status=all&amp;frame=all&amp;q=&amp;sort=asc"' in h
+    p2 = wen.get("/cards?channel=amazon&page=2").text
+    assert re.findall(r'<a class="tlink" href="/cards/\d+">台面材质：(\S+?)</a>', p2) == ["岩板04", "石英石03", "陶瓷02", "岗石01", "树脂00"]
+    asc = wen.get("/cards?channel=amazon&sort=asc").text
+    assert re.findall(r'<a class="tlink" href="/cards/\d+">台面材质：(\S+?)</a>', asc)[:2] == ["树脂00", "岗石01"] and 'aria-sort="ascending"' in asc
+    pend = wen.get("/cards", params={"channel": "amazon", "status": "pending"}).text
+    assert len(re.findall(r'class="tlink" href="/cards/\d+"', pend)) == 9 and "共 9 张" in pend and 'data-filter="status:pending" aria-pressed="true"' in pend
+    fr = wen.get("/cards", params={"channel": "amazon", "frame": ds.FRAME, "q": "岩板"}).text
+    assert re.findall(r'<a class="tlink" href="/cards/\d+">台面材质：(\S+?)</a>', fr) == ["岩板19", "岩板09"]
+    assert 'href="/cards/export?channel=amazon&amp;status=all&amp;frame=30%E2%80%B3%20%C2%B7%20%E6%8B%86%E8%A3%85%20%C2%B7%20%E8%90%BD%E5%9C%B0%E5%BC%8F&amp;q=%E5%B2%A9%E6%9D%BF&amp;sort=desc"' in fr
+    r = wen.get("/cards/export", params={"channel": "amazon", "status": "pending"})
+    assert r.status_code == 200 and "spreadsheetml" in r.headers["content-type"]
+    rows = list(load_workbook(io.BytesIO(r.content)).active.values)
+    assert rows[0] == ("编号", "决策卡（属性取值）", "说明", "主渠道", "分框", "状态", "有新数据", "更新时间")
+    assert len(rows) == 10 and {x[5] for x in rows[1:]} == {"待审批"} and rows[1][1] == "台面材质：岩板24" and rows[1][7] == "2026-10-02 09:30"
+
+
+def test_card_sku_layer_shows_total_and_pages(seeded):
+    """DESIGN-12（补）：06 SKU 层保存全部子体并显示总数，每页 20 个分页（原型“第 1 页，共 N 页 · M 个子 ASIN”）；
+    旧卡只存了前 20 个时明确提示，不再静默截断。"""
+    from pdt.db import session
+    from pdt.models import Card
+    cid = _card(seeded)
+    with session() as s:
+        c = s.get(Card, cid)
+        amz = c.numbers["channels"][0]
+        assert amz["channel"] == "amazon" and amz["n_skus"] == len(amz["skus"]) > 0
+        k = amz["skus"][0]
+        nums = json.loads(json.dumps(c.numbers))
+        nums["channels"][0]["skus"] = [dict(k, item_id=f"B0R{i:07d}") for i in range(45)]
+        nums["channels"][0]["n_skus"] = 45
+        c.numbers = nums
+    s6 = seeded.get(f"/cards/{cid}").text.split('id="s6"')[1].split('id="s7"')[0]
+    assert "第 1 页，共 3 页</span> · 45 个子 ASIN · 每页 20 个" in s6
+    rows = re.findall(r'<tr data-sku="amazon:\d+" data-sku-page="(\d)" tabindex="0"( hidden)?>', s6)
+    assert len(rows) == 45 and sum(1 for _, h in rows if not h) == 20 and [p for p, _ in rows].count("3") == 5
+    assert s6.count('data-sku-goto=') == 3
+    with session() as s:
+        c = s.get(Card, cid)
+        nums = json.loads(json.dumps(c.numbers))
+        nums["channels"][0]["skus"] = nums["channels"][0]["skus"][:20]
+        nums["channels"][0].pop("n_skus")
+        c.numbers = nums
+    s6 = seeded.get(f"/cards/{cid}").text.split('id="s6"')[1].split('id="s7"')[0]
+    assert "共 20 个子 ASIN（本卡生成时只保存了峰值月销前 20 个，重新生成后显示全部）" in s6

@@ -92,14 +92,13 @@
         <table class="table">
           <thead><tr><th>标签</th><th>方式</th><th>规则摘要</th><th class="t-num">规则数</th><th><span class="visually-hidden">操作</span></th></tr></thead>
           <tbody>
-            {% for tag, r in cfg.tag_rules.items() %}
-            <tr><td class="cell-title">{{ tag }}</td><td>{{ r.method if r is mapping and r.method else ('规则' if r else '—') }}</td><td class="small">{% if r is mapping and r.summary %}{{ r.summary }}{% else %}{{ (r|tojson)[:120] }}{% endif %}</td><td class="t-num">{% if r is mapping and r.rules is defined %}{{ r.rules|length }}{% else %}{{ r|length }}{% endif %}</td><td><button class="btn btn--sm" type="button" data-open="#dwRules">编辑</button></td></tr>
-            {% else %}
-            <tr><td colspan="5"><div class="muted small" style="padding: var(--space-4); text-align:center;">还没有打标规则。打标模块首次运行时写入默认关键词规则，也可点“编辑 JSON”直接填写。</div></td></tr>
+            {% for r in tag_rows %}
+            <tr><td class="cell-title">{{ r.tag }}</td><td>{{ r.method }}</td><td class="small">{{ r.summary }}</td><td class="t-num">{{ r.n }}</td><td><button class="btn btn--sm" type="button" data-open="#dwRules">编辑</button></td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      <div class="panel__foot">置信度按证据状态取值：{{ conf_text }}{% if vision_usd %} · 看图每次约 ${{ '%.3f'|format(vision_usd[0]) }}–{{ '%.3f'|format(vision_usd[1]) }}{% endif %}{% if rule_version %} · 规则版本 {{ rule_version }}{% endif %}</div>
     </section>
   </section>
 
@@ -116,16 +115,16 @@
             <tr><td class="cell-title">Amazon</td><td colspan="4" class="small muted">销量来自卖家精灵月销，不做换算</td></tr>
             {% else %}
             <tr data-ch="{{ c.key }}"><td class="cell-title">{{ c.name }}</td>
-              <td><span class="seg" role="group" aria-label="{{ c.name }} 估算方法" data-path="channels.{{ c.key }}.method">{% for m, mn in methods.items() %}<button class="seg__opt" type="button" data-value="{{ m }}" aria-pressed="{{ 'true' if c.cfg.method == m else 'false' }}"{% if m == 'rank' and c.fit < min_fit %} disabled title="拟合商品不足 {{ min_fit }} 个，暂不能用排名平滑"{% endif %}>{{ mn }}</button>{% endfor %}</span></td>
+              <td><span class="seg" role="group" aria-label="{{ c.name }} 估算方法" data-path="channels.{{ c.key }}.method">{% for m, mn in methods.items() %}<button class="seg__opt" type="button" data-value="{{ m }}" aria-pressed="{{ 'true' if c.cfg.method == m else 'false' }}"{% if m == 'rank' and c.fit < min_fit %} disabled title="锚点不足 {{ min_fit }} 个，暂不能用排名平滑"{% endif %}>{{ mn }}</button>{% endfor %}</span></td>
               <td class="t-num"><input class="input input--num w-num" value="{{ c.cfg.vp_coef }}" data-path="channels.{{ c.key }}.vp_coef" data-type="num" aria-label="{{ c.name }} VP 系数"></td>
               <td class="t-num"><input class="input input--num w-num" value="{{ c.cfg.nonvp_coef }}" data-path="channels.{{ c.key }}.nonvp_coef" data-type="num" aria-label="{{ c.name }} 非 VP 系数"></td>
-              <td class="small">{% if c.fit >= min_fit %}可用 · 拟合商品 {{ c.fit }} 个{% else %}<span class="muted">拟合商品不足 {{ min_fit }} 个，暂不能用排名平滑（现有 {{ c.fit }} 个）</span>{% endif %}</td></tr>
+              <td class="small" data-anchors="{{ c.fit }}">{% if c.fit >= min_fit %}可用 · 锚点 {{ c.fit }} 个{% else %}<span class="muted">锚点不足 {{ min_fit }} 个，暂不能用排名平滑（现有 {{ c.fit }} 个）</span>{% endif %}</td></tr>
             {% endif %}
             {% endfor %}
           </tbody>
         </table>
       </div>
-      <div class="panel__foot">榜单排名平滑：用同时有排名和评论换算销量的商品拟合排名—销量曲线；这类商品少于 {{ min_fit }} 个时不提供该方法。两种方法的对照在 <a href="/data/channels">其他渠道数据</a> 查看。</div>
+      <div class="panel__foot">榜单排名平滑：用同时有排名和评论换算销量的商品（锚点）拟合排名—销量曲线；这类商品少于 {{ min_fit }} 个时不提供该方法。两种方法的对照在 <a href="/data/channels">其他渠道数据</a> 查看。</div>
     </section>
 
     <section class="panel">
@@ -195,7 +194,7 @@
 <aside class="drawer" id="dwRules" role="dialog" aria-modal="true" aria-labelledby="rulesTitle" aria-hidden="true">
   <div class="drawer__head"><div><h2 class="drawer__title" id="rulesTitle">打标规则</h2><p class="drawer__sub">JSON：标签 → 规则（关键词、区间、看图）</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
   <div class="drawer__body">
-    <textarea class="input rules-json" form="f-cfg" data-path="tag_rules" data-type="json" spellcheck="false" aria-label="打标规则 JSON">{{ cfg.tag_rules|tojson(indent=2) }}</textarea>
+    <textarea class="input rules-json" form="f-cfg" data-path="tag_rules" data-type="json" spellcheck="false" aria-label="打标规则 JSON">{{ rules_json }}</textarea>
     <div class="field__error" id="rulesErr" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>不是有效的 JSON 对象</div>
   </div>
   <div class="drawer__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-close data-done>完成</button></div>

@@ -1,0 +1,9 @@
+{# 分页条：pager(第几页, 共几页, 链接前缀（已含筛选参数，以 & 或 ? 结尾）, 左侧说明, 页码参数名) #}
+{% macro pager(page, pages, base, note, param='page') %}
+<style>a.pager__btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; } .pager__gap { align-self: center; padding: 0 2px; }</style>
+<div class="pager"><span>{{ note }}</span>{% if pages > 1 %}<div class="pager__pages">
+  {% if page > 1 %}<a class="pager__btn" href="{{ base }}{{ param }}={{ page - 1 }}" aria-label="上一页"><svg class="icon"><use href="#ph-caret-left"/></svg></a>{% endif %}
+  {% for p in range(1, pages + 1) %}{% if p == 1 or p == pages or (p - page)|abs <= 2 %}<a class="pager__btn" href="{{ base }}{{ param }}={{ p }}"{% if p == page %} aria-current="page"{% endif %}>{{ p }}</a>{% elif p == 2 or p == pages - 1 %}<span class="pager__gap" aria-hidden="true">…</span>{% endif %}{% endfor %}
+  {% if page < pages %}<a class="pager__btn" href="{{ base }}{{ param }}={{ page + 1 }}" aria-label="下一页"><svg class="icon"><use href="#ph-caret-right"/></svg></a>{% endif %}
+</div>{% endif %}</div>
+{% endmacro %}

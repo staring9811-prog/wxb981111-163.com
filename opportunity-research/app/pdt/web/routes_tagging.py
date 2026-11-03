@@ -1,5 +1,9 @@
 """打标确认（PAGE-F18-01，API-F18-01 / 02）。"""
+import io
+from urllib.parse import quote
+
 from fastapi import APIRouter, Form, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 
 from .. import services
@@ -29,21 +33,59 @@ def _progress():
     return out
 
 
+PER_PAGE = 60  # 每页组数
+
+
+def _excluded():
+    with session() as s:
+        return [dict(channel=p.channel, item_id=p.item_id, title=p.title, image=p.image_url, at=p.excluded_at, link=p.link)
+                for p in s.scalars(select(Product).where(Product.excluded.is_(True)).order_by(Product.excluded_at.desc()))]
+
+
 @router.get('/tagging')
-def page(request: Request, channel: str = '', reason: str = '', tab: str = 'pending', user=operator_only):
+def page(request: Request, channel: str = '', reason: str = '', tab: str = 'pending', page: int = 1, user=operator_only):
     ch = channel if channel in CHANNEL_NAMES else None
     rs = reason if reason in ('element', 'low') else None
     cnt = tagging.counts()
     groups = tagging.queue(ch, rs, 'queued' if tab == 'pending' else 'confirmed') if tab in ('pending', 'done') else []
-    excluded = []
-    if tab == 'out':
-        with session() as s:
-            excluded = [dict(channel=p.channel, item_id=p.item_id, title=p.title, image=p.image_url, at=p.excluded_at)
-                        for p in s.scalars(select(Product).where(Product.excluded.is_(True)).order_by(Product.excluded_at.desc()))]
+    pages = max(1, -(-len(groups) // PER_PAGE))
+    page = min(max(1, page), pages)
+    excluded = _excluded() if tab == 'out' else []
     rules, thr, ver = tagging.rules_cfg()
-    return render(request, 'tagging.html', 'PAGE-F18-01', '打标确认', groups=groups[:60], n_groups=len(groups), cnt=cnt, prog=_progress(), channel=ch or 'all',
+    return render(request, 'tagging.html', 'PAGE-F18-01', '打标确认', groups=groups[(page - 1) * PER_PAGE:page * PER_PAGE], n_groups=len(groups),
+                  n_items=sum(len(g['items']) for g in groups), page=page, pages=pages, per_page=PER_PAGE, cnt=cnt, prog=_progress(), channel=ch or 'all',
                   reason=rs or 'all', tab=tab, excluded=excluded, thr=thr, ver=ver, rule_version=rules.get('rule_version', ''),
                   llm=services.connected('llm'), vision_todo=len(tagging.vision_targets()), untagged=sum(len(v) for v in tagging.untagged_items().values()))
+
+
+@router.get('/tagging/export')
+def export(channel: str = '', reason: str = '', tab: str = 'pending', user=operator_only):
+    """导出当前筛选下的队列明细（待确认 / 已确认按渠道与进队原因筛选；“不是本品类”导出被排除的商品）。"""
+    from openpyxl import Workbook
+    ch = channel if channel in CHANNEL_NAMES else None
+    rs = reason if reason in ('element', 'low') else None
+    wb = Workbook()
+    ws = wb.active
+    if tab == 'out':
+        ws.title = '不是本品类'
+        ws.append(['渠道', '商品ID', '标题', '链接', '标记时间'])
+        for p in _excluded():
+            ws.append([CHANNEL_NAMES.get(p['channel'], p['channel']), p['item_id'], p['title'], p['link'], p['at'].strftime('%Y-%m-%d %H:%M') if p['at'] else ''])
+    else:
+        ws.title = '待确认' if tab == 'pending' else '已确认'
+        ws.append(['同图组', '标签', '进队原因', '来源', '渠道', '商品ID', '标题', '其他标签（自动）', '当前值', '置信度', '状态', '链接'])
+        src = {'vision': '看图', 'manual': '人工', 'rule': '规则'}
+        for g in tagging.queue(ch, rs, 'queued' if tab == 'pending' else 'confirmed'):
+            for it in g['items']:
+                st = ('已确认' + (' · 单改' if it['confirm_mode'] == 'single' else '')) if it['status'] == 'confirmed' else '待确认'
+                ws.append([g['img_group'], g['tag'], g['reason'], src.get(g['source'], g['source']), CHANNEL_NAMES.get(it['channel'], it['channel']),
+                           it['item_id'], it['title'], it['others'], it['value'], it['confidence'], st, it['link']])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fn = f"打标确认_{ws.title}{'_' + CHANNEL_NAMES[ch] if ch else ''}{'_' + ('元素' if rs == 'element' else '低置信度') if rs else ''}.xlsx"
+    return StreamingResponse(buf, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                             headers={'Content-Disposition': "attachment; filename*=UTF-8''" + quote(fn)})
 
 
 @router.get('/tagging/queue')

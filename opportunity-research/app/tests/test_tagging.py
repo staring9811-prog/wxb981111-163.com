@@ -1,4 +1,5 @@
 """打标确认（PAGE-F18-01）：规则打标 + 看图打元素 + 确认队列（同图一组、组内单改、不是本品类）、其他渠道同一套规则。"""
+import re
 import json
 from pathlib import Path
 
@@ -189,3 +190,67 @@ def test_other_channel_same_rules_and_filter(wen):
         assert sum(len(x['items']) for x in g) == q_by[ch]
     html = wen.get('/tagging', params={'channel': 'wayfair'}).text
     assert f"Wayfair <span class=\"count\">{q_by['wayfair']}</span>" in html and '<td>Wayfair</td>' in html and '<td>Home Depot</td>' not in html
+
+
+def _queue_rows(n=130):
+    """n 个不同主图的 Amazon 商品，各有一条待确认“元素”；另有 5 个 Lowe's 低置信度“台面材质”。"""
+    titles = ['30 Inch Bathroom Vanity with Ceramic Sink, Fluted Doors', '36 Inch Floating Bathroom Vanity with Resin Top, Oak',
+              '24 Inch Freestanding Bathroom Vanity with Farmhouse Barn Door']
+    with session() as s:
+        for i in range(n):
+            s.add(Product(channel='amazon', item_id=f'B0Q{i:07d}', brand='Sweetcrispy', title=titles[i % 3],
+                          image_url=f'https://m.media-amazon.com/images/I/71vanity{i:04d}.jpg', link=f'https://www.amazon.com/dp/B0Q{i:07d}'))
+            s.add(Tag(channel='amazon', item_id=f'B0Q{i:07d}', tag='元素', value='竖棱' if i % 2 else '', confidence=0.7 if i % 2 else 0.0,
+                      source='rule', status='queued', img_group=f'img{i:04d}', candidates=[{'value': '竖棱', 'confidence': 0.7}, {'value': '农场风'}]))
+        for i in range(5):
+            s.add(Product(channel='lowes', item_id=f'50144528{i:02d}', brand='allen + roth', title='allen + roth Presley 36-in Gray Bathroom Vanity with Carrara Marble Top'))
+            s.add(Tag(channel='lowes', item_id=f'50144528{i:02d}', tag='台面材质', value='岗石', confidence=0.62, source='rule', status='queued', img_group=f'lw{i}'))
+
+
+def test_queue_pagination_keeps_filters(wen):
+    """DESIGN-08：确认队列每页 60 组，显示总组数与页码，翻页时渠道 / 进队原因筛选保持；超出最后一页时落到最后一页。"""
+    _queue_rows(130)
+    html = wen.get('/tagging', params={'channel': 'amazon', 'reason': 'element'}).text
+    assert '共 <b class="num">130</b> 组' in html and '第 1 / 3 页，每页 60 组' in html
+    assert html.count('class="qgroup"') == 60
+    assert 'href="/tagging?channel=amazon&amp;reason=element&amp;tab=pending&amp;page=2"' in html
+    p3 = wen.get('/tagging', params={'channel': 'amazon', 'reason': 'element', 'page': 3}).text
+    assert p3.count('class="qgroup"') == 10 and '第 3 / 3 页' in p3 and 'aria-current="page">3<' in p3
+    assert 'Lowe' not in p3.split('id="queue"')[1].split('</section>')[0]
+    assert wen.get('/tagging', params={'channel': 'amazon', 'reason': 'element', 'page': 99}).text.count('class="qgroup"') == 10
+    lw = wen.get('/tagging', params={'channel': 'lowes'}).text
+    assert lw.count('class="qgroup"') == 5 and 'pager__btn' not in lw
+
+
+def test_notcat_needs_confirm_modal(wen):
+    """DESIGN-08（补）：整组“看不出 / 不是本品类”与单行“不是本品类”只打开确认弹窗（说明后果、可在“不是本品类”页签恢复），确认后才提交写库。"""
+    _queue_rows(3)
+    html = wen.get('/tagging').text
+    assert 'id="modal-notcat"' in html and '不进入浴室柜的任何分析' in html and '可在"不是本品类"标签页恢复' in html
+    assert 'formaction="/tagging/groups/exclude"' not in html
+    assert re.search(r'<button class="btn btn--ghost btn--sm" type="button" data-notcat data-action="/tagging/groups/exclude" data-img-group="img0000"', html)
+    assert re.search(r'type="button" data-notcat data-action="/tagging/items/\d+" data-channel="amazon" data-item-id="B0Q0000001" data-sub="只标这一个商品：B0Q0000001"', html)
+    assert not re.search(r'name="action" value="exclude">.*?type="submit">不是本品类', html)
+    with session() as s:
+        assert s.scalar(select(func.count()).select_from(Product).where(Product.excluded.is_(True))) == 0
+    # 弹窗确认提交（与弹窗表单字段一致）后才写库
+    r = wen.post('/tagging/groups/exclude', data={'img_group': 'img0001', 'action': 'exclude', 'channel': '', 'item_id': '', 'back': '/tagging'}, follow_redirects=True)
+    assert '1 个商品已标为“看不出 / 不是本品类”' in r.text
+    with session() as s:
+        assert s.scalar(select(Product.excluded).where(Product.item_id == 'B0Q0000001')) is True
+
+
+def test_tagging_export_current_filter(wen):
+    """DESIGN-08（补）：页头“导出 Excel”导出当前筛选下的队列明细。"""
+    import io
+    from openpyxl import load_workbook
+    _queue_rows(70)
+    assert 'href="/tagging/export?channel=lowes&amp;reason=all&amp;tab=pending"' in wen.get('/tagging', params={'channel': 'lowes'}).text
+    r = wen.get('/tagging/export', params={'channel': 'lowes', 'reason': 'all', 'tab': 'pending'})
+    assert r.status_code == 200 and 'spreadsheetml' in r.headers['content-type']
+    ws = load_workbook(io.BytesIO(r.content)).active
+    rows = list(ws.values)
+    assert rows[0][:7] == ('同图组', '标签', '进队原因', '来源', '渠道', '商品ID', '标题')
+    assert len(rows) == 6 and {x[4] for x in rows[1:]} == {"Lowe's"} and {x[8] for x in rows[1:]} == {'岗石'}
+    ws = load_workbook(io.BytesIO(wen.get('/tagging/export', params={'channel': 'amazon', 'reason': 'element'}).content)).active
+    assert ws.max_row == 71  # 全部 70 条，不受分页限制

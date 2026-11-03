@@ -17,6 +17,8 @@
   label.chip input { position: absolute; opacity: 0; pointer-events: none; }
   .seg__opt { text-decoration: none; }
   .star { color: var(--warn); font-weight: 600; }
+  .cell-actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+  .cell-actions form { margin: 0; }
   @media (max-width: 1279px) { .rules { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 {% endblock %}
@@ -43,6 +45,7 @@
       <select class="select" id="m-sel" name="month" onchange="this.form.submit()" style="width:auto">{% for m in months %}<option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}{% if loop.first %}（最新）{% endif %}</option>{% endfor %}</select>
     </form>
     {% endif %}
+    {% if meta %}<a class="btn" href="/scan/export?{{ export_qs }}"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></a>{% endif %}
     <button class="btn" type="button" data-cols-toggle=".scan-table .table-wrap" aria-pressed="false"><svg class="icon"><use href="#ph-columns"/></svg><span>显示全部列</span></button>
   </div>
 </div>
@@ -120,8 +123,8 @@
             <td class="t-num">{{ pct0(m.newshare) }}（{{ pct0(m.frame_newshare) }}）</td>
             <td class="t-num col-2">{% if channel == 'amazon' %}{{ m.newmade }}/{{ m.newfam }}（{{ m.frame_newmade }}/{{ m.frame_newfam }}）{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
             <td>{% if r.evidence == '经回测' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测</span>{% elif r.evidence == '历史观察' %}<span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}</td>
-            <td class="t-nowrap">{% if r.card %}<a class="btn btn--sm" href="/cards/{{ r.card }}"><svg class="icon"><use href="#ph-cards"/></svg><span>查看决策卡</span></a>
-              {% elif user.role == 'operator' %}{% if r.related %}<a class="tlink small" href="/cards/{{ r.related }}">有相关卡</a> {% endif %}<form method="post" action="/cards" style="display:inline"><input type="hidden" name="channel" value="{{ channel }}"><input type="hidden" name="frame" value="{{ r.frame }}"><input type="hidden" name="attr" value="{{ r.attr }}"><input type="hidden" name="value" value="{{ r.value }}"><button class="btn btn--sm" type="submit"><svg class="icon"><use href="#ph-plus"/></svg><span>做决策卡</span></button></form>{% endif %}</td>
+            <td class="t-nowrap"><div class="cell-actions">{% if r.card %}<a class="btn btn--sm" href="/cards/{{ r.card }}"><svg class="icon"><use href="#ph-cards"/></svg><span>查看决策卡</span></a>
+              {% elif user.role == 'operator' %}<form method="post" action="/cards"><input type="hidden" name="channel" value="{{ channel }}"><input type="hidden" name="frame" value="{{ r.frame }}"><input type="hidden" name="attr" value="{{ r.attr }}"><input type="hidden" name="value" value="{{ r.value }}"><button class="btn btn--sm" type="submit"><svg class="icon"><use href="#ph-plus"/></svg><span>做决策卡</span></button></form>{% if r.related %}<a class="tlink small" href="/cards/{{ r.related }}">有相关卡</a>{% endif %}{% endif %}</div></td>
           </tr>
         {% else %}
           <tr><td colspan="12" class="muted">{{ '没有符合筛选条件的单元。' if meta else '本渠道还没有已并入的数据，无法扫描。' }}</td></tr>

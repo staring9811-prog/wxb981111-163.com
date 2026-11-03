@@ -4,6 +4,7 @@
   .status-draft { background: var(--surface-warm); color: var(--fg-2); border-color: var(--border); }
   .card-sub { margin-top: 2px; font-size: var(--text-xs); color: var(--muted); }
   a.seg__opt { text-decoration: none; display: inline-flex; align-items: center; }
+  a.chip, a.th-sort { text-decoration: none; }
 </style>
 {% endblock %}
 {% macro status_badge(st) -%}
@@ -20,38 +21,43 @@
 </div>
 {% endblock %}
 {% block content %}
+{% from "_pager.html" import pager %}
+{% set base = '/cards?channel=' ~ channel ~ '&q=' ~ (q|urlencode) %}
+{% set qs0 = 'channel=' ~ channel ~ '&status=' ~ status ~ '&frame=' ~ (frame|urlencode) ~ '&q=' ~ (q|urlencode) %}
+{% set qs = qs0 ~ '&sort=' ~ sort %}
 <div class="page-head enter" style="--i:0">
   <div>
     <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>决策</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>决策卡</span></nav>
     <h1>决策卡</h1>
     <p class="page-head__sub">主渠道 {{ channel_names[channel] }} · 每张卡对应一个"框 × 属性取值"机会 · 新卡从机会扫描的"做决策卡"生成</p>
   </div>
-  {% if user.role == 'operator' %}
   <div class="page-head__actions">
-    <a class="btn btn--primary" href="/scan?channel={{ channel }}"><svg class="icon"><use href="#ph-plus"/></svg><span>去机会扫描新建</span></a>
+    {% if rows %}<a class="btn" href="/cards/export?{{ qs }}"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></a>{% endif %}
+    {% if user.role == 'operator' %}<a class="btn btn--primary" href="/scan?channel={{ channel }}"><svg class="icon"><use href="#ph-plus"/></svg><span>去机会扫描新建</span></a>{% endif %}
   </div>
-  {% endif %}
 </div>
 
 <section class="enter" style="--i:1" aria-label="决策卡筛选与列表">
   {% if rows %}
-  <div class="filters" data-filter-scope="#cards">
+  {# 筛选、搜索、排序、分页都在服务端完成，翻页时条件保持 #}
+  <form class="filters" method="get" action="/cards">
+    <input type="hidden" name="channel" value="{{ channel }}"><input type="hidden" name="status" value="{{ status }}"><input type="hidden" name="frame" value="{{ frame }}"><input type="hidden" name="sort" value="{{ sort }}">
     <span class="filters__label">状态</span>
-    <button class="chip" type="button" data-filter="status:all" aria-pressed="true">全部 <span class="count">{{ rows|length }}</span></button>
-    {% for k, v in status_names.items() %}<button class="chip" type="button" data-filter="status:{{ k }}" aria-pressed="false">{{ v }} <span class="count">{{ counts[k] }}</span></button>{% endfor %}
+    <a class="chip" href="{{ base }}&frame={{ frame|urlencode }}&sort={{ sort }}&status=all" data-filter="status:all" aria-pressed="{{ 'true' if status == 'all' else 'false' }}">全部 <span class="count">{{ rows|length }}</span></a>
+    {% for k, v in status_names.items() %}<a class="chip" href="{{ base }}&frame={{ frame|urlencode }}&sort={{ sort }}&status={{ k }}" data-filter="status:{{ k }}" aria-pressed="{{ 'true' if status == k else 'false' }}">{{ v }} <span class="count">{{ counts[k] }}</span></a>{% endfor %}
     <span class="filters__sep" aria-hidden="true"></span>
     <span class="filters__label">分框</span>
-    <button class="chip" type="button" data-filter="frame:all" aria-pressed="true">全部</button>
-    {% for f in frames %}<button class="chip" type="button" data-filter="frame:{{ f|replace(' · ', '-')|replace('″', '') }}" aria-pressed="false">{{ f }}</button>{% endfor %}
+    <a class="chip" href="{{ base }}&status={{ status }}&sort={{ sort }}&frame=all" data-filter="frame:all" aria-pressed="{{ 'true' if frame == 'all' else 'false' }}">全部</a>
+    {% for f in frames %}<a class="chip" href="{{ base }}&status={{ status }}&sort={{ sort }}&frame={{ f|urlencode }}" data-filter="frame:{{ f|replace(' · ', '-')|replace('″', '') }}" aria-pressed="{{ 'true' if frame == f else 'false' }}">{{ f }}</a>{% endfor %}
     <span class="spacer"></span>
-    <label class="search"><svg class="icon"><use href="#ph-magnifying-glass"/></svg><input class="input" type="search" placeholder="搜卡名、属性取值" aria-label="搜索决策卡" id="card-search"></label>
-  </div>
+    <label class="search"><svg class="icon"><use href="#ph-magnifying-glass"/></svg><input class="input" type="search" name="q" value="{{ q }}" placeholder="搜卡名、属性取值，回车搜索" aria-label="搜索决策卡" id="card-search"></label>
+  </form>
 
   <div class="table-wrap" id="cards-wrap">
     <table class="table" id="cards">
-      <thead><tr><th>决策卡（属性取值）</th><th>主渠道</th><th>分框</th><th>状态</th><th>更新时间</th><th></th></tr></thead>
+      <thead><tr><th>决策卡（属性取值）</th><th>主渠道</th><th>分框</th><th>状态</th><th><a class="th-sort" href="/cards?{{ qs0 }}&amp;sort={{ 'asc' if sort == 'desc' else 'desc' }}" aria-sort="{{ 'descending' if sort == 'desc' else 'ascending' }}" title="按更新时间{{ '由早到晚' if sort == 'desc' else '由近到远' }}排序">更新时间<svg class="icon"><use href="#ph-sort-ascending"/></svg></a></th><th></th></tr></thead>
       <tbody>
-        {% for r in rows %}{% set c = r.c %}
+        {% for r in shown %}{% set c = r.c %}
         <tr data-href="/cards/{{ c.id }}" data-status="{{ c.status }}" data-frame="{{ r.fkey }}" data-search="{{ r.name }} {{ c.frame }}">
           <td><a class="tlink" href="/cards/{{ c.id }}">{{ r.name }}</a><div class="card-sub">{{ r.sub }}{% if r.new %} <span class="badge badge--stale"><svg class="icon"><use href="#ph-arrows-clockwise"/></svg>有新数据</span>{% endif %}</div></td>
           <td>{{ channel_names[c.channel] }}</td>
@@ -60,11 +66,13 @@
           <td class="num t-nowrap">{{ c.updated_at|dt }}</td>
           <td><svg class="icon muted"><use href="#ph-caret-right"/></svg></td>
         </tr>
+        {% else %}
+        <tr><td colspan="6" class="muted">没有符合筛选条件的决策卡。</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  <div class="pager" id="cards-pager"><span>共 <b class="num" data-filter-count>{{ rows|length }}</b> 张 · 每页 50 张</span></div>
+  <div id="cards-pager">{{ pager(page, pages, '/cards?' ~ qs ~ '&', '共 ' ~ n_shown ~ ' 张 · 每页 ' ~ per_page ~ ' 张 · 第 ' ~ page ~ ' / ' ~ pages ~ ' 页') }}</div>
   {% else %}
   <div class="empty" id="cards-empty">
     <svg class="icon"><use href="#ph-cards"/></svg>
@@ -76,18 +84,4 @@
 </section>
 
 <p class="page-foot">状态流转：草稿 → 待审批 → 已批准 / 已驳回 / 退回修改（回到草稿）；已批准的卡自动登记 <a href="/ledger">预测台账</a>，上架后为"跟踪中"，满 6 个月对账后为"已对账"。审批在 {% if user.role != 'readonly' %}<a href="/approvals">审批</a>{% else %}审批{% endif %} 页或卡片详情里完成。</p>
-{% endblock %}
-{% block scripts %}
-<script>
-(function () {
-  var q = document.getElementById('card-search');
-  if (!q) return;
-  q.addEventListener('input', function () {
-    var v = q.value.trim();
-    document.querySelectorAll('#cards tbody tr').forEach(function (tr) {
-      tr.style.display = !v || tr.getAttribute('data-search').indexOf(v) >= 0 ? '' : 'none';
-    });
-  });
-})();
-</script>
 {% endblock %}

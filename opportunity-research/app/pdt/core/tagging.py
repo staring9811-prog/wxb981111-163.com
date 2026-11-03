@@ -302,10 +302,27 @@ def queue(channel: str | None = None, reason: str | None = None, status: str = '
         return out
 
 
+def _queued_q(*cols):
+    """待确认标签的统一口径：Tag.status == 'queued'，且商品未被标为“不是本品类”（Product.excluded）。"""
+    return (select(*cols).select_from(Tag).join(Product, (Product.channel == Tag.channel) & (Product.item_id == Tag.item_id))
+            .where(Product.excluded.is_(False), Tag.status == 'queued'))
+
+
+def queued_count() -> int:
+    """待确认标签条数；侧栏角标、工作台、打标确认页共用此口径。"""
+    with session() as s:
+        return s.scalar(_queued_q(func.count())) or 0
+
+
+def queued_groups() -> int:
+    """待确认标签的同图组数（与 queued_count 同口径）。"""
+    with session() as s:
+        return s.scalar(_queued_q(func.count(func.distinct(Tag.img_group))).where(Tag.img_group != '')) or 0
+
+
 def counts():
     with session() as s:
-        base = (select(Tag.channel, Tag.tag, func.count()).join(Product, (Product.channel == Tag.channel) & (Product.item_id == Tag.item_id))
-                .where(Product.excluded.is_(False), Tag.status == 'queued').group_by(Tag.channel, Tag.tag))
+        base = _queued_q(Tag.channel, Tag.tag, func.count()).group_by(Tag.channel, Tag.tag)
         q = {}
         for ch, tg, n in s.execute(base):
             q.setdefault(ch, {})[tg] = n

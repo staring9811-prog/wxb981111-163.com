@@ -1,7 +1,10 @@
 """机会扫描（PAGE-F20-01，API-F20-01）：读预计算的 Opportunity 表（NFR-009）；历史月份没有算过时当场算一次并保存。"""
+import io
 import time
+from urllib.parse import quote
 
 from fastapi import APIRouter, Query, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 
 from ..auth import any_user
@@ -31,12 +34,8 @@ def _meta(channel, month):
         return m
 
 
-@router.get('/scan')
-def scan_page(request: Request, channel: str = 'amazon', month: str = '', frame: str = '', vars: list[str] = Query(default=[]),
-              type: list[str] = Query(default=[]), grade: list[str] = Query(default=[]), user=any_user):
-    t0 = time.time()
-    if channel not in CHANNEL_NAMES:
-        channel = 'amazon'
+def _results(channel, month, frame, vars, type, grade):
+    """当前渠道、当前筛选下的扫描结果；页面与导出共用。"""
     meta = _meta(channel, month or None)
     if meta is None:
         with session() as s:
@@ -80,6 +79,16 @@ def scan_page(request: Request, channel: str = 'amazon', month: str = '', frame:
                              card=cards.get((o.frame, o.attr, o.value)), related=cards.get(('*', o.attr, o.value))))
         order = {f: i for i, f in enumerate(frames_all)}
         rows.sort(key=lambda r: (order.get(r['frame'], 999), min(KINDS.index(k) for k in r['flags']), -(r['m'].get('units') or 0)))
+    return meta, rows, frames_all, summary, vars_
+
+
+@router.get('/scan')
+def scan_page(request: Request, channel: str = 'amazon', month: str = '', frame: str = '', vars: list[str] = Query(default=[]),
+              type: list[str] = Query(default=[]), grade: list[str] = Query(default=[]), user=any_user):
+    t0 = time.time()
+    if channel not in CHANNEL_NAMES:
+        channel = 'amazon'
+    meta, rows, frames_all, summary, vars_ = _results(channel, month, frame, vars, type, grade)
     months = pipeline.scan_months(channel)
     with session() as s:
         merged = [m for (m,) in s.execute(select(Batch.month).where(Batch.channel == channel, Batch.status == 'merged').distinct().order_by(Batch.month.desc()))]
@@ -88,4 +97,33 @@ def scan_page(request: Request, channel: str = 'amazon', month: str = '', frame:
     return render(request, 'scan.html', 'PAGE-F20-01', '机会扫描', channel=channel, meta=meta, rows=rows, summary=summary, frames=frames_all, frame=frame,
                   vars=[k for k, v in ATTR_KEYS.items() if v in vars_], types=type, grades=grade, months=sorted(set(months) | set(merged), reverse=True),
                   month=meta.month if meta else month, cfg=cfg, icon=ICON, type_keys=TYPE_KEYS, grade_keys=GRADE_KEYS, attr_keys=ATTR_KEYS,
-                  elapsed=round(time.time() - t0, 2))
+                  elapsed=round(time.time() - t0, 2), export_qs=request.url.query)
+
+
+@router.get('/scan/export')
+def scan_export(channel: str = 'amazon', month: str = '', frame: str = '', vars: list[str] = Query(default=[]),
+                type: list[str] = Query(default=[]), grade: list[str] = Query(default=[]), user=any_user):
+    """导出当前渠道、当前筛选下的扫描结果，列同页面表格。"""
+    from openpyxl import Workbook
+    if channel not in CHANNEL_NAMES:
+        channel = 'amazon'
+    meta, rows, _, _, _ = _results(channel, month, frame, vars, type, grade)
+    est = '' if channel == 'amazon' else '估算'
+    wb = Workbook()
+    ws = wb.active
+    ws.title = '扫描结果'
+    ws.append(['框', f'框{est}月销', '机会类型', '属性', '取值', f'{est}月销', '份额（前期）', '份额（近期）', '家族', '单款 ÷ 同框', '评分', '同框评分',
+               '溢价', '中位价', '新品占比', '同框新品占比', '新家族做到', '新家族数', '同框新家族做到', '同框新家族数', '证据等级'])
+    for r in rows:
+        m = r['m']
+        am = channel == 'amazon'
+        ws.append([r['frame'], r['frame_units'], '、'.join(r['flags']), r['attr'], r['value'], m.get('units'), m.get('share_prev'), m.get('share'),
+                   m.get('families'), m.get('per_family_ratio'), m.get('rating'), m.get('frame_rating'), m.get('premium'), m.get('median_price'),
+                   m.get('newshare'), m.get('frame_newshare'), m.get('newmade') if am else None, m.get('newfam') if am else None,
+                   m.get('frame_newmade') if am else None, m.get('frame_newfam') if am else None, r['evidence']])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fn = f"机会扫描_{CHANNEL_NAMES[channel]}_{meta.month if meta else month or '无数据'}.xlsx"
+    return StreamingResponse(buf, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                             headers={'Content-Disposition': "attachment; filename*=UTF-8''" + quote(fn)})

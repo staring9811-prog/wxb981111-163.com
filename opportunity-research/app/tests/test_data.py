@@ -236,3 +236,29 @@ def test_real_raw_month_not_misdated(wen):
         items = {i['key']: i for i in b.checks['items']}
     assert items['purchase_label']['result'] == 'pass', items['purchase_label']
     assert b.status != 'suspect_month'
+
+
+def test_history_shows_total_for_unmerged_batch(wen, tmp_path):
+    """DESIGN-06（补）：被拦截（疑似月份错误）的批次在“历史月份”表里也显示本批品类总月销并标“未并入”，与核对表“品类总月销变化”的本批数一致。"""
+    import re
+
+    def up(month, path):
+        with open(path, 'rb') as f:
+            return wen.post('/data/amazon/upload', data={'month': month}, files={'file': (path.name, f, 'application/octet-stream')}, follow_redirects=False)
+    up('2026-09', export_xlsx(tmp_path / '浴室柜_类目选品_2026-09.xlsx', '2026-09'))
+    with session() as s:
+        b0 = s.scalar(select(Batch).where(Batch.month == '2026-09'))
+    wen.post(f'/data/batches/{b0.id}/merge')
+    up('2026-10', export_xlsx(tmp_path / '浴室柜_类目选品_2026-10_误标.xlsx', '2026-10'))
+    with session() as s:
+        ba = s.scalar(select(Batch).where(Batch.month == '2026-10'))
+        assert ba.status == 'suspect_month'
+        snap_total = s.scalar(select(func.sum(Snapshot.units)).where(Snapshot.batch_id == ba.id))
+        check_total = next(i['cur_total'] for i in ba.checks['items'] if i['key'] == 'total_change')
+    assert round(snap_total) == round(check_total) > 0
+    html = wen.get('/data/amazon').text
+    hist = html.split('id="t-hist"')[1]
+    row = re.search(r'href="/data/amazon\?batch=%d">2026-10</a>.*?</tr>' % ba.id, hist, re.S).group(0)
+    assert f'{check_total:,.0f}<span class="etag">估算</span><span class="etag etag--nodata">未并入</span>' in row
+    assert '无数据' not in row
+    assert f'{check_total:,.0f} 件 vs' in wen.get(f'/data/amazon?batch={ba.id}').text  # 核对表同一个数

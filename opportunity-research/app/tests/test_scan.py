@@ -170,3 +170,40 @@ def test_scan_open_within_10s(wen):
         assert r.status_code == 200 and 'table__divider' in r.text
     print(f'预计算 {pre:.1f} 秒；打开扫描页最慢 {worst:.2f} 秒')
     assert worst <= 10
+
+
+def _seed_scan():
+    from pdt.models_data import ScanMeta
+    fr = '30″ · 拆装 · 落地式'
+    with session() as s:
+        s.add(ScanMeta(channel='amazon', month='2026-09', meta={'recent': ['2026-04', '2026-09'], 'prev': ['2025-10', '2026-03'], 'n_frames': 1, 'n_units': 3,
+                                                                'frames': [{'frame': fr, 'units': 5320}]}))
+        base = dict(families=6, per_family_ratio=1.12, rating=4.31, frame_rating=4.42, premium=1.08, median_price=329.0, newshare=0.38, frame_newshare=0.21,
+                    newfam=4, newmade=2, frame_newfam=19, frame_newmade=6)
+        s.add(Opportunity(month='2026-09', channel='amazon', frame=fr, attr='元素', value='竖棱', kind='增长型', evidence='经回测',
+                          metrics=dict(base, units=812, share=0.153, share_prev=0.094, flags={'增长型': True})))
+        s.add(Opportunity(month='2026-09', channel='amazon', frame=fr, attr='台面材质', value='岗石', kind='价格缺口型', evidence='历史观察',
+                          metrics=dict(base, units=241, share=0.045, share_prev=0.051, premium=1.41, flags={'价格缺口型': True})))
+        s.add(Opportunity(month='2026-09', channel='amazon', frame=fr, attr='主色', value='白', kind='', evidence='—',
+                          metrics=dict(base, units=2210, share=0.415, share_prev=0.43, flags={})))
+        s.add(Card(channel='amazon', frame='36″ · 拆装 · 落地式', attr='元素', value='竖棱', status='draft'))
+    return fr
+
+
+def test_scan_export_and_action_cell(wen):
+    """DESIGN-10（补）：页头“导出 Excel”导出当前渠道、当前筛选下的结果（列同页面表格）；“做决策卡”与“有相关卡”上下排列在同一格，不挤出列宽。"""
+    import io
+    import re
+    from openpyxl import load_workbook
+    fr = _seed_scan()
+    html = wen.get('/scan', params={'channel': 'amazon', 'vars': 'el'}).text
+    assert 'href="/scan/export?channel=amazon&amp;vars=el"' in html
+    cell = re.search(r'<div class="cell-actions">(.*?)</div></td>', html, re.S).group(1)
+    assert cell.index('做决策卡') < cell.index('有相关卡') and 'style="display:inline"' not in cell
+    r = wen.get('/scan/export', params={'channel': 'amazon', 'vars': 'el'})
+    assert r.status_code == 200 and 'spreadsheetml' in r.headers['content-type']
+    rows = list(load_workbook(io.BytesIO(r.content)).active.values)
+    assert rows[0][:6] == ('框', '框月销', '机会类型', '属性', '取值', '月销')
+    assert rows[1:] == [(fr, 5320, '增长型', '元素', '竖棱', 812, 0.094, 0.153, 6, 1.12, 4.31, 4.42, 1.08, 329, 0.38, 0.21, 2, 4, 6, 19, '经回测')]
+    all_rows = list(load_workbook(io.BytesIO(wen.get('/scan/export', params={'channel': 'amazon'}).content)).active.values)
+    assert sorted(x[4] for x in all_rows[1:]) == ['岗石', '竖棱']  # 无机会标记的“白”不导出，与页面一致

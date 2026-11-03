@@ -255,7 +255,7 @@ def unit_timeseries(channel, frame, attr, value) -> list[dict]:
 
 
 def unit_skus(channel, frame, attr, value, top=20) -> list[dict]:
-    """框内该取值的子体：峰值月、最好排名、首次进前 50、逐月价格 / 价比 / 评分 / 月销 / 排名（AC-F21-04）。"""
+    """top=None 时返回全部。框内该取值的子体：峰值月、最好排名、首次进前 50、逐月价格 / 价比 / 评分 / 月销 / 排名（AC-F21-04）。"""
     an, d = _frame_attr(channel, frame, attr)
     if d.empty:
         return []

@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 
 from ..config import APP_DIR, CHANNEL_NAMES, ROLES
 from ..db import session
-from ..models import Approval, Tag
+from ..models import Approval
 
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 
@@ -35,9 +35,9 @@ NAV = [
 
 def nav_for(user, page_id: str):
     with session() as s:
-        queued = s.scalar(select(func.count()).select_from(Tag).where(Tag.status == "queued")) or 0
         pend = s.scalar(select(func.count()).select_from(Approval).where(Approval.status == "pending")) or 0
-    counts = {"PAGE-F18-01": queued, "PAGE-F25-01": pend if user.role == "approver" else 0}
+    from ..core.tagging import queued_count
+    counts = {"PAGE-F18-01": queued_count(), "PAGE-F25-01": pend if user.role == "approver" else 0}
     items, last_group = [], None
     for pid, href, icon, name, group, rs in NAV:
         if user.role not in rs.split():

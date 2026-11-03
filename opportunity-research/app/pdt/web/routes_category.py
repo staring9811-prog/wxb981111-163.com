@@ -8,7 +8,8 @@ from sqlalchemy import func, select
 from .. import catconfig
 from ..config import CATEGORY, CHANNEL_NAMES
 from ..db import session
-from ..models import Snapshot, Tag, User
+from ..core import channels as chm
+from ..models import Tag, User
 from ..models_settings import ConfigNote
 from ..auth import operator_only
 from .ui import redirect, render
@@ -16,7 +17,6 @@ from .ui import redirect, render
 router = APIRouter()
 
 METHODS = {"review": "评论换算", "rank": "榜单排名平滑"}
-MIN_FIT = 10  # 拟合商品少于 10 个时不提供榜单排名平滑（AC-F28-04）
 FIELD_NAMES = {
     "low_conf_threshold": "低置信度阈值", "vp_coef": "VP 系数", "nonvp_coef": "非 VP 系数", "method": "估算方法",
     "bsr_top": "成功线 · 小类 BSR 名次", "spu_revenue": "成功线 · SPU 月销售额", "rank_top": "成功线 · 榜单名次",
@@ -92,13 +92,43 @@ def _pos(v) -> bool:
         return False
 
 
-def fit_counts() -> dict:
-    """各其他渠道可用于拟合排名—销量曲线的商品数（同时有榜单名次和评论换算销量）。"""
-    with session() as s:
-        rows = s.execute(select(Snapshot.channel, func.count(func.distinct(Snapshot.item_id)))
-                         .where(Snapshot.rank.is_not(None), Snapshot.units.is_not(None), Snapshot.channel != "amazon")
-                         .group_by(Snapshot.channel)).all()
-    return {ch: n for ch, n in rows}
+CONF_NAMES = {"text_supported": "文字直接写明", "derived": "推导", "business_mapping": "业务映射", "business_inference": "业务推断",
+              "order_inference": "顺序推断", "parent_fill": "父体补齐", "family_fill": "家族补齐", "business_default": "业务默认",
+              "business_assumption": "业务假设", "parent_candidate": "父体候选", "conflict": "证据冲突", "missing": "缺失"}
+
+
+def _arrow_items(m: dict, n: int = 6) -> str:
+    """{原词: 归类} → “原词 → 归类、…”，同一归类的原词合并。"""
+    by = {}
+    for k, v in m.items():
+        by.setdefault(v, []).append(k)
+    parts = [f"{' / '.join(ks)} → {v}" for v, ks in by.items()]
+    return "；".join(parts[:n]) + ("；…" if len(parts) > n else "")
+
+
+def tag_rule_rows(rules: dict) -> list[dict]:
+    """打标规则按业务标签分行的中文摘要（PAGE-F27-01 打标规则表）；JSON 原文只在“编辑”抽屉里。"""
+    from ..core.tagging import CANDIDATES
+    bands = rules.get("size_bands") or []
+    size = "；".join(f"{lo:g}–{hi:g} 英寸 → {c}″" for c, lo, hi in bands) + "；≥ 66 英寸 → 72″+"
+    em = rules.get("element_map") or {}
+    vocab = rules.get("element_vocab") or []
+    cm = rules.get("color_map") or {}
+    cab = str(rules.get("cabinet_map") or "")
+    top = str(rules.get("top_type_map") or "")
+    return [
+        dict(tag="尺寸段", method="规则", n=len(bands) + 1, summary=f"读标题、规格、商品尺寸中的宽度，按区间归段：{size}"),
+        dict(tag="拆装", method="规则", n=3, summary="写明 fully assembled / no assembly required / 到货已组装 → 整装；"
+                                                     "assembly required、RTA、partially assembled 等或没写 → 拆装"),
+        dict(tag="形态", method="规则", n=5, summary="floating / wall mounted → 悬浮式；freestanding / floor standing → 落地式；"
+                                                    "pedestal sink → 柱状盆；corner vanity → 转角式；同时写可壁挂和可落地 → 两用；无关键词默认落地式"),
+        dict(tag="台面材质", method="规则", n=len(CANDIDATES["台面材质"]),
+             summary=f"读台面描述归入 {len(CANDIDATES['台面材质'])} 种材质（{'、'.join(CANDIDATES['台面材质'][:6])} …）；分析时再归大类：{top}"),
+        dict(tag="元素", method="规则 + 看图", n=len(em),
+             summary=f"标题关键词：{_arrow_items(em)}；判断不了的由大模型看主图，从 {len(vocab)} 个元素词里选；未配置大模型时进入人工确认。元素一律人工确认"),
+        dict(tag="主色", method="规则", n=len(cm) + 1, summary=f"颜色词归类：{_arrow_items(cm, 8)}；其余颜色 → 其他"),
+        dict(tag="柜体材质", method="规则", n=len([x for x in cab.split("；") if x.strip()]), summary=cab),
+    ]
 
 
 def _tag_values() -> dict:
@@ -134,15 +164,20 @@ def _history(cfg: dict):
 @router.get("/settings/category")
 def category_page(request: Request, tab: str = "frame", user=operator_only):
     v, cfg = catconfig.current()
-    fits = fit_counts()
     channels = []
     for ch, c in cfg.get("channels", {}).items():
-        channels.append(dict(key=ch, name=CHANNEL_NAMES.get(ch, ch), cfg=c, fit=fits.get(ch, 0)))
+        # 锚点数与其他渠道数据页同一函数（AC-F28-04：同时有排名和评论换算销量的商品数，少于 10 个不提供）
+        channels.append(dict(key=ch, name=CHANNEL_NAMES.get(ch, ch), cfg=c, fit=chm.rank_fit(ch)[2]))
     hist = _history(cfg)
     thr = cfg.get("low_conf_threshold", 0.75)
+    from ..core.tagging import rules_cfg
+    rules = rules_cfg()[0]
+    conf = rules.get("confidence") or {}
     return render(request, "settings_category.html", "PAGE-F27-01", "品类配置", version=v, cfg=cfg, channels=channels,
-                  history=hist, current=hist[0] if hist else None, methods=METHODS, min_fit=MIN_FIT,
-                  tag_values=_tag_values(), queue_n=_queue_count(thr), thr=thr,
+                  history=hist, current=hist[0] if hist else None, methods=METHODS, min_fit=chm.MIN_RANK_POINTS,
+                  tag_values=_tag_values(), queue_n=_queue_count(thr), thr=thr, tag_rows=tag_rule_rows(rules), rule_version=rules.get("rule_version", ""),
+                  conf_text="、".join(f"{CONF_NAMES.get(k, k)} {float(v):.2f}" for k, v in conf.items()), vision_usd=rules.get("vision_usd_per_call") or [],
+                  rules_json=json.dumps(cfg.get("tag_rules") or {}, ensure_ascii=False, indent=2),
                   tab=tab if tab in ("frame", "tag", "ch", "ver") else "frame")
 
 

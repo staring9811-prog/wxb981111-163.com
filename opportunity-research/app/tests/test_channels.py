@@ -113,3 +113,22 @@ def test_rank_method_and_min_anchors(wen):
     assert '榜单排名平滑法不可用' in html and '只有 6 个（少于 10 个）' in html and '配置为排名平滑，但本渠道不可用' in html
     j = wen.get('/data/channels/estimate', params={'channel': 'lowes'}).json()
     assert j['rank_available'] is False and j['anchors'] == 6
+
+
+def test_anchor_count_same_on_both_pages_and_diff_sortable(wen):
+    """DESIGN-07 / DESIGN-18（补）/ AC-F28-04：其他渠道数据页与品类配置页的“榜单排名平滑可用锚点数”出自同一函数
+    （同时有排名和评论换算销量的商品数，少于 10 个不提供）；估算对照表“差异”列可排序。"""
+    import re
+    from pdt.core import channels
+    channels.ingest_tracker_month(_rows('homedepot', 14, shared=2), collected_on='2026-11-03')
+    channels.ingest_tracker_month(_rows('lowes', 6, shared=0), collected_on='2026-11-03')
+    assert channels.rank_fit('homedepot')[2] == 14 and channels.rank_fit('lowes')[2] == 6
+    cat = wen.get('/settings/category', params={'tab': 'ch'}).text
+    assert dict(re.findall(r'data-path="channels\.(\w+)\.method".*?data-anchors="(\d+)"', cat, re.S)) == {'homedepot': '14', 'lowes': '6', 'wayfair': '0'}
+    assert '可用 · 锚点 14 个' in cat and '锚点不足 10 个，暂不能用排名平滑（现有 6 个）' in cat
+    hd = wen.get('/data/channels?ch=homedepot').text
+    assert '可用 · 锚点 14 个' in hd and '锚点 14 个 · 按排名列前' in hd
+    assert '锚点 6 个 · 按排名列前' in wen.get('/data/channels?ch=lowes').text
+    assert re.search(r'<button class="th-sort" type="button" data-sort-diff>差异', hd)
+    diffs = re.findall(r'class="t-num [^"]*" data-sort="(-?[\d.]+)">([^<]+)</td></tr>', hd)
+    assert len(diffs) == 14 and all(abs(float(a) - float(b.replace('%', ''))) < 0.06 for a, b in diffs)

@@ -239,10 +239,11 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
                        direction=d, grade=grade, grasp=sd.get("grasp"), verified=not est, verdict=verdict,
                        spark=spark_points([q["share"] for q in qs[-4:]]), src=src,
                        recent=recent, prev=prev, quarters=qs,
-                       skus=pa.unit_skus(ch, frame, attr, value, top=20) if has else [],
+                       skus=pa.unit_skus(ch, frame, attr, value, top=None) if has else [],  # 全部子体，页面分页显示
                        bands=pa.price_bands(ch, frame, attr, value) if has else [],
                        opp=dict(kind=opp.kind, evidence=opp.evidence, month=opp.month, metrics=om) if opp else None,
                        score=dict(sd, run_id=run.id) if sc else None, period=pr)
+            row["n_skus"] = len(row["skus"])
             chans.append(row)
             if ch == channel:
                 prim = row

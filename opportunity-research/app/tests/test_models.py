@@ -166,3 +166,53 @@ def test_models_page_roles(client):
     make_user('lixiaomei', '李晓梅', 'readonly')
     login_as(client, 'lixiaomei', '密码-123456')
     assert client.get('/models').status_code == 403
+
+
+def _batches_with_blocked_october(run_month):
+    with session() as s:
+        s.add(Batch(channel='amazon', month='2026-09', source='api', status='merged', rows=2948))
+        s.add(Batch(channel='amazon', month='2026-10', source='api', status='suspect_month', rows=2961,
+                    anomaly_reason='与上月小类排名完全相同的 ASIN 占 99.9%（阈值 10%）'))
+        s.add(ModelRun(month=run_month, valid=True, valid_msg='D 档之后变大 19%，阈值 ≤ 30%；把握分档逐档上升。',
+                       backtest={'T0': '2025-12', 'window': '2026-06–2026-08',
+                                 'grades': [{'grade': 'A', 'n': 21, 'up': 0.62, 'extra': 1840, 'median': 35}, {'grade': 'D', 'n': 89, 'up': 0.19, 'extra': -2210, 'median': -12}],
+                                 'grasp_bins': [{'bin': '< 30%', 'n': 64, 'n300': 18, 'up': 0.25, 'extra': -980}, {'bin': '≥ 70%', 'n': 27, 'n300': 11, 'up': 0.63, 'extra': 1520}],
+                                 'coef': {'b6': {'b': 0.412, 'c': -0.031, 'k6': 0.35, 'k8': 0.33}}, 'side': [], 'rho': {'grasp': 0.31, 'grasp300': 0.36, 'extra': 0.28, 'extra300': 0.33}, 'valid_detail': {}},
+                       market={'n_units': 2, 'grades': {'A': 1, 'D': 1}}, newlayer={'rows': [], 'bias': {'bias': 0.03, 'pred': 0.31, 'actual': 0.28, 'n': 140, 'parts': [], 'mae': {'a': 0.04, 'b': 0.06, 'c': 0.07}, 'chosen': 'a'}}))
+        s.flush()
+        rid = s.scalar(select(func.max(ModelRun.id)))
+        s.add(UnitScore(run_id=rid, frame='30″ · 拆装 · 落地式', attr='元素', value='竖棱',
+                        data={'grasp': 0.74, 'grade': 'A', 'share_now': 0.083, 'pred_share': 0.121, 'pred_lo': 0.09, 'pred_hi': 0.15, 'extra_units': 312, 'k_months': 6}))
+
+
+def test_rescore_blocked_when_newer_batch_unmerged(wen):
+    """DESIGN-09 / FLOW-09（前置）：2026-09 已重算、2026-10 被判“疑似月份错误”未并入时，前置清单写明“2026-10 未并入…并入后才能重算”，
+    重算按钮不可点并给出原因，直接提交也被拒绝；2026-09 尚未重算时照常可点“重算（含 2026-09）”。"""
+    _batches_with_blocked_october('2026-09')
+    html = wen.get('/models').text
+    assert '下一次重算：2026-10' in html and '2026-10 未并入（疑似月份错误 / 待确认），并入后才能重算' in html
+    assert re.search(r'id="btn-recalc" disabled aria-disabled="true" title="2026-10 未并入（疑似月份错误 / 待确认），并入后才能重算"', html)
+    assert '重算（含 2026-10）' in html and '重算（含 2026-09）' not in html and '可重算</span>' not in html
+    r = wen.post('/models/rescore', follow_redirects=True)
+    assert '2026-10 未并入（疑似月份错误 / 待确认），并入后才能重算' in r.text
+    with session() as s:
+        assert s.scalar(select(func.count()).select_from(ModelRun)) == 1
+        s.query(ModelRun).update({ModelRun.month: '2026-08'})  # 最新已并入的 2026-09 还没算过
+    html = wen.get('/models').text
+    assert '下一次重算：2026-09' in html and '重算（含 2026-09）' in html and 'id="btn-recalc" disabled' not in html and '未并入' not in html
+
+
+def test_models_export(wen):
+    """DESIGN-09（补）：页头“导出 Excel”导出本次评分与回测结果。"""
+    import io
+    from openpyxl import load_workbook
+    _batches_with_blocked_october('2026-09')
+    assert 'href="/models/export"' in wen.get('/models').text
+    r = wen.get('/models/export')
+    assert r.status_code == 200 and 'spreadsheetml' in r.headers['content-type']
+    wb = load_workbook(io.BytesIO(r.content))
+    assert wb.sheetnames == ['本次评分', '分级回测', '系数', '把握分档', '新品层', '与第八版并排']
+    rows = list(wb['本次评分'].values)
+    assert rows[1][:6] == ('Amazon', '30″ · 拆装 · 落地式', '元素', '竖棱', 0.74, 'A')
+    assert list(wb['分级回测'].values)[2] == ('D', 1, 89, 0.19, -2210, -12)
+    assert list(wb['系数'].values)[1][:3] == ('b6', '份额斜率（近 6 个月每月对数变化）', 0.412)

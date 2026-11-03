@@ -99,14 +99,14 @@
   {% endif %}
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th>商品</th><th class="t-num">排名</th><th class="t-num">VP（去重）</th><th class="t-num">非 VP（去重）</th><th class="t-num">评论换算月销</th><th class="t-num">排名平滑月销</th><th class="t-num">差异</th></tr></thead>
+      <thead><tr><th>商品</th><th class="t-num"><button class="th-sort" type="button" aria-sort="ascending">排名<svg class="icon"><use href="#ph-sort-ascending"/></svg></button></th><th class="t-num">VP（去重）</th><th class="t-num">非 VP（去重）</th><th class="t-num">评论换算月销</th><th class="t-num">排名平滑月销</th><th class="t-num"><button class="th-sort" type="button" data-sort-diff>差异<svg class="icon"><use href="#ph-sort-ascending"/></svg></button></th></tr></thead>
       <tbody>
       {% for r in compare %}
-        <tr><td><div class="cell-title">{{ r.brand }} {{ r.title[:70] }}</div><div class="cell-sub mono">{{ r.item_id }}</div></td><td class="t-num">{{ r.rank or '—' }}</td>
+        <tr><td><div class="cell-title">{{ r.brand }} {{ r.title[:70] }}</div><div class="cell-sub mono">{{ r.item_id }}</div></td><td class="t-num" data-sort="{{ r.rank if r.rank else 999999999 }}">{{ r.rank or '—' }}</td>
           <td class="t-num">{{ '%.1f'|format(r.vp) }}</td><td class="t-num">{{ '%.1f'|format(r.nonvp) }}</td>
           <td class="t-num">{{ r.units_review|num }}<span class="etag">估算</span></td>
           <td class="t-num">{% if r.units_rank is not none %}{{ r.units_rank|num }}<span class="etag">估算</span>{% else %}<span class="etag etag--nodata">不可用</span>{% endif %}</td>
-          <td class="t-num {{ 'diff-up' if r.diff is not none and r.diff > 0.3 else '' }}">{{ ('%+.1f%%'|format(r.diff * 100)) if r.diff is not none else '—' }}</td></tr>
+          <td class="t-num {{ 'diff-up' if r.diff is not none and r.diff > 0.3 else '' }}" data-sort="{{ '%.4f'|format(r.diff * 100) if r.diff is not none else -999999999 }}">{{ ('%+.1f%%'|format(r.diff * 100)) if r.diff is not none else '—' }}</td></tr>
       {% else %}<tr><td colspan="7" class="muted">本渠道还没有完整月数据。</td></tr>{% endfor %}
       </tbody>
     </table>

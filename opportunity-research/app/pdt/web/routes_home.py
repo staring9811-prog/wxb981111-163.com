@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from ..auth import any_user
 from ..config import CHANNEL_NAMES, CHANNELS, SERVICES
 from ..db import session
-from ..models import Approval, Batch, Card, Forecast, Job, ModelRun, Strategy, Tag, User
+from ..models import Approval, Batch, Card, Forecast, Job, ModelRun, Strategy, User
 from .ui import render
 
 router = APIRouter()
@@ -19,6 +19,9 @@ BATCH_STATUS = {
     "ok": ("核对通过，待并入", "warn", "hourglass"),
     "merged": ("已并入", "ok", "check-circle"),
     "rejected": ("已退回", "miss", "prohibit"),
+    "reference": ("仅参考（未完整月）", "incomplete", "info"),
+    "superseded": ("已被新版本替换", "insufficient", "clock-counter-clockwise"),
+    "checking": ("核对中", "warn", "hourglass"),
 }
 CHANNEL_PAGE = {"amazon": "/data/amazon"}
 
@@ -69,7 +72,7 @@ def _data_status(data_month: str):
                 row.update(month=data_month, label="本月无数据" if b else "未拉取", tone="nodata", icon="link-simple",
                            note=f"上一批：{b.month}" if b else "", at=b.created_at if b else None, action=True)
             else:
-                label, tone, icon = BATCH_STATUS.get(b.status, (b.status, "", "info"))
+                label, tone, icon = BATCH_STATUS.get(b.status, ("状态未知", "", "info"))
                 if b.status == "merged" and b.star:
                     label += "*"
                 note = b.anomaly_reason or (f"{b.rows:,} 行" if b.rows else "")
@@ -81,12 +84,10 @@ def _data_status(data_month: str):
 
 
 def _tags():
-    with session() as s:
-        total = s.scalar(select(func.count()).select_from(Tag).where(Tag.status == "queued")) or 0
-        by_ch = dict(s.execute(select(Tag.channel, func.count()).where(Tag.status == "queued").group_by(Tag.channel)).all())
-        elem = s.scalar(select(func.count()).select_from(Tag).where(Tag.status == "queued", Tag.tag == "元素")) or 0
-        groups = s.scalar(select(func.count(func.distinct(Tag.img_group))).where(Tag.status == "queued", Tag.img_group != "")) or 0
-    return dict(total=total, by_channel=[(CHANNEL_NAMES[c], by_ch.get(c, 0)) for c in CHANNELS], elem=elem, low=total - elem, groups=groups)
+    from ..core import tagging  # 与侧栏角标、打标确认页同一口径（排除“不是本品类”的商品）
+    c = tagging.counts()
+    return dict(total=c["total"], by_channel=[(CHANNEL_NAMES[ch], c["by_channel"].get(ch, 0)) for ch in CHANNELS], elem=c["element"],
+                low=c["low"], groups=tagging.queued_groups())
 
 
 def _approvals(user):
