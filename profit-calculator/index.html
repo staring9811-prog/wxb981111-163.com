@@ -49,6 +49,7 @@ p.lead{color:var(--muted);margin:0 0 16px;max-width:70ch}
 .row.end{justify-content:flex-end}
 .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 14px;border-radius:var(--r);font:inherit;cursor:pointer;white-space:nowrap}
 .btn:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
 .btn.ghost{background:transparent}
 .btn.sm{padding:3px 8px;font-size:12px}
@@ -97,8 +98,13 @@ summary{cursor:pointer;padding:12px 0;font-weight:600}
 .mini .h{color:var(--muted);text-align:right}
 .mini .l{color:var(--muted)}
 .mini .v{font-family:var(--f-num);text-align:right;font-variant-numeric:tabular-nums}
-.sticky-params{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px}
+.sticky-params{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px}
 .sticky-params label.f input{width:86px}
+.qg{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px 10px;background:var(--surface2)}
+.qgt{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.qgf{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end}
+.qnote{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.savebar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);margin:12px 0}
 .pp{display:flex;flex-direction:column;gap:3px}
 .pp label{display:flex;gap:4px;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted)}
 .pp input{width:76px}
@@ -295,12 +301,9 @@ th.fz{z-index:3;background:var(--surface2)}
 <!-- STEP 5 -->
 <section id="s5" hidden>
   <h2>历史库</h2>
-  <p class="lead">每次“保存到历史库”都会存一个完整版本（产品、尺寸、价格、销量和全部参数）。名称可以直接改；“打开”会把这个版本载入为当前测算。</p>
-  <div class="row" style="margin-bottom:10px">
-    <input id="histName2" placeholder="版本名称（可不填）" style="width:240px" aria-label="版本名称">
-    <button class="btn primary" id="btnHistSave2">保存当前测算为新版本</button>
-    <span style="flex:1"></span><span class="note" id="histMode"></span>
-  </div>
+  <p class="lead">历史库里每个版本都是一份完整的测算（产品、尺寸、价格、销量和全部参数）。“打开”某个版本后，它就是“当前版本”：之后点“保存”会存回这个版本，不会新建；想另留一份就点“另存为新版本”。名称可以直接改。</p>
+  <div class="savebar" id="saveBar5"></div>
+  <div class="row" style="margin-bottom:10px"><span style="flex:1"></span><span class="note" id="histMode"></span></div>
   <div id="histMsg"></div>
   <div class="tw" id="histTable"></div>
 </section>
@@ -310,10 +313,9 @@ th.fz{z-index:3;background:var(--surface2)}
   <h2>利润测算表</h2>
   <p class="lead">每个产品同时测算 Amazon（FBM / CG / FBA）和 Lowe's、Home Depot、Wayfair 的利润。改动下面的变量会立刻重算。</p>
   <div class="sticky-params" id="quickParams"></div>
-  <div class="row" style="margin:12px 0">
-    <button class="btn primary" id="btnExport">导出 Excel</button>
-    <input id="histName" placeholder="版本名称（可不填）" style="width:220px" aria-label="版本名称">
-    <button class="btn primary" id="btnHistSave">保存到历史库</button>
+  <div class="savebar" id="saveBar4"></div>
+  <div class="row" style="margin:0 0 12px">
+    <button class="btn" id="btnExport">导出 Excel</button>
     <button class="btn" id="btnSaveJson">保存方案(.json)</button>
     <span class="note" id="exportMsg"></span>
   </div>
@@ -398,7 +400,7 @@ let step = 1, wbIn = null, mapState = null, dl = null;
 function sampleProducts(){ return SAMPLE.map(s=>({id:uid(),name:s.name,desc:s.desc,supplier:"",category:s.category,peak:s.peak,price:s.price,cost:s.cost,costCur:s.costCur,adj:s.adj,
   prices:{},pkgs:s.pk.map(p=>({l:p[0],w:p[1],h:p[2],kg:p[3]}))})); }
 function load(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } }
-function save(){ try{ localStorage.setItem("pc_params",JSON.stringify(P)); localStorage.setItem("pc_products",JSON.stringify(products)); }catch(e){} }
+function save(){ try{ localStorage.setItem("pc_params",JSON.stringify(P)); localStorage.setItem("pc_products",JSON.stringify(products)); }catch(e){} try{ renderSaveBar(); }catch(e){ /* history not set up yet during boot */ } }
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function num(v){ if(v===null||v===undefined||v==="") return NaN; if(typeof v==="number") return v; const s=String(v).replace(/[,，\s$¥￥]/g,"").replace(/[^\d.\-]/g,""); return s===""?NaN:parseFloat(s); }
 function nz(v){ const n=num(v); return isFinite(n)?n:0; }
@@ -409,7 +411,7 @@ const f0=v=>isFinite(v)?String(Math.round(v)):"–";
 const pct=v=>isFinite(v)?(v*100).toFixed(1)+"%":"–";
 const money=v=>isFinite(v)?(v<0?"(":"")+"$"+f2(Math.abs(v))+(v<0?")":""):"–";
 const cls=v=>!isFinite(v)?"":v<0?"neg":"pos";
-function toast(t){ const d=document.createElement("div"); d.className="toast"; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),2600); }
+function toast(t){ document.querySelectorAll(".toast").forEach(x=>x.remove()); const d=document.createElement("div"); d.className="toast"; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),2600); }
 
 /* ---------------- calculation (mirrors the original workbook) ---------------- */
 const ceil=x=>Math.ceil(Math.round(x*1e9)/1e9);
@@ -795,9 +797,16 @@ document.getElementById("rateFile").addEventListener("change",e=>{ const f=e.tar
 
 /* ---------------- step 4: results ---------------- */
 function renderS4(){
-  document.getElementById("quickParams").innerHTML=[fld("rate","汇率"),fld("promo","推广 %"),fld("fxLoss","汇损 %"),fld("refund","退款 %"),fld("fbm.fuel","尾程燃油 %"),fld("targetMargin","目标利润率 %"),...(products.some(p=>num(p.costRmb)>0)?[fld("dom.rebate","退税率 %"),fld("dom.extra","国内杂费 RMB/柜")]:[]),(products.some(p=>p.costCur==="RMB_TAX")?fld("tax","税点 %（RMB含税）"):`<label class="f">税点 %<input value="FOB 不适用" disabled style="width:100px;text-align:center"></label>`),
-    ...P.sea.map((s,i)=>fld(`sea.${i}.rmb`,esc(s.name)+" RMB")),`<label class="f">FBM旺季（全部产品）<select data-allpeak="1">${[["mixed","各产品不同"],["非旺季","非旺季"],["旺季","旺季"]].map(([v,l])=>`<option value="${v}" ${v===allPeak()?"selected":""} ${v==="mixed"?"disabled":""}>${l}</option>`).join("")}</select></label>`,
-    fld("fba.peakMode","FBA费率",{type:"select",options:[["auto","按日期"],["on","旺季"],["off","非旺季"]]})].join("")+`<span class="note">改了立即生效；更多变量见“参数设置”</span>`;
+  { const hasRmb=products.some(p=>num(p.costRmb)>0), grp=(t,f)=>f.length?`<div class="qg"><div class="qgt">${t}</div><div class="qgf">${f.join("")}</div></div>`:"";
+    const seaF=P.sea.map((x,i)=>fld(`sea.${i}.rmb`,`${seaKind(x)==="dom"?"国内":"FOB"} · ${esc(x.name)}`));
+    const peakSel=`<label class="f">FBM旺季（全部产品）<select data-allpeak="1">${[["mixed","各产品不同"],["非旺季","非旺季"],["旺季","旺季"]].map(([v,l])=>`<option value="${v}" ${v===allPeak()?"selected":""} ${v==="mixed"?"disabled":""}>${l}</option>`).join("")}</select></label>`;
+    document.getElementById("quickParams").innerHTML=
+      grp("基础",[fld("rate","汇率 RMB/USD"),fld("targetMargin","目标利润率 %"),...(products.some(p=>p.costCur==="RMB_TAX")?[fld("tax","税点 %（RMB含税）")]:[])])+
+      grp("Amazon 费用",[fld("promo","推广 %"),fld("fxLoss","汇损 %"),fld("refund","退款 %")])+
+      grp("头程运费（整柜价 RMB）",seaF)+
+      grp("尾程与旺季",[fld("fbm.fuel","尾程燃油 %"),peakSel,fld("fba.peakMode","FBA费率",{type:"select",options:[["auto","按日期"],["on","旺季"],["off","非旺季"]]})])+
+      (hasRmb||hasDomSea()?grp("国内出货",[fld("dom.rebate","退税率 %"),fld("dom.vat","增值税率 %"),fld("dom.extra","国内杂费 RMB/柜")]):"")+
+      `<div class="qnote">改了立即生效，并自动存在本浏览器。平台佣金、FBA 档位、尾程费率表等在“参数设置”里改。</div>`; }
   const R=products.map(p=>({p,r:calcProduct(p)}));
   renderAll(R);
   document.getElementById("detailChan").innerHTML=DETAIL_OPTS().map(([v,l])=>`<option value="${v}" ${v===P.detailChan?"selected":""}>${esc(l)}</option>`).join("");
@@ -1256,7 +1265,7 @@ const hist={mode:"pending",items:[],col:null,slow:false,err:""};
 const clone=o=>JSON.parse(JSON.stringify(o));
 const fmtTime=ms=>{ const d=new Date(ms); return isNaN(d)?"–":d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0"); };
 function defaultName(){ const d=new Date(); return (products[0]?products[0].name+(products.length>1?` 等${products.length}款`:""):"利润测算")+" "+fmtTime(d).slice(5,16); }
-function histChanged(){ document.getElementById("histCount").textContent=hist.items.length; if(step===5) renderS5(); }
+function histChanged(){ document.getElementById("histCount").textContent=hist.items.length; renderSaveBar(); if(step===5) renderS5(); }
 function saveLocalHist(){ try{ localStorage.setItem("pc_history",JSON.stringify(hist.items)); return true; }catch(e){ toast("本浏览器存储空间不足，请删除一些旧版本"); return false; } }
 async function initHistory(){
   for(let i=0;i<20&&!(window.claude&&typeof window.claude.use==="function");i++) await new Promise(r=>setTimeout(r,100));
@@ -1279,55 +1288,75 @@ async function initHistory(){
   hist.mode="local"; hist.items=load("pc_history")||[]; histChanged();
   if(qlib.mode==="pending"){ qlib.mode="local"; qlib.items=load("pc_quotes")||[]; quotesChanged(); }
 }
+/* The version the user is working on: “保存” writes back to it, “另存为新版本” creates another one.
+   Display-only settings (selected sea plan, chosen channels in pickers) don't count as changes. */
+const VIEW_KEYS=["seaView","seaViewDom","detailChan","scenChan","domChan","qMetric","cmpFob","cmpDom","bulk"];
+function sigOf(){ const q={}; for(const k in P) if(!VIEW_KEYS.includes(k)) q[k]=P[k]; const t=JSON.stringify([products,q]); let h=5381; for(let i=0;i<t.length;i++) h=((h<<5)+h+t.charCodeAt(i))|0; return String(h); }
+function getCur(){ try{ return JSON.parse(localStorage.getItem("pc_cur")||"null"); }catch(e){ return null; } }
+function setCur(c){ try{ if(c) localStorage.setItem("pc_cur",JSON.stringify(c)); else localStorage.removeItem("pc_cur"); }catch(e){} renderSaveBar(); }
+function renderSaveBar(){
+  const c=getCur(), it=c&&hist.items.find(x=>x.id===c.id), known=c&&(it||hist.mode==="pending"||hist.loading), dirty=!c||c.sig!==sigOf(), name=it?it.name:(c&&c.name);
+  const html=known?`<span>当前版本：<b>${esc(name)}</b></span>${dirty?'<span class="chip warn">有未保存的改动</span>':'<span class="chip ok">已保存</span>'}
+      <button class="btn primary" data-sv="save" ${dirty?"":"disabled"}>保存</button><span class="muted">或</span>
+      <input data-sv="name" placeholder="新版本名称（可不填）" style="width:200px" aria-label="新版本名称"><button class="btn" data-sv="new">另存为新版本</button>`
+    :`<span>还没存进历史库</span><span class="note">（改动已自动保存在本浏览器）</span>
+      <input data-sv="name" placeholder="版本名称（可不填）" style="width:200px" aria-label="版本名称"><button class="btn primary" data-sv="new">保存为新版本</button>`;
+  document.querySelectorAll("#saveBar4,#saveBar5").forEach(el=>el.innerHTML=html); }
+const snapshot=()=>({count:products.length,names:products.map(p=>p.name).slice(0,20),products:clone(products),params:clone(P)});
+async function histSaveCur(){ const c=getCur(); if(!c) return; const now=Date.now();
+  if(await histUpdate(c.id,Object.assign({savedAtMs:now,savedAt:new Date(now).toISOString()},snapshot()))){ setCur({id:c.id,name:c.name,sig:sigOf()}); toast("已保存到："+c.name); } }
+document.addEventListener("click",async e=>{ const b=e.target.closest("[data-sv]"); if(!b||b.tagName!=="BUTTON") return;
+  if(b.dataset.sv==="save") histSaveCur();
+  if(b.dataset.sv==="new"){ const inp=b.parentElement.querySelector('input[data-sv="name"]'); const r=await histSave(inp?inp.value:""); if(r) setCur({id:r.id,name:r.name,sig:sigOf()}); } });
 async function histSave(name){
-  if(hist.mode==="pending"){ toast("历史库还在连接，请稍等几秒再保存"); return; }
-  if(!products.length){ toast("没有产品可以保存"); return; }
+  if(hist.mode==="pending"){ toast("历史库还在连接，请稍等几秒再保存"); return null; }
+  if(!products.length){ toast("没有产品可以保存"); return null; }
   const now=Date.now();
-  const rec={name:(name||"").trim()||defaultName(),savedAtMs:now,savedAt:new Date(now).toISOString(),count:products.length,names:products.map(p=>p.name).slice(0,20),products:clone(products),params:clone(P)};
-  try{
-    if(hist.mode==="cloud") await hist.col.add(rec);
-    else { hist.items.unshift(Object.assign({id:uid()},rec)); if(!saveLocalHist()){ hist.items.shift(); return; } histChanged(); }
-    toast("已保存到历史库："+rec.name);
-  }catch(e){ toast(e&&e.code==="quota_exceeded"?"历史库已满，请删除一些旧版本后再保存":"保存失败，请稍后再试"); }
+  const rec=Object.assign({name:(name||"").trim()||defaultName(),savedAtMs:now,savedAt:new Date(now).toISOString()},snapshot());
+  try{ let id;
+    if(hist.mode==="cloud"){ const ref=await hist.col.add(rec); id=ref&&ref.id; }
+    else { id=uid(); hist.items.unshift(Object.assign({id},rec)); if(!saveLocalHist()){ hist.items.shift(); return null; } histChanged(); }
+    toast("已存为新版本："+rec.name); return id?{id,name:rec.name}:null;
+  }catch(e){ toast(e&&e.code==="quota_exceeded"?"历史库已满，请删除一些旧版本后再保存":"保存失败，请稍后再试"); return null; }
 }
 async function histUpdate(id,patch){
   try{
     if(hist.mode==="cloud") await hist.col.doc(id).update(patch);
-    else { const it=hist.items.find(x=>x.id===id); if(it){ Object.assign(it,patch); saveLocalHist(); histChanged(); } }
-  }catch(e){ toast("修改失败，请稍后再试"); }
+    else { const it=hist.items.find(x=>x.id===id); if(!it) return false; Object.assign(it,patch); if(!saveLocalHist()) return false; histChanged(); }
+    return true;
+  }catch(e){ toast("保存失败，请稍后再试"); return false; }
 }
 async function histDelete(id){
   try{
     if(hist.mode==="cloud") await hist.col.doc(id).delete();
     else { hist.items=hist.items.filter(x=>x.id!==id); saveLocalHist(); histChanged(); }
+    const c=getCur(); if(c&&c.id===id) setCur(null);
     toast("已删除");
   }catch(e){ toast("删除失败，请稍后再试"); }
 }
 function histOpen(id){ const it=hist.items.find(x=>x.id===id); if(!it) return;
-  products=clone(it.products||[]); P=Object.assign(defaultParams(),clone(it.params||{})); migrate(); save(); toast("已打开："+it.name); go(4); }
+  products=clone(it.products||[]); P=Object.assign(defaultParams(),clone(it.params||{})); migrate(); save(); setCur({id:it.id,name:it.name,sig:sigOf()}); toast("已打开："+it.name+"（之后点“保存”会存回这个版本）"); go(4); }
 function renderS5(){
-  document.getElementById("histName2").placeholder=defaultName();
   document.getElementById("histMode").textContent= hist.mode==="cloud"?"保存在你的 claude.ai 账号里，只有你自己能看到，换电脑也在":hist.mode==="local"?"保存在本浏览器里（清缓存会丢失，重要版本请另存 .json）":"正在连接历史库…";
   document.getElementById("histMsg").innerHTML= hist.err?`<p class="msg">历史库暂时连不上，刷新页面后再试。</p>`: hist.slow?`<p class="msg">历史库响应较慢，下面的列表可能不是最新的。</p>`:"";
   if(hist.mode==="pending"||hist.loading){ document.getElementById("histTable").innerHTML=`<p class="muted" style="padding:12px">正在读取历史库…</p>`; return; }
   if(!hist.items.length){ document.getElementById("histTable").innerHTML=`<p class="muted" style="padding:12px 16px">还没有保存过版本。在“利润测算表”或上面点“保存”，当前的产品和参数就会存成第一个版本。</p>`; return; }
   document.getElementById("histTable").innerHTML=`<table><thead><tr><th>名称（可改）</th><th>保存时间</th><th>产品数</th><th>包含产品</th><th>汇率</th><th>操作</th></tr></thead><tbody>${hist.items.map(it=>`<tr>
-    <td><input class="wide" style="width:240px" data-hname="${esc(it.id)}" value="${esc(it.name)}"></td>
+    <td><input class="wide" style="width:240px" data-hname="${esc(it.id)}" value="${esc(it.name)}">${(getCur()||{}).id===it.id?' <span class="chip ok">当前</span>':""}</td>
     <td class="n">${fmtTime(it.savedAtMs)}${it.renamedAtMs?`<br><span class="note">改名 ${fmtTime(it.renamedAtMs).slice(5,16)}</span>`:""}</td>
     <td class="c">${esc(it.count)}</td>
     <td style="max-width:320px;white-space:normal" class="note">${esc((it.names||[]).join("、"))}</td>
     <td class="n">${esc(it.params&&it.params.rate)}</td>
-    <td class="c" style="white-space:nowrap"><button class="btn sm" data-hact="open" data-id="${esc(it.id)}">打开</button> <button class="btn sm" data-hact="overwrite" data-id="${esc(it.id)}">用当前覆盖</button> <button class="btn sm" data-hact="json" data-id="${esc(it.id)}">导出.json</button> <button class="btn sm danger" data-hact="del" data-id="${esc(it.id)}">删除</button></td>
+    <td class="c" style="white-space:nowrap"><button class="btn sm" data-hact="open" data-id="${esc(it.id)}">打开</button> <button class="btn sm" data-hact="overwrite" data-id="${esc(it.id)}" title="把当前测算存进这个版本，并把它设为当前版本">用当前覆盖</button> <button class="btn sm" data-hact="json" data-id="${esc(it.id)}">导出.json</button> <button class="btn sm danger" data-hact="del" data-id="${esc(it.id)}">删除</button></td>
   </tr>`).join("")}</tbody></table>`;
 }
-document.getElementById("btnHistSave").addEventListener("click",()=>{ const i=document.getElementById("histName"); histSave(i.value); i.value=""; });
-document.getElementById("btnHistSave2").addEventListener("click",()=>{ const i=document.getElementById("histName2"); histSave(i.value); i.value=""; });
+
 const ht=document.getElementById("histTable");
-ht.addEventListener("change",e=>{ const t=e.target; if(t.dataset.hname===undefined) return; const v=t.value.trim(); const it=hist.items.find(x=>x.id===t.dataset.hname); if(!it) return; if(!v){ t.value=it.name; return; } if(v!==it.name) histUpdate(it.id,{name:v,renamedAtMs:Date.now()}); });
+ht.addEventListener("change",e=>{ const t=e.target; if(t.dataset.hname===undefined) return; const v=t.value.trim(); const it=hist.items.find(x=>x.id===t.dataset.hname); if(!it) return; if(!v){ t.value=it.name; return; } if(v!==it.name){ histUpdate(it.id,{name:v,renamedAtMs:Date.now()}); const c=getCur(); if(c&&c.id===it.id){ c.name=v; setCur(c); } } });
 ht.addEventListener("click",e=>{ const b=e.target.closest("[data-hact]"); if(!b) return; const id=b.dataset.id, it=hist.items.find(x=>x.id===id); if(!it) return; const act=b.dataset.hact;
   const confirm2=(label)=>{ if(b.dataset.confirm==="1") return true; b.dataset.confirm="1"; const old=b.textContent; b.textContent=label; setTimeout(()=>{ if(b.isConnected){ b.dataset.confirm=""; b.textContent=old; } },3000); return false; };
   if(act==="open"){ if(confirm2("替换当前测算?")) histOpen(id); }
-  if(act==="overwrite"){ if(confirm2("确认覆盖?")){ const now=Date.now(); histUpdate(id,{savedAtMs:now,savedAt:new Date(now).toISOString(),count:products.length,names:products.map(p=>p.name).slice(0,20),products:clone(products),params:clone(P)}); toast("已覆盖："+it.name); } }
+  if(act==="overwrite"){ if(confirm2("确认覆盖?")){ const now=Date.now(); histUpdate(id,Object.assign({savedAtMs:now,savedAt:new Date(now).toISOString()},snapshot())).then(ok=>{ if(ok){ setCur({id,name:it.name,sig:sigOf()}); toast("已覆盖："+it.name); } }); } }
   if(act==="del"){ if(confirm2("确认删除?")) histDelete(id); }
   if(act==="json") offer(`${it.name.replace(/[\\/:*?"<>|]/g,"_")}.json`,JSON.stringify({version:1,name:it.name,savedAt:it.savedAt,params:it.params,products:it.products},null,1),"application/json");
 });
