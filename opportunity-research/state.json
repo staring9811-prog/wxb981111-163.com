@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-11-03T14:17:20Z",
+  "last_updated_at_utc": "2026-11-03T17:03:55Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -37,7 +37,7 @@
     "REQ-F27-02"
   ],
   "current_stage": "goal",
-  "current_substep": "revision 8 契约完成，待开发小平台回测增量",
+  "current_substep": "revision 8 开发与验收完成：58/61 通过，3 项待 wen 本地实测",
   "completed_stages": [
     "1",
     "2",
@@ -50,7 +50,7 @@
   "skipped_stages": [
     "3"
   ],
-  "next_action": "开发 revision 8：历史回补（F23）、历史重建与家族（F28）、规格打标（F18）、分渠道回测与经回测（打折）（F19 / F20）、Amazon 侧丰富度（F29）、参数（F27）、限速（NFR-013）；按 TDD 验收契约逐条验证",
+  "next_action": "wen：本人电脑启动 + 局域网另一设备访问（SMOKE-01）；设置页填真实密钥并提供卖家精灵接口文档（RULE-08）；在电脑上用 Bright Data / Apify 回补 Lowe's / Wayfair 历史后渠道重算；账号页暂缓（DESIGN-03）；待办：回补渠道月度续更、按自动值批量确认、组合套装 / 实用水槽等新方向",
   "open_questions": [
     {
       "id": "OQ-R2-01",
@@ -284,6 +284,10 @@
     {
       "at": "2026-11-03T14:17:20Z",
       "event": "Design v8（蓝图 §11 wen 确认、7 页增量、技术方案附录、追溯 128 行）与 TDD revision 8（FLOW-27～32、RULE-09，61 行，校验通过）完成"
+    },
+    {
+      "at": "2026-11-03T17:03:55Z",
+      "event": "revision 8（小平台回测）开发完成：143 个测试通过；7 个改动页面独立视觉复核通过；验收 58/61"
     }
   ]
 }
