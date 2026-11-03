@@ -182,7 +182,7 @@ td.pc input{width:84px}
     <button class="btn" id="btnAddProd">+ 新增产品</button>
     <span class="muted">批量设置：</span>
     <select id="bulkCat"></select><button class="btn sm" id="btnBulkCat">品类应用到全部</button>
-    <select id="bulkPeak"><option>非旺季</option><option>旺季</option></select><button class="btn sm" id="btnBulkPeak">FBM旺季应用到全部</button>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">FBM旺季（全部产品）<select id="bulkPeak"><option value="mixed" disabled>各产品不同</option><option>非旺季</option><option>旺季</option></select></label>
     <span style="flex:1"></span>
     <button class="btn primary" data-go="4">生成利润测算表 →</button>
   </div>
@@ -258,6 +258,10 @@ td.pc input{width:84px}
   <p class="lead">选一个渠道，看每个产品从售价一项项扣到利润。价格和采购成本可以直接改，改完同步到第 2 步并立即重算。</p>
   <div class="row" style="margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:6px">渠道<select id="detailChan"></select></label></div>
   <div class="tw" id="resSummary"></div>
+  <h2>旺季 / 海运方案对比</h2>
+  <p class="lead">同一个渠道，在每个海运方案下分别按非旺季和旺季算利润。这里的旺季 = FBM 尾程旺季附加费 + FBA 旺季费率，不受产品上选的旺季和顶部 FBA 费率影响。平台按促销价。</p>
+  <div class="row" style="margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:6px">渠道<select id="scenChan"></select></label></div>
+  <div class="tw" id="resScen"></div>
   <h2>产品速览 <span class="note seaName"></span></h2>
   <div class="cards" id="resCards"></div>
   <h2>包裹明细</h2>
@@ -283,7 +287,7 @@ function platDefaults(){ return {
   wf:{on:true,upPct:15,markup:2.1,disc:25,ship:"none",fixed:0,ads:10,fx:1,comm:4,refund:5,storage:2,outbound:4}}; }
 function defaultParams(){ return {
   rate:6.8, promo:10, fxLoss:1, refund:8, tax:13, residential:false,
-  listFactor:1.15, targetMargin:15, bulk:{plat:"all",pct:15,r99:true,promo:true}, seaView:0, detailChan:"amz:fbm", showAmz:{fbm:true,cg:true,fba:true}, plat:platDefaults(),
+  listFactor:1.15, targetMargin:15, bulk:{plat:"all",pct:15,r99:true,promo:true}, seaView:0, detailChan:"amz:fbm", scenChan:"amz:fbm", showAmz:{fbm:true,cg:true,fba:true}, plat:platDefaults(),
   commission:{threshold:200, furnLow:15, furnHigh:10, 汽配:12, 工业机械:12, 农机花园:15, 其他:15},
   sea:[{name:"FOB整柜·近三个月",rmb:100891,cbm:68},{name:"FOB整柜·近六个月",rmb:62891,cbm:68}],
   fbm:{dimDiv:250, lbPerKg:2.2046226, ceilLb:2.2, fuel:29.5},
@@ -623,6 +627,7 @@ function renderS2(){
     <th>品名</th><th>材质 / 描述</th><th>供应商</th><th>品类</th><th>FBM旺季</th><th>Amazon 售价 $</th>${PLATS.map(pl=>`<th>${esc(pl.name)} $<br><span class="note">上架 / 促销</span>${upCtl(pl.k)}</th>`).join("")}<th>出厂价</th><th>出厂价币种</th><th>成本调整 $</th><th>采购成本 $</th>
     <th>包裹</th><th>长 cm</th><th>宽 cm</th><th>高 cm</th><th>毛重 kg</th><th>体积 m³</th><th>操作</th></tr></thead>
     <tbody>${rows||`<tr><td colspan="${17+PLATS.length}" class="muted">还没有产品，点“+ 新增产品”或回到第 1 步导入报价表。</td></tr>`}</tbody></table>`;
+  document.getElementById("bulkPeak").value=allPeak();
   document.getElementById("checkMsg").innerHTML = issues.length? `<p class="msg">请补全：${issues.slice(0,8).map(esc).join("；")}${issues.length>8?" …":""}</p>` : products.length? `<p class="msg ok">${products.length} 个产品的尺寸、毛重、成本和售价都已填写。</p>`:"";
 }
 const ct=document.getElementById("confirmTable");
@@ -637,7 +642,8 @@ ct.addEventListener("click",e=>{ const b=e.target.closest("[data-act]"); if(!b) 
   save(); renderS2(); });
 document.getElementById("btnAddProd").addEventListener("click",()=>{ products.push(blankProduct()); save(); renderS2(); });
 document.getElementById("btnBulkCat").addEventListener("click",()=>{ const v=document.getElementById("bulkCat").value; products.forEach(p=>p.category=v); save(); renderS2(); });
-document.getElementById("btnBulkPeak").addEventListener("click",()=>{ const v=document.getElementById("bulkPeak").value; products.forEach(p=>p.peak=v); save(); renderS2(); });
+const allPeak=()=>{ const v=[...new Set(products.map(p=>p.peak==="旺季"?"旺季":"非旺季"))]; return v.length===1?v[0]:"mixed"; };
+document.getElementById("bulkPeak").addEventListener("change",e=>{ const v=e.target.value; products.forEach(p=>p.peak=v); save(); renderS2(); toast(`已把全部产品设为 FBM ${v}`); });
 
 /* ---------------- step 3: params ---------------- */
 function fld(path,label,opt={}){ const v=getPath(path); const t=opt.type||"number";
@@ -693,7 +699,8 @@ document.getElementById("rateFile").addEventListener("change",e=>{ const f=e.tar
 /* ---------------- step 4: results ---------------- */
 function renderS4(){
   document.getElementById("quickParams").innerHTML=[fld("rate","汇率"),fld("promo","推广 %"),fld("fxLoss","汇损 %"),fld("refund","退款 %"),fld("fbm.fuel","尾程燃油 %"),fld("targetMargin","目标利润率 %"),(products.some(p=>p.costCur==="RMB_TAX")?fld("tax","税点 %（RMB含税）"):`<label class="f">税点 %<input value="FOB 不适用" disabled style="width:100px;text-align:center"></label>`),
-    ...P.sea.map((s,i)=>fld(`sea.${i}.rmb`,esc(s.name)+" RMB")),fld("fba.peakMode","FBA费率",{type:"select",options:[["auto","按日期"],["on","旺季"],["off","非旺季"]]})].join("")+`<span class="note">更多变量见“参数设置”</span>`;
+    ...P.sea.map((s,i)=>fld(`sea.${i}.rmb`,esc(s.name)+" RMB")),`<label class="f">FBM旺季（全部产品）<select data-allpeak="1">${[["mixed","各产品不同"],["非旺季","非旺季"],["旺季","旺季"]].map(([v,l])=>`<option value="${v}" ${v===allPeak()?"selected":""} ${v==="mixed"?"disabled":""}>${l}</option>`).join("")}</select></label>`,
+    fld("fba.peakMode","FBA费率",{type:"select",options:[["auto","按日期"],["on","旺季"],["off","非旺季"]]})].join("")+`<span class="note">改了立即生效；更多变量见“参数设置”</span>`;
   const R=products.map(p=>({p,r:calcProduct(p)}));
   renderAll(R);
   document.getElementById("detailChan").innerHTML=DETAIL_OPTS().map(([v,l])=>`<option value="${v}" ${v===P.detailChan?"selected":""}>${esc(l)}</option>`).join("");
@@ -708,6 +715,7 @@ function renderS4(){
   </div>`).join("");
   renderMix(R);
   renderDetail(R);
+  renderScen(R);
   // detail
   const D=detailRows(R);
   document.getElementById("resDetail").innerHTML=`<table><thead><tr>${D.head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${D.rows.map((row,ri)=>`<tr class="${D.first[ri]?"first":""}">${row.map((v,ci)=>typeof v==="number"?`<td class="n">${(D.fmt[ci]||String)(v)}</td>`:`<td>${D.chip[ci]?chip(v):esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
@@ -759,6 +767,26 @@ document.getElementById("chanBar").addEventListener("change",e=>{ const t=e.targ
   else return; save(); renderS4(); });
 document.getElementById("resAll").addEventListener("change",e=>{ const t=e.target; if(t.dataset.pp===undefined) return; const p=products[+t.dataset.pp]; p.prices=p.prices||{};
   const o=p.prices[t.dataset.plat]=p.prices[t.dataset.plat]||{}; o.promo=t.value===""?"":num(t.value); save(); setTimeout(renderS4); });
+/* Recalculate a product with peak forced on/off for both FBM surcharges and FBA rates. */
+function scenR(p,peak){ const keep=P.fba.peakMode; P.fba.peakMode=peak?"on":"off"; try{ return calcProduct(Object.assign({},p,{peak:peak?"旺季":"非旺季"})); } finally{ P.fba.peakMode=keep; } }
+const SCEN_OPTS=()=>[...AMZ.map(a=>[`amz:${a.k}`,a.name]),...PLATS.map(pl=>[`plat:${pl.k}`,`${pl.name} 促销`])];
+function scenVal(r,id,si){ const [g,k]=id.split(":"); return chanVal(r,g==="amz"?{amz:k}:{plat:k},si); }
+function scenData(R){ return R.map(({p})=>({p,n:scenR(p,false),k:scenR(p,true)})); }
+function renderScen(R){
+  const id=P.scenChan||"amz:fbm", S=scenData(R), two=P.sea.length>=2;
+  document.getElementById("scenChan").innerHTML=SCEN_OPTS().map(([v,l])=>`<option value="${v}" ${v===id?"selected":""}>${esc(l)}</option>`).join("");
+  const cell=v=>v.ok?`<td class="n ${cls(v.profit)}">${money(v.profit)}<br><span class="note">${pct(v.profit/v.rev)}</span></td>`:`<td class="muted">缺价格</td>`;
+  const diff=(a,b)=>a.ok&&b.ok?`<td class="n ${cls(b.profit-a.profit)}">${money(b.profit-a.profit)}</td>`:`<td></td>`;
+  const h1=P.sea.map(s=>`<th class="grp" colspan="3">${esc(s.name)}</th>`).join("")+(two?`<th class="grp" colspan="2">海运差额：${esc(P.sea[1].name)} − ${esc(P.sea[0].name)}</th>`:"");
+  const h2=P.sea.map(()=>`<th>非旺季</th><th>旺季</th><th>旺季差额</th>`).join("")+(two?`<th>非旺季</th><th>旺季</th>`:"");
+  const rows=S.map(({p,n,k})=>{ const cs=P.sea.map((s,i)=>{ const a=scenVal(n,id,i), b=scenVal(k,id,i); return cell(a)+cell(b)+diff(a,b); }).join("");
+    const sd=two?diff(scenVal(n,id,0),scenVal(n,id,1))+diff(scenVal(k,id,0),scenVal(k,id,1)):"";
+    return `<tr><td>${esc(p.name)}</td>${cs}${sd}</tr>`; }).join("");
+  const tot=(which,i)=>{ let pr=0,rv=0,ok=true; S.forEach(o=>{ const v=scenVal(o[which],id,i); if(!v.ok){ ok=false; return; } pr+=qtyOf(o.p)*v.profit; rv+=qtyOf(o.p)*v.rev; }); return {ok,profit:pr,rev:rv}; };
+  const foot=`<tr class="first"><td><b>按销量合计</b><br><span class="note">销量见“综合利润”</span></td>${P.sea.map((s,i)=>{ const a=tot("n",i), b=tot("k",i); return cell(a)+cell(b)+diff(a,b); }).join("")}${two?diff(tot("n",0),tot("n",1))+diff(tot("k",0),tot("k",1)):""}</tr>`;
+  document.getElementById("resScen").innerHTML=R.length?`<table><thead><tr><th rowspan="2">品名</th>${h1}</tr><tr>${h2}</tr></thead><tbody>${rows}${foot}</tbody></table>`:"";
+}
+document.getElementById("scenChan").addEventListener("change",e=>{ P.scenChan=e.target.value; save(); renderS4(); });
 function renderDetail(R){
   const si=seaIdx(), id=P.detailChan||"amz:fbm", B=R.map(({p,r})=>breakdown(r,id,si));
   const ref=B.find(b=>b); if(!ref){ document.getElementById("resSummary").innerHTML=`<p class="muted" style="padding:12px">缺价格：先填 Amazon 售价或平台价。</p>`; return; }
@@ -806,7 +834,9 @@ function renderMix(R){
     <tr><td colspan="3" style="text-align:right"><b>综合利润率</b></td>${M.tot.map(t=>`<td class="n ${cls(t.profit)}"><b>${t.rev?pct(t.profit/t.rev):"–"}</b></td>`).join("")}</tr>`;
   document.getElementById("resMix").innerHTML=`<table><thead><tr><th>品名</th><th>销量</th><th>销量占比</th>${M.CH.map(ch=>`<th>${esc(ch.name)}</th>`).join("")}</tr></thead><tbody>${body}${foot}</tbody></table>`;
 }
-document.getElementById("quickParams").addEventListener("change",e=>{ const t=e.target; if(!t.dataset.path) return; setPath(t.dataset.path,t.type==="number"?(t.value===""?"":num(t.value)):t.value); save(); renderS4(); });
+document.getElementById("quickParams").addEventListener("change",e=>{ const t=e.target;
+  if(t.dataset.allpeak){ products.forEach(p=>p.peak=t.value); save(); renderS4(); toast(`已把全部产品设为 FBM ${t.value}`); return; }
+  if(!t.dataset.path) return; setPath(t.dataset.path,t.type==="number"?(t.value===""?"":num(t.value)):t.value); save(); renderS4(); });
 
 /* ---------------- export ---------------- */
 async function offer(filename,data,mime){
@@ -844,7 +874,11 @@ document.getElementById("btnExport").addEventListener("click",()=>{
     pd.push([p.name,pl.name,sea.name,SHIP[P.plat[pl.k].ship]||"",r2(x.list),r2(x.promo),r3(x.disc),x.est&&!x.promoSet?"估算":"填写",x.mk,r2(s.promo.settle),r2(r.cost),r2(s.sea),r2(x.logi),r2(x.fixed),r2(s.promo.fees),r2(s.promo.profit),r3(s.promo.margin),r2(s.list.settle),r2(s.list.profit),r3(s.list.margin),r2(s.breakeven),r2(s.target)]); }); }));
   const wsP=XLSX.utils.aoa_to_sheet(pd); wsP["!cols"]=ph.map((h,i)=>({wch:i?12:22}));
   const ws0=XLSX.utils.aoa_to_sheet(mix); ws0["!cols"]=mh.map((h,i)=>({wch:i?16:22}));
-  XLSX.utils.book_append_sheet(wb,wsA,"全渠道对比"); XLSX.utils.book_append_sheet(wb,ws0,"综合利润"); XLSX.utils.book_append_sheet(wb,ws1,"Amazon利润汇总"); XLSX.utils.book_append_sheet(wb,wsP,"多平台明细"); XLSX.utils.book_append_sheet(wb,ws2,"包裹明细"); XLSX.utils.book_append_sheet(wb,ws3,"参数");
+  const SD=scenData(R), sh=["品名","渠道",...P.sea.flatMap(s=>[`[${s.name}]非旺季利润$`,`[${s.name}]非旺季利润率`,`[${s.name}]旺季利润$`,`[${s.name}]旺季利润率`,`[${s.name}]旺季差额$`])];
+  const sc=[sh]; SD.forEach(({p,n,k})=>SCEN_OPTS().forEach(([id,label])=>{ sc.push([p.name,label,...P.sea.flatMap((s,i)=>{ const a=scenVal(n,id,i), b=scenVal(k,id,i);
+    return [a.ok?r2(a.profit):"",a.ok?r3(a.profit/a.rev):"",b.ok?r2(b.profit):"",b.ok?r3(b.profit/b.rev):"",a.ok&&b.ok?r2(b.profit-a.profit):""]; })]); }));
+  const wsS=XLSX.utils.aoa_to_sheet(sc); wsS["!cols"]=sh.map((h,i)=>({wch:i<2?20:14}));
+  XLSX.utils.book_append_sheet(wb,wsA,"全渠道对比"); XLSX.utils.book_append_sheet(wb,wsS,"旺季海运对比"); XLSX.utils.book_append_sheet(wb,ws0,"综合利润"); XLSX.utils.book_append_sheet(wb,ws1,"Amazon利润汇总"); XLSX.utils.book_append_sheet(wb,wsP,"多平台明细"); XLSX.utils.book_append_sheet(wb,ws2,"包裹明细"); XLSX.utils.book_append_sheet(wb,ws3,"参数");
   offer(`利润测算_${stamp()}.xlsx`,new Uint8Array(XLSX.write(wb,{bookType:"xlsx",type:"array"})),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 });
 document.getElementById("btnSaveJson").addEventListener("click",()=>offer(`利润测算方案_${stamp()}.json`,JSON.stringify({version:1,params:P,products},null,1),"application/json"));
