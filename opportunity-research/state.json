@@ -37,7 +37,7 @@
   ],
   "next_action": {
     "type": "user",
-    "description": "PRD 阶段 1：Amazon 数据来源、工具接入方式、部署方式、\"达标\"含义"
+    "description": "PRD 阶段 1：密钥配置、品类范围、局域网登录、接口预算"
   },
   "open_questions": [
     {
@@ -76,15 +76,17 @@
       "id": "OQ-R2-05",
       "node": "外部\"全品店利润测算 + 数据拉取软件\"交给本系统的形式（文件 / 接口 / 共享库）与现状",
       "priority": "P0",
-      "status": "partial",
-      "answer": "收到两个工具（tools/）：利润测算台（单页 HTML，浏览器本地存储，方案 .json / Excel 导出；Amazon FBM/CG/FBA、Lowe's、HD、Wayfair 利润）；评论月度 VP 追踪器（Python 本机网页，HD/Lowe's/Wayfair 评论 VP 月度 + 评论明细 Excel，Bright Data + Apify）。未覆盖：Amazon 月度销量与 Amazon 评论的来源",
-      "source": "wen 2026-11-03 上传"
+      "status": "resolved",
+      "answer": "两个工具已放入 tools/；Amazon 数据走卖家精灵接口",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-06",
       "node": "\"达标以及元素的确认\"中\"达标\"的含义（打标？成功线判定？）",
       "priority": "P1",
-      "status": "open"
+      "status": "resolved",
+      "answer": "\"达标\"= 打标：系统自动打属性标签，wen 确认元素和低置信度标签",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-07",
@@ -102,18 +104,36 @@
       "id": "OQ-R2-09",
       "node": "Amazon 月度销量（卖家精灵）由谁、怎么进系统",
       "priority": "P0",
-      "status": "open"
+      "status": "resolved",
+      "answer": "系统用卖家精灵接口自动拉 Amazon 月度数据（2024-10 至 2025-12 的历史数据就是用卖家精灵 MCP 按月拉的，可行；前提：wen 的卖家精灵账号接口可用）",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-10",
       "node": "两个工具的接入方式（并入同一系统 / 保持独立只导文件）",
       "priority": "P0",
-      "status": "open"
+      "status": "resolved",
+      "answer": "并入同一个系统：利润测算台、评论 VP 追踪器原有功能全保留，和决策卡打通",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-11",
       "node": "部署方式（本机运行 / 云端所有人可访问）",
       "priority": "P0",
+      "status": "resolved",
+      "answer": "在 wen 的电脑上运行，局域网共享（老板、运营 / 采购 / 研发在内网打开）",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-12",
+      "node": "局域网下三种角色怎么区分（账号登录 / 不登录）",
+      "priority": "P1",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-13",
+      "node": "花钱的接口（卖家精灵、Bright Data、Apify、大模型）的预算控制",
+      "priority": "P1",
       "status": "open"
     }
   ],
