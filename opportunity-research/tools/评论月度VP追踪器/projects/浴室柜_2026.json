@@ -1,0 +1,24 @@
+{
+  "name": "浴室柜_2026",
+  "category": "浴室柜 Bathroom Vanity",
+  "window": {"start": "2026-01-01", "full_end": "2026-10-31", "include_partial": true},
+  "filters": {
+    "preset": "bathroom_vanity",
+    "include_keywords": [],
+    "exclude_keywords": [],
+    "keep_keywords": []
+  },
+  "dedupe_across_entries": false,
+  "low_reviews": {"threshold": 0, "mode": "split"},
+  "budget": {"bd_lowes_usd": 10, "bd_wayfair_usd": 10, "apify_lowes_usd": 10, "apify_wayfair_usd": 15},
+  "export": {"review_details": true},
+  "services": {"brightdata": {"customer": "hl_87b86747", "zone": "mcp_unlocker"}},
+  "entries": [
+    {"enabled": true, "name": "Lowes带台面榜", "platform": "Lowes", "mode": "bsr", "url": "https://www.lowes.com/pl/bathroom-vanities-with-tops/4294684460", "top_n": 100, "exclude_sponsored": true, "dedupe_parent": false},
+    {"enabled": true, "name": "Lowes无台面榜", "platform": "Lowes", "mode": "bsr", "url": "https://www.lowes.com/pl/bathroom-vanities-without-tops/4294684459", "top_n": 100, "exclude_sponsored": true, "dedupe_parent": false},
+    {"enabled": true, "name": "HDP带台面", "platform": "HomeDepot", "mode": "category", "url": "https://www.homedepot.com/b/Bath-Bathroom-Vanities-Bathroom-Vanities-with-Tops/N-5yc1vZcfw5", "top_n": 100, "exclude_sponsored": true, "dedupe_parent": false},
+    {"enabled": true, "name": "HDP无台面", "platform": "HomeDepot", "mode": "category", "url": "https://www.homedepot.com/b/Bath-Bathroom-Vanities-Bathroom-Vanities-without-Tops/N-5yc1vZcfv9", "top_n": 100, "exclude_sponsored": true, "dedupe_parent": false},
+    {"enabled": true, "name": "Wayfair主类目", "platform": "Wayfair", "mode": "category", "url": "https://www.wayfair.com/bed-bath/sb0/bathroom-vanities-c527058.html", "top_n": 200, "exclude_sponsored": true, "dedupe_parent": false},
+    {"enabled": true, "name": "Wayfair无台面类目", "platform": "Wayfair", "mode": "category", "url": "https://www.wayfair.com/bed-bath/sb0/vanity-bases-c527056.html", "top_n": 50, "exclude_sponsored": true, "dedupe_parent": false}
+  ]
+}
