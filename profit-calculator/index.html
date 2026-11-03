@@ -138,7 +138,17 @@ th.fz{z-index:3;background:var(--surface2)}
 .vgrid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr))}.vgrid .vblock{margin-bottom:0}
 .vcols{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
 h4{font-size:13px;margin:2px 0 6px}
-#vChan input[type=number]{width:70px}#vChan td:first-child,#vChan th:first-child{position:sticky;left:0;background:var(--surface);z-index:1;text-align:left}
+table.cm{width:auto;min-width:0;font-size:12px}
+table.cm th,table.cm td{padding:3px 5px;text-align:center}
+table.cm thead th{font-size:11.5px}
+table.cm tbody th{position:sticky;left:0;z-index:1;background:var(--surface2);text-align:left;white-space:nowrap;font-size:12.5px}
+table.cm .cm0{position:sticky;left:0;z-index:3;text-align:left}
+table.cm input[type=number]{width:54px;padding:2px 4px;font-size:12px}
+table.cm select{padding:2px 2px;font-size:12px}
+table.cm tbody tr:hover td,table.cm tbody tr:hover th{background:var(--accent-soft)}
+table.cm tr.allrow td,table.cm tr.allrow th{background:var(--surface2);border-top:2px solid var(--line)}
+table.cm .btn.sm{padding:2px 6px;font-size:11.5px}
+table.cm .btn.chg{box-shadow:inset 3px 0 0 var(--accent)}
 .chg>input,.chg>select,input.chg,select.chg{box-shadow:inset 3px 0 0 var(--accent)}
 #varDrawer{position:fixed;top:0;right:0;bottom:0;width:min(620px,100vw);background:var(--bg);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.14);z-index:30;overflow:auto;padding:env(safe-area-inset-top,0px) 16px 24px}
 .vdh{position:sticky;top:0;z-index:3;background:var(--bg);display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:12px}
@@ -779,9 +789,11 @@ function getPath(p){ return p.split(".").reduce((o,k)=>o==null?o:o[k],P); }
 function setPath(p,v){ const ks=p.split("."); let o=P; for(let i=0;i<ks.length-1;i++) o=o[ks[i]]; o[ks[ks.length-1]]=v; }
 /* ================= variable panel (step 3 and the step-4 drawer share this one DOM node) ================= */
 const CHROWS=[
-  {label:"推广（广告费）%",amz:"promo",plat:"ads",all:1},{label:"汇损 %",amz:"fxLoss",plat:"fx",all:1},{label:"退款 %",amz:"refund",plat:"refund",all:1},
-  {label:"佣金 %",amz:"@comm",plat:"comm"},{label:"仓储费 %",plat:"storage"},{label:"出仓费 %",plat:"outbound"},{label:"平台订单费 $/单",plat:"fixed"},
-  {label:"加价倍率",plat:"markup",tip:"前台价 ÷ 倍率 = 结算价"},{label:"默认促销折扣 %",plat:"disc"},{label:"发货方",amz:"@ship",plat:"ship"}];
+  {label:"推广（广告费）%",short:"推广",amz:"promo",plat:"ads",all:1,g:0},{label:"汇损 %",short:"汇损",amz:"fxLoss",plat:"fx",all:1,g:0},{label:"退款 %",short:"退款",amz:"refund",plat:"refund",all:1,g:0},
+  {label:"佣金 %",short:"佣金",amz:"@comm",plat:"comm",g:0},{label:"仓储费 %",short:"仓储",plat:"storage",g:0},{label:"出仓费 %",short:"出仓",plat:"outbound",g:0},
+  {label:"平台订单费 $/单",short:"订单费 $",plat:"fixed",g:1},{label:"加价倍率",short:"加价倍率",plat:"markup",tip:"前台价 ÷ 倍率 = 结算价",g:1},{label:"默认促销折扣 %",short:"默认折扣 %",plat:"disc",g:1},
+  {label:"发货方",short:"发货方",amz:"@ship",plat:"ship",g:2}];
+const CHGROUPS=["比例费用 %（按结算价）","每单与价格","物流"];
 const COMM_PATHS=["commission.threshold","commission.furnLow","commission.furnHigh","commission.汽配","commission.工业机械","commission.农机花园","commission.其他"];
 const PLAT_FEES=["ads","fx","refund","comm","storage","outbound","fixed","markup","disc","ship"];
 const VB={
@@ -804,8 +816,14 @@ function renderVars(){
   nb("vbChanN","chan"); nb("vbDelN","deliv"); nb("vbComN","common");
   // ① channel fees: one row per fee, one column per channel
   const cell=(r,pl)=>{ const k=r.plat; if(k==="ship"){ const p=`plat.${pl.k}.ship`; return `<td><select data-path="${p}"${isChg(p)?` class="chg" title="默认 ${esc(SHIP[defVal(p)])}"`:""}>${Object.entries(SHIP).map(([v,l])=>`<option value="${v}" ${P.plat[pl.k].ship===v?"selected":""}>${l.replace(/（.*）/,"")}</option>`).join("")}</select></td>`; } return `<td>${vIn(`plat.${pl.k}.${k}`)}</td>`; };
-  const amzCell=r=>!r.amz?`<td class="muted c">—</td>`:r.amz==="@comm"?`<td><button class="btn sm" data-amzcomm="1" title="Amazon 佣金按品类分档">${esc(`家具 ${P.commission.furnLow}% / 超 $${P.commission.threshold} 部分 ${P.commission.furnHigh}%`)} ${vAmzOpen?"▴":"▾"}</button>${COMM_PATHS.some(isChg)?' <span class="chip warn">已改</span>':""}</td>`:r.amz==="@ship"?`<td class="note">FBM / CG / FBA 都算</td>`:`<td>${vIn(r.amz)}</td>`;
-  document.getElementById("vChan").innerHTML=`<table><thead><tr><th>变量</th><th>Amazon</th>${PLATS.map(pl=>`<th>${esc(pl.name)}</th>`).join("")}<th>全部渠道设为</th></tr></thead><tbody>${CHROWS.map(r=>`<tr><td title="${esc(r.tip||"")}">${esc(r.label)}</td>${amzCell(r)}${PLATS.map(pl=>cell(r,pl)).join("")}<td>${r.all?`<input type="number" step="any" data-allrow="${r.plat}" placeholder="统一值" style="width:70px" aria-label="${esc(r.label)} 全部渠道设为">`:""}</td></tr>`).join("")}</tbody></table>`;
+  const amzCell=r=>!r.amz?`<td class="muted c">—</td>`:r.amz==="@comm"?`<td><button class="btn sm${COMM_PATHS.some(isChg)?" chg":""}" data-amzcomm="1" title="${esc(`Amazon 佣金按品类分档：家具 ${P.commission.furnLow}% / 超 $${P.commission.threshold} 部分 ${P.commission.furnHigh}%，点开修改`)}">按品类 ${vAmzOpen?"▴":"▾"}</button></td>`:r.amz==="@ship"?`<td class="note c">三种都算</td>`:`<td>${vIn(r.amz)}</td>`;
+  // one row per channel, one column per fee (grouped by kind of fee); “全部渠道设为” is the last row
+  const gh=CHGROUPS.map((g,i)=>{ const n=CHROWS.filter(r=>r.g===i).length; return `<th class="grp" colspan="${n}">${esc(g)}</th>`; }).join("");
+  const fh=CHROWS.map(r=>`<th title="${esc(r.label+(r.tip?"："+r.tip:""))}">${esc(r.short)}</th>`).join("");
+  const amzRow=`<tr><th scope="row">Amazon<br><span class="note">FBM / CG / FBA</span></th>${CHROWS.map(r=>amzCell(r)).join("")}</tr>`;
+  const platRows=PLATS.map(pl=>`<tr><th scope="row">${esc(pl.name)}</th>${CHROWS.map(r=>cell(r,pl)).join("")}</tr>`).join("");
+  const allRow=`<tr class="allrow"><th scope="row">全部渠道设为</th>${CHROWS.map(r=>`<td>${r.all?`<input type="number" step="any" data-allrow="${r.plat}" placeholder="统一" aria-label="${esc(r.label)} 全部渠道设为">`:""}</td>`).join("")}</tr>`;
+  document.getElementById("vChan").innerHTML=`<table class="cm"><thead><tr><th rowspan="2" class="cm0">渠道</th>${gh}</tr><tr>${fh}</tr></thead><tbody>${amzRow}${platRows}${allRow}</tbody></table>`;
   document.getElementById("vAmzComm").innerHTML=vAmzOpen?`<div class="kv" style="margin-top:10px;padding:10px;border:1px dashed var(--line);border-radius:var(--r)">${[fld("commission.threshold","家具阈值 $"),fld("commission.furnLow","家具 ≤阈值 %"),fld("commission.furnHigh","家具 >阈值部分 %"),fld("commission.汽配","汽配 %"),fld("commission.工业机械","工业机械 %"),fld("commission.农机花园","农机花园 %"),fld("commission.其他","其他 %")].join("")}</div>`:"";
   // ② delivery: FOB plans | domestic plans + domestic settings
   document.getElementById("vSeaFob").innerHTML=seaTable("fob");
