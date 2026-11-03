@@ -248,9 +248,9 @@ th.fz{z-index:3;background:var(--surface2)}
   <div class="grid">
     <div class="panel"><h3>基础变量</h3><div class="kv" id="pBase"></div></div>
     <div class="panel"><h3>平台佣金</h3><div class="kv" id="pComm"></div><p class="note">家具：售价 ≤ 阈值部分按低档比例，超出部分按高档比例。其他品类按固定比例。</p></div>
-    <div class="panel"><h3>国内出货（人民币含税价 + 出口退税）</h3><div class="kv" id="pDom"></div><div class="tw" id="pDomSea" style="margin-top:10px"></div>
-      <p class="note">采购成本 = 含税价 − 含税价 ÷ (1 + 增值税率) × 退税率，再按汇率换成美元。头程 = (整柜海运价 + 国内杂费) ÷ 装柜体积 × 包裹体积。整柜价没填时沿用对应的 FOB 海运价；国内杂费是 FOB 时由工厂承担、国内出货时由我们承担的拖车、报关、港杂。</p></div>
-    <div class="panel"><h3>海运方案（整柜）</h3><div class="tw" id="pSea"></div><button class="btn sm" id="btnAddSea" style="margin-top:8px">+ 新增海运方案</button><p class="note">每立方米海运费 $ = 整柜价(RMB) ÷ 计算体积(CBM) ÷ 汇率；包裹海运费 = 包裹体积 × 每方单价。</p></div>
+    <div class="panel"><h3>国内出货（人民币含税价 + 出口退税）</h3><div class="kv" id="pDom"></div><div id="pDomMsg"></div>
+      <p class="note">采购成本 = 含税价 − 含税价 ÷ (1 + 增值税率) × 退税率，再按汇率换成美元。头程按右边“海运方案”里类型为“国内”的方案算：(整柜价 + 国内杂费) ÷ 计算体积 × 包裹体积。国内杂费只在整柜价没含拖车、报关、港杂时才填。</p></div>
+    <div class="panel"><h3>海运方案（整柜）</h3><div class="tw" id="pSea"></div><button class="btn sm" id="btnAddSea" style="margin-top:8px">+ 新增海运方案</button><p class="note">类型：FOB 方案用于 FOB 出货，国内方案用于国内出货（名字里带“国内”的默认是国内）。每立方米海运费 $ = 整柜价(RMB) ÷ 计算体积(CBM) ÷ 汇率；包裹海运费 = 包裹体积 × 每方单价。</p></div>
   </div>
   <h2>平台参数（Lowe's / Home Depot / Wayfair）</h2>
   <div class="panel"><div class="kv" id="pPlatBase"></div></div>
@@ -332,7 +332,9 @@ th.fz{z-index:3;background:var(--surface2)}
   <div class="tw" id="resSummary"></div>
   <h2>FOB vs 国内出货</h2>
   <p class="lead">同一个产品分别按 FOB（美元出厂价 + FOB 海运）和国内出货（人民币含税价扣退税 + 国内头程）算利润，不受顶部出货方式影响。只填了一种价格的产品只显示那一种。平台按促销价。</p>
-  <div class="row" style="margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:6px">渠道<select id="domChan"></select></label></div>
+  <div class="row" style="margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:6px">渠道<select id="domChan"></select></label>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">FOB 海运方案<select id="cmpFob"></select></label>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">国内头程方案<select id="cmpDom"></select></label></div>
   <div class="tw" id="resDom"></div>
   <h2>旺季 / 海运方案对比</h2>
   <p class="lead">同一个渠道，在每个海运方案下分别按非旺季和旺季算利润。这里的旺季 = FBM 尾程旺季附加费 + FBA 旺季费率，不受产品上选的旺季和顶部 FBA 费率影响。平台按促销价。</p>
@@ -363,7 +365,7 @@ function platDefaults(){ return {
   wf:{on:true,upPct:15,markup:2.1,disc:25,ship:"none",fixed:0,ads:10,fx:1,comm:4,refund:5,storage:2,outbound:4}}; }
 function defaultParams(){ return {
   rate:6.8, promo:10, fxLoss:1, refund:8, tax:13, residential:false,
-  shipMode:"fob", domChan:"amz:fbm", dom:{vat:13, rebate:13, extra:0, sea:[]},
+  shipMode:"fob", domChan:"amz:fbm", seaViewDom:-1, cmpFob:-1, cmpDom:-1, dom:{vat:13, rebate:13, extra:0, sea:[]},
   listFactor:1.15, targetMargin:15, bulk:{plat:"all",pct:15,r99:true,promo:true}, seaView:0, detailChan:"amz:fbm", scenChan:"amz:fbm", qMetric:"cost", showAmz:{fbm:true,cg:true,fba:true}, plat:platDefaults(),
   commission:{threshold:200, furnLow:15, furnHigh:10, 汽配:12, 工业机械:12, 农机花园:15, 其他:15},
   sea:[{name:"FOB整柜·近三个月",rmb:100891,cbm:68},{name:"FOB整柜·近六个月",rmb:62891,cbm:68}],
@@ -414,8 +416,12 @@ const ceil=x=>Math.ceil(Math.round(x*1e9)/1e9);
 function costUSD(p){ const c=nz(p.cost); let v = p.costCur==="RMB_TAX"? c/(1+P.tax/100)/P.rate : p.costCur==="RMB_NET"? c/P.rate : c; return v+nz(p.adj); }
 /* 国内出货: cost = RMB price incl. VAT − VAT share × rebate rate, in USD. */
 function domCostUSD(p){ const c=num(p.costRmb); if(!(c>0)) return NaN; const d=P.dom; return c*(1-nz(d.rebate)/100/(1+nz(d.vat)/100))/P.rate+nz(p.adj); }
-const domSea=i=>{ const d=P.dom.sea&&P.dom.sea[i], f=P.sea[i]||{}; return {rmb:d&&d.rmb!==""&&d.rmb!=null?d.rmb:f.rmb,cbm:d&&d.cbm!==""&&d.cbm!=null?d.cbm:f.cbm}; };
-const domRate=i=>{ const d=domSea(i); return (nz(d.rmb)+nz(P.dom.extra))/nz(d.cbm)/P.rate; };
+/* Each sea plan is FOB or 国内; a name containing “国内” defaults to 国内. Each ship mode uses its own plans
+   (国内出货 falls back to the FOB plans while no 国内 plan exists). */
+const seaKind=s=>s&&s.kind?s.kind:(/国内/.test((s&&s.name)||"")?"dom":"fob");
+const hasDomSea=()=>P.sea.some(s=>seaKind(s)==="dom");
+function seaList(mode){ const want=mode==="dom"&&hasDomSea()?"dom":"fob", ids=P.sea.map((x,i)=>i).filter(i=>seaKind(P.sea[i])===want); return ids.length?ids:P.sea.map((x,i)=>i); }
+const seaRate=(i,dom)=>{ const x=P.sea[i]||{}; return (nz(x.rmb)+(dom?nz(P.dom.extra):0))/nz(x.cbm)/P.rate; };
 let modeOverride=null;
 function calcIn(mode,fn){ const keep=modeOverride; modeOverride=mode; try{ return fn(); } finally{ modeOverride=keep; } }
 const isDom=()=>(modeOverride||P.shipMode)==="dom";
@@ -469,7 +475,7 @@ function calcPkg(p,g,dom){
   const bucket=cgBucket(J,K,L,Pw,V); const cr=P.cg.find(c=>c.bucket===bucket);
   const cgShip=cr?nz(cr.ship):0, cgLb=cr?nz(cr.perLb)*U:0, cgPick=cr?nz(cr.pick):0;
   const ltl=(J>108||V>165||Pw>150)?"LTL":(J>106||V>163||Pw>145)?"LTL预警":"小包裹";
-  const sea=P.sea.map((s,i)=>dom?M*domRate(i):M*nz(s.rmb)/nz(s.cbm)/P.rate);
+  const sea=P.sea.map((s,i)=>M*seaRate(i,dom));
   const fl=Math.round(cm[0]/2.54*100)/100, fm=Math.round(cm[1]/2.54*100)/100, fn=Math.round(cm[2]/2.54*100)/100;
   const ulb=kg*2.20462; const fw=Math.round((ulb>150?ulb:Math.max(ulb,fl*Math.max(fm,2)*Math.max(fn,2)/P.fba.dimDiv))*100)/100;
   const flg=Math.round((fl+2*(fm+fn))*100)/100; const fb=fbaFee(fl,fm,fn,fw,flg);
@@ -519,7 +525,7 @@ function calcPlatforms(p,r){
   return out;
 }
 
-const seaIdx=()=>{ const i=Math.round(nz(P.seaView)); return i>=0&&i<P.sea.length?i:0; };
+const seaIdx=()=>{ const L=seaList(P.shipMode), i=Math.round(nz(P.shipMode==="dom"?P.seaViewDom:P.seaView)); return L.includes(i)?i:L[0]; };
 const platOn=()=>PLATS.filter(pl=>P.plat[pl.k]&&P.plat[pl.k].on!==false);
 const amzOn=()=>AMZ.filter(a=>P.showAmz[a.k]!==false);
 
@@ -748,12 +754,11 @@ function renderS3(){
     fld(b+"on","结果里",{type:"check",labels:["隐藏","显示"]}),fld(b+"ship","发货方",{type:"select",options:Object.entries(SHIP)}),
     fld(b+"markup","加价倍率"),fld(b+"disc","默认促销折扣 %"),fld(b+"fixed","平台订单费 $/单"),fld(b+"ads","推广 %"),fld(b+"fx","汇损 %"),fld(b+"comm","佣金 %"),fld(b+"refund","退款 %"),fld(b+"storage","仓储费 %"),fld(b+"outbound","出仓费 %")].join("")}</div></div>`; }).join("");
   document.getElementById("pComm").innerHTML=[fld("commission.threshold","家具阈值 $"),fld("commission.furnLow","家具 ≤阈值 %"),fld("commission.furnHigh","家具 >阈值部分 %"),fld("commission.汽配","汽配 %"),fld("commission.工业机械","工业机械 %"),fld("commission.农机花园","农机花园 %"),fld("commission.其他","其他 %")].join("");
-  document.getElementById("pDom").innerHTML=[fld("dom.vat","增值税率 %"),fld("dom.rebate","出口退税率 %"),fld("dom.extra","国内杂费 RMB/柜（拖车+报关+港杂）")].join("");
-  document.getElementById("pDomSea").innerHTML=`<table><thead><tr><th>对应海运方案</th><th>整柜海运价 RMB</th><th>装柜体积 CBM</th><th>头程 $/m³<br><span class="note">含国内杂费</span></th></tr></thead><tbody>${P.sea.map((s,i)=>{ const d=(P.dom.sea||[])[i]||{}; return `<tr>
-    <td>${esc(s.name)}</td><td><input type="number" step="any" data-domsea="${i}" data-k="rmb" value="${esc(d.rmb??"")}" placeholder="${esc(s.rmb)}" style="width:90px"></td>
-    <td><input type="number" step="any" data-domsea="${i}" data-k="cbm" value="${esc(d.cbm??"")}" placeholder="${esc(s.cbm)}" style="width:60px"></td><td class="n">${f2(domRate(i))}</td></tr>`; }).join("")}</tbody></table>${nz(P.dom.extra)>0?"":`<p class="msg" style="margin:8px">国内杂费还是 0：目前国内出货的头程和 FOB 一样，请填拖车、报关、港杂费用。</p>`}`;
-  document.getElementById("pSea").innerHTML=`<table><thead><tr><th>方案名称</th><th>整柜价 RMB</th><th>计算体积 CBM</th><th>$/m³</th><th></th></tr></thead><tbody>${P.sea.map((s,i)=>`<tr>
+  document.getElementById("pDom").innerHTML=[fld("dom.vat","增值税率 %"),fld("dom.rebate","出口退税率 %"),fld("dom.extra","国内杂费 RMB/柜（整柜价未含时才填）")].join("");
+  document.getElementById("pDomMsg").innerHTML=hasDomSea()?`<p class="note" style="margin-top:8px">国内出货头程用：${P.sea.filter(x=>seaKind(x)==="dom").map(x=>esc(x.name)).join("、")}</p>`:`<p class="msg" style="margin-top:8px">还没有类型为“国内”的海运方案：在右边新增一个、类型选“国内”。在那之前，国内出货暂按 FOB 方案 + 国内杂费算头程。</p>`;
+  document.getElementById("pSea").innerHTML=`<table><thead><tr><th>方案名称</th><th>类型</th><th>整柜价 RMB</th><th>计算体积 CBM</th><th>$/m³</th><th></th></tr></thead><tbody>${P.sea.map((s,i)=>`<tr>
     <td><input data-sea="${i}" data-k="name" value="${esc(s.name)}" style="width:150px"></td>
+    <td><select data-sea="${i}" data-k="kind"><option value="fob" ${seaKind(s)==="fob"?"selected":""}>FOB</option><option value="dom" ${seaKind(s)==="dom"?"selected":""}>国内</option></select></td>
     <td><input type="number" step="any" data-sea="${i}" data-k="rmb" value="${esc(s.rmb)}" style="width:90px"></td>
     <td><input type="number" step="any" data-sea="${i}" data-k="cbm" value="${esc(s.cbm)}" style="width:60px"></td>
     <td class="n">${f2(nz(s.rmb)/nz(s.cbm)/P.rate)}</td>
@@ -769,7 +774,6 @@ const s3=document.getElementById("s3");
 s3.addEventListener("change",e=>{ const t=e.target; let v=t.type==="number"?(t.value===""?"":num(t.value)):t.value;
   if(t.dataset.path){ if(t.dataset.bool) v=t.value==="1"; setPath(t.dataset.path,v); }
   else if(t.dataset.sea!==undefined) P.sea[+t.dataset.sea][t.dataset.k]=v;
-  else if(t.dataset.domsea!==undefined){ P.dom.sea=P.dom.sea||[]; const i=+t.dataset.domsea; P.dom.sea[i]=P.dom.sea[i]||{}; P.dom.sea[i][t.dataset.k]=v; }
   else if(t.dataset.tier!==undefined) P.fba.tiers[+t.dataset.tier][t.dataset.k]=v;
   else if(t.dataset.tail!==undefined) P.tail[+t.dataset.tail][t.dataset.k]=v;
   else if(t.dataset.surch!==undefined) P.surch[+t.dataset.surch][t.dataset.k]=v;
@@ -854,7 +858,7 @@ function breakdown(r,id,si){
 }
 function renderAll(R){
   const si=seaIdx(), A=amzOn(), L=platOn();
-  document.getElementById("chanBar").innerHTML=`<label class="f" style="flex-direction:row;align-items:center;gap:6px">出货方式<select data-shipmode="1"><option value="fob" ${P.shipMode!=="dom"?"selected":""}>FOB</option><option value="dom" ${P.shipMode==="dom"?"selected":""}>国内出货</option></select></label><label class="f" style="flex-direction:row;align-items:center;gap:6px">海运方案<select data-seaview="1">${P.sea.map((s,i)=>`<option value="${i}" ${i===si?"selected":""}>${esc(s.name)}</option>`).join("")}</select></label><span class="muted">显示：</span>`+
+  document.getElementById("chanBar").innerHTML=`<label class="f" style="flex-direction:row;align-items:center;gap:6px">出货方式<select data-shipmode="1"><option value="fob" ${P.shipMode!=="dom"?"selected":""}>FOB</option><option value="dom" ${P.shipMode==="dom"?"selected":""}>国内出货</option></select></label><label class="f" style="flex-direction:row;align-items:center;gap:6px">海运方案<select data-seaview="1">${seaList(P.shipMode).map(i=>`<option value="${i}" ${i===si?"selected":""}>${esc(P.sea[i].name)}</option>`).join("")}</select></label><span class="muted">显示：</span>`+
     AMZ.map(a=>`<label class="chk"><input type="checkbox" data-chan="amz:${a.k}" ${P.showAmz[a.k]!==false?"checked":""}>${esc(a.name)}</label>`).join("")+
     PLATS.map(pl=>`<label class="chk"><input type="checkbox" data-chan="plat:${pl.k}" ${P.plat[pl.k].on!==false?"checked":""}>${esc(pl.name)}</label>`).join("");
   if(!R.length){ document.getElementById("resAll").innerHTML=""; return; }
@@ -872,7 +876,7 @@ function renderAll(R){
   document.getElementById("resAll").innerHTML=`<table><thead><tr><th rowspan="2">品名</th><th rowspan="2">采购成本 $</th>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}</tbody></table>`;
 }
 document.getElementById("chanBar").addEventListener("change",e=>{ const t=e.target;
-  if(t.dataset.seaview){ P.seaView=+t.value; }
+  if(t.dataset.seaview){ if(P.shipMode==="dom") P.seaViewDom=+t.value; else P.seaView=+t.value; }
   else if(t.dataset.shipmode){ P.shipMode=t.value; }
   else if(t.dataset.chan){ const [g,k]=t.dataset.chan.split(":"); if(g==="amz") P.showAmz[k]=t.checked; else P.plat[k].on=t.checked; }
   else return; save(); renderS4(); });
@@ -884,36 +888,46 @@ const SCEN_OPTS=()=>[...AMZ.map(a=>[`amz:${a.k}`,a.name]),...PLATS.map(pl=>[`pla
 function scenVal(r,id,si){ const [g,k]=id.split(":"); return chanVal(r,g==="amz"?{amz:k}:{plat:k},si); }
 function scenData(R){ return R.map(({p})=>({p,n:scenR(p,false),k:scenR(p,true)})); }
 function renderScen(R){
-  const id=P.scenChan||"amz:fbm", S=scenData(R), two=P.sea.length>=2;
+  const id=P.scenChan||"amz:fbm", S=scenData(R), SL=seaList(P.shipMode), two=SL.length>=2, s0=SL[0], s1=SL[1];
   document.getElementById("scenChan").innerHTML=SCEN_OPTS().map(([v,l])=>`<option value="${v}" ${v===id?"selected":""}>${esc(l)}</option>`).join("");
   const cell=v=>v.ok?`<td class="n ${cls(v.profit)}">${money(v.profit)}<br><span class="note">${pct(v.profit/v.rev)}</span></td>`:`<td class="muted">缺价格</td>`;
   const diff=(a,b)=>a.ok&&b.ok?`<td class="n ${cls(b.profit-a.profit)}">${money(b.profit-a.profit)}</td>`:`<td></td>`;
-  const h1=P.sea.map(s=>`<th class="grp" colspan="3">${esc(s.name)}</th>`).join("")+(two?`<th class="grp" colspan="2">海运差额：${esc(P.sea[1].name)} − ${esc(P.sea[0].name)}</th>`:"");
-  const h2=P.sea.map(()=>`<th>非旺季</th><th>旺季</th><th>旺季差额</th>`).join("")+(two?`<th>非旺季</th><th>旺季</th>`:"");
-  const rows=S.map(({p,n,k})=>{ const cs=P.sea.map((s,i)=>{ const a=scenVal(n,id,i), b=scenVal(k,id,i); return cell(a)+cell(b)+diff(a,b); }).join("");
-    const sd=two?diff(scenVal(n,id,0),scenVal(n,id,1))+diff(scenVal(k,id,0),scenVal(k,id,1)):"";
+  const h1=SL.map(i=>`<th class="grp" colspan="3">${esc(P.sea[i].name)}</th>`).join("")+(two?`<th class="grp" colspan="2">海运差额：${esc(P.sea[s1].name)} − ${esc(P.sea[s0].name)}</th>`:"");
+  const h2=SL.map(()=>`<th>非旺季</th><th>旺季</th><th>旺季差额</th>`).join("")+(two?`<th>非旺季</th><th>旺季</th>`:"");
+  const rows=S.map(({p,n,k})=>{ const cs=SL.map(i=>{ const a=scenVal(n,id,i), b=scenVal(k,id,i); return cell(a)+cell(b)+diff(a,b); }).join("");
+    const sd=two?diff(scenVal(n,id,s0),scenVal(n,id,s1))+diff(scenVal(k,id,s0),scenVal(k,id,s1)):"";
     return `<tr><td>${esc(p.name)}</td>${cs}${sd}</tr>`; }).join("");
   const tot=(which,i)=>{ let pr=0,rv=0,ok=true; S.forEach(o=>{ const v=scenVal(o[which],id,i); if(!v.ok){ ok=false; return; } pr+=qtyOf(o.p)*v.profit; rv+=qtyOf(o.p)*v.rev; }); return {ok,profit:pr,rev:rv}; };
-  const foot=`<tr class="first"><td><b>按销量合计</b><br><span class="note">销量见“综合利润”</span></td>${P.sea.map((s,i)=>{ const a=tot("n",i), b=tot("k",i); return cell(a)+cell(b)+diff(a,b); }).join("")}${two?diff(tot("n",0),tot("n",1))+diff(tot("k",0),tot("k",1)):""}</tr>`;
+  const foot=`<tr class="first"><td><b>按销量合计</b><br><span class="note">销量见“综合利润”</span></td>${SL.map(i=>{ const a=tot("n",i), b=tot("k",i); return cell(a)+cell(b)+diff(a,b); }).join("")}${two?diff(tot("n",s0),tot("n",s1))+diff(tot("k",s0),tot("k",s1)):""}</tr>`;
   document.getElementById("resScen").innerHTML=R.length?`<table><thead><tr><th rowspan="2">品名</th>${h1}</tr><tr>${h2}</tr></thead><tbody>${rows}${foot}</tbody></table>`:"";
 }
 document.getElementById("scenChan").addEventListener("change",e=>{ P.scenChan=e.target.value; save(); renderS4(); });
 function domData(R){ return R.map(({p})=>({p,f:calcIn("fob",()=>calcProduct(p)),d:calcIn("dom",()=>calcProduct(p))})); }
+/* Default pairing: the selected FOB plan, and the 国内 plan whose name shares the part after “·” (e.g. 近三个月). */
+function cmpPlans(){ const F=seaList("fob"), D=seaList("dom"), tail=n=>String(n||"").split(/[·・]/).pop().trim();
+  const f=F.includes(Math.round(nz(P.cmpFob)))?Math.round(nz(P.cmpFob)):(F.includes(Math.round(nz(P.seaView)))?Math.round(nz(P.seaView)):F[0]);
+  let d=D.includes(Math.round(nz(P.cmpDom)))?Math.round(nz(P.cmpDom)):-1;
+  if(d<0){ const t=tail(P.sea[f]&&P.sea[f].name); d=D.find(i=>tail(P.sea[i].name)===t); if(d===undefined) d=D[0]; }
+  return {f,d,F,D}; }
 function renderDom(R){
   const id=P.domChan||"amz:fbm", el=document.getElementById("resDom");
   document.getElementById("domChan").innerHTML=SCEN_OPTS().map(([v,l])=>`<option value="${v}" ${v===id?"selected":""}>${esc(l)}</option>`).join("");
   if(!R.some(({p})=>num(p.costRmb)>0)){ el.innerHTML=`<p class="muted" style="padding:12px">在第 2 步“国内出货价 ¥”填人民币含税价后，这里显示 FOB 和国内出货的利润对比。</p>`; return; }
-  const S=domData(R), ok=v=>v.ok&&isFinite(v.profit);
+  const S=domData(R), ok=v=>v.ok&&isFinite(v.profit), C=cmpPlans(), fi=C.f, di=C.d;
+  document.getElementById("cmpFob").innerHTML=C.F.map(i=>`<option value="${i}" ${i===fi?"selected":""}>${esc(P.sea[i].name)}</option>`).join("");
+  document.getElementById("cmpDom").innerHTML=C.D.map(i=>`<option value="${i}" ${i===di?"selected":""}>${esc(P.sea[i].name)}</option>`).join("");
   const cell=(v,r,i)=>ok(v)?`<td class="n ${cls(v.profit)}">${money(v.profit)} <span class="note">${pct(v.profit/v.rev)}</span><br><span class="note">采购 ${f2(r.cost)} · ${r.dom?"头程":"海运"} ${f2(r.sc[i].sea)}</span></td>`:`<td class="muted">缺价格</td>`;
   const diff=(a,b)=>ok(a)&&ok(b)?`<td class="n ${cls(b.profit-a.profit)}"><b>${money(b.profit-a.profit)}</b></td>`:`<td></td>`;
-  const h1=P.sea.map(s=>`<th class="grp" colspan="3">${esc(s.name)}</th>`).join(""), h2=P.sea.map(()=>`<th>FOB</th><th>国内出货</th><th>国内 − FOB</th>`).join("");
-  const rows=S.map(({p,f,d})=>`<tr><td>${esc(p.name)}</td>${P.sea.map((s,i)=>{ const a=scenVal(f,id,i), b=scenVal(d,id,i); return cell(a,f,i)+cell(b,d,i)+diff(a,b); }).join("")}</tr>`).join("");
+  const h1=`<th class="grp">FOB<br><span class="note">${esc(P.sea[fi].name)}</span></th><th class="grp">国内出货<br><span class="note">${esc(P.sea[di].name)}${hasDomSea()?"":"（暂用 FOB 方案 + 国内杂费）"}</span></th><th class="grp">国内 − FOB</th>`;
+  const rows=S.map(({p,f,d})=>{ const a=scenVal(f,id,fi), b=scenVal(d,id,di); return `<tr><td>${esc(p.name)}</td>${cell(a,f,fi)+cell(b,d,di)+diff(a,b)}</tr>`; }).join("");
   const tot=(w,i)=>{ let pr=0,rv=0,good=true; S.forEach(o=>{ const v=scenVal(o[w],id,i); if(!ok(v)){ good=false; return; } pr+=qtyOf(o.p)*v.profit; rv+=qtyOf(o.p)*v.rev; }); return {ok:good,profit:pr,rev:rv}; };
   const tc=v=>v.ok?`<td class="n ${cls(v.profit)}"><b>${money(v.profit)}</b> <span class="note">${pct(v.profit/v.rev)}</span></td>`:`<td class="muted">有产品缺价格</td>`;
-  const foot=`<tr class="first"><td><b>按销量合计</b><br><span class="note">销量见“综合利润”</span></td>${P.sea.map((s,i)=>{ const a=tot("f",i), b=tot("d",i); return tc(a)+tc(b)+diff(a,b); }).join("")}</tr>`;
-  el.innerHTML=`<table><thead><tr><th rowspan="2">品名</th>${h1}</tr><tr>${h2}</tr></thead><tbody>${rows}${foot}</tbody></table><p class="note" style="padding:6px 10px">退税：增值税 ${esc(P.dom.vat)}%、退税率 ${esc(P.dom.rebate)}%；国内杂费 ${esc(P.dom.extra)} RMB/柜。在“参数设置 → 国内出货”里改。</p>`;
+  const foot=`<tr class="first"><td><b>按销量合计</b><br><span class="note">销量见“综合利润”</span></td>${(()=>{ const a=tot("f",fi), b=tot("d",di); return tc(a)+tc(b)+diff(a,b); })()}</tr>`;
+  el.innerHTML=`<table><thead><tr><th>品名</th>${h1}</tr></thead><tbody>${rows}${foot}</tbody></table><p class="note" style="padding:6px 10px">退税：增值税 ${esc(P.dom.vat)}%、退税率 ${esc(P.dom.rebate)}%；国内杂费 ${esc(P.dom.extra)} RMB/柜。在“参数设置 → 国内出货”里改。</p>`;
 }
 document.getElementById("domChan").addEventListener("change",e=>{ P.domChan=e.target.value; save(); renderS4(); });
+document.getElementById("cmpFob").addEventListener("change",e=>{ P.cmpFob=+e.target.value; P.cmpDom=-1; save(); renderS4(); });
+document.getElementById("cmpDom").addEventListener("change",e=>{ P.cmpDom=+e.target.value; save(); renderS4(); });
 function renderDetail(R){
   const si=seaIdx(), id=P.detailChan||"amz:fbm", B=R.map(({p,r})=>breakdown(r,id,si));
   const ref=B.find(b=>b); if(!ref){ document.getElementById("resSummary").innerHTML=`<p class="muted" style="padding:12px">缺价格：先填 Amazon 售价或平台价。</p>`; return; }
@@ -978,15 +992,16 @@ function stamp(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()
 document.getElementById("btnExport").addEventListener("click",()=>{
   const R=products.map(p=>({p,r:calcProduct(p)})); const wb=XLSX.utils.book_new(); const r2=v=>isFinite(v)?Math.round(v*100)/100:"";
   const sumHead=["品名","材质/描述","供应商","品类","FBM旺季","包裹数","售价$","出厂价","出厂价币种","税点","成本调整$","采购成本$","采购占比","推广$","汇损$","佣金$","退款$","FBM尾程合计$(含燃油)","CG尾程合计$","FBA费合计$"];
-  P.sea.forEach(s=>sumHead.push(`[${s.name}]海运费$`,`[${s.name}]FBM利润$`,`[${s.name}]FBM利润率`,`[${s.name}]CG利润$`,`[${s.name}]CG利润率`,`[${s.name}]FBA利润$`,`[${s.name}]FBA利润率`));
+  const XL=seaList(P.shipMode); XL.forEach(i=>{ const s=P.sea[i]; sumHead.push(`[${s.name}]海运费$`,`[${s.name}]FBM利润$`,`[${s.name}]FBM利润率`,`[${s.name}]CG利润$`,`[${s.name}]CG利润率`,`[${s.name}]FBA利润$`,`[${s.name}]FBA利润率`); });
   sumHead.push("提示");
   const sum=[sumHead,...R.map(({p,r})=>[p.name,p.desc,p.supplier,p.category,p.peak,p.pkgs.length,r2(r.price),nz(p.cost),COST_CUR[p.costCur],taxNote(p),nz(p.adj),r2(r.cost),r.price?Math.round(r.cost/r.price*1000)/1000:"",r2(r.promo),r2(r.fx),r2(r.comm),r2(r.refund),r2(r.fbmShip),r2(r.cgShip),r2(r.fbaShip),
-    ...r.sc.flatMap(s=>[r2(s.sea),r2(s.fbm),r.price?Math.round(s.fbm/r.price*1000)/1000:"",r2(s.cg),r.price?Math.round(s.cg/r.price*1000)/1000:"",r2(s.fba),r.price?Math.round(s.fba/r.price*1000)/1000:""]),r.warn.join("；")])];
+    ...XL.map(i=>r.sc[i]).flatMap(s=>[r2(s.sea),r2(s.fbm),r.price?Math.round(s.fbm/r.price*1000)/1000:"",r2(s.cg),r.price?Math.round(s.cg/r.price*1000)/1000:"",r2(s.fba),r.price?Math.round(s.fba/r.price*1000)/1000:""]),r.warn.join("；")])];
   const ws1=aoaSheet(sum); ws1["!cols"]=sumHead.map((h,i)=>({wch:i<2?22:12}));
   const D=detailRows(R); const ws2=aoaSheet([D.head,...D.rows.map(r=>r.map(v=>typeof v==="number"?Math.round(v*10000)/10000:v))]); ws2["!cols"]=D.head.map(()=>({wch:12}));
   const par=[["参数","值"],["汇率 RMB/USD",P.rate],["推广 %",P.promo],["汇损 %",P.fxLoss],["退款 %",P.refund],["采购税点 %（仅 RMB 含税价适用，FOB 不适用）",P.tax],["FBM住宅附加费",P.residential?"计入":"不计入"],["FBM尾程燃油附加费 %（尾程派送+订单处理+异常+住宅 合计后再加）",P.fbm.fuel],
     ["家具佣金阈值 $",P.commission.threshold],["家具 ≤阈值 %",P.commission.furnLow],["家具 >阈值部分 %",P.commission.furnHigh],["汽配 %",P.commission.汽配],["工业机械 %",P.commission.工业机械],["农机花园 %",P.commission.农机花园],["其他 %",P.commission.其他],
-    ...P.sea.map(s=>[`海运方案：${s.name}`,`${s.rmb} RMB / ${s.cbm} CBM = $${f2(nz(s.rmb)/nz(s.cbm)/P.rate)}/m³`]),
+    ...P.sea.map(s=>[`海运方案（${seaKind(s)==="dom"?"国内":"FOB"}）：${s.name}`,`${s.rmb} RMB / ${s.cbm} CBM = $${f2(nz(s.rmb)/nz(s.cbm)/P.rate)}/m³`]),
+    ["出货方式",P.shipMode==="dom"?"国内出货":"FOB"],["国内出货","增值税 "+P.dom.vat+"%，退税率 "+P.dom.rebate+"%，国内杂费 "+P.dom.extra+" RMB/柜"],
     ["平台上架价系数（× Amazon 售价）",P.listFactor],["目标利润率 %",P.targetMargin],
     ...PLATS.flatMap(pl=>{ const c=P.plat[pl.k]; return [[`${pl.name}`,`${c.on!==false?"显示":"隐藏"}；${SHIP[c.ship]||c.ship}；加价倍率 ${c.markup}；默认促销折扣 ${c.disc}%；平台订单费 $${c.fixed}`],[`${pl.name} 比例费`,`推广 ${c.ads}% · 汇损 ${c.fx}% · 佣金 ${c.comm}% · 退款 ${c.refund}% · 仓储 ${c.storage}% · 出仓 ${c.outbound}%`]]; }),
     ["FBA 燃油/物流附加费 %",P.fba.fuel],["FBA 体积重除数",P.fba.dimDiv],["FBA 费率",fbaPeak()?"旺季":"非旺季"],["FBA 旺季区间",P.fba.peakStart+" ~ "+P.fba.peakEnd],["导出日期",new Date().toLocaleString()]];
@@ -1000,17 +1015,17 @@ document.getElementById("btnExport").addEventListener("click",()=>{
     ...L.flatMap(pl=>{ const x=r.plat[pl.k], s=x.sc[si]; return x.noPrice?["","","","","","",""]:[r2(x.list),r2(x.promo),r2(s.promo.profit),r3(s.promo.margin),r3(s.list.margin),r2(s.breakeven),r2(s.target)]; })])];
   const wsA=aoaSheet(all); wsA["!cols"]=ch.map((h,i)=>({wch:i?13:22}));
   const ph=["品名","平台","海运方案","发货方","上架价$","促销价$","折扣","价格来源","加价倍率","促销结算价$","采购成本$","海运费$","物流费$","平台订单费$","促销比例费$","促销利润$","促销利润率","上架结算价$","上架利润$","上架利润率","保本促销价$",`目标促销价$(${P.targetMargin}%)`];
-  const pd=[ph]; R.forEach(({p,r})=>PLATS.forEach(pl=>{ const x=r.plat[pl.k]; if(x.noPrice) return; P.sea.forEach((sea,i)=>{ const s=x.sc[i];
+  const pd=[ph]; R.forEach(({p,r})=>PLATS.forEach(pl=>{ const x=r.plat[pl.k]; if(x.noPrice) return; XL.forEach(i=>{ const sea=P.sea[i], s=x.sc[i];
     pd.push([p.name,pl.name,sea.name,SHIP[P.plat[pl.k].ship]||"",r2(x.list),r2(x.promo),r3(x.disc),x.est&&!x.promoSet?"估算":"填写",x.mk,r2(s.promo.settle),r2(r.cost),r2(s.sea),r2(x.logi),r2(x.fixed),r2(s.promo.fees),r2(s.promo.profit),r3(s.promo.margin),r2(s.list.settle),r2(s.list.profit),r3(s.list.margin),r2(s.breakeven),r2(s.target)]); }); }));
   const wsP=aoaSheet(pd); wsP["!cols"]=ph.map((h,i)=>({wch:i?12:22}));
   const ws0=aoaSheet(mix); ws0["!cols"]=mh.map((h,i)=>({wch:i?16:22}));
-  const SD=scenData(R), sh=["品名","渠道",...P.sea.flatMap(s=>[`[${s.name}]非旺季利润$`,`[${s.name}]非旺季利润率`,`[${s.name}]旺季利润$`,`[${s.name}]旺季利润率`,`[${s.name}]旺季差额$`])];
-  const sc=[sh]; SD.forEach(({p,n,k})=>SCEN_OPTS().forEach(([id,label])=>{ sc.push([p.name,label,...P.sea.flatMap((s,i)=>{ const a=scenVal(n,id,i), b=scenVal(k,id,i);
+  const SD=scenData(R), sh=["品名","渠道",...XL.map(i=>P.sea[i]).flatMap(s=>[`[${s.name}]非旺季利润$`,`[${s.name}]非旺季利润率`,`[${s.name}]旺季利润$`,`[${s.name}]旺季利润率`,`[${s.name}]旺季差额$`])];
+  const sc=[sh]; SD.forEach(({p,n,k})=>SCEN_OPTS().forEach(([id,label])=>{ sc.push([p.name,label,...XL.flatMap(i=>{ const a=scenVal(n,id,i), b=scenVal(k,id,i);
     return [a.ok?r2(a.profit):"",a.ok?r3(a.profit/a.rev):"",b.ok?r2(b.profit):"",b.ok?r3(b.profit/b.rev):"",a.ok&&b.ok?r2(b.profit-a.profit):""]; })]); }));
   const wsS=aoaSheet(sc); wsS["!cols"]=sh.map((h,i)=>({wch:i<2?20:14}));
-  const DD=domData(R), dh=["品名","渠道",...P.sea.flatMap(s=>[`[${s.name}]FOB利润$`,`[${s.name}]FOB利润率`,`[${s.name}]国内出货利润$`,`[${s.name}]国内出货利润率`,`[${s.name}]国内−FOB$`])];
-  const dd=[[`国内出货：增值税 ${P.dom.vat}%，退税率 ${P.dom.rebate}%，国内杂费 ${P.dom.extra} RMB/柜`],dh]; DD.forEach(({p,f,d})=>SCEN_OPTS().forEach(([id,label])=>{ dd.push([p.name,label,...P.sea.flatMap((s,i)=>{ const a=scenVal(f,id,i), b=scenVal(d,id,i), oa=a.ok&&isFinite(a.profit), ob=b.ok&&isFinite(b.profit);
-    return [oa?r2(a.profit):"",oa?r3(a.profit/a.rev):"",ob?r2(b.profit):"",ob?r3(b.profit/b.rev):"",oa&&ob?r2(b.profit-a.profit):""]; })]); }));
+  const CP=cmpPlans(), DD=domData(R), dh=["品名","渠道",`FOB利润$（${P.sea[CP.f].name}）`,"FOB利润率",`国内出货利润$（${P.sea[CP.d].name}）`,"国内出货利润率","国内−FOB$"];
+  const dd=[[`国内出货：增值税 ${P.dom.vat}%，退税率 ${P.dom.rebate}%，国内杂费 ${P.dom.extra} RMB/柜`],dh]; DD.forEach(({p,f,d})=>SCEN_OPTS().forEach(([id,label])=>{ const a=scenVal(f,id,CP.f), b=scenVal(d,id,CP.d), oa=a.ok&&isFinite(a.profit), ob=b.ok&&isFinite(b.profit);
+    dd.push([p.name,label,oa?r2(a.profit):"",oa?r3(a.profit/a.rev):"",ob?r2(b.profit):"",ob?r3(b.profit/b.rev):"",oa&&ob?r2(b.profit-a.profit):""]); }));
   const wsD=aoaSheet(dd); wsD["!cols"]=dh.map((h,i)=>({wch:i<2?20:14}));
   XLSX.utils.book_append_sheet(wb,wsA,"全渠道对比"); XLSX.utils.book_append_sheet(wb,wsD,"FOB vs 国内出货"); XLSX.utils.book_append_sheet(wb,wsS,"旺季海运对比"); XLSX.utils.book_append_sheet(wb,ws0,"综合利润"); XLSX.utils.book_append_sheet(wb,ws1,"Amazon利润汇总"); XLSX.utils.book_append_sheet(wb,wsP,"多平台明细"); XLSX.utils.book_append_sheet(wb,ws2,"包裹明细"); XLSX.utils.book_append_sheet(wb,ws3,"参数");
   offer(`利润测算_${stamp()}.xlsx`,new Uint8Array(XLSX.write(wb,{bookType:"xlsx",type:"array"})),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
