@@ -122,6 +122,9 @@ tr.bad td{background:var(--warn-soft)}
 .qgrp{margin-bottom:14px}
 .qgrp h3{display:flex;gap:8px;align-items:baseline}
 td.best{outline:2px solid var(--pos);outline-offset:-2px}
+.fz{position:sticky;z-index:2;background:var(--surface)}
+th.fz{z-index:3;background:var(--surface2)}
+.fzl{box-shadow:inset -2px 0 0 var(--line)}
 .toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:var(--r);font-size:13px;z-index:20}
 @media (prefers-reduced-motion:no-preference){.btn,nav.steps button{transition:background .15s,border-color .15s}}
 </style>
@@ -810,7 +813,23 @@ function renderS4(){
   // detail
   const D=detailRows(R);
   document.getElementById("resDetail").innerHTML=`<table><thead><tr>${D.head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${D.rows.map((row,ri)=>`<tr class="${D.first[ri]?"first":""}">${row.map((v,ci)=>typeof v==="number"?`<td class="n">${(D.fmt[ci]||String)(v)}</td>`:`<td>${D.chip[ci]?chip(v):esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  freezeS4();
 }
+/* Keep the leading columns in view while a wide table scrolls sideways.
+   Widths are measured from the first header row, so it runs after each render. */
+const FREEZE={resAll:2,resMix:1,resSummary:1,resScen:1,resDom:1,resDetail:1,qCompare:1};
+function freezeCols(id){
+  const n=FREEZE[id], t=document.querySelector("#"+id+" table"); if(!n||!t||!t.rows.length) return;
+  const head=[...t.rows[0].cells].slice(0,n); if(head.length<n||head.some(c=>c.colSpan>1)) return;
+  const lefts=[]; let x=0; head.forEach(c=>{ lefts.push(x); x+=c.getBoundingClientRect().width; }); if(!x) return;
+  const hdr=t.tHead?t.tHead.rows.length:0;
+  [...t.rows].forEach((row,ri)=>{ if(ri>0&&ri<hdr) return;
+    const cells=[...row.cells]; for(let i=0;i<n&&i<cells.length;i++){ const c=cells[i]; if(c.colSpan>1) break;
+      c.classList.add("fz"); if(i===n-1) c.classList.add("fzl"); c.style.left=Math.max(0,Math.floor(lefts[i])-(i?1:0))+"px"; } });
+}
+function freezeS4(){ ["resAll","resMix","resSummary","resScen","resDom","resDetail"].forEach(freezeCols); }
+let fzTimer=null;
+window.addEventListener("resize",()=>{ clearTimeout(fzTimer); fzTimer=setTimeout(()=>{ if(step===4) renderS4(); if(step===6) renderS6(); },200); });
 /* All visible channels in one list, in the same order everywhere on the page. */
 const chanList=()=>[...amzOn().map(a=>({id:"amz:"+a.k,name:a.name,amz:a.k})),...platOn().map(pl=>({id:"plat:"+pl.k,name:pl.name+" 促销",plat:pl.k}))];
 function chanVal(r,ch,si){ if(ch.amz) return {ok:r.price>0,rev:r.price,profit:r.sc[si][ch.amz]};
@@ -1193,6 +1212,7 @@ function renderS6(){
       const d=isFinite(v)&&isFinite(base)&&base!==0&&i>0&&v!==base?` <span class="note">${v>base?"+":""}${pct((v-base)/Math.abs(base))}</span>`:"";
       return `<td class="n ${isFinite(v)&&v===best?"best":""}" title="${esc(c.it.name)}">${isFinite(v)?money(v):'<span class="muted">缺售价</span>'}${d}<br><span class="note">${esc(c.it.name)} · ${f2(c.cbm)} m³ · ${f1(c.kg)} kg · ${c.n}包</span></td>`; }).join("")}</tr>`; }).join("");
   document.getElementById("qCompare").innerHTML=`<table><thead>${head}</thead><tbody>${body}</tbody></table><p class="note" style="padding:6px 10px">绿框 = 这一行最优；百分比 = 相对第一列的变化。利润指标按当前项目里同对比键产品的售价计算，没有对应产品显示“缺售价”。</p>`;
+  freezeCols("qCompare");
 }
 document.getElementById("btnQSave").addEventListener("click",async()=>{ const f=document.getElementById("qFactory").value.trim(); if(!f){ toast("先填工厂名"); return; }
   const d=document.getElementById("qDate").value||today(), v=document.getElementById("qVersion").value.trim()||`${d} 报价`;
