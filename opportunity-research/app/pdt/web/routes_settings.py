@@ -251,7 +251,7 @@ def budget_page(request: Request, tab: str = "detail", svc: str = "all", month: 
                   detail=detail[:50], detail_total=len(detail), detail_sum=sum(r["amount"] for r in detail),
                   monthly=_ledger_monthly(), month=month, cur_month=cur, months=months, fsvc=svc if svc in SERVICES else "all",
                   tab="month" if tab == "month" else "detail", llm_provider=PROVIDERS[_llm_settings()["provider"]],
-                  warn_pct=catconfig.current()[1].get("budget_warn_pct") or 80, today=datetime.now())
+                  warn_pct=catconfig.current()[1].get("budget_warn_pct") or 80, now_dt=datetime.now())
 
 
 @router.post("/settings/budget")

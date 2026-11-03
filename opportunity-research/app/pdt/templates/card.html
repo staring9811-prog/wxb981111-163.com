@@ -1,0 +1,676 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .card-layout { display: grid; grid-template-columns: minmax(0, 1fr) 248px; gap: var(--space-6); align-items: start; }
+  .card-side { position: sticky; top: calc(var(--topbar-h) + var(--space-4)); display: flex; flex-direction: column; gap: var(--space-4); }
+  .toc { margin: 0; padding: var(--space-2); list-style: none; counter-reset: toc; }
+  .toc a { display: flex; gap: var(--space-2); padding: 4px var(--space-2); border-radius: var(--radius-sm); color: var(--fg-2); text-decoration: none; font-size: var(--text-sm); }
+  .toc a::before { counter-increment: toc; content: counter(toc); width: 18px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .toc a:hover { background: var(--surface-raised); color: var(--fg); }
+  .toc a.is-on { color: var(--fg); font-weight: 600; background: var(--surface-raised); }
+  .csec { margin-top: var(--space-6); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+  .csec__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-soft); }
+  .csec__title { display: flex; align-items: baseline; gap: var(--space-2); font-size: var(--text-lg); font-weight: 600; }
+  .csec__no { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); }
+  .csec__body { padding: var(--space-4) var(--space-5); }
+  .csec__body > * + * { margin-top: var(--space-4); }
+  .csec .table-wrap { border-radius: var(--radius-md); }
+  .decision { display: flex; gap: var(--space-4); align-items: flex-start; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-warm); }
+  .decision__verdict { flex: none; }
+  .decision__text { flex: 1; min-width: 0; font-size: var(--text-sm); }
+  .marks { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .verdict-go { background: var(--success-tint); color: var(--success); }
+  .spark.mini { display: inline-block; vertical-align: middle; }
+  .spark.mini .spark__line { stroke-width: 1.5; }
+  .spark.mini.is-muted .spark__line { stroke: var(--viz-deemph); }
+  .chart { width: 100%; height: auto; }
+  .chart .chart__line--ref { fill: none; stroke: var(--viz-deemph); stroke-width: 2; stroke-dasharray: 4 3; }
+  .chart .chart__ref { stroke: var(--viz-ref); stroke-width: 1; stroke-dasharray: 2 3; }
+  .charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+  .chart-card { padding: var(--space-3) var(--space-4); border: 1px solid var(--border-soft); border-radius: var(--radius-md); }
+  .chart-card__title { font-size: var(--text-sm); font-weight: 600; }
+  .chart-card__note { font-size: var(--text-xs); color: var(--muted); }
+  .legend { display: inline-flex; align-items: center; gap: var(--space-3); font-size: var(--text-xs); color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 2px; margin-right: 4px; vertical-align: middle; background: var(--viz-series-1); }
+  .legend i.ref { background: var(--viz-deemph); }
+  .bet td:first-child { width: 168px; color: var(--muted); font-size: var(--text-xs); }
+  .bet td:last-child { color: var(--fg-2); font-size: var(--text-xs); }
+  .bet .big { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .arrow { color: var(--muted); margin: 0 var(--space-1); }
+  .narr__head { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+  .narr__title { font-size: var(--text-sm); font-weight: 600; }
+  .narr .textarea[readonly] { background: var(--surface-warm); color: var(--fg-2); }
+  .stoplist { margin: 0; padding: 0; list-style: none; }
+  .stoplist li { display: flex; gap: var(--space-3); align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--border-soft); font-size: var(--text-sm); }
+  .stoplist li:last-child { border-bottom: 0; }
+  .stoplist .icon { color: var(--warn); }
+  .stoplist .input { width: 84px; min-height: 28px; padding: 2px var(--space-2); }
+  .rv { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: var(--space-3); align-items: start; padding: var(--space-3) 0; border-bottom: 1px solid var(--border-soft); font-size: var(--text-sm); }
+  .rv:last-child { border-bottom: 0; }
+  .rv__meta { margin-top: 2px; font-size: var(--text-xs); color: var(--muted); }
+  .rv .select { min-height: 28px; padding: 2px var(--space-2); font-size: var(--text-xs); }
+  .timeline { margin: 0; padding: 0 var(--space-4) var(--space-3); list-style: none; font-size: var(--text-xs); }
+  .timeline li { position: relative; padding: var(--space-2) 0 var(--space-2) var(--space-4); border-left: 1px solid var(--border); color: var(--fg-2); }
+  .timeline li::before { content: ""; position: absolute; left: -4px; top: 13px; width: 7px; height: 7px; border-radius: 50%; background: var(--border-control); }
+  .timeline li.is-now::before { background: var(--accent); }
+  .timeline b { color: var(--fg); font-weight: 600; }
+  .thumb { width: 96px; height: 96px; flex: none; border: 1px solid var(--border); border-radius: var(--radius-md); object-fit: cover; background: var(--surface-raised); }
+  .approve-box { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+  .approve-box .btn { width: 100%; }
+  .approve-box .btn + .btn { margin-top: var(--space-2); }
+  .ch-col { white-space: nowrap; }
+  .sku-table td { white-space: nowrap; }
+  .sku-table tbody tr[data-sku] { cursor: pointer; }
+  .drawer__body .table-wrap { margin-top: var(--space-3); }
+  a.seg__opt { text-decoration: none; }
+  .inline-input { width: 96px; min-height: 28px; padding: 2px var(--space-2); }
+  .chk-row { display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--text-sm); }
+  @media (max-width: 1279px) { .card-layout { grid-template-columns: minmax(0, 1fr); } .card-side { position: static; } .charts { grid-template-columns: minmax(0, 1fr); } }
+</style>
+{% endblock %}
+
+{% macro src(title, pop, label) -%}<button class="etag" type="button" data-pop-title="{{ title }}" data-pop="{{ pop }}">{{ label }}</button>{%- if locked %}<span class="etag etag--snap">快照</span>{% endif -%}{%- endmacro %}
+{% macro verdict_badge(v) -%}
+{%- if v == '上' %}<span class="badge badge--hit"><svg class="icon"><use href="#ph-flag"/></svg>上</span>
+{%- elif v == '观察' %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span>
+{%- else %}<span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>{{ v }}</span>{% endif -%}
+{%- endmacro %}
+{% macro pc(v) %}{{ v|pct }}{% endmacro %}
+{% macro pc0(v) %}{{ v|pct(0) }}{% endmacro %}
+
+{% block topbar %}
+<div class="seg" role="group" aria-label="查看渠道">
+  {% for ch in channels %}<button class="seg__opt" type="button" data-ch="{{ ch }}" aria-pressed="{{ 'true' if ch == card.channel else 'false' }}">{{ channel_names[ch] }}</button>{% endfor %}
+</div>
+{% endblock %}
+
+{% block content %}
+{% if not run %}
+<div class="banner banner--warn enter" style="--i:0"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">还没有模型评分：市场评分、做到概率显示“无数据”。{% if user.role != 'readonly' %}<a href="/models">去模型与回测</a>{% endif %}</div></div>
+{% elif not run.valid %}
+<div class="banner banner--block enter" role="alert" style="--i:0"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body"><div class="banner__title">市场评分本月未通过有效性检验</div><div>{{ run.version }}，{{ run.created_at.strftime('%Y-%m-%d') }} 重算{% if run.valid_msg %}：{{ run.valid_msg }}{% endif %}。本卡的市场评分只作参考。{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div></div>
+{% else %}
+<div class="banner banner--ok enter" style="--i:0"><svg class="icon"><use href="#ph-seal-check"/></svg><div class="banner__body">市场评分本月通过有效性检验（{{ run.version }}，{{ run.created_at.strftime('%Y-%m-%d') }} 重算{% if run.valid_msg %}：{{ run.valid_msg }}{% endif %}）。{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div>
+{% endif %}
+{% if locked and new_data %}
+<div class="banner banner--stale">
+  <svg class="icon"><use href="#ph-arrows-clockwise"/></svg>
+  <div class="banner__body"><div class="banner__title">有新数据</div><div>{{ new_data|join('；') }}。本卡保持批准时（{{ card.snapshot.at }}）的数字快照，不会自动改变；需要按新数据重看时，另存为新草稿。</div></div>
+  {% if is_op %}<div class="banner__actions"><form method="post" action="/cards/{{ card.id }}/save-as-new"><button class="btn btn--sm" type="submit">另存为新草稿</button></form></div>{% endif %}
+</div>
+{% endif %}
+
+<div class="page-head enter" style="--i:1; margin-top: var(--space-4)">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><a href="/cards?channel={{ card.channel }}">决策卡</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>{{ name }}</span></nav>
+    <div class="row">
+      <h1>{{ name }}</h1>
+      {% if card.status == 'draft' %}<span class="badge"><svg class="icon"><use href="#ph-note-pencil"/></svg>草稿</span>
+      {% elif card.status == 'pending' %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-hourglass"/></svg>待审批</span>
+      {% elif card.status == 'rejected' %}<span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>已驳回</span>
+      {% else %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>{{ status_name }}</span>{% endif %}
+    </div>
+    <p class="page-head__sub">{{ n.meta.unit }} · {{ n.bet.kind or '未标机会类型' }} · 主渠道 {{ channel_names[card.channel] }} · 数据 {{ n.meta.first_month }} 至 {{ n.meta.data_month }} · 立项到上架约 8 个月（预计 {{ narr.launch_month or '—' }} 上架）· 第 {{ card.version }} 版{% if card.parent_id %} · 由 <a href="/cards/{{ card.parent_id }}">上一版</a> 另存{% endif %}</p>
+    {% if can_edit %}<p class="page-head__sub"><span class="lock" id="autosave"><svg class="icon"><use href="#ph-check"/></svg>{% if narr.saved_at %}叙述已自动保存 · {{ narr.saved_at }}{% else %}叙述编辑后自动保存{% endif %}</span></p>{% endif %}
+    {% if locked and approved %}<p class="page-head__sub"><span class="lock"><svg class="icon"><use href="#ph-lock-simple"/></svg>只读版本 · 第 {{ card.version }} 版 · {{ approver }} {{ approved.decided_at|dt }} 批准{% if forecast %} · 已登记 <a href="/ledger#f{{ forecast.id }}">预测台账 {{ forecast.code }}</a>{% endif %}</span></p>{% endif %}
+    {% if card.status == 'pending' %}<p class="page-head__sub"><span class="lock"><svg class="icon"><use href="#ph-lock-simple"/></svg>已提交审批，叙述锁定 · {{ pending_by }} {{ pending.submitted_at|dt }} 提交第 {{ pending.obj_version }} 版</span></p>{% endif %}
+  </div>
+  <div class="page-head__actions">
+    <a class="btn" href="/cards/{{ card.id }}/export"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出</span></a>
+    {% if is_op and card.status in ('approved', 'tracking', 'reconciled', 'rejected') %}<form method="post" action="/cards/{{ card.id }}/save-as-new"><button class="btn" type="submit"><svg class="icon"><use href="#ph-copy"/></svg><span>另存为新草稿</span></button></form>{% endif %}
+    {% if can_edit %}<button class="btn btn--primary" type="button" data-open="#modal-submit"><svg class="icon"><use href="#ph-seal-check"/></svg><span>提交审批</span></button>{% endif %}
+  </div>
+</div>
+{% if can_edit %}<form id="narr-form" method="post" action="/cards/{{ card.id }}/narrative"></form>{% endif %}
+
+<div class="card-layout">
+<div>
+  <!-- 01 分框决策 -->
+  <section class="csec enter" style="--i:2; margin-top: 0" id="s1" aria-labelledby="s1-t">
+    <div class="csec__head"><h2 class="csec__title" id="s1-t"><span class="csec__no">01</span>分框决策</h2><span class="section__note">只和同一个"尺寸 × 拆装 × 形态"框里的其他{{ card.attr }}比</span></div>
+    <div class="csec__body">
+      <div class="decision">
+        <span class="decision__verdict">{{ verdict_badge(prim.verdict) }}</span>
+        <div class="decision__text">
+          {% if can_edit %}
+          <label class="field__label" for="f-plan">方案（可编辑）</label>
+          <textarea class="textarea" id="f-plan" name="plan" form="narr-form" rows="2">{{ narr.plan }}</textarea>
+          <label class="field__label" for="f-reason" style="margin-top: var(--space-2)">一句话理由（可编辑）</label>
+          <textarea class="textarea" id="f-reason" name="reason" form="narr-form" rows="2">{{ narr.reason }}</textarea>
+          {% else %}
+          <div class="strong">{{ narr.plan }}</div>
+          <div class="muted" style="margin-top: var(--space-1)">{{ narr.reason }}</div>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="row" style="margin-bottom: var(--space-2)">
+          <h3>同一机会在四个渠道</h3><span class="spacer"></span>
+          <div class="marks">
+            {% if n.marks.agree %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>多渠道印证：{{ n.marks.agree|join('、') }} 都在{{ n.marks.dir }}</span>{% endif %}
+            {% if n.marks.diverge %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-split-horizontal"/></svg>渠道分歧：{{ n.marks.diverge|join('、') }} 在{{ '跌' if n.marks.dir == '涨' else '涨' }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table" id="chan-table">
+            <thead><tr><th>渠道</th><th class="t-num">框内份额 前 → 近</th><th>趋势（近 4 季）</th><th>分级 / 把握</th><th class="t-num">样本量</th><th>这个渠道</th></tr></thead>
+            <tbody>
+              {% for ch in n.channels %}
+              <tr data-channel="{{ ch.channel }}">
+                <td class="cell-title ch-col">{{ ch.name }}</td>
+                {% if not ch.has_data %}
+                <td colspan="4" class="muted small">该渠道本月无数据</td>
+                {% else %}
+                <td class="t-num">{{ pc(ch.share_prev) }} → {{ pc(ch.share_now) }}{{ src(ch.name ~ ' 框内份额', ch.src, ('估算' if ch.estimated else 'n=' ~ (ch.families or 0))) }}</td>
+                <td>{% if ch.spark %}<svg class="spark mini {{ '' if ch.sample_ok else 'is-muted' }}" width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="{{ ch.spark }}"/></svg>{% endif %} <span class="small {{ '' if ch.sample_ok else 'muted' }}">{{ ch.direction if ch.sample_ok else '样本不足' }}</span></td>
+                <td>{% if ch.grade %}{{ ch.grade }}{% if ch.grasp is not none %} · 把握 {{ pc0(ch.grasp) }}{% endif %}{% if not ch.verified %} <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
+                <td class="t-num">{{ ch.families or 0 }} 家族 · {{ ch.units|num }} 件/月</td>
+                {% endif %}
+                <td>{{ verdict_badge(ch.verdict) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted" style="margin-top: var(--space-2)">各渠道只在本渠道内比较份额，不比较绝对销量；其他渠道月销为评论换算估算（品类配置参数 v{{ n.meta.cfg_version }}）。分级规则经 Amazon 回测，其他渠道未回测。</p>
+      </div>
+      {% if n.other_frames %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>同取值的其他框</th><th>机会类型</th><th>一句话</th></tr></thead>
+          <tbody>{% for o in n.other_frames[:5] %}<tr><td class="cell-title">{{ o.frame }}</td><td>{{ o.kind or '—' }}</td><td class="small">份额 {{ pc(o.share_prev) }} → {{ pc(o.share) }}{% if o.newfam %}，新家族 {{ o.newfam }} 个做到 {{ o.newmade }} 个{% endif %}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- 02 我们在赌什么 -->
+  <section class="csec enter" style="--i:3" id="s2" aria-labelledby="s2-t">
+    <div class="csec__head"><h2 class="csec__title" id="s2-t"><span class="csec__no">02</span>我们在赌什么</h2><span class="section__note">数字由系统计算，点小标签看来源；只能改叙述</span></div>
+    <div class="csec__body">
+      <div class="table-wrap">
+        <table class="table bet" data-numbers="readonly">
+          <thead><tr><th>项目</th><th>数字</th><th>读法</th></tr></thead>
+          <tbody>
+            <tr><td>机会类型</td><td>{% if n.bet.kind %}<span class="badge"><svg class="icon"><use href="#ph-trend-up"/></svg>{{ n.bet.kind }}</span> <span class="badge {{ 'badge--pass' if n.bet.evidence == '经回测' else 'badge--unverified' }}">{{ n.bet.evidence or '未验证' }}</span>{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}
+              <div style="margin-top: var(--space-1)">份额 <span class="num">{{ pc(n.bet.share_prev) }}</span><span class="arrow">→</span><span class="num">{{ pc(n.bet.share_now) }}</span>，新品占比 <span class="num">{{ pc0(n.bet.newshare) }}</span>（同框 <span class="num">{{ pc0(n.bet.frame_newshare) }}</span>）{{ src('份额与新品占比', n.bet.src_share, 'n=' ~ (prim.families or 0)) }}</div></td>
+              <td>份额走势和新品占比是经过回测的信号</td></tr>
+            <tr><td>市场评分（{{ n.meta.run.version if n.meta.run else '—' }}）</td><td>{% if n.bet.score and n.bet.score.grasp is not none %}<span class="big">把握 {{ pc0(n.bet.score.grasp) }}</span> · {{ n.bet.score.grade }} 档{{ src('市场评分', n.bet.score.src, n.meta.run.version if n.meta.run else '来源') }}
+              {% if n.bet.score.pred is not none %}<div style="margin-top: var(--space-1)"><span class="small muted">立项后 6–10 个月份额</span> <span class="ibar-text">{{ pc(n.bet.score.pred) }}（80% 区间 {{ pc(n.bet.score.lo) }}–{{ pc(n.bet.score.hi) }}）· 现在 {{ pc(n.bet.score.now) }}</span></div>{% endif %}
+              {% else %}<span class="etag etag--nodata">无数据</span> <span class="small muted">本月模型评分里没有这个单元</span>{% endif %}</td>
+              <td>把握 = 立项后份额继续变大的概率；分级 A–D</td></tr>
+            <tr><td>新品做到概率（每 10 个）</td><td>{% if n.bet.prob %}<span class="small muted">模型原值</span> <span class="num" data-prob-raw>{% for v in n.bet.prob.raw %}{{ '%.1f'|format(v * 10) }}{% if not loop.last %} / {% endif %}{% endfor %}</span><span class="arrow">→</span><span class="small muted">扣偏差 {{ '%.1f'|format((n.bet.prob.bias or 0) * 10) }} 后</span> <span class="big" data-prob-adj>{% for v in n.bet.prob.adj %}{{ '%.1f'|format(v * 10) }}{% if not loop.last %} / {% endif %}{% endfor %}</span>{{ src('新品做到概率', n.bet.prob.src, '偏差 %+.1f'|format((n.bet.prob.bias or 0) * 10)) }}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
+              <td>模型原值与扣掉当月"模型偏差"后的值并列</td></tr>
+            <tr><td>框内历史做到率</td><td>{% if n.bet.made %}含{{ card.value }}的新家族 <span class="num">{{ n.bet.made.n }}</span> 个做到 <span class="num">{{ n.bet.made.made }}</span> 个；同框其他 <span class="num">{{ n.bet.made.other_n if n.bet.made.other_n is not none else '—' }}</span> 个做到 <span class="num">{{ n.bet.made.other_made if n.bet.made.other_made is not none else '—' }}</span> 个 · <span class="num">p = {{ '%.2f'|format(n.bet.made.p) if n.bet.made.p is not none else '—' }}</span>{{ src('框内历史做到率', n.bet.made.src, 'n=' ~ ((n.bet.made.n or 0) + (n.bet.made.other_n or 0))) }}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
+              <td>{% if n.bet.made and n.bet.made.p is not none %}{{ '显著' if n.bet.made.p < 0.05 else ('接近但没到显著' if n.bet.made.p < 0.2 else '不显著') }}{% endif %}</td></tr>
+            <tr><td>拟定价位实测成交<br><span class="small">子体 × 月</span></td><td>{% for b in n.bet.bands %}{{ b.band }}：<span class="num">{{ b.obs }}</span> 次，月销中位 <span class="num">{{ b.median_units|num }}</span> 件，最高 <span class="num">{{ b.max_units|num }}</span> 件{{ src(b.band ~ ' 价格带', b.src, 'n=' ~ b.obs) }}{% if not loop.last %}<br>{% endif %}{% else %}<span class="etag etag--nodata">无数据</span>{% endfor %}</td>
+              <td>主流价位成交是否充足</td></tr>
+            <tr><td>评分</td><td>{{ card.value }} <span class="num">{{ '%.2f'|format(n.bet.rating) if n.bet.rating is not none else '—' }}</span>，同框 <span class="num">{{ '%.2f'|format(n.bet.frame_rating) if n.bet.frame_rating is not none else '—' }}</span>{{ src('评分', n.bet.src_rating, 'n=' ~ (prim.families or 0)) }}</td>
+              <td>{% if n.bet.rating is not none and n.bet.frame_rating is not none %}{{ '比同框低，留有做好的空间' if n.bet.rating < n.bet.frame_rating else '不低于同框' }}{% endif %}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="narr" id="narr-consumer">
+        <div class="narr__head">
+          <span class="narr__title">为消费者解决了什么问题</span>
+          {% if narr.consumer_ai %}<span class="badge badge--warn" data-ai-badge><svg class="icon"><use href="#ph-lightbulb"/></svg>AI 草稿</span>{% endif %}
+          <span class="spacer"></span>
+          {% if can_edit and llm_on %}<button class="btn btn--sm" type="button" data-cost-kind="llm_draft" data-cost-target="card:{{ card.id }}"><svg class="icon"><use href="#ph-lightbulb"/></svg><span>{{ '重新起草叙述' if narr.consumer else '起草叙述' }}</span></button>{% endif %}
+        </div>
+        <textarea class="textarea" rows="5" aria-label="为消费者解决了什么问题" name="consumer" {% if can_edit %}form="narr-form"{% else %}readonly{% endif %} data-narr>{{ narr.consumer }}</textarea>
+        <p class="field__hint">{% if narr.consumer_ai %}由大模型起草（{{ narr.consumer_ai_at }}）。编辑后"AI 草稿"标记去掉。{% elif can_edit and not llm_on %}大模型未连接：叙述请手写。{% else %}叙述由 wen 编写，是推测，待问答验证。{% endif %}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 看到什么就停 -->
+  <section class="csec enter" style="--i:4" id="s3" aria-labelledby="s3-t">
+    <div class="csec__head"><h2 class="csec__title" id="s3-t"><span class="csec__no">03</span>看到什么就停</h2><span class="section__note">批准后写入预测台账，上架后自动对照</span></div>
+    <div class="csec__body">
+      <ul class="stoplist">
+        {% for st in stops %}
+        <li><svg class="icon"><use href="#ph-warning"/></svg><span>{{ st.text }}</span>{% if can_edit %}<span class="spacer"></span><label class="small muted">阈值 <input class="input" type="number" step="any" name="stop_{{ st.i }}" form="narr-form" value="{{ st.value }}"></label>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  <!-- 04 被放弃的选项 -->
+  <section class="csec enter" style="--i:5" id="s4" aria-labelledby="s4-t">
+    <div class="csec__head"><h2 class="csec__title" id="s4-t"><span class="csec__no">04</span>被放弃的选项</h2></div>
+    <div class="csec__body">
+      {% if n.abandoned %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>选项</th><th>处理</th><th>为什么</th></tr></thead>
+        <tbody>{% for a in n.abandoned %}<tr><td class="cell-title">{{ a.option }}</td><td>{% if a.action == '观察' %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-eye"/></svg>观察</span>{% else %}<span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>放弃</span>{% endif %}</td><td class="small">{{ a.why }}{% if a.src %} {{ src(a.option, a.src, '来源') }}{% endif %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}<p class="small muted">数据里没有可比较的备选（同取值其他框、其他价位、其他渠道）。</p>{% endif %}
+      {% if can_edit %}<textarea class="textarea" rows="2" name="abandon_note" form="narr-form" placeholder="补充被放弃的选项与理由（可选）">{{ narr.abandon_note }}</textarea>{% elif narr.abandon_note %}<p class="small">{{ narr.abandon_note }}</p>{% endif %}
+    </div>
+  </section>
+
+  <!-- 05 大数据层 -->
+  <section class="csec enter" style="--i:5" id="s5" aria-labelledby="s5-t">
+    <div class="csec__head"><h2 class="csec__title" id="s5-t"><span class="csec__no">05</span>大数据层：时间线</h2><span class="section__note" data-ch-label>{{ channel_names[card.channel] }} · 逐季{% if n.meta.star_months %} · * 为带 * 并入的月份，打折看{% endif %}</span></div>
+    <div class="csec__body">
+      {% for ch in n.channels %}{% set cc = charts[ch.channel] %}
+      <div data-ch-panel="{{ ch.channel }}" {% if ch.channel != card.channel %}hidden{% endif %}>
+        {% if not ch.has_data %}
+        <div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">{{ ch.name }} 本月无该单元数据</div><div class="empty__desc">该渠道还没有并入这个框或取值的数据。</div></div>
+        {% elif not ch.sample_ok %}
+        <div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">{{ ch.name }} 这个框样本不足</div><div class="empty__desc">{{ card.frame }} 在 {{ ch.name }} 估算月销 {{ ch.frame_units|num }} 件，不到扫描门槛，没有逐季趋势。{{ card.value }}只有 {{ ch.families or 0 }} 个家族。</div></div>
+        {% else %}
+        <div class="table-wrap"><table class="table">
+          <thead><tr><th>季度</th><th class="t-num">{{ card.value }}{{ '估算' if ch.estimated else '' }}月销</th><th class="t-num">框内份额</th><th class="t-num">中位价（溢价）</th><th class="t-num">评分 {{ card.value }} / 框</th><th class="t-num">新品占比 {{ card.value }} / 框</th><th class="t-num">在榜家族</th></tr></thead>
+          <tbody>{% for q in ch.quarters %}<tr><td class="num">{{ q.q }}</td><td class="t-num">{{ q.units|num }}{% if ch.estimated %} <span class="etag">估算</span>{% endif %}</td><td class="t-num">{{ pc(q.share) }}</td><td class="t-num">${{ q.median_price|num }}（{{ '%.2f'|format(q.premium) if q.premium is not none else '—' }}）</td><td class="t-num">{{ '%.2f'|format(q.rating) if q.rating is not none else '—' }} / {{ '%.2f'|format(q.frame_rating) if q.frame_rating is not none else '—' }}</td><td class="t-num">{{ pc0(q.newshare) }} / {{ pc0(q.frame_newshare) }}</td><td class="t-num">{{ q.families }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+        {% if ch.channel == 'wayfair' %}<p class="small muted" style="margin-top: var(--space-2)">Wayfair 只有 "Verified Purchase" 计 VP，月销口径和其他渠道不同，只在 Wayfair 内比较。</p>{% endif %}
+        <details style="margin-top: var(--space-4)" {% if ch.channel == card.channel %}open{% endif %}>
+          <summary class="strong">展开趋势与价格带</summary>
+          <div class="charts" style="margin-top: var(--space-3)">
+            {% for key, title, note in [('share', '框内份额', card.value ~ '销量 ÷ 框内' ~ card.attr ~ '已知的销量'), ('newshare', '新品占比', ''), ('premium', '溢价率', '价格 ÷ 同月同框中位价')] %}{% set g = cc[key] %}
+            <div class="chart-card"><div class="chart-card__title">{{ title }}</div>{% if key == 'newshare' %}<div class="legend"><span><i></i>{{ card.value }}</span><span><i class="ref"></i>同框</span></div>{% else %}<div class="chart-card__note">{{ note }}</div>{% endif %}
+              {% if g %}<svg class="spark chart" viewBox="0 0 320 140" role="img" aria-label="{{ card.value }}{{ title }}，逐季">
+                {% for t in g.grid %}<line class="spark__grid" x1="40" x2="300" y1="{{ t.y }}" y2="{{ t.y }}"/><text class="spark__label" x="34" y="{{ t.ty }}" text-anchor="end">{{ t.t }}</text>{% endfor %}
+                {% if g.ref_y %}<line class="chart__ref" x1="40" x2="300" y1="{{ g.ref_y }}" y2="{{ g.ref_y }}"/><text class="spark__label" x="300" y="{{ g.ref_ty }}" text-anchor="end">同框中位 1.00</text>{% endif %}
+                {% for x in g.xlabels %}<text class="spark__label" x="{{ x.x }}" y="128" text-anchor="middle">{{ x.t }}</text>{% endfor %}
+                <polyline class="spark__line" points="{{ g.line }}"/>{% if g.ref %}<polyline class="chart__line--ref" points="{{ g.ref }}"/>{% endif %}
+                {% for d in g.dots %}<circle class="spark__dot" cx="{{ d.x }}" cy="{{ d.y }}" r="4" tabindex="0" data-tip="{{ d.tip }}"/>{% endfor %}
+                {% if g.last %}<text class="spark__value" x="{{ g.last.x }}" y="{{ g.last.y }}" text-anchor="middle">{{ g.last.t }}</text>{% endif %}
+              </svg>{% else %}<p class="small muted">不到两个季度，画不出趋势。</p>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          <div class="grid-2" style="margin-top: var(--space-4)">
+            <div>
+              <h3 style="margin-bottom: var(--space-2)">价格带构成（{{ card.frame }} · {{ card.value }}，子体 × 月）</h3>
+              {% set mx = (ch.bands|map(attribute='obs')|max) if ch.bands else 1 %}
+              <div class="hbars">
+                {% for b in ch.bands %}<span class="hbar__label">{{ b.band }}</span><span class="hbar__track"><span class="hbar__bar{% if n.price and (b.lo or 0) <= n.price < (b.hi or 1e12) %} hbar__bar--focus{% endif %}" style="width:{{ '%.1f'|format(b.obs / mx * 100) }}%" tabindex="0" data-tip="{{ b.obs }} 次|{{ b.skus }} 个子体 · 月销中位 {{ b.median_units|num }} 件 · 最高 {{ b.max_units|num }} 件 · 评分中位 {{ b.rating|num(1) }}"></span></span><span class="hbar__value">{{ b.obs }} · 中位 {{ b.median_units|num }} 件</span>{% else %}<span class="small muted">无数据</span>{% endfor %}
+              </div>
+            </div>
+            <div>
+              {% if ch.channel == card.channel and n.frame_values %}
+              <h3 style="margin-bottom: var(--space-2)">近期框内各{{ card.attr }}（{{ ch.recent[0] if ch.recent else '' }} 至 {{ ch.recent[-1] if ch.recent else '' }}）</h3>
+              <div class="table-wrap"><table class="table">
+                <thead><tr><th>{{ card.attr }}</th><th class="t-num">月销</th><th class="t-num">份额</th><th class="t-num">在榜家族</th><th class="t-num">溢价</th><th class="t-num">评分</th></tr></thead>
+                <tbody>{% for fv in n.frame_values[:8] %}<tr {% if fv.me %}class="is-selected"{% endif %}><td {% if fv.me %}class="cell-title"{% endif %}>{{ fv.value }}</td><td class="t-num">{{ fv.units|num }}</td><td class="t-num">{{ pc(fv.share) }}</td><td class="t-num">{{ fv.families or '—' }}</td><td class="t-num">{{ '%.2f'|format(fv.premium) if fv.premium is not none else '—' }}</td><td class="t-num">{{ '%.2f'|format(fv.rating) if fv.rating is not none else '—' }}</td></tr>{% endfor %}</tbody>
+              </table></div>
+              {% endif %}
+            </div>
+          </div>
+        </details>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- 06 SKU 层 -->
+  <section class="csec enter" style="--i:5" id="s6" aria-labelledby="s6-t">
+    <div class="csec__head"><h2 class="csec__title" id="s6-t"><span class="csec__no">06</span>SKU 层</h2><span class="section__note" data-ch-label-sku>{{ channel_names[card.channel] }} · {{ card.frame }} · 按峰值月销排 · 点行展开</span></div>
+    <div class="csec__body">
+      {% for ch in n.channels %}
+      <div data-ch-panel="{{ ch.channel }}" {% if ch.channel != card.channel %}hidden{% endif %}>
+        {% if ch.skus %}
+        <div class="table-wrap"><table class="table sku-table" id="sku-{{ ch.channel }}">
+          <thead><tr><th>{{ '子 ASIN' if ch.channel == 'amazon' else '商品 ID' }}</th><th>品牌</th><th>规格</th><th class="t-num">价格（价比）</th><th class="t-num">评分</th><th>首次在榜 / 在榜月数</th><th>峰值：月份、{{ '估算' if ch.estimated else '' }}月销</th><th>最好排名 / 首次进前 50</th></tr></thead>
+          <tbody>{% for k in ch.skus %}{% set prices = k.series|map(attribute='price')|select('number')|list %}{% set ratings = k.series|map(attribute='rating')|select('number')|list %}{% set ratios = k.series|map(attribute='price_ratio')|select('number')|list|sort %}
+            <tr data-sku="{{ ch.channel }}:{{ loop.index0 }}" tabindex="0"><td class="mono">{{ k.item_id }}</td><td>{{ k.brand }}</td><td>{{ k.spec }}</td>
+              <td class="t-num">{% if prices %}${{ prices|min|num }}{% if prices|min != prices|max %}–{{ prices|max|num }}{% endif %}{% else %}—{% endif %}{% if ratios %}（{{ '%.2f'|format(ratios[ratios|length // 2]) }}）{% endif %}</td>
+              <td class="t-num">{% if ratings %}{{ '%.1f'|format(ratings|min) }}–{{ '%.1f'|format(ratings|max) }}{% else %}—{% endif %}</td>
+              <td class="num">{{ k.first_month }} / {{ k.months_listed }}</td><td class="num">{{ k.peak_month }}：{{ k.peak_units|num }} 件{% if ch.estimated %} <span class="etag">估算</span>{% endif %}</td>
+              <td class="num">{{ k.best_rank|num }} / {{ k.first_top50 or '没进' }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+        {% elif ch.has_data and not ch.sample_ok %}
+        <div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">{{ ch.name }} 只有 {{ ch.families or 0 }} 个{{ card.value }}家族</div><div class="empty__desc">样本不足，不列 SKU 层。</div></div>
+        {% else %}
+        <div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">{{ ch.name }} 没有该单元的商品</div></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- 07 差评归类 -->
+  <section class="csec enter" style="--i:5" id="s7" aria-labelledby="s7-t">
+    <div class="csec__head">
+      <h2 class="csec__title" id="s7-t"><span class="csec__no">07</span>差评归类</h2>
+      <div class="row">
+        {% if can_edit and rv.total > rv.classified and llm_on %}<button class="btn btn--sm" type="button" data-cost-kind="review_classify" data-cost-target="card:{{ card.id }}"><svg class="icon"><use href="#ph-list-checks"/></svg><span>归类未归类的 {{ rv.total - rv.classified }} 条</span></button>{% endif %}
+        {% if can_edit %}<button class="btn btn--sm" type="button" data-cost-kind="amazon_reviews" data-cost-target="card:{{ card.id }}"><svg class="icon"><use href="#ph-download-simple"/></svg><span>拉差评</span></button>{% endif %}
+      </div>
+    </div>
+    <div class="csec__body">
+      <p class="small muted">{% if rv.total %}本卡共 {{ rv.total }} 条 1–3 星：{% for ch, k in rv.by_channel_n.items() %}{{ channel_names[ch] }} {{ rv.channels[ch] }} 个商品 {{ k }} 条{% if not loop.last %}；{% endif %}{% endfor %}。Amazon 用卖家精灵拉取（每个 SKU 最多 30 条），Home Depot / Lowe's / Wayfair 取评论 VP 追踪已采集明细 · 每条只归一个主要原因{% if not llm_on %} · 大模型未连接：只显示原文、不归类{% endif %}{% else %}还没有差评。{% if can_edit %}点“拉差评”：先显示费用，确认后拉本卡 {{ (rv_estimate.amazon or [])|length }} 个 Amazon SKU 的 1–3 星评论，并入其他渠道已采集的 1–3 星明细，再用大模型归类。{% endif %}{% endif %}</p>
+      {% if rv.total %}
+      <div class="grid-2">
+        <div>
+          {% set mx = (rv.cats|map(attribute='n')|max) or 1 %}
+          <div class="hbars" id="rv-bars">
+            {% for x in rv.cats %}<span class="hbar__label {{ 'strong' if x.cat == '本品类关键部件' else '' }}">{{ x.label }}</span><span class="hbar__track"><span class="hbar__bar {{ 'hbar__bar--focus' if x.cat == '本品类关键部件' else '' }}" data-cat="{{ x.cat }}" style="width:{{ '%.1f'|format(x.n / mx * 100) }}%" tabindex="0" data-tip="{{ x.n }} 条（{{ pc0(x.pct) }}）|{{ x.label }}"></span></span><span class="hbar__value" data-val="{{ x.cat }}">{{ x.n }} 条 · {{ pc0(x.pct) }}</span>{% endfor %}
+          </div>
+          <p class="small muted" style="margin-top: var(--space-2)">已归类 <span class="num" data-cls-count>{{ rv.classified }}</span> / {{ rv.total }} 条 <span class="etag etag--n">n={{ rv.total }}</span> · 人工改判 <span class="num" data-manual-count>{{ rv.manual }}</span> 条</p>
+        </div>
+        <div class="table-wrap"><table class="table">
+          <thead><tr><th>原因</th><th>我们要怎么做</th></tr></thead>
+          <tbody>
+            <tr><td class="t-nowrap">装配 / 做工</td><td class="small">少零件、孔位准、说明清楚、预装滑轨</td></tr>
+            <tr><td class="t-nowrap strong">本品类关键部件</td><td class="small">{{ card.value }}本身的问题：按差评原文逐条改（如标准排水孔、溢水口、可固定、耐划）</td></tr>
+            <tr><td class="t-nowrap">柜体材料</td><td class="small">不用软颗粒板，用长螺丝；详情页如实写材质</td></tr>
+            <tr><td class="t-nowrap">结构 / 设计</td><td class="small">腿和侧板一起受力；背板留管路空间；尺寸写清楚</td></tr>
+            <tr><td class="t-nowrap">运输 / 服务 / 不明</td><td class="small">包装加强；退货流程</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <details>
+        <summary class="strong">按 SKU 看（{{ rv.by_sku|length }} 个）</summary>
+        <div class="table-wrap" style="margin-top: var(--space-3)"><table class="table">
+          <thead><tr><th>商品</th><th>渠道</th><th class="t-num">1–3 星</th>{% for c in cats %}<th class="t-num">{{ c.split(' / ')[0] if c != '本品类关键部件' else '关键部件' }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for b in rv.by_sku %}<tr><td class="mono">{{ b.item_id }}</td><td>{{ channel_names[b.channel] }}</td><td class="t-num">{{ b.n }}</td>{% for c in cats %}<td class="t-num">{{ b[c] }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+        </table></div>
+      </details>
+      <div>
+        <div class="row" style="margin-bottom: var(--space-1)"><h3>评论原文与归类</h3><span class="spacer"></span><span class="small muted">共 {{ rv.items|length }} 条</span></div>
+        <div id="rv-list">
+          {% for r in rv.items %}
+          <div class="rv"><div><div class="rv__quote">"{{ r.text }}"</div><div class="rv__meta">{{ r.item_id }} · {{ channel_names[r.channel] }} · {{ r.stars|num }} 星 · {{ r.date }}{% if r.manual %} <span class="etag">人工修改</span>{% endif %}</div></div>
+            <select class="select" aria-label="归类" data-review="{{ r.id }}" {% if not can_edit %}disabled{% endif %}>{% if not r.reason %}<option value="" selected>未归类</option>{% endif %}{% for c in cats %}<option value="{{ c }}" {% if c == r.reason %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- 08 钱 -->
+  <section class="csec enter" style="--i:5" id="s8" aria-labelledby="s8-t">
+    <div class="csec__head">
+      <h2 class="csec__title" id="s8-t"><span class="csec__no">08</span>钱</h2>
+      {% if can_edit %}<a class="btn btn--sm" href="/tools/profit?card={{ card.id }}"><svg class="icon"><use href="#ph-scales"/></svg><span>测算利润（带入 {{ card.frame.split(' · ')[0] }}、${{ narr.price or '—' }}）</span></a>{% endif %}
+    </div>
+    <div class="csec__body">
+      {% if can_edit %}<div class="row small"><label for="f-price">拟定售价 $</label><input class="input inline-input" id="f-price" type="number" step="1" name="price" form="narr-form" value="{{ narr.price or '' }}"><span class="muted">（决策输入，可改；数据中位价 ${{ n.price or '—' }}）</span></div>{% endif %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>情形</th><th>依据</th><th class="t-num">月销</th><th class="t-num">月销售额（按 ${{ narr.price or '—' }}）</th></tr></thead>
+        <tbody>
+          <tr><td class="cell-title">一般（单个子体）</td><td class="small">{{ n.money.general_band or '拟定价位' }} 价格带"子体 × 月"中位</td><td class="t-num">{% if n.money.general is not none %}{{ n.money.general|num }} 件{{ src('一般', '框=' ~ card.frame ~ ';价格带=' ~ (n.money.general_band or '') ~ ';样本数=' ~ (n.money.general_obs or 0) ~ ' 个子体 × 月', 'n=' ~ (n.money.general_obs or 0)) }}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td><td class="t-num">{% if n.money.general is not none and narr.price %}约 ${{ (n.money.general * narr.price)|num }}{% else %}—{% endif %}</td></tr>
+          <tr><td class="cell-title">做到（家族）</td><td class="small">同框含{{ card.value }}、6 个月内进前 50 的家族，第 4–6 个月中位</td><td class="t-num">{% if n.money.made is not none %}{{ n.money.made|num }} 件{{ src('做到', '框=' ~ card.frame ~ ';月份=上架后第 4–6 个月;样本数=' ~ n.money.made_n ~ ' 个做到的家族', 'n=' ~ n.money.made_n) }}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td><td class="t-num">{% if n.money.made is not none and narr.price %}约 ${{ (n.money.made * narr.price)|num }}{% else %}—{% endif %}</td></tr>
+          <tr><td class="cell-title">好（最好的家族）</td><td class="small">{{ n.money.good_txt or '—' }}</td><td class="t-num">{% if n.money.good is not none %}约 {{ n.money.good|num }} 件{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td><td class="t-num">{% if n.money.good is not none and narr.price %}约 ${{ (n.money.good * narr.price)|num }}{% else %}—{% endif %}</td></tr>
+        </tbody>
+      </table></div>
+      <div id="profit-writeback">
+        {% if profit %}
+        <div class="row" style="margin-bottom: var(--space-2)"><h3>利润（关联方案回写）</h3><span class="spacer"></span><span class="small muted">方案“{{ profit.plan_name }}”{% if profit.product %} · 产品 {{ profit.product }}{% endif %} · {{ profit.saved_at }} 保存 · {{ '批准时快照' if locked else '随方案更新' }}</span></div>
+        <div class="table-wrap"><table class="table">
+          <thead><tr><th>渠道 / 方式</th><th class="t-num">售价</th><th class="t-num">单件利润</th><th class="t-num">利润率</th><th class="t-num">保本价</th></tr></thead>
+          <tbody>{% for r in profit.rows %}<tr><td>{{ r.channel }}</td><td class="t-num">${{ '%.2f'|format(r.price) if r.price is not none else '—' }}</td><td class="t-num">{% if r.profit is not none %}{{ '−' if r.profit < 0 else '' }}${{ '%.2f'|format(r.profit|abs) }}{% else %}—{% endif %}</td><td class="t-num">{{ pc(r.margin) }}</td><td class="t-num">{% if r.breakeven is not none %}${{ '%.2f'|format(r.breakeven) }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+        </table></div>
+        <p class="small muted" style="margin-top: var(--space-2)">数字来自 <a href="/tools/profit?plan={{ profit.plan_id }}">利润测算</a> 的关联方案，本卡不能直接改{% if not locked %}；在利润测算里改方案并保存后，这里随之更新{% endif %}。</p>
+        {% else %}
+        <div class="empty"><svg class="icon"><use href="#ph-scales"/></svg><div class="empty__title">还没有关联利润方案</div><div class="empty__desc">在利润测算里关联本卡并“保存并回写决策卡”后，这里显示各渠道单件利润、利润率、保本价。</div>{% if can_edit %}<a class="btn" href="/tools/profit?card={{ card.id }}"><svg class="icon"><use href="#ph-scales"/></svg><span>测算利润</span></a>{% endif %}</div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 上架后跟踪 -->
+  <section class="csec enter" style="--i:5" id="s9" aria-labelledby="s9-t">
+    <div class="csec__head"><h2 class="csec__title" id="s9-t"><span class="csec__no">09</span>上架后跟踪</h2><span class="section__note">批准后自动登记 <a href="/ledger">预测台账</a>，满 6 个月自动对账</span></div>
+    <div class="csec__body">
+      {% if can_edit %}
+      <div class="row small" style="gap: var(--space-4)">
+        <label>预计上架月份 <input class="input inline-input" type="month" name="launch_month" form="narr-form" value="{{ narr.launch_month }}" style="width: 150px"></label>
+        <span class="muted">上架渠道</span>
+        <span class="chk-row">{% for ch in channels %}<label><input type="checkbox" name="launch_channels" form="narr-form" value="{{ ch }}" {% if ch in narr.launch_channels %}checked{% endif %}> {{ channel_names[ch] }}</label>{% endfor %}</span>
+      </div>
+      {% else %}
+      <p class="small">预计上架 {{ narr.launch_month or '—' }} · 上架渠道：{% for ch in narr.launch_channels or [] %}{{ channel_names[ch] }}{% if not loop.last %}、{% endif %}{% endfor %}</p>
+      {% endif %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>时间点</th><th>看什么</th><th>目标</th></tr></thead>
+        <tbody>{% for t in n.tracking %}<tr><td class="cell-title">{{ t.when }}</td><td>{{ t.what }}</td><td>{{ t.target }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- 10 数据限制 -->
+  <section class="csec enter" style="--i:5" id="s10" aria-labelledby="s10-t">
+    <div class="csec__head"><h2 class="csec__title" id="s10-t"><span class="csec__no">10</span>数据限制</h2></div>
+    <div class="csec__body">
+      <ul class="stack small" style="color: var(--fg-2)">
+        {% for l in n.limits %}<li>{{ l }}</li>{% endfor %}
+        <li>差评样本 {{ rv.total }} 条{% if rv.total %}，已归类 {{ rv.classified }} 条{% endif %}。</li>
+        {% if n.meta.fallback %}<li>分析库接口未就绪时，本卡按开发约定的数据口径由决策卡模块直接计算。</li>{% endif %}
+      </ul>
+      {% if can_edit %}<textarea class="textarea" rows="2" name="limits_note" form="narr-form" placeholder="补充数据限制（可选）">{{ narr.limits_note }}</textarea>{% elif narr.limits_note %}<p class="small">{{ narr.limits_note }}</p>{% endif %}
+    </div>
+  </section>
+</div>
+
+<aside class="card-side" aria-label="卡片导航与审批">
+  <div class="panel">
+    <ol class="toc" id="toc">
+      <li><a href="#s1">分框决策</a></li><li><a href="#s2">我们在赌什么</a></li><li><a href="#s3">看到什么就停</a></li><li><a href="#s4">被放弃的选项</a></li><li><a href="#s5">大数据层</a></li>
+      <li><a href="#s6">SKU 层</a></li><li><a href="#s7">差评归类</a></li><li><a href="#s8">钱</a></li><li><a href="#s9">上架后跟踪</a></li><li><a href="#s10">数据限制</a></li>
+    </ol>
+  </div>
+  {% if can_approve %}
+  <div class="approve-box">
+    <h3 style="margin-bottom: var(--space-2)">审批</h3>
+    <p class="small muted" style="margin-bottom: var(--space-3)">{{ pending_by }} 于 {{ pending.submitted_at|dt }} 提交第 {{ pending.obj_version }} 版。{% if card.narrative.submit_note %}说明：{{ card.narrative.submit_note }}。{% endif %}批准后锁定为只读版本，并登记预测台账。</p>
+    <button class="btn btn--primary" type="button" data-decide="approve"><svg class="icon"><use href="#ph-check-circle"/></svg><span>批准</span></button>
+    <button class="btn" type="button" data-decide="return"><svg class="icon"><use href="#ph-arrow-left"/></svg><span>退回修改</span></button>
+    <button class="btn btn--danger" type="button" data-decide="reject"><svg class="icon"><use href="#ph-x-circle"/></svg><span>驳回</span></button>
+  </div>
+  {% endif %}
+  <div class="panel">
+    <div class="panel__head"><h3 class="panel__title">版本与审批记录</h3></div>
+    <ol class="timeline">
+      {% for e in events %}<li {% if loop.first %}class="is-now"{% endif %}><b>{{ e.text }}</b> · {{ e.at }}</li>{% endfor %}
+    </ol>
+  </div>
+</aside>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- SKU 展开抽屉 -->
+<aside class="drawer" id="drawer-sku" role="dialog" aria-modal="true" aria-labelledby="sku-title" aria-hidden="true">
+  <div class="drawer__head">
+    <div><h2 class="drawer__title" id="sku-title"></h2><p class="drawer__sub" data-sku-sub></p></div>
+    <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+  </div>
+  <div class="drawer__body">
+    <div class="row" style="align-items: flex-start; gap: var(--space-4)">
+      <img class="thumb" data-sku-img alt="主图">
+      <dl class="kv" style="flex: 1">
+        <dt data-sku-idlabel>子 ASIN</dt><dd><a data-sku-link href="#" target="_blank" rel="noopener"><span data-sku-asin></span> <svg class="icon"><use href="#ph-arrow-square-out"/></svg></a></dd>
+        <dt>首次进前 50</dt><dd data-sku-top50></dd>
+        <dt>最好排名</dt><dd data-sku-best></dd>
+      </dl>
+    </div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>月份</th><th class="t-num">价格</th><th class="t-num">价比</th><th class="t-num">评分</th><th class="t-num">月销</th><th class="t-num" data-sku-rankh>小类排名</th></tr></thead>
+      <tbody data-sku-rows></tbody>
+    </table></div>
+    <p class="small muted" style="margin-top: var(--space-2)">月销 = 卖家精灵估算的子体月销（其他渠道为评论换算估算）；价比 = 价格 ÷ 同月同框中位价；排名 = 小类 BSR（其他渠道为类目榜名次）。* 为带 * 并入的月份。</p>
+  </div>
+  <div class="drawer__foot"><button class="btn" type="button" data-close>关闭</button></div>
+</aside>
+
+{% if can_edit %}
+<div class="modal" id="modal-submit" role="dialog" aria-modal="true" aria-labelledby="submit-title" aria-hidden="true">
+  <form class="modal__dialog" method="post" action="/cards/{{ card.id }}/submit">
+    <div class="modal__head"><div><h2 class="modal__title" id="submit-title">提交审批</h2><p class="modal__sub">{{ name }} · 第 {{ card.version }} 版</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body stack">
+      <ul class="small" style="color: var(--fg-2)">
+        {% if missing %}<li class="strong">还缺：{{ missing|join('、') }}，补齐后才能提交。</li>{% else %}<li>十项内容齐全{% if narr.consumer_ai %}；"为消费者解决了什么问题"仍是 AI 草稿，建议编辑后再提交{% endif %}。</li>{% endif %}
+        <li>提交后叙述不能再改，审批者可以批准、驳回或退回修改。</li>
+      </ul>
+      <div class="field"><label class="field__label" for="submit-note">给审批者的说明</label><textarea class="textarea" id="submit-note" name="note"></textarea></div>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="submit" {% if missing %}disabled{% endif %}><svg class="icon"><use href="#ph-seal-check"/></svg><span>提交</span></button></div>
+  </form>
+</div>
+{% endif %}
+
+{% if can_approve %}
+<div class="modal" id="modal-decide" role="dialog" aria-modal="true" aria-labelledby="decide-title" aria-hidden="true">
+  <form class="modal__dialog" method="post" action="/cards/{{ card.id }}/decide" id="decide-form">
+    <input type="hidden" name="decision" value="approve">
+    <div class="modal__head"><div><h2 class="modal__title" id="decide-title">批准立项</h2><p class="modal__sub">{{ name }} · 第 {{ pending.obj_version }} 版 · 审批人 {{ user.name }}</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body stack">
+      <p class="small" data-decide-desc>批准后本卡锁定为只读版本，数字保持现在的快照，并自动登记预测台账。</p>
+      <div class="field"><label class="field__label" for="decide-note">意见<span class="req" data-decide-req hidden>*</span></label><textarea class="textarea" id="decide-note" name="comment"></textarea><span class="field__error" data-decide-err hidden><svg class="icon"><use href="#ph-warning"/></svg>退回修改和驳回需要写意见</span></div>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="submit" data-decide-ok><span>确认批准</span></button></div>
+  </form>
+</div>
+{% endif %}
+{% include "_cost_modal.html" %}
+<script type="application/json" id="sku-data">{{ n.channels|map(attribute='skus')|list|tojson }}</script>
+<script type="application/json" id="chan-keys">{{ n.channels|map(attribute='channel')|list|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+  var doc = document;
+  var CHN = {{ channel_names|tojson }};
+  var FRAME = {{ card.frame|tojson }};
+  /* 渠道切换：大数据层与 SKU 层看哪个渠道 */
+  doc.querySelectorAll('.seg__opt[data-ch]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var ch = btn.getAttribute('data-ch');
+      doc.querySelectorAll('.seg__opt[data-ch]').forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+      doc.querySelectorAll('[data-ch-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-ch-panel') !== ch; });
+      doc.querySelector('[data-ch-label]').textContent = CHN[ch] + (ch === 'amazon' ? ' · 逐季' : ' · 估算月销 · 只在本渠道内比较');
+      doc.querySelector('[data-ch-label-sku]').textContent = CHN[ch] + ' · ' + FRAME + ' · 按峰值月销排 · 点行展开';
+    });
+  });
+
+  /* 叙述自动保存（只存叙述与决策输入，数字不可改） */
+  var form = doc.getElementById('narr-form');
+  if (form) {
+    var timer = null;
+    var save = function () {
+      fetch(form.action, { method: 'POST', body: new FormData(form), headers: { accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var el = doc.getElementById('autosave');
+          if (j.detail) { window.oppoToast(j.detail); return; }
+          if (el) el.lastChild.textContent = '叙述已自动保存 · ' + j.saved_at;
+          if (j.consumer_ai === false) { var b = doc.querySelector('[data-ai-badge]'); if (b) b.hidden = true; }
+        });
+    };
+    Array.prototype.forEach.call(form.elements, function (el) {
+      el.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(save, 800); });
+      el.addEventListener('change', function () { clearTimeout(timer); save(); });
+    });
+  }
+
+  /* 差评改判：占比立即重算，记人工修改 */
+  doc.querySelectorAll('#rv-list select[data-review]').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      var fd = new FormData(); fd.append('reason', sel.value);
+      fetch('/reviews/' + sel.getAttribute('data-review') + '/category', { method: 'POST', body: fd, headers: { accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.detail) { window.oppoToast(j.detail); return; }
+          var max = 1; j.cats.forEach(function (c) { if (c.n > max) max = c.n; });
+          j.cats.forEach(function (c) {
+            var bar = doc.querySelector('#rv-bars .hbar__bar[data-cat="' + c.cat + '"]');
+            var pct = c.pct == null ? '—' : Math.round(c.pct * 100) + '%';
+            if (bar) { bar.style.width = (c.n / max * 100) + '%'; bar.setAttribute('data-tip', c.n + ' 条（' + pct + '）|' + c.label); }
+            var v = doc.querySelector('[data-val="' + c.cat + '"]'); if (v) v.textContent = c.n + ' 条 · ' + pct;
+          });
+          doc.querySelector('[data-manual-count]').textContent = String(j.manual);
+          doc.querySelector('[data-cls-count]').textContent = String(j.classified);
+          var meta = sel.parentNode.querySelector('.rv__meta');
+          if (!meta.querySelector('.etag')) meta.insertAdjacentHTML('beforeend', ' <span class="etag">人工修改</span>');
+          var empty = sel.querySelector('option[value=""]'); if (empty) empty.remove();
+          window.oppoToast('已改判为“' + sel.value + '”，占比已重算');
+        });
+    });
+  });
+
+  /* 花钱任务开始后轮询，完成即刷新 */
+  window.addEventListener('pdt:job-started', function (ev) {
+    var id = ev.detail && ev.detail.id; if (!id) return;
+    (function poll() {
+      fetch('/jobs/' + id, { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) {
+        if (j.status === 'running' || j.status === 'queued') { setTimeout(poll, 1500); return; }
+        if (j.status !== 'done') window.oppoToast((j.label || '') + '：' + (j.error || j.status));
+        setTimeout(function () { location.reload(); }, j.status === 'done' ? 200 : 1500);
+      });
+    })();
+  });
+
+  /* SKU 展开抽屉 */
+  var SKU = JSON.parse(doc.getElementById('sku-data').textContent);
+  var KEYS = JSON.parse(doc.getElementById('chan-keys').textContent);
+  function fmt(v, d) { return v == null ? '—' : Number(v).toLocaleString('en-US', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }
+  function openSku(tr) {
+    var p = tr.getAttribute('data-sku').split(':'), ch = p[0], d = SKU[KEYS.indexOf(ch)][+p[1]];
+    var amz = ch === 'amazon';
+    doc.getElementById('sku-title').textContent = d.item_id;
+    doc.querySelector('[data-sku-sub]').textContent = [d.brand, d.spec, FRAME].filter(Boolean).join(' · ');
+    doc.querySelector('[data-sku-asin]').textContent = d.item_id;
+    doc.querySelector('[data-sku-idlabel]').textContent = amz ? '子 ASIN' : '商品 ID';
+    doc.querySelector('[data-sku-rankh]').textContent = amz ? '小类排名' : '类目排名';
+    doc.querySelector('[data-sku-link]').setAttribute('href', d.link || (amz ? 'https://www.amazon.com/dp/' + d.item_id : '#'));
+    var img = doc.querySelector('[data-sku-img]'); if (d.image_url) { img.src = d.image_url; img.hidden = false; } else { img.removeAttribute('src'); img.hidden = true; }
+    var s = d.series || [], first = s.length ? s[0].month : null, k = 0;
+    if (d.first_top50) { s.forEach(function (r, i) { if (r.month === d.first_top50) k = i + 1; }); }
+    doc.querySelector('[data-sku-top50]').textContent = d.first_top50 ? d.first_top50 + '（第 ' + k + ' 个在榜月）' : '没进';
+    doc.querySelector('[data-sku-best]').textContent = d.best_rank == null ? '—' : (amz ? '小类' : '类目') + '第 ' + fmt(d.best_rank) + ' 名';
+    var body = doc.querySelector('[data-sku-rows]'); body.innerHTML = '';
+    s.forEach(function (r) {
+      body.insertAdjacentHTML('beforeend', '<tr><td class="num">' + r.month + '</td><td class="t-num">' + (r.price == null ? '—' : '$' + fmt(r.price)) + '</td><td class="t-num">' + fmt(r.price_ratio, 2) + '</td><td class="t-num">' + fmt(r.rating, 1) + '</td><td class="t-num">' + fmt(r.units) + '</td><td class="t-num">' + fmt(r.rank) + '</td></tr>');
+    });
+    doc.querySelectorAll('.sku-table tbody tr').forEach(function (t) { t.classList.toggle('is-selected', t === tr); });
+    window.oppoOpen('#drawer-sku');
+  }
+  doc.querySelectorAll('.sku-table tbody tr[data-sku]').forEach(function (tr) {
+    tr.addEventListener('click', function () { openSku(tr); });
+    tr.addEventListener('keydown', function (e) { if (e.key === 'Enter') openSku(tr); });
+  });
+
+  /* 审批：批准 / 驳回 / 退回修改（驳回与退回必须写意见） */
+  var df = doc.getElementById('decide-form');
+  if (df) {
+    var NAMES = { approve: '批准立项', reject: '驳回', 'return': '退回修改' };
+    var DESC = { approve: '批准后本卡锁定为只读版本，数字保持现在的快照，并自动登记预测台账。', reject: '驳回后本卡状态为“已驳回”，不登记台账。', 'return': '退回后本卡回到草稿，wen 修改后可再次提交。' };
+    doc.querySelectorAll('[data-decide]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var d = btn.getAttribute('data-decide');
+        df.decision.value = d;
+        doc.getElementById('decide-title').textContent = NAMES[d];
+        doc.querySelector('[data-decide-desc]').textContent = DESC[d];
+        doc.querySelector('[data-decide-req]').hidden = d === 'approve';
+        doc.querySelector('[data-decide-err]').hidden = true;
+        var ok = doc.querySelector('[data-decide-ok]');
+        ok.className = 'btn ' + (d === 'reject' ? 'btn--danger' : 'btn--primary');
+        ok.querySelector('span').textContent = '确认' + (d === 'approve' ? '批准' : NAMES[d]);
+        window.oppoOpen('#modal-decide');
+      });
+    });
+    df.addEventListener('submit', function (e) {
+      if (df.decision.value !== 'approve' && !df.comment.value.trim()) { e.preventDefault(); doc.querySelector('[data-decide-err]').hidden = false; }
+    });
+  }
+
+  /* 目录高亮 */
+  var links = Array.prototype.slice.call(doc.querySelectorAll('#toc a'));
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) links.forEach(function (a) { a.classList.toggle('is-on', a.getAttribute('href') === '#' + en.target.id); }); });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    doc.querySelectorAll('.csec').forEach(function (s) { io.observe(s); });
+  }
+})();
+</script>
+{% endblock %}

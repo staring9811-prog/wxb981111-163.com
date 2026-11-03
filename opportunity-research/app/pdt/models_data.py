@@ -35,25 +35,6 @@ class ScanMeta(Base):
     __table_args__ = (Index("ix_scanmeta", "category", "channel", "month"),)
 
 
-class ChannelEstimate(Base):
-    """其他渠道商品 × 月的销量估算（两种方法对照，AC-F28-03 / 04）。"""
-    __tablename__ = "channel_estimate"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    channel: Mapped[str] = mapped_column(String(16))
-    month: Mapped[str] = mapped_column(String(7))
-    item_id: Mapped[str] = mapped_column(String(64))
-    series: Mapped[str] = mapped_column(String(128), default="")
-    vp: Mapped[int] = mapped_column(Integer, default=0)  # 按评论 ID 去重后的 VP 条数
-    nonvp: Mapped[int] = mapped_column(Integer, default=0)
-    rank: Mapped[float | None] = mapped_column(Float, nullable=True)
-    units_review: Mapped[float | None] = mapped_column(Float, nullable=True)  # 评论换算法
-    units_rank: Mapped[float | None] = mapped_column(Float, nullable=True)  # 排名平滑法（可用时）
-    complete: Mapped[bool] = mapped_column(default=True)  # 未完整月只作参考（AC-F28-02）
-    params: Mapped[dict] = mapped_column(JSON, default=dict)  # 方法、系数、配置版本
-    category: Mapped[str] = Cat()
-    __table_args__ = (Index("ix_chest", "category", "channel", "month"),)
-
-
 class DataNote(Base):
     """数据页上的操作留痕（并入、放弃、异常确认说明），供历史月份列表显示。"""
     __tablename__ = "data_note"

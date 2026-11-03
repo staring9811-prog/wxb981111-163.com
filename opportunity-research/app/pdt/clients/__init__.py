@@ -5,13 +5,13 @@
 - `test()` 做最小只读请求，返回 (status, msg)，status ∈ ok / auth / network / quota / error，不抛异常；
 - 其他方法失败时抛 ServiceError(status, msg)，status 同上；
 - 异常信息、日志、返回值里都不带密钥（NFR-008）：错误信息只用固定中文文案和 HTTP 状态码，不转述服务端原文。
-测试可把 TRANSPORT 设为 httpx.MockTransport，所有 HTTP 请求（含两个大模型 SDK）都会经过它。
+测试可把 TRANSPORT 设为 httpx2.MockTransport，所有 HTTP 请求（含两个大模型 SDK）都会经过它。
 """
 import base64
 import time
 import urllib.parse
 
-import httpx
+import httpx2 as httpx  # 与 anthropic / openai SDK 同用 httpx2，测试注入的 MockTransport 才能覆盖全部请求
 
 TRANSPORT: httpx.BaseTransport | None = None  # 测试注入
 
@@ -263,7 +263,9 @@ class ClaudeLLM:
         self.sdk = anthropic
         self.model = cfg.get("model") or CLAUDE_DEFAULT_MODEL
         self.base_url = cfg.get("base_url") or None
-        kw = dict(api_key=key, max_retries=1, http_client=_http_client(600))
+        kw = dict(api_key=key, max_retries=1)
+        if TRANSPORT:
+            kw["http_client"] = _http_client(600)
         if self.base_url:
             kw["base_url"] = self.base_url
         self.client = anthropic.Anthropic(**kw)
@@ -310,7 +312,9 @@ class OpenAILLM:
             self.price = (float(cfg["price_in"]), float(cfg["price_out"]))
         except (KeyError, TypeError, ValueError):
             self.price = OPENAI_DEFAULT_PRICE
-        kw = dict(api_key=key, max_retries=1, http_client=_http_client(600))
+        kw = dict(api_key=key, max_retries=1)
+        if TRANSPORT:
+            kw["http_client"] = _http_client(600)
         if cfg.get("base_url"):
             kw["base_url"] = cfg["base_url"]
         self.client = openai.OpenAI(**kw)

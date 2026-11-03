@@ -3,7 +3,7 @@ import io
 import logging
 import re
 
-import httpx
+import httpx2 as httpx
 import pytest
 from openpyxl import load_workbook
 from sqlalchemy import select

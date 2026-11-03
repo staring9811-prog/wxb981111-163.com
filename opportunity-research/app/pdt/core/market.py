@@ -77,7 +77,9 @@ class Market:
             df = df[~df[d].map(UNK)]
         known = np.logical_and.reduce([~KEYCOL[d].map(lambda v: (len(v) == 0) if isinstance(v, list) else UNK(v)).values for d in dims])
         den = pd.Series(cc, index=A.index)[known].groupby(A['m'][known]).sum().reindex(MONTHS, fill_value=0)
-        key = df[list(dims)].astype(str).agg(' × '.join, axis=1)
+        key = df[dims[0]].astype(str)
+        for d in dims[1:]:
+            key = key + ' × ' + df[d].astype(str)
         C = df.groupby([key, df['m']])['c'].sum().unstack(fill_value=0).reindex(columns=MONTHS, fill_value=0)
         F = df.groupby([key, df['m']])['fam'].nunique().unstack(fill_value=0).reindex(columns=MONTHS, fill_value=0)
         vals = df.assign(_k=key).drop_duplicates('_k').set_index('_k')[list(dims)]

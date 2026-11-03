@@ -118,7 +118,7 @@
         </thead>
         <tbody>
           {% for r in monthly %}
-          <tr data-month="{{ r.month }}"><td class="num">{{ r.month }}{% if r.month == cur_month %} <span class="etag">截至 {{ today.strftime('%m-%d') }}</span>{% endif %}</td>{% for k in services %}<td class="t-num">{% if r.services[k] is none %}<span class="etag etag--nodata">无数据</span>{% else %}${{ r.services[k]|num(2) }}{% endif %}</td>{% endfor %}<td class="t-num strong" data-total>${{ r.total|num(2) }}</td></tr>
+          <tr data-month="{{ r.month }}"><td class="num">{{ r.month }}{% if r.month == cur_month %} <span class="etag">截至 {{ now_dt.strftime('%m-%d') }}</span>{% endif %}</td>{% for k in services %}<td class="t-num">{% if r.services[k] is none %}<span class="etag etag--nodata">无数据</span>{% else %}${{ r.services[k]|num(2) }}{% endif %}</td>{% endfor %}<td class="t-num strong" data-total>${{ r.total|num(2) }}</td></tr>
           {% else %}
           <tr><td colspan="6"><div class="muted" style="padding: var(--space-6); text-align:center;">还没有任何费用记录。</div></td></tr>
           {% endfor %}
