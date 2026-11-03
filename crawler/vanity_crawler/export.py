@@ -32,6 +32,8 @@ def gather(platforms):
                         if v and not row.get(k):
                             row[k] = v
                     rv = pd.get("reviews") or []
+                    if plat == "Wayfair":  # 口径 A: only the Verified Purchase badge counts as VP
+                        rv = [dict(x, VP状态="VP" if "badge=Verified Purchase" in x.get("VP证据", "") else "non_VP") for x in rv]
                     c = collections.Counter(r["VP状态"] for r in rv)
                     row.update({"2026评论数": len(rv), "VP": c.get("VP", 0), "non_VP": c.get("non_VP", 0),
                                 "unknown": c.get("unknown", 0), "其中转载": sum(r.get("转载") == "是" for r in rv),

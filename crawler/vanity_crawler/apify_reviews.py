@@ -13,7 +13,7 @@ LO_ACTOR = "automation-lab/lowes-product-reviews-scraper"
 
 
 def _wf_vp(badge):
-    return "VP" if badge == "Verified Purchase" else ("non_VP" if not badge else "unknown")
+    return "VP" if badge == "Verified Purchase" else "non_VP"  # 口径 A
 
 
 def wayfair_reviews(urls_by_sku, batch=10, cap=300, max_charge_usd=3):

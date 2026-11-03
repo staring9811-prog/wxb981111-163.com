@@ -104,3 +104,12 @@ crawler/
 4. 邮编：三平台统一 90013，并逐行记录。
 
 下一步：用户在 Network secrets 给 api.brightdata.com 加 `/unblocker/*` 路径 → 用 BD 异步接口测 Wayfair、重试 Lowe's → 每平台 1 个商品小样（列表 + 评论原始返回，核验 VP 字段）。
+
+## 11. 采集进展与口径补充（2026-11-03）
+
+- Wayfair VP 口径 A（用户确认）：只有 badge=Verified Purchase 计 VP；Incentivized Review / Wayfair Professional / Third-Party / Employee / Influencer 及无徽章一律计 non_VP。VP证据列保留徽章原文。
+- 交付重点：各商品、各入口 2026 年 1—11 月 VP / 非VP 月度数（Excel「月度趋势」「入口月度汇总」），评论明细只作证据。
+- HDP：200 个商品完整，已交付。
+- Wayfair：列表 250 个商品完成；125 个商品商品页只内嵌部分评论，待 Apify（abotapi/wayfair-scraper）补全。
+- Lowe's：两榜各 100 完成，详情页 190/200；评论改走 Apify（automation-lab/lowes-product-reviews-scraper）。
+- Apify 免费额度（$5/月）已用完，需用户充值约 $15—20 后继续。

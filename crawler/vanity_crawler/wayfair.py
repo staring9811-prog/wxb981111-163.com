@@ -116,11 +116,8 @@ def _unesc(s):
 
 
 def _vp(badge):
-    if badge == "Verified Purchase":
-        return "VP"
-    if not badge:
-        return "non_VP"
-    return "unknown"  # Incentivized / Wayfair Professional: single badge slot, purchase status not shown
+    # 口径 A（用户确认 2026-11-03）：只有 Verified Purchase 计 VP，其它徽章或无徽章一律 non_VP
+    return "VP" if badge == "Verified Purchase" else "non_VP"
 
 
 def parse_pdp(s, sku):
