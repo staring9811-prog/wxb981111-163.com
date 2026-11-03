@@ -109,7 +109,7 @@ def objects_by_key(s, key_regex):
 
 def save_json(path, obj):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
+    tmp = f"{path}.{os.getpid()}.{threading.get_ident()}.tmp"  # unique per writer thread
     json.dump(obj, open(tmp, "w", encoding="utf-8"), ensure_ascii=False)
     os.replace(tmp, path)
 
