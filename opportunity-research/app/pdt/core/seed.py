@@ -204,7 +204,16 @@ def main():
     ap.add_argument('--channels', action='store_true', help='同时导入其他渠道 VP 样本')
     ap.add_argument('--suspect', action='store_true', help='再导入“标为 2026-10 实为 9 月”的待核文件（演示疑似月份错误）')
     ap.add_argument('--no-compute', action='store_true', help='只导数据，不预计算扫描与评分')
+    ap.add_argument('--channel-history', metavar='渠道', choices=['homedepot'],
+                    help='只导入该渠道的历史回补缓存（../input/data_v2/渠道历史/<渠道>/）并按评论日期重建 2024-01 起的月度历史，免得重新采集')
     a = ap.parse_args()
+    if a.channel_history:
+        from . import backfill
+        init_db()
+        st = backfill.import_cache(a.channel_history, log=print)
+        print(f"重建完成：{st['start']} 至 {st['end']}，{st['pages_listed']} 个在榜商品页 / {st['pages_all']} 个有评论商品页，"
+              f"{st['families']} 个评论家族，评论 {st['reviews_all']:,} 条（{st['start']} 起 {st['reviews_window']:,} 条），截断 {st['truncated_pages']} 个商品页")
+        return
     if not available():
         raise SystemExit(f'找不到 {PKL}（原始数据不入库，只在 wen 本机）')
     run(a.channels, a.suspect, not a.no_compute)

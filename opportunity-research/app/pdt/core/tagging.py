@@ -143,7 +143,9 @@ SPEC_KEYS = {  # 商品页规格字段（三个渠道的写法，按键名正则
     'assembled': r'^assembled$|assembly level|level of assembly',
     'assembly_required': r'^assembly required',
     'form': r'vanity type|mount(ing)? type|installation type|^vanity style$',
+    'color': r'^(cabinet )?colou?r family$|^colou?r/finish family$',
 }
+SPEC_COLOR = {'white': '白', 'black': '黑', 'gray': '灰', 'grey': '灰', 'blue': '蓝', 'green': '绿'}  # 规格颜色族 → 主色（只收不含糊的；棕色等仍按规则区分原木 / 深木）
 
 
 def specs_from_text(text: str) -> dict:
@@ -244,6 +246,9 @@ def spec_tag(text: dict, specs: dict | None = None, rules: dict | None = None, d
     c0 = tags.get(H[5])
     col = '' if c0 is None or str(c0) in fm.RAW_UNK else cmap.get(str(c0), '其他')
     out['主色'] = (col, cf(H[5], col), st(H[5]), src(H[5]))
+    sc = SPEC_COLOR.get(_spec(specs, 'color').strip().lower())
+    if sc:
+        out['主色'] = (sc, spec_c, 'text_supported', 'spec')
     cb = fm.cab(tags.get(H[6]))
     cb = '' if cb == '未知' else cb
     out['柜体材质'] = (cb, cf(H[6], cb), st(H[6]), src(H[6]))

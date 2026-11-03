@@ -75,6 +75,16 @@ def test_channel_scan_uses_own_data(v2):
     from pdt.core import panel
     from pdt.core.scan import scan as do_scan
     from pdt.core.families import mi
+    # v8（AC-F18-08）：Wayfair 样本只有标题，“装”没有依据的进确认队列、不进框；这里模拟 wen 在确认队列里把它们确认后再扫描
+    from pdt.core import pipeline, tagging
+    from pdt.models import Tag
+    with session() as s:
+        unk = [t.id for t in s.scalars(select(Tag).where(Tag.channel == 'wayfair', Tag.tag == '装', Tag.value == ''))]
+    assert unk
+    for tid in unk:
+        tagging.confirm_item(tid, '拆装', 1)
+    panel.clear_cache()
+    pipeline.rescan('wayfair')
     html = v2.get('/scan', params={'channel': 'wayfair'}).text
     assert '机会扫描 · <span>Wayfair</span>' in html and '估算月销，只在本渠道内比较' in html and 'Verified Purchase' in html
     with session() as s:
@@ -135,7 +145,7 @@ TOPS = [('陶瓷', '陶瓷盆'), ('树脂', '树脂盆'), ('岗石', '陶瓷盆'
 
 def test_scan_open_within_10s(wen):
     """RULE-06 / NFR-009：24 个月约 5 万行子体 × 月（合成），预计算后打开机会扫描 ≤ 10 秒（测 3 次取最大）。"""
-    from pdt.core import pipeline
+    from pdt.core import pipeline, tagging
     from pdt.core.families import ms, mi
     random.seed(7)
     months = [ms(i) for i in range(mi('2024-10'), mi('2026-10'))]

@@ -246,6 +246,7 @@ def ingest_tracker_month(project_dir_or_rows, months: list[str] | None = None, c
                                 vp=(x.get('VP状态') or x.get('vp')) in ('VP', True), stars=x.get('评分') or x.get('stars'), text=x.get('评论原文') or x.get('text') or ''))
     if months:
         reviews = [x for x in reviews if x['month'] in months]
+    _save_specs(rows)
     items = pd.DataFrame(items).drop_duplicates(['channel', 'item_id'])
     L = _alloc_reviews(reviews)
     if L.empty:
@@ -264,6 +265,29 @@ def ingest_tracker_month(project_dir_or_rows, months: list[str] | None = None, c
         if uniq:
             s.execute(insert(ChannelReview), list(uniq.values()))
     return _write(items, L, 'tracker', str(project_dir_or_rows) if isinstance(project_dir_or_rows, (str, Path)) else '', complete)
+
+
+def _save_specs(rows):
+    """追踪器商品详情里的“规格参数”存入商品页规格表，供规格优先打标（AC-F18-08）。"""
+    from ..models_data import ChannelPageSpec
+    from .tagging import specs_from_text
+    got = {}
+    for r in rows:
+        ch = PLAT.get(r.get('平台')) or ch_key(r.get('channel') or r.get('平台') or r.get('渠道'))
+        det = r.get('details') or {}
+        sp = specs_from_text(det.get('规格参数', ''))
+        if ch and sp:
+            got[(ch, str(r.get('item_id') or r.get('商品ID') or r.get('id')))] = (sp, [x for x in str(det.get('卖点') or '').splitlines() if x.strip()])
+    if not got:
+        return
+    with session() as s:
+        have = {(x.channel, x.item_id): x for x in s.scalars(select(ChannelPageSpec).where(ChannelPageSpec.item_id.in_([i for _, i in got])))}
+        for (ch, iid), (sp, hl) in got.items():
+            x = have.get((ch, iid))
+            if x is None:
+                s.add(ChannelPageSpec(channel=ch, item_id=iid, specs=sp, highlights=hl))
+            else:
+                x.specs, x.highlights = sp, hl
 
 
 # ---------------- 估算与对照 ----------------

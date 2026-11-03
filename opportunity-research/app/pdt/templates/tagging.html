@@ -23,6 +23,7 @@
 {% block content %}
 {% from "_pager.html" import pager %}
 {% set qs = 'channel=' ~ channel ~ '&reason=' ~ reason ~ '&tab=' ~ tab %}
+{% set SRC = {'spec': '规格', 'rule': '标题', 'vision': '看图', 'manual': '人工'} %}
 {% set back = '/tagging?' ~ qs ~ '&page=' ~ page %}
 <div class="page-head enter" style="--i:0">
   <div>
@@ -47,30 +48,50 @@
     <div class="stat"><div class="stat__label">本批新子体（各渠道）</div><div class="stat__value num">{{ prog|sum(attribute='new')|num }}<span class="stat__unit">个</span></div><div class="stat__meta">{% for p in prog %}{{ p.name }} {{ p.new }}{% if not loop.last %} · {% endif %}{% endfor %}</div></div>
     <div class="stat"><div class="stat__label">规则打标</div><div class="stat__value num">{{ prog|sum(attribute='new')|num }}<span class="stat__unit">/ {{ (prog|sum(attribute='new') + untagged)|num }}</span></div><div class="stat__meta">8 类标签，每个标签带置信度 · 规则 {{ rule_version[-5:] }}</div><div class="meter"><i style="width:{{ 100 if not untagged else 50 }}%"></i></div></div>
     <div class="stat"><div class="stat__label">看图打元素{% if llm %}（大模型）{% endif %}</div><div class="stat__value num">{{ prog|sum(attribute='vision')|num }}<span class="stat__unit">/ {{ (prog|sum(attribute='vision') + vision_todo)|num }}</span></div><div class="stat__meta">{% if llm %}规则判断不了元素的商品；还剩 {{ vision_todo }} 个{% else %}大模型未配置：这些商品直接进确认队列{% endif %}</div></div>
-    <div class="stat"><div class="stat__label">确认队列</div><div class="stat__value num">{{ cnt.total|num }}<span class="stat__unit">条待确认</span></div><div class="stat__meta">已确认 {{ cnt.confirmed|num }} · 不是本品类 {{ cnt.excluded|num }}</div></div>
+    <div class="stat"><div class="stat__label">确认队列</div><div class="stat__value num">{{ cnt.total|num }}<span class="stat__unit">条待确认</span></div><div class="stat__meta">其中"装：未知"{{ cnt.assembly|num }} 条 · 已确认 {{ cnt.confirmed|num }} · 不是本品类 {{ cnt.excluded|num }}</div></div>
   </div>
 
   <div class="section">
-    <div class="section__head"><h2 class="section__title" id="sec-progress">自动打标进度</h2><span class="section__note">低置信度阈值 {{ '%.2f'|format(thr) }}（品类配置 v{{ ver }}）· 打标规则 {{ rule_version }} · 四个渠道用同一套规则</span></div>
+    <div class="section__head"><h2 class="section__title" id="sec-progress">自动打标进度</h2><span class="section__note">低置信度阈值 {{ '%.2f'|format(thr) }}（品类配置 v{{ ver }}）· 打标规则 {{ rule_version }} · 四个渠道用同一套规则；其他渠道的尺寸、装、形态、台面、柜体、颜色先看商品页规格，规格缺失才用标题</span></div>
     <div class="table-wrap">
       <table class="table">
-        <thead><tr><th>渠道</th><th>数据月份</th><th class="t-num">新子体</th><th>规则打标</th><th>看图打元素</th><th class="t-num">待确认</th><th>状态</th></tr></thead>
+        <thead><tr><th>渠道</th><th>数据月份</th><th class="t-num">新子体</th><th>规则打标</th><th>分框标签来源</th><th>看图打元素</th><th class="t-num">进入确认队列</th><th class="t-num">待确认</th><th>状态</th></tr></thead>
         <tbody>
         {% for p in prog %}
           <tr><td class="cell-title">{{ p.name }}</td><td class="num">{{ p.month }}</td><td class="t-num">{{ p.new|num }}</td>
             <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td>
+            <td class="small">{% if p.channel == 'amazon' %}标题 · 看图{% else %}规格 {{ p.frame_src.spec|num }} · 标题 {{ p.frame_src.rule|num }}{% if p.frame_src.unknown %} · 装未知 {{ p.frame_src.unknown|num }}{% endif %}{% endif %}</td>
             <td>{% if p.need_image %}<span class="badge badge--watch">待看图 {{ p.need_image }}</span>{% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成 {{ p.vision }}</span>{% endif %}</td>
-            <td class="t-num">{{ p.pending|num }}</td>
+            <td class="t-num">{{ p.queued|num }}</td><td class="t-num">{{ p.pending|num }}</td>
             <td>{% if p.pending %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span>{% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>打标完成</span>{% endif %}</td></tr>
-        {% else %}<tr><td colspan="7" class="muted">还没有数据批次。</td></tr>{% endfor %}
+        {% else %}<tr><td colspan="9" class="muted">还没有数据批次。</td></tr>{% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+  {% for t in tag_src %}{% set st = t.stats %}
+  <div class="panel" style="margin-top: var(--space-4)">
+    <div class="panel__head"><h3 class="panel__title">标签来源构成 · {{ t.name }} 历史回补</h3><span class="section__note">{{ st.pages_all|num }} 个商品页（{{ st.pages_listed|num }} 个在榜 + {{ (st.pages_all - st.pages_listed)|num }} 个同家族、{{ st.start }} 起有评论）· 按 {{ st.recent[0] }} 至 {{ st.recent[1][5:] }} 重建销量</span></div>
+    <div class="table-wrap table-wrap--flush">
+      <table class="table">
+        <thead><tr><th>标签</th><th class="t-num">商品页覆盖</th><th>来源构成</th><th>主要取值</th><th>无依据时</th></tr></thead>
+        <tbody>
+        {% for r in st.tags %}
+          <tr><td class="cell-title">{{ r.tag }}</td><td class="t-num">{{ '%.0f%%'|format(r.cover * 100) }}</td>
+            <td class="small">{% for k, v in r.sources %}{% if k in ('规格', '标题', '看图', '人工') %}<span class="etag">{{ k }}</span>{% else %}{{ k }}{% endif %} {{ '%.0f%%'|format(v * 100) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+            <td class="small">{% for k, v in r.top[:3] %}{{ k }} {{ '%.0f%%'|format(v * 100) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+            <td class="small">{{ {'装': '记"未知"，进确认队列，不默认拆装', '形态': '按落地式（与 Amazon 同口径），标低置信度', '元素': '进确认队列（看图打元素后）'}.get(r.tag, '低置信度进队列') }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="panel__foot">标签来源只有四种：<span class="etag">规格</span> 商品页规格字段、<span class="etag">标题</span> 标题规则、<span class="etag">看图</span> 大模型看主图、<span class="etag">人工</span> 你确认或修改过。同系列没有自己规格的商品页，按同家族已知商品页的规格补，记为规格。</div>
+  </div>
+  {% endfor %}
 </section>
 
 <section class="section enter" style="--i:2" aria-labelledby="sec-queue">
-  <div class="section__head"><h2 class="section__title" id="sec-queue">确认队列</h2><span class="section__note">主图相同的商品分在一组，选一次即应用到整组；组内某个商品不一样时，在该行单独改</span></div>
+  <div class="section__head"><h2 class="section__title" id="sec-queue">确认队列</h2><span class="section__note">主图相同的商品分在一组，选一次即应用到整组；组内某个商品不一样时，在该行单独改。每个标签注明来源：规格 / 标题 / 看图 / 人工</span></div>
   <div class="tabs" role="tablist" aria-label="队列状态">
     <a class="tab" role="tab" aria-selected="{{ 'true' if tab == 'pending' else 'false' }}" href="/tagging?tab=pending">待确认 <span class="count">{{ cnt.total }}</span></a>
     <a class="tab" role="tab" aria-selected="{{ 'true' if tab == 'done' else 'false' }}" href="/tagging?tab=done">已确认 <span class="count">{{ cnt.confirmed }}</span></a>
@@ -87,25 +108,29 @@
     <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=all" aria-pressed="{{ 'true' if reason == 'all' else 'false' }}">全部</a>
     <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=element" aria-pressed="{{ 'true' if reason == 'element' else 'false' }}">元素 <span class="count">{{ cnt.element }}</span></a>
     <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=low" aria-pressed="{{ 'true' if reason == 'low' else 'false' }}">低置信度 <span class="count">{{ cnt.low }}</span></a>
+    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=assembly" aria-pressed="{{ 'true' if reason == 'assembly' else 'false' }}">装：未知 <span class="count">{{ cnt.assembly }}</span></a>
     <span class="spacer"></span>
     <span class="small muted">共 <b class="num">{{ n_groups|num }}</b> 组 · {{ n_items|num }} 条，按组内商品数排序{% if pages > 1 %} · 第 {{ page }} / {{ pages }} 页，每页 {{ per_page }} 组{% endif %}</span>
   </div>
 
   <div class="qgroups" id="queue">
   {% for g in groups %}{% set gi = loop.index %}
-    <article class="qgroup" data-channel="{{ g.channels|join(' ') }}" data-reason="{{ 'element' if g.tag == '元素' else 'low' }}" aria-labelledby="g{{ gi }}-title">
+    {% set asm = g.reason == '装：未知' %}
+    <article class="qgroup" data-channel="{{ g.channels|join(' ') }}" data-reason="{{ 'element' if g.tag == '元素' else ('assembly' if asm else 'low') }}" aria-labelledby="g{{ gi }}-title">
       <form method="post" action="/tagging/groups/confirm" class="qgroup__head">
         <input type="hidden" name="img_group" value="{{ g.img_group }}"><input type="hidden" name="tag" value="{{ g.tag }}"><input type="hidden" name="back" value="{{ back }}">
         {% if g.image %}<img class="thumb" src="{{ g.image }}" alt="主图：{{ g['items'][0].title[:40] }}" loading="lazy" referrerpolicy="no-referrer">{% else %}<div class="thumb thumb--noimg" data-noimg><span>该渠道数据未提供主图</span>{% if g['items'][0].link %}<a class="tlink" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% endif %}
         <div class="qgroup__meta">
-          <div class="row">{% if g.tag == '元素' %}<span class="badge badge--accent">元素</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span>{% endif %}
-            <span class="badge">{{ g.tag }} · {{ '看图' if g.source == 'vision' else ('人工' if g.source == 'manual' else '规则') }}</span>
+          <div class="row">{% if g.tag == '元素' %}<span class="badge badge--accent">元素</span>{% elif asm %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>装：未知</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span>{% endif %}
+            <span class="badge">{% if asm and tab == 'pending' %}装 · 无依据{% else %}{{ g.tag }} · 来源：{{ SRC.get(g.source, g.source) }}{% endif %}</span>
             <span class="small muted">{% if g.by == 'image' %}同图 {{ g['items']|length }} 个商品 · 图指纹 <span class="fp">{{ g.img_group[:4] }}…{{ g.img_group[-4:] }}</span>{% elif g.by == 'series' %}无主图 · 同系列 {{ g['items']|length }} 个商品{% elif g.by == 'title' %}无主图 · 同品牌同标题 {{ g['items']|length }} 个商品{% else %}无主图 · 单个商品{% endif %}</span></div>
-          <h3 class="qgroup__title" id="g{{ gi }}-title">这组的"{{ g.tag }}"是什么？</h3>
+          {% if asm and tab == 'pending' %}<p class="small muted" style="margin:4px 0 0">规格没有 Assembled / Assembly Required 字段，标题也没写；不默认拆装</p>{% endif %}
+          <h3 class="qgroup__title" id="g{{ gi }}-title">{% if asm and tab == 'pending' %}这组是整装还是拆装？{% else %}这组的"{{ g.tag }}"是什么？{% endif %}</h3>
           {% if tab == 'pending' %}
           <div class="choice-group" role="radiogroup" aria-label="候选值">
             {% for c in g.candidates[:6] %}<label class="choice"><input type="radio" name="value" value="{{ c.value }}" {% if loop.first and c.confidence %}checked{% endif %}>{{ c.value }}{% if c.confidence %} <span class="conf">{{ '%.2f'|format(c.confidence) }}</span>{% endif %}</label>{% endfor %}
-            <label class="choice"><input type="radio" name="value" value="other">其他…<input class="input other-input" name="other" placeholder="填写" aria-label="其他值"></label>
+            {% if asm %}<label class="choice"><input type="radio" name="value" value="未知">仍不确定（保持未知，不进框）</label>
+            {% else %}<label class="choice"><input type="radio" name="value" value="other">其他…<input class="input other-input" name="other" placeholder="填写" aria-label="其他值"></label>{% endif %}
           </div>
           {% else %}<div class="small">已确认为 <b>{{ g['items'][0].value }}</b></div>{% endif %}
         </div>
@@ -122,11 +147,11 @@
           <tbody>
           {% for it in g['items'] %}
             <tr><td>{{ channel_names[it.channel] }}</td><td class="mono">{% if it.link %}<a class="tlink" href="{{ it.link }}" target="_blank" rel="noopener">{{ it.item_id }}</a>{% else %}{{ it.item_id }}{% endif %}</td>
-              <td><div class="cell-title">{{ it.title[:90] }}</div></td><td class="tag-line">{{ it.others }}</td>
+              <td><div class="cell-title">{{ it.title[:90] }}</div></td><td class="tag-line">{% for v, sl in it.others_tags %}{% if loop.first %}<b>{{ v }}</b>{% else %}{{ v }}{% endif %}{% if sl %}<span class="etag">{{ sl }}</span>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</td>
               <td><form method="post" action="/tagging/items/{{ it.tag_id }}" class="inline"><input type="hidden" name="back" value="{{ back }}">
-                <select class="select" name="value" aria-label="本条{{ g.tag }}">{% if not it.value %}<option value="" selected>（未判断）</option>{% endif %}{% for c in g.candidates %}<option {% if c.value == it.value %}selected{% endif %}>{{ c.value }}</option>{% endfor %}</select>
+                <select class="select" name="value" aria-label="本条{{ g.tag }}">{% if not it.value %}<option value="" selected>{{ '未知' if asm else '（未判断）' }}</option>{% endif %}{% for c in g.candidates %}<option {% if c.value == it.value %}selected{% endif %}>{{ c.value }}</option>{% endfor %}</select>
                 <button class="btn btn--ghost btn--sm" type="submit">单改</button></form></td>
-              <td>{% if it.status == 'confirmed' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已确认{% if it.confirm_mode == 'single' %} · 单改{% endif %}</span>{% else %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认{% if it.confidence %} · {{ '%.2f'|format(it.confidence) }}{% endif %}</span>{% endif %}</td>
+              <td>{% if it.status == 'confirmed' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已确认{% if it.confirm_mode == 'single' %} · 单改{% endif %}</span><span class="etag">{{ it.source }}</span>{% else %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认{% if it.confidence %} · {{ '%.2f'|format(it.confidence) }}{% endif %}</span>{% endif %}</td>
               <td><button class="btn btn--ghost btn--sm" type="button" data-notcat data-action="/tagging/items/{{ it.tag_id }}" data-channel="{{ it.channel }}" data-item-id="{{ it.item_id }}" data-sub="只标这一个商品：{{ it.item_id }}">不是本品类</button></td></tr>
           {% endfor %}
           </tbody>
