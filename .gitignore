@@ -1,2 +1,3 @@
 crawler/data/
 __pycache__/
+crawler/.secrets.json

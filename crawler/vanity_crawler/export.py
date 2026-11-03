@@ -39,7 +39,7 @@ def gather(platforms):
                                 "unknown": c.get("unknown", 0), "其中转载": sum(r.get("转载") == "是" for r in rv),
                                 "采集状态": pd.get("状态", ""), "备注": pd.get("备注", "")})
                     for r in rv:
-                        r = dict(r, 入口=row["入口"], 商品ID=row["商品ID"], 月份=month_of(r.get("评论日期")))
+                        r = dict(r, 平台=plat, 入口=row["入口"], 商品ID=row["商品ID"], 月份=month_of(r.get("评论日期")))
                         revs.append(r)
                 elif row.get("排名"):
                     row.update({"采集状态": "未采集"})
