@@ -41,6 +41,23 @@ F = {
 }
 # 个别条目落点细化（页面, 其他 ID）
 OVR = {
+ "REQ-F18-04": ("PAGE-F18-01", "API-F18-01, DATA-F18-01, DATA-F28-02"),
+ "AC-F18-08": ("PAGE-F18-01", "API-F18-01, DATA-F18-01, DATA-F28-02"),
+ "REQ-F19-03": ("PAGE-F19-01, PAGE-F21-02", "API-F19-02, DATA-F19-02, SEQ-F23-01"),
+ "AC-F19-05": ("PAGE-F19-01", "API-F19-02, DATA-F19-02, SEQ-F23-01"),
+ "AC-F19-06": ("PAGE-F19-01, PAGE-F20-01", "API-F19-02, DATA-F19-02"),
+ "AC-F20-03": ("PAGE-F20-01", "API-F20-01, API-F19-02, DATA-F20-01, DATA-F19-02"),
+ "REQ-F23-02": ("PAGE-F23-01, CMP-F16-01", "API-F23-02, API-F16-03, DATA-F28-02, SEQ-F23-01"),
+ "AC-F23-03": ("PAGE-F23-01, CMP-F16-01", "API-F23-02, API-F16-03, DATA-F28-02, SEQ-F23-01"),
+ "AC-F23-04": ("PAGE-F23-01", "API-F23-02, DATA-F28-02"),
+ "REQ-F28-03": ("PAGE-F28-01", "API-F28-02, DATA-F28-02, SEQ-F23-01"),
+ "AC-F28-06": ("PAGE-F28-01", "API-F28-02, DATA-F28-02, SEQ-F23-01"),
+ "AC-F28-07": ("PAGE-F28-01", "API-F28-02, DATA-F28-02"),
+ "AC-F28-08": ("PAGE-F28-01", "API-F28-02, DATA-F28-02"),
+ "REQ-F29-03": ("PAGE-F20-01, PAGE-F21-02", "API-F29-02, DATA-F20-01, DATA-F28-02"),
+ "AC-F29-05": ("PAGE-F20-01, PAGE-F21-02", "API-F29-02, DATA-F20-01, DATA-F28-02"),
+ "AC-F29-06": ("PAGE-F20-01", "API-F29-02, DATA-F20-01"),
+ "AC-F27-04": ("PAGE-F27-01", "API-F27-01, DATA-F27-01"),
  "AC-F15-01": ("PAGE-F15-01", "API-F15-01, DATA-F15-01"),
  "AC-F15-02": ("PAGE-F15-02, PAGE-F15-03, PAGE-F21-02", "API-F15-01, DEC-101"),
  "AC-F15-03": ("PAGE-F21-02, PAGE-F25-01", "API-F15-01, API-F25-01"),
@@ -71,6 +88,7 @@ NFR = {
  "NFR-009": ("PAGE-F20-01", "API-F20-01, DATA-F20-01", "§5.2；附录 A.4", "性能计时（24 个月数据）"),
  "NFR-010": ("PAGE-F21-02", "API-F21-01, DATA-F21-01", "附录 A.4", "性能计时"),
  "NFR-011": ("PAGE-F17-01, PAGE-F23-01", "API-F16-03, DATA-F16-03, SEQ-F17-01", "§4 后台任务；附录 A.4", "integration（中断重跑计数）"),
+ "NFR-013": ("PAGE-F23-01", "API-F23-02, DATA-F28-02, SEQ-F23-01", "§4 后台任务；附录 A.3、A.4", "integration（假站点记录请求时间戳与重试）"),
  "NFR-012": ("PAGE-F17-01, PAGE-F19-01", "API-F17-03, DATA-F17-01", "§5.1；附录 A.4", "integration（历史月份重放）"),
 }
 
@@ -100,7 +118,7 @@ for sid, it in items.items():
 
 head = """# 设计追溯矩阵（第二轮）
 
-> 来源：`requirements.md` revision 7（scope = 第一版）。全部 active REQ / AC / NFR 都属于本期，状态均为 covered。
+> 来源：`requirements.md` revision 8（scope = 第一版）。全部 active REQ / AC / NFR 都属于本期，状态均为 covered。
 >
 > 第一轮（revision 5）的条目和设计 ID 已 retired，见 `change-impact.md`。
 >
