@@ -161,6 +161,7 @@
             {% if n.marks.diverge %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-split-horizontal"/></svg>渠道分歧：{{ n.marks.diverge|join('、') }} 在{{ '跌' if n.marks.dir == '涨' else '涨' }}</span>{% endif %}
           </div>
         </div>
+        {% if locked %}<p class="small muted" style="margin-bottom: var(--space-2)"><span class="etag etag--snap">快照</span> 本表数字均为批准时快照</p>{% endif %}
         <div class="table-wrap">
           <table class="table" id="chan-table">
             <thead><tr><th>渠道</th><th class="t-num">框内份额 前 → 近</th><th>趋势（近 4 季）</th><th>分级 / 把握</th><th>证据等级 · 打折后读法</th><th class="t-num">样本量</th><th>这个渠道</th></tr></thead>

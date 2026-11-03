@@ -34,3 +34,6 @@
 .sidebar .nav { padding-top: var(--space-1); padding-bottom: var(--space-2); }
 .sidebar .nav__group { margin: var(--space-3) var(--space-3) 2px; }
 .sidebar .nav__item { min-height: 32px; }
+
+/* 已批准决策卡：分渠道并排表的"快照"标记统一放在表上方说明里，单元格内不再逐个显示，避免表格横向溢出（DESIGN-12） */
+#chan-table .etag--snap { display: none; }

@@ -302,3 +302,12 @@ def test_card_sku_layer_shows_total_and_pages(seeded):
         c.numbers = nums
     s6 = seeded.get(f"/cards/{cid}").text.split('id="s6"')[1].split('id="s7"')[0]
     assert "共 20 个子 ASIN（本卡生成时只保存了峰值月销前 20 个，重新生成后显示全部）" in s6
+
+
+def test_design12_locked_channel_table_snapshot_note(client):
+    """DESIGN-12：已批准卡的分渠道并排表不在每个单元格里重复"快照"标记（避免横向溢出），改为表上方一行说明；CSS 隐藏表内快照标签。"""
+    from pathlib import Path
+    css = (Path(__file__).resolve().parent.parent / "pdt" / "static" / "pdt.css").read_text(encoding="utf-8")
+    tpl = (Path(__file__).resolve().parent.parent / "pdt" / "templates" / "card.html").read_text(encoding="utf-8")
+    assert "#chan-table .etag--snap { display: none; }" in css
+    assert "本表数字均为批准时快照" in tpl
