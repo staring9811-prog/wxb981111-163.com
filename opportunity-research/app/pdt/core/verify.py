@@ -6,13 +6,15 @@
 - 来源与覆盖（异常，需确认后并入，并入后带 *）：
   1) 品类总月销较上月变化超出 ±total_change_pct（默认 30%）；
   2) 家族键月间一致率 < family_consistency_min（默认 90%）：上月的家族里，有子体本月仍在的，其子体本月仍归同一家族键的比例；
-  3) 各标签覆盖率 < tag_coverage_min（默认 95%）：本批商品有取值的占比（尺寸、拆装、形态、台面、台面材质、主色、柜体材质）。
+  3) 标签覆盖率（wen 2026-11-03 调整 DEC-102）：分框标签（尺寸、拆装、形态）< tag_coverage_min（默认 95%）；
+     属性标签（台面、台面材质、主色、柜体材质）只看是否比上月下降超过 attr_coverage_drop_max（默认 10 个百分点）。
 """
 import numpy as np
 import pandas as pd
 
 from .families import top_type
 
+FRAME_COVER = {'尺寸', '拆装', '形态'}
 COVER_TAGS = [('尺寸', '尺寸段'), ('拆装', '装'), ('形态', '形态'), ('台面', '台面'), ('台面材质', '台面材质'), ('主色', '主色'), ('柜体材质', '柜体材质')]
 UNKNOWN = {'', '未知', '信息不足', '待图片核验', None}
 
@@ -22,9 +24,21 @@ def _total(df):
     return float(pd.to_numeric(df['units'], errors='coerce').fillna(0).clip(lower=0).sum())
 
 
-def run(month: str, cur: pd.DataFrame, prev: pd.DataFrame | None, tags: dict, cfg: dict) -> dict:
+def coverage(ids, tags: dict) -> dict:
+    cov = {}
+    for name, tg in COVER_TAGS:
+        if tg == '台面':
+            vals = [top_type((tags.get(i) or {}).get('台面材质'), (tags.get(i) or {}).get('台盆材质')) for i in ids]
+            known = [v not in ('未知',) and not str(v).startswith('台面未知') for v in vals]
+        else:
+            known = [((tags.get(i) or {}).get(tg) not in UNKNOWN) for i in ids]
+        cov[name] = float(np.mean(known) * 100) if ids else 0.0
+    return cov
+
+
+def run(month: str, cur: pd.DataFrame, prev: pd.DataFrame | None, tags: dict, cfg: dict, prev_coverage: dict | None = None) -> dict:
     """cur / prev：列 item_id, family_key, rank, units, purchase_date（可空）。tags：{item_id: {标签: 值}}。返回 checks。"""
-    th = dict(total_change_pct=30, family_consistency_min=90, tag_coverage_min=95, rank_same_max_pct=10)
+    th = dict(total_change_pct=30, family_consistency_min=90, tag_coverage_min=95, attr_coverage_drop_max=10, rank_same_max_pct=10)
     th.update(cfg or {})
     items = []
     prev_month = None if prev is None or prev.empty else str(prev.attrs.get('month', ''))
@@ -74,21 +88,22 @@ def run(month: str, cur: pd.DataFrame, prev: pd.DataFrame | None, tags: dict, cf
     else:
         items.append(dict(key='rank_same', name='月份误标 · 与上月排名完全相同', sub='两月都出现的 ASIN 中，小类排名一样的比例', value='无上月数据',
                           n=0, threshold=f"> {th['rank_same_max_pct']:g}% 判月份错误", result='na'))
-    # 5. 标签覆盖率
+    # 5. 标签覆盖率：分框标签看绝对值，属性标签看较上月的下降
     ids = list(dict.fromkeys(cur['item_id']))
-    cov, low = {}, []
-    for name, tg in COVER_TAGS:
-        if tg == '台面':
-            vals = [top_type((tags.get(i) or {}).get('台面材质'), (tags.get(i) or {}).get('台盆材质')) for i in ids]
-            known = [v not in ('未知',) and not str(v).startswith('台面未知') for v in vals]
-        else:
-            known = [((tags.get(i) or {}).get(tg) not in UNKNOWN) for i in ids]
-        p = float(np.mean(known) * 100) if ids else 0.0
-        cov[name] = p
-        if p < th['tag_coverage_min']:
-            low.append(name)
-    items.append(dict(key='tag_coverage', name='标签覆盖率', sub='每个标签有取值的商品占比', coverage=cov, n=len(ids), low=low,
-                      threshold=f"每项 ≥ {th['tag_coverage_min']:g}%", result='anomaly' if low else 'pass'))
+    cov, low, drop = coverage(ids, tags), [], {}
+    for name, p in cov.items():
+        if name in FRAME_COVER:
+            if p < th['tag_coverage_min']:
+                low.append(name)
+        elif prev_coverage and name in prev_coverage:
+            d = prev_coverage[name] - p
+            drop[name] = d
+            if d > th['attr_coverage_drop_max']:
+                low.append(name)
+    items.append(dict(key='tag_coverage', name='标签覆盖率', sub='分框标签有取值的占比；属性标签较上月的变化', coverage=cov, prev_coverage=prev_coverage or {},
+                      drop=drop, n=len(ids), low=low,
+                      threshold=f"尺寸 / 拆装 / 形态 ≥ {th['tag_coverage_min']:g}%；其余较上月下降 ≤ {th['attr_coverage_drop_max']:g} 个百分点",
+                      result='anomaly' if low else 'pass'))
     status = 'suspect_month' if any(i['result'] == 'block' for i in items) else ('anomaly' if any(i['result'] == 'anomaly' for i in items) else 'ok')
     return dict(month=month, prev_month=prev_month, items=items, status=status, thresholds=th, reason=reason_text(items, prev_month))
 
@@ -105,5 +120,5 @@ def reason_text(items, prev_month) -> str:
         elif i['result'] == 'anomaly' and i['key'] == 'family_consistency':
             out.append(f"家族键月间一致率 {i['value']}（阈值 {i['threshold']}，n={i['n']:,}）")
         elif i['result'] == 'anomaly' and i['key'] == 'tag_coverage':
-            out.append('标签覆盖率不足：' + '、'.join(f"{k} {i['coverage'][k]:.0f}%" for k in i['low']))
+            out.append('标签覆盖率异常：' + '、'.join(f"{k} {i['coverage'][k]:.0f}%" + (f"（较上月降 {i['drop'][k]:.0f} 个百分点）" if k in i.get('drop', {}) else '') for k in i['low']))
     return '；'.join(out)

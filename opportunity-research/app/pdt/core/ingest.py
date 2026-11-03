@@ -252,7 +252,8 @@ def recheck(batch_id: int) -> dict:
     pm = prev_merged_month(month, channel)
     prev = month_frame(pm, channel) if pm else None
     cfg = catconfig.current()[1].get('verify') or {}
-    checks = vf.run(month, cur, prev, current_tags(cur['item_id'], channel, batch_id), cfg)
+    prev_cov = vf.coverage(list(dict.fromkeys(prev['item_id'])), current_tags(prev['item_id'], channel)) if prev is not None and not prev.empty else None
+    checks = vf.run(month, cur, prev, current_tags(cur['item_id'], channel, batch_id), cfg, prev_cov)
     with session() as s:
         b = s.get(Batch, batch_id)
         if b.status in ('checking', 'ok', 'anomaly', 'suspect_month'):

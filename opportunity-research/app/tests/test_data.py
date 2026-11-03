@@ -122,7 +122,7 @@ def test_verify_suspect_anomaly_normal(wen, tmp_path):
     assert bb.status == 'anomaly'
     keys = {i['key']: i for i in bb.checks['items']}
     assert keys['total_change']['result'] == 'anomaly' and keys['total_change']['threshold'] == '±30% 内'
-    assert keys['family_consistency']['threshold'] == '≥ 90%' and keys['tag_coverage']['threshold'] == '每项 ≥ 95%'
+    assert keys['family_consistency']['threshold'] == '≥ 90%' and keys['tag_coverage']['threshold'] == '尺寸 / 拆装 / 形态 ≥ 95%；其余较上月下降 ≤ 10 个百分点'
     html = wen.get(f'/data/amazon?batch={bb.id}').text
     assert '品类总月销变化' in html and '家族键月间一致率' in html and '标签覆盖率' in html and '确认异常并入' in html
     wen.post(f'/data/batches/{bb.id}/merge')  # 未确认 → 不并入
@@ -262,3 +262,26 @@ def test_history_shows_total_for_unmerged_batch(wen, tmp_path):
     assert f'{check_total:,.0f}<span class="etag">估算</span><span class="etag etag--nodata">未并入</span>' in row
     assert '无数据' not in row
     assert f'{check_total:,.0f} 件 vs' in wen.get(f'/data/amazon?batch={ba.id}').text  # 核对表同一个数
+
+
+def test_coverage_rule_frame_absolute_attr_drop():
+    """FLOW-05 / DESIGN-06（DEC-102 wen 2026-11-03 调整）：分框标签覆盖率 < 95% 报异常；
+    属性标签（如柜体材质）覆盖率低本身不报，只有较上月下降超过 10 个百分点才报。"""
+    import pandas as pd
+    from pdt.core import verify
+    ids = [f'B0TEST{i:04d}' for i in range(100)]
+    cur = pd.DataFrame(dict(item_id=ids, family_key=ids, rank=range(100), units=[10] * 100))
+    base = {'尺寸段': '30″', '装': '拆装', '形态': '落地式', '台面材质': '树脂', '台盆材质': '树脂', '主色': '白'}
+    # 柜体材质只有 14% 有值（原始导出常态），上月也是 16%：不报
+    tags = {i: dict(base, 柜体材质='MDF' if n < 14 else '') for n, i in enumerate(ids)}
+    r = verify.run('2025-12', cur, None, tags, {}, prev_coverage={'柜体材质': 16.0, '主色': 100.0, '台面材质': 100.0, '台面': 100.0})
+    tc = [i for i in r['items'] if i['key'] == 'tag_coverage'][0]
+    assert tc['result'] == 'pass' and tc['low'] == []
+    # 柜体材质较上月从 40% 降到 14%（降 26 个百分点）：报
+    r = verify.run('2025-12', cur, None, tags, {}, prev_coverage={'柜体材质': 40.0})
+    tc = [i for i in r['items'] if i['key'] == 'tag_coverage'][0]
+    assert tc['low'] == ['柜体材质'] and '较上月降 26 个百分点' in r['reason']
+    # 尺寸段只有 90% 有值：分框标签按绝对值报
+    tags2 = {i: dict(tags[i], 尺寸段='' if n < 10 else '30″') for n, i in enumerate(ids)}
+    r = verify.run('2025-12', cur, None, tags2, {}, prev_coverage=None)
+    assert [i for i in r['items'] if i['key'] == 'tag_coverage'][0]['low'] == ['尺寸']

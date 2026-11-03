@@ -146,7 +146,7 @@
       <div class="panel">
         <div class="panel__head"><h3 class="panel__title">核对结果</h3><span class="section__note">对照月份 {{ c.prev_month or '无' }}</span></div>
         <div class="table-wrap table-wrap--flush">{{ checks_table(c) }}</div>
-        <div class="panel__foot">疑似月份错误的批次不能并入。品类总量、家族键与覆盖率阈值取品类配置（±{{ (c.thresholds or {}).total_change_pct or 30 }}% / ≥ {{ (c.thresholds or {}).family_consistency_min or 90 }}% / ≥ {{ (c.thresholds or {}).tag_coverage_min or 95 }}%）。</div>
+        <div class="panel__foot">疑似月份错误的批次不能并入。品类总量、家族键与覆盖率阈值取品类配置（±{{ (c.thresholds or {}).total_change_pct or 30 }}% / ≥ {{ (c.thresholds or {}).family_consistency_min or 90 }}% / 分框标签 ≥ {{ (c.thresholds or {}).tag_coverage_min or 95 }}%、属性标签较上月下降 ≤ {{ (c.thresholds or {}).attr_coverage_drop_max or 10 }} 个百分点）。</div>
       </div>
       <div class="panel">
         <div class="panel__head"><h3 class="panel__title">{{ '拉取进度' if cur.source == '卖家精灵接口' else '数据来源' }}</h3><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已完成</span></div>

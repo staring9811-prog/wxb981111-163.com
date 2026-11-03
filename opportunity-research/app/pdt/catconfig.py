@@ -33,7 +33,8 @@ DEFAULT = {
         "wayfair": {"method": "review", "vp_coef": 50, "nonvp_coef": 20, "success": {"rank_top": 50, "units": 120}},
     },
     "verify": {  # Amazon 核对阈值（DEC-102，wen 2026-11-03 确认；AC-F17-03 原文 10%）
-        "total_change_pct": 30, "family_consistency_min": 90, "tag_coverage_min": 95, "rank_same_max_pct": 10},
+        "total_change_pct": 30, "family_consistency_min": 90, "tag_coverage_min": 95, "attr_coverage_drop_max": 10, "rank_same_max_pct": 10},
+    # tag_coverage_min 只管分框标签（尺寸 / 拆装 / 形态）；属性标签按较上月下降不超过 attr_coverage_drop_max 个百分点（wen 2026-11-03 调整）
     "budget_warn_pct": 80,  # DEC-104
 }
 
