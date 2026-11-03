@@ -37,7 +37,7 @@
   ],
   "next_action": {
     "type": "user",
-    "description": "PRD 阶段 1 第二轮问题：外部软件交付形式、\"达标\"含义、大模型凭据、品类范围"
+    "description": "PRD 阶段 1：Amazon 数据来源、工具接入方式、部署方式、\"达标\"含义"
   },
   "open_questions": [
     {
@@ -76,7 +76,9 @@
       "id": "OQ-R2-05",
       "node": "外部\"全品店利润测算 + 数据拉取软件\"交给本系统的形式（文件 / 接口 / 共享库）与现状",
       "priority": "P0",
-      "status": "open"
+      "status": "partial",
+      "answer": "收到两个工具（tools/）：利润测算台（单页 HTML，浏览器本地存储，方案 .json / Excel 导出；Amazon FBM/CG/FBA、Lowe's、HD、Wayfair 利润）；评论月度 VP 追踪器（Python 本机网页，HD/Lowe's/Wayfair 评论 VP 月度 + 评论明细 Excel，Bright Data + Apify）。未覆盖：Amazon 月度销量与 Amazon 评论的来源",
+      "source": "wen 2026-11-03 上传"
     },
     {
       "id": "OQ-R2-06",
@@ -94,6 +96,24 @@
       "id": "OQ-R2-08",
       "node": "第一版品类范围（只浴室柜 / 可配置多品类）",
       "priority": "P1",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-09",
+      "node": "Amazon 月度销量（卖家精灵）由谁、怎么进系统",
+      "priority": "P0",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-10",
+      "node": "两个工具的接入方式（并入同一系统 / 保持独立只导文件）",
+      "priority": "P0",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-11",
+      "node": "部署方式（本机运行 / 云端所有人可访问）",
+      "priority": "P0",
       "status": "open"
     }
   ],
