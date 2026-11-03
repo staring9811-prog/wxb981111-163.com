@@ -1,0 +1,152 @@
+{# 模型与回测 · 其他渠道视图（PAGE-F19-01 v8；REQ-F19-03、AC-F19-05、AC-F19-06）。由 models.html 在 channel != amazon 时引入。 #}
+{% set chname = channel_names[channel] %}
+{% set crun = chst.run %}
+{% set raw = (crun.raw if crun else {}) or {} %}
+{% set disc = (crun.discounted if crun else {}) or {} %}
+{% set val = (crun.validity if crun else {}) or {} %}
+{% set sig = (crun.signals if crun else {}) or {} %}
+{% macro pc(x) %}{{ '—' if x is none or x is undefined else ('%d%%'|format((x * 100)|round)) }}{% endmacro %}
+{% macro sg(x, nd=2) %}{{ '—' if x is none or x is undefined else (('%+.' ~ nd ~ 'f')|format(x)).replace('-', '−') }}{% endmacro %}
+{% macro evbadge(ev) %}{% if ev == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% endmacro %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>分析</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>模型与回测</span></nav>
+    <h1>模型与回测 · <span>{{ chname }}</span></h1>
+    <p class="page-head__sub">{% if crun %}当前结果：渠道模型 · 重建历史 {{ crun.start }} 至 {{ crun.month }}（{{ crun.n_months }} 个月）· {{ crun.created_at|dt }} 回测 · 只用 {{ chname }} 数据 · 打折规则参数 v{{ crun.config_version }}{% elif chst.state in ('none', 'short') %}未验证：{{ chst.reason }}{% else %}重建历史 {{ chst.start }} 至 {{ chst.end }}（{{ chst.n_months }} 个月）· 还没有做渠道回测{% endif %}</p>
+  </div>
+  <div class="page-head__actions">
+    {% if chst.state in ('none', 'short') %}
+      {% if user.role == 'operator' %}<a class="btn btn--primary" href="/tools/vp#backfill"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>去历史回补</span></a>{% endif %}
+    {% elif user.role == 'operator' %}
+    <form method="post" action="/models/channel/{{ channel }}/rescore" style="display:inline">
+      <button class="btn btn--primary" type="submit" id="btn-recalc-ch" {% if ch_reason %}disabled aria-disabled="true" title="{{ ch_reason }}"{% endif %}><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>{{ '正在重算…' if ch_state.running else '重算 ' ~ chname }}</span></button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% if ch_reason and user.role == 'operator' and chst.state not in ('none', 'short') and not ch_state.running %}<p class="small muted enter" style="margin-top: calc(-1 * var(--space-4)); text-align: right;">重算不可用：{{ ch_reason }}</p>{% endif %}
+{% if ch_state.error %}<div class="banner banner--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body">上次重算失败：{{ ch_state.error }}</div></div>{% endif %}
+
+{% if chst.state in ('none', 'short') %}
+<div class="banner banner--unverified enter" style="--i:1" role="status"><svg class="icon"><use href="#ph-seal-question"/></svg>
+  <div class="banner__body"><div class="banner__title">{{ chname }} 渠道未验证{{ ' · 未回补' if chst.state == 'none' else ' · 历史不足' }}</div><div>{{ chst.reason }}。{{ chname }} 的机会证据等级为"未验证"，扫描和决策卡不显示把握与分级。</div></div></div>
+<div class="panel section enter" style="--i:2">
+  <div class="empty">
+    <svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>
+    <div class="empty__title">还没有 {{ chname }} 的回测结果</div>
+    <div class="empty__desc">先在评论 VP 追踪里做历史回补（默认从 {{ ch_params.backfill.start }}、每个类目前 {{ ch_params.backfill.n }} 个商品页{% if channel != 'homedepot' %}，经 Bright Data / Apify，先评估费用再确认{% endif %}），重建满 {{ min_months }} 个月后回到这里重算。{% if channel == 'wayfair' %}Wayfair 只有 Verified Purchase 计 VP，回测只在 Wayfair 内比较。{% endif %}</div>
+    {% if user.role == 'operator' %}<a class="btn" href="/tools/vp#backfill"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>去历史回补</span></a>{% endif %}
+  </div>
+</div>
+{% else %}
+{% if crun and crun.evidence == '经回测（打折）' %}
+<div class="banner banner--ok enter" style="--i:1" role="status"><svg class="icon"><use href="#ph-seal-check"/></svg>
+  <div class="banner__body"><div class="banner__title">{{ chname }} 渠道回测达标 · 证据等级 {{ evbadge(crun.evidence) }}</div>
+    <div>框 × 属性粒度，把握四档之后变大 {% for b in raw.bins %}{{ pc(b.up) }}{% if not loop.last %} → {% endif %}{% endfor %} 逐档上升；D 档之后变大 {{ pc(raw.d.up) }}（≤ 30%）<button class="etag etag--n" type="button" data-pop-title="{{ chname }} D 档" data-pop="粒度=框（尺寸段 × 装 × 形态）× 属性取值;时点={{ raw.t0s[0] }} 至 {{ raw.t0s[-1] }} 共 {{ raw.fitted_t0 }} 个;结果=立项后第 6–8 个月;D 档=把握 ≤ 30% 的大单元（近 3 个月月均 ≥ {{ raw.big|num }} 件）;样本数={{ raw.d.n }} 个单元 × 时点（同一单元跨时点重复，不独立）">n={{ raw.d.n }}</button>。只看排序和坑，把握不当概率用。</div></div></div>
+{% elif crun %}
+<div class="banner banner--unverified enter" style="--i:1" role="alert"><svg class="icon"><use href="#ph-seal-question"/></svg>
+  <div class="banner__body"><div class="banner__title">{{ chname }} 渠道未验证：{{ crun.reason }}</div><div>回测表照常显示；扫描与决策卡不显示该渠道把握与分级，证据等级为"未验证"。</div></div></div>
+{% else %}
+<div class="banner banner--unverified enter" style="--i:1" role="status"><svg class="icon"><use href="#ph-seal-question"/></svg>
+  <div class="banner__body"><div class="banner__title">{{ chname }} 渠道未验证：还没有做渠道回测</div><div>{{ chst.reason }}。标签确认完后点"重算 {{ chname }}"。</div></div></div>
+{% endif %}
+
+<div class="grid-main-side section enter" style="--i:2">
+  <section class="panel" aria-labelledby="ch-pre">
+    <div class="panel__head"><h2 class="panel__title" id="ch-pre">重建历史与重算前置</h2>{% if ch_pending %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-hourglass"/></svg>等标签确认</span>{% elif ch_state.running %}<span class="badge badge--watch">重算中 · {{ ch_state.step }}</span>{% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>可重算</span>{% endif %}</div>
+    <div class="panel__body">
+      {% set rbs = chst.rebuild %}
+      <ul class="checklist">
+        <li><svg class="icon {{ 'ok' if chst.n_months >= min_months else 'wait' }}"><use href="#ph-{{ 'check-circle' if chst.n_months >= min_months else 'warning' }}"/></svg>重建历史 {{ chst.start }} 至 {{ chst.end }}，共 {{ chst.n_months }} 个月（{{ '≥' if chst.n_months >= min_months else '<' }} {{ min_months }} 个月）<a href="/data/channels?ch={{ channel }}#rebuild">看重建</a></li>
+        <li><svg class="icon ok"><use href="#ph-check-circle"/></svg>历史回补：{{ rbs.pages_listed|num }} 个商品页、{{ rbs.families|num }} 个评论家族、{{ rbs.truncated_families or 0 }} 截断（{{ rbs.collected_on }}）</li>
+        {% if ch_pending %}<li><svg class="icon wait"><use href="#ph-warning"/></svg>打标确认：{{ chname }} {{ chst.end }} 还有 {{ ch_pending }} 条待确认 <a href="/tagging">去确认</a></li>{% else %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>打标确认：{{ chname }} {{ chst.end }} 无待确认</li>{% endif %}
+      </ul>
+      <div class="section__note" style="margin-top: var(--space-3)">只用 {{ chname }} 数据，按"尺寸 × 装 × 形态"框 × 属性取值重算评分，信号：份额斜率 b6、新品占比 x5（另含新进家族 x2、体量 x4 作控制），Amazon 侧丰富度（同尺寸段 × 形态 × 属性取值、不分拆装的 Amazon 家族数）作排序加分信号单独检验；滚动回测后按打折规则同时给出打折后的读法。不调用外部服务，不花钱。</div>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="ch-rule">
+    <div class="panel__head"><h2 class="panel__title" id="ch-rule">渠道证据等级</h2>{{ evbadge(crun.evidence if crun else '未验证') }}</div>
+    <div class="panel__body">
+      <div class="rule-card"><div class="rule-card__head"><span>把握分档逐档上升</span>{% if crun %}<span class="badge {{ 'badge--pass' if val.mono else 'badge--fail' }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if val.mono else 'x-circle' }}"/></svg>{{ '达标' if val.mono else '未达标' }}</span>{% endif %}</div><div class="small muted">{% if crun %}{% for b in raw.bins or [] %}{{ pc(b.up) }}{% if not loop.last %} → {% endif %}{% endfor %}{% else %}未回测{% endif %}</div></div>
+      <div class="rule-card"><div class="rule-card__head"><span>D 档之后变大 ≤ 30%</span>{% if crun %}<span class="badge {{ 'badge--pass' if val.d_ok else 'badge--fail' }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if val.d_ok else 'x-circle' }}"/></svg>{{ '达标' if val.d_ok else '未达标' }}</span>{% endif %}</div><div class="small muted">{% if crun %}本次 {{ pc((raw.d or {}).up) }}{% else %}未回测{% endif %}</div></div>
+      {% set dp = crun.discount_params if crun else ch_params.discount %}
+      <div class="preview">
+        <div class="preview__label">打折规则（品类配置 · 参数 v{{ crun.config_version if crun else ch_cfg_version }}）</div>
+        <dl class="kv small"><dt>秩相关</dt><dd>减 {{ dp.rank_corr }}</dd><dt>把握 ≥ 70% 档</dt><dd>之后变大比例减 {{ dp.high_pp|num }} 个百分点</dd><dt>方向对</dt><dd>按 ≤ {{ dp.dir_cap|num }}% 看</dd></dl>
+      </div>
+    </div>
+  </section>
+</div>
+
+{% if crun and raw.available %}
+<section class="section enter" style="--i:3" aria-labelledby="ch-bt">
+  <div class="section__head"><h2 class="section__title" id="ch-bt">滚动回测：原值与打折后</h2><span class="section__note">立项时点 {{ raw.t0s[0] }} 至 {{ raw.t0s[-1] }}（{{ raw.t0s|length }} 个，拟合 {{ raw.fitted_t0 }} 个），看立项后第 6–8 个月；每个时点约 {{ raw.n_avg|round|int }} 个单元（大单元 {{ raw.nb_avg|round|int }} 个）</span></div>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel__head"><h3 class="panel__title">把握分档：之后实际份额变大的比例</h3><span class="badge {{ 'badge--pass' if val.mono else 'badge--fail' }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if val.mono else 'x-circle' }}"/></svg>{{ '逐档上升' if val.mono else '未逐档上升' }}</span></div>
+      <div class="panel__body">
+        {% set mx = raw.bins|map(attribute='up')|reject('none')|max %}
+        <div class="hbars" role="list">
+          {% for b in raw.bins %}{% set db = disc.bins[loop.index0] %}
+          <span class="hbar__label">{{ b.bin|replace('≤', '≤ ')|replace('≥', '≥ ') }}</span><span class="hbar__track"><span class="hbar__bar {{ 'hbar__bar--focus' if loop.last else '' }}" style="width:{{ ((b.up or 0) / mx * 100) if mx else 0 }}%" tabindex="0" data-tip="{{ pc(b.up) }}|{{ '{:,}'.format(b.n) }} 个单元 × 时点{{ '，样本少' if b.n < 30 else '' }}{% if db.up != b.up %}|打折后 {{ pc(db.up) }}{% endif %}"></span></span><span class="hbar__value">{{ pc(b.up) }}{% if db.up != b.up %} → {{ pc(db.up) }}{% endif %} <span class="etag etag--n">n={{ '{:,}'.format(b.n) }}</span></span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="panel__foot">全部单元之后变大 {{ pc(raw.up_all) }}。同一单元在 {{ raw.fitted_t0 }} 个时点重复出现，合计数不独立。</div>
+    </div>
+    <div class="panel">
+      <div class="panel__head"><h3 class="panel__title">回测表</h3><span class="section__note">打折后 = 按打折规则的读法</span></div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table" id="ch-bt-table">
+          <thead><tr><th>指标</th><th class="t-num">原值</th><th class="t-num is-v9">打折后</th></tr></thead>
+          <tbody>
+            {% set hb = raw.bins[-1] %}{% set lb = raw.bins[0] %}
+            <tr><td>秩相关 · 全部单元</td><td class="t-num">{{ sg(raw.rho) }}</td><td class="t-num is-v9">{{ sg(disc.rho) }}</td></tr>
+            <tr><td>秩相关 · 大单元（≥ {{ raw.big|num }} 件）</td><td class="t-num">{{ sg(raw.rhob) }}</td><td class="t-num is-v9 strong">{{ sg(disc.rhob) }}</td></tr>
+            <tr><td>方向对 · 大单元</td><td class="t-num">{{ pc(raw.dirn) }}</td><td class="t-num is-v9">{{ ('≤ ' ~ pc(disc.dir_cap)) if raw.dirn is not none and raw.dirn > disc.dir_cap else pc(disc.dirn) }}</td></tr>
+            <tr><td>把握 ≥ 70% 之后变大</td><td class="t-num">{{ pc(hb.up) }} <span class="etag etag--n">n={{ hb.n }}</span></td><td class="t-num is-v9">{{ pc(disc.bins[-1].up) }}</td></tr>
+            <tr><td>把握 ≤ 30% 之后变大</td><td class="t-num">{{ pc(lb.up) }} <span class="etag etag--n">n={{ '{:,}'.format(lb.n) }}</span></td><td class="t-num is-v9">{{ pc(disc.bins[0].up) }}</td></tr>
+            <tr><td>D 档之后变大</td><td class="t-num">{{ pc(raw.d.up) }} <span class="etag etag--n">n={{ raw.d.n }}</span></td><td class="t-num is-v9">{{ pc(disc.d.up) }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel__foot">读法：大单元排序{{ '可用（打折后仍约 ' ~ sg(disc.rhob) ~ '）' if (disc.rhob or 0) > 0.15 else '弱' }}{{ '，坑认得出' if val.d_ok else '' }}；全部单元排序打折后{{ '接近 0，不用' if (disc.rho or 0) < 0.1 else '仍为正' }}；把握不当概率用。</div>
+    </div>
+  </div>
+
+  <div class="section__head" style="margin-top: var(--space-6)"><h3 class="section__title">信号</h3><span class="section__note">{{ chname }} 没有站内搜索数据，没有 x3 搜索同比；单信号秩相关为各立项时点平均</span></div>
+  <div class="table-wrap">
+    <table class="table" id="ch-sig-table">
+      <thead><tr><th>信号</th><th>意思</th><th class="t-num">单信号秩相关 全部 / 大单元</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">b6</td><td>{{ sig_names.b6 }}</td><td class="t-num">{{ sg(raw.rb6) }} / {{ sg(raw.rb6b) }}</td><td class="small">k = 6 合计系数（各时点中位）{{ sg(raw.coef_b6_k6) }}</td></tr>
+        <tr><td class="mono">x5</td><td>{{ sig_names.x5 }}</td><td class="t-num">{{ sg(raw.rx5) }} / {{ sg(raw.rx5b) }}</td><td class="small">新品 = 首条评论后 ≤ 6 个月；k = 6 合计系数 {{ sg(raw.coef_x5_k6) }}</td></tr>
+        <tr><td class="mono">Amazon 侧丰富度</td><td>{{ sig_names.az }}</td>
+          {% if sig.available %}
+          <td class="t-num">{{ sg(sig.base.rho) }} / {{ sg(sig.base.rhob) }} → {{ sg(sig.g.rho) }} / {{ sg(sig.g.rhob) }}<button class="etag" type="button" data-pop-title="加入 Amazon 侧丰富度前后" data-pop="检验=按单元分组 5 折交叉验证，{{ sig.t0|length }} 个时点平均秩相关;基础=b6、x5、x2、x4：{{ sg(sig.base.rho) }} / {{ sg(sig.base.rhob) }};加差距 G家族={{ sg(sig.g.rho) }} / {{ sg(sig.g.rhob) }};只加 Amazon 家族数={{ sg(sig.az.rho) }} / {{ sg(sig.az.rhob) }};G家族单独={{ sg(sig.g_single.rho) }} / {{ sg(sig.g_single.rhob) }};对齐=尺寸段 × 形态 × 属性取值（不分拆装），T0 前 6 个月;读法=Amazon 结构领先，不是本渠道少所以会涨">候选</button></td>
+          <td class="small">加入前 → 加入后（基础 → 加差距 G）；只加 Amazon 家族数 {{ sg(sig.az.rho) }} / {{ sg(sig.az.rhob) }}，作用来自 Amazon 侧</td>
+          {% else %}<td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="small">{{ sig.reason }}</td>{% endif %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <details style="margin-top: var(--space-4)">
+    <summary class="section__head"><h3 class="section__title">逐个立项时点</h3><span class="section__note">与小试报告 §5.1 同列</span></summary>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>T0</th><th>拟合 / 训练样本</th><th class="t-num">单元（大）</th><th class="t-num">秩相关 全部 / 大</th><th class="t-num">仅 b6</th><th class="t-num">仅 x5</th><th class="t-num">方向对（大）</th><th class="t-num">把握 ≤30% / ≥70% 之后变大</th><th class="t-num">D 档变大</th><th class="t-num">全部变大</th></tr></thead>
+        <tbody>
+        {% for p in raw.per_t0 %}
+          <tr><td class="num">{{ p.T0 }}</td><td>{{ '是' if p.fitted else '否（仅 b6）' }} / {{ '{:,}'.format(p.n_train) }}</td><td class="t-num">{{ p.n }}（{{ p.nb }}）</td><td class="t-num">{{ sg(p.rho) }} / {{ sg(p.rhob) }}</td><td class="t-num">{{ sg(p.rb6) }} / {{ sg(p.rb6b) }}</td><td class="t-num">{{ sg(p.rx5) }} / {{ sg(p.rx5b) }}</td><td class="t-num">{{ pc(p.dirn) }}（{{ p.ndir }}）</td><td class="t-num">{{ pc(p.lo[0]) }}（{{ p.lo[1] }}） / {{ pc(p.hi[0]) }}（{{ p.hi[1] }}）</td><td class="t-num">{{ pc(p.d[0]) }}（{{ p.d[1] }}）</td><td class="t-num">{{ pc(p.up) }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  <p class="page-foot">重建历史只含今天仍在类目前 {{ ch_params.backfill.n }} 的商品（幸存者偏差），所以按打折规则看。大单元 = 近 3 个月月均 ≥ {{ raw.big|num }} 件（约为品类月销的 1%）。本次评分站在 {{ crun.now_info.T0 }}，{{ crun.units|length }} 个单元，预测窗口 {{ crun.now_info.window }}；分级 A = 把握 ≥ 70%，D = 把握 ≤ 30% 的大单元，B = 把握 ≥ 50%，其余 C。</p>
+</section>
+{% elif crun %}
+<div class="banner banner--stale"><svg class="icon"><use href="#ph-info"/></svg><div class="banner__body">{{ raw.reason or '回测不可用' }}</div></div>
+{% endif %}
+{% endif %}

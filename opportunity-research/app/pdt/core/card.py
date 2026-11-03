@@ -16,6 +16,7 @@ from ..db import session
 from ..models import Batch, Card, ModelRun, Opportunity, ProfitPlan, UnitScore, now
 from ..models_decision import CardEvent
 from . import panel_adapter as pa
+from . import channel_model, richness
 
 STATUS_NAMES = {"draft": "草稿", "pending": "待审批", "approved": "已批准", "rejected": "已驳回",
                 "tracking": "跟踪中", "reconciled": "已对账"}
@@ -193,6 +194,35 @@ def _direction(prev, now_):
     return "平"
 
 
+# ---------------------------------------------------------------- 渠道证据等级与打折后读法（v8，REQ-F19-03、AC-F29-03）
+def _channel_evidence(ch, frame, attr, value) -> dict:
+    """并排表“证据等级 · 打折后读法”一列：Amazon 经回测、不打折；其他渠道按该渠道最近一次回测（经回测（打折）时给把握、分级与读法）。"""
+    if ch == "amazon":
+        return dict(evidence="经回测", note="不打折（Amazon 全量回测）", hide=False, score=None)
+    st = channel_model.status(ch)
+    if st["evidence"] != channel_model.EVIDENCE_OK:
+        return dict(evidence="未验证", note=f"{st['reason']}；不显示把握与分级", hide=True, score=None)
+    run = st["run"]
+    u = channel_model.unit_score(ch, frame, attr, value)
+    if not u:
+        return dict(evidence=run.evidence, note="该单元不在渠道回测面板里（框或取值样本太少），不显示把握与分级", hide=True, score=None)
+    same = sorted((x.get("grasp") or 0 for k, x in (run.units or {}).items() if k.startswith(f"{frame}|{attr}|")), reverse=True)
+    rank = 1 + sum(1 for g in same if g > (u.get("grasp") or 0))
+    g = u.get("grasp")
+    bins = (run.raw or {}).get("bins") or []
+    dbins = (run.discounted or {}).get("bins") or bins
+    lab = None if g is None else ("≤30%" if g <= 0.3 else "30–50%" if g <= 0.5 else "50–70%" if g <= 0.7 else "≥70%")
+    hit = next((b for b in dbins if b["bin"] == lab), None)
+    note = f"只看排序与坑（框内第 {rank} / {len(same)}）；把握不当概率用"
+    if hit and hit.get("up") is not None:
+        note += f"，渠道回测同档之后变大 {hit['up']:.0%}" + ("（已打折）" if lab == "≥70%" else "")
+    rhob = (run.discounted or {}).get("rhob")
+    if rhob is not None:
+        note += f"，大单元秩相关打折后 {rhob:+.2f}"
+    return dict(evidence=run.evidence, note=note, hide=False, score=dict(grasp=g, grade=u.get("grade"), share_now=u.get("share6"),
+                                                                             sources=dict(frame=frame, months=f"渠道回测 {run.month}", n=None)))
+
+
 # ---------------------------------------------------------------- 生成数字
 def _opp(s, ch, frame, attr, value):
     return s.scalar(select(Opportunity).where(Opportunity.channel == ch, Opportunity.frame == frame, Opportunity.attr == attr,
@@ -237,6 +267,9 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
             has = bool(ts) or opp is not None
             sample_ok = has and (fu or 0) >= min_fu and (units or 0) >= min_vu
             sd = (sc.data or {}) if sc else {}
+            ev = _channel_evidence(ch, frame, attr, value)
+            if ch != "amazon":  # 其他渠道：只有“经回测（打折）”的渠道显示把握与分级（AC-F19-06）
+                sd = dict(ev["score"]) if ev["score"] else {}
             d = _direction(share_prev, share_now) if sample_ok else None
             grade = sd.get("grade") if sample_ok else None
             if not has or not sample_ok:
@@ -263,7 +296,9 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
                        skus=pa.unit_skus(ch, frame, attr, value, top=None) if has else [],  # 全部子体，页面分页显示
                        bands=pa.price_bands(ch, frame, attr, value) if has else [],
                        opp=dict(kind=opp.kind, evidence=opp.evidence, month=opp.month, metrics=om) if opp else None,
-                       score=dict(sd, run_id=run.id) if sc else None, period=pr)
+                       score=dict(sd, run_id=run.id) if sc else None, period=pr,
+                       evidence=ev["evidence"], evidence_note=ev["note"], hide_scores=ev["hide"],
+                       rich=richness.for_unit(ch, frame, attr, value) if ch != "amazon" else None)
             row["n_skus"] = len(row["skus"])
             chans.append(row)
             if ch == channel:
@@ -363,7 +398,9 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
     limits = [f"{value}是{attr}标签；标签缺失或“信息不足”的商品未计入份额分母。"]
     if star_months:
         limits.append(f"{'、'.join(star_months)} 为带 * 并入的月份（核对异常），这几个月的变化要打折看。")
-    limits.append(f"Home Depot / Lowe's / Wayfair 月销是评论换算估算（品类配置参数 v{cfg_v}），分级规则在这些渠道未回测；只在渠道内比较。")
+    evs = "；".join(f"{c['name']} {c['evidence']}" for c in chans if c["channel"] != "amazon")
+    limits.append(f"Home Depot / Lowe's / Wayfair 月销是评论换算估算（品类配置参数 v{cfg_v}），只在渠道内比较；证据等级按各渠道最近一次回测：{evs}。"
+                  "经回测（打折）的渠道历史由评论重建、只含今天仍在前 N 的商品（幸存者偏差），把握不当概率用。")
     for c in chans:
         if c["has_data"] and not c["sample_ok"]:
             limits.append(f"{c['name']} 这个框样本不足（框月销 {c['frame_units'] or 0:,.0f} 件）。")

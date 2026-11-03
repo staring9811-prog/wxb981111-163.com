@@ -10,7 +10,8 @@ from ..auth import any_user, operator_only, roles
 from ..config import CHANNEL_NAMES
 from ..db import session
 from ..models import Batch, ModelRun, UnitScore
-from ..core import pipeline, tagging
+from .. import catconfig
+from ..core import channel_model, pipeline, tagging
 from .ui import redirect, render
 
 router = APIRouter()
@@ -41,8 +42,29 @@ def prerequisites():
                 next=unmerged['month'] if blocked else last['amazon'])
 
 
+def channel_ctx(channel: str) -> dict:
+    """其他渠道视图（PAGE-F19-01 v8）：渠道状态、前置（重建 ≥ 20 个月、本渠道最新月标签确认完）、打折参数。"""
+    chst = channel_model.status(channel)
+    pending = tagging.pending_for_month(channel, chst['end']) if chst['rebuilt'] else 0
+    st = channel_model.run_state(channel)
+    reason = ''
+    if chst['state'] in ('none', 'short'):
+        reason = chst['reason']
+    elif pending:
+        reason = f"{CHANNEL_NAMES[channel]} {chst['end']} 还有 {pending} 条标签待确认，确认完才能重算"
+    elif st.get('running'):
+        reason = '正在重算'
+    v, params = catconfig.channel_params(channel)
+    return dict(chst=chst, ch_pending=pending, ch_state=st, ch_reason=reason, ch_params=params, ch_cfg_version=v,
+                min_months=channel_model.MIN_MONTHS, sig_names=channel_model.SIGNAL_NAMES)
+
+
 @router.get('/models')
-def page(request: Request, user=roles('operator', 'approver')):
+def page(request: Request, channel: str = 'amazon', user=roles('operator', 'approver')):
+    if channel not in CHANNEL_NAMES:
+        channel = 'amazon'
+    if channel != 'amazon':
+        return render(request, 'models.html', 'PAGE-F19-01', '模型与回测', channel=channel, **channel_ctx(channel))
     run = pipeline.latest_run()
     pre = prerequisites()
     st = pipeline.rescore_state()
@@ -60,7 +82,7 @@ def page(request: Request, user=roles('operator', 'approver')):
     for r in bt.get('side', []):
         if r['k'] == 6:
             side.setdefault(r['T0'], {})[r['ver']] = r
-    return render(request, 'models.html', 'PAGE-F19-01', '模型与回测', run=run, bt=bt, pre=pre, state=st, reason=reason, names=NAMES, side=side,
+    return render(request, 'models.html', 'PAGE-F19-01', '模型与回测', channel='amazon', run=run, bt=bt, pre=pre, state=st, reason=reason, names=NAMES, side=side,
                   newlayer=(run.newlayer or {}) if run else {}, market=(run.market or {}) if run else {})
 
 
@@ -154,3 +176,36 @@ def run_json(run_id: int, user=any_user):
 def state(user=any_user):
     st = pipeline.rescore_state()
     return dict(running=st['running'], step=st['step'], error=st['error'], last_run=st['last_run'])
+
+
+# ---------------- 分渠道重算与回测（API-F19-02，REQ-F19-03） ----------------
+@router.post('/models/channel/{channel}/rescore')
+def channel_rescore(channel: str, request: Request, user=operator_only):
+    """只用该渠道数据重算与滚动回测；前置：重建 ≥ 20 个月、该渠道最新月标签确认完。完成后重扫该渠道，机会证据等级随之更新。"""
+    if channel not in CHANNEL_NAMES or channel == 'amazon':
+        raise HTTPException(404, '没有这个渠道')
+    ctx = channel_ctx(channel)
+    back = f'/models?channel={channel}'
+    if ctx['ch_reason']:
+        return redirect(back, ctx['ch_reason'], 'error')
+    ok, msg = channel_model.start(channel, user.id)
+    st = channel_model.run_state(channel)
+    if st.get('error'):
+        return redirect(back, '重算失败：' + st['error'], 'error')
+    return redirect(back, msg if not ok or st.get('running') else f'{CHANNEL_NAMES[channel]} 重算完成', 'ok' if ok else 'warn')
+
+
+@router.get('/models/channel/{channel}')
+def channel_json(channel: str, user=roles('operator', 'approver')):
+    """API-F19-02 GET：该渠道证据等级、原因、最近一次回测（原值与打折后、参数版本）。"""
+    if channel not in CHANNEL_NAMES or channel == 'amazon':
+        raise HTTPException(404, '没有这个渠道')
+    st = channel_model.status(channel)
+    return dict(channel=channel, name=st['name'], evidence=st['evidence'], reason=st['reason'], state=st['state'], n_months=st['n_months'],
+                start=st['start'], end=st['end'], show_scores=st['show_scores'], run=channel_model.as_json(st['run']))
+
+
+@router.get('/models/channel/{channel}/state')
+def channel_state(channel: str, user=any_user):
+    st = channel_model.run_state(channel)
+    return dict(running=bool(st.get('running')), step=st.get('step', ''), error=st.get('error', ''), last_run=st.get('last_run'))

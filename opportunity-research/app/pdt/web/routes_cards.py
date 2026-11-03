@@ -123,10 +123,23 @@ async def cards_create(request: Request, user=operator_only):
     ch, fr, at, va = f.get("channel", "amazon"), f.get("frame", ""), f.get("attr", ""), f.get("value", "")
     if ch not in CHANNELS or not fr or not at or not va:
         return _err(request, "/scan", "缺少渠道、框或属性取值，无法生成决策卡")
+    if ch != "amazon" and _out_of_sample(ch, fr, at, va):
+        return _err(request, f"/scan?channel={ch}", "该渠道样本外，仅参考：前 N 个商品页里没有这个单元的家族，不能做决策卡")
     cid = cardcore.generate(ch, fr, at, va, user.id)
     if _wants_json(request):
         return {"id": cid, "url": f"/cards/{cid}"}
     return redirect(f"/cards/{cid}", "已生成决策卡草稿")
+
+
+def _out_of_sample(ch, fr, at, va) -> bool:
+    """AC-F29-06：本渠道扫描里没有这个单元、且本渠道前 N 里没有它的家族 → 样本外，不能做卡。"""
+    from ..core import richness
+    from ..models import Opportunity
+    with session() as s:
+        if s.scalar(select(Opportunity.id).where(Opportunity.channel == ch, Opportunity.frame == fr, Opportunity.attr == at, Opportunity.value == va).limit(1)):
+            return False
+    r = richness.for_unit(ch, fr, at, va)
+    return bool(r and r["oos"])
 
 
 # ---------------------------------------------------------------- 详情
@@ -312,7 +325,7 @@ def card_channels(card_id: int, user=any_user):
             raise HTTPException(404, "决策卡不存在")
         n = c.snapshot["numbers"] if (c.status in cardcore.LOCKED and c.snapshot) else c.numbers
     keep = ("channel", "name", "has_data", "sample_ok", "share_prev", "share_now", "direction", "grade", "grasp", "verified",
-            "families", "units", "verdict", "estimated")
+            "families", "units", "verdict", "estimated", "evidence", "evidence_note", "hide_scores", "rich")  # v8：证据等级、打折后读法、Amazon 侧丰富度（API-F29-02）
     return {"channels": [{k: ch.get(k) for k in keep} for ch in n["channels"]], "marks": n["marks"]}
 
 

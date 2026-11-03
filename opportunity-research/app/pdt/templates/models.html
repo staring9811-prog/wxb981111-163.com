@@ -17,10 +17,18 @@
   .hbars { row-gap: var(--space-3); }
 </style>
 {% endblock %}
+{% block topbar %}
+<div class="seg" role="group" aria-label="渠道">
+  {% for c, n in channel_names.items() %}<a class="seg__opt" href="/models?channel={{ c }}" aria-pressed="{{ 'true' if c == channel else 'false' }}">{{ n }}</a>{% endfor %}
+</div>
+{% endblock %}
 {% macro pc(x) %}{{ '—' if x is none or x is undefined else ('%d%%'|format((x * 100)|round)) }}{% endmacro %}
 {% macro sn(x) %}{{ '—' if x is none or x is undefined else (('+' if x >= 0 else '−') ~ (x|abs|num)) }}{% endmacro %}
 {% macro sg(x, nd=3) %}{{ '—' if x is none or x is undefined else (('%+.' ~ nd ~ 'f')|format(x)).replace('-', '−') }}{% endmacro %}
 {% block content %}
+{% if channel != 'amazon' %}
+{% include "_models_channel.html" %}
+{% else %}
 {% set vd = bt.valid_detail or {} %}
 {% set dgrade = (bt.grades or [])|selectattr('grade', 'equalto', 'D')|first %}
 <div class="page-head enter" style="--i:0">
@@ -190,7 +198,9 @@
 {% else %}
 <div class="banner banner--stale"><svg class="icon"><use href="#ph-info"/></svg><div class="banner__body">还没有重算结果。数据并入、标签确认后点“重算”。</div></div>
 {% endif %}
+{% endif %}
 {% endblock %}
 {% block scripts %}
-{% if state.running %}<script>(function poll() { fetch('/models/state', { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) { if (j.running) setTimeout(poll, 2000); else location.reload(); }); })();</script>{% endif %}
+{% if channel != 'amazon' and ch_state and ch_state.running %}<script>(function poll() { fetch('/models/channel/{{ channel }}/state', { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) { if (j.running) setTimeout(poll, 2000); else location.href = '/models?channel={{ channel }}'; }); })();</script>{% endif %}
+{% if channel == 'amazon' and state.running %}<script>(function poll() { fetch('/models/state', { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) { if (j.running) setTimeout(poll, 2000); else location.reload(); }); })();</script>{% endif %}
 {% endblock %}

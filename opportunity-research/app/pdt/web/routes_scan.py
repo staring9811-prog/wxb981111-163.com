@@ -12,13 +12,14 @@ from ..config import CHANNEL_NAMES
 from ..db import session
 from ..models import Batch, Card, Opportunity
 from ..models_data import ScanMeta
-from ..core import pipeline
+from ..core import channel_model, pipeline, richness
 from ..core.scan import KINDS
 from .ui import render
 
 router = APIRouter()
 TYPE_KEYS = {'growth': '增长型', 'rating': '评分缺口型', 'price': '价格缺口型', 'pit': '坑'}
-GRADE_KEYS = {'bt': '经回测', 'obs': '历史观察', 'un': '未验证'}
+GRADE_KEYS = {'bt': '经回测', 'btd': '经回测（打折）', 'obs': '历史观察', 'un': '未验证'}
+NONE_KEY = {'none': '未入四类'}  # 其他渠道：没有四类标记的单元（看 Amazon 侧丰富度时用）
 ATTR_KEYS = {'tm': '台面材质', 'el': '元素', 'color': '主色', 'body': '柜体材质'}
 ICON = {'增长型': 'trend-up', '评分缺口型': 'chart-bar', '价格缺口型': 'scales', '坑': 'trend-down'}
 
@@ -46,7 +47,10 @@ def _results(channel, month, frame, vars, type, grade):
     rows, frames_all, summary = [], [], []
     vars_ = [ATTR_KEYS[v] for v in vars if v in ATTR_KEYS] or list(ATTR_KEYS.values())
     types = [TYPE_KEYS[t] for t in type if t in TYPE_KEYS]
+    show_none = channel != 'amazon' and 'none' in type
     grades = [GRADE_KEYS[g] for g in grade if g in GRADE_KEYS]
+    ch_ev = channel_model.evidence(channel) if channel != 'amazon' else None
+    rt = richness.saved(channel) if channel != 'amazon' and meta is not None else None
     if meta is not None:
         with session() as s:
             ops = list(s.scalars(select(Opportunity).where(Opportunity.channel == channel, Opportunity.month == meta.month)))
@@ -66,19 +70,29 @@ def _results(channel, month, frame, vars, type, grade):
         for o in ops:
             m = o.metrics or {}
             flags = [k for k in KINDS if m.get('flags', {}).get(k)]
-            if not flags:
+            if not flags and not show_none:
                 continue
             if o.attr not in vars_ or (frame and o.frame != frame):
                 continue
-            if types and not set(flags) & set(types):
+            if flags and (types or show_none) and not set(flags) & set(types):
                 continue
-            ev = o.evidence
+            ev = o.evidence if flags else (ch_ev or '—')
             if grades and ev not in grades:
                 continue
             rows.append(dict(id=o.id, frame=o.frame, attr=o.attr, value=o.value, flags=flags, evidence=ev, m=m, frame_units=fu.get(o.frame, 0),
-                             card=cards.get((o.frame, o.attr, o.value)), related=cards.get(('*', o.attr, o.value))))
+                             card=cards.get((o.frame, o.attr, o.value)), related=cards.get(('*', o.attr, o.value)), oos=False,
+                             rich=richness.for_unit(channel, o.frame, o.attr, o.value, rt) if rt else None))
+        if channel != 'amazon' and not types and not grades:
+            # 样本外（AC-F29-06）：本渠道前 N 里没有家族、Amazon 需求已证明的单元，挂在同尺寸段 · 形态里月销最大的已扫描框下
+            for u in (rt or {}).get('oos', []):
+                tgt = [f for f in frames_all if richness.sizeform(f) == u['sizeform']]
+                if not tgt or u['attr'] not in vars_ or (frame and tgt[0] != frame):
+                    continue
+                rows.append(dict(id=None, frame=tgt[0], attr=u['attr'], value=u['value'], flags=[], evidence='样本外', m={}, frame_units=fu.get(tgt[0], 0),
+                                 card=None, related=None, oos=True, rich=richness.for_unit(channel, tgt[0], u['attr'], u['value'], rt)))
         order = {f: i for i, f in enumerate(frames_all)}
-        rows.sort(key=lambda r: (order.get(r['frame'], 999), min(KINDS.index(k) for k in r['flags']), -(r['m'].get('units') or 0)))
+        rows.sort(key=lambda r: (order.get(r['frame'], 999), 9 if r['oos'] else (min(KINDS.index(k) for k in r['flags']) if r['flags'] else 5),
+                                 -(r['m'].get('units') or 0)))
     return meta, rows, frames_all, summary, vars_
 
 
@@ -94,7 +108,10 @@ def scan_page(request: Request, channel: str = 'amazon', month: str = '', frame:
         merged = [m for (m,) in s.execute(select(Batch.month).where(Batch.channel == channel, Batch.status == 'merged').distinct().order_by(Batch.month.desc()))]
     from ..core.channels import channel_cfg
     cfg = channel_cfg(channel) if channel != 'amazon' else None
+    chst = channel_model.status(channel) if channel != 'amazon' else None
+    rich = richness.saved(channel) if channel != 'amazon' and meta is not None else None
     return render(request, 'scan.html', 'PAGE-F20-01', '机会扫描', channel=channel, meta=meta, rows=rows, summary=summary, frames=frames_all, frame=frame,
+                  chst=chst, rich_window=(rich or {}).get('window'), none_key=NONE_KEY,
                   vars=[k for k, v in ATTR_KEYS.items() if v in vars_], types=type, grades=grade, months=sorted(set(months) | set(merged), reverse=True),
                   month=meta.month if meta else month, cfg=cfg, icon=ICON, type_keys=TYPE_KEYS, grade_keys=GRADE_KEYS, attr_keys=ATTR_KEYS,
                   elapsed=round(time.time() - t0, 2), export_qs=request.url.query)

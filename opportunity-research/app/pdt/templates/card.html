@@ -67,6 +67,7 @@
   .inline-input { width: 96px; min-height: 28px; padding: 2px var(--space-2); }
   .chk-row { display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--text-sm); }
   @media (max-width: 1279px) { .card-layout { grid-template-columns: minmax(0, 1fr); } .card-side { position: static; } .charts { grid-template-columns: minmax(0, 1fr); } }
+  #rich-table tr.is-oos td { color: var(--muted); background: var(--surface-warm); }
 </style>
 {% endblock %}
 
@@ -155,17 +156,18 @@
         </div>
         <div class="table-wrap">
           <table class="table" id="chan-table">
-            <thead><tr><th>渠道</th><th class="t-num">框内份额 前 → 近</th><th>趋势（近 4 季）</th><th>分级 / 把握</th><th class="t-num">样本量</th><th>这个渠道</th></tr></thead>
+            <thead><tr><th>渠道</th><th class="t-num">框内份额 前 → 近</th><th>趋势（近 4 季）</th><th>分级 / 把握</th><th>证据等级 · 打折后读法</th><th class="t-num">样本量</th><th>这个渠道</th></tr></thead>
             <tbody>
               {% for ch in n.channels %}
               <tr data-channel="{{ ch.channel }}">
                 <td class="cell-title ch-col">{{ ch.name }}</td>
                 {% if not ch.has_data %}
-                <td colspan="4" class="muted small">该渠道本月无数据</td>
+                <td colspan="5" class="muted small">该渠道本月无数据</td>
                 {% else %}
                 <td class="t-num">{{ pc(ch.share_prev) }} → {{ pc(ch.share_now) }}{{ src(ch.name ~ ' 框内份额', ch.src, ('估算' if ch.estimated else 'n=' ~ (ch.families or 0))) }}</td>
                 <td>{% if ch.spark %}<svg class="spark mini {{ '' if ch.sample_ok else 'is-muted' }}" width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="{{ ch.spark }}"/></svg>{% endif %} <span class="small {{ '' if ch.sample_ok else 'muted' }}">{{ ch.direction if ch.sample_ok else '样本不足' }}</span></td>
-                <td>{% if ch.grade %}{{ ch.grade }}{% if ch.grasp is not none %} · 把握 {{ pc0(ch.grasp) }}{% endif %}{% if not ch.verified %} <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
+                <td>{% if ch.hide_scores %}<span class="etag etag--nodata">不显示</span>{% elif ch.grade %}{{ ch.grade }}{% if ch.grasp is not none %} · 把握 {{ pc0(ch.grasp) }}{% endif %}{% if ch.evidence is not defined and not ch.verified %} <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
+                <td>{% if ch.evidence == '经回测' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测</span>{% elif ch.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% elif ch.evidence %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}{% if ch.evidence_note %}<div class="cell-sub">{{ ch.evidence_note }}</div>{% endif %}</td>
                 <td class="t-num">{{ ch.families or 0 }} 家族 · {{ ch.units|num }} 件/月</td>
                 {% endif %}
                 <td>{{ verdict_badge(ch.verdict) }}</td>
@@ -174,7 +176,31 @@
             </tbody>
           </table>
         </div>
-        <p class="small muted" style="margin-top: var(--space-2)">各渠道只在本渠道内比较份额，不比较绝对销量；其他渠道月销为评论换算估算（品类配置参数 v{{ n.meta.cfg_version }}）。分级规则经 Amazon 回测，其他渠道未回测。</p>
+        {% set rich_rows = n.channels|selectattr('rich')|list %}
+        <p class="small muted" style="margin-top: var(--space-2)">各渠道只在本渠道内比较份额，不比较绝对销量；其他渠道月销为评论换算估算（品类配置参数 v{{ n.meta.cfg_version }}）。{% if rich_rows %}证据等级按各渠道最近一次回测（<a href="/models?channel=homedepot">模型与回测</a>）：{% for ch in n.channels if ch.channel != 'amazon' %}{{ ch.name }} {{ ch.evidence }}{% if not loop.last %}；{% endif %}{% endfor %}。经回测（打折）的渠道只看排序与坑，把握不当概率用。{% else %}分级规则经 Amazon 回测，其他渠道未回测。{% endif %}</p>
+        {% if rich_rows %}{% set r0 = rich_rows[0].rich %}
+        <div class="row" style="margin: var(--space-4) 0 var(--space-2)">
+          <h3>Amazon 侧丰富度对照</h3><span class="spacer"></span>
+          <span class="small muted">同尺寸段 × 形态 × {{ n.meta.attr }}：{{ n.meta.value }}（{{ r0.sizeform }}，不分拆装）· {{ r0.window }}</span>
+        </div>
+        <div class="table-wrap">
+          <table class="table" id="rich-table">
+            <thead><tr><th>渠道</th><th class="t-num">Amazon 家族 / 价位段</th><th class="t-num">Amazon 份额 前 → 近</th><th class="t-num">本渠道家族 / 价位段</th><th class="t-num">差距 G</th><th>证据等级</th><th>读法</th></tr></thead>
+            <tbody>
+            {% for ch in rich_rows %}{% set rc = ch.rich %}
+              <tr data-channel="{{ ch.channel }}" class="{{ 'is-oos' if rc.oos else '' }}"><td class="cell-title">{{ ch.name }}</td>
+                <td class="t-num">{{ rc.az_fam }} / {{ rc.az_pb }}</td>
+                <td class="t-num">{{ pc((rc.az_trend[1] or {}).share if rc.az_trend|length > 1 else none) }} → {{ pc((rc.az_trend[-1] or {}).share if rc.az_trend else none) }}</td>
+                <td class="t-num">{% if rc.oos %}<span class="etag etag--nodata">0 / 0</span>{% else %}{{ rc.ch_fam }} / {{ rc.ch_pb }}{% endif %}</td>
+                <td class="t-num strong">{{ '%+.2f'|format(rc.G) }}<button class="etag" type="button" data-pop-title="差距 G" data-pop="{{ rc.src }}">来源</button></td>
+                <td>{% if rc.oos %}<span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本外</span>{% elif ch.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}</td>
+                <td class="small">{% if rc.oos %}该渠道样本外，仅参考：只看 Amazon 侧事实，不给该渠道把握与分级{% elif ch.evidence == '经回测（打折）' %}Amazon 结构领先：作加分信号，不作独立立项理由{% else %}只作事实对照（{{ '未回补，' if ch.evidence_note and '未回补' in ch.evidence_note else '' }}未检验）{% endif %}</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted" style="margin-top: var(--space-2)">"本渠道少"不等于机会：Home Depot 检验里本渠道家族数的系数为正，作用来自 Amazon 侧款多、份额大。差距 G = ln((Amazon 家族 + 1) ÷ (本渠道家族 + 1))；本渠道前 N 里没有家族的单元标"该渠道样本外，仅参考"。</p>
+        {% endif %}
       </div>
       {% if n.other_frames %}
       <div class="table-wrap">

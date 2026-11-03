@@ -238,6 +238,9 @@ def rescan(channel: str = 'amazon', month: str | None = None) -> dict:
                         frames=[dict(frame=f, units=float(u)) for f, u in zip(frames['框'], frames['框月销'])],
                         star_months={m: stars[m] for m in recent if m in stars}, end=mname)
             s.add(ScanMeta(channel=channel, month=mname, config_version=ver, meta=meta))
+        if channel != 'amazon':  # v8：同批预计算 Amazon 侧丰富度对照（AC-F29-05、NFR-009）
+            from . import richness
+            richness.save(channel)
         return meta
 
 

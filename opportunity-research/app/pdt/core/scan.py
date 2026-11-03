@@ -5,7 +5,7 @@
 - 评分缺口型：评分比同框低 ≥ 0.15、单款月销 ≥ 同框单款、月销 ≥ 50（历史观察）
 - 价格缺口型：溢价 ≥ 1.3、月销 ≥ 20（历史观察）
 - 坑：份额 ln 变化 ≤ −0.3、月销 ≥ 100（经回测）
-其他渠道同一套框与规则，只用本渠道数据，证据一律“未验证”（AC-F29-01、AC-F20-03）。
+其他渠道同一套框与规则，只用本渠道数据，证据等级按该渠道最近一次渠道回测（经回测（打折）/ 未验证，AC-F29-01、AC-F20-03）。
 份额、溢价、评分差、新品占比的分母与比较对象只来自同一渠道的同一框（AC-F20-02、AC-F29-02）。
 """
 import numpy as np
@@ -126,11 +126,12 @@ def to_metrics(r) -> dict:
 
 
 def evidence_for(channel: str, flags: dict) -> str:
-    """证据等级：Amazon 增长型 / 坑 = 经回测，评分缺口 / 价格缺口 = 历史观察；其他渠道一律未验证。多类时取最强。"""
+    """证据等级：Amazon 增长型 / 坑 = 经回测，评分缺口 / 价格缺口 = 历史观察；其他渠道 = 该渠道最近一次回测给出的等级（经回测（打折）/ 未验证）。多类时取最强。"""
     on = [k for k in KINDS if flags.get(k)]
     if not on:
         return ''
-    if channel != 'amazon':
-        return '未验证'
+    if channel != 'amazon':  # 其他渠道按该渠道最近一次渠道回测（AC-F19-06、AC-F20-03 revision 2）
+        from .channel_model import evidence
+        return evidence(channel)
     grades = [EVIDENCE_AMAZON[k] for k in on]
     return '经回测' if '经回测' in grades else '历史观察'
