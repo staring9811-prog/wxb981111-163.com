@@ -77,3 +77,27 @@ def history():
     with session() as s:
         return [dict(version=r.version, diff=r.diff, at=r.created_at, by=r.created_by)
                 for r in s.scalars(select(CategoryConfig).order_by(CategoryConfig.version.desc()))]
+
+
+# ---------- 分析组追加：打标规则默认值（AC-F18-01、AC-F27-01） ----------
+# 规则正则逐字移植自第二轮打标技能 v12.2（pdt/core/tagging_rules.py）；这里是可在品类配置里改的归类与置信度。
+DEFAULT["tag_rules"] = {
+    "rule_version": "bathroom-vanity-tagger-20261029-v12.2",
+    "confidence": {  # 字段证据状态 → 置信度；低于 low_conf_threshold 进入确认队列，“元素”一律进入
+        "text_supported": 0.95, "derived": 0.9, "business_mapping": 0.85, "business_inference": 0.8, "order_inference": 0.8,
+        "parent_fill": 0.8, "family_fill": 0.8, "business_default": 0.8, "business_assumption": 0.75,
+        "parent_candidate": 0.6, "conflict": 0.5, "missing": 0.0},
+    "size_bands": [[18, 15, 21], [24, 21, 27], [30, 27, 33], [36, 33, 39], [42, 39, 45], [48, 45, 54], [60, 54, 66]],  # 中心, 下限, 上限（英寸）；≥ 66 为 72″+
+    "color_map": {"白色": "白", "黑色": "黑", "灰色": "灰", "原木色": "原木", "胡桃木色": "深木", "深咖啡色": "深木", "棕色": "深木",
+                  "蓝色": "蓝", "藏青色": "蓝", "灰蓝色": "蓝", "绿色": "绿", "灰绿色": "绿"},  # 柜体颜色 → 主色；未列出的为“其他”
+    "element_map": {"Shaker": "夏克式", "Fluted": "竖棱", "Reeded": "竖棱", "Farmhouse": "农场风装饰饰条", "Barn Door": "农场风装饰饰条",
+                    "Glass Door": "玻璃门", "Slatted": "木条格栅", "Rattan": "rattan"},  # 文字元素 → 看图元素词表
+    "element_vocab": ["夏克式", "农场风装饰饰条", "竖棱", "纯色", "横板条", "夏克式+复古立柱", "自然木纹", "玻璃门", "现代线条纹理", "纯色+竖棱",
+                      "rustic", "夏克式+纹路", "木条格栅", "rattan", "夏克式+拱门", "搭叠式", "扇贝螺纹", "复古立柱"],
+    "cabinet_map": "实木 / 实木框架+实木 → 实木；实木框架… → 实木框架；MDF → MDF；含胶合板 → 含胶合板；含刨花板 → 含刨花板；其余 → 其他（用实木价格复核前的文字标签）",
+    "top_type_map": "陶瓷 → 陶瓷一体；树脂 / Cultured Marble → 树脂一体；岗石 / 石英石 / 岩板 / 卡拉拉大理石 → 石材台面；木板 → 木板台面；玻璃 → 玻璃台面",
+    "vision_prompt": ("你在给美国站浴室柜商品看主图打“元素”标签。只看柜体正面看得见的造型，从下列词表中选一个最贴切的：{vocab}。"
+                      "看不出或不是浴室柜时 element 写“看不出”。只输出 JSON：{{\"element\": \"…\", \"confidence\": 0到1之间的小数, "
+                      "\"alternatives\": [{{\"element\": \"…\", \"confidence\": 小数}}]}}。商品标题：{title}"),
+    "vision_usd_per_call": [0.004, 0.012],
+}

@@ -65,11 +65,13 @@ def model_bias(run) -> float | None:
     if run is None:
         return None
     nl = run.newlayer or {}
-    for k in ("bias", "模型偏差", "bias_per10"):
-        if nl.get(k) is not None:
-            b = float(nl[k])
-            return b / 10 if (k == "bias_per10" or abs(b) > 1) else b
-    return None
+    b = nl.get("bias")
+    if isinstance(b, dict):  # 分析组写法：{pred, actual, bias = pred − actual, n, ...}，概率单位
+        b = b.get("bias")
+    if b is None:
+        return None
+    b = float(b)
+    return b / 10 if abs(b) > 1 else b  # 兼容按"每 10 个"记的写法（如 1.2）
 
 
 def _fisher_p(a, n1, b, n2):
@@ -227,7 +229,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
             per = f"{recent[0]} 至 {recent[-1]}" if recent else ""
             per0 = f"{prev[0]} 至 {prev[-1]}" if prev else ""
             est = ch != "amazon"
-            src = pop(框=frame, 取值=unit_label, 前期=per0, 近期=per,
+            src = pop(框=frame, 取值=unit_label, 月份=(f"{prev[0] if prev else recent[0]} 至 {recent[-1]}" if recent else "本月无数据"), 前期=per0, 近期=per,
                       样本数=f"{fam or 0} 个家族，近期月均 {units or 0:,.0f} 件",
                       口径=(f"VP × 系数 + 非 VP × 系数（参数 v{cfg_v}），按评论 ID 去重，只在 {CHANNEL_NAMES[ch]} 内比较" if est else "卖家精灵子体月销"),
                       来源=(f"机会扫描 {opp.month}" if opp else "月度快照"),
@@ -287,6 +289,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
     if made_p is None and None not in (nf, nm, other_n, other_m):
         made_p = _fisher_p(nm, nf, other_m, other_n)
     bands = p["bands"]
+    span = f"{p['quarters'][0]['months'][0]} 至 {p['recent'][-1]}" if p["quarters"] and p["recent"] else per
     top_bands = sorted(bands, key=lambda b: -(b.get("obs") or 0))[:2]
     top_bands.sort(key=lambda b: b.get("lo") or 0)
     rating = om.get("rating", pr.get("rating"))
@@ -314,7 +317,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
             if (b.get("obs") or 0) >= 20 and (b.get("median_units") or 0) < best / 2:
                 abandoned.append(dict(option=f"{b['band']} 价位", action="放弃",
                                       why=f"{b['obs']} 个子体 × 月，月销中位只有 {b['median_units']:.0f} 件，不到最好价位带的一半",
-                                      src=pop(框=frame, 取值=unit_label, 价格带=b["band"], 样本数=f"{b.get('skus')} 个子体、{b['obs']} 个子体 × 月")))
+                                      src=pop(框=frame, 取值=unit_label, 价格带=b["band"], 月份=span, 样本数=f"{b.get('skus')} 个子体、{b['obs']} 个子体 × 月")))
     dom = [fv for fv in frame_values if not fv["me"] and (fv["share"] or 0) >= 0.5]
     if dom:
         abandoned.append(dict(option=f"{dom[0]['value']}（同框主流）", action="放弃",
@@ -353,15 +356,15 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
         bet=dict(kind=(p["opp"] or {}).get("kind") if p["opp"] else None, evidence=(p["opp"] or {}).get("evidence") if p["opp"] else None,
                  share_prev=p["share_prev"], share_now=p["share_now"], newshare=om.get("newshare", pr.get("newshare")),
                  frame_newshare=om.get("frame_newshare", pr.get("frame_newshare")),
-                 src_share=pop(框=frame, 取值=unit_label, 前期=f"{p['prev'][0]} 至 {p['prev'][-1]}" if p["prev"] else "", 近期=per,
+                 src_share=pop(框=frame, 取值=unit_label, 月份=span, 前期=f"{p['prev'][0]} 至 {p['prev'][-1]}" if p["prev"] else "", 近期=per,
                                样本数=f"{p['families'] or 0} 个在榜家族", 新品="上架 ≤ 6 个月"),
                  score=dict(grasp=sd.get("grasp"), grade=sd.get("grade"), pred=sd.get("pred_share"), lo=sd.get("pred_lo"), hi=sd.get("pred_hi"),
                             now=sd.get("share_now", p["share_now"]), k=sd.get("k_months"),
-                            src=pop(框=(sd.get("sources") or {}).get("frame", frame), 单元=unit_label, 时点=(sd.get("sources") or {}).get("months", per),
+                            src=pop(框=(sd.get("sources") or {}).get("frame", frame), 单元=unit_label, 月份=(sd.get("sources") or {}).get("months", per),
                                     样本数=(sd.get("sources") or {}).get("n", sd.get("n_families")),
                                     规则=f"{run_info['version']}，{run_info['at']} 重算" if run_info else "")) if sd else None,
                  prob=dict(raw=raws, adj=adjs, bias=bias,
-                           src=pop(模型="新品层，只用开发能定的属性", 模型偏差=(f"{bias * 10:+.1f}（每 10 个，{run_info['at']}）" if bias is not None and run_info else "无"),
+                           src=pop(框=frame, 月份=(f"{run_info['month']}（{run_info['version']}）" if run_info else per), 模型="新品层，只用开发能定的属性", 模型偏差=(f"{bias * 10:+.1f}（每 10 个，{run_info['at']}）" if bias is not None and run_info else "无"),
                                    单元=unit_label, 样本数=sd.get("n_families"))) if raws else None,
                  made=dict(n=nf, made=nm, other_n=other_n, other_made=other_m, p=made_p,
                            src=pop(框=frame, 月份=f"{p['quarters'][0]['months'][0] if p['quarters'] else ''} 至 {p['recent'][-1] if p['recent'] else ''}，已走完 6 个月观察期的新家族",

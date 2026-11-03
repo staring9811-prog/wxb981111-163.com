@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .ch-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }
+  .ch .panel__body { display: grid; gap: var(--space-3); }
+  .ch__nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: 0; }
+  .ch__nums dt { font-size: var(--text-xs); color: var(--muted); }
+  .ch__nums dd { margin: 0; font-family: var(--font-display); font-size: var(--text-xl); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ch .kv { font-size: var(--text-xs); }
+  .method { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-4); }
+  .method .panel__body { font-size: var(--text-sm); }
+  .method .formula { margin-top: var(--space-1); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-2); }
+  .diff-up { color: var(--warn); }
+  .ex { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+  .ex .stat__value { font-size: var(--text-xl); }
+  .tab { text-decoration: none; }
+  @media (max-width: 1279px) { .ch-grid, .ex { grid-template-columns: minmax(0, 1fr); } }
+</style>
+{% endblock %}
+{% block content %}
+{% set n_items = summ.values()|sum(attribute='n_items') %}
+{% set n_rev = summ.values()|sum(attribute='reviews_all') %}
+<div class="page-head enter">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>其他渠道数据</span></nav>
+    <h1>其他渠道数据与销量估算</h1>
+    <p class="page-head__sub">{% if months %}{{ months[0] }} 至 {{ months[-1] }} · {{ summ|length }} 个渠道 · {{ n_items|num }} 个商品 · 去重评论 {{ n_rev|num }} 条（含未完整月）。{% else %}还没有其他渠道数据。{% endif %}月销全部由评论估算，只在渠道内比较。</p>
+  </div>
+  <div class="page-head__actions">
+    <a class="btn" href="/tools/vp"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+    <button class="btn btn--primary" type="button" data-open="#d-upload"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>上传追踪器导出</span></button>
+  </div>
+</div>
+
+<div class="ch-grid enter" style="--i:1">
+  {% for c in ['homedepot', 'lowes', 'wayfair'] %}{% set v = summ.get(c) %}
+  <section class="panel ch" aria-labelledby="c-{{ c }}">
+    <div class="panel__head"><h2 class="panel__title" id="c-{{ c }}">{{ channel_names[c] }}</h2>
+      {% if v and v.last %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>{{ v.last }} 已并入</span>{% else %}<span class="badge badge--nodata">无数据</span>{% endif %}</div>
+    <div class="panel__body">
+      {% if v %}
+      <dl class="ch__nums"><div><dt>商品</dt><dd>{{ v.n_items|num }}</dd></div><div><dt>去重评论</dt><dd>{{ v.reviews_all|num }}</dd></div><div><dt>完整月份</dt><dd>{{ v.months|selectattr('complete')|list|length }}</dd></div></dl>
+      <dl class="kv">
+        <dt>完整月合计</dt><dd>{{ v.reviews_complete|num }} 条（VP {{ v.vp_complete|num }} · 非 VP {{ v.nonvp_complete|num }}）{% if v.reference %} · {{ v.reference|join('、') }} 未完整，只作参考{% endif %}</dd>
+        <dt>估算方法</dt><dd>{{ '榜单排名平滑' if v.cfg.method == 'rank' and v.fit else '评论换算' }} VP×{{ v.cfg.vp_coef|num }} + 非 VP×{{ v.cfg.nonvp_coef|num }}<span class="etag">品类配置</span>{% if v.cfg.method == 'rank' and not v.fit %}<div class="cell-sub">配置为排名平滑，但本渠道不可用，仍按评论换算</div>{% endif %}</dd>
+        <dt>排名平滑</dt><dd>{% if v.fit %}可用 · 锚点 {{ v.fit_n }} 个{% else %}不可用 · 锚点 {{ v.fit_n }} 个（需 ≥ 10）{% endif %}</dd>
+      </dl>
+      {% if c == 'wayfair' %}<div class="banner banner--warn"><svg class="icon"><use href="#ph-info"/></svg><div class="banner__body small">Wayfair 只有 Verified Purchase 计 VP，口径与另两个渠道不同；绝对销量只在 Wayfair 内比较。</div></div>{% endif %}
+      {% else %}<p class="small muted">还没有并入。评论 VP 追踪完成采集后自动并入，或上传追踪器导出。</p>{% endif %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+<section class="section enter" style="--i:2" aria-labelledby="t-month">
+  <div class="section__head"><h2 class="section__title" id="t-month">月度并入状态</h2><span class="section__note">去重后评论条数 · 未完整月份只作参考、不计入</span></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>渠道</th>{% for m in months %}<th class="t-num">{{ m[5:] }}</th>{% endfor %}<th class="t-num">完整月合计</th><th class="t-num">未完整（参考）</th></tr></thead>
+      <tbody>
+      {% if months %}<tr class="table__divider"><td colspan="{{ months|length + 3 }}">{{ months[0][:4] }} 年 · 去重口径：有评论 ID 时按评论 ID；只有导出 Excel 时取文件“渠道月度汇总”的去重数</td></tr>{% endif %}
+      {% for c, v in summ.items() %}{% set bym = {} %}{% for m in v.months %}{% set _ = bym.update({m.month: m}) %}{% endfor %}
+      <tr><td class="cell-title t-nowrap">{{ v.name }}</td>{% for m in months %}<td class="t-num">{{ (bym.get(m) or {}).get('reviews', 0)|num }}</td>{% endfor %}
+        <td class="t-num strong">{{ v.reviews_complete|num }}</td><td class="t-num muted">{% for m in v.months if not m.complete %}{{ m.month }}：{{ m.reviews|num }}{% else %}—{% endfor %}</td></tr>
+      {% else %}<tr><td colspan="3" class="muted">还没有其他渠道数据。</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="panel" style="margin-top: var(--space-4);">
+    <div class="panel__head"><h3 class="panel__title">并入来源记录</h3></div>
+    <ul class="list">
+      {% for d in imports %}
+      <li class="list__item">
+        <svg class="icon list__icon {{ 'list__icon--warn' if d.reference else 'list__icon--ok' }}"><use href="#ph-{{ 'file-xls' if d.source == '手动上传' else 'git-merge' }}"/></svg>
+        <div class="list__body">
+          <div class="list__title">{{ d.source }}{% if d.file %} · {{ d.file }}{% endif %}</div>
+          <div class="list__desc">{{ d.at }} · {{ d.channels|sort|join(' / ') }} · 并入 {{ d.months|sort|first }} 至 {{ d.months|sort|last }} 共 {{ d.months|length }} 个完整月{% if d.reference %}；{{ d.reference|sort|join('、') }} 未完整，只作参考，不计入{% endif %} · 已按商品 ID 与渠道关联打标结果</div>
+        </div>
+        {% if d.reference %}<span class="list__action badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>{{ d.reference|length }} 个月仅参考</span>{% endif %}
+      </li>
+      {% else %}<li class="list__item"><div class="list__body muted small">还没有并入记录。</div></li>{% endfor %}
+    </ul>
+  </div>
+</section>
+
+<section class="section enter" style="--i:3" aria-labelledby="t-est">
+  <div class="section__head"><h2 class="section__title" id="t-est">估算方法对照 · 完整月平均</h2>
+    <a class="btn btn--sm" href="/settings/category"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>在品类配置中修改系数或方法</span></a></div>
+  <div class="tabs" role="tablist" aria-label="渠道">
+    {% for c in ['homedepot', 'lowes', 'wayfair'] %}<a class="tab" role="tab" aria-selected="{{ 'true' if c == ch else 'false' }}" href="/data/channels?ch={{ c }}#t-est">{{ channel_names[c] }}</a>{% endfor %}
+  </div>
+  {% set v = summ.get(ch) %}
+  <div class="method">
+    <div class="panel"><div class="panel__body"><div class="row"><strong>评论换算</strong>{% if not v or v.cfg.method != 'rank' or not v.fit %}<span class="badge badge--accent">在用</span>{% else %}<span class="badge badge--watch">对照</span>{% endif %}</div><div class="formula">月销 = VP 条数 × {{ (v.cfg.vp_coef if v else 50)|num }} + 非 VP 条数 × {{ (v.cfg.nonvp_coef if v else 20)|num }} · 品类配置当前版本</div></div></div>
+    <div class="panel"><div class="panel__body"><div class="row"><strong>榜单排名平滑</strong>{% if v and v.cfg.method == 'rank' and v.fit %}<span class="badge badge--accent">在用</span>{% else %}<span class="badge badge--watch">对照</span>{% endif %}</div><div class="formula">用同时有排名和评论换算销量的商品（锚点）拟合 ln(月销) = a + b·ln(排名){% if v and v.fit %}：a = {{ '%.2f'|format(v.fit.a) }}，b = {{ '%.2f'|format(v.fit.b) }}{% endif %}；锚点 &lt; 10 个不提供</div></div></div>
+  </div>
+  {% if v and not v.fit %}
+  <div class="banner banner--warn" style="margin-bottom: var(--space-3);"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">榜单排名平滑法不可用</div><div class="small">{{ v.fit_why }}。</div></div></div>
+  {% endif %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>商品</th><th class="t-num">排名</th><th class="t-num">VP（去重）</th><th class="t-num">非 VP（去重）</th><th class="t-num">评论换算月销</th><th class="t-num">排名平滑月销</th><th class="t-num">差异</th></tr></thead>
+      <tbody>
+      {% for r in compare %}
+        <tr><td><div class="cell-title">{{ r.brand }} {{ r.title[:70] }}</div><div class="cell-sub mono">{{ r.item_id }}</div></td><td class="t-num">{{ r.rank or '—' }}</td>
+          <td class="t-num">{{ '%.1f'|format(r.vp) }}</td><td class="t-num">{{ '%.1f'|format(r.nonvp) }}</td>
+          <td class="t-num">{{ r.units_review|num }}<span class="etag">估算</span></td>
+          <td class="t-num">{% if r.units_rank is not none %}{{ r.units_rank|num }}<span class="etag">估算</span>{% else %}<span class="etag etag--nodata">不可用</span>{% endif %}</td>
+          <td class="t-num {{ 'diff-up' if r.diff is not none and r.diff > 0.3 else '' }}">{{ ('%+.1f%%'|format(r.diff * 100)) if r.diff is not none else '—' }}</td></tr>
+      {% else %}<tr><td colspan="7" class="muted">本渠道还没有完整月数据。</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if v %}<div class="pager"><span>{{ v.name }} · {{ v.n_items|num }} 个商品 · 锚点 {{ v.fit_n }} 个 · 按排名列前 {{ compare|length }} 个</span></div>{% endif %}
+</section>
+
+<section class="section enter" style="--i:4" aria-labelledby="t-dedup">
+  <div class="section__head"><h2 class="section__title" id="t-dedup">同系列去重</h2><span class="section__note">渠道或单元合计时按评论 ID 去重，不重复计入同系列商品</span></div>
+  <div class="panel"><div class="panel__body">
+    <p>同系列不同颜色、尺寸的商品在平台上共享同一批评论，每个商品页都显示同样的评论。单个商品仍显示其页面上的评论数；渠道和单元合计按评论 ID 只算一次（一条评论被 k 个商品共享时每个商品记 1/k）。</p>
+    <div class="ex">
+      {% for c, d in dedup.items() %}
+      <div class="stat"><div class="stat__label">{{ channel_names[c] }} · {{ d.month }}</div><div class="stat__value num">{{ d.page|num }} → {{ d.dedup|num }}<span class="stat__unit">条</span></div><div class="stat__meta">商品页合计 → 按评论 ID 去重</div></div>
+      {% endfor %}
+    </div>
+  </div></div>
+</section>
+{% endblock %}
+
+{% block modals %}
+<aside class="drawer" id="d-upload" role="dialog" aria-modal="true" aria-labelledby="d-upload-t" aria-hidden="true">
+  <form method="post" action="/data/channels/import" enctype="multipart/form-data" style="display:contents">
+  <div class="drawer__head">
+    <div><h2 class="drawer__title" id="d-upload-t">上传追踪器导出</h2><p class="drawer__sub">评论 VP 追踪器导出的 Excel，需含"商品月度明细"表；按同一口径并入</p></div>
+    <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+  </div>
+  <div class="drawer__body stack-lg">
+    <label class="dropzone" for="u-file">
+      <svg class="icon"><use href="#ph-file-xls"/></svg>
+      <span><span class="strong" id="u-name">选择评论月度 VP 导出文件</span><br><span class="small muted">.xlsx，含“商品月度明细”表（可同时含“渠道月度汇总”）</span></span>
+      <input class="visually-hidden" id="u-file" name="file" type="file" accept=".xlsx" required>
+    </label>
+    <p class="field__hint">表头带“（未完整）”的月份只作参考，不计入；同渠道同月已有数据时按同一口径覆盖（旧版本保留）。文件里没有“商品月度明细”表时无法并入。</p>
+  </div>
+  <div class="drawer__foot">
+    <button class="btn" type="button" data-close>取消</button>
+    <button class="btn btn--primary" type="submit"><span>并入</span></button>
+  </div>
+  </form>
+</aside>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () { var f = document.getElementById('u-file'), n = document.getElementById('u-name'); if (f && n) f.addEventListener('change', function () { if (f.files[0]) n.textContent = f.files[0].name; }); })();
+</script>
+{% endblock %}

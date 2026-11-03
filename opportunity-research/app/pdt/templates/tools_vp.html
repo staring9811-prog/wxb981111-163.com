@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .steps--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .proj { display: flex; align-items: center; gap: var(--space-2); }
+  .proj .select { width: 200px; }
+  .svc { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); font-size: var(--text-sm); }
+  .svc__item { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .entries .input { min-width: 0; }
+  .entries .input--url { min-width: 260px; }
+  .entries .input[data-k="name"] { width: 140px; }
+  .entries .select[data-k="mode"] { min-width: 132px; }
+  .entries .input--n { width: 72px; }
+  .entries .select { min-width: 112px; }
+  .runbtns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  .runbtns .btn, .runbtns form .btn { justify-content: flex-start; width: 100%; }
+  .prog { display: grid; grid-template-columns: 88px minmax(0, 1fr) max-content; gap: var(--space-2) var(--space-3); align-items: center; font-size: var(--text-sm); }
+  .prog .meter { margin-top: 0; }
+  .log { margin: 0; padding: var(--space-3) var(--space-4); max-height: 180px; overflow: auto; background: var(--surface-warm); border-radius: 0 0 var(--radius-lg) var(--radius-lg); font-family: var(--font-mono); font-size: var(--text-2xs); line-height: 1.7; color: var(--fg-2); white-space: pre-wrap; }
+  .files { margin: 0; padding: 0; list-style: none; }
+  .files li { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-5); border-bottom: 1px solid var(--border-soft); font-size: var(--text-sm); }
+  .files li:last-child { border-bottom: 0; }
+  .kw { min-height: 60px; }
+</style>
+{% endblock %}
+{% block content %}
+{% if not cfg %}
+<div class="empty"><svg class="icon"><use href="#ph-chart-bar"/></svg><div class="empty__title">还没有项目</div><div class="empty__desc">原评论月度 VP 追踪器的项目设置没有找到。</div></div>
+{% else %}
+{% set lists_done = st.lists and (st.lists.values()|selectattr('done')|list|length) == (st.lists|length) %}
+{% set sel_total = st.lists.values()|sum(attribute='选中') %}
+{% set col_total = st.lists.values()|sum(attribute='已采集') %}
+{% set running = (jobs.vp_lists and jobs.vp_lists.status in ('running', 'queued')) or (jobs.vp_collect and jobs.vp_collect.status in ('running', 'queued')) %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <div class="crumbs"><span>工具</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>评论 VP 追踪</span></div>
+    <h1>评论 VP 追踪</h1>
+    <p class="page-head__sub">按月统计 Home Depot / Lowe's / Wayfair 商品评论的 VP / 非 VP 数量；口径与原追踪器一致，每一步都可断点续跑。</p>
+  </div>
+  <div class="page-head__actions">
+    <label class="proj"><span class="visually-hidden">选择项目</span>
+      <select class="select" id="projSel" aria-label="选择项目">{% for n in names %}<option {% if n == name %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+    </label>
+    <button class="btn" type="button" data-open="#dlgCopy"><svg class="icon"><use href="#ph-copy"/></svg><span>复制为新项目</span></button>
+    <button class="btn" type="button" id="btnSave"><svg class="icon"><use href="#ph-check"/></svg><span>保存设置</span></button>
+  </div>
+</div>
+<div class="banner enter" style="--i:1">
+  <svg class="icon"><use href="#ph-fingerprint"/></svg>
+  <div class="banner__body">
+    <div class="svc">
+      {% for nm, x in [('Bright Data', bd), ('Apify', ap)] %}<span class="svc__item">{% if x.ok %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>{{ nm }} 已连接</span><span class="fp">···· {{ x.last4 }}</span>{% else %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>{{ nm }} 未连接</span>{% endif %}</span>{% endfor %}
+      <span class="svc__item"><span class="badge"><svg class="icon"><use href="#ph-info"/></svg>Home Depot 直连，免费</span></span>
+    </div>
+    <p class="small muted" style="margin-top:4px">密钥在 <a href="/settings/keys">密钥与大模型</a> 里填写；月度上限与费用记录共用 <a href="/settings/budget">预算与费用</a>。本页不保存密钥。{% if not (bd.ok and ap.ok) %}未连接时只采 Home Depot，Lowe's / Wayfair 入口跳过。{% endif %}</p>
+  </div>
+</div>
+{% if (jobs.vp_collect and jobs.vp_collect.status == 'stopped_cap') or (jobs.vp_lists and jobs.vp_lists.status == 'stopped_cap') %}
+<div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">已达上限，已采数据已保存</div><div class="small">{{ (jobs.vp_collect or jobs.vp_lists).error }}</div></div><div class="banner__actions"><a class="btn btn--sm" href="/settings/budget">预算与费用</a></div></div>
+{% endif %}
+
+<ol class="steps steps--4 section enter" style="--i:2" aria-label="四步流程">
+  <li class="step step--{{ 'done' if lists_done else 'current' }}"><a class="step__link" href="#panelLists"><span class="step__dot">{% if lists_done %}<svg class="icon"><use href="#ph-check"/></svg>{% else %}1{% endif %}</span><span class="step__name">① 采集列表</span><span class="step__meta">{{ st.lists|length }} 个入口 · 选中 {{ sel_total }}/{{ st.lists.values()|sum(attribute='目标') }}</span></a></li>
+  <li class="step step--{{ 'done' if st.estimate else ('current' if lists_done else 'todo') }}"><a class="step__link" href="#panelEst"><span class="step__dot">{% if st.estimate %}<svg class="icon"><use href="#ph-check"/></svg>{% else %}2{% endif %}</span><span class="step__name">② 评估费用</span><span class="step__meta">{% if st.estimate %}约 ${{ st.estimate['合计']['总费用'] }} · 约 {{ st.estimate['合计']['预计耗时分钟'] }} 分钟{% else %}①完成后可评估{% endif %}</span></a></li>
+  {% set c_done = sel_total and col_total >= sel_total %}
+  <li class="step step--{{ 'done' if c_done else ('current' if st.estimate else 'todo') }}"><a class="step__link" href="#panelRun"><span class="step__dot">{% if c_done %}<svg class="icon"><use href="#ph-check"/></svg>{% else %}3{% endif %}</span><span class="step__name">③ 采集评论</span><span class="step__meta">{% if jobs.vp_collect and jobs.vp_collect.status in ('running', 'queued') %}进行中 · {% elif jobs.vp_collect and jobs.vp_collect.status in ('paused', 'stopped_cap') %}待继续 · {% endif %}{{ col_total }}/{{ sel_total }} 商品</span></a></li>
+  <li class="step step--{{ 'done' if st.exports else ('current' if c_done else 'todo') }}"><a class="step__link" href="#panelExport"><span class="step__dot">{% if st.exports %}<svg class="icon"><use href="#ph-check"/></svg>{% else %}4{% endif %}</span><span class="step__name">④ 导出 Excel</span><span class="step__meta">{{ '已导出 ' ~ (st.exports|length) ~ ' 个文件' if st.exports else '采集后可导出' }}</span></a></li>
+</ol>
+
+<div class="grid-main-side section">
+  <form class="stack-lg" aria-label="项目设置" id="cfgForm" onsubmit="return false">
+    <section class="panel enter" style="--i:3">
+      <div class="panel__head"><h2 class="panel__title">1. 项目与时间窗</h2><span class="section__note">时间窗决定统计哪些月份；时间窗越长，评论越多、费用越高</span></div>
+      <div class="panel__body"><div class="form-grid">
+        <label class="field"><span class="field__label">项目名<span class="req">*</span></span><input class="input" name="name" value="{{ cfg.name }}"></label>
+        <label class="field"><span class="field__label">品类<span class="req">*</span></span><input class="input" name="category" value="{{ cfg.category }}"></label>
+        <label class="field"><span class="field__label">起始日期<span class="req">*</span></span><input class="input" type="date" name="w_start" value="{{ cfg.window.start }}"></label>
+        <label class="field"><span class="field__label">最后一个完整月的月底<span class="req">*</span></span><input class="input" type="date" name="w_end" value="{{ cfg.window.full_end }}"><span class="field__hint">未完整月份只作参考，不并入分析库</span></label>
+        <label class="check span-2"><input type="checkbox" name="w_partial" {% if cfg.window.include_partial %}checked{% endif %}>当月未完整的数据也采，单列"未完整"</label>
+      </div></div>
+    </section>
+    <section class="panel enter" style="--i:4" id="panelLists">
+      <div class="panel__head"><h2 class="panel__title">2. 渠道与落地页</h2><button class="btn btn--sm" type="button" id="btnAddEntry"><svg class="icon"><use href="#ph-plus"/></svg><span>添加入口</span></button></div>
+      <div class="panel__body" style="padding-bottom:var(--space-2)"><p class="small muted">有 BSR 的渠道（Lowe's Best Sellers）选"BSR / 热销榜"取前 N；没有 BSR 的渠道（Home Depot 按 Top Sellers、Wayfair 按默认排序）选"类目落地页"或"关键词落地页"。排除广告会跳过 Sponsored 并顺延补足 N；父体去重把同一款不同颜色 / 尺寸只算一个（Lowe's 按父体 ID、HDP 按共享评论判断、Wayfair 本身按款列出）。</p></div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table entries">
+          <thead><tr><th>启用</th><th>名称</th><th>平台</th><th>落地页类型</th><th>网址 / 关键词</th><th class="t-num">前 N</th><th>排除广告</th><th>父体去重</th><th class="t-num">选中 / 目标</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+          <tbody id="entries">
+            {% for e in cfg.entries %}{% set L = st.lists.get(e.name) %}
+            <tr data-entry>
+              <td><label class="check"><input type="checkbox" data-k="enabled" {% if e.enabled is not defined or e.enabled %}checked{% endif %} aria-label="启用"></label></td>
+              <td><input class="input" data-k="name" value="{{ e.name }}" aria-label="入口名称"></td>
+              <td><select class="select" data-k="platform" aria-label="平台">{% for k, v in plats.items() %}<option value="{{ k }}" {% if e.platform == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></td>
+              <td><select class="select" data-k="mode" aria-label="落地页类型">{% for k, v in [('bsr', 'BSR / 热销榜'), ('category', '类目落地页'), ('keyword', '关键词落地页')] %}<option value="{{ k }}" {% if (e.mode or 'category') == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></td>
+              <td><input class="input input--url mono" data-k="target" value="{{ e.keyword if e.mode == 'keyword' else e.url }}" aria-label="网址或关键词"></td>
+              <td class="t-num"><input class="input input--num input--n" data-k="top_n" value="{{ e.top_n }}" aria-label="前 N"></td>
+              <td><label class="check"><input type="checkbox" data-k="exclude_sponsored" {% if e.exclude_sponsored is not defined or e.exclude_sponsored %}checked{% endif %} aria-label="排除广告"></label></td>
+              <td><label class="check"><input type="checkbox" data-k="dedupe_parent" {% if e.dedupe_parent %}checked{% endif %} aria-label="父体去重"></label></td>
+              <td class="t-num">{% if L and L.done %}{{ L['选中'] }} / {{ L['目标'] }}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
+              <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除入口" data-del-entry><svg class="icon"><use href="#ph-x"/></svg></button></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="panel__foot"><label class="check"><input type="checkbox" name="dedupe_x" {% if cfg.dedupe_across_entries %}checked{% endif %}>跨入口去重：同一商品 / 父体已被前面的入口选中时，后面的入口跳过并顺延</label></div>
+    </section>
+    <section class="panel enter" style="--i:5">
+      <div class="panel__head"><h2 class="panel__title">3. 品类筛选（只留目标品类）</h2><span class="section__note">被排除的商品在 Excel"商品"表里留排除原因</span></div>
+      <div class="panel__body"><div class="form-grid">
+        <label class="field span-2"><span class="field__label">内置规则</span><select class="select" name="preset"><option value="" {% if not cfg.filters.preset %}selected{% endif %}>无（只用下面的关键词）</option><option value="bathroom_vanity" {% if cfg.filters.preset == 'bathroom_vanity' %}selected{% endif %}>浴室柜</option></select></label>
+        <label class="field"><span class="field__label">标题必须含（任一，逗号分隔）</span><textarea class="textarea kw" name="include" placeholder="例：vanity, bathroom cabinet">{{ (cfg.filters.include_keywords or [])|join(', ') }}</textarea></label>
+        <label class="field"><span class="field__label">标题含这些就排除</span><textarea class="textarea kw" name="exclude" placeholder="例：mirror, faucet only">{{ (cfg.filters.exclude_keywords or [])|join(', ') }}</textarea></label>
+        <label class="field span-2"><span class="field__label">但含这些仍保留</span><input class="input" name="keep" placeholder="例：vanity with" value="{{ (cfg.filters.keep_keywords or [])|join(', ') }}"></label>
+      </div></div>
+    </section>
+    <div class="grid-2">
+      <section class="panel enter" style="--i:5">
+        <div class="panel__head"><h2 class="panel__title">4. 评论少的商品</h2></div>
+        <div class="panel__body stack">
+          <label class="field"><span class="field__label">页面累计评论数低于（条，0 = 不启用）</span><input class="input input--num" style="width:120px" name="low_th" value="{{ cfg.low_reviews.threshold if cfg.low_reviews else 0 }}"></label>
+          <div class="choice-group" role="radiogroup" aria-label="评论少的商品如何处理">
+            {% set lm = cfg.low_reviews.mode if cfg.low_reviews else 'split' %}
+            <label class="choice"><input type="radio" name="low_mode" value="split" {% if lm == 'split' %}checked{% endif %}>照常区分 VP / 非 VP</label>
+            <label class="choice"><input type="radio" name="low_mode" value="total_only" {% if lm == 'total_only' %}checked{% endif %}>只计月度合计</label>
+            <label class="choice"><input type="radio" name="low_mode" value="skip" {% if lm == 'skip' %}checked{% endif %}>不采集（省钱）</label>
+          </div>
+        </div>
+      </section>
+      <section class="panel enter" style="--i:5">
+        <div class="panel__head"><h2 class="panel__title">5. 本项目预算（美元）</h2></div>
+        <div class="panel__body stack">
+          <div class="form-grid">
+            {% for k, lab in [('bd_lowes_usd', "Bright Data · Lowe's"), ('bd_wayfair_usd', 'Bright Data · Wayfair'), ('apify_lowes_usd', "Apify · Lowe's"), ('apify_wayfair_usd', 'Apify · Wayfair')] %}
+            <label class="field"><span class="field__label">{{ lab }}</span><input class="input input--num" name="b_{{ k }}" value="{{ cfg.budget[k] if cfg.budget and k in cfg.budget else 10 }}"></label>{% endfor %}
+          </div>
+          <p class="field__hint">本项目预算与 <a href="/settings/budget">设置页月度上限</a> 任一先到即停，已采数据保留。</p>
+          <label class="check"><input type="checkbox" name="details" {% if not cfg.export or cfg.export.review_details %}checked{% endif %}>Excel 附评论明细（作证据用）</label>
+        </div>
+      </section>
+    </div>
+  </form>
+
+  <div class="stack-lg">
+    <section class="panel enter" style="--i:3" id="panelRun">
+      <div class="panel__head"><h2 class="panel__title">运行</h2>{% if running %}<span class="badge badge--accent"><svg class="icon spin"><use href="#ph-circle-notch"/></svg>运行中</span>{% endif %}</div>
+      <div class="panel__body stack">
+        <div class="runbtns">
+          <button class="btn" type="button" data-cost-kind="vp_lists" data-cost-target="vp:{{ name }}" {% if running %}disabled{% endif %}><svg class="icon"><use href="#ph-list-numbers"/></svg><span>① 采集列表</span></button>
+          <form method="post" action="/tools/vp/estimate?name={{ name|urlencode }}"><button class="btn" type="submit" {% if not lists_done or running %}disabled title="①完成后可评估"{% endif %}><svg class="icon"><use href="#ph-timer"/></svg><span>② 评估费用</span></button></form>
+          <button class="btn" type="button" data-cost-kind="vp_collect" data-cost-target="vp:{{ name }}" {% if not st.estimate or running %}disabled title="{{ '正在运行' if running else '②完成后可采集' }}"{% endif %}><svg class="icon"><use href="#ph-play"/></svg><span>③ 采集评论</span></button>
+          <form method="post" action="/tools/vp/export?name={{ name|urlencode }}"><button class="btn" type="submit" {% if not col_total or running %}disabled title="采集后可导出"{% endif %}><svg class="icon"><use href="#ph-file-xls"/></svg><span>④ 导出 Excel</span></button></form>
+        </div>
+        <div class="prog" aria-label="各平台采集进度">
+          {% for p, v in st.progress.items() %}<span>{{ plats[p] }}</span><div class="meter"><i style="width:{{ (v[0] / v[1] * 100) if v[1] else 0 }}%"></i></div><span class="num small">{{ v[0] }}/{{ v[1] }}{% if v[1] and v[0] >= v[1] %} 完成{% endif %}</span>{% endfor %}
+        </div>
+        <p class="small muted">已成功的商品不会重复调用、不会重复计费。中断后点"③ 采集评论"即从断点继续。</p>
+        {% set rj = jobs.vp_collect if (jobs.vp_collect and jobs.vp_collect.status in ('running', 'queued')) else (jobs.vp_lists if (jobs.vp_lists and jobs.vp_lists.status in ('running', 'queued')) else none) %}
+        {% if rj %}<div class="row"><button class="btn btn--sm" type="button" data-pause="{{ rj.id }}"><svg class="icon"><use href="#ph-minus"/></svg><span>暂停</span></button></div>{% endif %}
+      </div>
+    </section>
+    <section class="panel enter" style="--i:4" id="panelEst">
+      <div class="panel__head"><h2 class="panel__title">时间与费用评估</h2><span class="section__note">{% if st.estimate %}{{ st.estimate.at }} · 用列表真实商品数估算{% else %}①完成后点②{% endif %}</span></div>
+      {% if st.estimate %}
+      <div class="table-wrap table-wrap--flush"><table class="table">
+        <thead><tr><th>平台</th><th class="t-num">商品</th><th class="t-num">预计评论</th><th class="t-num">费用区间</th></tr></thead>
+        <tbody>
+          {% for p, v in st.estimate['平台'].items() %}<tr><td>{{ plats[p] }}</td><td class="t-num">{{ v['商品数'] }}</td><td class="t-num">{{ v['预计窗口内评论'][0]|num }}–{{ v['预计窗口内评论'][1]|num }}</td><td class="t-num">${{ '%.2f'|format(v['BD费用'] + v['Apify费用']) }}</td></tr>{% endfor %}
+          <tr><td class="strong">合计</td><td class="t-num strong">{{ st.estimate['平台'].values()|sum(attribute='商品数') }}</td><td class="t-num"></td><td class="t-num strong">${{ st.estimate['合计']['总费用'] }}<span class="etag">估算</span></td></tr>
+        </tbody>
+      </table></div>
+      <div class="panel__foot small muted">{{ st.estimate['合计']['说明'] }}</div>
+      {% endif %}
+    </section>
+    <section class="panel enter" style="--i:5">
+      <div class="panel__head"><h2 class="panel__title">本月已花费</h2><a class="small" href="/settings/budget">费用记录</a></div>
+      <div class="panel__body stack">
+        {% for svc, lab in [('brightdata', 'Bright Data'), ('apify', 'Apify')] %}{% set u = usage[svc] %}
+        <div><div class="row"><span class="small">{{ lab }}</span><span class="spacer"></span><span class="num small"><span class="strong">{{ '$%.2f'|format(u.spent) if u.unit != 'calls' else u.spent|num ~ ' 次' }}</span> / {% if u.cap is none %}未设上限{% else %}上限 {{ '$%.2f'|format(u.cap) if u.unit != 'calls' else u.cap|num ~ ' 次' }}{% endif %}</span></div>
+          <div class="meter"><i style="width:{{ ([u.spent / u.cap * 100, 100]|min) if u.cap else 0 }}%"></i></div></div>
+        {% endfor %}
+        <p class="small muted">本项目累计：{% for k, v in st.ledger.items() %}{{ k }} {{ v }}{% if not loop.last %}；{% endif %}{% else %}还没有花费{% endfor %}。全部计入同一费用记录。</p>
+      </div>
+    </section>
+    <section class="panel enter" style="--i:5" id="panelExport">
+      <div class="panel__head"><h2 class="panel__title">导出文件</h2><span class="section__note">每个平台一个文件 + 汇总</span></div>
+      {% if st.exports %}<ul class="files">{% for f in st.exports|reverse %}<li><svg class="icon"><use href="#ph-file-xls"/></svg><a href="/tools/vp/download?name={{ name|urlencode }}&file={{ f|urlencode }}">{{ f }}</a></li>{% endfor %}</ul>
+      <div class="panel__foot">工作表：月度趋势、入口月度汇总、商品、评论明细{% if st.status.ingested %}；完整月份已并入 <a href="/data/channels">其他渠道数据</a>（{{ st.status.ingested }}）{% endif %}。</div>
+      {% else %}<div class="panel__body small muted">还没有导出。</div>{% endif %}
+    </section>
+    <section class="panel enter" style="--i:5">
+      <div class="panel__head"><h2 class="panel__title">日志</h2></div>
+      <pre class="log" aria-label="运行日志">{{ st.log|join('\n') if st.log else '还没有运行记录' }}</pre>
+    </section>
+  </div>
+</div>
+
+<section class="section enter" style="--i:5">
+  <div class="section__head"><h2 class="section__title">入口月度汇总</h2><span class="section__note">{{ st.months[0] if st.months else '' }} 起 · 按评论 ID 去重，同系列共享评论不重复算 · Wayfair 只有 "Verified Purchase" 计 VP</span></div>
+  {% if monthly and monthly|sum(attribute='total') %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>渠道</th>{% for m in st.months %}{% if '未完整' not in m %}<th class="t-num">{{ month_short(m) }}</th>{% endif %}{% endfor %}<th class="t-num">完整月合计</th><th class="t-num">VP / 非 VP</th><th class="t-num">VP 占比</th><th class="t-num">未完整（参考）</th></tr></thead>
+    <tbody>{% for r in monthly %}<tr><td class="cell-title">{{ r.name }}</td>{% for m in st.months %}{% if '未完整' not in m %}<td class="t-num">{{ r.months[m]|num }}</td>{% endif %}{% endfor %}<td class="t-num strong">{{ r.total|num }}<span class="etag">实测</span></td><td class="t-num">{{ r.vp|num }} / {{ r.nonvp|num }}</td><td class="t-num">{{ (r.vp / r.total)|pct if r.total else '—' }}<span class="etag etag--n">n={{ r.total|num }}</span></td><td class="t-num t-partial">{{ r.partial|num }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">还没有采集结果</div><div class="empty__desc">先点 ① 采集列表。</div></div>{% endif %}
+  <p class="page-foot">VP 口径：Home Depot、Lowe's 用评论自带的 verifiedPurchaser 标记；Wayfair 每条评论只有一个徽章，只有 "Verified Purchase" 计 VP，Incentivized、Wayfair Professional 等计非 VP。采集完成的完整月份会并入 <a href="/data/channels">其他渠道数据</a>。</p>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+{% if cfg %}
+<div class="modal" id="dlgCopy" role="dialog" aria-modal="true" aria-labelledby="cpTitle" aria-hidden="true">
+  <form class="modal__dialog" method="post" action="/tools/vp/copy">
+    <input type="hidden" name="src" value="{{ name }}">
+    <div class="modal__head"><div><h2 class="modal__title" id="cpTitle">复制为新项目</h2><p class="modal__sub">复制“{{ name }}”的全部设置</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body"><label class="field"><span class="field__label">新项目名<span class="req">*</span></span><input class="input" name="new" required placeholder="例：浴室柜_2027"></label></div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="submit">复制</button></div>
+  </form>
+</div>
+<template id="entryTpl"><tr data-entry>
+  <td><label class="check"><input type="checkbox" data-k="enabled" checked aria-label="启用"></label></td>
+  <td><input class="input" data-k="name" value="新入口" aria-label="入口名称"></td>
+  <td><select class="select" data-k="platform" aria-label="平台">{% for k, v in plats.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></td>
+  <td><select class="select" data-k="mode" aria-label="落地页类型"><option value="bsr">BSR / 热销榜</option><option value="category" selected>类目落地页</option><option value="keyword">关键词落地页</option></select></td>
+  <td><input class="input input--url mono" data-k="target" aria-label="网址或关键词"></td>
+  <td class="t-num"><input class="input input--num input--n" data-k="top_n" value="100" aria-label="前 N"></td>
+  <td><label class="check"><input type="checkbox" data-k="exclude_sponsored" checked aria-label="排除广告"></label></td>
+  <td><label class="check"><input type="checkbox" data-k="dedupe_parent" aria-label="父体去重"></label></td>
+  <td class="t-num"><span class="etag etag--nodata">无数据</span></td>
+  <td><button class="btn btn--ghost btn--sm btn--icon" type="button" aria-label="删除入口" data-del-entry><svg class="icon"><use href="#ph-x"/></svg></button></td>
+</tr></template>
+<script type="application/json" id="cfg-json">{{ cfg_json|safe }}</script>
+{% include "_cost_modal.html" %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if cfg %}
+<script>
+(function () {
+  var doc = document, form = doc.getElementById('cfgForm'), base = JSON.parse(doc.getElementById('cfg-json').textContent);
+  doc.getElementById('projSel').addEventListener('change', function () { location.href = '/tools/vp?name=' + encodeURIComponent(this.value); });
+  doc.getElementById('btnAddEntry').addEventListener('click', function () { doc.getElementById('entries').appendChild(doc.getElementById('entryTpl').content.cloneNode(true)); });
+  doc.getElementById('entries').addEventListener('click', function (e) { var b = e.target.closest('[data-del-entry]'); if (b) b.closest('tr').remove(); });
+  var words = function (v) { return v.split(/[,，\n]/).map(function (x) { return x.trim(); }).filter(Boolean); };
+  function collect() {
+    var f = form.elements, cfg = JSON.parse(JSON.stringify(base));
+    cfg.name = f.name.value.trim(); cfg.category = f.category.value.trim();
+    cfg.window = { start: f.w_start.value, full_end: f.w_end.value, include_partial: f.w_partial.checked };
+    cfg.entries = Array.prototype.map.call(doc.querySelectorAll('#entries tr[data-entry]'), function (tr) {
+      var g = function (k) { return tr.querySelector('[data-k="' + k + '"]'); };
+      var e = { enabled: g('enabled').checked, name: g('name').value.trim(), platform: g('platform').value, mode: g('mode').value,
+        top_n: parseInt(g('top_n').value, 10) || 0, exclude_sponsored: g('exclude_sponsored').checked, dedupe_parent: g('dedupe_parent').checked };
+      if (e.mode === 'keyword') e.keyword = g('target').value.trim(); else e.url = g('target').value.trim();
+      return e;
+    });
+    cfg.dedupe_across_entries = f.dedupe_x.checked;
+    cfg.filters = { preset: f.preset.value, include_keywords: words(f.include.value), exclude_keywords: words(f.exclude.value), keep_keywords: words(f.keep.value) };
+    cfg.low_reviews = { threshold: parseInt(f.low_th.value, 10) || 0, mode: (form.querySelector('input[name="low_mode"]:checked') || {}).value || 'split' };
+    cfg.budget = {}; ['bd_lowes_usd', 'bd_wayfair_usd', 'apify_lowes_usd', 'apify_wayfair_usd'].forEach(function (k) { cfg.budget[k] = parseFloat(f['b_' + k].value) || 0; });
+    cfg.export = Object.assign({}, cfg.export || {}, { review_details: f.details.checked });
+    return cfg;
+  }
+  doc.getElementById('btnSave').addEventListener('click', function () {
+    var fd = new FormData(); fd.append('cfg', JSON.stringify(collect()));
+    fetch('/tools/vp/project', { method: 'POST', body: fd, headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.detail) { window.oppoToast(j.detail); return; }
+      location.href = '/tools/vp?name=' + encodeURIComponent(j.name) + '&msg=' + encodeURIComponent('设置已保存：' + j.name);
+    });
+  });
+  doc.querySelectorAll('[data-pause]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      fetch('/jobs/' + b.getAttribute('data-pause') + '/pause', { method: 'POST', headers: { accept: 'application/json' } }).then(function () { window.oppoToast('已请求暂停，进度已保存'); });
+    });
+  });
+  function poll(id) {
+    fetch('/jobs/' + id, { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.status === 'running' || j.status === 'queued') { setTimeout(function () { poll(id); }, 2000); return; }
+      location.reload();
+    });
+  }
+  window.addEventListener('pdt:job-started', function (ev) { if (ev.detail && ev.detail.id) poll(ev.detail.id); });
+  var running = doc.querySelector('[data-pause]'); if (running) poll(running.getAttribute('data-pause'));
+})();
+</script>
+{% endif %}
+{% endblock %}

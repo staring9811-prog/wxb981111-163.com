@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .judge { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .judge .ch { font-size: var(--text-2xs); color: var(--muted); margin-right: 2px; }
+  .crit { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: var(--space-2) var(--space-4); align-items: center; font-size: var(--text-sm); }
+  .lines { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+  .line { padding: var(--space-3) var(--space-4); border: 1px solid var(--border-soft); border-radius: var(--radius-md); background: var(--surface-warm); font-size: var(--text-sm); }
+  .line__ch { font-weight: 600; }
+  .stoplist { margin: 0; padding-left: 1.2em; font-size: var(--text-sm); }
+  .tlink-btn { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; }
+  @media (max-width: 1279px) { .lines { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+{% endblock %}
+{% macro jbadge(st) -%}
+{%- if st == '做到' %}<span class="badge badge--hit"><svg class="icon"><use href="#ph-check-circle"/></svg>做到</span>
+{%- elif st == '未做到' %}<span class="badge badge--miss"><svg class="icon"><use href="#ph-minus"/></svg>未做到</span>
+{%- elif st == '数据不全' %}<span class="badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>数据不全</span>
+{%- else %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>观察中</span>{% endif -%}
+{%- endmacro %}
+{% macro sbadge(st) -%}
+{%- if st == 'tracking' %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>跟踪中</span>
+{%- elif st == 'due' %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-calendar-blank"/></svg>本月到期</span>
+{%- elif st == 'unlinked' %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-link-simple"/></svg>待关联</span>
+{%- else %}<span class="badge"><svg class="icon"><use href="#ph-check"/></svg>已对账</span>{% endif -%}
+{%- endmacro %}
+{% macro crit(ok, text) -%}
+{%- if ok is none %}<span class="badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>数据不全{{ text }}</span>
+{%- elif ok %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>达标{{ text }}</span>
+{%- else %}<span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>未达标{{ text }}</span>{% endif -%}
+{%- endmacro %}
+{% macro ratio(a, b) -%}{% if b %}{{ (a / b)|pct(0) }}<span class="etag etag--n">{{ a }}/{{ b }}</span>{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}{%- endmacro %}
+{% set ST = {'tracking': 'track', 'due': 'due', 'reconciled': 'done', 'unlinked': 'link'} %}
+{% block content %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <div class="crumbs"><span>审批与台账</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>预测台账</span></div>
+    <h1>预测台账</h1>
+    <p class="page-head__sub">决策卡批准即登记预测；预计上架后满 6 个月且对应月份数据已并入，自动判定是否做到。各渠道分别判定，不合并成一个结论。</p>
+  </div>
+  <div class="page-head__actions"><a class="btn" href="/ledger/export"><svg class="icon"><use href="#ph-file-xls"/></svg><span>导出 Excel</span></a></div>
+</div>
+{% if unlinked %}
+<div class="banner banner--warn enter" style="--i:1">
+  <svg class="icon"><use href="#ph-link-simple"/></svg>
+  <div class="banner__body"><div class="banner__title">{{ unlinked|length }} 条待关联：{{ unlinked|map(attribute='name')|join('、') }}</div><div class="small">{% for r in unlinked %}{{ r.name }} 预计 {{ r.f.launch_month }} 上架{% if not loop.last %}；{% endif %}{% endfor %}，已超过 3 个月仍未关联自家 ASIN，无法对账。</div></div>
+  {% if is_op %}<div class="banner__actions"><button class="btn btn--sm" type="button" data-link="{{ unlinked[0].f.id }}">关联自家 ASIN</button></div>{% endif %}
+</div>
+{% endif %}
+<div class="stats section enter" style="--i:2">
+  <div class="stat"><div class="stat__label">已登记</div><div class="stat__value">{{ counts.all }}<span class="stat__unit">条</span></div><div class="stat__meta">{% if rows %}最近：{{ rows[0].name }}（{{ rows[0].f.registered_at.strftime('%m-%d') }}）{% else %}批准即登记{% endif %}</div></div>
+  <div class="stat"><div class="stat__label">跟踪中</div><div class="stat__value">{{ counts.tracking }}<span class="stat__unit">条</span></div><div class="stat__meta">未满 6 个月</div></div>
+  <div class="stat"><div class="stat__label">本月到期</div><div class="stat__value">{{ counts.due }}<span class="stat__unit">条</span></div><div class="stat__meta">等对应月份数据并入后对账</div></div>
+  <div class="stat"><div class="stat__label">已对账</div><div class="stat__value">{{ counts.reconciled }}<span class="stat__unit">条</span></div><div class="stat__meta">{% set am = summ.grades|sum(attribute='made') %}{% set amn = summ.grades|sum(attribute='made_n') %}Amazon 做到 {{ am }}/{{ amn }}</div></div>
+</div>
+
+<section class="section enter" style="--i:3">
+  <div class="section__head"><h2 class="section__title">准确率汇总</h2><span class="section__note">只计已对账条目；判定用 Amazon 成功线，其他渠道单列</span></div>
+  {% if not summ.n %}<p class="small muted">还没有已对账的条目，有效标准标“无数据”。</p>{% endif %}
+  <div class="grid-2">
+    <section class="panel">
+      <div class="panel__head"><h3 class="panel__title">市场层 · 按分级</h3>{% if summ.d_ok is none or summ.mono is none %}<span class="badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>数据不全</span>{% elif summ.d_ok and summ.mono %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>达标</span>{% else %}<span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>未达标</span>{% endif %}</div>
+      <div class="table-wrap table-wrap--flush"><table class="table">
+        <thead><tr><th>分级</th><th class="t-num">已对账</th><th class="t-num">份额实际变大</th><th class="t-num">实际做到</th></tr></thead>
+        <tbody>{% for g in summ.grades %}<tr><td>{{ g.grade }}</td><td class="t-num">{{ g.n }}</td><td class="t-num">{{ ratio(g.grew, g.grew_n) }}</td><td class="t-num">{{ ratio(g.made, g.made_n) }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <div class="panel__body"><div class="crit">
+        {% set d = summ.grades[3] %}
+        <span>D 档之后变大比例 ≤ 30%</span>{{ crit(summ.d_ok, (' · ' ~ ((d.grew / d.grew_n)|pct(0)) ~ '（' ~ d.grew ~ '/' ~ d.grew_n ~ '）') if d.grew_n else ' · D 档无对账') }}
+        <span>把握分档后变大比例逐档上升</span>{{ crit(summ.mono, '' if summ.mono is not none else ' · 有分级无对账') }}
+      </div></div>
+    </section>
+    <section class="panel">
+      <div class="panel__head"><h3 class="panel__title">新品层 · 按做到概率分档（扣偏差后）</h3>{{ crit(summ.top_ok, '') }}</div>
+      <div class="table-wrap table-wrap--flush"><table class="table">
+        <thead><tr><th>做到概率</th><th class="t-num">已对账</th><th class="t-num">实际做到</th></tr></thead>
+        <tbody>{% for b in summ.bins %}<tr><td>{{ b.label }}</td><td class="t-num">{{ b.n }}</td><td class="t-num">{{ ratio(b.made, b.n) }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <div class="panel__body"><div class="crit"><span>打分前 20% 做到率 ≥ 平均的 2 倍</span>{{ crit(summ.top_ok, (' · ' ~ '%.1f'|format(summ.top_ratio) ~ ' 倍') if summ.top_ratio is not none else ' · 已对账不足 5 条') }}</div>
+        <p class="small muted" style="margin-top:var(--space-2)">有效标准来自解题方案书：市场层 D 档之后变大 ≤ 30% 且逐档上升；新品层前 20% 做到率 ≥ 平均 2 倍。</p></div>
+    </section>
+  </div>
+</section>
+
+<section class="section enter" style="--i:4">
+  <div class="section__head"><h2 class="section__title">各渠道成功线</h2><span class="section__note">上架 6 个月内任一月满足任一条即为做到；同系列商品合并计算 · 参数 v{{ cfg_version }}{% if is_op %}，可在 <a href="/settings/category">品类配置</a> 里改{% endif %}</span></div>
+  {% set cc = cfg.channels %}
+  <div class="lines">
+    <div class="line"><div class="line__ch">Amazon</div><div>小类 BSR ≤ {{ cc.amazon.success.bsr_top }}</div><div class="muted small">或 SPU 月销售额 ≥ ${{ cc.amazon.success.spu_revenue|num }}</div></div>
+    <div class="line"><div class="line__ch">Home Depot</div><div>类目 Top Sellers 前 {{ cc.homedepot.success.rank_top }}</div><div class="muted small">或估算月销 ≥ {{ cc.homedepot.success.units }} 件</div></div>
+    <div class="line"><div class="line__ch">Lowe's</div><div>Best Sellers 榜前 {{ cc.lowes.success.rank_top }}</div><div class="muted small">或估算月销 ≥ {{ cc.lowes.success.units }} 件</div></div>
+    <div class="line"><div class="line__ch">Wayfair</div><div>主类目前 {{ cc.wayfair.success.rank_top }}</div><div class="muted small">或估算月销 ≥ {{ cc.wayfair.success.units }} 件</div></div>
+  </div>
+</section>
+
+<section class="section enter" style="--i:5">
+  {% if rows %}
+  <div class="filters" data-filter-scope="#tblLedger">
+    <span class="filters__label">状态</span>
+    <button class="chip" type="button" data-filter="st:all" aria-pressed="true">全部 <span class="count">{{ counts.all }}</span></button>
+    {% for k in ['tracking', 'due', 'reconciled', 'unlinked'] %}<button class="chip" type="button" data-filter="st:{{ ST[k] }}" aria-pressed="false">{{ status_names[k] }} <span class="count">{{ counts[k] }}</span></button>{% endfor %}
+    <span class="filters__sep"></span>
+    <span class="filters__label">渠道</span>
+    {% for ch, key in [('amazon', 'amz'), ('homedepot', 'hd'), ('lowes', 'lw'), ('wayfair', 'wf')] %}<button class="chip" type="button" data-filter="ch:{{ key }}" data-multi aria-pressed="false">{{ channel_names[ch] }}</button>{% endfor %}
+  </div>
+  <div class="table-wrap">
+    <table class="table" id="tblLedger">
+      <thead><tr><th>编号</th><th>决策卡 · 分框</th><th>版本</th><th>登记时间</th><th>市场把握 · 份额区间</th><th class="t-num">做到概率 原值 / 扣偏差</th><th>预计上架</th><th>状态</th><th>判定（分渠道）</th></tr></thead>
+      <tbody>
+        {% for r in rows %}{% set f = r.f %}
+        <tr id="f{{ f.id }}" data-st="{{ ST[f.status] }}" data-ch="{{ r.chkeys }}">
+          <td class="mono">{{ f.code }}</td>
+          <td><button class="tlink tlink-btn" type="button" data-open="#drawer-{{ f.id }}">{{ r.name }}</button></td>
+          <td>v{{ f.card_version }}</td><td class="num t-nowrap">{{ f.registered_at.strftime('%Y-%m-%d') }}</td>
+          <td>{{ f.grade or '—' }} · {{ f.share_lo|pct }}–{{ f.share_hi|pct }}</td>
+          <td class="t-num">{{ f.prob_raw|pct(0) }} / {{ f.prob_adj|pct(0) }}</td>
+          <td class="num">{{ f.launch_month }}</td>
+          <td>{{ sbadge(f.status) }}{% if r.stop_hit %} <span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>触发停止条件</span>{% endif %}</td>
+          <td><div class="judge">{% for j in r.judge %}<span><span class="ch">{{ j.name }}</span>{{ jbadge(j.status) }}{% if j.status == '数据不全' and j.reason %} <span class="small muted">{{ j.reason }}</span>{% endif %}</span>{% endfor %}</div></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="pager"><span>共 <span data-filter-count>{{ rows|length }}</span> 条 · 点卡名看登记与对账明细</span></div>
+  {% else %}
+  <div class="empty"><svg class="icon"><use href="#ph-book-open-text"/></svg><div class="empty__title">台账还是空的</div><div class="empty__desc">决策卡被批准后会自动登记到这里。</div></div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block modals %}
+{% for r in rows %}{% set f = r.f %}
+<aside class="drawer" id="drawer-{{ f.id }}" role="dialog" aria-modal="true" aria-labelledby="dw-{{ f.id }}" aria-hidden="true">
+  <div class="drawer__head">
+    <div><h2 class="drawer__title" id="dw-{{ f.id }}">{{ r.name }}</h2><p class="drawer__sub">{{ f.code }} · 决策卡 v{{ f.card_version }}{% if f.reconciled_at %} · {{ f.reconciled_at.strftime('%Y-%m-%d') }} 自动对账{% endif %}</p></div>
+    <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+  </div>
+  <div class="drawer__body stack-lg">
+    <section>
+      <h3 style="margin-bottom:var(--space-3)">登记内容</h3>
+      <dl class="kv">
+        <dt>登记时间</dt><dd class="num">{{ f.registered_at|dt }}（批准即登记）</dd>
+        <dt>版本</dt><dd>决策卡 v{{ f.card_version }} <span class="lock"><svg class="icon"><use href="#ph-lock-simple"/></svg>批准快照</span></dd>
+        <dt>分框</dt><dd>{{ f.frame }}；{{ f.attr }}：{{ f.value }}</dd>
+        <dt>市场把握与份额区间</dt><dd class="num">{{ f.grade or '—' }}{% if f.grasp is not none %}（把握 {{ f.grasp|pct(0) }}）{% endif %} · 立项后 6–10 个月份额 {{ f.share_lo|pct }}–{{ f.share_hi|pct }}<span class="etag">80% 区间</span></dd>
+        <dt>做到概率</dt><dd class="num">原值 {{ f.prob_raw|pct(0) }} · 扣偏差 {{ f.prob_adj|pct(0) }}</dd>
+        <dt>停止条件</dt><dd><ul class="stoplist">{% for st in f.stop_conditions %}<li>{{ st.text }}</li>{% endfor %}</ul></dd>
+        <dt>预计上架</dt><dd class="num">{{ f.launch_month }}{% if f.own_items._actual_month %} · 实际 {{ f.own_items._actual_month }}{% endif %}</dd>
+        <dt>上架渠道</dt><dd>{% for ch in f.channels %}{{ channel_names[ch] }}{% if not loop.last %}、{% endif %}{% endfor %}</dd>
+        <dt>自家商品</dt><dd>{% set ns = namespace(any=false) %}{% for ch in channels %}{% if f.own_items[ch] %}{% set ns.any = true %}<span class="fp">{{ f.own_items[ch]|join(', ') }}</span>（{{ channel_names[ch] }}）{% endif %}{% endfor %}{% if not ns.any %}还没有关联{% endif %}</dd>
+      </dl>
+    </section>
+    <section>
+      <h3 style="margin-bottom:var(--space-3)">分渠道对账{% if r.judge and r.judge[0].r.window %}（{{ r.judge[0].r.window }}）{% endif %}</h3>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>渠道</th><th>成功线</th><th>6 个月内最好表现</th><th>判定</th></tr></thead>
+        <tbody>{% for j in r.judge %}<tr><td>{{ j.name }}</td><td class="small">{{ j.r.line or '—' }}</td><td class="small num">{{ j.r.basis or j.reason or '—' }}{% if j.r.nature %}<span class="etag">{{ j.r.nature }}</span>{% endif %}</td><td>{{ jbadge(j.status) }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% if f.params_version %}<p class="small muted" style="margin-top:var(--space-2)">同系列商品合并计算，评论按评论 ID 去重。判定参数：品类配置 v{{ f.params_version }}。</p>{% endif %}
+    </section>
+    {% if r.stops %}
+    <section>
+      <h3 style="margin-bottom:var(--space-3)">停止条件</h3>
+      <div class="crit">{% for x in r.stops %}<span>{{ x.text }}</span>{% if x.triggered is none %}<span class="badge badge--watch">{{ x.why or '无数据' }}</span>{% elif x.triggered %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>已触发 · {{ x.why }}</span>{% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>未触发 · {{ x.why }}</span>{% endif %}{% endfor %}</div>
+    </section>
+    {% endif %}
+  </div>
+  <div class="drawer__foot">
+    <a class="btn" href="/cards/{{ f.card_id }}">打开决策卡</a>
+    {% if is_op and f.status != 'reconciled' %}<button class="btn" type="button" data-link="{{ f.id }}">关联自家 ASIN</button>{% endif %}
+    <span class="spacer"></span><button class="btn" type="button" data-close>关闭</button>
+  </div>
+</aside>
+{% endfor %}
+{% if is_op %}
+<div class="modal" id="dlgLink" role="dialog" aria-modal="true" aria-labelledby="lkTitle" aria-hidden="true">
+  <form class="modal__dialog" method="post" action="" id="linkForm">
+    <div class="modal__head"><div><h2 class="modal__title" id="lkTitle">关联自家 ASIN</h2><p class="modal__sub" data-lk-sub>关联后从实际上架月起算 6 个月</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body">
+      <div class="form-grid">
+        <label class="field span-2"><span class="field__label">Amazon 子 ASIN<span class="req">*</span></span><input class="input mono" name="asins" id="asin" placeholder="例：B0H452LRTC，多个用逗号分隔"><span class="field__error" id="asinErr" hidden><svg class="icon"><use href="#ph-warning"/></svg>ASIN 格式不对：10 位，以 B0 开头</span><span class="field__hint">同系列子体都填上，对账时合并计算</span></label>
+        <label class="field"><span class="field__label">实际上架月份<span class="req">*</span></span><input class="input" type="month" name="actual_month" required></label>
+        {% for ch in channels if ch != 'amazon' %}<label class="field" data-other="{{ ch }}"><span class="field__label">{{ channel_names[ch] }} 商品 ID</span><input class="input mono" name="items_{{ ch }}" placeholder="登记了该渠道时必填，多个用逗号分隔"></label>{% endfor %}
+      </div>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="submit">关联</button></div>
+  </form>
+</div>
+<script type="application/json" id="ledger-meta">{{ rows_meta|tojson }}</script>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var doc = document, form = doc.getElementById('linkForm');
+  if (!form) return;
+  var META = JSON.parse(doc.getElementById('ledger-meta').textContent), cur = null;
+  doc.querySelectorAll('[data-link]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.getAttribute('data-link'), m = META[id]; cur = m;
+      form.action = '/ledger/' + id + '/link-asin';
+      doc.getElementById('lkTitle').textContent = '关联自家 ASIN · ' + m.name;
+      doc.querySelector('[data-lk-sub]').textContent = m.code + ' · 预计 ' + m.launch + ' 上架 · 关联后从实际上架月起算 6 个月';
+      doc.querySelectorAll('[data-other]').forEach(function (el) { el.hidden = m.channels.indexOf(el.getAttribute('data-other')) < 0; });
+      window.oppoOpen('#dlgLink');
+    });
+  });
+  form.addEventListener('submit', function (e) {
+    var v = form.asins.value.split(/[,，]/).map(function (x) { return x.trim().toUpperCase(); }).filter(Boolean);
+    var need = !cur || cur.channels.indexOf('amazon') >= 0;
+    var bad = (need && !v.length) || v.some(function (a) { return !/^B0[A-Z0-9]{8}$/.test(a); });
+    doc.getElementById('asinErr').hidden = !bad;
+    if (bad) e.preventDefault();
+  });
+})();
+</script>
+{% endblock %}

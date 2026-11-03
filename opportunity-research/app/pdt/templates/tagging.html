@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .thumb { width: 72px; height: 72px; flex: none; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); object-fit: contain; }
+  .qgroups { display: flex; flex-direction: column; gap: var(--space-4); }
+  .qgroup { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .qgroup__head { display: flex; gap: var(--space-4); align-items: flex-start; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-soft); }
+  .qgroup__meta { flex: 1; min-width: 0; }
+  .qgroup__title { margin: var(--space-1) 0 var(--space-2); font-size: var(--text-base); font-weight: 600; }
+  .qgroup__actions { display: flex; flex-direction: column; gap: var(--space-2); align-items: stretch; }
+  .qgroup .table-wrap { border: 0; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+  .qgroup .select { min-height: 28px; padding: 2px var(--space-2); font-size: var(--text-xs); width: auto; }
+  .conf { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--muted); }
+  .progress-cell { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .tag-line { font-size: var(--text-xs); color: var(--muted); }
+  .fp { font-family: var(--font-mono); }
+  .inline { display: inline-flex; gap: var(--space-1); align-items: center; margin: 0; }
+  .tab { text-decoration: none; }
+  .other-input { width: 120px; min-height: 28px; font-size: var(--text-xs); }
+</style>
+{% endblock %}
+{% block content %}
+{% set back = '/tagging?channel=' ~ channel ~ '&reason=' ~ reason ~ '&tab=' ~ tab %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>打标确认</span></nav>
+    <h1>打标确认</h1>
+    <p class="page-head__sub">规则打全部标签，只有"元素"和置信度低于 {{ '%.2f'|format(thr) }} 的标签需要你确认 · 确认后的值在下一次扫描和评分中生效</p>
+  </div>
+  <div class="page-head__actions">
+    <a class="btn" href="/settings/category"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>打标规则与阈值</span></a>
+    <form method="post" action="/tagging/run" class="inline"><button class="btn" type="submit" {% if not untagged %}disabled title="没有未打标的新商品"{% endif %}><svg class="icon"><use href="#ph-list-checks"/></svg><span>规则打标{% if untagged %}（{{ untagged }}）{% endif %}</span></button></form>
+    {% if llm %}
+    <button class="btn btn--primary" type="button" data-cost-kind="vision_tag" data-cost-month="{{ prog[0].month if prog else '' }}" data-cost-params="{}" {% if not vision_todo %}disabled title="没有需要看图的商品"{% endif %}><svg class="icon"><use href="#ph-eye"/></svg><span>看图打元素（{{ vision_todo }}）</span></button>
+    {% else %}
+    <button class="btn btn--primary" type="button" disabled title="大模型未配置：规则判断不了元素的商品已直接进确认队列"><svg class="icon"><use href="#ph-eye"/></svg><span>看图打元素</span></button>
+    {% endif %}
+  </div>
+</div>
+
+<section class="enter" style="--i:1" aria-labelledby="sec-progress">
+  <div class="stats">
+    <div class="stat"><div class="stat__label">本批新子体（各渠道）</div><div class="stat__value num">{{ prog|sum(attribute='new')|num }}<span class="stat__unit">个</span></div><div class="stat__meta">{% for p in prog %}{{ p.name }} {{ p.new }}{% if not loop.last %} · {% endif %}{% endfor %}</div></div>
+    <div class="stat"><div class="stat__label">规则打标</div><div class="stat__value num">{{ prog|sum(attribute='new')|num }}<span class="stat__unit">/ {{ (prog|sum(attribute='new') + untagged)|num }}</span></div><div class="stat__meta">8 类标签，每个标签带置信度 · 规则 {{ rule_version[-5:] }}</div><div class="meter"><i style="width:{{ 100 if not untagged else 50 }}%"></i></div></div>
+    <div class="stat"><div class="stat__label">看图打元素{% if llm %}（大模型）{% endif %}</div><div class="stat__value num">{{ prog|sum(attribute='vision')|num }}<span class="stat__unit">/ {{ (prog|sum(attribute='vision') + vision_todo)|num }}</span></div><div class="stat__meta">{% if llm %}规则判断不了元素的商品；还剩 {{ vision_todo }} 个{% else %}大模型未配置：这些商品直接进确认队列{% endif %}</div></div>
+    <div class="stat"><div class="stat__label">确认队列</div><div class="stat__value num">{{ cnt.total|num }}<span class="stat__unit">条待确认</span></div><div class="stat__meta">已确认 {{ cnt.confirmed|num }} · 不是本品类 {{ cnt.excluded|num }}</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section__head"><h2 class="section__title" id="sec-progress">自动打标进度</h2><span class="section__note">低置信度阈值 {{ '%.2f'|format(thr) }}（品类配置 v{{ ver }}）· 打标规则 {{ rule_version }} · 四个渠道用同一套规则</span></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>渠道</th><th>数据月份</th><th class="t-num">新子体</th><th>规则打标</th><th>看图打元素</th><th class="t-num">待确认</th><th>状态</th></tr></thead>
+        <tbody>
+        {% for p in prog %}
+          <tr><td class="cell-title">{{ p.name }}</td><td class="num">{{ p.month }}</td><td class="t-num">{{ p.new|num }}</td>
+            <td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td>
+            <td>{% if p.need_image %}<span class="badge badge--watch">待看图 {{ p.need_image }}</span>{% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成 {{ p.vision }}</span>{% endif %}</td>
+            <td class="t-num">{{ p.pending|num }}</td>
+            <td>{% if p.pending %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span>{% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>打标完成</span>{% endif %}</td></tr>
+        {% else %}<tr><td colspan="7" class="muted">还没有数据批次。</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="section enter" style="--i:2" aria-labelledby="sec-queue">
+  <div class="section__head"><h2 class="section__title" id="sec-queue">确认队列</h2><span class="section__note">主图相同的商品分在一组，选一次即应用到整组；组内某个商品不一样时，在该行单独改</span></div>
+  <div class="tabs" role="tablist" aria-label="队列状态">
+    <a class="tab" role="tab" aria-selected="{{ 'true' if tab == 'pending' else 'false' }}" href="/tagging?tab=pending">待确认 <span class="count">{{ cnt.total }}</span></a>
+    <a class="tab" role="tab" aria-selected="{{ 'true' if tab == 'done' else 'false' }}" href="/tagging?tab=done">已确认 <span class="count">{{ cnt.confirmed }}</span></a>
+    <a class="tab" role="tab" aria-selected="{{ 'true' if tab == 'out' else 'false' }}" href="/tagging?tab=out">不是本品类 <span class="count">{{ cnt.excluded }}</span></a>
+  </div>
+
+  {% if tab != 'out' %}
+  <div class="filters" id="queue-filters">
+    <span class="filters__label">渠道</span>
+    <a class="chip" href="/tagging?tab={{ tab }}&reason={{ reason }}&channel=all" aria-pressed="{{ 'true' if channel == 'all' else 'false' }}">全部 <span class="count">{{ cnt.total }}</span></a>
+    {% for c, n in channel_names.items() %}<a class="chip" href="/tagging?tab={{ tab }}&reason={{ reason }}&channel={{ c }}" aria-pressed="{{ 'true' if channel == c else 'false' }}">{{ n }} <span class="count">{{ cnt.by_channel.get(c, 0) }}</span></a>{% endfor %}
+    <span class="filters__sep" aria-hidden="true"></span>
+    <span class="filters__label">进队原因</span>
+    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=all" aria-pressed="{{ 'true' if reason == 'all' else 'false' }}">全部</a>
+    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=element" aria-pressed="{{ 'true' if reason == 'element' else 'false' }}">元素 <span class="count">{{ cnt.element }}</span></a>
+    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=low" aria-pressed="{{ 'true' if reason == 'low' else 'false' }}">低置信度 <span class="count">{{ cnt.low }}</span></a>
+    <span class="spacer"></span>
+    <span class="small muted">显示 <b class="num">{{ groups|length }}</b> 组（共 {{ n_groups }} 组，按组内商品数排序）</span>
+  </div>
+
+  <div class="qgroups" id="queue">
+  {% for g in groups %}{% set gi = loop.index %}
+    <article class="qgroup" data-channel="{{ g.channels|join(' ') }}" data-reason="{{ 'element' if g.tag == '元素' else 'low' }}" aria-labelledby="g{{ gi }}-title">
+      <form method="post" action="/tagging/groups/confirm" class="qgroup__head">
+        <input type="hidden" name="img_group" value="{{ g.img_group }}"><input type="hidden" name="tag" value="{{ g.tag }}"><input type="hidden" name="back" value="{{ back }}">
+        {% if g.image %}<img class="thumb" src="{{ g.image }}" alt="主图：{{ g['items'][0].title[:40] }}" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="thumb" role="img" aria-label="无主图"></span>{% endif %}
+        <div class="qgroup__meta">
+          <div class="row">{% if g.tag == '元素' %}<span class="badge badge--accent">元素</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span>{% endif %}
+            <span class="badge">{{ g.tag }} · {{ '看图' if g.source == 'vision' else ('人工' if g.source == 'manual' else '规则') }}</span>
+            <span class="small muted">同图 {{ g['items']|length }} 个商品 · 图指纹 <span class="fp">{{ g.img_group[:4] }}…{{ g.img_group[-4:] }}</span></span></div>
+          <h3 class="qgroup__title" id="g{{ gi }}-title">这组的"{{ g.tag }}"是什么？</h3>
+          {% if tab == 'pending' %}
+          <div class="choice-group" role="radiogroup" aria-label="候选值">
+            {% for c in g.candidates[:6] %}<label class="choice"><input type="radio" name="value" value="{{ c.value }}" {% if loop.first and c.confidence %}checked{% endif %}>{{ c.value }}{% if c.confidence %} <span class="conf">{{ '%.2f'|format(c.confidence) }}</span>{% endif %}</label>{% endfor %}
+            <label class="choice"><input type="radio" name="value" value="other">其他…<input class="input other-input" name="other" placeholder="填写" aria-label="其他值"></label>
+          </div>
+          {% else %}<div class="small">已确认为 <b>{{ g['items'][0].value }}</b></div>{% endif %}
+        </div>
+        {% if tab == 'pending' %}
+        <div class="qgroup__actions">
+          <button class="btn" type="submit"><svg class="icon"><use href="#ph-check"/></svg><span>应用到整组（{{ g['items']|length }}）</span></button>
+          <button class="btn btn--ghost btn--sm" type="submit" formaction="/tagging/groups/exclude"><svg class="icon"><use href="#ph-prohibit"/></svg><span>看不出 / 不是本品类</span></button>
+        </div>
+        {% endif %}
+      </form>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>其他标签（自动）</th><th>本条{{ g.tag }}</th><th>状态</th><th></th></tr></thead>
+          <tbody>
+          {% for it in g['items'] %}
+            <tr><td>{{ channel_names[it.channel] }}</td><td class="mono">{% if it.link %}<a class="tlink" href="{{ it.link }}" target="_blank" rel="noopener">{{ it.item_id }}</a>{% else %}{{ it.item_id }}{% endif %}</td>
+              <td><div class="cell-title">{{ it.title[:90] }}</div></td><td class="tag-line">{{ it.others }}</td>
+              <td><form method="post" action="/tagging/items/{{ it.tag_id }}" class="inline"><input type="hidden" name="back" value="{{ back }}">
+                <select class="select" name="value" aria-label="本条{{ g.tag }}">{% if not it.value %}<option value="" selected>（未判断）</option>{% endif %}{% for c in g.candidates %}<option {% if c.value == it.value %}selected{% endif %}>{{ c.value }}</option>{% endfor %}</select>
+                <button class="btn btn--ghost btn--sm" type="submit">单改</button></form></td>
+              <td>{% if it.status == 'confirmed' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已确认{% if it.confirm_mode == 'single' %} · 单改{% endif %}</span>{% else %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认{% if it.confidence %} · {{ '%.2f'|format(it.confidence) }}{% endif %}</span>{% endif %}</td>
+              <td><form method="post" action="/tagging/items/{{ it.tag_id }}" class="inline"><input type="hidden" name="action" value="exclude"><input type="hidden" name="channel" value="{{ it.channel }}"><input type="hidden" name="item_id" value="{{ it.item_id }}"><input type="hidden" name="back" value="{{ back }}"><button class="btn btn--ghost btn--sm" type="submit">不是本品类</button></form></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  {% else %}
+    <div class="banner banner--ok"><svg class="icon"><use href="#ph-check-circle"/></svg><div class="banner__body"><div class="banner__title">{{ '确认队列已清空' if tab == 'pending' else '还没有人工确认的标签' }}</div><div class="small">{% if tab == 'pending' %}可以到 <a href="/models">模型与回测</a> 重算。{% endif %}</div></div></div>
+  {% endfor %}
+  </div>
+  {% else %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>标记时间</th><th></th></tr></thead>
+      <tbody>
+      {% for p in excluded %}
+        <tr><td>{{ channel_names[p.channel] }}</td><td class="mono">{{ p.item_id }}</td><td><div class="cell-title">{{ (p.title or '')[:90] }}</div></td><td class="num small">{{ p.at|dt }}</td>
+          <td><form method="post" action="/tagging/items/0" class="inline"><input type="hidden" name="action" value="restore"><input type="hidden" name="channel" value="{{ p.channel }}"><input type="hidden" name="item_id" value="{{ p.item_id }}"><input type="hidden" name="back" value="/tagging?tab=out"><button class="btn btn--sm" type="submit">恢复</button></form></td></tr>
+      {% else %}<tr><td colspan="5" class="muted">没有被标为“不是本品类”的商品。</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="page-foot">标为“看不出 / 不是本品类”的商品不进入任何扫描、评分和决策卡样本；恢复后下一次计算重新纳入。</p>
+  {% endif %}
+</section>
+{% endblock %}
+{% block modals %}{% include "_cost_modal.html" %}{% endblock %}
+{% block scripts %}
+<script>
+window.addEventListener('pdt:job-started', function (e) {
+  var id = e.detail && e.detail.id; if (!id) return;
+  (function poll() { fetch('/jobs/' + id, { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) {
+    if (j.status === 'running' || j.status === 'queued') setTimeout(poll, 2000); else location.reload(); }); })();
+});
+</script>
+{% endblock %}

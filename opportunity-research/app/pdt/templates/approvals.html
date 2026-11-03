@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .pick { cursor: pointer; }
+  .pick:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+  .sum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .sum__item { padding: var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius-md); background: var(--surface-warm); }
+  .sum__label { font-size: var(--text-xs); color: var(--muted); }
+  .sum__value { margin-top: 2px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .after { margin: 0; padding-left: 1.2em; font-size: var(--text-sm); color: var(--fg-2); }
+  .after li + li { margin-top: var(--space-1); }
+  .opinion { max-width: 320px; }
+  .stop { margin: 0; padding-left: 1.2em; font-size: var(--text-sm); }
+</style>
+{% endblock %}
+{% macro dec_badge(d) -%}
+{%- if d == 'approve' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>批准</span>
+{%- elif d == 'reject' %}<span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>驳回</span>
+{%- else %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-arrow-left"/></svg>退回修改</span>{% endif -%}
+{%- endmacro %}
+{% block content %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <div class="crumbs"><span>审批与台账</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>审批</span></div>
+    <h1>审批</h1>
+    <p class="page-head__sub">决策卡立项和策略库"已验证"申请在这里拍板。批准、驳回、退回修改都会记录审批人、时间、结论和意见。</p>
+  </div>
+</div>
+
+<div class="tabs enter" style="--i:1" role="tablist" aria-label="审批列表">
+  <button class="tab" role="tab" type="button" aria-selected="{{ 'true' if is_approver else 'false' }}" aria-controls="tabTodo">{{ '待我审批' if is_approver else '待审批' }} <span class="count">{{ todo|length }}</span></button>
+  <button class="tab" role="tab" type="button" aria-selected="{{ 'false' if is_approver else 'true' }}" aria-controls="tabDone">已处理 <span class="count">{{ done|length }}</span></button>
+</div>
+
+<section id="tabTodo" role="tabpanel" {% if not is_approver %}hidden{% endif %}>
+  {% if todo %}
+  <div class="filters" data-filter-scope="#tblTodo">
+    <span class="filters__label">类型</span>
+    <button class="chip" type="button" data-filter="type:all" aria-pressed="true">全部 <span class="count">{{ todo|length }}</span></button>
+    <button class="chip" type="button" data-filter="type:card" aria-pressed="false">决策卡立项 <span class="count">{{ todo|selectattr('type', 'equalto', 'card')|list|length }}</span></button>
+    <button class="chip" type="button" data-filter="type:strategy" aria-pressed="false">策略库改为已验证 <span class="count">{{ todo|selectattr('type', 'equalto', 'strategy')|list|length }}</span></button>
+  </div>
+  <div class="grid-main-side">
+    <div class="table-wrap enter" style="--i:2">
+      <table class="table" id="tblTodo">
+        <thead><tr><th>类型</th><th>对象</th><th>主渠道 · 版本</th><th>提交人</th><th>提交时间</th></tr></thead>
+        <tbody>
+          {% for d in todo %}
+          <tr class="pick {{ 'is-selected' if loop.first else '' }}" data-type="{{ d.type }}" data-detail="d{{ d.id }}" tabindex="0">
+            <td>{% if d.type == 'card' %}<span class="badge badge--accent"><svg class="icon"><use href="#ph-cards"/></svg>决策卡立项</span>{% else %}<span class="badge"><svg class="icon"><use href="#ph-stack"/></svg>策略库改为已验证</span>{% endif %}</td>
+            <td><div class="cell-title">{{ d.obj }}</div><div class="cell-sub">{% if d.type == 'card' %}{{ (d.card.numbers.bet.kind or '—') }} · 市场把握 {{ d.sum.grade or '—' }} · 做到概率 {{ d.sum.raw|pct(0) }} / {{ d.sum.adj|pct(0) }}（扣偏差）{% else %}{{ d.from_status }} → {{ d.to_status }}{% endif %}</div></td>
+            <td>{% if d.type == 'card' %}{{ channel_names[d.channel] }} · v{{ d.version }}{% else %}策略库 · v{{ d.version }}{% endif %}</td>
+            <td>{{ d.submitter }}</td><td class="num t-nowrap">{{ d.submitted_at.strftime('%m-%d %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% for d in todo %}
+    <aside class="panel {{ 'enter' if loop.first else '' }}" id="d{{ d.id }}" aria-label="审批详情" {% if not loop.first %}hidden{% endif %}>
+      <form method="post" action="/approvals/{{ d.id }}/decide" data-decide-form data-title="{{ d.obj }}" data-type="{{ d.type }}">
+      {% if d.type == 'card' %}
+      <div class="panel__head">
+        <div><h2 class="panel__title">{{ d.obj }}</h2><div class="small muted">决策卡 v{{ d.version }} · {{ d.submitter }} {{ d.submitted_at.strftime('%m-%d %H:%M') }} 提交</div></div>
+        <a class="btn btn--sm" href="{{ d.href }}"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>看全文</span></a>
+      </div>
+      <div class="panel__body stack">
+        {% if d.note %}<p class="small">提交说明：{{ d.note }}</p>{% endif %}
+        <div class="sum">
+          <div class="sum__item"><div class="sum__label">分渠道结论</div><div class="sum__value">{{ d.sum.verdicts }}</div></div>
+          <div class="sum__item"><div class="sum__label">市场把握 · 份额区间</div><div class="sum__value">{{ d.sum.grade or '—' }} · {{ d.sum.lo|pct }}–{{ d.sum.hi|pct }}</div></div>
+          <div class="sum__item"><div class="sum__label">做到概率 原值 / 扣偏差</div><div class="sum__value">{{ d.sum.raw|pct(0) }} / {{ d.sum.adj|pct(0) }}</div></div>
+          <div class="sum__item"><div class="sum__label">Amazon 单件利润</div><div class="sum__value">{% if d.am_profit %}{{ d.am_profit.channel }} ${{ '%.2f'|format(d.am_profit.profit) }} · {{ d.am_profit.margin|pct }}{% else %}还没有关联利润方案{% endif %}</div></div>
+        </div>
+        <div><div class="small muted">看到这些就停</div>
+          <ul class="stop">{% for st in d.sum.stops %}<li>{{ (d.sum.stop_defs[st.kind].text if st.kind in d.sum.stop_defs else st.kind)|replace('{v}', '%g'|format(st.value)) }}</li>{% endfor %}</ul></div>
+        {% if is_approver %}
+        <fieldset class="field" style="border:0;padding:0;margin:0">
+          <legend class="field__label">结论<span class="req">*</span></legend>
+          <div class="choice-group" role="radiogroup">
+            <label class="choice"><input type="radio" name="decision" value="approve" checked>批准</label>
+            <label class="choice"><input type="radio" name="decision" value="reject">驳回</label>
+            <label class="choice"><input type="radio" name="decision" value="return">退回修改</label>
+          </div>
+        </fieldset>
+        <label class="field"><span class="field__label">意见</span><textarea class="textarea" name="comment"></textarea><span class="field__hint">驳回和退回修改时必填</span></label>
+        <div class="banner" data-after>
+          <svg class="icon"><use href="#ph-lock-simple"/></svg>
+          <div class="banner__body"><div class="banner__title">批准后</div>
+            <ul class="after"><li>卡片锁定为只读版本 v{{ d.version }}，数字保存为批准时的快照；之后数据更新只提示"有新数据"</li><li>自动在 <a href="/ledger">预测台账</a> 登记这张卡的预测（预计上架 {{ d.launch or '—' }}）</li></ul></div>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="panel__head">
+        <div><h2 class="panel__title">{{ d.strategy.title }}</h2><div class="small muted">策略库 {{ d.strategy.code }} · 申请人 {{ d.submitter }} · {{ d.submitted_at.strftime('%m-%d %H:%M') }}</div></div>
+        <a class="btn btn--sm" href="/strategies#{{ d.strategy.code }}"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>看条目</span></a>
+      </div>
+      <div class="panel__body stack">
+        <div class="row"><span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>{{ d.from_status }}</span><svg class="icon"><use href="#ph-arrow-right"/></svg><span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>{{ d.to_status }}</span></div>
+        <dl class="kv"><dt>结论</dt><dd>{{ d.strategy.title }}</dd><dt>申请依据</dt><dd>{{ d.note }}</dd><dt>当前版本</dt><dd>v{{ d.strategy.version }} · {{ d.strategy.updated_at|dt }}</dd></dl>
+        {% if is_approver %}
+        <fieldset class="field" style="border:0;padding:0;margin:0">
+          <legend class="field__label">结论<span class="req">*</span></legend>
+          <div class="choice-group" role="radiogroup">
+            <label class="choice"><input type="radio" name="decision" value="approve" checked>批准</label>
+            <label class="choice"><input type="radio" name="decision" value="reject">驳回</label>
+            <label class="choice"><input type="radio" name="decision" value="return">退回修改</label>
+          </div>
+        </fieldset>
+        <label class="field"><span class="field__label">意见</span><textarea class="textarea" name="comment"></textarea><span class="field__hint">驳回和退回修改时必填</span></label>
+        <div class="banner"><svg class="icon"><use href="#ph-info"/></svg><div class="banner__body">批准后条目状态改为"已验证"并生成新版本 v{{ d.strategy.version + 1 }}；驳回或退回则保持"{{ d.from_status }}"。</div></div>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if is_approver %}<div class="panel__foot row"><span class="spacer"></span><button class="btn btn--primary" type="submit"><svg class="icon"><use href="#ph-seal-check"/></svg><span>提交审批结论</span></button></div>{% endif %}
+      </form>
+    </aside>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><svg class="icon"><use href="#ph-seal-check"/></svg><div class="empty__title">没有待你审批的内容</div><div class="empty__desc">wen 提交决策卡或策略库申请后会出现在这里。</div></div>
+  {% endif %}
+</section>
+
+<section id="tabDone" role="tabpanel" {% if is_approver %}hidden{% endif %}>
+  <div class="filters" data-filter-scope="#tblDone">
+    <span class="filters__label">结论</span>
+    <button class="chip" type="button" data-filter="res:all" aria-pressed="true">全部 <span class="count">{{ done|length }}</span></button>
+    <button class="chip" type="button" data-filter="res:approve" aria-pressed="false">批准 <span class="count">{{ done|selectattr('decision', 'equalto', 'approve')|list|length }}</span></button>
+    <button class="chip" type="button" data-filter="res:reject" aria-pressed="false">驳回 <span class="count">{{ done|selectattr('decision', 'equalto', 'reject')|list|length }}</span></button>
+    <button class="chip" type="button" data-filter="res:return" aria-pressed="false">退回修改 <span class="count">{{ done|selectattr('decision', 'equalto', 'return')|list|length }}</span></button>
+  </div>
+  <div class="table-wrap">
+    <table class="table" id="tblDone">
+      <thead><tr><th>类型</th><th>对象</th><th>结论</th><th>审批人</th><th>审批时间</th><th>意见</th><th>结果</th></tr></thead>
+      <tbody>
+        {% for d in done %}
+        <tr data-res="{{ d.decision }}"><td>{{ d.type_name }}</td><td><a class="tlink" href="{{ d.href }}">{{ d.obj }}</a><div class="cell-sub">v{{ d.version }}{% if d.type == 'card' %} · {{ channel_names[d.channel] }}{% else %} · {{ d.from_status }} → {{ d.to_status }}{% endif %}</div></td>
+          <td>{{ dec_badge(d.decision) }}</td><td>{{ d.decider }}</td><td class="num t-nowrap">{{ d.decided_at|dt }}</td><td class="opinion">{{ d.comment or '—' }}</td><td class="small">{{ d.result }}</td></tr>
+        {% else %}<tr><td colspan="7" class="muted">还没有已处理的审批。</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="pager"><span>共 <b data-filter-count>{{ done|length }}</b> 条</span></div>
+</section>
+{% endblock %}
+
+{% block modals %}
+<div class="modal" id="dlgConfirm" role="dialog" aria-modal="true" aria-labelledby="cfTitle" aria-hidden="true">
+  <div class="modal__dialog">
+    <div class="modal__head"><div><h2 class="modal__title" id="cfTitle">确认</h2><p class="modal__sub">提交后不能撤回</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body stack">
+      <dl class="kv"><dt>审批人</dt><dd>{{ user.name }}</dd><dt>时间</dt><dd class="num">{{ now_txt }}</dd><dt>结论</dt><dd id="cfDec"></dd><dt>意见</dt><dd id="cfOp"></dd></dl>
+      <div class="banner" id="cfAfter"><svg class="icon"><use href="#ph-lock-simple"/></svg><div class="banner__body">卡片锁定为只读版本，并自动登记到预测台账。</div></div>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" id="cfOk">确认提交</button></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var doc = document, rows = doc.querySelectorAll('#tblTodo tr.pick'), current = null;
+  function pick(tr) {
+    rows.forEach(function (r) { r.classList.toggle('is-selected', r === tr); doc.getElementById(r.getAttribute('data-detail')).hidden = r !== tr; });
+  }
+  rows.forEach(function (tr) { tr.addEventListener('click', function () { pick(tr); }); tr.addEventListener('keydown', function (e) { if (e.key === 'Enter') pick(tr); }); });
+  var NAMES = { approve: '批准', reject: '驳回', 'return': '退回修改' };
+  doc.querySelectorAll('[data-decide-form]').forEach(function (f) {
+    var after = f.querySelector('[data-after]');
+    f.querySelectorAll('input[name="decision"]').forEach(function (r) { r.addEventListener('change', function () { if (after) after.hidden = r.value !== 'approve'; }); });
+    f.addEventListener('submit', function (e) {
+      if (f.dataset.confirmed === '1') return;
+      e.preventDefault();
+      var dec = f.querySelector('input[name="decision"]:checked');
+      if (!dec) { window.oppoToast('请选择结论'); return; }
+      var op = f.querySelector('textarea[name="comment"]');
+      if (dec.value !== 'approve' && !op.value.trim()) { op.setAttribute('aria-invalid', 'true'); op.focus(); window.oppoToast('驳回或退回修改时请填写意见'); return; }
+      op.removeAttribute('aria-invalid');
+      current = f;
+      doc.getElementById('cfTitle').textContent = '确认' + NAMES[dec.value] + '：' + f.dataset.title;
+      doc.getElementById('cfDec').textContent = NAMES[dec.value];
+      doc.getElementById('cfOp').textContent = op.value.trim() || '无';
+      doc.getElementById('cfAfter').hidden = !(dec.value === 'approve' && f.dataset.type === 'card');
+      window.oppoOpen('#dlgConfirm');
+    });
+  });
+  doc.getElementById('cfOk').addEventListener('click', function () {
+    if (!current) return;
+    this.disabled = true;
+    current.dataset.confirmed = '1';
+    current.submit();
+  });
+})();
+</script>
+{% endblock %}

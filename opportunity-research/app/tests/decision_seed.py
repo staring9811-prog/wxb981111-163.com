@@ -109,7 +109,7 @@ def seed_other(s):
 
 
 def seed_scores(s, valid=True):
-    run = ModelRun(month="2026-09", version="第九版", newlayer={"bias": 1.2}, valid=valid,
+    run = ModelRun(month="2026-09", version="第九版", newlayer={"bias": {"pred": 0.48, "actual": 0.36, "bias": 0.12, "n": 204}}, valid=valid,
                    valid_msg="D 档之后变大 19%，把握分档逐档上升" if valid else "D 档之后变大 41%，超过 30%")
     s.add(run)
     s.flush()

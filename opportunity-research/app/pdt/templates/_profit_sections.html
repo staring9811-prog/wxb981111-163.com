@@ -1,0 +1,135 @@
+{% raw %}
+<!-- STEP 1 -->
+<section id="s1" hidden>
+  <h2>导入报价表</h2>
+  <p class="lead">上传工厂报价表（.xlsx / .xls / .csv），系统会自动识别品名、尺寸、毛重、出厂价、售价等列，你确认对应关系后导入。品名为空的行会当作上一个产品的第 2、3… 个包裹（双包、多包）。</p>
+  <div class="grid">
+    <div class="panel">
+      <div class="drop" id="drop">
+        <p><strong>把报价表拖到这里</strong>，或</p>
+        <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv">
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnSample">加载示例数据</button>
+        <button class="btn" id="btnBlank">手动新建产品</button>
+        <button class="btn ghost" id="btnLoadJson">打开已保存的方案(.json)</button>
+        <input type="file" id="jsonFile" accept=".json" hidden>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>当前项目</h3>
+      <p class="note" id="projInfo"></p>
+      <p class="note">方案保存在系统上（历史库），局域网内有权限的人看到同一份；还没保存的编辑暂存在本浏览器。</p>
+    </div>
+  </div>
+  <div id="mapArea" hidden>
+    <h2>确认列对应关系</h2>
+    <p class="lead">黄色框可改。识别不对的列请手动选择；没有的字段选“（无）”。</p>
+    <div class="panel" style="display:flex;flex-direction:column;gap:14px">
+      <div class="row">
+        <label class="f">工作表<select id="mapSheet"></select></label>
+        <label class="f">表头所在行<input type="number" id="mapHeader" min="1" style="width:70px"></label>
+        <label class="f">尺寸单位<select id="unitDim"><option value="cm">cm</option><option value="in">inch</option></select></label>
+        <label class="f">重量单位<select id="unitWt"><option value="kg">kg</option><option value="lb">lb</option></select></label>
+        <label class="f">出厂价币种<select id="unitCost"></select></label>
+        <label class="f">默认品类<select id="defCat"></select></label>
+        <label class="f">导入方式<select id="importMode"><option value="replace">替换当前产品</option><option value="append">追加到当前产品</option></select></label>
+      </div>
+      <div class="kv" id="mapFields"></div>
+      <div class="tw" id="mapPreview" style="max-height:320px"></div>
+      <div class="row end"><span class="note" id="mapCount"></span><button class="btn primary" id="btnImport">导入并确认 →</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- STEP 2 -->
+<section id="s2" hidden>
+  <h2>确认尺寸、成本与售价</h2>
+  <p class="lead">逐个核对包装尺寸（cm）、毛重（kg）、出厂价和售价。各平台价格可以不填：灰色是默认值（上架价 = Amazon 售价 × 系数，促销价 = 上架价 × (1 − 默认折扣)）；只填促销价时，上架价按折扣反推。一个产品可以有多个包裹。“采购成本$”按出厂价币种自动换算：FOB 美元价直接计入，不扣税点；RMB 含税价 ÷ (1+税点) ÷ 汇率；RMB 未税价 ÷ 汇率。</p>
+  <div class="row" style="margin-bottom:10px">
+    <button class="btn" id="btnAddProd">+ 新增产品</button>
+    <span class="muted">批量设置：</span>
+    <select id="bulkCat"></select><button class="btn sm" id="btnBulkCat">品类应用到全部</button>
+    <select id="bulkPeak"><option>非旺季</option><option>旺季</option></select><button class="btn sm" id="btnBulkPeak">FBM旺季应用到全部</button>
+    <span style="flex:1"></span>
+    <button class="btn primary" data-go="4">生成利润测算表 →</button>
+  </div>
+  <div class="row bulkPlat bulkbar"></div>
+  <div id="checkMsg"></div>
+  <div class="tw" id="confirmTable"></div>
+</section>
+
+<!-- STEP 3 -->
+<section id="s3" hidden>
+  <h2>参数设置</h2>
+  <p class="lead">所有可变变量都在这里，改完立即作用于利润测算表；保存到历史库后存在系统上。百分比按“%”填写。</p>
+  <div class="row end" style="margin-bottom:10px">
+    <button class="btn" id="btnRateImport">从 Excel 导入运费表</button><input type="file" id="rateFile" accept=".xlsx,.xls,.xlsm" hidden>
+    <button class="btn danger" id="btnResetParams">恢复默认参数</button>
+  </div>
+  <div class="grid">
+    <div class="panel"><h3>基础变量</h3><div class="kv" id="pBase"></div></div>
+    <div class="panel"><h3>平台佣金</h3><div class="kv" id="pComm"></div><p class="note">家具：售价 ≤ 阈值部分按低档比例，超出部分按高档比例。其他品类按固定比例。</p></div>
+    <div class="panel"><h3>海运方案（整柜）</h3><div id="pSea"></div><button class="btn sm" id="btnAddSea" style="margin-top:8px">+ 新增海运方案</button><p class="note">每立方米海运费 $ = 整柜价(RMB) ÷ 计算体积(CBM) ÷ 汇率；包裹海运费 = 包裹体积 × 每方单价。</p></div>
+  </div>
+  <h2>平台参数（Lowe's / Home Depot / Wayfair）</h2>
+  <div class="panel"><div class="kv" id="pPlatBase"></div></div>
+  <div class="cards" id="pPlat" style="margin-top:12px"></div>
+  <p class="note">结算价 = 前台价 ÷ 加价倍率。利润 = 结算价 − 采购成本 − 海运费 − 物流费 − 平台订单费 − 结算价 × 各比例费合计。物流费按发货方：我们发货 = FBM 尾程合计（含燃油）；平台发货 = 订单处理费；平台仓 = 0。上架价没填时 = Amazon 售价 × 上架价系数；促销价没填时 = 上架价 × (1 − 默认促销折扣)。</p>
+  <h2>FBA 配送费</h2>
+  <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+    <div class="kv" id="pFbaBase"></div>
+    <div class="tw" id="pFbaTiers"></div>
+    <p class="note">按顺序匹配第一个满足条件的档位，空白 = 不限。费用 = (基础费 + 向上取整(发货重量 − 起算磅) × 每磅续重) × (1 + 燃油/物流附加费) + 超长附加费。发货重量 = max(实重, 长×宽×高÷体积重除数)，实重超过 150 lb 时只按实重。</p>
+  </div>
+  <h2>FBM / CG 尾程费率表</h2>
+  <details><summary>FBM 尾程派送费 + 订单处理费（按计费重 lb，1–150）</summary><p class="note">FBM 尾程合计 = (尾程派送 + 订单处理 + 异常附加 + 住宅附加) × (1 + 燃油附加费%)，燃油费率在“基础变量”里改。</p><div class="tw" id="pTail" style="max-height:420px"></div></details>
+  <details style="margin-top:8px"><summary>FBM 尾程异常附加费</summary><div class="tw" id="pSurch"></div></details>
+  <details style="margin-top:8px"><summary>CG 尾程收费标准</summary><div class="tw" id="pCg"></div></details>
+</section>
+
+<!-- STEP 5 -->
+<section id="s5" hidden>
+  <h2>历史库</h2>
+  <p class="lead">每次“保存到历史库”都会存一个完整版本（产品、尺寸、价格、销量和全部参数）。名称可以直接改；“打开”会把这个版本载入为当前测算。</p>
+  <div class="row" style="margin-bottom:10px">
+    <input id="histName2" placeholder="版本名称（可不填）" style="width:240px" aria-label="版本名称">
+    <button class="btn primary" id="btnHistSave2">保存当前测算为新版本</button>
+    <span style="flex:1"></span><span class="note" id="histMode"></span>
+  </div>
+  <div id="histMsg"></div>
+  <div class="tw" id="histTable"></div>
+</section>
+
+<!-- STEP 4 -->
+<section id="s4" hidden>
+  <h2>利润测算表</h2>
+  <p class="lead">每个产品同时测算 Amazon（FBM / CG / FBA）和 Lowe's、Home Depot、Wayfair 的利润。改动下面的变量会立刻重算。</p>
+  <div class="sticky-params" id="quickParams"></div>
+  <div class="row" style="margin:12px 0">
+    <button class="btn primary" id="btnExport">导出 Excel</button>
+    <input id="histName" placeholder="版本名称（可不填）" style="width:220px" aria-label="版本名称">
+    <button class="btn primary" id="btnHistSave">保存到历史库</button>
+    <button class="btn" id="btnSaveJson">保存方案(.json)</button>
+    <span class="note" id="exportMsg"></span>
+  </div>
+  <h2 style="margin-top:12px">全渠道对比</h2>
+  <p class="lead">平台以促销价为主：大字是促销利润和利润率，灰色小字是按上架价算的利润率。“保本 / 目标价”是前台促销价最低能打到多少，目标利润率在“参数设置”里改。促销价可以直接在表里改。</p>
+  <div class="row bulkPlat bulkbar"></div>
+  <div class="row" id="chanBar" style="margin-bottom:10px"></div>
+  <div class="tw" id="resAll"></div>
+  <h2>综合利润 <span class="note seaName"></span></h2>
+  <p class="lead">几个尺寸按销量比例一起卖，每个渠道整体赚多少。销量填件数或比例都行（例如 3、2、1），默认 1:1。每格 = 单件利润 × 销量；综合利润率 = 合计利润 ÷ 合计销售额。Amazon 按售价，平台按促销价。</p>
+  <div class="row" style="margin-bottom:10px"><button class="btn sm" id="btnQtyReset">全部恢复 1:1</button></div>
+  <div class="tw" id="resMix"></div>
+  <h2>利润明细 <span class="note seaName"></span></h2>
+  <p class="lead">选一个渠道，看每个产品从售价一项项扣到利润。价格和采购成本可以直接改，改完同步到第 2 步并立即重算。</p>
+  <div class="row" style="margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:6px">渠道<select id="detailChan"></select></label></div>
+  <div class="tw" id="resSummary"></div>
+  <h2>产品速览 <span class="note seaName"></span></h2>
+  <div class="cards" id="resCards"></div>
+  <h2>包裹明细</h2>
+  <p class="lead">与原表同口径的全部中间数据：英寸边长、体积重、计费重、围长、尾程异常类型、各项运费和 FBA 档位。</p>
+  <div class="tw" id="resDetail"></div>
+</section>
+{% endraw %}

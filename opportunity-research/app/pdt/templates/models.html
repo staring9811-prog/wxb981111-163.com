@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .checklist { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); font-size: var(--text-sm); }
+  .checklist li { display: flex; align-items: center; gap: var(--space-2); }
+  .checklist .ok { color: var(--success); }
+  .checklist .wait { color: var(--warn); }
+  .ver-head { text-align: center; }
+  .table td.is-v9, .table th.is-v9 { background: var(--surface-warm); }
+  .bias { display: flex; align-items: baseline; gap: var(--space-4); flex-wrap: wrap; }
+  .bias__item .stat__value { font-size: var(--text-2xl); }
+  .rule-card { padding: var(--space-3) var(--space-4); border: 1px solid var(--border-soft); border-radius: var(--radius-md); background: var(--surface-warm); font-size: var(--text-sm); }
+  .rule-card + .rule-card { margin-top: var(--space-2); }
+  .rule-card__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-weight: 600; }
+  .preview { margin-top: var(--space-3); padding: var(--space-3); border: 1px dashed var(--border-control); border-radius: var(--radius-md); }
+  .preview__label { margin-bottom: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
+  .hbars { row-gap: var(--space-3); }
+</style>
+{% endblock %}
+{% macro pc(x) %}{{ '—' if x is none or x is undefined else ('%d%%'|format((x * 100)|round)) }}{% endmacro %}
+{% macro sg(x, nd=3) %}{{ '—' if x is none or x is undefined else (('%+.' ~ nd ~ 'f')|format(x)).replace('-', '−') }}{% endmacro %}
+{% block content %}
+{% set vd = bt.valid_detail or {} %}
+{% set dgrade = (bt.grades or [])|selectattr('grade', 'equalto', 'D')|first %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>分析</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>模型与回测</span></nav>
+    <h1>模型与回测</h1>
+    <p class="page-head__sub">{% if run %}当前结果：第九版规则 · 数据到 {{ run.month }}{% if run.month in (pre.star_months or {}) %}*{% endif %} · {{ run.created_at|dt }} 重算 · 立项到上架约 8 个月，预测立项后第 6–10 个月{% else %}还没有重算结果{% endif %}</p>
+  </div>
+  <div class="page-head__actions">
+    {% if user.role == 'operator' %}
+    <form method="post" action="/models/rescore" style="display:inline">
+      <button class="btn btn--primary" type="submit" id="btn-recalc" {% if reason %}disabled aria-disabled="true" title="{{ reason }}"{% endif %}><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><span>{{ '正在重算…' if state.running else '重算（含 ' ~ (pre.last.amazon or '—') ~ '）' }}</span></button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% if reason and user.role == 'operator' and not state.running %}<p class="small muted enter" style="margin-top: calc(-1 * var(--space-4)); text-align: right;">重算不可用：{{ reason }}</p>{% endif %}
+{% if state.error %}<div class="banner banner--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body">上次重算失败：{{ state.error }}</div></div>{% endif %}
+
+{% if run %}
+{% if run.valid %}
+<div class="banner banner--ok enter" style="--i:1" role="status"><svg class="icon"><use href="#ph-seal-check"/></svg>
+  <div class="banner__body"><div class="banner__title">市场评分本月通过有效性检验</div>
+    <div>站在 {{ bt.T0 }} 回测立项后第 6–8 个月：D 档之后变大 {{ pc(vd.d_up) }}（≤ 30%）<button class="etag etag--n" type="button" data-pop-title="D 档之后变大比例" data-pop="单元=全部市场层单元（D 档）;时点={{ bt.T0 }};结果月份={{ bt.window }};样本数={{ vd.d_n }} 个单元;规则=第九版">n={{ vd.d_n }}</button>；把握四档 {% for b in vd.bins or [] %}{{ pc(b) }}{% if not loop.last %} → {% endif %}{% endfor %} 逐档上升。</div></div></div>
+{% else %}
+<div class="banner banner--block enter" style="--i:1" role="alert"><svg class="icon"><use href="#ph-warning-octagon"/></svg>
+  <div class="banner__body"><div class="banner__title">{{ run.valid_msg or '市场评分本月未通过有效性检验' }}</div>
+    <div>站在 {{ bt.T0 }} 回测：D 档之后变大 {{ pc(vd.d_up) }}（{{ '≤' if vd.d_ok else '>' }} 30%，n={{ vd.d_n }}）；把握四档 {% for b in vd.bins or [] %}{{ pc(b) }}{% if not loop.last %} → {% endif %}{% endfor %}{{ '' if vd.mono else '，不再逐档上升' }}。把握和分级仅供参考，立项依据以新品层和框内历史为主。</div></div></div>
+{% endif %}
+{% endif %}
+
+<div class="grid-main-side section enter" style="--i:2">
+  <section class="panel" aria-labelledby="sec-pre">
+    <div class="panel__head"><h2 class="panel__title" id="sec-pre">下一次重算：{{ pre.last.amazon or '—' }}</h2>
+      {% if pre.pending %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-hourglass"/></svg>等标签确认</span>{% elif state.running %}<span class="badge badge--watch">重算中 · {{ state.step }}</span>{% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>可重算</span>{% endif %}</div>
+    <div class="panel__body">
+      <ul class="checklist">
+        {% if pre.last.amazon %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>Amazon {{ pre.last.amazon }} 已并入（{{ pre.merged_at|dt }}）</li>{% else %}<li><svg class="icon wait"><use href="#ph-warning"/></svg>Amazon 还没有已并入的月份 <a href="/data/amazon">去并入</a></li>{% endif %}
+        {% for ch in ['homedepot', 'lowes', 'wayfair'] %}{% if pre.last[ch] %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>{{ channel_names[ch] }} {{ pre.last[ch] }} 已并入</li>{% else %}<li><svg class="icon wait"><use href="#ph-info"/></svg>{{ channel_names[ch] }} 暂无数据（不影响 Amazon 市场评分）</li>{% endif %}{% endfor %}
+        {% if pre.pending %}<li><svg class="icon wait"><use href="#ph-warning"/></svg>打标确认：还有 {{ pre.pending }} 条待确认 <a href="/tagging">去确认</a></li>{% else %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>打标确认：{{ pre.last.amazon or '当月' }} 无待确认</li>{% endif %}
+      </ul>
+      <div class="section__note" style="margin-top: var(--space-3)">重算内容：市场层按第九版规则（份额斜率、新品占比、搜索同比、体量；按体量档 × 预测窗口校准）为所有单元重算把握、A / B / C / D 分级、立项后 6–10 个月份额预测与 80% 区间；新品层重训做到概率模型，按最近半年做到率校准；然后滚动回测。不调用外部服务，不花钱。</div>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="sec-rule">
+    <div class="panel__head"><h2 class="panel__title" id="sec-rule">有效性检验规则</h2></div>
+    <div class="panel__body">
+      <div class="rule-card"><div class="rule-card__head"><span>D 档之后变大比例 ≤ 30%</span>{% if run %}<span class="badge {{ 'badge--pass' if vd.d_ok else 'badge--fail' }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if vd.d_ok else 'x-circle' }}"/></svg>{{ '达标' if vd.d_ok else '未达标' }}</span>{% endif %}</div><div class="small muted">本次 {{ pc(vd.d_up) }}</div></div>
+      <div class="rule-card"><div class="rule-card__head"><span>把握分档逐档上升</span>{% if run %}<span class="badge {{ 'badge--pass' if vd.mono else 'badge--fail' }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if vd.mono else 'x-circle' }}"/></svg>{{ '达标' if vd.mono else '未达标' }}</span>{% endif %}</div><div class="small muted">{% for b in vd.bins or [] %}{{ pc(b) }}{% if not loop.last %} → {% endif %}{% endfor %}</div></div>
+      <div class="preview">
+        <div class="preview__label">任一条未达标时，工作台和每张决策卡顶部显示：</div>
+        <div class="banner banner--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body"><div class="banner__title">市场评分本月未通过有效性检验</div><div class="small">把握和分级仅供参考，立项依据以新品层和框内历史为主。</div></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+{% if run %}
+<section class="section enter" style="--i:3" aria-labelledby="sec-market">
+  <div class="section__head"><h2 class="section__title" id="sec-market">市场层：本次评分</h2><span class="section__note">{{ market.n_units|num }} 个单元（大属性取值与两两格子）· 回测站在 {{ bt.T0 }} 估系数，训练样本 {{ bt.n_train|num }} 个（单元 × 时点 × 窗口）</span></div>
+  <div class="stats">
+    {% for g in bt.grades or [] %}
+    <div class="stat"><div class="stat__label">{{ g.grade }} 档</div><div class="stat__value num">{{ (market.grades or {}).get(g.grade, 0)|num }}</div><div class="stat__meta">回测之后变大 {{ pc(g.up) }} <button class="etag etag--n" type="button" data-pop-title="{{ g.grade }} 档回测" data-pop="时点={{ bt.T0 }};结果月份={{ bt.window }};样本数={{ g.n }} 个单元;实际多卖合计={{ '%+.0f'|format(g.extra) }} 件/月">n={{ g.n }}</button></div></div>
+    {% endfor %}
+  </div>
+  <div class="table-wrap" style="margin-top: var(--space-4)">
+    <table class="table">
+      <thead><tr><th>特征</th><th>意思</th><th class="t-num">b（k = 0）</th><th class="t-num">c（每多 3 个月）</th><th class="t-num">k = 6 合计</th><th class="t-num">k = 8 合计</th></tr></thead>
+      <tbody>
+      {% for x in ['b6', 'x5', 'x3', 'x4', 'x2'] %}{% set cf = (bt.coef or {}).get(x) %}{% if cf %}
+        <tr><td class="mono">{{ x }}</td><td>{{ names[x] }}</td><td class="t-num">{{ sg(cf.b) }}</td><td class="t-num">{{ sg(cf.c) }}</td><td class="t-num">{{ sg(cf.k6) }}</td><td class="t-num">{{ sg(cf.k8) }}</td></tr>
+      {% endif %}{% endfor %}
+      {% set ic = (bt.coef or {}).get('截距') %}
+      {% if ic %}<tr><td class="mono">截距</td><td>a / θ；另按（体量档, k）纠偏</td><td class="t-num">{{ sg(ic.b) }}</td><td class="t-num">{{ sg(ic.c) }}</td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td></tr>{% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% set b = newlayer.bias or {} %}
+<section class="section enter" style="--i:4" aria-labelledby="sec-new">
+  <div class="section__head"><h2 class="section__title" id="sec-new">新品层：做到概率与模型偏差</h2><span class="section__note">只用开发能定的属性；校准方式按预登记规则在选择段上选出 ({{ b.chosen or 'a' }}){% if b.mae and b.mae.a is not none %}，平均绝对误差每 10 个 {{ '%.1f'|format(b.mae.a * 10) }}{% endif %}</span></div>
+  <div class="grid-main-side">
+    <div class="panel">
+      <div class="panel__head"><h3 class="panel__title">本月模型偏差</h3>{% if b.bias is not none %}<span class="badge {{ 'badge--warn' if b.bias > 0.05 else 'badge--ok' }}"><svg class="icon"><use href="#ph-warning"/></svg>{{ '偏高' if b.bias > 0.05 else ('偏低' if b.bias < -0.05 else '基本持平') }}</span>{% endif %}</div>
+      <div class="panel__body">
+        <div class="bias">
+          <div class="bias__item"><div class="stat__label">近批模型预测（每 10 个）</div><div class="stat__value num">{{ '%.1f'|format((b.pred or 0) * 10) }}</div></div>
+          <div class="bias__item"><div class="stat__label">实际做到（每 10 个）</div><div class="stat__value num">{{ '%.1f'|format((b.actual or 0) * 10) }}</div></div>
+          <div class="bias__item"><div class="stat__label">模型偏差（预测 − 实际）</div><div class="stat__value num">{{ sg((b.bias or 0) * 10, 1) }}</div></div>
+        </div>
+        <p class="small muted" style="margin-top: var(--space-2)">近批 = 立项时点 {% for p in b.parts or [] %}{{ p[3] }}{% if not loop.last %}、{% endif %}{% endfor %} 的新家族 <button class="etag etag--n" type="button" data-pop-title="模型偏差来源" data-pop="时点={% for p in b.parts or [] %}{{ p[3] }}{% if not loop.last %}、{% endif %}{% endfor %};检验新家族={{ b.n }};预测={% for p in b.parts or [] %}{{ '%.1f'|format(p[0]*10) }}{% if not loop.last %} / {% endif %}{% endfor %};实际={% for p in b.parts or [] %}{{ '%.1f'|format(p[1]*10) }}{% if not loop.last %} / {% endif %}{% endfor %};校准=(a) 最近半年">n={{ b.n }}</button>。决策卡上的新品做到概率同时显示模型原值和扣掉偏差后的值。</p>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel__head"><h3 class="panel__title">校准方式选择</h3></div>
+      <div class="panel__body"><dl class="kv">
+        {% for h, nm in [('a', '(a) 最近半年'), ('b', '(b) 全部'), ('c', '(c) 趋势外推')] %}{% set e = (b.mae or {}).get(h) %}
+        <dt>{{ nm }}</dt><dd class="num">平均绝对误差 {{ '%.1f'|format(e * 10) if e is not none else '—' }}{% if b.chosen == h %} <span class="badge badge--ok"><svg class="icon"><use href="#ph-check"/></svg>选用</span>{% endif %}</dd>
+        {% endfor %}
+      </dl></div>
+    </div>
+  </div>
+  <div class="table-wrap" style="margin-top: var(--space-4)">
+    <table class="table">
+      <thead><tr><th>立项时点 T0</th><th class="t-num">训练新家族</th><th class="t-num">检验新家族</th><th class="t-num">实际每 10 个做到</th><th class="t-num">AUC</th><th class="t-num">打分前 30% / 后 30%</th><th class="t-num">模型平均 (a) / (b) / (c)</th><th>用途</th></tr></thead>
+      <tbody>
+      {% for r in newlayer.rows or [] %}
+        <tr><td class="num">{{ r.T0 }}</td><td class="t-num">{{ r.n_train }}</td><td class="t-num">{{ r.n_test }}</td><td class="t-num">{{ r.actual }}</td><td class="t-num">{{ '%.2f'|format(r.auc) if r.auc is not none else '—' }}</td>
+          <td class="t-num">{{ r.top30 }} / {{ r.bottom30 }}</td><td class="t-num">{{ r.mean_a }} / {{ r.mean_b }} / {{ r.mean_c }}</td><td>{{ r.use }}{% if r.small %} <span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本不足</span>{% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section enter" style="--i:5" aria-labelledby="sec-bt">
+  <div class="section__head"><h2 class="section__title" id="sec-bt">滚动回测：结果已知的时点重跑</h2><span class="section__note">站在 {{ bt.T0 }}，看立项后第 6–8 个月（{{ bt.window }}）的实际</span></div>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel__head"><h3 class="panel__title">把握分档：之后实际份额变大的比例</h3><span class="badge {{ 'badge--pass' if vd.mono else 'badge--fail' }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if vd.mono else 'x-circle' }}"/></svg>{{ '逐档上升' if vd.mono else '未逐档上升' }}</span></div>
+      <div class="panel__body">
+        {% set mx = (bt.grasp_bins or [])|map(attribute='up')|max %}
+        <div class="hbars" role="list">
+          {% for g in bt.grasp_bins or [] %}
+          <span class="hbar__label">{{ g.bin }}</span><span class="hbar__track"><span class="hbar__bar {{ 'hbar__bar--focus' if loop.last else '' }}" style="width:{{ (g.up / mx * 100) if mx else 0 }}%" tabindex="0" data-tip="{{ pc(g.up) }}|{{ g.n }} 个单元，其中 ≥ 300 件 {{ g.n300 }} 个|实际多卖 {{ '%+.0f'|format(g.extra) }} 件/月"></span></span><span class="hbar__value">{{ pc(g.up) }} <span class="etag etag--n">n={{ g.n }}</span></span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="panel__foot">相关性：把握 vs 实际份额变化 {{ sg(bt.rho.grasp, 2) }}（≥ 300 件 {{ sg(bt.rho.grasp300, 2) }}）；预计多卖 vs 实际多卖 {{ sg(bt.rho.extra, 2) }}（≥ 300 件 {{ sg(bt.rho.extra300, 2) }}）</div>
+    </div>
+    <div class="panel">
+      <div class="panel__head"><h3 class="panel__title">分级：之后实际份额变大的比例</h3><span class="badge {{ 'badge--pass' if vd.d_ok else 'badge--fail' }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if vd.d_ok else 'x-circle' }}"/></svg>D 档 {{ '≤' if vd.d_ok else '>' }} 30%</span></div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table">
+          <thead><tr><th>分级</th><th class="t-num">单元数</th><th class="t-num">实际变大比例</th><th class="t-num">实际多卖合计</th><th class="t-num">实际多卖中位</th></tr></thead>
+          <tbody>{% for g in bt.grades or [] %}<tr><td class="cell-title">{{ g.grade }}</td><td class="t-num">{{ g.n }}</td><td class="t-num {{ 'strong' if g.grade == 'D' else '' }}">{{ pc(g.up) }}</td><td class="t-num">{{ sg(g.extra, 0)|replace('+', '+') }}</td><td class="t-num">{{ sg(g.median, 0) }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section__head" style="margin-top: var(--space-6)"><h3 class="section__title">和上一版（第八版）并排</h3><span class="section__note">立项后第 6–8 个月窗口；第八版没有第 8–10 个月窗口</span></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th rowspan="2">时点</th><th rowspan="2">结果月份</th><th colspan="2" class="ver-head">秩相关（全部 / ≥ 300 件）</th><th colspan="2" class="ver-head">方向对（≥ 300 件）</th><th colspan="2" class="ver-head">80% 区间覆盖</th><th colspan="2" class="ver-head">把握 ≥ 70% 之后变大</th><th colspan="2" class="ver-head">把握 ≤ 30% 之后变大</th></tr>
+        <tr><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th></tr>
+      </thead>
+      <tbody>
+      {% for t, vv in side.items()|sort %}{% set a = vv.get(8, {}) %}{% set c9 = vv.get(9, {}) %}
+        <tr><td class="num">{{ t }}</td><td class="num small">{{ c9.window or a.window }}</td>
+          <td class="t-num">{{ sg(a.rho, 2) }} / {{ sg(a.rho300, 2) }}</td><td class="t-num is-v9">{{ sg(c9.rho, 2) }} / {{ sg(c9.rho300, 2) }}</td>
+          <td class="t-num">{{ pc(a.dirn) }}</td><td class="t-num is-v9">{{ pc(c9.dirn) }}</td>
+          <td class="t-num">{{ pc(a.cov) }}</td><td class="t-num is-v9">{{ pc(c9.cov) }}</td>
+          <td class="t-num">{{ pc((a.hi or [none])[0]) }} <span class="etag">n={{ (a.hi or [0, 0])[1] }}</span></td><td class="t-num is-v9">{{ pc((c9.hi or [none])[0]) }} <span class="etag">n={{ (c9.hi or [0, 0])[1] }}</span></td>
+          <td class="t-num">{{ pc((a.lo or [none])[0]) }} <span class="etag">n={{ (a.lo or [0, 0])[1] }}</span></td><td class="t-num is-v9">{{ pc((c9.lo or [none])[0]) }} <span class="etag">n={{ (c9.lo or [0, 0])[1] }}</span></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="page-foot">x5 新品占比和预测窗口是看过 2026 年诊断后定的，严格的样本外检验要等 2026-10 起的数据。2026-06 至 09 来自 v11 表，带 * 的月份份额变化要打折看。</p>
+</section>
+{% else %}
+<div class="banner banner--stale"><svg class="icon"><use href="#ph-info"/></svg><div class="banner__body">还没有重算结果。数据并入、标签确认后点“重算”。</div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if state.running %}<script>(function poll() { fetch('/models/state', { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) { if (j.running) setTimeout(poll, 2000); else location.reload(); }); })();</script>{% endif %}
+{% endblock %}

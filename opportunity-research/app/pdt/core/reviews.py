@@ -227,5 +227,5 @@ def summary(s, card_id: int, value: str) -> dict:
                 cats=[dict(cat=c, label=cat_label(c, value), n=counts[c], pct=(counts[c] / n_cls) if n_cls else None) for c in REVIEW_CATS],
                 channels={k: len(v) for k, v in by_ch.items()}, by_channel_n={k: sum(1 for r in rows if r.channel == k) for k in by_ch},
                 by_sku=[dict(channel=k[0], item_id=k[1], **v) for k, v in by_sku.items()],
-                items=[dict(id=r.id, channel=r.channel, item_id=r.item_id, stars=r.stars, text=r.text, date=r.date, reason=r.reason,
+                reviews=[dict(id=r.id, channel=r.channel, item_id=r.item_id, stars=r.stars, text=r.text, date=r.date, reason=r.reason,
                             manual=r.reason_source == "manual") for r in rows])

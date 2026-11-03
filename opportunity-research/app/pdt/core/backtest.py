@@ -22,7 +22,11 @@ def _f(x):
 def mkt_eval(mk, T0, v):
     """某版本在 T0 的预测，与 k = 6 / 8 窗口的实际比。"""
     mk.set_ver(v)
-    D, m, cols, q, Tr = mk.predict(T0)
+    try:
+        D, m, cols, q, Tr = mk.predict(T0)
+    finally:
+        mk.set_ver(9)
+    mk.set_ver(v)
     res = {}
     for k in (6, 8):
         if T0 + k + 2 > mk.END or f'预测{k}' not in D:
@@ -46,7 +50,16 @@ def run(mk, U=None, TK=None, newlayer_rows=None, bias=None) -> dict:
     END = mk.END
     T0 = END - 8
     out = dict(T0=ms(T0), window=f'{ms(T0 + 6)} 至 {ms(T0 + 8)}', end=ms(END))
-    _, D, m, cols, q, Tr = mkt_eval(mk, T0, 9)
+    if newlayer_rows is not None:
+        out['newlayer'] = newlayer_rows
+        out['bias'] = bias
+    try:
+        _, D, m, cols, q, Tr = mkt_eval(mk, T0, 9)
+    except ValueError as e:  # 数据太短（如回看 2026-01）：回测时点不足，不做有效性判断
+        out.update(available=False, reason=str(e), side=[], grades=[], grasp_bins=[], coef={}, rho={}, n_train=0, valid=True,
+                   valid_detail=dict(note='回测时点不足，未检验', d_ok=True, mono=True, bins=[], d_up=None, d_n=None))
+        return out
+    out['available'] = True
     coef = pd.Series(m.coef_, index=cols)
     out['coef'] = {x: dict(b=float(coef[x]), c=float(coef[x + '·k']), k6=float(coef[x] + 2 * coef[x + '·k']), k8=float(coef[x] + 8 / 3 * coef[x + '·k'])) for x in mk.XS}
     out['coef']['截距'] = dict(b=float(m.intercept_), c=float(coef['k']))
@@ -56,7 +69,10 @@ def run(mk, U=None, TK=None, newlayer_rows=None, bias=None) -> dict:
     side = []
     for T1 in range(END - 11, END - 7):
         for v in (8, 9):
-            res = mkt_eval(mk, T1, v)[0]
+            try:
+                res = mkt_eval(mk, T1, v)[0]
+            except ValueError:
+                continue
             for k, r in res.items():
                 side.append(dict(T0=ms(T1), k=k, window=f'{ms(T1 + k)} 至 {ms(T1 + k + 2)}', ver=v, **r))
     out['side'] = side
@@ -82,9 +98,6 @@ def run(mk, U=None, TK=None, newlayer_rows=None, bias=None) -> dict:
             grades.append(dict(grade=g, n=int(len(d)), up=float(d['变大'].mean()), extra=float(d['实际多卖'].sum()), median=float(d['实际多卖'].median())))
     out['grades'] = grades
     out['n_units'] = int(len(D))
-    if newlayer_rows is not None:
-        out['newlayer'] = newlayer_rows
-        out['bias'] = bias
     out['valid'], out['valid_detail'] = validity(out)
     return out
 

@@ -102,7 +102,9 @@ def raw_frame(channel: str = 'amazon') -> pd.DataFrame:
     if channel != 'amazon':
         cfg = (config().get('channels') or {}).get(channel) or {}
         vp_c, nv_c = float(cfg.get('vp_coef', 50)), float(cfg.get('nonvp_coef', 20))
-        out['units'] = out['vp'].fillna(0) * vp_c + out['nonvp'].fillna(0) * nv_c
+        vpd = pd.to_numeric(pd.Series([r.get('vp_d') for r in raw]), errors='coerce').fillna(out['vp'].fillna(0))
+        nvd = pd.to_numeric(pd.Series([r.get('nonvp_d') for r in raw]), errors='coerce').fillna(out['nonvp'].fillna(0))
+        out['units'] = vpd * vp_c + nvd * nv_c  # 评论换算法；VP / 非 VP 已按评论 ID 去重分摊
         if cfg.get('method') == 'rank':  # 排名平滑法（AC-F28-04）：有拟合值的行用拟合值
             ur = pd.to_numeric(pd.Series([r.get('units_rank') for r in raw]), errors='coerce')
             out['units'] = np.where(ur.notna(), ur, out['units'])

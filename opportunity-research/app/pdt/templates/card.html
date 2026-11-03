@@ -285,7 +285,7 @@
           <div class="grid-2" style="margin-top: var(--space-4)">
             <div>
               <h3 style="margin-bottom: var(--space-2)">价格带构成（{{ card.frame }} · {{ card.value }}，子体 × 月）</h3>
-              {% set mx = (ch.bands|map(attribute='obs')|max) if ch.bands else 1 %}
+              {% set mx = bmax[ch.channel] %}
               <div class="hbars">
                 {% for b in ch.bands %}<span class="hbar__label">{{ b.band }}</span><span class="hbar__track"><span class="hbar__bar{% if n.price and (b.lo or 0) <= n.price < (b.hi or 1e12) %} hbar__bar--focus{% endif %}" style="width:{{ '%.1f'|format(b.obs / mx * 100) }}%" tabindex="0" data-tip="{{ b.obs }} 次|{{ b.skus }} 个子体 · 月销中位 {{ b.median_units|num }} 件 · 最高 {{ b.max_units|num }} 件 · 评分中位 {{ b.rating|num(1) }}"></span></span><span class="hbar__value">{{ b.obs }} · 中位 {{ b.median_units|num }} 件</span>{% else %}<span class="small muted">无数据</span>{% endfor %}
               </div>
@@ -347,7 +347,7 @@
       {% if rv.total %}
       <div class="grid-2">
         <div>
-          {% set mx = (rv.cats|map(attribute='n')|max) or 1 %}
+          {% set mx = rv_max %}
           <div class="hbars" id="rv-bars">
             {% for x in rv.cats %}<span class="hbar__label {{ 'strong' if x.cat == '本品类关键部件' else '' }}">{{ x.label }}</span><span class="hbar__track"><span class="hbar__bar {{ 'hbar__bar--focus' if x.cat == '本品类关键部件' else '' }}" data-cat="{{ x.cat }}" style="width:{{ '%.1f'|format(x.n / mx * 100) }}%" tabindex="0" data-tip="{{ x.n }} 条（{{ pc0(x.pct) }}）|{{ x.label }}"></span></span><span class="hbar__value" data-val="{{ x.cat }}">{{ x.n }} 条 · {{ pc0(x.pct) }}</span>{% endfor %}
           </div>
@@ -372,12 +372,12 @@
         </table></div>
       </details>
       <div>
-        <div class="row" style="margin-bottom: var(--space-1)"><h3>评论原文与归类</h3><span class="spacer"></span><span class="small muted">共 {{ rv.items|length }} 条</span></div>
+        <div class="row" style="margin-bottom: var(--space-1)"><h3>评论原文与归类</h3><span class="spacer"></span><span class="small muted">显示 {{ [8, rv.reviews|length]|min }} / {{ rv.reviews|length }} 条</span></div>
         <div id="rv-list">
-          {% for r in rv.items %}
+          {% for r in rv.reviews %}{% if loop.index == 9 %}<details><summary class="small strong">展开其余 {{ rv.reviews|length - 8 }} 条</summary>{% endif %}
           <div class="rv"><div><div class="rv__quote">"{{ r.text }}"</div><div class="rv__meta">{{ r.item_id }} · {{ channel_names[r.channel] }} · {{ r.stars|num }} 星 · {{ r.date }}{% if r.manual %} <span class="etag">人工修改</span>{% endif %}</div></div>
             <select class="select" aria-label="归类" data-review="{{ r.id }}" {% if not can_edit %}disabled{% endif %}>{% if not r.reason %}<option value="" selected>未归类</option>{% endif %}{% for c in cats %}<option value="{{ c }}" {% if c == r.reason %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
-          {% endfor %}
+          {% if loop.last and loop.index > 8 %}</details>{% endif %}{% endfor %}
         </div>
       </div>
       {% endif %}
@@ -395,7 +395,7 @@
       <div class="table-wrap"><table class="table">
         <thead><tr><th>情形</th><th>依据</th><th class="t-num">月销</th><th class="t-num">月销售额（按 ${{ narr.price or '—' }}）</th></tr></thead>
         <tbody>
-          <tr><td class="cell-title">一般（单个子体）</td><td class="small">{{ n.money.general_band or '拟定价位' }} 价格带"子体 × 月"中位</td><td class="t-num">{% if n.money.general is not none %}{{ n.money.general|num }} 件{{ src('一般', '框=' ~ card.frame ~ ';价格带=' ~ (n.money.general_band or '') ~ ';样本数=' ~ (n.money.general_obs or 0) ~ ' 个子体 × 月', 'n=' ~ (n.money.general_obs or 0)) }}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td><td class="t-num">{% if n.money.general is not none and narr.price %}约 ${{ (n.money.general * narr.price)|num }}{% else %}—{% endif %}</td></tr>
+          <tr><td class="cell-title">一般（单个子体）</td><td class="small">{{ n.money.general_band or '拟定价位' }} 价格带"子体 × 月"中位</td><td class="t-num">{% if n.money.general is not none %}{{ n.money.general|num }} 件{{ src('一般', '框=' ~ card.frame ~ ';价格带=' ~ (n.money.general_band or '') ~ ';月份=' ~ n.meta.first_month ~ ' 至 ' ~ n.meta.data_month ~ ';样本数=' ~ (n.money.general_obs or 0) ~ ' 个子体 × 月', 'n=' ~ (n.money.general_obs or 0)) }}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td><td class="t-num">{% if n.money.general is not none and narr.price %}约 ${{ (n.money.general * narr.price)|num }}{% else %}—{% endif %}</td></tr>
           <tr><td class="cell-title">做到（家族）</td><td class="small">同框含{{ card.value }}、6 个月内进前 50 的家族，第 4–6 个月中位</td><td class="t-num">{% if n.money.made is not none %}{{ n.money.made|num }} 件{{ src('做到', '框=' ~ card.frame ~ ';月份=上架后第 4–6 个月;样本数=' ~ n.money.made_n ~ ' 个做到的家族', 'n=' ~ n.money.made_n) }}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td><td class="t-num">{% if n.money.made is not none and narr.price %}约 ${{ (n.money.made * narr.price)|num }}{% else %}—{% endif %}</td></tr>
           <tr><td class="cell-title">好（最好的家族）</td><td class="small">{{ n.money.good_txt or '—' }}</td><td class="t-num">{% if n.money.good is not none %}约 {{ n.money.good|num }} 件{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td><td class="t-num">{% if n.money.good is not none and narr.price %}约 ${{ (n.money.good * narr.price)|num }}{% else %}—{% endif %}</td></tr>
         </tbody>

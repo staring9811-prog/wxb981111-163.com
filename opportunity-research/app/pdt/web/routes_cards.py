@@ -141,7 +141,9 @@ def _view(s, c: Card, user):
              for i, st in enumerate(narr.get("stop", []))]
     sub_by = s.get(User, pend.submitted_by) if pend and pend.submitted_by else None
     approver = s.get(User, last_ok.decided_by) if last_ok and last_ok.decided_by else None
-    return dict(card=c, name=cardcore.card_name(c), n=numbers, prim=prim, narr=narr, profit=profit, rv=reviews, charts=charts,
+    bmax = {ch["channel"]: max([b.get("obs") or 0 for b in ch["bands"]] + [1]) for ch in numbers["channels"]}
+    rv_max = max([x["n"] for x in reviews["cats"]] + [1])
+    return dict(card=c, name=cardcore.card_name(c), n=numbers, bmax=bmax, rv_max=rv_max, prim=prim, narr=narr, profit=profit, rv=reviews, charts=charts,
                 events=events, pending=pend, pending_by=sub_by.name if sub_by else "", approved=last_ok, approver=approver.name if approver else "",
                 forecast=fc, run=run, new_data=cardcore.has_new_data(s, c), stops=stops, locked=locked,
                 can_edit=user.role == "operator" and c.status == "draft",

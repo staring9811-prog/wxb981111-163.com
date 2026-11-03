@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .steps--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .progress { display: flex; align-items: center; gap: var(--space-4); }
+  .progress .meter { flex: 1; margin-top: 0; height: 8px; }
+  .progress__num { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .star { color: var(--warn); font-weight: 600; }
+  .check-detail { font-size: var(--text-xs); color: var(--muted); }
+  .cov { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); font-size: var(--text-xs); }
+  .cov b { font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums; }
+  .cov .low b { color: var(--warn); }
+  .batch-actions { display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-4); }
+  @media (max-width: 1279px) { .steps.steps--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); } .steps--5 .step::after { display: block; } }
+</style>
+{% endblock %}
+{% macro badge(result) -%}
+{%- if result == 'block' -%}<span class="badge badge--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg>阻断</span>
+{%- elif result == 'anomaly' -%}<span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>异常</span>
+{%- elif result == 'na' -%}<span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>不判定</span>
+{%- else -%}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>通过</span>{%- endif -%}
+{%- endmacro %}
+{% macro checks_table(c) %}
+<table class="table">
+  <thead><tr><th>核对项</th><th>本批</th><th>阈值</th><th>结论</th></tr></thead>
+  <tbody>
+  {% for i in c['items'] or [] %}
+    <tr>
+      <td><div class="cell-title">{{ i.name }}</div><div class="cell-sub">{{ i.sub }}</div></td>
+      {% if i.key == 'tag_coverage' %}
+      <td><div class="cov">{% for k, v in (i.coverage or {}).items() %}<span class="{{ 'low' if k in i.low else '' }}">{{ k }} <b>{{ v|num }}%</b></span>{% endfor %}</div><div class="check-detail">n={{ i.n|num }} 个商品</div></td>
+      {% elif i.key == 'rank_same' and i.n %}
+      <td class="num">{{ i.value }}<button class="etag etag--n" type="button" data-pop-title="排名重合" data-pop="两月都出现={{ i.n|num }} 个 ASIN;排名完全相同={{ i.same|num }} 个;对照={{ c.prev_month }} 并入版本;依据=AC-F17-03">n={{ i.n|num }}</button></td>
+      {% elif i.key == 'total_change' %}
+      <td class="num">{{ i.value }}<span class="etag">估算</span><div class="check-detail">{{ i.detail }}</div></td>
+      {% elif i.key == 'family_consistency' %}
+      <td class="num">{{ i.value }}<span class="etag etag--n">n={{ i.n|num }}</span>{% if i.detail %}<div class="check-detail">{{ i.detail }}</div>{% endif %}</td>
+      {% else %}
+      <td class="num">{{ i.value }}{% if i.detail %}<div class="check-detail">{{ i.detail }}</div>{% endif %}</td>
+      {% endif %}
+      <td class="small muted">{{ i.threshold }}</td>
+      <td>{{ badge(i.result) }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+{% block content %}
+<div class="page-head enter">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>Amazon 月度数据</span></nav>
+    <h1>Amazon 月度数据</h1>
+    <p class="page-head__sub">每月用卖家精灵接口拉上月浴室柜类目全量，自动核对后再并入分析。</p>
+  </div>
+  <div class="page-head__actions">
+    <button class="btn" type="button" data-open="#d-upload"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>手动上传</span></button>
+    {% if connected %}
+    <button class="btn btn--primary" type="button" data-open="#m-month" {% if active and active.status in ('running','queued') %}disabled title="{{ active.month }} 正在拉取"{% endif %}><svg class="icon"><use href="#ph-download-simple"/></svg><span>拉取数据</span></button>
+    {% else %}
+    <span class="small muted">卖家精灵未连接，<a href="/settings/keys">去设置</a></span>
+    <button class="btn btn--primary" type="button" disabled><svg class="icon"><use href="#ph-download-simple"/></svg><span>拉取数据</span></button>
+    {% endif %}
+  </div>
+</div>
+
+{% if active %}
+{% set p = active.progress or {} %}
+<div data-state="pulling" data-job="{{ active.id }}" data-job-status="{{ active.status }}">
+  <ol class="steps steps--5 enter" style="--i:1" aria-label="{{ active.month }} 批次进度">
+    <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">选月份</span><span class="step__meta">{{ active.month }}</span></span></li>
+    <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">费用评估</span><span class="step__meta">已确认 ${{ active.estimate.usd_lo }}–{{ active.estimate.usd_hi }}</span></span></li>
+    <li class="step {{ 'step--current' if active.status in ('running','queued') else 'step--attention' }}"><span class="step__link"><span class="step__dot">3</span><span class="step__name">拉取</span><span class="step__meta">已拉 {{ (p.fetched or 0)|num }} 个 · 第 {{ p.page or 0 }} 页</span></span></li>
+    <li class="step step--todo"><span class="step__link"><span class="step__dot">4</span><span class="step__name">核对</span><span class="step__meta">拉完自动开始</span></span></li>
+    <li class="step step--todo"><span class="step__link"><span class="step__dot">5</span><span class="step__name">并入</span><span class="step__meta">待核对</span></span></li>
+  </ol>
+  <section class="section enter" style="--i:2" aria-labelledby="t-pull">
+    <div class="section__head"><h2 class="section__title" id="t-pull">当前批次 · {{ active.month }}</h2><span class="section__note">任务 #{{ active.id }} · 卖家精灵接口 · 同一月份同时只运行一个拉取任务</span></div>
+    {% if active.status in ('running','queued') %}
+    <div class="banner banner--cross" role="status"><svg class="icon"><use href="#ph-circle-notch"/></svg><div class="banner__body"><div class="banner__title">正在拉取 {{ active.month }}：已拉 {{ (p.fetched or 0)|num }} 个 ASIN · {{ p.step or '拉取商品月度字段' }}</div></div></div>
+    {% elif active.status == 'stopped_cap' %}
+    <div class="banner banner--warn" role="status"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">卖家精灵本月已达上限，已拉部分保留</div><div class="small">已拉 {{ (p.fetched or 0)|num }} 个 ASIN（{{ p.page or 0 }} 页）。调高上限后继续拉取，只拉缺的部分，已成功部分不重复计费。</div></div>
+      <div class="banner__actions"><a class="btn btn--sm" href="/settings/budget">调整上限</a><button class="btn btn--sm" type="button" data-cost-kind="amazon_pull" data-cost-month="{{ active.month }}" data-cost-params="{}">继续拉取</button></div></div>
+    {% else %}
+    <div class="banner banner--warn" role="status"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">拉取{{ '已暂停' if active.status == 'paused' else '中断' }}：已拉 {{ (p.fetched or 0)|num }} 个，已拉部分已保存</div><div class="small">{{ active.error }}</div></div>
+      <div class="banner__actions"><button class="btn btn--sm" type="button" data-cost-kind="amazon_pull" data-cost-month="{{ active.month }}" data-cost-params="{}">继续拉取（只拉缺的部分）</button></div></div>
+    {% endif %}
+    <div class="panel" style="margin-top: var(--space-5);">
+      <div class="panel__head"><h3 class="panel__title">拉取进度</h3></div>
+      <div class="panel__body">
+        <div class="progress"><span class="progress__num" id="pull-num">{{ (p.fetched or 0)|num }}</span><span class="muted small">个 ASIN · 第 {{ p.page or 0 }} 页 · {{ p.step or '拉取商品月度字段' }}</span><div class="meter"><i style="width:{{ 100 if active.status == 'done' else 60 }}%"></i></div></div>
+        <p class="field__hint" style="margin-top: var(--space-2);">可随时暂停，已拉部分会保存；中断或暂停后继续时只拉缺的部分，不重复计费。</p>
+        {% if active.status in ('running','queued') %}<div class="batch-actions"><button class="btn" type="button" id="pause" data-job="{{ active.id }}"><svg class="icon"><use href="#ph-timer"/></svg><span>暂停</span></button></div>{% endif %}
+      </div>
+      {% include "_pull_segments.html" %}
+    </div>
+  </section>
+</div>
+{% elif cur %}
+{% set c = cur.checks %}
+<div data-state="{{ cur.status }}">
+  <ol class="steps steps--5 enter" style="--i:1" aria-label="{{ cur.month }} 批次进度">
+    <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">选月份</span><span class="step__meta">{{ cur.month }}</span></span></li>
+    <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">{{ '费用评估' if cur.source == '卖家精灵接口' else '数据来源' }}</span><span class="step__meta">{{ cur.source }}</span></span></li>
+    <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">{{ '拉取' if cur.source == '卖家精灵接口' else '读入' }}</span><span class="step__meta">{{ cur.rows|num }} 个 ASIN{% if segs|length > 1 %} · 续拉 {{ segs|length - 1 }} 次{% endif %}</span></span></li>
+    {% if cur.status == 'suspect_month' %}
+    <li class="step step--blocked"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-warning-octagon"/></svg></span><span class="step__name">核对</span><span class="step__meta">疑似月份错误</span></span></li>
+    <li class="step step--todo"><span class="step__link"><span class="step__dot">5</span><span class="step__name">并入</span><span class="step__meta">不可并入</span></span></li>
+    {% elif cur.status == 'anomaly' %}
+    <li class="step step--attention"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-warning"/></svg></span><span class="step__name">核对</span><span class="step__meta">{{ (c['items']|selectattr('result','equalto','anomaly')|list|length) }} 项异常</span></span></li>
+    <li class="step step--current"><span class="step__link"><span class="step__dot">5</span><span class="step__name">并入</span><span class="step__meta">待 wen 确认</span></span></li>
+    {% elif cur.status == 'ok' %}
+    <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">核对</span><span class="step__meta">全部通过</span></span></li>
+    <li class="step step--current"><span class="step__link"><span class="step__dot">5</span><span class="step__name">并入</span><span class="step__meta">可并入</span></span></li>
+    {% else %}
+    <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">核对</span><span class="step__meta">{{ '有异常，已确认' if cur.star else '已核对' }}</span></span></li>
+    <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">并入</span><span class="step__meta">{{ cur.merged_at|dt }}</span></span></li>
+    {% endif %}
+  </ol>
+
+  <section class="section enter" style="--i:2" aria-labelledby="t-batch">
+    <div class="section__head">
+      <h2 class="section__title" id="t-batch">当前批次 · {{ cur.month }}{% if cur.star %}<span class="star">*</span>{% endif %}</h2>
+      <span class="section__note">批次 #{{ cur.id }} · {{ cur.source }} · {{ cur.created_at|dt }}</span>
+    </div>
+    {% if cur.status == 'suspect_month' %}
+    <div class="banner banner--block" role="alert">
+      <svg class="icon"><use href="#ph-warning-octagon"/></svg>
+      <div class="banner__body"><div class="banner__title">{{ cur.month }} 疑似月份错误，未并入分析</div><div class="small">{{ cur.reason }}。卖家精灵很可能还没更新该月数据，等其更新后重新拉取，或手动导出上传。</div></div>
+      <div class="banner__actions">
+        <button class="btn btn--sm" type="button" data-open="#d-upload">手动上传</button>
+        {% if connected %}<button class="btn btn--sm" type="button" data-cost-kind="amazon_pull" data-cost-month="{{ cur.month }}" data-cost-params="{}">重新拉取</button>{% endif %}
+        <form method="post" action="/data/batches/{{ cur.id }}/reject" style="display:inline"><button class="btn btn--sm btn--ghost" type="submit">放弃本批</button></form>
+      </div>
+    </div>
+    {% elif cur.status == 'anomaly' %}
+    <div class="banner banner--warn" role="status"><svg class="icon"><use href="#ph-warning"/></svg>
+      <div class="banner__body"><div class="banner__title">核对有 {{ (c['items']|selectattr('result','equalto','anomaly')|list|length) }} 项异常，需确认后才能并入</div><div class="small">{{ cur.reason }}。月份误标检测已通过。</div></div></div>
+    {% elif cur.status == 'ok' %}
+    <div class="banner banner--ok" role="status"><svg class="icon"><use href="#ph-check-circle"/></svg><div class="banner__body"><div class="banner__title">核对全部通过</div><div class="small">并入后新商品进入打标确认，再到模型与回测重算。</div></div></div>
+    {% else %}
+    <div class="banner banner--ok" role="status"><svg class="icon"><use href="#ph-check-circle"/></svg><div class="banner__body"><div class="banner__title">{{ cur.month }}{{ '*' if cur.star else '' }} 已并入，新商品已规则打标</div>{% if cur.star %}<div class="small">异常原因：{{ cur.reason }}</div>{% endif %}</div>
+      <div class="banner__actions"><a class="btn btn--sm" href="/tagging">去打标确认</a><a class="btn btn--sm" href="/models">模型与回测</a></div></div>
+    {% endif %}
+
+    <div class="grid-main-side" style="margin-top: var(--space-5);">
+      <div class="panel">
+        <div class="panel__head"><h3 class="panel__title">核对结果</h3><span class="section__note">对照月份 {{ c.prev_month or '无' }}</span></div>
+        <div class="table-wrap table-wrap--flush">{{ checks_table(c) }}</div>
+        <div class="panel__foot">疑似月份错误的批次不能并入。品类总量、家族键与覆盖率阈值取品类配置（±{{ (c.thresholds or {}).total_change_pct or 30 }}% / ≥ {{ (c.thresholds or {}).family_consistency_min or 90 }}% / ≥ {{ (c.thresholds or {}).tag_coverage_min or 95 }}%）。</div>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><h3 class="panel__title">{{ '拉取进度' if cur.source == '卖家精灵接口' else '数据来源' }}</h3><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已完成</span></div>
+        <div class="panel__body">
+          <div class="progress"><span class="progress__num">{{ cur.rows|num }}</span><span class="muted small">/ {{ cur.rows|num }} ASIN</span><div class="meter"><i style="width:100%"></i></div></div>
+          {% if cur.source != '卖家精灵接口' %}<p class="field__hint" style="margin-top: var(--space-2)">{{ cur.source }}，原始文件已保留。</p>{% endif %}
+        </div>
+        {% if segs %}{% include "_pull_segments.html" %}{% endif %}
+        <div class="panel__foot"><a class="tlink" href="/settings/budget">费用记录</a></div>
+      </div>
+    </div>
+    {% if cur.status == 'anomaly' %}
+    <div class="batch-actions">
+      <form method="post" action="/data/batches/{{ cur.id }}/reject"><button class="btn" type="submit">放弃本批</button></form>
+      <button class="btn" type="button" data-open="#m-confirm"><svg class="icon"><use href="#ph-git-merge"/></svg><span>确认异常并入</span></button>
+    </div>
+    {% elif cur.status == 'ok' %}
+    <div class="batch-actions">
+      <form method="post" action="/data/batches/{{ cur.id }}/reject"><button class="btn" type="submit">放弃本批</button></form>
+      <form method="post" action="/data/batches/{{ cur.id }}/merge"><button class="btn btn--primary" type="submit"><svg class="icon"><use href="#ph-git-merge"/></svg><span>并入</span></button></form>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% else %}
+<div class="banner banner--stale enter" role="status"><svg class="icon"><use href="#ph-package"/></svg><div class="banner__body"><div class="banner__title">还没有 Amazon 月度数据</div><div class="small">先拉取上一个自然月（{{ default_month }}），或手动上传卖家精灵导出文件。</div></div></div>
+{% endif %}
+
+<section class="section enter" style="--i:3" aria-labelledby="t-hist">
+  <div class="section__head">
+    <h2 class="section__title" id="t-hist">历史月份</h2>
+    <span class="section__note">共 {{ n_hist }} 个月 · 原始数据与并入版本保留至少 36 个月</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>月份</th><th>来源</th><th class="t-num">ASIN</th><th class="t-num">品类总月销</th><th>状态</th><th>异常原因</th><th>并入时间</th><th></th></tr></thead>
+      <tbody>
+      {% for h in hist[:50] %}
+        <tr>
+          <td class="num strong"><a class="tlink" href="/data/amazon?batch={{ h.id }}">{{ h.month }}</a>{% if h.star %}<span class="star">*</span>{% endif %}</td>
+          <td>{{ h.source }}</td><td class="t-num">{{ h.rows|num }}</td>
+          <td class="t-num">{% if h.status == 'merged' %}{{ h.total|num }}<span class="etag">估算</span>{% else %}<span class="etag etag--nodata">无数据 · 未并入</span>{% endif %}</td>
+          <td><span class="badge badge--{{ h.kind }}">{{ h.status_name }}</span></td>
+          <td class="small">{{ h.reason or '—' }}{% if h.note %}<div class="cell-sub">说明：{{ h.note }}</div>{% endif %}</td>
+          <td class="num small">{{ h.merged_at|dt if h.merged_at else '—' }}</td>
+          <td>{% if h.status == 'merged' %}<a class="tlink small" href="/scan?month={{ h.month }}">查看扫描</a>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="muted">还没有月份。</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="page-foot">原始拉取数据和每月并入版本保留至少 36 个月，可回看任一历史月份的扫描与评分。</p>
+</section>
+{% endblock %}
+
+{% block modals %}
+<div class="modal" id="m-month" role="dialog" aria-modal="true" aria-labelledby="m-month-t" aria-hidden="true">
+  <div class="modal__dialog">
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="m-month-t">拉取月份</h2><p class="modal__sub">卖家精灵接口 · 浴室柜类目全部商品</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label class="field__label" for="pick-month">月份<span class="req">*</span></label>
+        <select class="select" id="pick-month">{% for m in months %}<option value="{{ m }}" {% if m == default_month %}selected{% endif %}>{{ m }}{% if m == default_month %}（上一个自然月）{% endif %}</option>{% endfor %}</select>
+        <p class="field__hint">拉取字段：ASIN、父体、品牌、价格、月销、小类排名、评分、评分数、上架日期、变体、图片、链接。已并入的月份再次拉取会生成新批次，旧版本保留。</p>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--primary" type="button" id="to-cmp" data-cost-kind="amazon_pull" data-cost-month="{{ default_month }}" data-cost-params="{}"><span>下一步：评估费用</span><svg class="icon"><use href="#ph-arrow-right"/></svg></button>
+    </div>
+  </div>
+</div>
+{% if cur and cur.status == 'anomaly' %}
+<div class="modal" id="m-confirm" role="dialog" aria-modal="true" aria-labelledby="m-confirm-t" aria-hidden="true">
+  <form class="modal__dialog" method="post" action="/data/batches/{{ cur.id }}/merge">
+    <input type="hidden" name="confirm" value="1">
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="m-confirm-t">确认异常并入 {{ cur.month }}</h2><p class="modal__sub">批次 #{{ cur.id }} · {{ cur.source }}</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body stack">
+      <dl class="kv">
+        <dt>异常项</dt><dd>{% for i in cur.checks['items'] if i.result == 'anomaly' %}{{ i.name }} {{ i.value or '' }}（阈值 {{ i.threshold }}）{% if not loop.last %}；{% endif %}{% endfor %}</dd>
+        <dt>异常原因</dt><dd>{{ cur.reason }}</dd>
+      </dl>
+      <div class="field">
+        <label class="field__label" for="c-note">补充说明</label>
+        <textarea class="textarea" id="c-note" name="note" placeholder="例：卖家精灵变体字段改版，抽查 20 个家族属实，销量口径未变。"></textarea>
+        <p class="field__hint">选填，会与异常原因一起显示。</p>
+      </div>
+      <div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">并入后该月在所有图表和决策卡中带 * 标记，并注明异常原因。</div></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--primary" type="submit"><span>确认并入</span></button>
+    </div>
+  </form>
+</div>
+{% endif %}
+<aside class="drawer" id="d-upload" role="dialog" aria-modal="true" aria-labelledby="d-upload-t" aria-hidden="true">
+  <form method="post" action="/data/amazon/upload" enctype="multipart/form-data" style="display:contents">
+  <div class="drawer__head">
+    <div><h2 class="drawer__title" id="d-upload-t">手动上传</h2><p class="drawer__sub">卖家精灵接口不可用时的后备；核对规则与接口拉取相同</p></div>
+    <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+  </div>
+  <div class="drawer__body stack-lg">
+    <div class="field">
+      <label class="field__label" for="u-month">月份<span class="req">*</span></label>
+      <select class="select" id="u-month" name="month">{% for m in months[:24] %}<option value="{{ m }}" {% if m == default_month %}selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+    </div>
+    <div class="field">
+      <span class="field__label">文件<span class="req">*</span></span>
+      <label class="dropzone" for="u-file">
+        <svg class="icon"><use href="#ph-file-xls"/></svg>
+        <span><span class="strong" id="u-name">选择或拖入卖家精灵导出文件</span><br><span class="small muted">.xlsx / .csv / .json，与"类目选品"导出或接口导出同格式；已打标表（含 D1–D9 列）也可</span></span>
+        <input class="visually-hidden" id="u-file" name="file" type="file" accept=".xlsx,.csv,.json" required>
+      </label>
+    </div>
+    <p class="field__hint">必需列：ASIN、月销量、小类排名、价格。缺列时会指出列名。</p>
+  </div>
+  <div class="drawer__foot">
+    <button class="btn" type="button" data-close>取消</button>
+    <button class="btn btn--primary" type="submit"><span>上传并核对</span></button>
+  </div>
+  </form>
+</aside>
+{% include "_cost_modal.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var pick = document.getElementById('pick-month'), go = document.getElementById('to-cmp');
+  if (pick && go) {
+    pick.addEventListener('change', function () { go.setAttribute('data-cost-month', pick.value); });
+    go.addEventListener('click', function () { window.oppoClose && window.oppoClose('#m-month'); });
+  }
+  var f = document.getElementById('u-file'), n = document.getElementById('u-name');
+  if (f && n) f.addEventListener('change', function () { if (f.files[0]) n.textContent = f.files[0].name; });
+  var pause = document.getElementById('pause');
+  if (pause) pause.addEventListener('click', function () {
+    fetch('/jobs/' + pause.dataset.job + '/pause', { method: 'POST', headers: { accept: 'application/json' } }).then(function () { window.oppoToast && window.oppoToast('已请求暂停，已拉部分会保留'); });
+  });
+  function poll(id) {
+    fetch('/jobs/' + id, { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.status === 'running' || j.status === 'queued') { setTimeout(function () { poll(id); }, 2000); var n2 = document.getElementById('pull-num'); if (n2 && j.progress) n2.textContent = (j.progress.fetched || 0).toLocaleString('en-US'); }
+      else location.reload();
+    });
+  }
+  window.addEventListener('pdt:job-started', function (e) { if (e.detail && e.detail.id) poll(e.detail.id); });
+  var st = document.querySelector('[data-job-status]');
+  if (st && (st.dataset.jobStatus === 'running' || st.dataset.jobStatus === 'queued')) poll(st.dataset.job);
+})();
+</script>
+{% endblock %}

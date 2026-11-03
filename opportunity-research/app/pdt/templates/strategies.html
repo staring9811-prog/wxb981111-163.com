@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .rule { max-width: 520px; }
+  .vers { margin: 0; padding: 0; list-style: none; }
+  .ver { position: relative; padding: 0 0 var(--space-5) var(--space-6); border-left: 1px solid var(--border); margin-left: 6px; }
+  .ver:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .ver::before { content: ""; position: absolute; left: -6px; top: 4px; width: 11px; height: 11px; border-radius: 50%; background: var(--surface); border: 2px solid var(--border-control); }
+  .ver--cur::before { border-color: var(--fg); background: var(--fg); }
+  .ver__head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--text-sm); }
+  .ver__body { margin-top: var(--space-1); font-size: var(--text-sm); color: var(--fg-2); }
+  .ver .diff { margin-top: var(--space-2); }
+</style>
+{% endblock %}
+{% macro st_badge(s) -%}
+{%- if s == '已验证' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>已验证</span>
+{%- elif s == '历史观察' %}<span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>
+{%- else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证经验</span>{% endif -%}
+{%- endmacro %}
+{% set SKEY = {'已验证': 'verified', '历史观察': 'observed', '未验证经验': 'unverified'} %}
+{% set KKEY = {'分框信号': 'signal', '条件表': 'cond', '经验': 'exp'} %}
+{% block content %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <div class="crumbs"><span>审批与台账</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>策略库</span></div>
+    <h1>策略库</h1>
+    <p class="page-head__sub">分框信号、条件表和经验结论。每条带状态，修改产生新版本，旧版本保留；改为"已验证"必须经老板批准。</p>
+  </div>
+  {% if is_op %}<div class="page-head__actions"><button class="btn btn--primary" type="button" data-open="#dlgNew"><svg class="icon"><use href="#ph-plus"/></svg><span>新增结论</span></button></div>{% endif %}
+</div>
+<div class="stats enter" style="--i:1">
+  <div class="stat"><div class="stat__label">{{ st_badge('已验证') }}</div><div class="stat__value">{{ counts['已验证'] }}<span class="stat__unit">条</span></div><div class="stat__meta">经老板批准</div></div>
+  <div class="stat"><div class="stat__label">{{ st_badge('历史观察') }}</div><div class="stat__value">{{ counts['历史观察'] }}<span class="stat__unit">条</span></div><div class="stat__meta">{% set np = items|selectattr('pending')|list|length %}{% if np %}其中 {{ np }} 条申请已验证，待审批{% else %}回测或历史数据支持{% endif %}</div></div>
+  <div class="stat"><div class="stat__label">{{ st_badge('未验证经验') }}</div><div class="stat__value">{{ counts['未验证经验'] }}<span class="stat__unit">条</span></div><div class="stat__meta">只作参考，不进决策卡结论</div></div>
+</div>
+<section class="section enter" style="--i:2">
+  <div class="filters" data-filter-scope="#tblRules">
+    <span class="filters__label">状态</span>
+    <button class="chip" type="button" data-filter="st:all" aria-pressed="true">全部 <span class="count">{{ items|length }}</span></button>
+    {% for s in ['已验证', '历史观察', '未验证经验'] %}<button class="chip" type="button" data-filter="st:{{ SKEY[s] }}" aria-pressed="false">{{ s }} <span class="count">{{ counts[s] }}</span></button>{% endfor %}
+    <span class="filters__sep"></span>
+    <span class="filters__label">类型</span>
+    {% for k in kinds %}<button class="chip" type="button" data-filter="kind:{{ KKEY[k] }}" data-multi aria-pressed="false">{{ k }}</button>{% endfor %}
+    <span class="spacer"></span>
+    <label class="search"><svg class="icon"><use href="#ph-magnifying-glass"/></svg><input class="input" type="search" placeholder="搜索结论" aria-label="搜索结论" id="rule-search"></label>
+  </div>
+  <div class="table-wrap">
+    <table class="table" id="tblRules">
+      <thead><tr><th>编号</th><th>结论</th><th>类型</th><th>状态</th><th class="t-num">版本</th><th>依据</th><th>更新</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+      <tbody>
+        {% for it in items %}{% set st = it.st %}
+        <tr id="{{ st.code }}" data-st="{{ SKEY[st.status] }}" data-kind="{{ KKEY[st.kind] }}" data-q="{{ st.title }}">
+          <td class="mono">{{ st.code }}</td>
+          <td class="rule"><div class="cell-title">{{ st.title }}</div>{% if it.pending %}<div class="cell-sub"><span class="badge badge--warn"><svg class="icon"><use href="#ph-hourglass"/></svg>申请已验证 · 待老板审批</span></div>{% endif %}</td>
+          <td>{{ st.kind }}</td><td>{{ st_badge(st.status) }}</td><td class="t-num">v{{ st.version }}</td><td class="small">{{ st.basis }}</td>
+          <td class="num t-nowrap">{{ st.updated_at.strftime('%Y-%m-%d') }}</td>
+          <td class="t-nowrap"><button class="btn btn--sm" type="button" data-open="#drawer-{{ st.id }}">查看</button>{% if is_op and st.status != '已验证' %} <button class="btn btn--sm" type="button" data-apply="{{ st.id }}" data-title="{{ st.title }}" {% if it.pending %}aria-disabled="true" disabled title="已有待审批申请"{% endif %}>申请已验证</button>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="pager"><span>共 <span data-filter-count>{{ items|length }}</span> 条</span></div>
+</section>
+{% endblock %}
+
+{% block modals %}
+{% for it in items %}{% set st = it.st %}
+<aside class="drawer" id="drawer-{{ st.id }}" role="dialog" aria-modal="true" aria-labelledby="dw-{{ st.id }}" aria-hidden="true">
+  <div class="drawer__head">
+    <div><h2 class="drawer__title" id="dw-{{ st.id }}">{{ st.title }}</h2><p class="drawer__sub">{{ st.code }} · {{ st.kind }} · 当前 v{{ st.version }}</p></div>
+    <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+  </div>
+  <div class="drawer__body stack-lg">
+    {% if it.pending %}<div class="banner banner--warn"><svg class="icon"><use href="#ph-hourglass"/></svg><div class="banner__body"><div class="banner__title">申请改为"已验证"，待老板审批</div><div class="small">{{ it.pending.submitted_at|dt }} 申请。批准前状态保持"{{ st.status }}"。<a href="/approvals">去审批页</a></div></div></div>{% endif %}
+    <div class="tabs" role="tablist" aria-label="条目内容">
+      <button class="tab" role="tab" type="button" aria-selected="true" aria-controls="cur-{{ st.id }}">当前版本</button>
+      {% if is_op %}<button class="tab" role="tab" type="button" aria-selected="false" aria-controls="edit-{{ st.id }}">修改</button>{% endif %}
+      <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="hist-{{ st.id }}">版本历史 <span class="count">{{ it.versions|length }}</span></button>
+    </div>
+    <section id="cur-{{ st.id }}" role="tabpanel" class="stack">
+      <dl class="kv">
+        <dt>状态</dt><dd>{{ st_badge(st.status) }}</dd>
+        <dt>结论</dt><dd>{{ st.title }}</dd>
+        <dt>适用框</dt><dd>{{ st.body or '全部框' }}</dd>
+        <dt>依据</dt><dd>{{ st.basis }}</dd>
+        <dt>版本</dt><dd class="num">v{{ st.version }} · {{ it.versions[0].by }} · {{ it.versions[0].at|dt }}</dd>
+      </dl>
+    </section>
+    {% if is_op %}
+    <section id="edit-{{ st.id }}" role="tabpanel" hidden>
+      <form class="stack" method="post" action="/strategies/{{ st.id }}" id="form-{{ st.id }}">
+        <label class="field"><span class="field__label">结论<span class="req">*</span></span><textarea class="textarea" name="title" required>{{ st.title }}</textarea></label>
+        <label class="field"><span class="field__label">状态<span class="req">*</span></span>
+          <select class="select" name="status">{% if st.status == '已验证' %}<option selected>已验证</option>{% endif %}<option {% if st.status == '未验证经验' %}selected{% endif %}>未验证经验</option><option {% if st.status == '历史观察' %}selected{% endif %}>历史观察</option></select>
+          <span class="field__hint">改为"已验证"要走申请，经老板批准后生效</span></label>
+        <label class="field"><span class="field__label">适用框</span><input class="input" name="body" value="{{ st.body }}"></label>
+        <label class="field"><span class="field__label">依据<span class="req">*</span></span><textarea class="textarea" name="basis" required>{{ st.basis }}</textarea></label>
+        <label class="field"><span class="field__label">修改说明<span class="req">*</span></span><input class="input" name="note" required placeholder="例：补充 2026-10 的新家族"></label>
+        <p class="small muted">保存后生成 v{{ st.version + 1 }}，v{{ st.version }} 保留在版本历史里。</p>
+      </form>
+    </section>
+    {% endif %}
+    <section id="hist-{{ st.id }}" role="tabpanel" hidden>
+      <ol class="vers">
+        {% for v in it.versions %}{% set prev = it.versions[loop.index] if loop.index < it.versions|length else none %}
+        <li class="ver {{ 'ver--cur' if loop.first else '' }}">
+          <div class="ver__head"><span class="strong">v{{ v.version }}</span>{{ st_badge(v.status) }}<span class="muted small">{{ v.by }} · {{ v.at|dt }}</span></div>
+          <div class="ver__body">{{ v.note }}</div>
+          {% if prev %}<div class="diff">
+            {% if prev.status != v.status %}<span class="diff__key">状态</span><span class="diff__old">{{ prev.status }}</span><span class="diff__new">{{ v.status }}</span>{% endif %}
+            {% if prev.title != v.title %}<span class="diff__key">结论</span><span class="diff__old">{{ prev.title }}</span><span class="diff__new">{{ v.title }}</span>{% endif %}
+            {% if prev.basis != v.basis %}<span class="diff__key">依据</span><span class="diff__old">{{ prev.basis }}</span><span class="diff__new">{{ v.basis }}</span>{% endif %}
+          </div>{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+  </div>
+  <div class="drawer__foot">
+    {% if is_op and st.status != '已验证' %}<button class="btn" type="button" data-apply="{{ st.id }}" data-title="{{ st.title }}" {% if it.pending %}aria-disabled="true" disabled title="已有待审批申请"{% endif %}><svg class="icon"><use href="#ph-seal-check"/></svg><span>申请改为已验证</span></button>{% endif %}
+    <span class="spacer"></span>
+    <button class="btn" type="button" data-close>关闭</button>
+    {% if is_op %}<button class="btn btn--primary" type="submit" form="form-{{ st.id }}">保存为新版本</button>{% endif %}
+  </div>
+</aside>
+{% endfor %}
+{% if is_op %}
+<div class="modal" id="dlgNew" role="dialog" aria-modal="true" aria-labelledby="newTitle" aria-hidden="true">
+  <form class="modal__dialog" method="post" action="/strategies">
+    <div class="modal__head"><div><h2 class="modal__title" id="newTitle">新增结论</h2><p class="modal__sub">新条目只能是"未验证经验"或"历史观察"</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body">
+      <div class="form-grid">
+        <label class="field span-2"><span class="field__label">结论<span class="req">*</span></span><textarea class="textarea" name="title" required placeholder="例：同框中位价或更低的新进入者更容易进前 50"></textarea></label>
+        <label class="field"><span class="field__label">类型<span class="req">*</span></span><select class="select" name="kind">{% for k in kinds %}<option {% if k == '经验' %}selected{% endif %}>{{ k }}</option>{% endfor %}</select></label>
+        <label class="field"><span class="field__label">状态<span class="req">*</span></span><select class="select" name="status"><option selected>未验证经验</option><option>历史观察</option></select></label>
+        <label class="field span-2"><span class="field__label">适用框</span><input class="input" name="body" placeholder="例：全部框；30″ 拆装 · 落地式"></label>
+        <label class="field span-2"><span class="field__label">依据<span class="req">*</span></span><textarea class="textarea" name="basis" required placeholder="数据范围、样本量或出处"></textarea></label>
+      </div>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="submit">保存为 v1</button></div>
+  </form>
+</div>
+<div class="modal" id="dlgApply" role="dialog" aria-modal="true" aria-labelledby="apTitle" aria-hidden="true">
+  <form class="modal__dialog" method="post" action="" id="applyForm">
+    <div class="modal__head"><div><h2 class="modal__title" id="apTitle">申请改为"已验证"</h2><p class="modal__sub" data-apply-title>提交后进入老板的待审批；批准前状态不变</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body"><label class="field"><span class="field__label">申请依据<span class="req">*</span></span><textarea class="textarea" name="basis" required placeholder="写清回测或台账对账结果，带样本量"></textarea></label></div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="submit">提交申请</button></div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var doc = document;
+  doc.querySelectorAll('[data-apply]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.disabled) return;
+      doc.getElementById('applyForm').action = '/strategies/' + b.getAttribute('data-apply') + '/apply-verified';
+      doc.querySelector('[data-apply-title]').textContent = b.getAttribute('data-title') + ' · 提交后进入老板的待审批；批准前状态不变';
+      window.oppoOpen('#dlgApply');
+    });
+  });
+  var q = doc.getElementById('rule-search');
+  if (q) q.addEventListener('input', function () {
+    var v = q.value.trim();
+    doc.querySelectorAll('#tblRules tbody tr').forEach(function (tr) { tr.style.display = !v || tr.getAttribute('data-q').indexOf(v) >= 0 ? '' : 'none'; });
+  });
+  if (location.hash) { var tr = doc.querySelector(location.hash); if (tr) tr.classList.add('is-selected'); }
+})();
+</script>
+{% endblock %}

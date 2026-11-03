@@ -174,7 +174,7 @@ def unit_skus(channel, frame, attr, value, top=20):
 def price_bands(channel, frame, attr, value):
     m = _panel_module()
     if m is not None:
-        return m.price_bands(channel, frame, attr, value)
+        return [_norm_band(b) for b in m.price_bands(channel, frame, attr, value)]
     d = _frame_rows(channel, frame, attr)
     if d.empty:
         return []
@@ -187,6 +187,15 @@ def price_bands(channel, frame, attr, value):
         out.append(dict(band=label, lo=lo, hi=hi if hi < 1e11 else None, skus=int(g["item_id"].nunique()), obs=int(len(g)),
                         median_units=_f(g["units"].median()), max_units=_f(g["units"].max()), rating=_f(g["rating"].median())))
     return out
+
+
+def _norm_band(b: dict) -> dict:
+    """分析组 price_bands 的字段名（sku_months / units_median …）对齐到决策卡用的名字。"""
+    lab = {label: (lo, hi if hi < 1e11 else None) for lo, hi, label in BANDS}
+    lo, hi = lab.get(b.get("band"), (None, None))
+    return dict(b, obs=b.get("obs", b.get("sku_months")), median_units=b.get("median_units", b.get("units_median")),
+                max_units=b.get("max_units", b.get("units_max")), rating=b.get("rating", b.get("rating_median")),
+                lo=b.get("lo", lo), hi=b.get("hi", hi))
 
 
 def _f(v):

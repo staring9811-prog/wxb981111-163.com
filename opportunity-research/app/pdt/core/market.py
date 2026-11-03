@@ -183,6 +183,8 @@ class Market:
                 X['T'] = T
                 X['kk'] = k
                 rows.append(X)
+        if not rows:
+            raise ValueError(f'{ms(T0)} 之前结果已知的训练样本不足（数据从 {ms(self.M0)} 起），无法拟合')
         Tr = pd.concat(rows)
         cols = [c for c in Tr.columns if c not in ('y', 'tier', 'T', 'kk')]
         m = Ridge(alpha=1e-6).fit(Tr[cols], Tr['y'])

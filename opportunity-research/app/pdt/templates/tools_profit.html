@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/profit/profit.css">
+<style>
+  .linkcard { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .linkcard__body { flex: 1; min-width: 0; }
+  .linkcard__title { font-weight: 600; }
+  .saved { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--muted); }
+  #pc-root nav.steps { display: flex; gap: var(--space-1); margin-bottom: var(--space-5); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  #pc-root nav.steps button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--fg-2); padding: var(--space-2) var(--space-3); }
+  #pc-root nav.steps button[aria-current="step"] { color: var(--fg); border-bottom-color: var(--fg); background: none; font-weight: 600; }
+  #pc-root nav.steps button b { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1px solid var(--border-control); border-radius: 50%; font-size: var(--text-2xs); }
+  #pc-root section > h2:first-child { margin-top: 0; }
+  body[data-ro] #pc-root :is(#drop, #btnSample, #btnBlank, #btnLoadJson, #btnImport, #btnAddProd, #btnBulkCat, #btnBulkPeak, #bulkCat, #bulkPeak, #btnRateImport, #btnResetParams, #btnAddSea, #btnHistSave, #btnHistSave2, #histName, #histName2, #btnQtyReset, .bulkPlat, [data-act], [data-delsea]) { display: none !important; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <div class="crumbs"><span>工具</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>利润测算</span></div>
+    <h1>利润测算{% if plan %} · <span data-plan-name>{{ plan.name }}</span>{% endif %}</h1>
+    <p class="page-head__sub">报价表 → 确认 → Amazon（FBM / CG / FBA）与 Lowe's / Home Depot / Wayfair 利润。方案存在系统上，局域网内有权限的人看到同一份。{% if not is_op %}当前账号只能查看。{% endif %}</p>
+  </div>
+  <div class="page-head__actions">
+    <span class="saved" data-saved>{% if plan %}<svg class="icon"><use href="#ph-check-circle"/></svg>已保存到系统 · <span class="num" data-saved-at></span>{% else %}还没有保存到系统{% endif %}</span>
+  </div>
+</div>
+{% if card %}
+<div class="linkcard enter" style="--i:1">
+  <svg class="icon icon--lg"><use href="#ph-link-simple"/></svg>
+  <div class="linkcard__body">
+    <div class="linkcard__title">关联决策卡：<a href="/cards/{{ card.id }}">{{ card.name }}</a> <span class="badge">{{ card.status_name }}</span></div>
+    <div class="small muted">已从卡片带入：尺寸 {{ card.size }}、拟定售价 ${{ card.price or '—' }}。保存后卡片“钱”一节显示各渠道单件利润、利润率、保本价，并随方案更新{% if card.locked %}；卡片已批准，回写不改批准快照，卡片提示“有新数据”{% endif %}。</div>
+  </div>
+  {% if is_op %}<button class="btn btn--primary" type="button" id="btnWriteback"><svg class="icon"><use href="#ph-arrow-up-right"/></svg><span>保存并回写决策卡</span></button>{% endif %}
+</div>
+{% endif %}
+<div class="section enter" style="--i:2" id="pc-root">
+  <nav class="steps" id="steps" aria-label="利润测算步骤">
+    <button data-step="1" type="button"><b>1</b>导入报价表</button>
+    <button data-step="2" type="button"><b>2</b>确认尺寸与价格</button>
+    <button data-step="3" type="button"><b>3</b>参数设置</button>
+    <button data-step="4" type="button"><b>4</b>利润测算表</button>
+    <button data-step="5" type="button"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史库 <span class="count" id="histCount">0</span></button>
+  </nav>
+  <main>
+  {% include "_profit_sections.html" %}
+  </main>
+</div>
+{% endblock %}
+{% block modals %}
+{% if card and is_op %}
+<div class="modal" id="dlgWriteback" role="dialog" aria-modal="true" aria-labelledby="wbTitle" aria-hidden="true">
+  <div class="modal__dialog modal__dialog--wide">
+    <div class="modal__head"><div><h2 class="modal__title" id="wbTitle">保存并回写决策卡</h2><p class="modal__sub">{{ card.name }} · “钱”一节</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+    <div class="modal__body stack">
+      <label class="field"><span class="field__label">回写哪个产品<span class="req">*</span></span><select class="select" id="wbProduct"></select></label>
+      <label class="field"><span class="field__label">方案名称</span><input class="input" id="wbName"></label>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>渠道</th><th class="t-num">售价</th><th class="t-num">单件利润</th><th class="t-num">利润率</th><th class="t-num">保本价</th></tr></thead>
+        <tbody id="wbRows"></tbody>
+      </table></div>
+      <p class="small muted" id="wbNote">方案保存到历史库并与卡片关联。之后方案再保存，卡片上的数字随之更新；卡片已批准时，批准快照不变，卡片提示“有新数据”。</p>
+    </div>
+    <div class="modal__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" id="wbOk">保存并回到决策卡</button></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>window.PDT = {{ pdt|tojson }};</script>
+<script src="/static/vendor/xlsx.full.min.js"></script>
+<script src="/static/profit/pdt-profit.js"></script>
+<script src="/static/profit/engine.js"></script>
+<script>window.PDT.boot && window.PDT.boot();</script>
+{% endblock %}
