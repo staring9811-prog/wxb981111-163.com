@@ -210,5 +210,6 @@
   "gate": {
     "passed": true,
     "note": "D1–D15 已关闭；用户看过最终解题图与清单后补充了字段规则（销量按SKU累加、评分父体回填），已并入方案书"
-  }
+  },
+  "superseded_by": "solution-v2/state.json（第二轮，2026-11-03 解题方案书已重写到 output/解题方案书.md）"
 }
