@@ -10,3 +10,4 @@ opportunity-research/input/data_1/
 opportunity-research/app/data/
 opportunity-research/app/tests/visual/*.tmp
 .pytest_cache/
+opportunity-research/app/.venv/
