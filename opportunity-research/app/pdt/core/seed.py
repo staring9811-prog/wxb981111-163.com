@@ -135,7 +135,7 @@ def import_amazon(log=print) -> dict:
                 else:
                     c, src = (0.9 if v else 0.0), 'rule'
                 tags.append(dict(channel='amazon', item_id=r['子ASIN'], tag=k, value=v, auto_value=v, confidence=c, source=src, status='auto',
-                                 candidates=[], img_group=grp, month=r['月份'], config_version=1))
+                                 candidates=[], img_group=grp, month='', config_version=1))  # 历史导入，不算“本批新子体”
         s.execute(insert(Tag), tags)
     # 每月一个已并入批次 + 快照（按原表行顺序写入，保证与第二轮逐行一致）
     stat = {}

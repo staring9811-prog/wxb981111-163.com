@@ -1,7 +1,7 @@
 """决策组追加的表（由 db.init_db 自动加载）。决策卡、审批、策略库、台账、利润方案的主表在 models.py。"""
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -38,3 +38,17 @@ class StrategyVersionNote(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     version_id: Mapped[int] = mapped_column(ForeignKey("strategy_version.id"))
     note: Mapped[str] = mapped_column(Text, default="")
+
+
+class ProfitQuote(Base):
+    """利润测算“报价库”的一个报价版本（工厂 + 版本名 + 日期 + 产品条目），存服务端供局域网共享（AC-F24-02）。"""
+    __tablename__ = "profit_quote"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    factory: Mapped[str] = mapped_column(String(128), default="")
+    version: Mapped[str] = mapped_column(String(128), default="")
+    date: Mapped[str] = mapped_column(String(10), default="")
+    source: Mapped[str] = mapped_column(Text, default="")
+    items: Mapped[list] = mapped_column(JSON, default=list)
+    saved_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    saved_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    category: Mapped[str] = Cat()

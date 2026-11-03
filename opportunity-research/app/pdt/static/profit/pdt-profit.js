@@ -69,7 +69,8 @@
       var orig = render;
       var lock = function () {
         document.querySelectorAll('#pc-root input, #pc-root textarea, #pc-root select').forEach(function (el) {
-          if (el.closest('#chanBar') || el.id === 'detailChan') return;
+          // 只读也能切换查看方式：渠道勾选、明细渠道、旺季 / 海运对比、FOB vs 国内、报价对比指标与选中版本
+          if (el.closest('#chanBar') || ['detailChan', 'scenChan', 'domChan', 'cmpFob', 'cmpDom', 'qMetric'].indexOf(el.id) >= 0 || el.dataset.qsel !== undefined) return;
           el.disabled = true;
         });
       };

@@ -7,11 +7,13 @@ from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import select
 
-from .. import costgate
+from .. import costgate, services
 from ..auth import any_user, operator_only
 from ..db import session
 from ..models import Card, Job, ProfitPlan, Secret, User, now
+from ..models_decision import ProfitQuote
 from ..core import card as cardcore
+from ..core import profit_ai
 from ..core import vp as vpcore
 from .ui import redirect, render
 
@@ -154,7 +156,11 @@ def profit_page(request: Request, card: int | None = None, plan: int | None = No
                          status=cobj.status, status_name=cardcore.STATUS_NAMES.get(cobj.status, ""), locked=cobj.status in cardcore.LOCKED)
     init = dict(params=item["params"], products=item["products"]) if item else None
     step = 4 if item else (2 if cinfo else None)
-    pdt = dict(init=init, planId=item["id"] if item else None, planName=item["name"] if item else "", step=step,
+    llm = None
+    if services.connected("llm"):
+        prov = (services.get_setting("llm", {}) or {}).get("provider", "claude")
+        llm = {"claude": "Claude", "openai": "OpenAI 兼容"}.get(prov, prov)
+    pdt = dict(init=init, planId=item["id"] if item else None, llm=llm, planName=item["name"] if item else "", step=step,
                readonly=user.role != "operator", card=cinfo, linkProduct=(item or {}).get("result", {}).get("product") if item else None,
                savedAt=item["savedAt"] if item else None)
     return render(request, "tools_profit.html", "PAGE-F24-01", "利润测算", pdt=pdt, card=cinfo, plan=item, is_op=user.role == "operator")
@@ -256,3 +262,90 @@ async def profit_link(request: Request, pid: int, card_id: int, user=operator_on
         p.updated_at = now()
         return _item(s, p)
 
+
+
+# ---------------------------------------------------------------- 利润测算 · AI 识别报价单（服务端，经费用闸门 profit_ai_quote）
+@router.post("/tools/profit/ai/prepare")
+async def profit_ai_prepare(request: Request, user=operator_only):
+    """页面交来报价单文字（原工具 sheetText 的产物）或截图，存起来等费用确认；返回令牌，页面再以 target=quote:<令牌> 估算并确认。"""
+    if not services.connected("llm"):
+        raise HTTPException(400, "大模型未连接：请到“密钥与大模型”设置页填写密钥")
+    try:
+        return {"token": profit_ai.prepare(await request.json())}
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from None
+
+
+@router.get("/tools/profit/ai/{tok}")
+def profit_ai_result(tok: str, user=operator_only):
+    try:
+        rec = profit_ai.load(tok)
+    except (FileNotFoundError, ValueError):
+        raise HTTPException(404, "识别任务不存在") from None
+    return {k: rec.get(k) for k in ("status", "out", "code", "error", "name")}
+
+
+# ---------------------------------------------------------------- 利润测算 · 报价库（服务端，局域网共享）
+def _quote(s, q: ProfitQuote) -> dict:
+    u = s.get(User, q.saved_by) if q.saved_by else None
+    return dict(id=str(q.id), factory=q.factory, version=q.version, date=q.date, source=q.source, items=q.items or [],
+                count=len(q.items or []), savedAtMs=_ms(q.saved_at), by=u.name if u else "")
+
+
+def _new_quote(s, d: dict, user_id) -> ProfitQuote:
+    if not isinstance(d.get("items"), list) or not d["items"]:
+        raise HTTPException(400, "没有产品可以保存")
+    q = ProfitQuote(factory=str(d.get("factory") or "")[:128], version=str(d.get("version") or "")[:128], date=str(d.get("date") or "")[:10],
+                    source=str(d.get("source") or ""), items=d["items"], saved_by=user_id)
+    s.add(q)
+    s.flush()
+    return q
+
+
+@router.get("/tools/profit/quotes")
+def profit_quotes(user=any_user):
+    with session() as s:
+        return {"items": [_quote(s, q) for q in s.scalars(select(ProfitQuote).order_by(ProfitQuote.saved_at.desc(), ProfitQuote.id.desc()))]}
+
+
+@router.post("/tools/profit/quotes")
+async def profit_quote_create(request: Request, user=operator_only):
+    with session() as s:
+        return _quote(s, _new_quote(s, await request.json(), user.id))
+
+
+@router.post("/tools/profit/quotes/import")
+async def profit_quote_import(request: Request, file: UploadFile, user=operator_only):
+    """导入原工具的报价库数据：报价版本数组（原工具本地存的 pc_quotes）、{quotes: [...]}，或单个报价版本对象。"""
+    try:
+        d = json.loads((await file.read()).decode("utf-8-sig"))
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(400, "文件格式不对：不是报价库 .json") from None
+    arr = d if isinstance(d, list) else (d.get("quotes") if isinstance(d, dict) and isinstance(d.get("quotes"), list) else [d])
+    with session() as s:
+        out = [_quote(s, _new_quote(s, x, user.id)) for x in arr if isinstance(x, dict)]
+    return {"items": out}
+
+
+@router.post("/tools/profit/quotes/{qid}")
+async def profit_quote_update(request: Request, qid: int, user=operator_only):
+    b = await request.json()
+    with session() as s:
+        q = s.get(ProfitQuote, qid)
+        if not q:
+            raise HTTPException(404, "报价版本不存在")
+        for k in ("factory", "version", "date", "source"):
+            if b.get(k):
+                setattr(q, k, str(b[k]))
+        if isinstance(b.get("items"), list) and b["items"]:
+            q.items = b["items"]
+        return _quote(s, q)
+
+
+@router.post("/tools/profit/quotes/{qid}/delete")
+def profit_quote_delete(qid: int, user=operator_only):
+    with session() as s:
+        q = s.get(ProfitQuote, qid)
+        if q:
+            s.delete(q)
+    return {"ok": True}

@@ -1,4 +1,4 @@
-/* 原利润测算台样式，限定在 #pc-root 内，颜色映射到判定台 tokens（由 tools/利润测算台/index.html 生成）。 */
+/* 原利润测算台样式（新版），限定在 #pc-root 内，颜色映射到判定台 tokens。 */
 #pc-root{--surface2:var(--surface-raised);--ink:var(--fg);--line:var(--border);--accent-ink:var(--accent-on);--accent-soft:var(--accent-tint);
 --input:var(--surface);--input-line:var(--border-control);--pos:var(--success);--pos-soft:var(--success-tint);--neg:var(--danger);--neg-soft:var(--danger-tint);
 --warn-soft:var(--warn-tint);--f-ui:inherit;--f-head:inherit;--f-num:var(--font-mono);--r:var(--radius-md);font-size:var(--text-sm)}
@@ -79,5 +79,18 @@
 #pc-root td.pc input{width:84px}
 #pc-root .bulkbar{margin-bottom:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
 #pc-root .bulkbar input[type=number]{width:64px}
+#pc-root .hb{display:flex;gap:4px;align-items:center;justify-content:center;font-weight:400;font-size:11px;margin-top:4px;color:var(--muted);white-space:nowrap}
+#pc-root .hb input[type=number]{width:52px;padding:2px 4px;font-size:12px}
+#pc-root .hb .btn{padding:2px 7px;font-size:11px}
 #pc-root .card .kv{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+#pc-root .aiprev td input.wide{width:170px}
+#pc-root .aiprev td input.key{width:120px}
+#pc-root .pk{font-family:var(--f-num);font-size:12px;white-space:nowrap}
+#pc-root tr.bad td{background:var(--warn-soft)}
+#pc-root .qgrp{margin-bottom:14px}
+#pc-root .qgrp h3{display:flex;gap:8px;align-items:baseline}
+#pc-root td.best{outline:2px solid var(--pos);outline-offset:-2px}
+#pc-root .fz{position:sticky;z-index:2;background:var(--surface)}
+#pc-root th.fz{z-index:3;background:var(--surface2)}
+#pc-root .fzl{box-shadow:inset -2px 0 0 var(--line)}
 #pc-root .btn,#pc-root nav.steps button{transition:background .15s,border-color .15s}

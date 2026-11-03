@@ -17,7 +17,7 @@ def _progress():
     out = []
     with session() as s:
         for ch in CHANNEL_NAMES:
-            month = s.scalar(select(func.max(Batch.month)).where(Batch.channel == ch, Batch.status.in_(['merged', 'ok', 'anomaly', 'checking'])))
+            month = s.scalar(select(func.max(Batch.month)).where(Batch.channel == ch, Batch.status.in_(['merged', 'ok', 'anomaly', 'checking', 'suspect_month'])))
             if not month:
                 continue
             new = s.scalar(select(func.count(func.distinct(Tag.item_id))).where(Tag.channel == ch, Tag.month == month)) or 0

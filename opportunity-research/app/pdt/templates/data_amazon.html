@@ -186,13 +186,13 @@
       <tbody>
       {% for h in hist[:50] %}
         <tr>
-          <td class="num strong"><a class="tlink" href="/data/amazon?batch={{ h.id }}">{{ h.month }}</a>{% if h.star %}<span class="star">*</span>{% endif %}</td>
+          <td class="num strong t-nowrap"><a class="tlink" href="/data/amazon?batch={{ h.id }}">{{ h.month }}</a>{% if h.star %}<span class="star">*</span>{% endif %}</td>
           <td>{{ h.source }}</td><td class="t-num">{{ h.rows|num }}</td>
           <td class="t-num">{% if h.status == 'merged' %}{{ h.total|num }}<span class="etag">估算</span>{% else %}<span class="etag etag--nodata">无数据 · 未并入</span>{% endif %}</td>
           <td><span class="badge badge--{{ h.kind }}">{{ h.status_name }}</span></td>
-          <td class="small">{{ h.reason or '—' }}{% if h.note %}<div class="cell-sub">说明：{{ h.note }}</div>{% endif %}</td>
-          <td class="num small">{{ h.merged_at|dt if h.merged_at else '—' }}</td>
-          <td>{% if h.status == 'merged' %}<a class="tlink small" href="/scan?month={{ h.month }}">查看扫描</a>{% endif %}</td>
+          <td class="small" style="max-width:420px">{{ h.reason or '—' }}{% if h.note %}<div class="cell-sub">说明：{{ h.note }}</div>{% endif %}</td>
+          <td class="num small t-nowrap">{{ h.merged_at|dt if h.merged_at else '—' }}</td>
+          <td class="t-nowrap">{% if h.status == 'merged' %}<a class="tlink small" href="/scan?month={{ h.month }}">查看扫描</a>{% endif %}</td>
         </tr>
       {% else %}
         <tr><td colspan="8" class="muted">还没有月份。</td></tr>

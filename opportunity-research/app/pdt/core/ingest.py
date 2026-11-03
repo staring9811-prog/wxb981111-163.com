@@ -3,6 +3,7 @@
 原始文件与每月并入版本都保留（NFR-012）：上传文件、每页拉取结果存 data/raw/amazon/<月份>/；批次与快照不删，
 同月再次并入时旧批次标为 superseded（可回看），分析只用 merged 批次。
 """
+import html
 import json
 import math
 import re
@@ -117,6 +118,7 @@ def normalize(df: pd.DataFrame, source_name: str = '') -> pd.DataFrame:
     for k in ('brand', 'title', 'image_url', 'link', 'sku', 'dimension', 'features'):
         out[k] = out[k].fillna('').astype(str) if k in out else ''
     out['link'] = [l or f'https://www.amazon.com/dp/{a}' for l, a in zip(out['link'], out['item_id'])]
+    out['title'] = out['title'].map(html.unescape)
     # 已打标表：带 D1–D9 / 看图元素时直接作为该行标签
     if any(c in df.columns for c in TAG_COLS):
         src = df.loc[out.index]

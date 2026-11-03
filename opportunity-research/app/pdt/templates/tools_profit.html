@@ -11,7 +11,7 @@
   #pc-root nav.steps button[aria-current="step"] { color: var(--fg); border-bottom-color: var(--fg); background: none; font-weight: 600; }
   #pc-root nav.steps button b { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1px solid var(--border-control); border-radius: 50%; font-size: var(--text-2xs); }
   #pc-root section > h2:first-child { margin-top: 0; }
-  body[data-ro] #pc-root :is(#drop, #btnSample, #btnBlank, #btnLoadJson, #btnImport, #btnAddProd, #btnBulkCat, #btnBulkPeak, #bulkCat, #bulkPeak, #btnRateImport, #btnResetParams, #btnAddSea, #btnHistSave, #btnHistSave2, #histName, #histName2, #btnQtyReset, .bulkPlat, [data-act], [data-delsea]) { display: none !important; }
+  body[data-ro] #pc-root :is(#drop, #btnSample, #btnBlank, #btnLoadJson, #btnImport, #btnAddProd, #btnBulkCat, #btnBulkPeak, #bulkCat, #bulkPeak, #btnRateImport, #btnResetParams, #btnAddSea, #btnHistSave, #btnHistSave2, #histName, #histName2, #btnQtyReset, .bulkPlat, [data-act], [data-delsea], #aiFile, #btnAi, #btnAiThis, #btnAiImport, #btnAiSaveQ, #btnAiBoth, #qFactory, #qVersion, #qDate, #btnQSave, [data-qact="del"], [data-aidel]) { display: none !important; }
 </style>
 {% endblock %}
 {% block content %}
@@ -42,6 +42,7 @@
     <button data-step="3" type="button"><b>3</b>参数设置</button>
     <button data-step="4" type="button"><b>4</b>利润测算表</button>
     <button data-step="5" type="button"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史库 <span class="count" id="histCount">0</span></button>
+    <button data-step="6" type="button"><svg class="icon"><use href="#ph-stack"/></svg>报价库 <span class="count" id="quoteCount">0</span></button>
   </nav>
   <main>
   {% include "_profit_sections.html" %}
@@ -66,6 +67,7 @@
   </div>
 </div>
 {% endif %}
+{% if is_op %}{% include "_cost_modal.html" %}{% endif %}
 {% endblock %}
 {% block scripts %}
 <script>window.PDT = {{ pdt|tojson }};</script>

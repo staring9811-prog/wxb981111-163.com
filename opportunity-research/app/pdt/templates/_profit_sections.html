@@ -16,10 +16,35 @@
         <input type="file" id="jsonFile" accept=".json" hidden>
       </div>
     </div>
+    <div class="panel" id="aiPanel">
+      <h3>AI 识别任意格式的工厂报价单</h3>
+      <p class="note">支持 Excel / CSV、报价单截图或照片（PNG / JPG）；PDF 请截图成图片或另存为 Excel。AI 会找出每个产品的型号、外箱尺寸、毛重、出厂价和币种，你核对后导入，可同时存进“报价库”做版本和工厂对比。</p>
+      <input type="file" id="aiFile" accept=".xlsx,.xls,.xlsm,.csv,.png,.jpg,.jpeg,.webp,.pdf" aria-label="选择报价单文件">
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="btnAi">开始 AI 识别</button><span class="note" id="aiMode"></span></div>
+      <p class="note" id="aiStatus" role="status"></p>
+      <p class="note">大模型用 <a href="/settings/keys">密钥与大模型</a> 里所选的提供方，密钥只存在系统上；识别前先确认费用，费用记入 <a href="/settings/budget">预算与费用</a>。</p>
+    </div>
     <div class="panel">
       <h3>当前项目</h3>
       <p class="note" id="projInfo"></p>
-      <p class="note">方案保存在系统上（历史库），局域网内有权限的人看到同一份；还没保存的编辑暂存在本浏览器。</p>
+      <p class="note">方案和报价保存在系统上（历史库、报价库），局域网内有权限的人看到同一份；还没保存的编辑暂存在本浏览器。</p>
+    </div>
+  </div>
+  <div id="aiArea" hidden>
+    <h2>核对 AI 识别结果</h2>
+    <p class="lead">黄色框都能改。标黄的行缺尺寸、毛重或价格，请补全或删除。“对比键”用来在报价库里对齐不同工厂的同一规格。</p>
+    <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+      <div class="row">
+        <label class="f">工厂<input id="aiFactory" style="width:180px"></label>
+        <label class="f">报价版本<input id="aiVersion" style="width:200px"></label>
+        <label class="f">报价日期<input id="aiDate" type="date"></label>
+        <label class="f">导入方式<select id="aiMode2"><option value="replace">替换当前产品</option><option value="append">追加到当前产品</option></select></label>
+      </div>
+      <div class="tw aiprev" id="aiTable"></div>
+      <div class="row end"><span class="note" id="aiCount"></span>
+        <button class="btn" id="btnAiSaveQ">只存进报价库</button>
+        <button class="btn" id="btnAiImport">只导入为当前产品</button>
+        <button class="btn primary" id="btnAiBoth">导入并存进报价库 →</button></div>
     </div>
   </div>
   <div id="mapArea" hidden>
@@ -37,7 +62,7 @@
       </div>
       <div class="kv" id="mapFields"></div>
       <div class="tw" id="mapPreview" style="max-height:320px"></div>
-      <div class="row end"><span class="note" id="mapCount"></span><button class="btn primary" id="btnImport">导入并确认 →</button></div>
+      <div class="row end"><span class="note" id="mapCount"></span><button class="btn" id="btnAiThis">识别不对？让 AI 识别这份文件</button><button class="btn primary" id="btnImport">导入并确认 →</button></div>
     </div>
   </div>
 </section>
@@ -50,7 +75,7 @@
     <button class="btn" id="btnAddProd">+ 新增产品</button>
     <span class="muted">批量设置：</span>
     <select id="bulkCat"></select><button class="btn sm" id="btnBulkCat">品类应用到全部</button>
-    <select id="bulkPeak"><option>非旺季</option><option>旺季</option></select><button class="btn sm" id="btnBulkPeak">FBM旺季应用到全部</button>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">FBM旺季（全部产品）<select id="bulkPeak"><option value="mixed" disabled>各产品不同</option><option>非旺季</option><option>旺季</option></select></label>
     <span style="flex:1"></span>
     <button class="btn primary" data-go="4">生成利润测算表 →</button>
   </div>
@@ -70,7 +95,9 @@
   <div class="grid">
     <div class="panel"><h3>基础变量</h3><div class="kv" id="pBase"></div></div>
     <div class="panel"><h3>平台佣金</h3><div class="kv" id="pComm"></div><p class="note">家具：售价 ≤ 阈值部分按低档比例，超出部分按高档比例。其他品类按固定比例。</p></div>
-    <div class="panel"><h3>海运方案（整柜）</h3><div id="pSea"></div><button class="btn sm" id="btnAddSea" style="margin-top:8px">+ 新增海运方案</button><p class="note">每立方米海运费 $ = 整柜价(RMB) ÷ 计算体积(CBM) ÷ 汇率；包裹海运费 = 包裹体积 × 每方单价。</p></div>
+    <div class="panel"><h3>国内出货（人民币含税价 + 出口退税）</h3><div class="kv" id="pDom"></div><div id="pDomMsg"></div>
+      <p class="note">采购成本 = 含税价 − 含税价 ÷ (1 + 增值税率) × 退税率，再按汇率换成美元。头程按右边“海运方案”里类型为“国内”的方案算：(整柜价 + 国内杂费) ÷ 计算体积 × 包裹体积。国内杂费只在整柜价没含拖车、报关、港杂时才填。</p></div>
+    <div class="panel"><h3>海运方案（整柜）</h3><div class="tw" id="pSea"></div><button class="btn sm" id="btnAddSea" style="margin-top:8px">+ 新增海运方案</button><p class="note">类型：FOB 方案用于 FOB 出货，国内方案用于国内出货（名字里带“国内”的默认是国内）。每立方米海运费 $ = 整柜价(RMB) ÷ 计算体积(CBM) ÷ 汇率；包裹海运费 = 包裹体积 × 每方单价。</p></div>
   </div>
   <h2>平台参数（Lowe's / Home Depot / Wayfair）</h2>
   <div class="panel"><div class="kv" id="pPlatBase"></div></div>
@@ -86,6 +113,30 @@
   <details><summary>FBM 尾程派送费 + 订单处理费（按计费重 lb，1–150）</summary><p class="note">FBM 尾程合计 = (尾程派送 + 订单处理 + 异常附加 + 住宅附加) × (1 + 燃油附加费%)，燃油费率在“基础变量”里改。</p><div class="tw" id="pTail" style="max-height:420px"></div></details>
   <details style="margin-top:8px"><summary>FBM 尾程异常附加费</summary><div class="tw" id="pSurch"></div></details>
   <details style="margin-top:8px"><summary>CG 尾程收费标准</summary><div class="tw" id="pCg"></div></details>
+</section>
+
+<!-- AI preview lives in step 1 -->
+<!-- STEP 6 -->
+<section id="s6" hidden>
+  <h2>报价库</h2>
+  <p class="lead">每份工厂报价存成一个版本（工厂 + 版本名 + 日期）。勾选几个版本对比：同一工厂的不同版本 = 看涨价降价；不同工厂 = 比谁便宜、谁的包装更省运费。按“对比键”（例如 30寸 落地式）把同规格产品对齐。</p>
+  <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+    <div class="row"><span class="muted">把当前产品存为报价版本：</span>
+      <input id="qFactory" list="qFactoryList" placeholder="工厂名" style="width:160px" aria-label="工厂名"><datalist id="qFactoryList"></datalist>
+      <input id="qVersion" placeholder="版本名（如 2026-11 报价）" style="width:200px" aria-label="版本名">
+      <input id="qDate" type="date" aria-label="报价日期">
+      <button class="btn primary" id="btnQSave">保存</button>
+      <span style="flex:1"></span><span class="note" id="qMode"></span></div>
+  </div>
+  <div id="qMsg"></div>
+  <h2>所有报价版本</h2>
+  <div id="qList"></div>
+  <h2>报价对比</h2>
+  <div class="row" style="margin-bottom:10px">
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">对比指标<select id="qMetric"></select></label>
+    <span class="note" id="qSelNote"></span><span style="flex:1"></span>
+    <button class="btn sm" id="btnQExport">导出对比 Excel</button></div>
+  <div class="tw" id="qCompare"></div>
 </section>
 
 <!-- STEP 5 -->
@@ -126,10 +177,21 @@
   <p class="lead">选一个渠道，看每个产品从售价一项项扣到利润。价格和采购成本可以直接改，改完同步到第 2 步并立即重算。</p>
   <div class="row" style="margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:6px">渠道<select id="detailChan"></select></label></div>
   <div class="tw" id="resSummary"></div>
+  <h2>FOB vs 国内出货</h2>
+  <p class="lead">同一个产品分别按 FOB（美元出厂价 + FOB 海运）和国内出货（人民币含税价扣退税 + 国内头程）算利润，不受顶部出货方式影响。只填了一种价格的产品只显示那一种。平台按促销价。</p>
+  <div class="row" style="margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:6px">渠道<select id="domChan"></select></label>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">FOB 海运方案<select id="cmpFob"></select></label>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">国内头程方案<select id="cmpDom"></select></label></div>
+  <div class="tw" id="resDom"></div>
+  <h2>旺季 / 海运方案对比</h2>
+  <p class="lead">同一个渠道，在每个海运方案下分别按非旺季和旺季算利润。这里的旺季 = FBM 尾程旺季附加费 + FBA 旺季费率，不受产品上选的旺季和顶部 FBA 费率影响。平台按促销价。</p>
+  <div class="row" style="margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:6px">渠道<select id="scenChan"></select></label></div>
+  <div class="tw" id="resScen"></div>
   <h2>产品速览 <span class="note seaName"></span></h2>
   <div class="cards" id="resCards"></div>
   <h2>包裹明细</h2>
   <p class="lead">与原表同口径的全部中间数据：英寸边长、体积重、计费重、围长、尾程异常类型、各项运费和 FBA 档位。</p>
   <div class="tw" id="resDetail"></div>
 </section>
+
 {% endraw %}

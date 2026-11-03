@@ -157,8 +157,9 @@ def _write(items: pd.DataFrame, L: pd.DataFrame, source: str, file_path: str, co
             st = stat.setdefault(ch, dict(months=0, reference=0, items=0))
             st['months' if ok else 'reference'] += 1
             st['items'] = max(st['items'], int(len(g)))
+    last = max(complete_months) if complete_months else ''
     for ch, ids in new.items():
-        tagging.tag_products(ch, ids)
+        tagging.tag_products(ch, ids, last)
     refresh_rank_method()
     panel.bump()
     return stat

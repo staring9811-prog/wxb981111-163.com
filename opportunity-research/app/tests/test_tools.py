@@ -229,11 +229,22 @@ def _node(code: str, tmp_path, name):
 
 HARNESS = """
 var window = {}; var PDT = undefined; var localStorage = {getItem: function(){ return null; }, setItem: function(){}};
+var document = {getElementById: function(){ return {addEventListener: function(){}}; }, querySelectorAll: function(){ return []; }, addEventListener: function(){}};
 %s
-var R = products.map(function(p){ var r = calcProduct(p); return {name: p.name, cost: r.cost, price: r.price, sc: r.sc, fbmShip: r.fbmShip, cgShip: r.cgShip, fbaShip: r.fbaShip,
+/* 同一组输入：原工具示例产品，每个补一个人民币含税国内出货价（出厂价 × 7.25），并加一个“国内”海运方案，覆盖国内出货与对比 */
+products.forEach(function(p, i){ p.costRmb = Math.round(p.cost * 7.25 * 100) / 100; });
+P.sea.push({name: "国内整柜·近三个月", rmb: 98000, cbm: 68});
+P.sea.push({name: "国内整柜·近六个月", rmb: 61000, cbm: 68});
+function one(r){ return {cost: r.cost, price: r.price, sc: r.sc, fbmShip: r.fbmShip, cgShip: r.cgShip, fbaShip: r.fbaShip, warn: r.warn,
   plat: Object.fromEntries(Object.entries(r.plat).map(function(kv){ var x = kv[1]; return [kv[0], {list: x.list, promo: x.promo, sc: x.sc}]; })),
-  rows: chanList().map(function(ch){ var v = chanVal(r, ch, 0); return {channel: ch.name, profit: v.ok ? v.profit : null}; })}; });
-console.log(JSON.stringify({params: P, products: products, R: R}));
+  rows: chanList().map(function(ch){ var v = chanVal(r, ch, 0); return {channel: ch.name, profit: v.ok ? v.profit : null}; })}; }
+var R = products.map(function(p){ return {p: p, r: calcProduct(p)}; });
+var out = {params: P, products: products,
+  R: R.map(function(x){ return Object.assign({name: x.p.name}, one(x.r)); }),
+  dom: domData(R).map(function(x){ return {name: x.p.name, fob: one(x.f), dom: one(x.d)}; }),
+  scen: scenData(R).map(function(x){ return {name: x.p.name, off: one(x.n), on: one(x.k)}; }),
+  plans: cmpPlans(), seaFob: seaList("fob"), seaDom: seaList("dom")};
+console.log(JSON.stringify(out));
 """
 
 
@@ -245,9 +256,9 @@ def _script(path: Path) -> str:
 
 
 def _head(src: str) -> str:
-    """默认参数 + 状态 + 计算 + 渠道列表（chanList / chanVal），足够在 node 里算利润表。"""
+    """默认参数 + 状态 + 计算 + 结果段（chanList / chanVal、旺季对比 scenData、FOB vs 国内 domData / cmpPlans），足够在 node 里算利润表。"""
     a = src.index("/* All visible channels in one list")
-    b = src.index("const DETAIL_OPTS")
+    b = src.index("function renderDetail(R)")
     return src[:src.index("/* ---------------- bulk")] + src[a:b]
 
 
@@ -260,9 +271,11 @@ def test_flow17_profit_numbers_match_original_tool(tmp_path, wen, client):
         assert blk in eng  # 默认参数与计算逻辑逐字保留
     base = _node(HARNESS % _head(orig), tmp_path, "orig.js")
     got = _node(HARNESS % _head(eng), tmp_path, "mine.js")
-    assert got["R"] == base["R"] and len(base["R"]) == 5
-    fbm = base["R"][0]["sc"][0]["fbm"]
-    assert isinstance(fbm, float) and base["R"][0]["name"] == "24寸 单包"
+    for k in ("R", "dom", "scen", "plans", "seaFob", "seaDom"):
+        assert got[k] == base[k], k  # 利润表、国内出货、旺季 / 海运方案对比逐项相同
+    assert len(base["R"]) == 5 and base["R"][0]["name"] == "24寸 单包" and isinstance(base["R"][0]["sc"][0]["fbm"], float)
+    d0 = base["dom"][0]
+    assert d0["dom"]["cost"] != d0["fob"]["cost"] and base["seaDom"] and base["scen"][0]["on"]["sc"] != base["scen"][0]["off"]["sc"]
     # 原工具导出的方案 .json（格式 {version, params, products}）导入为服务端方案
     js = json.dumps({"version": 1, "params": base["params"], "products": base["products"]}, ensure_ascii=False)
     r = wen.post("/tools/profit/import", files={"file": ("利润测算方案_20261101.json", js.encode("utf-8"), "application/json")})
@@ -304,7 +317,7 @@ def test_flow18_card_prefill_and_writeback(tmp_path, wen):
     def result(p):
         prod = {"id": "c1", "name": "30″ 树脂（决策卡）", "desc": "", "supplier": "", "category": "家具", "peak": "非旺季", "price": p, "cost": 130,
                 "costCur": "USD", "adj": 0, "prices": {}, "pkgs": [{"l": 93, "w": 57, "h": 40, "kg": 47}]}  # 原工具示例“30寸 单包”的包装
-        code = "var window = {PDT: {init: {products: [%s]}}}; var PDT = window.PDT; var localStorage = {getItem: function(){ return null; }, setItem: function(){}};\n%s\n" % (json.dumps(prod), head)
+        code = "var document = {getElementById: function(){ return {addEventListener: function(){}}; }, querySelectorAll: function(){ return []; }, addEventListener: function(){}}; var window = {PDT: {init: {products: [%s]}}}; var PDT = window.PDT; var localStorage = {getItem: function(){ return null; }, setItem: function(){}};\n%s\n" % (json.dumps(prod), head)
         code += """var r = calcProduct(products[0]);
 console.log(JSON.stringify({product: products[0].name, rows: chanList().map(function(ch){ var v = chanVal(r, ch, 0);
   if (ch.amz) return {channel: ch.name, price: r.price, profit: v.profit, margin: v.profit / r.price, breakeven: null};
@@ -328,3 +341,76 @@ console.log(JSON.stringify({product: products[0].name, rows: chanList().map(func
     assert fbm2 > fbm1 and money(fbm2) in sec8 and money(fbm1) not in sec8
     with session() as s:
         assert s.get(Card, cid).profit_plan_id == plan["id"] and s.get(ProfitPlan, plan["id"]).card_id == cid
+
+
+class FakeQuoteLLM:
+    """假大模型：记录提示词，返回原工具要求格式的 JSON（夹在说明文字里，验证与 parseLoose 相同的宽松解析）。"""
+    def __init__(self):
+        self.calls = []
+
+    def complete(self, prompt, images=None, max_tokens=4096):
+        self.calls.append((prompt, images, max_tokens))
+        out = {"factory": "嘉宏卫浴", "quote_date": "2026-11-01", "items": [
+            {"name": "RV30-ON", "desc": "树脂一体 · 原木", "match_key": "30寸 落地式", "price": 118, "price_currency": "USD", "price_tax": "FOB",
+             "price_rmb_tax": 905, "moq": 100, "packages": [{"l": 880, "w": 520, "h": 380, "dim_unit": "mm", "weight": 36, "weight_unit": "kg"}], "notes": ""}]}
+        return "识别结果如下：\n" + json.dumps(out, ensure_ascii=False), 0.042
+
+
+@needs_node
+def test_flow17_ai_quote_via_server_and_costgate(tmp_path, wen):
+    """AI 识别报价单：浏览器不直连大模型、不存 Key（NFR-008、AC-F16-05）；服务端用设置页所选大模型，先估算、确认后才识别，费用记入同一费用记录；
+    提示词与原工具 aiPrompt 逐字相同；大模型未连接时提示去设置页。"""
+    eng = _script(ENGINE)
+    for bad in ("pc_ai_cfg", "x-api-key", "anthropic-dangerous-direct-browser-access", "api.anthropic.com", "aiKey()", "localStorage.setItem(\"pc_ai"):
+        assert bad not in eng, bad
+    payload = {"kind": "text", "name": "嘉宏报价_20261101.xlsx", "keys": ["30寸 落地式", "24寸 单盆"], "text": "\n### 工作表：报价\n型号,外箱尺寸,毛重,FOB\nRV30-ON,880*520*380mm,36,118\n"}
+    r = wen.post("/tools/profit/ai/prepare", json=payload)
+    assert r.status_code == 400 and "设置页" in r.json()["detail"]
+    page = wen.get("/tools/profit").text
+    assert '"llm": null' in page and "AI 接口设置" not in page and 'id="aiKey"' not in page
+    services.save_secret("llm_claude", "sk-ant-测试密钥-0001")
+    llm = FakeQuoteLLM()
+    services.set_fake("llm", llm)
+    assert '"llm": "Claude"' in wen.get("/tools/profit").text
+    tok = wen.post("/tools/profit/ai/prepare", json=payload).json()["token"]
+    j = wen.post("/jobs/estimate", data={"kind": "profit_ai_quote", "target": f"quote:{tok}"}).json()
+    assert j["status"] == "estimated" and j["estimate"]["usd_hi"] > 0 and llm.calls == []  # 先确认费用
+    assert wen.post(f"/jobs/{j['id']}/confirm").json()["status"] == "done"
+    res = wen.get(f"/tools/profit/ai/{tok}").json()
+    assert res["status"] == "done" and res["out"]["factory"] == "嘉宏卫浴" and res["out"]["items"][0]["price_rmb_tax"] == 905
+    with session() as s:
+        rec = s.query(CostRecord).filter_by(service="llm").one()
+        assert rec.amount == 0.042 and "AI 识别报价单" in rec.task
+    # 提示词：用原工具的 aiPrompt 在 node 里拼出同一份，与服务端发给大模型的逐字相同
+    orig = _script(PROFIT_HTML)
+    fn = orig[orig.index("function aiPrompt(body){"):orig.index("function parseLoose(t)")]
+    code = ("var qlib = {items: [{items: [{key: '30寸 落地式'}, {key: '24寸 单盆'}]}]};\n" + fn +
+            "\nconsole.log(JSON.stringify(aiPrompt(%s)));" % json.dumps(payload["text"]))
+    assert _node(code, tmp_path, "prompt.js") == llm.calls[0][0] and llm.calls[0][2] == 16000
+    # 截图走图片附件；PDF 不支持
+    tok = wen.post("/tools/profit/ai/prepare", json={"kind": "image", "name": "报价单.png", "keys": [], "data": "iVBORw0KGgo=", "media_type": "image/png"}).json()["token"]
+    j = wen.post("/jobs/estimate", data={"kind": "profit_ai_quote", "target": f"quote:{tok}"}).json()
+    wen.post(f"/jobs/{j['id']}/confirm")
+    assert llm.calls[1][1] == [(b"\x89PNG\r\n\x1a\n", "image/png")] and "（见附带的报价单图片）" in llm.calls[1][0]
+    assert wen.post("/tools/profit/ai/prepare", json={"kind": "pdf", "name": "报价.pdf"}).status_code == 400
+
+
+def test_quote_library_on_server(wen, client):
+    """报价库与历史库一样存服务端（AC-F24-02 局域网同一份）；原工具的报价库数据（.json）可导入。"""
+    q = {"factory": "嘉宏卫浴", "version": "2026-11 报价", "date": "2026-11-01", "source": "嘉宏报价_20261101.xlsx",
+         "items": [{"key": "30寸 落地式", "name": "RV30-ON", "desc": "树脂一体 · 原木", "cost": 118, "costRmb": 905, "costCur": "USD", "moq": 100,
+                    "pkgs": [{"l": 88, "w": 52, "h": 38, "kg": 36}]}]}
+    a = wen.post("/tools/profit/quotes", json=q).json()
+    assert a["count"] == 1 and a["by"] == "wen" and isinstance(a["id"], str)
+    assert wen.post(f"/tools/profit/quotes/{a['id']}", json={"version": "2026-11 报价（改）"}).json()["version"] == "2026-11 报价（改）"
+    old = [dict(q, id="k3x9", factory="恒发家具", version="2026-10 报价", savedAtMs=1761900000000, count=1)]
+    r = wen.post("/tools/profit/quotes/import", files={"file": ("报价库.json", json.dumps(old, ensure_ascii=False).encode(), "application/json")})
+    assert [x["factory"] for x in r.json()["items"]] == ["恒发家具"]
+    make_user("lixiaomei", "李晓梅", "readonly")
+    ro = login_as(TestClient(client.app), "lixiaomei", "密码-123456")
+    assert {x["factory"] for x in ro.get("/tools/profit/quotes").json()["items"]} == {"嘉宏卫浴", "恒发家具"}
+    assert ro.post("/tools/profit/quotes", json=q).status_code == 403
+    page = ro.get("/tools/profit").text
+    assert 'id="quoteCount"' in page and "报价库" in page and 'id="s6"' in page
+    wen.post(f"/tools/profit/quotes/{a['id']}/delete")
+    assert len(wen.get("/tools/profit/quotes").json()["items"]) == 1
