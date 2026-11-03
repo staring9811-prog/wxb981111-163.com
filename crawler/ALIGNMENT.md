@@ -113,3 +113,9 @@ crawler/
 - Wayfair：列表 250 个商品完成；125 个商品商品页只内嵌部分评论，待 Apify（abotapi/wayfair-scraper）补全。
 - Lowe's：两榜各 100 完成，详情页 190/200；评论改走 Apify（automation-lab/lowes-product-reviews-scraper）。
 - Apify 免费额度（$5/月）已用完，需用户充值约 $15—20 后继续。
+
+## 12. 交付（2026-11-03）
+
+- 三个渠道 2026 年月度 VP/非VP Excel 全部交付：HDP 200 商品（14,278 条，直连）、Wayfair 250 商品（8,296 条，Apify 补全）、Lowe's 200 商品（3,897 条，Apify），状态全部「完整」；Lowe's 10 个商品详情页未取到（描述/规格缺）。
+- 花费：BD 约 1,250 次 ≈ $1.9；Apify 本账期 $9.78（另有上个免费账期约 $7）。
+- 已做成通用软件 `crawler/app.py` + `crawler/reviewkit/`（网页界面 + 一行命令），用法见 `crawler/README.md`，Codex/Claude 流程见根目录 `AGENTS.md`。
