@@ -111,6 +111,9 @@ label.chk input{accent-color:var(--accent)}
 td.pc input{width:84px}
 .bulkbar{margin-bottom:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
 .bulkbar input[type=number]{width:64px}
+.hb{display:flex;gap:4px;align-items:center;justify-content:center;font-weight:400;font-size:11px;margin-top:4px;color:var(--muted);white-space:nowrap}
+.hb input[type=number]{width:52px;padding:2px 4px;font-size:12px}
+.hb .btn{padding:2px 7px;font-size:11px}
 .card .kv{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
 .toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:var(--r);font-size:13px;z-index:20}
 @media (prefers-reduced-motion:no-preference){.btn,nav.steps button{transition:background .15s,border-color .15s}}
@@ -274,10 +277,10 @@ const PLATS = [{k:"lowesVC",name:"Lowe's VC"},{k:"lowesSC",name:"Lowe's SC"},{k:
 const SHIP = {self:"我们发货（尾程+燃油）",handling:"平台发货（只付订单处理费）",none:"平台仓（无尾程费用）"};
 const AMZ = [{k:"fbm",name:"Amazon FBM"},{k:"cg",name:"Amazon CG"},{k:"fba",name:"Amazon FBA"}];
 function platDefaults(){ return {
-  lowesVC:{on:true,markup:1.7,disc:10,ship:"handling",fixed:0.78,ads:10,fx:1,comm:5.2,refund:10,storage:2,outbound:0},
-  lowesSC:{on:true,markup:1,disc:30,ship:"self",fixed:0.78,ads:10,fx:1,comm:15,refund:10,storage:2,outbound:0},
-  hd:{on:true,markup:1.6,disc:25,ship:"handling",fixed:0.70,ads:10,fx:1,comm:3.22,refund:10,storage:2,outbound:0},
-  wf:{on:true,markup:2.1,disc:25,ship:"none",fixed:0,ads:10,fx:1,comm:4,refund:5,storage:2,outbound:4}}; }
+  lowesVC:{on:true,upPct:15,markup:1.7,disc:10,ship:"handling",fixed:0.78,ads:10,fx:1,comm:5.2,refund:10,storage:2,outbound:0},
+  lowesSC:{on:true,upPct:15,markup:1,disc:30,ship:"self",fixed:0.78,ads:10,fx:1,comm:15,refund:10,storage:2,outbound:0},
+  hd:{on:true,upPct:15,markup:1.6,disc:25,ship:"handling",fixed:0.70,ads:10,fx:1,comm:3.22,refund:10,storage:2,outbound:0},
+  wf:{on:true,upPct:15,markup:2.1,disc:25,ship:"none",fixed:0,ads:10,fx:1,comm:4,refund:5,storage:2,outbound:4}}; }
 function defaultParams(){ return {
   rate:6.8, promo:10, fxLoss:1, refund:8, tax:13, residential:false,
   listFactor:1.15, targetMargin:15, bulk:{plat:"all",pct:15,r99:true,promo:true}, seaView:0, detailChan:"amz:fbm", showAmz:{fbm:true,cg:true,fba:true}, plat:platDefaults(),
@@ -443,23 +446,30 @@ function renderBulk(){
     ${bulkUndo?`<button class="btn sm" data-bp="undo">撤销上次调整</button>`:""}`;
   document.querySelectorAll(".bulkPlat").forEach(el=>el.innerHTML=html);
 }
-function bulkApply(){
-  const b=P.bulk, f=1+nz(b.pct)/100, ks=b.plat==="all"?PLATS.map(pl=>pl.k):[b.plat];
-  bulkUndo={prices:Object.fromEntries(products.map(p=>[p.id,clone(p.prices||{})])),listFactor:P.listFactor};
+function bulkApply(){ const b=P.bulk; applyUp(b.plat==="all"?PLATS.map(pl=>pl.k):[b.plat], nz(b.pct)); }
+/* Set list price = Amazon price × (1 + pct%) for the given platforms on every product. */
+function applyUp(ks,pct){
+  const b=P.bulk, f=1+pct/100, all=ks.length===PLATS.length;
+  bulkUndo={prices:Object.fromEntries(products.map(p=>[p.id,clone(p.prices||{})])),listFactor:P.listFactor,up:Object.fromEntries(PLATS.map(pl=>[pl.k,P.plat[pl.k].upPct]))};
   let n=0, skip=0;
   products.forEach(p=>{ const a=num(p.price); if(!(a>0)){ skip++; return; } p.prices=p.prices||{}; n++;
     let v=a*f; v=b.r99?Math.max(0.99,Math.ceil(v-1e-9)-0.01):Math.round(v*100)/100;
     ks.forEach(k=>{ const o=p.prices[k]=p.prices[k]||{}; o.list=Math.round(v*100)/100; if(b.promo) o.promo=""; }); });
-  if(b.plat==="all") P.listFactor=Math.round(f*10000)/10000;
+  ks.forEach(k=>P.plat[k].upPct=pct);
+  if(all) P.listFactor=Math.round(f*10000)/10000;
   save(); render();
-  toast(`已调整 ${n} 个产品的${b.plat==="all"?"全部平台":PLATS.find(pl=>pl.k===b.plat).name}上架价（Amazon 售价 × ${f.toFixed(2)}）`+(skip?`，${skip} 个没有 Amazon 售价已跳过`:""));
+  toast(`已调整 ${n} 个产品的${all?"全部平台":ks.map(k=>PLATS.find(pl=>pl.k===k).name).join("、")}上架价（Amazon 售价 × ${f.toFixed(2)}）`+(skip?`，${skip} 个没有 Amazon 售价已跳过`:""));
 }
-function bulkRevert(){ if(!bulkUndo) return; products.forEach(p=>{ if(bulkUndo.prices[p.id]) p.prices=bulkUndo.prices[p.id]; }); P.listFactor=bulkUndo.listFactor; bulkUndo=null; save(); render(); toast("已撤销上次批量调整"); }
+function bulkRevert(){ if(!bulkUndo) return; products.forEach(p=>{ if(bulkUndo.prices[p.id]) p.prices=bulkUndo.prices[p.id]; }); P.listFactor=bulkUndo.listFactor; PLATS.forEach(pl=>{ if(bulkUndo.up) P.plat[pl.k].upPct=bulkUndo.up[pl.k]; }); bulkUndo=null; save(); render(); toast("已撤销上次批量调整"); }
 document.addEventListener("change",e=>{ const t=e.target.closest("[data-bp]"); if(!t||!t.closest(".bulkPlat")) return; const k=t.dataset.bp;
   if(k==="plat") P.bulk.plat=t.value; else if(k==="pct") P.bulk.pct=t.value===""?0:num(t.value); else if(k==="r99"||k==="promo") P.bulk[k]=t.checked; else return;
   save(); renderBulk(); });
 document.addEventListener("click",e=>{ const t=e.target.closest("[data-bp]"); if(!t||!t.closest(".bulkPlat")) return;
   if(t.dataset.bp==="go") bulkApply(); else if(t.dataset.bp==="undo") bulkRevert(); });
+
+const upCtl=k=>`<div class="hb" title="上架价 = Amazon 售价 × (1 + 百分比)；尾数 .99、是否重算促销价按上方批量栏的勾选">比 Amazon 高<input type="number" step="any" data-hpct="${k}" value="${esc(P.plat[k].upPct??15)}" aria-label="比 Amazon 高的百分比">%<button class="btn sm" data-happly="${k}">应用</button></div>`;
+document.addEventListener("change",e=>{ const t=e.target; if(t.dataset&&t.dataset.hpct){ P.plat[t.dataset.hpct].upPct=t.value===""?0:num(t.value); save(); } });
+document.addEventListener("click",e=>{ const t=e.target.closest("[data-happly]"); if(!t) return; const k=t.dataset.happly, inp=t.parentElement.querySelector("[data-hpct]"); applyUp([k], inp&&inp.value!==""?num(inp.value):nz(P.plat[k].upPct)); });
 
 /* ---------------- step navigation ---------------- */
 function go(n){ step=n; for(let i=1;i<=5;i++) document.getElementById("s"+i).hidden=i!==n;
@@ -610,7 +620,7 @@ function renderS2(){
     }).join("");
   }).join("");
   document.getElementById("confirmTable").innerHTML=`<table><thead><tr>
-    <th>品名</th><th>材质 / 描述</th><th>供应商</th><th>品类</th><th>FBM旺季</th><th>Amazon 售价 $</th>${PLATS.map(pl=>`<th>${esc(pl.name)} $<br><span class="note">上架 / 促销</span></th>`).join("")}<th>出厂价</th><th>出厂价币种</th><th>成本调整 $</th><th>采购成本 $</th>
+    <th>品名</th><th>材质 / 描述</th><th>供应商</th><th>品类</th><th>FBM旺季</th><th>Amazon 售价 $</th>${PLATS.map(pl=>`<th>${esc(pl.name)} $<br><span class="note">上架 / 促销</span>${upCtl(pl.k)}</th>`).join("")}<th>出厂价</th><th>出厂价币种</th><th>成本调整 $</th><th>采购成本 $</th>
     <th>包裹</th><th>长 cm</th><th>宽 cm</th><th>高 cm</th><th>毛重 kg</th><th>体积 m³</th><th>操作</th></tr></thead>
     <tbody>${rows||`<tr><td colspan="${17+PLATS.length}" class="muted">还没有产品，点“+ 新增产品”或回到第 1 步导入报价表。</td></tr>`}</tbody></table>`;
   document.getElementById("checkMsg").innerHTML = issues.length? `<p class="msg">请补全：${issues.slice(0,8).map(esc).join("；")}${issues.length>8?" …":""}</p>` : products.length? `<p class="msg ok">${products.length} 个产品的尺寸、毛重、成本和售价都已填写。</p>`:"";
@@ -732,7 +742,7 @@ function renderAll(R){
   if(!R.length){ document.getElementById("resAll").innerHTML=""; return; }
   if(!A.length&&!L.length){ document.getElementById("resAll").innerHTML=`<p class="muted" style="padding:12px">上面至少勾选一个渠道。</p>`; return; }
   const h1=A.map(a=>`<th class="grp" colspan="3">${esc(a.name)}</th>`).join("")+L.map(pl=>`<th class="grp" colspan="4">${esc(pl.name)}<br><span class="note">${esc(SHIP[P.plat[pl.k].ship]||"")}</span></th>`).join("");
-  const h2=A.map(()=>`<th>售价 $</th><th>利润</th><th>利润率</th>`).join("")+L.map(()=>`<th>促销价 $</th><th>促销利润</th><th>促销利润率<br><span class="note">上架价利润率</span></th><th>保本 / 目标价</th>`).join("");
+  const h2=A.map(()=>`<th>售价 $</th><th>利润</th><th>利润率</th>`).join("")+L.map(pl=>`<th>促销价 $${upCtl(pl.k)}</th><th>促销利润</th><th>促销利润率<br><span class="note">上架价利润率</span></th><th>保本 / 目标价</th>`).join("");
   const body=R.map(({p,r},pi)=>`<tr><td>${esc(p.name)}</td><td class="n">${f2(r.cost)}</td>`+
     A.map(a=>{ const v=r.sc[si][a.k]; return `<td class="n">${f2(r.price)}</td><td class="n ${cls(v)}">${money(v)}</td><td class="n ${cls(v)}">${pct(v/r.price)}</td>`; }).join("")+
     L.map(pl=>{ const x=r.plat[pl.k], s=x.sc[si];
