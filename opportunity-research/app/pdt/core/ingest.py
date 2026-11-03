@@ -268,6 +268,11 @@ def recheck_stuck() -> list[int]:
     启动时没有在跑的任务，凡仍是 checking 的批次都重新核对一次，状态落到疑似 / 异常 / 通过。"""
     with session() as s:
         ids = list(s.scalars(select(Batch.id).where(Batch.status == 'checking')))
+        # 未并入的批次若还是旧覆盖率规则（每项 ≥ 95%）的核对结果，按当前规则重核（DEC-102 wen 2026-11-03 调整）；已并入的历史批次保留当时记录
+        for b in s.scalars(select(Batch).where(Batch.channel == 'amazon', Batch.status.in_(['anomaly', 'ok', 'suspect_month']))):
+            tc = next((i for i in (b.checks or {}).get('items', []) if i.get('key') == 'tag_coverage'), None)
+            if tc is not None and 'drop' not in tc and b.id not in ids:
+                ids.append(b.id)
     for bid in ids:
         recheck(bid)
     return ids

@@ -23,3 +23,14 @@
 
 /* ── 锚点跳到区块标题时不被吸顶的顶栏遮住（如其他渠道数据 #t-est 切换估算对照页签） ── */
 .section__title[id], .panel__title[id] { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+
+/* ── 费用评估确认弹窗 CMP-F16-01 的三格估算：所有页面共用（原来只在预算页的页面样式里定义，决策卡等页面上会堆成一列） ── */
+.est { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-4) 0; }
+.est .stat { padding: var(--space-3) var(--space-4); }
+.est .stat__value { font-size: var(--text-xl); }
+@media (max-width: 767px) { .est { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── 侧栏：操作者菜单 16 项 + 5 个分组，在 1440×900 下要全部可见（DESIGN-02 / 18）：收紧分组间距与行高 ── */
+.sidebar .nav { padding-top: var(--space-1); padding-bottom: var(--space-2); }
+.sidebar .nav__group { margin: var(--space-3) var(--space-3) 2px; }
+.sidebar .nav__item { min-height: 32px; }

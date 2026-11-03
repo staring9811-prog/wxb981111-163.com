@@ -42,6 +42,7 @@
   </div>
   {% block modals %}{% endblock %}
   <script src="/static/app.js"></script>
+  <script>(function () { var c = document.querySelector('.sidebar .nav [aria-current="page"]'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest' }); })();</script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

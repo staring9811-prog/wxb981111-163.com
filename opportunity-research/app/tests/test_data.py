@@ -366,3 +366,28 @@ def test_stuck_checking_batch_rechecked_on_start(app_env, tmp_path):
     create_app()
     with session() as s:
         assert s.get(Batch, bid).status == settled
+
+
+def test_unmerged_batch_with_old_coverage_rule_rechecked_on_start(wen):
+    """DESIGN-06 / FLOW-05：覆盖率规则调整（DEC-102）后，未并入批次里存的旧规则核对结果（“每项 ≥ 95%”）在启动时按新规则重核。"""
+    from pdt.core import ingest, seed
+    f = seed.D2 / 'sellersprite_zip_2025-03_2025-12' / '2025-03_full_data.csv'
+    if not f.exists():
+        pytest.skip('本机没有第二轮原始月度导出')
+    with open(f, 'rb') as fh:
+        wen.post('/data/amazon/upload', data={'month': '2025-03'}, files={'file': (f.name, fh)})
+    with session() as s:
+        b = s.scalar(select(Batch).where(Batch.channel == 'amazon', Batch.month == '2025-03'))
+        ch = dict(b.checks)
+        items = [dict(i) for i in ch['items']]
+        for i in items:
+            if i['key'] == 'tag_coverage':
+                i.pop('drop', None)
+                i['threshold'] = '每项 ≥ 95%'
+        ch['items'] = items
+        b.checks = ch
+        bid = b.id
+    assert bid in ingest.recheck_stuck()
+    with session() as s:
+        tc = [i for i in s.get(Batch, bid).checks['items'] if i['key'] == 'tag_coverage'][0]
+    assert tc['threshold'].startswith('尺寸 / 拆装 / 形态 ≥ 95%') and 'drop' in tc
