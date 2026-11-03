@@ -6,10 +6,10 @@ FRAMES = os.environ.get('FRAMES', '30″ · 拆装,48″ · 整装').split(',')
 os.environ['VER'] = '9'; os.environ['MODE'] = '库'
 P = os.path.join(HERE, '回归预测.py'); src = open(P, encoding='utf-8').read()
 G = {'__file__': P}; exec(compile(src[:src.index('FEAT = {T')], P, 'exec'), G); A, ms, ROOT, END = G['A'], G['ms'], G['ROOT'], G['END']
-B = A[A['尺寸段'].notna() & A['装'].notna()].copy(); B['框'] = B['尺寸段'].astype(str) + ' · ' + B['装'].astype(str)
+B = A[A['尺寸段'].notna() & A['装'].notna() & A['形态'].isin(['落地式', '悬浮式'])].copy(); B['框'] = B['尺寸段'].astype(str) + ' · ' + B['装'].astype(str) + ' · ' + B['形态'].astype(str)
 B['基准'] = B.groupby(['m', '框'])['价格'].transform('median'); B['价比'] = B['价格'] / B['基准']
 B['r'] = pd.to_numeric(B['评分'], errors='coerce'); B['rk'] = pd.to_numeric(B['小类BSR'], errors='coerce')
-B['目标'] = B['元素一'].map(lambda t: '竖棱' in t) if CARD == '竖棱' else B['D8台面材质'].eq('岗石')
+B['目标'] = B['元素一'].map(lambda t: '竖棱' in t) if CARD == '竖棱' else B['D8台面材质'].eq({'岗石': '岗石', '树脂': '树脂'}[CARD])
 L = [f'# 决策卡展开：{CARD}的具体 SKU（子 ASIN）', '', '> 由 `trial/决策卡_SKU.py` 生成。月销 = 卖家精灵估算的子体月销；价比 = 价格 ÷ 同月同框中位价；排名 = 小类 BSR。',
      '> **2026-06 至 09 来自 v11 表**（家族键月间一致性低），这几个月的数字可能有来源切换的影响，表里标 *。', '']
 for fr in FRAMES:

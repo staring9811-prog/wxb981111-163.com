@@ -11,15 +11,15 @@ fp = [f for f in font_manager.findSystemFonts() if 'wqy-zenhei' in f]
 if fp: font_manager.fontManager.addfont(fp[0]); plt.rcParams['font.family'] = font_manager.FontProperties(fname=fp[0]).get_name()
 OUTD = os.path.join(ROOT, 'solution-v2/机会判定卡'); f0 = lambda x: '—' if pd.isna(x) else f'{x:,.0f}'; p0 = lambda x: '—' if pd.isna(x) else f'{x:.0%}'; p1 = lambda x: '—' if pd.isna(x) else f'{x:.1%}'
 # ---------- 行级：框、属性取值 ----------
-B = A[A['尺寸段'].notna() & A['装'].notna()].copy(); B['框'] = B['尺寸段'].astype(str) + ' · ' + B['装'].astype(str)
+B = A[A['尺寸段'].notna() & A['装'].notna() & A['形态'].isin(['落地式', '悬浮式'])].copy(); B['框'] = B['尺寸段'].astype(str) + ' · ' + B['装'].astype(str) + ' · ' + B['形态'].astype(str)   # 尺寸 × 拆装 × 形态（wen 硬规则）
 B['r'] = pd.to_numeric(B['评分'], errors='coerce').where(lambda x: x.between(1, 5))
 B['基准'] = B.groupby(['m', '框'])['价格'].transform('median'); B['价比'] = (B['价格'] / B['基准']).where(B['价格'] > 0)
 if CARD == '竖棱':
     TARGET, ATTN = '竖棱', '元素'; B = B.assign(值=B['元素一']).explode('值'); B = B[B['值'].notna() & ~B['值'].map(UNK)]
     tok_t = '元素=竖棱'; tops = ('台面=陶瓷一体', '台面=树脂一体', '台面=石材台面')
 else:
-    TARGET, ATTN = '岗石', '台面材质'; B['值'] = B['D8台面材质']; B = B[B['值'].notna() & ~B['值'].isin(['信息不足', '不适用（不含台面）'])]
-    tok_t = '台面=石材台面'; tops = ('台面=石材台面',)
+    TARGET, ATTN = {'岗石': '岗石', '树脂': '树脂'}[CARD], '台面材质'; B['值'] = B['D8台面材质']; B = B[B['值'].notna() & ~B['值'].isin(['信息不足', '不适用（不含台面）'])]
+    tok_t = {'岗石': '台面=石材台面', '树脂': '台面=树脂一体'}[CARD]; tops = (tok_t,)
 B['新'] = B['月龄'] <= 6
 E6, R6 = list(range(M0, M0 + 6)), list(range(END - 5, END + 1))
 def wmed(x, w):
@@ -52,8 +52,8 @@ fam_fr = B.groupby('家族键')['框'].agg(lambda x: x.value_counts().index[0]);
 keyfam = A.drop_duplicates('单位').set_index('单位')['家族键']; Ue = U[U['L'] + 5 <= END].copy(); Ue['家族键'] = keyfam.reindex(Ue.index).values
 Ue['框'] = fam_fr.reindex(Ue['家族键']).values; Ue['含'] = fam_t.reindex(Ue['家族键']).fillna(False).values
 nf = Ue.groupby(['框', '含'])['y'].agg(['size', 'sum'])
-L = [f'# 决策卡数据：{TARGET}（按"同尺寸段 × 同拆装"分框）', '',
-     f'> 由 `trial/决策卡.py`（CARD={CARD}）生成，数据 2024-10 至 2026-09。每一项都只和**同一个框（尺寸段 × 拆装）里的其他{ATTN}**比：份额 = {TARGET}销量 ÷ 框内{ATTN}已知的销量；溢价 = 价格 ÷ 同月同框中位价；新品 = 上架 ≤ 6 个月。',
+L = [f'# 决策卡数据：{TARGET}（按"同尺寸段 × 同拆装 × 同形态"分框）', '',
+     f'> 由 `trial/决策卡.py`（CARD={CARD}）生成，数据 2024-10 至 2026-09。每一项都只和**同一个框（尺寸段 × 拆装 × 形态）里的其他{ATTN}**比：份额 = {TARGET}销量 ÷ 框内{ATTN}已知的销量；溢价 = 价格 ÷ 同月同框中位价；新品 = 上架 ≤ 6 个月。',
      f'> 早期 = {ms(E6[0])} 至 {ms(E6[-1])}；近期 = {ms(R6[0])} 至 {ms(R6[-1])}。"相对预测"= 0.824 × 份额斜率 + 0.857 × 新品占比差（系数来自 全链路验证 2.2 的同框回归），减去同框其他{ATTN}的加权平均：> 0 表示预计在这个框里份额比别的{ATTN}涨得多。', '',
      '## 1. 所有出现过的框', '',
      f'| 框 | 框月销（近期） | {TARGET}月销 早期 → 近期 | 框内份额 早期 → 近期 | 近期在榜家族 | {TARGET}中位价 / 框中位价 | 溢价 | 评分 {TARGET} / 框 | 新品占比 {TARGET} / 框 | 相对预测 | 新家族（含{TARGET}）做到 / 家族 | 框内其他新家族 做到 / 家族 |',
@@ -63,7 +63,7 @@ for r in OV.itertuples():
     L.append(f"| {r.框} | {f0(r.框月销)} | {f0(r.早_月销)} → {f0(r.近_月销)} | {p1(r.早_份额)} → {p1(r.近_份额)} | {r.近_家族} | ${f0(r.近_中位价)} / ${f0(r.框中位价)} | {r.近_溢价:.2f} | "
              f"{r.近_评分:.2f} / {r.框评分:.2f} | {p0(r.近_新品)} / {p0(r.框新品)} | {r.相对预测:+.2f} | "
              f"{(f'{int(a_.iloc[1])} / {int(a_.iloc[0])}' if a_ is not None else '—')} | {(f'{int(b_.iloc[1])} / {int(b_.iloc[0])}' if b_ is not None else '—')} |".replace('nan', '—'))
-MAIN = OV[OV['近_月销'] >= 15].assign(装=lambda d: d['框'].str.split(' · ').str[1]).groupby('装', sort=False).head(2)['框'].tolist()   # 每种拆装方式各取近期销量前 2 个框
+MAIN = os.environ['FRAMES'].split(',') if os.environ.get('FRAMES') else OV[OV['近_月销'] >= 15].assign(装=lambda d: d['框'].str.split(' · ').str[1]).groupby('装', sort=False).head(2)['框'].tolist()
 # ---------- 2. 主要框：同框各取值对比 + 季度走势 + 代表产品 ----------
 q_ = lambda m: f"{ms(m)[:4]}Q{(int(ms(m)[5:]) - 1) // 3 + 1}"
 for fr in MAIN:
@@ -95,13 +95,13 @@ for fr in MAIN:
     plt.xticks(rotation=60, fontsize=7); fig.tight_layout(); fn = f"决策卡_{CARD}_{fr.replace(' · ', '_')}_代表产品.png"; fig.savefig(os.path.join(OUTD, fn), dpi=110); plt.close(fig)
     L.insert(L.index(f'### 2.3 代表产品（{fr}，近期销量前 3 + 最早在榜的 1 个）') + 2, f'![{fr} 代表产品]({fn})\n')
     # 新品方案（这个框的尺寸与拆装固定）
-    s_, z_ = fr.split(' · '); tr = U[U['L'] + 5 <= END]; sc_ = newprod(END + 1, False); lg = lambda p: np.log(p / (1 - p))
+    s_, z_, x_ = fr.split(' · '); tr = U[U['L'] + 5 <= END]; sc_ = newprod(END + 1, False); lg = lambda p: np.log(p / (1 - p))
     rec = tr[tr['L'] >= tr['L'].max() - 5]; shift = lg(rec['y'].mean()) - lg(sc_(list(rec.index)).mean()); cand = []
     for dd in ('低', '中', '高'):
         for cc in ('白', '黑', '原木', '深木', '灰'):
             for tp in tops:
-                kk = f'卡|{fr}|{dd}|{cc}|{tp}'; TK[kk] = [f'尺寸={s_}', f'档={dd}', tp, f'主色={cc}', f'装={z_}', '形态=落地式', '颜色≥2', '子体≥4'] + (['元素=竖棱'] if CARD == '竖棱' else [])
+                kk = f'卡|{fr}|{dd}|{cc}|{tp}'; TK[kk] = [f'尺寸={s_}', f'档={dd}', tp, f'主色={cc}', f'装={z_}', f'形态={x_}', '颜色≥2', '子体≥4'] + (['元素=竖棱'] if CARD == '竖棱' else [])
                 cand.append((f"{dd}档 · {tp.split('=')[1]} · 主色{cc}", kk))
     pc = 1 / (1 + np.exp(-(lg(sc_([k for _, k in cand])) + shift))); o = np.argsort(-pc)
-    L += [f'### 2.4 新品方案打分（{fr}，落地式、首月 ≥ 2 色 ≥ 4 子体；模型偏高约每 10 个 1 个）', '', '前 4：' + '；'.join(f"{cand[i][0]} {pc[i] * 10:.1f}" for i in o[:4]) + '。最低 2：' + '；'.join(f"{cand[i][0]} {pc[i] * 10:.1f}" for i in o[-2:]) + '。', '']
+    L += [f'### 2.4 新品方案打分（{fr}，首月 ≥ 2 色 ≥ 4 子体；模型偏高约每 10 个 1 个）', '', '前 4：' + '；'.join(f"{cand[i][0]} {pc[i] * 10:.1f}" for i in o[:4]) + '。最低 2：' + '；'.join(f"{cand[i][0]} {pc[i] * 10:.1f}" for i in o[-2:]) + '。', '']
 open(os.path.join(OUTD, f'决策卡_{CARD}_数据.md'), 'w', encoding='utf-8').write('\n'.join(L) + '\n'); print('\n'.join(L))
