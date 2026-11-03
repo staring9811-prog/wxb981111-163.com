@@ -216,3 +216,11 @@ def test_models_export(wen):
     assert rows[1][:6] == ('Amazon', '30″ · 拆装 · 落地式', '元素', '竖棱', 0.74, 'A')
     assert list(wb['分级回测'].values)[2] == ('D', 1, 89, 0.19, -2210, -12)
     assert list(wb['系数'].values)[1][:3] == ('b6', '份额斜率（近 6 个月每月对数变化）', 0.412)
+
+
+def test_prerequisites_show_other_pending(v2):
+    """DESIGN-09：前置清单在 Amazon 当月无待确认时，如实写出其他渠道 / 月份的待确认条数，不写成全部完成。"""
+    from pdt.core import tagging
+    from pdt.web.routes_models import prerequisites
+    pre = prerequisites()
+    assert pre['other_pending'] == max(0, tagging.queued_count() - pre['pending'])

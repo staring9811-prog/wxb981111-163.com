@@ -34,8 +34,10 @@ def prerequisites():
         done = bool(last['amazon']) and (s.scalar(select(func.count()).select_from(ModelRun).where(ModelRun.month == last['amazon'])) or 0) > 0
         unmerged = dict(month=newer.month, label=UNMERGED[newer.status]) if newer is not None else None
     pending = tagging.pending_for_month('amazon', last['amazon']) if last['amazon'] else 0
+    # 其他渠道的待确认标签不影响 Amazon 市场层重算，但要在前置清单里如实写出，不能只写“无待确认”
+    other_pending = max(0, tagging.queued_count() - pending)
     blocked = f"{unmerged['month']} 未并入（{unmerged['label']}），并入后才能重算" if unmerged and done else ''
-    return dict(last=last, merged_at=merged_at, pending=pending, unmerged=unmerged, done=done, blocked=blocked,
+    return dict(last=last, merged_at=merged_at, pending=pending, other_pending=other_pending, unmerged=unmerged, done=done, blocked=blocked,
                 next=unmerged['month'] if blocked else last['amazon'])
 
 

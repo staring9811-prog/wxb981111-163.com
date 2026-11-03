@@ -240,15 +240,17 @@ def _ledger_monthly():
 
 
 @router.get("/settings/budget")
-def budget_page(request: Request, tab: str = "detail", svc: str = "all", month: str = "", user=operator_only):
+def budget_page(request: Request, tab: str = "detail", svc: str = "all", month: str = "", page: int = 1, user=operator_only):
     cur = costgate.month_key()
     month = month or cur
     usage = [service_usage(k) for k in SERVICES]
     with session() as s:
         months = sorted({m for (m,) in s.execute(select(CostRecord.month).distinct())} | {cur}, reverse=True)
     detail = _ledger_detail(month, svc)
+    pages = max(1, -(-len(detail) // 50))
+    page = min(max(1, page), pages)
     return render(request, "settings_budget.html", "PAGE-F16-02", "预算与费用记录", usage=usage, services=SERVICES,
-                  detail=detail[:50], detail_total=len(detail), detail_sum=sum(r["amount"] for r in detail),
+                  detail=detail[(page - 1) * 50: page * 50], detail_total=len(detail), page=page, pages=pages, detail_sum=sum(r["amount"] for r in detail),
                   monthly=_ledger_monthly(), month=month, cur_month=cur, months=months, fsvc=svc if svc in SERVICES else "all",
                   tab="month" if tab == "month" else "detail", llm_provider=PROVIDERS[_llm_settings()["provider"]],
                   warn_pct=catconfig.current()[1].get("budget_warn_pct") or 80, now_dt=datetime.now())

@@ -106,7 +106,7 @@
         </tbody>
       </table>
     </div>
-    <div class="pager"><span>每页 50 条 · 第 1 页 · {{ month }} 合计 ${{ detail_sum|num(2) }}</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button></div></div>
+    {% from "_pager.html" import pager %}{{ pager(page, pages, "/settings/budget?tab=detail&month=" ~ month ~ "&svc=" ~ fsvc ~ "&", "共 " ~ detail_total ~ " 条 · 每页 50 条 · 第 " ~ page ~ " / " ~ pages ~ " 页 · " ~ month ~ " 合计 $" ~ ("%.2f"|format(detail_sum))) }}
   </div>
 
   <div id="p-month" role="tabpanel"{% if tab != 'month' %} hidden{% endif %}>

@@ -299,3 +299,18 @@ def test_rule02_keys_never_leak(app_env, wen, mock_http, caplog, capsys):
         for r in s.scalars(select(Secret)):
             assert r.enc_value.startswith(b"gAAAA")  # Fernet 密文
     assert len(seen) >= len(KEYS)  # 测试确实发出了请求（被拦截）
+
+
+def test_ledger_detail_pagination(wen):
+    """DESIGN-05 / FLOW-03：费用明细超过 50 条时可翻页，第 2 页显示第 51 条起，合计不变。"""
+    from pdt import costgate
+    from pdt.db import session
+    from pdt.models import CostRecord
+    m = costgate.month_key()
+    with session() as s:
+        for i in range(79):
+            s.add(CostRecord(month=m, service="sellersprite", task=f"拉取 Amazon 2026-10 第 {i + 1} 页", qty=1, amount=0.01))
+    p1 = wen.get("/settings/budget").text
+    assert "共 79 条" in p1 and "第 1 / 2 页" in p1 and "拉取 Amazon 2026-10 第 79 页" in p1
+    p2 = wen.get(f"/settings/budget?tab=detail&month={m}&svc=all&page=2").text
+    assert "第 2 / 2 页" in p2 and "拉取 Amazon 2026-10 第 1 页<" in p2 and "拉取 Amazon 2026-10 第 79 页" not in p2
