@@ -28,9 +28,13 @@ def panel(dims):
     F = df.groupby([key, df['m']])['fam'].nunique().unstack(fill_value=0).reindex(columns=MONTHS, fill_value=0)
     vals = df.assign(_k=key).drop_duplicates('_k').set_index('_k')[list(dims)]
     return C, F, den, vals
-PAN = {}
+PAN = {}; NEWC = {}
+NEWROW = (A['月龄'] <= 6).values   # 上架 ≤ 6 个月的行（缺上架日期的按非新品）
 for dims in [(d,) for d in DIMS] + list(itertools.combinations(DIMS, 2)):
     C, F, den, vals = panel(dims); PAN[dims] = (C, F, den, vals)
+    A['_c_bak'] = A['c']; A['c'] = A['c'] * NEWROW; NEWC[dims] = panel(dims)[0].reindex(C.index, fill_value=0); A['c'] = A['_c_bak']
+A.drop(columns='_c_bak', inplace=True)
+CATNEW = A[NEWROW].groupby('m')['c'].sum().reindex(MONTHS, fill_value=0)
 CAT = A.groupby('m')['c'].sum().reindex(MONTHS, fill_value=0)
 mean3 = lambda X, a: X.loc[:, [m for m in range(a, a + 3) if m in X.columns]].mean(axis=1)
 
@@ -47,6 +51,7 @@ def feats(T):
         cols6 = list(range(T - 6, T)); xc = np.arange(6) - 2.5
         D['份额6'] = (C[cols6].sum(axis=1) / den.loc[T - 6:T - 1].sum()).values
         D['b6'] = ((np.log(C[cols6].div(den.loc[T - 6:T - 1].replace(0, np.nan), axis=1).fillna(0) + EPS) * xc).sum(axis=1) / (xc ** 2).sum()).values
+        D['x5'] = (NEWC[dims][cols6].sum(axis=1) / C[cols6].sum(axis=1).replace(0, np.nan)).fillna(0).values - CATNEW.loc[T - 6:T - 1].sum() / CAT.loc[T - 6:T - 1].sum()
         D['dims'] = [dims] * len(D); out.append(D)
     D = pd.concat(out, ignore_index=True); D = D[D['近3月'] > 0].copy()
     D['x1'] = np.log((D['份额'] + EPS) / (D['份额前'] + EPS)); D['x3'] = D['S3'].fillna(0).clip(-1, 2); D['无词'] = D['S3'].isna()
@@ -72,8 +77,9 @@ def actual_units(D, T, k, what='件'):
     return pd.Series([res.get(i, 0.0) for i in D.index], index=D.index)
 
 def set_ver(v):
-    global VER, XS, BASE
-    VER = v; XS = ['x1', 'x2', 'x3', 'x4'] if v == 6 else ['b6', 'x2', 'x3', 'x4']; BASE = '份额' if v == 6 else '份额6'
+    global VER, XS, BASE, KS_, KA, KB
+    VER = v; XS = ['x1', 'x2', 'x3', 'x4'] if v == 6 else (['b6', 'x2', 'x3', 'x4'] if v < 9 else ['b6', 'x2', 'x3', 'x4', 'x5']); BASE = '份额' if v == 6 else '份额6'
+    KS_ = (0, 3, 6) if v < 9 else (0, 3, 6, 8); KA, KB = (3, 6) if v < 9 else (6, 8)
 set_ver(VER)
 def design(D, k):
     X = D[XS].copy(); X['x4'] = X['x4'] - 5.0
@@ -119,8 +125,8 @@ def predict(T0):
         D[f'sd{k}'] = qget(q, tier, k, 'sd')
         base = D[BASE] * D['标签占比'] * cat_fc(T0, T0 + k)
         D[f'件{k}'] = base * np.exp(D[f'预测{k}']); D[f'件lo{k}'] = base * np.exp(D[f'lo{k}']); D[f'件hi{k}'] = base * np.exp(D[f'hi{k}']); D[f'不变{k}'] = base
-    sd = (D['sd3'] + D['sd6']).values / 2
-    D['把握'] = norm.cdf(((D['预测3'] + D['预测6']) / 2) / sd); D['预计多卖'] = ((D['件3'] - D['不变3']) + (D['件6'] - D['不变6'])) / 2
+    sd = (D[f'sd{KA}'] + D[f'sd{KB}']).values / 2
+    D['把握'] = norm.cdf(((D[f'预测{KA}'] + D[f'预测{KB}']) / 2) / sd); D['预计多卖'] = ((D[f'件{KA}'] - D[f'不变{KA}']) + (D[f'件{KB}'] - D[f'不变{KB}'])) / 2
     D['分级'] = np.select([(D['把握'] >= 0.7) & (D['预计多卖'] >= 100), (D['把握'] <= 0.3) & (D['近3月'] >= 300), D['把握'] >= 0.5], ['A', 'D', 'B'], 'C')
     D['体量档'] = tier.values
     return D, m, cols, q, Tr
