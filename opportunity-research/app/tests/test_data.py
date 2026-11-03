@@ -220,3 +220,19 @@ def test_data_page_operator_only(client):
     login_as(client, 'lixiaomei', '密码-123456')
     r = client.get('/data/amazon')
     assert r.status_code == 403 and '无权限' in r.text
+
+
+def test_real_raw_month_not_misdated(wen):
+    """FLOW-05 (c)：正常的卖家精灵原始月度导出（2025-03，购买标日期分散在 2023-12 至 2025-04）不能被判为月份错误。
+    期望依据：该文件确为 2025-03 数据（第二轮已核对），购买标常年不更新，只有最新日期反映导出月份。"""
+    from pdt.core import seed
+    f = seed.D2 / 'sellersprite_zip_2025-03_2025-12' / '2025-03_full_data.csv'
+    if not f.exists():
+        pytest.skip('本机没有第二轮原始月度导出')
+    with open(f, 'rb') as fh:
+        wen.post('/data/amazon/upload', data={'month': '2025-03'}, files={'file': (f.name, fh)})
+    with session() as s:
+        b = s.scalar(select(Batch).where(Batch.channel == 'amazon', Batch.month == '2025-03'))
+        items = {i['key']: i for i in b.checks['items']}
+    assert items['purchase_label']['result'] == 'pass', items['purchase_label']
+    assert b.status != 'suspect_month'

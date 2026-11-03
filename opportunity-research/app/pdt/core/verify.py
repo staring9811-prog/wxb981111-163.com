@@ -31,12 +31,16 @@ def run(month: str, cur: pd.DataFrame, prev: pd.DataFrame | None, tags: dict, cf
     # 1. 上月购买标日期
     dates = pd.to_datetime(cur.get('purchase_date', pd.Series(dtype=object)), errors='coerce').dropna() if 'purchase_date' in cur else pd.Series(dtype='datetime64[ns]')
     if len(dates):
-        inm = dates.dt.strftime('%Y-%m').eq(month)
-        share_out = float(1 - inm.mean())
-        ok = share_out <= 0.5
-        items.append(dict(key='purchase_label', name='月份误标 · 上月购买标日期', sub='须落在所标月份',
-                          value=f"{dates.min():%Y-%m-%d} 至 {dates.max():%Y-%m-%d}", detail=f'应在 {month}', n=int(len(dates)),
-                          threshold='在所标月份内', result='pass' if ok else 'block', share_out=share_out))
+        # 商品身上的购买标常年不更新，日期分散在过去很多个月，所以只看本批"最新"的购买标日期：
+        # 正常导出最新标签落在所标月份或下个月月初；误标批次（如标为 2026-10、实为 9 月）最新日期整批停在上个月。
+        latest = dates.max()
+        nxt = (pd.Period(month, 'M') + 1).strftime('%Y-%m')
+        lm = latest.strftime('%Y-%m')
+        ok = lm in (month, nxt)
+        share_out = float(1 - dates.dt.strftime('%Y-%m').isin([month, nxt]).mean())
+        items.append(dict(key='purchase_label', name='月份误标 · 上月购买标日期', sub='本批最新购买标须落在所标月份（或下月初）',
+                          value=f"最新 {latest:%Y-%m-%d}（范围 {dates.min():%Y-%m-%d} 至 {latest:%Y-%m-%d}）", detail=f'应在 {month} 或 {nxt}', n=int(len(dates)),
+                          threshold='最新日期在所标月份内', result='pass' if ok else 'block', share_out=share_out))
     else:
         items.append(dict(key='purchase_label', name='月份误标 · 上月购买标日期', sub='须落在所标月份', value='本批无上月购买标', detail='不判定',
                           n=0, threshold='在所标月份内', result='na'))
