@@ -12,7 +12,7 @@ from .pipeline import selected, entries, low_mode
 
 CAL = {"monthly_share": 0.02, "low": 0.5, "high": 2.0, "bd_price": 0.0015, "bd_page_min": 5,
        "lo_review": 0.00009, "lo_run": 0.005, "lo_batch": 20, "lo_batch_min": 25, "parallel": 4,
-       "wf_review": 0.0005, "wf_product": 0.0026, "wf_run": 0.05, "wf_batch": 10, "wf_product_min": 1.0,
+       "wf_review": 0.0005, "wf_unknown_count": 300, "wf_product": 0.0026, "wf_run": 0.05, "wf_batch": 10, "wf_product_min": 1.0,
        "hdp_page_s": 3, "hdp_workers": 3}
 
 
@@ -48,7 +48,9 @@ def run(ctx):
             bd = n_entries * 8 * 1.5
             fetched = 0
             for r in rs:
-                tot, inwin = r.get("review_count") or 0, (r.get("review_count") or 0) * share
+                # list cards sometimes omit the count (0) although the product has hundreds of reviews → assume 300
+                tot = r.get("review_count") or CAL["wf_unknown_count"]
+                inwin = tot * share
                 fetched += min(100, tot) + (min(300, tot) if inwin > 100 else 0) + (min(1000, tot) if inwin > 300 else 0)
             runs = math.ceil(len(rs) / CAL["wf_batch"]) * 1.5
             ap = fetched * CAL["wf_review"] + len(rs) * CAL["wf_product"] + runs * CAL["wf_run"]
