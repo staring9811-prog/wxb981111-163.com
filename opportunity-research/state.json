@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-11-03T05:59:14Z",
+  "last_updated_at_utc": "2026-11-03T06:27:53Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -36,22 +36,20 @@
     "REQ-F26-03",
     "REQ-F27-02"
   ],
-  "current_stage": "design",
-  "current_substep": "design-phase-II",
+  "current_stage": "tdd",
+  "current_substep": "生成 TDD 验收契约（revision 7）",
   "completed_stages": [
     "1",
     "2",
     "3",
     "4",
-    "5"
+    "5",
+    "design"
   ],
   "skipped_stages": [
     "3"
   ],
-  "next_action": {
-    "type": "ai",
-    "description": "Design 阶段 II：页面清单 → DESIGN/tokens 沿用并补充 → 18 页 MD+HTML → 串联扫描 → 技术方案 → 追溯矩阵"
-  },
+  "next_action": "tdd-master：生成并校验 output/tests/TDD验收契约.md（revision 7）",
   "open_questions": [
     {
       "id": "OQ-R2-01",
@@ -208,7 +206,19 @@
       "at": "2026-11-03T06:04:06Z",
       "source": "wen：沿用第一轮风格，蓝图确认，继续出页面"
     },
-    "source_revision": 7
+    "source_revision": 7,
+    "revision": 7,
+    "status": "completed",
+    "pages": 18,
+    "local_link_scan": "473 个本地链接全部存在；外链仅 amazon.com 商品页（AC-F21-04）",
+    "trace_rows": 111,
+    "design_derived": [
+      "DEC-101",
+      "DEC-102",
+      "DEC-103",
+      "DEC-104"
+    ],
+    "completed_at_utc": "2026-11-03T06:27:53Z"
   },
   "tdd": {
     "entry_check": {
@@ -250,6 +260,10 @@
     {
       "at": "2026-11-03T03:11:24Z",
       "note": "第一轮 PRD v5 / 设计 / TDD 已被 wen 判定未达预期（2026-10-27）；第二轮以新方案书为准重新走 PRD，旧需求 ID 不复用、按契约规则 retired 或沿用"
+    },
+    {
+      "at": "2026-11-03T06:27:53Z",
+      "event": "Design 第二轮完成：18 页 MD/HTML、技术方案附录 A、设计追溯矩阵；DEC-102～104 wen 确认"
     }
   ]
 }
