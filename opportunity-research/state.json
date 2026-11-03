@@ -2,30 +2,19 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-10-26T16:23:20Z",
+  "last_updated_at_utc": "2026-11-03T03:11:24Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
   "upstream": {
-    "solution_doc": "output/解题方案书.md",
-    "solution_state": "solution/state.json",
-    "solution_confirmation": "用户 2026-10-26 回复“进入 PRD”（solution/state.json decisions: 方案确认）"
+    "solution": "output/解题方案书.md（第二轮，2026-11-03）",
+    "solution_state": "solution-v2/state.json",
+    "confirmed": "wen 2026-11-03「继续写解题方案书，然后进 PRD」"
   },
   "stage_confirmations": {
     "stage1_shared_understanding": {
-      "status": "confirmed",
-      "confirmed_at_utc": "2026-10-26T12:58:58Z",
-      "source": "用户选择“没有遗漏，继续”（scene-anchor.md V1）"
-    },
-    "stage4_5_v1": {
-      "status": "confirmed",
-      "confirmed_at_utc": "2026-10-26T13:03:10Z",
-      "source": "用户选择“确认 V1”（proposal-v1.md）"
-    },
-    "stage4_6_mvp": {
-      "status": "confirmed",
-      "confirmed_at_utc": "2026-10-26T13:01:54Z",
-      "source": "D-8（分三期，第一期做透浴室柜）、D-15–D-19；proposal-v1.md §9 记录"
+      "status": "pending",
+      "confirmed_at_utc": null
     }
   },
   "contract_revision": 5,
@@ -40,30 +29,42 @@
     "REQ-F07-03",
     "REQ-F11-01"
   ],
-  "current_stage": "tdd",
-  "current_substep": "contract-delivered",
-  "completed_stages": [
-    "0",
-    "1",
-    "2",
-    "4.1",
-    "4.2",
-    "4.3",
-    "4.4",
-    "4.5",
-    "4.6",
-    "5",
-    "design",
-    "tdd"
-  ],
+  "current_stage": "1",
+  "current_substep": "round2-stage1-interview",
+  "completed_stages": [],
   "skipped_stages": [
     "3"
   ],
   "next_action": {
     "type": "user",
-    "description": "在同一项目的 Code 模式新建对话，发送完整 /goal 命令（https://200w.liurun.vip/skill/goal.html），按 output/tests/TDD验收契约.md 开发与验收"
+    "description": "PRD 第二轮阶段 1：回答角色、产品形态、数据进入方式、第一版范围四个问题"
   },
-  "open_questions": [],
+  "open_questions": [
+    {
+      "id": "OQ-R2-01",
+      "node": "角色与权限（谁操作、谁审批、谁只看）",
+      "priority": "P0",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-02",
+      "node": "产品形态（网页系统 / 本地报告）",
+      "priority": "P0",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-03",
+      "node": "数据进入方式（每月上传导出 / 用卖家精灵接口自动拉）及账号归属",
+      "priority": "P0",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-04",
+      "node": "第一版范围",
+      "priority": "P0",
+      "status": "open"
+    }
+  ],
   "key_decisions_made": [
     {
       "id": "D-1",
@@ -417,5 +418,11 @@
       ],
       "run_at": "2026-10-26T16:23:20Z"
     }
-  }
+  },
+  "history": [
+    {
+      "at": "2026-11-03T03:11:24Z",
+      "note": "第一轮 PRD v5 / 设计 / TDD 已被 wen 判定未达预期（2026-10-27）；第二轮以新方案书为准重新走 PRD，旧需求 ID 不复用、按契约规则 retired 或沿用"
+    }
+  ]
 }
