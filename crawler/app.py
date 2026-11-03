@@ -211,5 +211,9 @@ if __name__ == "__main__":
         do_step(sys.argv[2], sys.argv[3])
     else:
         port = int(sys.argv[2]) if len(sys.argv) >= 3 and sys.argv[1] == "serve" else 8765
-        print(f"打开浏览器访问 http://localhost:{port}")
-        ThreadingHTTPServer(("127.0.0.1", port), H).serve_forever()
+        srv = ThreadingHTTPServer(("127.0.0.1", port), H)
+        print(f"已启动：浏览器访问 http://localhost:{port}  （关闭这个窗口即停止）")
+        if "--no-browser" not in sys.argv:
+            import webbrowser
+            threading.Timer(1.0, lambda: webbrowser.open(f"http://localhost:{port}")).start()
+        srv.serve_forever()
