@@ -37,7 +37,7 @@
   ],
   "next_action": {
     "type": "user",
-    "description": "PRD 阶段 1：密钥配置、品类范围、局域网登录、接口预算"
+    "description": "PRD 阶段 1 闸门：请 wen 确认场景锚点（第二轮）scene-anchor.md"
   },
   "open_questions": [
     {
@@ -60,9 +60,9 @@
       "id": "OQ-R2-03",
       "node": "数据进入方式（每月上传导出 / 用卖家精灵接口自动拉）及账号归属",
       "priority": "P0",
-      "status": "partial",
-      "answer": "数据由 wen 方另做的\"全品店利润测算 + 数据拉取软件\"提供，本系统接入其输出；数据进来后本系统要做：1) 达标（打标？）及元素确认；2) 低置信度标签人工确认",
-      "source": "wen 2026-11-03"
+      "status": "resolved",
+      "answer": "Amazon 月度数据由系统用卖家精灵接口自动拉；Lowe's / HD / Wayfair 评论用 VP 追踪器（并入）；数据进来后系统自动打标，wen 确认元素和低置信度标签",
+      "source": "wen 2026-11-03（见 OQ-R2-06、09、10）"
     },
     {
       "id": "OQ-R2-04",
@@ -92,13 +92,17 @@
       "id": "OQ-R2-07",
       "node": "看图打标 / 差评归类用的大模型凭据归属与配置",
       "priority": "P1",
-      "status": "open"
+      "status": "resolved",
+      "answer": "系统设置页由 wen 填写 / 更换 / 删除 / 测试密钥（卖家精灵、Bright Data、Apify、大模型），只显示后 4 位，存本机不进仓库",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-08",
       "node": "第一版品类范围（只浴室柜 / 可配置多品类）",
       "priority": "P1",
-      "status": "open"
+      "status": "resolved",
+      "answer": "第一版只做浴室柜；分框维度、属性列表、打标规则做成可配置；利润测算和 VP 追踪本身跨品类照常用",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-09",
@@ -128,13 +132,17 @@
       "id": "OQ-R2-12",
       "node": "局域网下三种角色怎么区分（账号登录 / 不登录）",
       "priority": "P1",
-      "status": "open"
+      "status": "resolved",
+      "answer": "简单账号密码：wen 建三类账号；审批记录审批人和时间；未登录看不到",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-13",
       "node": "花钱的接口（卖家精灵、Bright Data、Apify、大模型）的预算控制",
       "priority": "P1",
-      "status": "open"
+      "status": "resolved",
+      "answer": "先评估费用和时间、wen 确认再跑；每个服务设月度上限，到了自动停；有记账",
+      "source": "wen 2026-11-03"
     }
   ],
   "key_decisions_made": [
