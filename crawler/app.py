@@ -44,6 +44,9 @@ def do_step(name, step):
                 fn = f"{plat}_{name}_{time.strftime('%Y%m%d')}.xlsx"
                 n, m = export.export(ctx, plat, ctx.path("exports", fn))
                 ctx.log(f"导出 {fn}：{n} 个商品，{m} 条评论")
+            fn = f"汇总_{name}_{time.strftime('%Y%m%d')}.xlsx"
+            n, m = export.export_combined(ctx, ctx.path("exports", fn))
+            ctx.log(f"导出 {fn}（各渠道月度汇总总表）：{n} 个商品，{m} 条去重评论")
         ctx.log(f"===== {s} 完成 =====")
     pipeline.status(ctx, step=steps[-1], running=False)
 

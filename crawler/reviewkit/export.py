@@ -120,3 +120,40 @@ def export(ctx, plat, path):
         _sheet(wb.create_sheet("评论明细"), R_COLS, revs, {"VP状态": ["VP", "non_VP", "unknown"]})
     wb.save(path)
     return len([p for p in prods if p.get("排名")]), len(revs)
+
+
+def export_combined(ctx, path):
+    """One workbook across all platforms: 渠道月度汇总 (entries, platform subtotals, grand total — deduped by review ID)
+    and 商品月度明细 (every selected product)."""
+    plats = sorted({e["platform"] for e in entries(ctx)})
+    summary, products, allrevs = [], [], []
+
+    def uniq(rs):
+        return list({(x["平台"], x["评论ID"]): x for x in rs}.values())
+    for plat in plats:
+        prods, revs = gather(ctx, plat)
+        allrevs += revs
+        for e in [e for e in entries(ctx) if e["platform"] == plat]:
+            er = uniq([x for x in revs if x["入口"] == e["name"]])
+            n = sum(1 for p in prods if p.get("排名") and p["入口"] == e["name"])
+            summary.append(_fill(ctx, {"层级": "入口", "渠道": plat, "入口": e["name"], "商品数": n, "去重评论数": len(er)}, er))
+        pr = uniq(revs)
+        summary.append(_fill(ctx, {"层级": "渠道小计", "渠道": plat, "入口": "（合并去重）",
+                                   "商品数": len({p["商品ID"] for p in prods if p.get("排名")}), "去重评论数": len(pr)}, pr))
+        by = collections.defaultdict(list)
+        for x in revs:
+            by[(x["入口"], x["商品ID"])].append(x)
+        for p in prods:
+            if p.get("排名"):
+                products.append(_fill(ctx, {k: p.get(k, "") for k in ("平台", "入口", "排名", "商品ID", "品牌", "标题", "页面累计评论数", "VP区分", "采集状态")},
+                                      by.get((p["入口"], p["商品ID"]), []), p.get("VP区分") == "是"))
+    ar = uniq(allrevs)
+    summary.append(_fill(ctx, {"层级": "总计", "渠道": "全部渠道", "入口": "",
+                               "商品数": sum(s["商品数"] for s in summary if s["层级"] == "渠道小计"), "去重评论数": len(ar)}, ar))
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "渠道月度汇总"
+    _sheet(ws, _months_cols(ctx, ("层级", "渠道", "入口", "商品数", "去重评论数")), summary)
+    _sheet(wb.create_sheet("商品月度明细"), _months_cols(ctx, ("平台", "入口", "排名", "商品ID", "品牌", "标题", "页面累计评论数", "VP区分", "采集状态")), products)
+    wb.save(path)
+    return len(products), len(ar)
