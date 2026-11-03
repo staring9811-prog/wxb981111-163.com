@@ -207,3 +207,15 @@ def test_scan_export_and_action_cell(wen):
     assert rows[1:] == [(fr, 5320, '增长型', '元素', '竖棱', 812, 0.094, 0.153, 6, 1.12, 4.31, 4.42, 1.08, 329, 0.38, 0.21, 2, 4, 6, 19, '经回测')]
     all_rows = list(load_workbook(io.BytesIO(wen.get('/scan/export', params={'channel': 'amazon'}).content)).active.values)
     assert sorted(x[4] for x in all_rows[1:]) == ['岗石', '竖棱']  # 无机会标记的“白”不导出，与页面一致
+
+
+def test_scan_action_column_sticky_when_all_columns(wen):
+    """DESIGN-10：“显示全部列”后表格变宽，操作列（做决策卡）固定在右侧，不被挤出可视区。"""
+    import re
+    _seed_scan()
+    html = wen.get('/scan', params={'channel': 'amazon'}).text
+    assert 'data-cols-toggle=".scan-table .table-wrap"' in html
+    assert re.search(r'<th class="col-op"><span class="visually-hidden">操作</span></th></tr></thead>', html)
+    assert re.search(r'<td class="t-nowrap col-op"><div class="cell-actions">.*?做决策卡', html, re.S)
+    css = re.search(r'\.scan-table \.table \.col-op \{([^}]*)\}', html).group(1)
+    assert 'position: sticky' in css and 'right: 0' in css and 'background: var(--surface)' in css

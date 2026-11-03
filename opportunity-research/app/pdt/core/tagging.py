@@ -50,6 +50,33 @@ def img_key(url: str) -> str:
     return hashlib.md5(u.encode()).hexdigest()[:12]
 
 
+def group_key(channel: str, image: str = '', series: str = '', brand: str = '', title: str = '') -> str:
+    """确认队列分组键：有主图按主图指纹；没有主图（Home Depot / Lowe's / Wayfair 的评论追踪导出不带图）按同系列，
+    没有系列按“同品牌 + 同标题”；都没有时返回空串（队列里退回一商品一组）。前缀 s / t 区分系列与标题，不会与 12 位图指纹混淆。"""
+    if image:
+        return img_key(image)
+    if series:
+        return 's' + hashlib.md5(f'{channel}|{series}'.encode()).hexdigest()[:11]
+    t = re.sub(r'\s+', ' ', str(title or '')).strip().lower()
+    if t:
+        return 't' + hashlib.md5(f'{channel}|{str(brand or "").strip().lower()}|{t}'.encode()).hexdigest()[:11]
+    return ''
+
+
+def fill_groups() -> int:
+    """给还没有分组键的标签补上 group_key（启动时调用；之前无图商品一商品一组）。返回补上的条数。"""
+    n = 0
+    with session() as s:
+        rows = s.execute(select(Tag, Product).join(Product, (Product.channel == Tag.channel) & (Product.item_id == Tag.item_id))
+                         .where(Tag.img_group == '')).all()
+        for tg, p in rows:
+            k = group_key(p.channel, p.image_url or '', p.series or '', p.brand or '', p.title or '')
+            if k:
+                tg.img_group = k
+                n += 1
+    return n
+
+
 def _band(w, bands):
     try:
         w = float(w)
@@ -118,7 +145,8 @@ def _texts(s, channel, items):
         p = prods.get(i)
         r = (last[i].raw or {}) if i in last else {}
         out[i] = dict(item_id=i, title=(p.title if p else '') or r.get('title', ''), sku=r.get('sku', ''), dimension=r.get('dimension', ''),
-                      features=r.get('features', ''), price=last[i].price if i in last else None, image=(p.image_url if p else ''))
+                      features=r.get('features', ''), price=last[i].price if i in last else None, image=(p.image_url if p else ''),
+                      series=(p.series if p else '') or '', brand=(p.brand if p else '') or '')
     return out
 
 
@@ -133,7 +161,7 @@ def tag_products(channel: str, items: list[str], month: str = '') -> dict:
         existing = {(t.item_id, t.tag): t for t in s.scalars(select(Tag).where(Tag.channel == channel, Tag.item_id.in_(items)))}
         for i in items:
             res = rule_tag(tx[i], rules)
-            grp = img_key(tx[i]['image'])
+            grp = group_key(channel, tx[i]['image'], tx[i]['series'], tx[i]['brand'], tx[i]['title'])
             stat['items'] += 1
             for tg in TAG_ORDER:
                 v, c, st = res[tg]
@@ -281,14 +309,17 @@ def queue(channel: str | None = None, reason: str | None = None, status: str = '
         if items:
             for t in s.scalars(select(Tag).where(Tag.item_id.in_([i for _, i in items]))):
                 other.setdefault((t.channel, t.item_id), {})[t.tag] = t.value
+        from .channels import item_link  # 没有商品链接时（追踪导出不带链接）按渠道商品 ID 拼链接
         groups = {}
         for t, p in rows:
             gk = (t.img_group or f'{t.channel}:{t.item_id}', t.tag)
             g = groups.setdefault(gk, dict(key=f'{gk[0]}|{gk[1]}', img_group=gk[0], tag=t.tag, image=p.image_url, items=[], candidates=[], channels=set(),
-                                           source=t.source, reason='元素' if t.tag == '元素' else '低置信度'))
+                                           source=t.source, reason='元素' if t.tag == '元素' else '低置信度',
+                                           by=('image' if p.image_url else ('series' if (t.img_group or '').startswith('s') else
+                                                                         ('title' if (t.img_group or '').startswith('t') else 'item')))))
             o = other.get((t.channel, t.item_id), {})
             g['items'].append(dict(tag_id=t.id, channel=t.channel, item_id=t.item_id, title=p.title, value=t.value, confidence=t.confidence,
-                                   status=t.status, link=p.link, image=p.image_url, confirm_mode=t.confirm_mode,
+                                   status=t.status, link=p.link or item_link(t.channel, t.item_id), image=p.image_url, confirm_mode=t.confirm_mode,
                                    others=' · '.join(x for x in [o.get('尺寸段'), o.get('装'), o.get('形态'), fm.top_type(o.get('台面材质'), o.get('台盆材质')) if o else '', o.get('主色')] if x and x != '未知')))
             g['channels'].add(t.channel)
             for c in (t.candidates or []):
@@ -315,9 +346,12 @@ def queued_count() -> int:
 
 
 def queued_groups() -> int:
-    """待确认标签的同图组数（与 queued_count 同口径）。"""
+    """待确认的组数，与打标确认页“共 N 组”同口径：按（分组键, 标签）分组，没有分组键的商品自成一组（见 queue）。"""
+    from sqlalchemy import case
+    gk = case((Tag.img_group != '', Tag.img_group), else_=Tag.channel + ':' + Tag.item_id)
     with session() as s:
-        return s.scalar(_queued_q(func.count(func.distinct(Tag.img_group))).where(Tag.img_group != '')) or 0
+        sub = _queued_q(gk.label('g'), Tag.tag).distinct().subquery()
+        return s.scalar(select(func.count()).select_from(sub)) or 0
 
 
 def counts():

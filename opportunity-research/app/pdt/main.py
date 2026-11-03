@@ -50,6 +50,9 @@ def ensure_operator():
 def create_app() -> FastAPI:
     init_db()
     ensure_operator()
+    from .core import ingest, tagging
+    tagging.fill_groups()  # 无主图商品按同系列 / 同品牌同标题补分组键（之前一商品一组）
+    ingest.recheck_stuck()  # 上次进程在核对中途退出的批次补做核对（否则一直显示“核对中”）
     app = FastAPI(title="品类机会判定台", docs_url=None, redoc_url=None, openapi_url=None)
     app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
 

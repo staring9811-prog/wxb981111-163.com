@@ -125,6 +125,27 @@ def test_ac_f19_04_validity_banner(wen):
     assert "市场评分本月未通过有效性检验" in wen.get(f"/cards/{cid}").text
 
 
+def test_validity_statement_same_on_home_and_card(seeded):
+    """DESIGN-12 / DESIGN-02 / AC-F19-04：决策卡顶部与工作台用同一函数、同一句依据（版本 · 数据截至月 · 重算日期），
+    不再出现工作台“本月尚未重算”而卡片“本月通过”的矛盾。"""
+    from datetime import date
+    cid = _card(seeded)
+    card = seeded.get(f"/cards/{cid}").text
+    home = seeded.get("/").text
+    basis = f"第九版，数据截至 2026-09，{date.today():%Y-%m-%d} 重算"
+    assert f"市场评分本月通过有效性检验（{basis}：D 档之后变大 19%，把握分档逐档上升）" in card
+    assert "市场评分本月通过有效性检验" in home and f"{basis}：D 档之后变大 19%，把握分档逐档上升。" in home
+    assert "本月尚未重算" not in home and "本月尚未重算" not in card
+
+
+def test_version_timeline_no_dangling_dot(seeded):
+    """DESIGN-12：版本与审批记录每条“内容 + 时间”，时间另起一行，不在行尾悬着“·”。"""
+    cid = _card(seeded)
+    html = seeded.get(f"/cards/{cid}").text
+    tl = html.split('<ol class="timeline">')[1].split("</ol>")[0]
+    assert "</b> ·" not in tl and '<span class="timeline__at">' in tl and "从机会扫描生成草稿" in tl
+
+
 def test_nfr010_generate_within_30s(seeded):
     """NFR-010 / AC-F20-05：从扫描单元生成草稿（不含外部调用）30 秒内完成。"""
     import time
@@ -145,7 +166,7 @@ def test_rule03_snapshot_after_approval(seeded, client):
     from pdt.models import Batch, Card, ModelRun, Opportunity, ProfitPlan, UnitScore, now
     cid = _card(seeded)
     seeded.post(f"/cards/{cid}/narrative", data={"consumer": "树脂一体给出不一样的样子。"}, headers=J)
-    plan = seeded.post("/tools/profit/plans", json={"name": "树脂一体30寸_v1", "products": [{"name": "30″ 树脂", "price": 240, "pkgs": []}], "params": {},
+    plan = seeded.post("/tools/profit/plans", json={"name": "树脂一体30寸_v1", "products": [{"name": "30″ 树脂", "price": 240, "cost": 130, "costCur": "USD", "pkgs": [{"l": 93, "w": 57, "h": 40, "kg": 47}]}], "params": {},
                                                     "card_id": cid, "result": {"product": "30″ 树脂", "rows": [{"channel": "Amazon FBM", "price": 240, "profit": 31.4, "margin": 0.131, "breakeven": 201.5}]}}).json()
     assert seeded.post(f"/cards/{cid}/submit", data={"note": "请审"}, headers=J).status_code == 200
     make_user("laoban", "老板", "approver")
@@ -165,7 +186,7 @@ def test_rule03_snapshot_after_approval(seeded, client):
         s.add(UnitScore(run_id=run.id, channel="amazon", frame=ds.FRAME, attr="台面材质", value="树脂", data=dict(old.data, grasp=0.61)))
         for o in s.query(Opportunity).filter_by(channel="amazon", value="树脂"):
             o.metrics = dict(o.metrics, share=0.125)
-    seeded.post(f"/tools/profit/plans/{plan['id']}", json={"products": [{"name": "30″ 树脂", "price": 260, "pkgs": []}],
+    seeded.post(f"/tools/profit/plans/{plan['id']}", json={"products": [{"name": "30″ 树脂", "price": 260, "cost": 130, "costCur": "USD", "pkgs": [{"l": 93, "w": 57, "h": 40, "kg": 47}]}],
                                                           "result": {"product": "30″ 树脂", "rows": [{"channel": "Amazon FBM", "price": 260, "profit": 45.0, "margin": 0.17, "breakeven": 201.5}]}})
     page = seeded.get(f"/cards/{cid}").text
     assert "有新数据" in page and "2026-10 Amazon 月度数据已并入" in page and "已更新" in page

@@ -2,6 +2,7 @@
 {% block head %}
 <style>
   .thumb { width: 72px; height: 72px; flex: none; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); object-fit: contain; }
+  .thumb--noimg { width: 96px; height: auto; min-height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-2); border-style: dashed; font-size: var(--text-2xs); line-height: 1.4; color: var(--muted); text-align: center; }
   .qgroups { display: flex; flex-direction: column; gap: var(--space-4); }
   .qgroup { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
   .qgroup__head { display: flex; gap: var(--space-4); align-items: flex-start; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-soft); }
@@ -95,11 +96,11 @@
     <article class="qgroup" data-channel="{{ g.channels|join(' ') }}" data-reason="{{ 'element' if g.tag == '元素' else 'low' }}" aria-labelledby="g{{ gi }}-title">
       <form method="post" action="/tagging/groups/confirm" class="qgroup__head">
         <input type="hidden" name="img_group" value="{{ g.img_group }}"><input type="hidden" name="tag" value="{{ g.tag }}"><input type="hidden" name="back" value="{{ back }}">
-        {% if g.image %}<img class="thumb" src="{{ g.image }}" alt="主图：{{ g['items'][0].title[:40] }}" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="thumb" role="img" aria-label="无主图"></span>{% endif %}
+        {% if g.image %}<img class="thumb" src="{{ g.image }}" alt="主图：{{ g['items'][0].title[:40] }}" loading="lazy" referrerpolicy="no-referrer">{% else %}<div class="thumb thumb--noimg" data-noimg><span>该渠道数据未提供主图</span>{% if g['items'][0].link %}<a class="tlink" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% endif %}
         <div class="qgroup__meta">
           <div class="row">{% if g.tag == '元素' %}<span class="badge badge--accent">元素</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span>{% endif %}
             <span class="badge">{{ g.tag }} · {{ '看图' if g.source == 'vision' else ('人工' if g.source == 'manual' else '规则') }}</span>
-            <span class="small muted">同图 {{ g['items']|length }} 个商品 · 图指纹 <span class="fp">{{ g.img_group[:4] }}…{{ g.img_group[-4:] }}</span></span></div>
+            <span class="small muted">{% if g.by == 'image' %}同图 {{ g['items']|length }} 个商品 · 图指纹 <span class="fp">{{ g.img_group[:4] }}…{{ g.img_group[-4:] }}</span>{% elif g.by == 'series' %}无主图 · 同系列 {{ g['items']|length }} 个商品{% elif g.by == 'title' %}无主图 · 同品牌同标题 {{ g['items']|length }} 个商品{% else %}无主图 · 单个商品{% endif %}</span></div>
           <h3 class="qgroup__title" id="g{{ gi }}-title">这组的"{{ g.tag }}"是什么？</h3>
           {% if tab == 'pending' %}
           <div class="choice-group" role="radiogroup" aria-label="候选值">

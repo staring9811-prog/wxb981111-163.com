@@ -263,6 +263,16 @@ def recheck(batch_id: int) -> dict:
     return checks
 
 
+def recheck_stuck() -> list[int]:
+    """启动时补做核对：建批次后进程中断（核对没跑完）的批次会一直停在“核对中”，与其他页面显示不一致。
+    启动时没有在跑的任务，凡仍是 checking 的批次都重新核对一次，状态落到疑似 / 异常 / 通过。"""
+    with session() as s:
+        ids = list(s.scalars(select(Batch.id).where(Batch.status == 'checking')))
+    for bid in ids:
+        recheck(bid)
+    return ids
+
+
 def merge(batch_id: int, user_id: int | None, note: str = '', confirm_anomaly: bool = False) -> tuple[bool, str]:
     """并入。疑似月份错误不能并入；异常需确认，并入后带 * 与原因（AC-F17-05）。"""
     with session() as s:
@@ -387,11 +397,16 @@ def _pull_run(ctx):
     except costgate.Paused:
         seg['end'], seg['reason'] = now().strftime('%H:%M'), '已暂停'
         ctx.progress(segments=segs + [seg])
+        if _job_progress(ctx.id).get('abandoned'):
+            _set_aside(month, r, ctx.id)
         raise
     except Exception as e:
         seg['end'], seg['reason'] = now().strftime('%H:%M'), f'中断（{type(e).__name__}: {e}）'
         ctx.progress(segments=segs + [seg])
         raise
+    if _job_progress(ctx.id).get('abandoned'):  # 拉完最后一页前刚点了“放弃本批”：不建批次、不并入
+        _set_aside(month, r, ctx.id)
+        raise costgate.Paused()
     df = normalize(pd.DataFrame(rows_all), f'卖家精灵接口 {month}')
     full = raw_dir(month) / f'pull_r{r}_全部.json'
     full.write_text(json.dumps(rows_all, ensure_ascii=False), encoding='utf-8')
@@ -403,11 +418,58 @@ def _pull_run(ctx):
 costgate.register('amazon_pull', '拉取 Amazon 月度数据', _pull_est, _pull_run)
 
 
+def _job_progress(job_id: int) -> dict:
+    with session() as s:
+        j = s.get(Job, job_id)
+        return dict(j.progress or {}) if j else {}
+
+
+def _set_aside(month: str, r: int, job_id: int) -> str:
+    """放弃本批后，把本轮已拉分片挪到原始文件目录下的“放弃_任务号”子目录（文件保留、不并入），
+    并让分片记录失效，下次拉取同月从头开始，不会误用放弃的分片。返回子目录名。"""
+    from ..models import Shard
+    sub = raw_dir(month) / f'放弃_任务{job_id}_{now():%Y%m%d%H%M}'
+    sub.mkdir(parents=True, exist_ok=True)
+    for f in raw_dir(month).glob(f'pull_r{r}_p*.json'):
+        f.rename(sub / f.name)
+    with session() as s:
+        for sh in s.scalars(select(Shard).where(Shard.kind == 'amazon_pull', Shard.month == month, Shard.key.like(f'r{r}-%'))):
+            sh.key = f'放弃{job_id}-{sh.key}'
+            if sh.payload_path:
+                sh.payload_path = str(sub / Path(sh.payload_path).name)
+    return sub.name
+
+
+def abandon_pull(job_id: int, user_id: int | None) -> tuple[bool, str]:
+    """“放弃本批”（拉取中 / 已暂停 / 已达上限 / 中断，PAGE-F17-01）：任务记为已取消，已拉分片保留在原始文件目录但不并入。
+    运行中的任务先请求暂停，停下后由费用闸门记为已取消；同月之前暂停未续完的拉取任务一并取消。"""
+    with session() as s:
+        j = s.get(Job, job_id)
+        if j is None or j.kind != 'amazon_pull':
+            return False, '任务不存在'
+        if j.status not in ('running', 'queued', 'paused', 'stopped_cap', 'failed') or (j.progress or {}).get('batch_id'):
+            return False, '该任务已结束，不能放弃'
+        month, fetched = j.month, (j.progress or {}).get('fetched') or 0
+        note = f'已放弃本批：已拉 {fetched:,} 个 ASIN 的分片保留在原始文件目录，不并入分析'
+        running = j.status in ('running', 'queued')
+        for o in s.scalars(select(Job).where(Job.kind == 'amazon_pull', Job.month == month, Job.status.in_(['paused', 'stopped_cap', 'failed']))):
+            if not (o.progress or {}).get('batch_id'):
+                o.status, o.error, o.finished_at = 'cancelled', note, now()
+                o.progress = dict(o.progress or {}, abandoned=True, abandon_note=note, abandoned_by=user_id)
+        if running:
+            j.progress = dict(j.progress or {}, abandoned=True, abandon_note=note, abandoned_by=user_id, pause_requested=True)
+            return True, f'已请求放弃 {month} 本批：当前页拉完即停止，已拉分片保留在原始文件目录，不并入分析'
+    sub = _set_aside(month, _round(month), job_id)
+    return True, f'{note}（{raw_dir(month).relative_to(data_dir())}/{sub}）'
+
+
 def pull_segments(month: str) -> list[dict]:
-    """同月本轮各次拉取记录（第 1 次 / 续拉），供页面显示。"""
+    """同月本轮各次拉取记录（第 1 次 / 续拉），供页面显示。已放弃的拉取不算本轮。"""
     out = []
     with session() as s:
         for j in s.scalars(select(Job).where(Job.kind == 'amazon_pull', Job.month == month).order_by(Job.id)):
+            if (j.progress or {}).get('abandoned'):
+                continue
             for sg in (j.progress or {}).get('segments') or []:
                 out.append(dict(sg, job_id=j.id, status=j.status))
     return out

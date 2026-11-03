@@ -41,6 +41,27 @@
     });
     return { product: p.name, sea: P.sea[si].name, rows: rows };
   }
+  /* ── 回写前必填：与服务端 routes_tools.writeback_missing 同一口径 ── */
+  function pos(v) { var n = parseFloat(v); return isFinite(n) && n > 0; }
+  function missingFields(p) {
+    var out = [];
+    if (!p) return out;
+    if (!pos(p.cost) && !pos(p.costRmb)) out.push('出厂价 / 采购成本');
+    if (!(p.pkgs || []).some(function (g) { return g && pos(g.l) && pos(g.w) && pos(g.h); })) out.push('尺寸（包裹长宽高）');
+    if (!pos(p.price)) out.push('售价');
+    return out;
+  }
+  /* 不能回写的原因：缺必填，或算出的保本价无效（≤ 0）；返回空串表示可以回写 */
+  function blockReason(pi, R) {
+    var miss = missingFields(products[pi]);
+    if (miss.length) return '请补全：' + miss.join('、');
+    if (!R) return '没有产品可以回写';
+    var bad = R.rows.filter(function (x) { return x.breakeven != null && !(x.breakeven > 0); }).map(function (x) { return x.channel; });
+    if (bad.length) return bad.join('、') + ' 的保本价无效（≤ $0），请检查成本与尺寸';
+    if (!R.rows.some(function (x) { return x.price > 0 && x.profit != null; })) return '没有任何渠道算出利润';
+    return '';
+  }
+  PDT.missingFields = missingFields;
   function linkIndex() {
     var n = PDT.linkProduct, i = products.findIndex(function (p) { return p.name === n; });
     return i >= 0 ? i : 0;
@@ -50,7 +71,9 @@
   PDT.extra = function (it) {
     var cid = (it && it.card_id) || (PDT.card && PDT.card.id);
     if (!cid || PDT.readonly) return {};
-    return { card_id: cid, result: result(linkIndex()) };
+    var i = linkIndex(), R = result(i);
+    if (blockReason(i, R)) return {};  // 缺必填时只保存方案，不改卡片上的数字
+    return { card_id: cid, result: R };
   };
   PDT.onSaved = function (it) { PDT.planId = it.id; PDT.savedAt = it.savedAt; showSaved(); var n = document.querySelector('[data-plan-name]'); if (n) n.textContent = it.name; };
   PDT.onOpened = function (it) { if (it.result && it.result.product) PDT.linkProduct = it.result.product; };
@@ -80,9 +103,14 @@
     var btn = document.getElementById('btnWriteback');
     if (!btn) return;
     var sel = document.getElementById('wbProduct');
+    var ok = document.getElementById('wbOk'), warn = document.getElementById('wbMissing');
     function fill() {
-      var R = result(+sel.value);
-      document.getElementById('wbRows').innerHTML = R ? R.rows.map(function (x) {
+      var R = result(+sel.value), why = blockReason(+sel.value, R);
+      ok.disabled = !!why;
+      warn.hidden = !why;
+      warn.querySelector('[data-why]').textContent = why;
+      document.getElementById('wbTable').hidden = !!why;  // 缺必填时不给利润预览，避免把错误数字当结果
+      document.getElementById('wbRows').innerHTML = R && !why ? R.rows.map(function (x) {
         return '<tr><td>' + x.channel + '</td><td class="t-num">' + money(x.price) + '</td><td class="t-num">' + money(x.profit) + '</td><td class="t-num">' +
           (x.margin == null ? '—' : (x.margin * 100).toFixed(1) + '%') + '</td><td class="t-num">' + money(x.breakeven) + '</td></tr>';
       }).join('') : '';
@@ -96,8 +124,9 @@
       window.oppoOpen('#dlgWriteback');
     });
     sel.addEventListener('change', fill);
-    document.getElementById('wbOk').addEventListener('click', function () {
-      var ok = this; ok.disabled = true;
+    ok.addEventListener('click', function () {
+      if (blockReason(+sel.value, result(+sel.value))) return;
+      ok.disabled = true;
       PDT.linkProduct = products[+sel.value].name;
       var body = { name: document.getElementById('wbName').value.trim() || defaultName(), products: JSON.parse(JSON.stringify(products)),
         params: JSON.parse(JSON.stringify(P)), card_id: PDT.card.id, result: result(+sel.value) };

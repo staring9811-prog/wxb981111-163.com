@@ -75,7 +75,7 @@ def test_home_by_role(app_env, wen):
     assert "疑似月份错误" in html and "99.9%" in html and "已并入" in html and "未拉取" in html
     total = re.search(r"data-tag-total>(\d+)<", html).group(1)
     nav_count = re.search(r'href="/tagging".*?nav__count">(\d+)<', _nav(html)).group(1)
-    assert total == nav_count == "3" and "元素 2、低置信度 1" in html and "同主图分为 1 组" in html
+    assert total == nav_count == "3" and "元素 2、低置信度 1" in html and "共 2 组（同主图的合为一组" in html
     assert "等待审批" in html and "30″ · 整装 · 落地式｜台面材质 = 岩板" in html
     assert "TZ-2026-004" in html and "Home Depot 已自动对账：做到（估算月销 268 件 ≥ 250）" in html and "Amazon 等待数据" in html
     assert "满 6 个月：2026-10" in html and "待关联：预计上架 2026-07" in html
@@ -133,21 +133,73 @@ def test_queued_count_same_everywhere(wen):
     home = wen.get("/").text
     assert re.search(r"data-tag-total>(\d+)<", home).group(1) == "2"
     assert re.search(r'href="/tagging".*?nav__count">(\d+)<', _nav(home)).group(1) == "2"
-    assert "同主图分为 1 组" in home
+    assert "共 1 组（同主图的合为一组" in home
     tag_page = wen.get("/tagging").text
     assert re.search(r'href="/tagging".*?nav__count">(\d+)<', _nav(tag_page)).group(1) == "2"
     assert '待确认 <span class="count">2</span>' in tag_page
 
 
 def test_home_validity_pass_and_stale(wen):
-    """AC-F19-04：通过时显示“市场评分本月通过有效性检验”；最新重算早于本月数据月份时显示“本月尚未重算”。"""
+    """AC-F19-04 / DESIGN-02：本月重算且通过时显示“市场评分本月通过有效性检验”；最新重算发生在之前的月份时显示“本月尚未重算”，
+    两种都按最新 ModelRun 的数据截至月与重算时间写同一句依据。"""
+    from datetime import datetime
     dm = _data_month(date.today())
     with session() as s:
         s.add(ModelRun(month=dm, valid=True, valid_msg="D 档之后变大 24%，阈值 ≤ 30%；把握分档逐档上升。"))
-    assert "市场评分本月通过有效性检验" in wen.get("/").text
+    html = wen.get("/").text
+    assert "市场评分本月通过有效性检验" in html and f"第九版，数据截至 {dm}，{date.today():%Y-%m-%d} 重算" in html and "尚未纳入重算" not in html
     with session() as s:
-        s.add(ModelRun(month="2026-01", valid=True))
-    assert "本月尚未重算，以下沿用 2026-01 结论" in wen.get("/").text
+        s.add(ModelRun(month="2026-01", valid=True, created_at=datetime(2026, 2, 6, 10, 30)))
+    html = wen.get("/").text
+    assert "本月尚未重算，以下沿用数据截至 2026-01 的结论" in html and "第九版，数据截至 2026-01，2026-02-06 重算" in html
+
+
+def test_home_validity_no_contradiction_when_recomputed_on_older_data(wen):
+    """DESIGN-02：本月已重算但用的是上上月数据（数据月尚未并入）时，不说“本月尚未重算”，说明数据截至月与待纳入的数据月。"""
+    from pdt.core.card import validity_statement
+    dm = _data_month(date.today())
+    y, m = map(int, dm.split("-"))
+    older = f"{y - (m == 1):04d}-{(m - 2) % 12 + 1:02d}"
+    with session() as s:
+        s.add(ModelRun(month=older, valid=True))
+    html = wen.get("/").text
+    assert "本月尚未重算" not in html and "市场评分本月通过有效性检验" in html
+    assert f"第九版，数据截至 {older}，{date.today():%Y-%m-%d} 重算。{dm} 数据尚未纳入重算。" in html
+    with session() as s:
+        run = s.scalar(select(ModelRun))
+        v = validity_statement(run, dm)
+    assert (v["kind"], v["pending"]) == ("pass", f"{dm} 数据尚未纳入重算")
+
+
+def test_home_spend_shows_used_and_cap(wen):
+    """DESIGN-02：工作台“本月花费 / 上限”按预算页口径显示“已用 / 上限”；没设上限写“未设上限”；未连接另行标注。"""
+    from pdt.security import encrypt
+    html = wen.get("/").text
+    block = html.split('data-block="spend"')[1].split("</section>")[0]
+    assert "0 次 / 未设上限" in block and block.count("$0.00 / 未设上限") == 3 and block.count("未连接") == 4
+    with session() as s:
+        s.add(Budget(service="sellersprite", cap=5000, unit="calls"))
+        s.add(Budget(service="brightdata", cap=80, unit="usd"))
+        s.add(Secret(slot="brightdata", enc_value=encrypt("b7e94c2a1f0d8e6b3c5a7f9d2e4b6c8a"), last4="6c8a"))
+        s.add(CostRecord(month=costgate.month_key(), service="sellersprite", task="拉取 Amazon 2026-10 第 1 页", qty=3120, amount=31.2))
+        s.add(CostRecord(month=costgate.month_key(), service="brightdata", task="评论 VP 追踪 · Wayfair 页面", qty=250, amount=65.6))
+    block = wen.get("/").text.split('data-block="spend"')[1].split("</section>")[0]
+    assert "3,120 / 5,000 次" in block and "$65.60 / $80.00" in block and "82%" in block
+    ss = block.split('data-svc="sellersprite"')[1].split('data-svc="brightdata"')[0]
+    assert "未连接" in ss  # 有上限但未填密钥：上限照常显示，未连接另行标注
+    bd = block.split('data-svc="brightdata"')[1].split('data-svc="apify"')[0]
+    assert "未连接" not in bd and "接近上限" in bd
+
+
+def test_home_data_note_column_collapses_long_text(wen):
+    """DESIGN-02：本月数据状态表“核对说明”长文本截断为一行摘要并可展开，不再把行撑成十几行。"""
+    dm = _data_month(date.today())
+    reason = "上月购买标日期为 2026-09-01 至 2026-09-30，不在所标月份；与 2026-09 小类排名完全相同的 ASIN 占 96.9%（n=3,222）；品类总月销较上月 +43.7%"
+    with session() as s:
+        s.add(Batch(channel="amazon", month=dm, source="upload", status="suspect_month", anomaly_reason=reason))
+    block = wen.get("/").text.split('data-block="data"')[1].split("</section>")[0]
+    assert '<th class="col-note">核对说明</th>' in block
+    assert f'<details class="note-more" data-no-row><summary>{reason[:32]}…<span class="tlink">展开</span></summary><div>{reason}</div></details>' in block
 
 
 # ---------------------------------------------------------------- RULE-01

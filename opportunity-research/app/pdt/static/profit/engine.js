@@ -813,6 +813,9 @@ function qCompareData(){ const Q=qSelected(), m=P.qMetric||"cost", rows=new Map(
     rows.get(k)[qi]={it,val:qMetricVal(r,m),cbm,kg,n:(it.pkgs||[]).length}; }); });
   return {Q,m,rows:[...rows.entries()].sort((a,b)=>a[0].localeCompare(b[0],"zh-Hans-CN",{numeric:true}))}; }
 function renderS6(){
+  /* 对比指标的选项（采购成本 / 落地成本 / 各渠道利润，即 qMetricVal 支持的全部取值）先填上：报价库还在读取或没有版本时也不留空下拉框 */
+  const ms=METRICS(); if(!ms.some(x=>x[0]===P.qMetric)) P.qMetric="cost";
+  document.getElementById("qMetric").innerHTML=ms.map(([v,l])=>`<option value="${v}" ${v===P.qMetric?"selected":""}>${esc(l)}</option>`).join("");
   document.getElementById("qMode").textContent=qlib.mode==="server"?"保存在系统上（wen 电脑），局域网内有权限的人看到同一份":"正在连接报价库…";
   document.getElementById("qMsg").innerHTML=qlib.err?`<p class="msg">报价库暂时连不上，刷新页面后再试。</p>`:"";
   const G=qGroups(), fs=Object.keys(G).sort((a,b)=>a.localeCompare(b,"zh-Hans-CN"));
@@ -827,8 +830,6 @@ function renderS6(){
       <td><input class="wide" style="width:200px" data-qname="${esc(q.id)}" value="${esc(q.version||"")}"></td><td><input type="date" data-qdate="${esc(q.id)}" value="${esc(q.date||"")}"></td>
       <td class="c">${esc(q.count||(q.items||[]).length)}</td><td class="n">${f2(avg)}</td><td class="note">${esc(q.source||"")}</td>
       <td style="white-space:nowrap"><button class="btn sm" data-qact="open" data-id="${esc(q.id)}">导入为当前产品</button> <button class="btn sm danger" data-qact="del" data-id="${esc(q.id)}">删除</button></td></tr>`; }).join("")}</tbody></table></div></div>`).join("");
-  const ms=METRICS(); if(!ms.some(x=>x[0]===P.qMetric)) P.qMetric="cost";
-  document.getElementById("qMetric").innerHTML=ms.map(([v,l])=>`<option value="${v}" ${v===P.qMetric?"selected":""}>${esc(l)}</option>`).join("");
   const D=qCompareData(), hi=D.m!=="cost"&&D.m!=="landed";
   document.getElementById("qSelNote").textContent=(auto?"未勾选时默认对比每个工厂的最新版本。":`已选 ${D.Q.length} 个版本。`)+` 出货方式：${P.shipMode==="dom"?"国内出货":"FOB"}（在“利润测算表”顶部切换）· 海运方案：${P.sea[seaIdx()].name}`;
   const head=`<tr><th>对比键</th>${D.Q.map(q=>`<th>${esc(q.factory||"未填工厂")}<br><span class="note">${esc(q.version||"")} · ${esc(q.date||"")}</span></th>`).join("")}</tr>`;

@@ -116,11 +116,44 @@ def _item(s, p: ProfitPlan) -> dict:
                 result=p.result or {})
 
 
-def _check_result(res):
+def _pos(v) -> bool:
+    try:
+        return float(v) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def writeback_missing(prod: dict | None) -> list[str]:
+    """回写前必填（DESIGN-14 / FLOW-18）：出厂价或采购成本（FOB 或国内出货价至少一个）、尺寸（至少一个包裹长宽高齐全）、售价。
+    与页面弹窗 pdt-profit.js 的 missingFields 同一口径。"""
+    p = prod or {}
+    out = []
+    if not (_pos(p.get("cost")) or _pos(p.get("costRmb"))):
+        out.append("出厂价 / 采购成本")
+    if not any(_pos(g.get("l")) and _pos(g.get("w")) and _pos(g.get("h")) for g in (p.get("pkgs") or []) if isinstance(g, dict)):
+        out.append("尺寸（包裹长宽高）")
+    if not _pos(p.get("price")):
+        out.append("售价")
+    return out
+
+
+def _check_result(res, products=None):
+    """回写结果校验：缺必填或保本价无效（≤ 0）时拒绝，不把错误数字写回决策卡。"""
     if res in (None, {}):
         return None
     if not isinstance(res, dict) or not isinstance(res.get("rows"), list):
         raise HTTPException(400, "回写结果格式不对")
+    prod = next((x for x in products or [] if isinstance(x, dict) and x.get("name") == res.get("product")), None)
+    if prod is None:
+        raise HTTPException(400, f"回写的产品“{res.get('product') or ''}”不在方案里")
+    miss = writeback_missing(prod)
+    if miss:
+        raise HTTPException(400, f"不能回写：请补全：{'、'.join(miss)}")
+    bad = [r.get("channel", "") for r in res["rows"] if isinstance(r, dict) and r.get("breakeven") is not None and not _pos(r.get("breakeven"))]
+    if bad:
+        raise HTTPException(400, f"不能回写：{'、'.join(bad)} 的保本价无效（≤ $0），请检查成本与尺寸")
+    if not any(isinstance(r, dict) and _pos(r.get("price")) and r.get("profit") is not None for r in res["rows"]):
+        raise HTTPException(400, "不能回写：没有任何渠道算出利润")
     return res
 
 
@@ -192,7 +225,7 @@ async def profit_create(request: Request, user=operator_only):
         s.add(p)
         s.flush()
         if b.get("card_id"):
-            _link(s, p, int(b["card_id"]), _check_result(b.get("result")), user.id)
+            _link(s, p, int(b["card_id"]), _check_result(b.get("result"), b["products"]), user.id)
         return _item(s, p)
 
 
@@ -217,7 +250,7 @@ async def profit_update(request: Request, pid: int, user=operator_only):
         p.updated_by = user.id
         cid = b.get("card_id") or p.card_id
         if cid and (b.get("result") or b.get("card_id")):
-            _link(s, p, int(cid), _check_result(b.get("result")), user.id)
+            _link(s, p, int(cid), _check_result(b.get("result"), d.get("products")), user.id)
         return _item(s, p)
 
 
@@ -258,7 +291,7 @@ async def profit_link(request: Request, pid: int, card_id: int, user=operator_on
         p = s.get(ProfitPlan, pid)
         if not p:
             raise HTTPException(404, "方案不存在")
-        _link(s, p, card_id, _check_result(b.get("result")), user.id)
+        _link(s, p, card_id, _check_result(b.get("result"), (p.data or {}).get("products")), user.id)
         p.updated_at = now()
         return _item(s, p)
 

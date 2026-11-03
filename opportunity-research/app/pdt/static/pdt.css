@@ -20,3 +20,6 @@
   .sidebar, .app.is-collapsed .sidebar { position: static; width: auto; height: auto; overflow-x: auto; }
   .sidebar .nav { overflow-y: visible; }
 }
+
+/* ── 锚点跳到区块标题时不被吸顶的顶栏遮住（如其他渠道数据 #t-est 切换估算对照页签） ── */
+.section__title[id], .panel__title[id] { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }

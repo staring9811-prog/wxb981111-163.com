@@ -27,6 +27,25 @@ CH_ALIASES = {'home depot': 'homedepot', 'homedepot': 'homedepot', 'hdp': 'homed
 MIN_RANK_POINTS = 10
 
 
+def item_link(channel: str, item_id: str) -> str:
+    """没有商品链接时按渠道商品 ID 给一个可打开的链接（评论 VP 追踪器 reviewkit 里用的同一套网址）：
+    Home Depot 用 /p/<商品ID>（hdp.py 的缺省写法）；Lowe's、Wayfair 用站内搜索（lowes.py / wayfair.py 的关键词入口）。
+    Wayfair 导出的商品 ID 形如“W111999433 (piid 1959543287)”，只取前面的 SKU。"""
+    from urllib.parse import quote_plus
+    iid = str(item_id or '').strip()
+    if not iid:
+        return ''
+    if channel == 'homedepot':
+        return f'https://www.homedepot.com/p/{quote_plus(iid)}'
+    if channel == 'lowes':
+        return f'https://www.lowes.com/search?searchTerm={quote_plus(iid)}'
+    if channel == 'wayfair':
+        return f'https://www.wayfair.com/keyword.php?keyword={quote_plus(iid.split(" ")[0])}'
+    if channel == 'amazon':
+        return f'https://www.amazon.com/dp/{quote_plus(iid)}'
+    return ''
+
+
 def ch_key(name: str) -> str | None:
     return CH_ALIASES.get(str(name or '').strip().lower())
 
@@ -172,7 +191,10 @@ def import_excel(path: Path, source: str = 'upload') -> dict:
     d = read_tracker_excel(path)
     det = d['detail']
     items = pd.DataFrame(dict(channel=det['渠道'].map(ch_key), item_id=det['商品ID'].astype(str), brand=det.get('品牌', ''), title=det.get('标题', ''),
-                              rank=pd.to_numeric(det['排名'], errors='coerce'), entry=det.get('入口', '')))
+                              rank=pd.to_numeric(det['排名'], errors='coerce'), entry=det.get('入口', ''),
+                              # 追踪器“商品”表才有主图与链接；渠道 VP 汇总导出没有这两列时留空（页面显示“该渠道数据未提供主图”）
+                              image_url=det['主图URL'].fillna('').astype(str) if '主图URL' in det.columns else '',
+                              link=det['商品链接'].fillna('').astype(str) if '商品链接' in det.columns else ''))
     items = items[items['channel'].notna()]
     L = _alloc_excel(det[det['渠道'].map(ch_key).notna()], d['months'], d['totals'])
     complete = {m for m, (_, _, ok) in d['months'].items() if ok}
@@ -214,7 +236,7 @@ def ingest_tracker_month(project_dir_or_rows, months: list[str] | None = None, c
         det = r.get('details') or {}
         items.append(dict(channel=ch, item_id=iid, brand=r.get('品牌') or r.get('brand') or det.get('品牌', ''), title=r.get('标题') or r.get('title') or det.get('标题', ''),
                           rank=pd.to_numeric(r.get('排名') or r.get('rank'), errors='coerce'), price=pd.to_numeric(r.get('价格') or r.get('price'), errors='coerce'),
-                          rating=pd.to_numeric(r.get('页面评分') or r.get('rating'), errors='coerce'), image_url=r.get('主图URL') or r.get('image_url') or '',
+                          rating=pd.to_numeric(r.get('页面评分') or r.get('rating'), errors='coerce'), image_url=r.get('主图URL') or r.get('image_url') or det.get('主图URL') or '',
                           link=r.get('商品链接') or r.get('url') or '', entry=r.get('入口', ''), series=r.get('系列') or ''))
         for x in r.get('reviews') or []:
             dt = str(x.get('评论日期') or x.get('date') or '')[:10]

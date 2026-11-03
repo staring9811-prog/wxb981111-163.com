@@ -254,3 +254,67 @@ def test_tagging_export_current_filter(wen):
     assert len(rows) == 6 and {x[4] for x in rows[1:]} == {"Lowe's"} and {x[8] for x in rows[1:]} == {'岗石'}
     ws = load_workbook(io.BytesIO(wen.get('/tagging/export', params={'channel': 'amazon', 'reason': 'element'}).content)).active
     assert ws.max_row == 71  # 全部 70 条，不受分页限制
+
+
+def test_other_channel_image_sources_and_noimage_placeholder(wen):
+    """DESIGN-08 / FLOW-08：其他渠道主图来源——评论追踪采集的商品详情里有“主图URL”（Home Depot / Wayfair 只在详情里，Lowe's 在列表行里）时并入写 Product.image_url；
+    渠道 VP 汇总导出没有图片列时，分组卡片显示“该渠道数据未提供主图”并给商品链接，不显示截断的商品 ID 当图指纹（不再出现“wayf…765)”）；
+    无图商品按同系列或同品牌同标题分组，而不是一商品一组。"""
+    from pdt.core import channels, tagging
+    revs = lambda iid: [{'评论ID': f'{iid}-r{k}', '评论日期': f'2026-10-1{k}', 'VP状态': 'VP', '评分': 5} for k in range(3)]
+    rows = [
+        {'平台': 'HomeDepot', '商品ID': '315064871', '品牌': 'Glacier Bay', '标题': 'Glacier Bay Brindley 36 in. Single Sink Freestanding Bath Vanity in Natural Oak', '排名': 1,
+         'url': 'https://www.homedepot.com/p/Glacier-Bay-Brindley-36-in/315064871', 'reviews': revs('315064871'),
+         'details': {'主图URL': 'https://images.thdstatic.com/productImages/2f6c1a8e/svn/glacier-bay-bathroom-vanities-with-tops-1000.jpg'}},
+        {'平台': 'Lowes', '商品ID': '5014452871', '品牌': 'allen + roth', '标题': 'allen + roth Presley 36-in Gray Undermount Single Sink Bathroom Vanity', '排名': 1,
+         '主图URL': 'https://mobileimages.lowes.com/productimages/5f2b1c9e-presley.jpg', 'url': 'https://www.lowes.com/pd/allen-roth-Presley/5014452871', 'reviews': revs('5014452871')},
+    ]
+    channels.ingest_tracker_month(rows, collected_on='2026-11-03')
+    with session() as s:
+        img = {p.item_id: p.image_url for p in s.scalars(select(Product).where(Product.channel.in_(['homedepot', 'lowes'])))}
+    assert img['315064871'].startswith('https://images.thdstatic.com/') and img['5014452871'].startswith('https://mobileimages.lowes.com/')
+
+    # 渠道 VP 汇总导出（无图片、无链接列）：Wayfair 两个同品牌同标题的商品 + 一个单独商品
+    t1 = 'Ebern Designs 36" Free-Standing Modern Single Bathroom Vanity With Sink'
+    with session() as s:
+        for iid, title in (('W115187693 (piid 120906584)', t1), ('W115187692 (piid 1405707648)', t1),
+                           ('W111999433 (piid 1959543287)', 'Birch Lane™ Lala 84" Double Bathroom Vanity with Grain White Engineered Stone Countertop')):
+            s.add(Product(channel='wayfair', item_id=iid, brand='Ebern Designs' if title == t1 else 'Birch Lane™', title=title))
+    tagging.tag_products('wayfair', ['W115187693 (piid 120906584)', 'W115187692 (piid 1405707648)', 'W111999433 (piid 1959543287)'], '2026-10')
+    g = [x for x in tagging.queue('wayfair') if x['tag'] == '元素']
+    assert sorted(len(x['items']) for x in g) == [1, 2]  # 同品牌同标题两个商品一组
+    assert tagging.queued_groups() == len(tagging.queue())
+    html = wen.get('/tagging', params={'channel': 'wayfair'}).text
+    assert '该渠道数据未提供主图' in html and 'href="https://www.wayfair.com/keyword.php?keyword=W115187693"' in html
+    assert '无主图 · 同品牌同标题 2 个商品' in html
+    queue_html = html.split('id="queue"')[1]
+    assert '图指纹' not in queue_html and 'wayf…' not in queue_html and '765)' not in queue_html
+    hd = wen.get('/tagging', params={'channel': 'homedepot'}).text.split('id="queue"')[1]
+    assert 'src="https://images.thdstatic.com/' in hd and '图指纹' in hd
+
+
+def test_group_key_series_title_and_fill_existing():
+    """DESIGN-08：分组键——有主图按图指纹；无图有系列按系列；都没有按同品牌同标题；已入库无分组键的标签启动时补上。"""
+    from pdt.core import tagging
+    a = tagging.group_key('lowes', '', 'Presley', 'allen + roth', 'Presley 30-in White Bathroom Vanity')
+    b = tagging.group_key('lowes', '', 'Presley', 'allen + roth', 'Presley 48-in Gray Bathroom Vanity')
+    c = tagging.group_key('lowes', '', '', 'Style Selections', 'Bathroom Vanity Base Cabinet without Top')
+    d = tagging.group_key('lowes', '', '', 'Project Source', 'Bathroom Vanity Base Cabinet without Top')
+    e = tagging.group_key('amazon', 'https://m.media-amazon.com/images/I/71vanity0001._AC_SL1500_.jpg')
+    assert a == b and a.startswith('s') and c != d and c.startswith('t') and len(e) == 12 and e == tagging.img_key('https://m.media-amazon.com/images/I/71vanity0001.jpg')
+    from pdt.core.channels import item_link
+    assert item_link('wayfair', 'W111999433 (piid 1959543287)') == 'https://www.wayfair.com/keyword.php?keyword=W111999433'
+    assert item_link('homedepot', '203486567') == 'https://www.homedepot.com/p/203486567'
+
+
+def test_fill_groups_for_existing_noimage_tags(wen):
+    """DESIGN-08：已入库、分组键为空的无图标签（升级前一商品一组）补上同品牌同标题分组键，工作台“共 N 组”与打标页一致。"""
+    from pdt.core import tagging
+    with session() as s:
+        for iid in ('5001952377', '5001952378'):
+            s.add(Product(channel='lowes', item_id=iid, brand='Project Source', title='Dover Single Sink Bathroom Vanity with White Cultured Marble Top'))
+            s.add(Tag(channel='lowes', item_id=iid, tag='元素', value='', source='rule', status='queued', img_group=''))
+    assert tagging.queued_groups() == 2
+    assert tagging.fill_groups() == 2
+    assert tagging.queued_groups() == len(tagging.queue()) == 1
+    assert '共 1 组（同主图的合为一组' in wen.get('/').text and '共 <b class="num">1</b> 组' in wen.get('/tagging').text

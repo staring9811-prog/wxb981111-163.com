@@ -314,9 +314,12 @@ def test_flow18_card_prefill_and_writeback(tmp_path, wen):
     assert "保存并回写决策卡" in page
     head = _head(_script(ENGINE))
 
-    def result(p):
-        prod = {"id": "c1", "name": "30″ 树脂（决策卡）", "desc": "", "supplier": "", "category": "家具", "peak": "非旺季", "price": p, "cost": 130,
+    def prod_of(p):
+        return {"id": "c1", "name": "30″ 树脂（决策卡）", "desc": "", "supplier": "", "category": "家具", "peak": "非旺季", "price": p, "cost": 130,
                 "costCur": "USD", "adj": 0, "prices": {}, "pkgs": [{"l": 93, "w": 57, "h": 40, "kg": 47}]}  # 原工具示例“30寸 单包”的包装
+
+    def result(p):
+        prod = prod_of(p)
         code = "var document = {getElementById: function(){ return {addEventListener: function(){}}; }, querySelectorAll: function(){ return []; }, addEventListener: function(){}}; var window = {PDT: {init: {products: [%s]}}}; var PDT = window.PDT; var localStorage = {getItem: function(){ return null; }, setItem: function(){}};\n%s\n" % (json.dumps(prod), head)
         code += """var r = calcProduct(products[0]);
 console.log(JSON.stringify({product: products[0].name, rows: chanList().map(function(ch){ var v = chanVal(r, ch, 0);
@@ -325,7 +328,7 @@ console.log(JSON.stringify({product: products[0].name, rows: chanList().map(func
         return _node(code, tmp_path, f"r{p}.js")
 
     r1 = result(price)
-    plan = wen.post("/tools/profit/plans", json={"name": "树脂一体30寸_v1", "params": {}, "products": [{"name": "30″ 树脂（决策卡）"}], "card_id": cid, "result": r1}).json()
+    plan = wen.post("/tools/profit/plans", json={"name": "树脂一体30寸_v1", "params": {}, "products": [prod_of(price)], "card_id": cid, "result": r1}).json()
     sec8 = html.unescape(wen.get(f"/cards/{cid}").text.split('id="s8"')[1].split('id="s9"')[0])
     for row in r1["rows"]:
         assert row["channel"] in sec8
@@ -334,13 +337,63 @@ console.log(JSON.stringify({product: products[0].name, rows: chanList().map(func
     assert "方案“树脂一体30寸_v1”" in sec8 and "随方案更新" in sec8
     fbm1 = next(r for r in r1["rows"] if r["channel"] == "Amazon FBM")["profit"]
     r2 = result(price + 30)
-    wen.post(f"/tools/profit/plans/{plan['id']}", json={"products": [{"name": "30″ 树脂（决策卡）"}], "result": r2})
+    wen.post(f"/tools/profit/plans/{plan['id']}", json={"products": [prod_of(price + 30)], "result": r2})
     sec8 = html.unescape(wen.get(f"/cards/{cid}").text.split('id="s8"')[1].split('id="s9"')[0])
     fbm2 = next(r for r in r2["rows"] if r["channel"] == "Amazon FBM")["profit"]
     money = lambda v: f"{'−' if v < 0 else ''}${abs(v):.2f}"
     assert fbm2 > fbm1 and money(fbm2) in sec8 and money(fbm1) not in sec8
     with session() as s:
         assert s.get(Card, cid).profit_plan_id == plan["id"] and s.get(ProfitPlan, plan["id"]).card_id == cid
+
+
+def test_flow18_writeback_rejects_missing_inputs(wen):
+    """DESIGN-14 / FLOW-18：产品缺出厂价（或采购成本）、尺寸或售价时，回写接口拒绝并说明“请补全：…”；保本价 ≤ 0 的结果不得写回；
+    被拒后决策卡不关联方案、“钱”一节不出现错误数字。"""
+    ds.seed_all()
+    cid = wen.post("/cards", data={"channel": "amazon", "frame": ds.FRAME, "attr": "台面材质", "value": "树脂"}, headers=J).json()["id"]
+    full = {"id": "c1", "name": "30″ 树脂（决策卡）", "category": "家具", "price": 399, "cost": 130, "costCur": "USD", "adj": 0, "prices": {},
+            "pkgs": [{"l": 93, "w": 57, "h": 40, "kg": 47}]}
+    rows = [{"channel": "Amazon FBM", "price": 399, "profit": 160.4, "margin": 0.402, "breakeven": 0.0},
+            {"channel": "Home Depot", "price": 379, "profit": 120.5, "margin": 0.318, "breakeven": 251.3}]
+    res = {"product": full["name"], "sea": "当前海运", "rows": rows}
+    no_cost = dict(full, cost="")
+    r = wen.post("/tools/profit/plans", json={"name": "树脂一体30寸_缺出厂价", "params": {}, "products": [no_cost], "card_id": cid, "result": res})
+    assert r.status_code == 400 and r.json()["detail"] == "不能回写：请补全：出厂价 / 采购成本"
+    no_all = dict(full, cost="", price="", pkgs=[{"l": "", "w": "", "h": "", "kg": ""}])
+    r = wen.post("/tools/profit/plans", json={"name": "树脂一体30寸_缺三项", "params": {}, "products": [no_all], "card_id": cid, "result": res})
+    assert r.json()["detail"] == "不能回写：请补全：出厂价 / 采购成本、尺寸（包裹长宽高）、售价"
+    r = wen.post("/tools/profit/plans", json={"name": "树脂一体30寸_保本价0", "params": {}, "products": [full], "card_id": cid, "result": res})
+    assert r.status_code == 400 and "Amazon FBM 的保本价无效（≤ $0）" in r.json()["detail"]
+    with session() as s:
+        assert s.get(Card, cid).profit_plan_id is None and s.query(ProfitPlan).count() == 0
+    # 已保存的方案再走回写接口同样拒绝
+    plan = wen.post("/tools/profit/plans", json={"name": "树脂一体30寸_v1", "params": {}, "products": [no_cost]}).json()
+    r = wen.post(f"/tools/profit/{plan['id']}/link/{cid}", json={"result": dict(res, rows=rows[1:])})
+    assert r.status_code == 400 and "请补全：出厂价 / 采购成本" in r.json()["detail"]
+    r = wen.post(f"/tools/profit/plans/{plan['id']}", json={"card_id": cid, "result": dict(res, rows=rows[1:])})
+    assert r.status_code == 400
+    with session() as s:
+        assert s.get(Card, cid).profit_plan_id is None
+    assert "$160.40" not in html.unescape(wen.get(f"/cards/{cid}").text.split('id="s8"')[1].split('id="s9"')[0])
+    # 补全出厂价、去掉无效保本价后可以回写
+    plan2 = wen.post("/tools/profit/plans", json={"name": "树脂一体30寸_v2", "params": {}, "products": [full], "card_id": cid,
+                                                   "result": dict(res, rows=rows[1:])})
+    assert plan2.status_code == 200
+    with session() as s:
+        assert s.get(Card, cid).profit_plan_id == plan2.json()["id"]
+
+
+@needs_node
+def test_writeback_modal_missing_fields_js(tmp_path):
+    """DESIGN-14：弹窗与服务端同一必填口径——pdt-profit.js 的 missingFields 对缺出厂价 / 尺寸 / 售价逐项给出“请补全”内容；国内出货价可代替出厂价。"""
+    src = (ENGINE.parent / "pdt-profit.js").read_text(encoding="utf-8")
+    code = "var window = {PDT: {}}; var localStorage = {getItem: function(){ return null; }};\n" + src + """
+var f = window.PDT.missingFields;
+var full = {name: "30″ 树脂（决策卡）", price: 399, cost: 130, pkgs: [{l: 93, w: 57, h: 40, kg: 47}]};
+console.log(JSON.stringify([f(full), f(Object.assign({}, full, {cost: ""})), f(Object.assign({}, full, {cost: "", costRmb: 905})),
+  f({name: "36″ 岗石", price: "", cost: "", pkgs: [{l: 93, w: "", h: 40, kg: 47}]})]));"""
+    out = _node(code, tmp_path, "missing.js")
+    assert out == [[], ["出厂价 / 采购成本"], [], ["出厂价 / 采购成本", "尺寸（包裹长宽高）", "售价"]]
 
 
 class FakeQuoteLLM:
@@ -414,3 +467,14 @@ def test_quote_library_on_server(wen, client):
     assert 'id="quoteCount"' in page and "报价库" in page and 'id="s6"' in page
     wen.post(f"/tools/profit/quotes/{a['id']}/delete")
     assert len(wen.get("/tools/profit/quotes").json()["items"]) == 1
+
+
+def test_quote_metric_options_filled_before_quotes_load():
+    """DESIGN-14：报价对比“对比指标”下拉框在报价库读取中或没有版本时也有选项（采购成本 / 落地成本 / 各渠道利润，即 qMetricVal 支持的取值），
+    不再因为 renderS6 提前返回而留空。"""
+    src = ENGINE.read_text(encoding="utf-8")
+    body = src[src.index("function renderS6(){"):]
+    fill = body.index('document.getElementById("qMetric").innerHTML=ms.map(')
+    assert fill < body.index('if(qlib.mode==="pending"||qlib.loading)') and fill < body.index("if(!qlib.items.length)")
+    assert src.count('document.getElementById("qMetric").innerHTML=') == 1
+    assert 'const METRICS=()=>[["cost","采购成本 $（换算美元，越低越好）"],["landed",' in src

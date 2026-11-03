@@ -285,3 +285,84 @@ def test_coverage_rule_frame_absolute_attr_drop():
     tags2 = {i: dict(tags[i], 尺寸段='' if n < 10 else '30″') for n, i in enumerate(ids)}
     r = verify.run('2025-12', cur, None, tags2, {}, prev_coverage=None)
     assert [i for i in r['items'] if i['key'] == 'tag_coverage'][0]['low'] == ['尺寸']
+
+
+class _AbandonWhileRunning(FakeSellerSprite):
+    """第 2 页返回后，wen 在拉取中点“放弃本批”（同步执行模式下在调用里模拟页面操作）。"""
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.client = None
+
+    def product_month(self, month, page):
+        out = super().product_month(month, page)
+        if page == 2:
+            with session() as s:
+                jid = s.scalar(select(Job.id).where(Job.kind == 'amazon_pull', Job.status == 'running'))
+            r = self.client.post(f'/data/amazon/pull/{jid}/abandon', follow_redirects=False)
+            assert r.status_code == 303
+        return out
+
+
+def test_abandon_paused_pull_keeps_raw_not_merged(wen):
+    """DESIGN-06 / FLOW-04：已暂停（中断）的拉取有“放弃本批”，需二次确认；放弃后任务为已取消、已拉分片保留在原始文件目录但不并入，
+    再拉同月从第 1 页开始，不误用放弃的分片。"""
+    from pdt.core import ingest
+    from pdt.models import Shard
+    month = '2026-10'
+    set_secret('sellersprite')
+    fake = FakeSellerSprite({month: api_rows(month, 230)}, fail_at=2)
+    services.set_fake('sellersprite', fake)
+    j = _pull(wen, month)
+    assert j['status'] == 'failed'
+    page = wen.get('/data/amazon').text
+    assert 'id="m-abandon"' in page and f'action="/data/amazon/pull/{j["id"]}/abandon"' in page and '确认放弃本批' in page
+    assert f'放弃 {month} 本批拉取？' in page  # 二次确认弹窗
+    r = wen.post(f"/data/amazon/pull/{j['id']}/abandon", follow_redirects=True)
+    assert '已放弃本批：已拉 100 个 ASIN 的分片保留在原始文件目录，不并入分析' in r.text
+    with session() as s:
+        assert s.get(Job, j['id']).status == 'cancelled'
+        assert s.scalar(select(func.count()).select_from(Batch).where(Batch.month == month)) == 0
+        assert s.scalar(select(func.count()).select_from(Shard).where(Shard.key.like('r1-%'))) == 0
+    kept = list(ingest.raw_dir(month).glob('放弃_任务*/pull_r1_p1.json'))
+    assert len(kept) == 1 and not (ingest.raw_dir(month) / 'pull_r1_p1.json').exists()
+    assert 'id="m-abandon"' not in wen.get('/data/amazon').text  # 不再显示为当前拉取
+    assert wen.post(f"/data/amazon/pull/{j['id']}/abandon", follow_redirects=True).text.count('该任务已结束，不能放弃') == 1
+    n0 = len(fake.calls)
+    j2 = _pull(wen, month)
+    assert j2['status'] == 'done' and fake.calls[n0:] == [(month, 1), (month, 2), (month, 3), (month, 4)]  # 从第 1 页重新拉
+    with session() as s:
+        assert s.scalar(select(Batch.rows).where(Batch.month == month)) == 230
+
+
+def test_abandon_running_pull(client):
+    """DESIGN-06 / FLOW-04：拉取中点“放弃本批”：当前页拉完即停，任务为已取消，不建批次、不并入。"""
+    wen = login_as(client)
+    month = '2026-10'
+    set_secret('sellersprite')
+    fake = _AbandonWhileRunning({month: api_rows(month, 380)})
+    fake.client = wen
+    services.set_fake('sellersprite', fake)
+    j = _pull(wen, month)
+    assert j['status'] == 'cancelled' and '已放弃本批' in j['error']
+    assert fake.calls == [(month, 1), (month, 2)]
+    with session() as s:
+        assert s.scalar(select(func.count()).select_from(Batch).where(Batch.month == month)) == 0
+    from pdt.core import ingest
+    assert len(list(ingest.raw_dir(month).glob('放弃_任务*/pull_r1_p*.json'))) == 2
+
+
+def test_stuck_checking_batch_rechecked_on_start(app_env, tmp_path):
+    """DESIGN-06：建批次后进程在核对中途退出的批次（停在“核对中”）在下次启动时补做核对，历史表与默认视图显示同一状态（核对异常 / 通过 / 疑似）。"""
+    from pdt.core import ingest
+    from pdt.main import create_app
+    month = '2026-10'
+    df = ingest.normalize(__import__('pandas').DataFrame(api_rows(month, 120)), f'卖家精灵接口 {month}')
+    bid = ingest.create_batch(month, df, 'upload')
+    with session() as s:
+        b = s.get(Batch, bid)
+        settled = b.status
+        b.status, b.checks, b.anomaly_reason = 'checking', {}, ''  # 模拟核对没跑完进程就退出
+    assert settled != 'checking'
+    create_app()
+    with session() as s:
+        assert s.get(Batch, bid).status == settled

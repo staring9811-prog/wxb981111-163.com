@@ -143,12 +143,6 @@ def _tag_values() -> dict:
     return out
 
 
-def _queue_count(thr: float) -> int:
-    with session() as s:
-        return s.scalar(select(func.count()).select_from(Tag).where(Tag.status != "confirmed", Tag.source != "manual",
-                                                                     (Tag.confidence < thr) | (Tag.tag == "元素"))) or 0
-
-
 def _history(cfg: dict):
     with session() as s:
         notes = {n.version: n.note for n in s.scalars(select(ConfigNote))}
@@ -170,12 +164,12 @@ def category_page(request: Request, tab: str = "frame", user=operator_only):
         channels.append(dict(key=ch, name=CHANNEL_NAMES.get(ch, ch), cfg=c, fit=chm.rank_fit(ch)[2]))
     hist = _history(cfg)
     thr = cfg.get("low_conf_threshold", 0.75)
-    from ..core.tagging import rules_cfg
+    from ..core.tagging import queued_count, rules_cfg  # 队列条数与打标确认页、侧栏角标同一口径
     rules = rules_cfg()[0]
     conf = rules.get("confidence") or {}
     return render(request, "settings_category.html", "PAGE-F27-01", "品类配置", version=v, cfg=cfg, channels=channels,
                   history=hist, current=hist[0] if hist else None, methods=METHODS, min_fit=chm.MIN_RANK_POINTS,
-                  tag_values=_tag_values(), queue_n=_queue_count(thr), thr=thr, tag_rows=tag_rule_rows(rules), rule_version=rules.get("rule_version", ""),
+                  tag_values=_tag_values(), queue_n=queued_count(), thr=thr, tag_rows=tag_rule_rows(rules), rule_version=rules.get("rule_version", ""),
                   conf_text="、".join(f"{CONF_NAMES.get(k, k)} {float(v):.2f}" for k, v in conf.items()), vision_usd=rules.get("vision_usd_per_call") or [],
                   rules_json=json.dumps(cfg.get("tag_rules") or {}, ensure_ascii=False, indent=2),
                   tab=tab if tab in ("frame", "tag", "ch", "ver") else "frame")

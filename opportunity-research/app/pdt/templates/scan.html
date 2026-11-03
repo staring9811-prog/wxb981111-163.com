@@ -13,6 +13,10 @@
   .lockline { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--muted); }
   .scan-table .table td { vertical-align: top; }
   .scan-table .badge + .badge { margin-top: var(--space-1); }
+  /* 操作列固定在右侧：“显示全部列”后表格变宽，操作按钮也不会被挤出可视区 */
+  .scan-table .table .col-op { position: sticky; right: 0; background: var(--surface); box-shadow: inset 1px 0 0 var(--border-soft); }
+  .scan-table .table th.col-op { z-index: 2; background: var(--surface-warm); }
+  .scan-table .table tbody tr:hover .col-op { background: var(--surface-raised); }
   .frames tr.is-thin td { color: var(--muted); }
   label.chip input { position: absolute; opacity: 0; pointer-events: none; }
   .seg__opt { text-decoration: none; }
@@ -103,7 +107,7 @@
   <div class="scan-table" data-panel="{{ channel }}">
     <div class="table-wrap">
       <table class="table">
-        <thead><tr><th>机会类型</th><th>属性：取值</th><th class="t-num">{{ '月销' if channel == 'amazon' else '估算月销' }}</th><th class="t-num">份额 前 → 近</th><th class="t-num col-2">家族</th><th class="t-num col-2">单款 ÷ 同框</th><th class="t-num">评分（同框）</th><th class="t-num">溢价 / 中位价</th><th class="t-num">新品占比（同框）</th><th class="t-num col-2">新家族做到（同框）</th><th>证据等级</th><th></th></tr></thead>
+        <thead><tr><th>机会类型</th><th>属性：取值</th><th class="t-num">{{ '月销' if channel == 'amazon' else '估算月销' }}</th><th class="t-num">份额 前 → 近</th><th class="t-num col-2">家族</th><th class="t-num col-2">单款 ÷ 同框</th><th class="t-num">评分（同框）</th><th class="t-num">溢价 / 中位价</th><th class="t-num">新品占比（同框）</th><th class="t-num col-2">新家族做到（同框）</th><th>证据等级</th><th class="col-op"><span class="visually-hidden">操作</span></th></tr></thead>
         <tbody>
         {% set ns = namespace(fr='') %}
         {% for r in rows %}
@@ -123,7 +127,7 @@
             <td class="t-num">{{ pct0(m.newshare) }}（{{ pct0(m.frame_newshare) }}）</td>
             <td class="t-num col-2">{% if channel == 'amazon' %}{{ m.newmade }}/{{ m.newfam }}（{{ m.frame_newmade }}/{{ m.frame_newfam }}）{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
             <td>{% if r.evidence == '经回测' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测</span>{% elif r.evidence == '历史观察' %}<span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}</td>
-            <td class="t-nowrap"><div class="cell-actions">{% if r.card %}<a class="btn btn--sm" href="/cards/{{ r.card }}"><svg class="icon"><use href="#ph-cards"/></svg><span>查看决策卡</span></a>
+            <td class="t-nowrap col-op"><div class="cell-actions">{% if r.card %}<a class="btn btn--sm" href="/cards/{{ r.card }}"><svg class="icon"><use href="#ph-cards"/></svg><span>查看决策卡</span></a>
               {% elif user.role == 'operator' %}<form method="post" action="/cards"><input type="hidden" name="channel" value="{{ channel }}"><input type="hidden" name="frame" value="{{ r.frame }}"><input type="hidden" name="attr" value="{{ r.attr }}"><input type="hidden" name="value" value="{{ r.value }}"><button class="btn btn--sm" type="submit"><svg class="icon"><use href="#ph-plus"/></svg><span>做决策卡</span></button></form>{% if r.related %}<a class="tlink small" href="/cards/{{ r.related }}">有相关卡</a>{% endif %}{% endif %}</div></td>
           </tr>
         {% else %}

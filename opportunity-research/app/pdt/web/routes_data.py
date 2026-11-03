@@ -91,6 +91,13 @@ def pull(request: Request, month: str = Form(''), user=operator_only):
     return _job_json(j)
 
 
+@router.post('/data/amazon/pull/{job_id}/abandon')
+def abandon(job_id: int, user=operator_only):
+    """拉取中 / 已暂停时“放弃本批”（二次确认后提交）：任务记为已取消，已拉分片保留在原始文件目录，不并入。"""
+    ok, msg = ingest.abandon_pull(job_id, user.id)
+    return redirect('/data/amazon', msg, 'ok' if ok else 'error')
+
+
 @router.post('/data/amazon/upload')
 async def upload(request: Request, month: str = Form(...), file: UploadFile = File(...), user=operator_only):
     """API-F17-02：手动上传卖家精灵导出（后备）。"""

@@ -79,17 +79,17 @@
     <div class="banner banner--cross" role="status"><svg class="icon"><use href="#ph-circle-notch"/></svg><div class="banner__body"><div class="banner__title">正在拉取 {{ active.month }}：已拉 {{ (p.fetched or 0)|num }} 个 ASIN · {{ p.step or '拉取商品月度字段' }}</div></div></div>
     {% elif active.status == 'stopped_cap' %}
     <div class="banner banner--warn" role="status"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">卖家精灵本月已达上限，已拉部分保留</div><div class="small">已拉 {{ (p.fetched or 0)|num }} 个 ASIN（{{ p.page or 0 }} 页）。调高上限后继续拉取，只拉缺的部分，已成功部分不重复计费。</div></div>
-      <div class="banner__actions"><a class="btn btn--sm" href="/settings/budget">调整上限</a><button class="btn btn--sm" type="button" data-cost-kind="amazon_pull" data-cost-month="{{ active.month }}" data-cost-params="{}">继续拉取</button></div></div>
+      <div class="banner__actions"><a class="btn btn--sm" href="/settings/budget">调整上限</a><button class="btn btn--sm" type="button" data-cost-kind="amazon_pull" data-cost-month="{{ active.month }}" data-cost-params="{}">继续拉取</button><button class="btn btn--sm btn--ghost" type="button" data-open="#m-abandon">放弃本批</button></div></div>
     {% else %}
     <div class="banner banner--warn" role="status"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">拉取{{ '已暂停' if active.status == 'paused' else '中断' }}：已拉 {{ (p.fetched or 0)|num }} 个，已拉部分已保存</div><div class="small">{{ active.error }}</div></div>
-      <div class="banner__actions"><button class="btn btn--sm" type="button" data-cost-kind="amazon_pull" data-cost-month="{{ active.month }}" data-cost-params="{}">继续拉取（只拉缺的部分）</button></div></div>
+      <div class="banner__actions"><button class="btn btn--sm" type="button" data-cost-kind="amazon_pull" data-cost-month="{{ active.month }}" data-cost-params="{}">继续拉取（只拉缺的部分）</button><button class="btn btn--sm btn--ghost" type="button" data-open="#m-abandon">放弃本批</button></div></div>
     {% endif %}
     <div class="panel" style="margin-top: var(--space-5);">
       <div class="panel__head"><h3 class="panel__title">拉取进度</h3></div>
       <div class="panel__body">
         <div class="progress"><span class="progress__num" id="pull-num">{{ (p.fetched or 0)|num }}</span><span class="muted small">个 ASIN · 第 {{ p.page or 0 }} 页 · {{ p.step or '拉取商品月度字段' }}</span><div class="meter"><i style="width:{{ 100 if active.status == 'done' else 60 }}%"></i></div></div>
         <p class="field__hint" style="margin-top: var(--space-2);">可随时暂停，已拉部分会保存；中断或暂停后继续时只拉缺的部分，不重复计费。</p>
-        {% if active.status in ('running','queued') %}<div class="batch-actions"><button class="btn" type="button" id="pause" data-job="{{ active.id }}"><svg class="icon"><use href="#ph-timer"/></svg><span>暂停</span></button></div>{% endif %}
+        <div class="batch-actions">{% if active.status in ('running','queued') %}<button class="btn" type="button" id="pause" data-job="{{ active.id }}"><svg class="icon"><use href="#ph-timer"/></svg><span>暂停</span></button>{% endif %}<button class="btn" type="button" data-open="#m-abandon">放弃本批</button></div>
       </div>
       {% include "_pull_segments.html" %}
     </div>
@@ -224,6 +224,27 @@
     </div>
   </div>
 </div>
+{% if active %}
+<div class="modal" id="m-abandon" role="dialog" aria-modal="true" aria-labelledby="m-abandon-t" aria-hidden="true">
+  <form class="modal__dialog" method="post" action="/data/amazon/pull/{{ active.id }}/abandon">
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="m-abandon-t">放弃 {{ active.month }} 本批拉取？</h2><p class="modal__sub">任务 #{{ active.id }} · 卖家精灵接口 · 已拉 {{ ((active.progress or {}).fetched or 0)|num }} 个 ASIN</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body stack">
+      <ul class="small" style="margin:0; padding-left: 1.2em;">
+        <li>任务标为“已取消”{% if active.status in ('running','queued') %}，当前页拉完即停止{% endif %}；本批不核对、不并入分析。</li>
+        <li>已拉的分片保留在原始文件目录（raw/amazon/{{ active.month }}/放弃_任务{{ active.id }}_…），可随时查看。</li>
+        <li>已花的费用照常记账；之后重新拉取 {{ active.month }} 会从第 1 页开始，重新计费。</li>
+      </ul>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--danger" type="submit"><span>确认放弃本批</span></button>
+    </div>
+  </form>
+</div>
+{% endif %}
 {% if cur and cur.status == 'anomaly' %}
 <div class="modal" id="m-confirm" role="dialog" aria-modal="true" aria-labelledby="m-confirm-t" aria-hidden="true">
   <form class="modal__dialog" method="post" action="/data/batches/{{ cur.id }}/merge">

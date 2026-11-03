@@ -83,7 +83,7 @@
           <span class="strong num" id="thrVal">{{ '%.2f'|format(thr) }}</span>
           <span class="small muted">置信度低于阈值的标签进入 <a href="/tagging">打标确认</a> 队列；元素始终进入确认队列</span>
         </div>
-        <p class="small muted">按当前标签：阈值 {{ '%.2f'|format(thr) }} 时进入确认队列 <span class="strong num">{{ queue_n|num }}</span> 条（四个渠道合计）。改阈值后保存，下一次打标按新阈值分流。</p>
+        <p class="small muted">当前确认队列 <span class="strong num" data-queue-n>{{ queue_n|num }}</span> 条（四个渠道合计，与 <a href="/tagging">打标确认</a> 页同一口径，按阈值 {{ '%.2f'|format(thr) }} 分流）。改阈值后保存，下一次打标按新阈值分流，已在队列里的不变。</p>
       </div>
     </section>
     <section class="panel">

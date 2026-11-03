@@ -215,6 +215,8 @@ def _run(job_id: int):
             traceback.print_exc()
         with session() as s:
             jj = s.get(Job, job_id)
+            if status == "paused" and (jj.progress or {}).get("abandoned"):  # 运行中点“放弃本批”：停下后记为已取消（见 ingest.abandon_pull）
+                status, err = "cancelled", (jj.progress or {}).get("abandon_note") or "已放弃本批"
             jj.status = status
             jj.error = err
             jj.finished_at = now()

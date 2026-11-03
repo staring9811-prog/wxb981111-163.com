@@ -54,6 +54,7 @@
   .timeline li::before { content: ""; position: absolute; left: -4px; top: 13px; width: 7px; height: 7px; border-radius: 50%; background: var(--border-control); }
   .timeline li.is-now::before { background: var(--accent); }
   .timeline b { color: var(--fg); font-weight: 600; }
+  .timeline__at { display: block; color: var(--muted); font-variant-numeric: tabular-nums; }
   .thumb { width: 96px; height: 96px; flex: none; border: 1px solid var(--border); border-radius: var(--radius-md); object-fit: cover; background: var(--surface-raised); }
   .approve-box { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
   .approve-box .btn { width: 100%; }
@@ -92,7 +93,6 @@
 <div class="banner banner--block enter" role="alert" style="--i:0" data-validity="fail"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body"><div class="banner__title">{{ v.title }}</div><div>{{ v.basis }}{% if v.msg %}：{{ v.msg }}{% endif %}。{% if v.pending %}{{ v.pending }}。{% endif %}本卡的市场评分只作参考。{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div></div>
 {% else %}
 <div class="banner banner--{{ 'ok' if v.kind == 'pass' else 'warn' }} enter" style="--i:0" data-validity="{{ v.kind }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if v.kind == 'pass' else 'hourglass' }}"/></svg><div class="banner__body">{{ v.title }}（{{ v.basis }}{% if v.msg %}：{{ v.msg }}{% endif %}）。{% if v.pending %}{{ v.pending }}。{% endif %}{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div>
-{% endif %}）。{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div>
 {% endif %}
 {% if locked and new_data %}
 <div class="banner banner--stale">
@@ -473,7 +473,7 @@
   <div class="panel">
     <div class="panel__head"><h3 class="panel__title">版本与审批记录</h3></div>
     <ol class="timeline">
-      {% for e in events %}<li {% if loop.first %}class="is-now"{% endif %}><b>{{ e.text }}</b> · {{ e.at }}</li>{% endfor %}
+      {% for e in events %}<li {% if loop.first %}class="is-now"{% endif %}><b>{{ e.text }}</b><span class="timeline__at">{{ e.at }}</span></li>{% endfor %}
     </ol>
   </div>
 </aside>

@@ -57,7 +57,8 @@
     <div class="modal__body stack">
       <label class="field"><span class="field__label">回写哪个产品<span class="req">*</span></span><select class="select" id="wbProduct"></select></label>
       <label class="field"><span class="field__label">方案名称</span><input class="input" id="wbName"></label>
-      <div class="table-wrap"><table class="table">
+      <div class="banner banner--block" id="wbMissing" role="alert" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body"><div class="banner__title" data-why></div><div class="small">在第 2 步“确认尺寸与价格”补全后再回写；补全前不会改动决策卡上的数字。</div></div></div>
+      <div class="table-wrap" id="wbTable"><table class="table">
         <thead><tr><th>渠道</th><th class="t-num">售价</th><th class="t-num">单件利润</th><th class="t-num">利润率</th><th class="t-num">保本价</th></tr></thead>
         <tbody id="wbRows"></tbody>
       </table></div>

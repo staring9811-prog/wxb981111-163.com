@@ -132,3 +132,11 @@ def test_anchor_count_same_on_both_pages_and_diff_sortable(wen):
     assert re.search(r'<button class="th-sort" type="button" data-sort-diff>差异', hd)
     diffs = re.findall(r'class="t-num [^"]*" data-sort="(-?[\d.]+)">([^<]+)</td></tr>', hd)
     assert len(diffs) == 14 and all(abs(float(a) - float(b.replace('%', ''))) < 0.06 for a, b in diffs)
+
+
+def test_estimate_tabs_anchor_not_under_topbar(wen):
+    """DESIGN-07：切换估算对照页签（链接带 #t-est）后，区块标题与页签条留出顶栏高度，不被吸顶顶栏遮住。"""
+    html = wen.get('/data/channels', params={'ch': 'lowes'}).text
+    assert 'href="/data/channels?ch=wayfair#t-est"' in html and '<h2 class="section__title" id="t-est">' in html
+    css = wen.get('/static/pdt.css').text
+    assert '.section__title[id], .panel__title[id] { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }' in css

@@ -1,8 +1,10 @@
 """品类配置（PAGE-F27-01）：FLOW-23 中配置查看、保存前对比、生成新参数版本部分；AC-F27-02 只有浴室柜。"""
 import json
+import re
 
 from conftest import login_as, make_user
 from pdt import catconfig
+from pdt.db import session
 
 
 def _cfg_from_page(html):
@@ -109,3 +111,27 @@ def test_tag_rules_tab_chinese_summary(wen):
     catconfig.save(cfg, None)
     drawer = wen.get("/settings/category", params={"tab": "tag"}).text.split('id="dwRules"')[1].split("</textarea>")[0]
     assert '&#34;胡桃木色&#34;: &#34;深木&#34;' in drawer and "\\u" not in drawer
+
+
+def test_rules_tab_queue_count_same_as_tagging_queue(wen):
+    """DESIGN-18 / DESIGN-08：打标规则页“当前确认队列”条数与打标确认页、侧栏角标同一口径（只数待确认、不含“不是本品类”），
+    不再把历史导入的自动标签按阈值重算后计入（原来 28,479 vs 队列 3,678）。"""
+    from pdt.models import Product, Tag
+    with session() as s:
+        s.add_all([
+            Product(channel='amazon', item_id='B0CXK7R2QW', brand='Sweetcrispy', title='30 Inch Bathroom Vanity with Sink, Fluted Doors'),
+            Product(channel='amazon', item_id='B0D1M9TZ4P', brand='Kahomvis', title='30 Inch Farmhouse Bathroom Vanity with Barn Door'),
+            Product(channel='amazon', item_id='B0BWX3KQ7L', brand='VASAGLE', title='Bathroom Floor Storage Cabinet with Doors', excluded=True),
+        ])
+        s.add_all([
+            Tag(channel='amazon', item_id='B0CXK7R2QW', tag='元素', value='竖棱', source='vision', status='queued', img_group='g1'),
+            Tag(channel='amazon', item_id='B0D1M9TZ4P', tag='台面材质', value='岗石', confidence=0.62, source='rule', status='queued', img_group='g2'),
+            # 历史导入的自动标签：元素与低置信度都不在队列里
+            Tag(channel='amazon', item_id='B0D1M9TZ4P', tag='元素', value='农场风', confidence=0.85, source='vision', status='auto', img_group='g2'),
+            Tag(channel='amazon', item_id='B0CXK7R2QW', tag='主色', value='', confidence=0.0, source='rule', status='auto', img_group='g1'),
+            Tag(channel='amazon', item_id='B0BWX3KQ7L', tag='元素', value='', source='rule', status='queued', img_group='g3'),
+        ])
+    html = wen.get('/settings/category', params={'tab': 'tag'}).text
+    n = re.search(r'当前确认队列 <span class="strong num" data-queue-n>(\d+)</span> 条', html).group(1)
+    tag_page = wen.get('/tagging').text
+    assert n == '2' and '待确认 <span class="count">2</span>' in tag_page
