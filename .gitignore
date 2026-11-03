@@ -6,3 +6,7 @@ __pycache__/
 # 用户上传的旧技能包（含站点 passkey 与旧机器路径），只在本地参考
 opportunity-research/input/predecessor/
 opportunity-research/input/data_1/
+# 判定台运行数据（数据库、密钥加密文件、导入文件、日志）
+opportunity-research/app/data/
+opportunity-research/app/tests/visual/*.tmp
+.pytest_cache/

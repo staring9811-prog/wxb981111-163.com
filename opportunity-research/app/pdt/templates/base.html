@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="{{ page_id }}">
+  <title>{{ title }} · 品类机会判定台</title>
+  <link rel="stylesheet" href="/static/tokens.css">
+  <link rel="stylesheet" href="/static/app.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <script src="/static/icons.js"></script>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <span>品类机会判定台</span>
+      </div>
+      <nav class="nav">
+        {% for it in nav %}{% if it.group %}<div class="nav__group">{{ it.group }}</div>{% else %}<a class="nav__item" href="{{ it.href }}"{% if it.current %} aria-current="page"{% endif %}><svg class="icon"><use href="#{{ it.icon }}"/></svg><span>{{ it.name }}</span>{% if it.count %}<em class="nav__count">{{ it.count }}</em>{% endif %}</a>{% endif %}
+        {% endfor %}
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <span class="topbar__category">浴室柜</span>
+        {% block topbar %}{% endblock %}
+        <span class="spacer"></span>
+        <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg><span>{{ user.name }} · {{ role_name }}</span></span>
+        <form method="post" action="/logout" style="display:inline"><button class="btn btn--ghost btn--sm" type="submit">退出登录</button></form>
+      </header>
+      <main class="content">
+        {% if flash %}<div class="banner banner--{{ 'block' if flash_kind == 'error' else ('warn' if flash_kind == 'warn' else 'ok') }} enter" role="status"><svg class="icon"><use href="#ph-{{ 'warning-octagon' if flash_kind == 'error' else 'info' }}"/></svg><div class="banner__body">{{ flash }}</div></div>{% endif %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  {% block modals %}{% endblock %}
+  <script src="/static/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
