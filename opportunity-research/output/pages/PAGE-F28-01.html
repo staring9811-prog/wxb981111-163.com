@@ -148,6 +148,99 @@
           </div>
         </section>
 
+        <!-- v8 历史重建（REQ-F28-03、AC-F28-06、AC-F28-07、AC-F28-08） -->
+        <section class="section enter" style="--i:3" id="rebuild" aria-labelledby="t-rebuild">
+          <div class="section__head">
+            <h2 class="section__title" id="t-rebuild">历史重建</h2>
+            <span class="section__note">历史回补完成后，按评论日期把每个商品页 2024-01 起的逐月 VP / 非 VP 评论数换算成估算月销；首条评论月当上架月；共享评论的商品页合并成评论家族</span>
+          </div>
+          <div class="banner banner--warn">
+            <svg class="icon"><use href="#ph-warning"/></svg>
+            <div class="banner__body"><div class="banner__title">幸存者偏差：只含当前仍在榜的商品</div><div class="small">重建只看得到今天在类目榜单前 N 个商品页所在的家族；过去卖得好、今天已掉出前 N 的看不到。所以覆盖率是量级、前 50 重合率是上限，渠道回测结果要按打折规则看（<a href="PAGE-F19-01.html">模型与回测</a>）。上架月 = 首条评论月，通常比真实上架晚 1–2 个月。</div></div>
+          </div>
+          <div class="table-wrap" style="margin-top: var(--space-3)">
+            <table class="table">
+              <thead><tr><th>渠道</th><th>状态</th><th>月份范围</th><th class="t-num">商品页</th><th class="t-num">评论家族</th><th class="t-num">评论（2024-01 起）</th><th class="t-num">截断</th><th class="t-num">前 N 覆盖估计</th><th class="t-num">前 50 半年重合率</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+              <tbody>
+                <tr><td class="cell-title t-nowrap">Home Depot</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已重建</span></td><td class="num t-nowrap">2024-01 至 2026-10 · 34 个月</td><td class="t-num">598<span class="etag etag--n">2 类目 × 前 300</span></td><td class="t-num">219</td><td class="t-num">14,397<span class="etag">实测</span><div class="cell-sub">VP 79%</div></td><td class="t-num">0</td><td class="t-num">73% / 58%<button class="etag" type="button" data-pop-title="前 N 覆盖估计（量级）" data-pop="做法=按排名分段的家族重建月销，用 51–300 名拟合 ln(月销) = a + b·ln(排名) 外推长尾;带台面=b = −1.27，前 300 覆盖约 73%，前 200 约 66%;无台面=b = −0.80，前 300 覆盖约 58%，前 200 约 52%;直接观察=201–300 名仍占前 300 重建销量的 9%，前 300 未饱和;窗口=2026-01 至 2026-10">估算</button><div class="cell-sub">带台面 / 无台面</div></td><td class="t-num">78%<button class="etag" type="button" data-pop-title="前 50 家族重合率" data-pop="比较=2026-04 至 06 vs 2026-08 至 10（3 个月窗口）;前 20=80%;隔一年=2025-08 至 10 vs 2026-08 至 10：66%;口径=重建月销近似榜单，只含今天仍在前 300 的家族，是上限">上限</button></td><td class="t-nowrap"><a class="btn btn--sm" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>渠道回测</span></a></td></tr>
+                <tr><td class="cell-title t-nowrap">Lowe's</td><td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未回补 · 未验证</span></td><td class="num t-nowrap">2026-01 至 2026-10 · 10 个月<div class="cell-sub">只有月度追踪，不到 20 个月</div></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-nowrap"><a class="btn btn--sm" href="PAGE-F23-01.html#backfill"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>去回补</span></a></td></tr>
+                <tr><td class="cell-title t-nowrap">Wayfair</td><td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未回补 · 未验证</span></td><td class="num t-nowrap">2026-01 至 2026-10 · 10 个月<div class="cell-sub">只有月度追踪，不到 20 个月</div></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-nowrap"><a class="btn btn--sm" href="PAGE-F23-01.html#backfill"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg><span>去回补</span></a></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grid-2" style="margin-top: var(--space-4)">
+            <div class="panel">
+              <div class="panel__head"><h3 class="panel__title">Home Depot · 前 N 覆盖（按排名分段）</h3><span class="section__note">2026-01 至 10 月均重建销量</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>类目</th><th>排名段</th><th class="t-num">家族</th><th class="t-num">月均重建销量</th><th class="t-num">占前 300</th></tr></thead>
+                  <tbody>
+                    <tr><td>带台面</td><td class="num">1–50</td><td class="t-num">23</td><td class="t-num">9,652<span class="etag">估算</span></td><td class="t-num">56%</td></tr>
+                    <tr><td>带台面</td><td class="num">51–100</td><td class="t-num">16</td><td class="t-num">3,005</td><td class="t-num">17%</td></tr>
+                    <tr><td>带台面</td><td class="num">101–200</td><td class="t-num">32</td><td class="t-num">2,924</td><td class="t-num">17%</td></tr>
+                    <tr><td>带台面</td><td class="num">201–300</td><td class="t-num">29</td><td class="t-num">1,595</td><td class="t-num strong">9%</td></tr>
+                    <tr><td>无台面</td><td class="num">1–50</td><td class="t-num">22</td><td class="t-num">1,420</td><td class="t-num">57%</td></tr>
+                    <tr><td>无台面</td><td class="num">51–100</td><td class="t-num">18</td><td class="t-num">543</td><td class="t-num">22%</td></tr>
+                    <tr><td>无台面</td><td class="num">101–200</td><td class="t-num">38</td><td class="t-num">313</td><td class="t-num">12%</td></tr>
+                    <tr><td>无台面</td><td class="num">201–300</td><td class="t-num">41</td><td class="t-num">236</td><td class="t-num strong">9%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__foot">201–300 名仍贡献约一成，前 300 还没饱和；N 再加大要看 301–500 名的增量（在 <a href="PAGE-F27-01.html">品类配置</a> 改 N）。</div>
+            </div>
+            <div class="panel">
+              <div class="panel__head"><h3 class="panel__title">Home Depot · 换手（前 50 / 前 20 家族重合率）</h3><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>上限</span></div>
+              <div class="table-wrap table-wrap--flush">
+                <table class="table">
+                  <thead><tr><th>比较</th><th class="t-num">前 50</th><th class="t-num">前 20</th></tr></thead>
+                  <tbody>
+                    <tr><td class="small">2026-06 vs 2026-10（单月）</td><td class="t-num">72%</td><td class="t-num">60%</td></tr>
+                    <tr><td class="small">2026-04 至 06 vs 2026-08 至 10（3 个月）</td><td class="t-num strong">78%</td><td class="t-num">80%</td></tr>
+                    <tr><td class="small">2025-10 vs 2026-10（单月，隔一年）</td><td class="t-num">68%</td><td class="t-num">55%</td></tr>
+                    <tr><td class="small">2025-08 至 10 vs 2026-08 至 10（3 个月，隔一年）</td><td class="t-num">66%</td><td class="t-num">80%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel__foot">没有历史榜单，用重建月销近似排名；单月 1 条 VP 评论 = 50 件，颗粒粗，看 3 个月窗口更稳。</div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top: var(--space-4)">
+            <div class="panel__head"><h3 class="panel__title">Home Depot · 重建的月度历史（按季度）</h3><span class="section__note">月销 ≈ VP × 50 + 非 VP × 20（参数 v1）· 新品 = 首评后 ≤ 6 个月</span></div>
+            <div class="table-wrap table-wrap--flush">
+              <table class="table">
+                <thead><tr><th>季度</th><th class="t-num">月均重建销量</th><th class="t-num">有销量家族</th><th class="t-num">有销量商品页</th><th class="t-num">新品销量占比</th><th class="t-num">VP 占比</th></tr></thead>
+                <tbody>
+                  <tr><td class="num">2024-01 至 03</td><td class="t-num">16,507<span class="etag">估算</span></td><td class="t-num">96</td><td class="t-num">455</td><td class="t-num">26%</td><td class="t-num">74%</td></tr>
+                  <tr><td class="num">2024-07 至 09</td><td class="t-num">15,937</td><td class="t-num">104</td><td class="t-num">452</td><td class="t-num">20%</td><td class="t-num">77%</td></tr>
+                  <tr><td class="num">2025-01 至 03</td><td class="t-num">19,020</td><td class="t-num">124</td><td class="t-num">551</td><td class="t-num">21%</td><td class="t-num">82%</td></tr>
+                  <tr><td class="num">2025-07 至 09</td><td class="t-num">19,020</td><td class="t-num">128</td><td class="t-num">582</td><td class="t-num">24%</td><td class="t-num">81%</td></tr>
+                  <tr><td class="num">2026-01 至 03</td><td class="t-num">19,460</td><td class="t-num">132</td><td class="t-num">569</td><td class="t-num">18%</td><td class="t-num">78%</td></tr>
+                  <tr><td class="num">2026-07 至 09</td><td class="t-num">18,310</td><td class="t-num">133</td><td class="t-num">568</td><td class="t-num">15%</td><td class="t-num">77%</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel__foot">只列每半年一个季度；导出 Excel 有全部 34 个月。2024 上半年的新品占比偏高：大家族里评论稀少的老变体，2023-07 后的第一条评论会被当成首评。</div>
+          </div>
+
+          <div class="section__head" style="margin-top: var(--space-6)"><h3 class="section__title">评论家族 · Home Depot</h3><span class="section__note">首页评论重叠 ≥ 一半、或评论里记着对方商品 ID 的商品页 = 同一评论家族；家族是本渠道分析与份额计算的单位，评论只计一次</span></div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>家族</th><th>包含的商品页（前 300 内）</th><th class="t-num">最好排名</th><th>首条评论（≈ 上架）</th><th class="t-num">评论（2024-01 起）</th><th class="t-num">VP 占比</th><th>采集</th></tr></thead>
+              <tbody>
+                <tr><td><div class="cell-title">Home Decorators Collection Doveton</div><div class="cell-sub">60 / 48 / 36 / 30 / 24 in. · 白、Weathered Tan、Dark Walnut、Sage Green</div></td><td><span class="num">18 个</span> · <span class="mono small">321491137、324252772、321491136…</span> <button class="btn btn--ghost btn--sm" type="button" data-open="#d-family">看全部</button></td><td class="t-num">7</td><td class="num">2025-04-09 <span class="badge badge--accent">新家族</span></td><td class="t-num">598</td><td class="t-num">81%</td><td class="small">完整 · 星级分片</td></tr>
+                <tr><td><div class="cell-title">Glacier Bay 人造大理石台面单盆系列</div><div class="cell-sub">19 / 25 / 31 / 37 in. · 白、Pearl Gray</div></td><td><span class="num">8 个</span> · <span class="mono small">203486567、203486570、203486514…</span></td><td class="t-num">1</td><td class="num">2013-01-01</td><td class="t-num">676</td><td class="t-num">90%</td><td class="small">完整 · 星级分片</td></tr>
+                <tr><td><div class="cell-title">Home Decorators Collection Sonoma</div><div class="cell-sub">24 / 36 / 48 / 72 in. · 6 种颜色 · Carrara 大理石台面</div></td><td><span class="num">15 个</span> · <span class="mono small">205866619、312613835、312613759…</span></td><td class="t-num">49</td><td class="num">2015-05-18</td><td class="t-num">492</td><td class="t-num">81%</td><td class="small">完整 · 星级分片</td></tr>
+                <tr><td><div class="cell-title">Glacier Bay Huckleberry</div><div class="cell-sub">24 / 30 / 36 / 42 / 48 in. · Weathered Tan、Spiced Walnut</div></td><td><span class="num">10 个</span> · <span class="mono small">319837668、324252775、324252776…</span></td><td class="t-num">32</td><td class="num">2022-09-05</td><td class="t-num">462</td><td class="t-num">83%</td><td class="small">完整</td></tr>
+                <tr><td><div class="cell-title">Home Decorators Collection Hampton Harbor</div><div class="cell-sub">28 / 44 / 45 / 72 in. · 白、Sequoia、灰</div></td><td><span class="num">6 个</span> · <span class="mono small">202045201、202045306、202045196…</span></td><td class="t-num">60</td><td class="num">2008-09-30</td><td class="t-num">467</td><td class="t-num">78%</td><td class="small">完整 · 星级分片</td></tr>
+                <tr><td><div class="cell-title">Glacier Bay Bannister 43 in.</div><div class="cell-sub">白 · Granite-Look 台面</div></td><td><span class="num">1 个</span> · <span class="mono small">321185181</span></td><td class="t-num">96</td><td class="num">2022-08-27</td><td class="t-num">688</td><td class="t-num">91%</td><td class="small">完整 · 星级分片</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pager"><span>219 个家族（完整 185 · 0 条评论 34）· 598 个商品页 · 按 2024-01 起评论数排 · 每页 50 条</span><div class="pager__pages"><button class="pager__btn" type="button" aria-current="page">1</button><button class="pager__btn" type="button">2</button><button class="pager__btn" type="button">3</button><button class="pager__btn" type="button">4</button><button class="pager__btn" type="button">5</button></div></div>
+        </section>
+
         <section class="section enter" style="--i:3" aria-labelledby="t-est">
           <div class="section__head">
             <h2 class="section__title" id="t-est">估算方法对照 · 2026-10</h2>
@@ -235,6 +328,43 @@
       </main>
     </div>
   </div>
+
+  <aside class="drawer" id="d-family" role="dialog" aria-modal="true" aria-labelledby="d-family-t" aria-hidden="true">
+    <div class="drawer__head">
+      <div><h2 class="drawer__title" id="d-family-t">评论家族 · Home Decorators Collection Doveton</h2><p class="drawer__sub">Home Depot · 带台面类目前 300 内 18 个商品页共享同一批评论 · 2024-01 起 598 条（按评论 ID 只计一次）</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="drawer__body stack">
+      <dl class="kv"><dt>合并依据</dt><dd>首页评论 ID 重叠 ≥ 一半，或评论里记着对方商品页 ID</dd><dt>首条评论</dt><dd class="num">2025-04-09（家族上架月 ≈ 2025-04）</dd><dt>采集</dt><dd>总排序到上限，只完整到 2025-08-27，按 1–5 星分片补全；0 截断</dd></dl>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>商品页 ID</th><th>尺寸 · 颜色</th><th class="t-num">类目排名</th><th class="t-num">当日价</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">321491137</td><td>Doveton 60 in. 双盆 · White</td><td class="t-num">7</td><td class="t-num">$899</td></tr>
+            <tr><td class="mono">324252772</td><td>Doveton 48 in. 单盆 · White</td><td class="t-num">8</td><td class="t-num">$699</td></tr>
+            <tr><td class="mono">321491136</td><td>Doveton 60 in. 双盆 · Weathered Tan</td><td class="t-num">9</td><td class="t-num">$899</td></tr>
+            <tr><td class="mono">324252762</td><td>Doveton 48 in. 单盆 · Weathered Tan</td><td class="t-num">10</td><td class="t-num">$699</td></tr>
+            <tr><td class="mono">324252476</td><td>Doveton 36 in. 单盆 · White</td><td class="t-num">18</td><td class="t-num">$499</td></tr>
+            <tr><td class="mono">332076510</td><td>Doveton 48 in. 单盆 · Dark Walnut</td><td class="t-num">26</td><td class="t-num">$729</td></tr>
+            <tr><td class="mono">320686810</td><td>Doveton 30 in. 单盆 · White</td><td class="t-num">28</td><td class="t-num">$439</td></tr>
+            <tr><td class="mono">332076520</td><td>Doveton 48 in. 单盆 · Sage Green</td><td class="t-num">29</td><td class="t-num">$729</td></tr>
+            <tr><td class="mono">324252466</td><td>Doveton 36 in. 单盆 · Weathered Tan</td><td class="t-num">31</td><td class="t-num">$499</td></tr>
+            <tr><td class="mono">332076509</td><td>Doveton 60 in. 双盆 · Dark Walnut</td><td class="t-num">34</td><td class="t-num">$929</td></tr>
+            <tr><td class="mono">332076516</td><td>Doveton 60 in. 双盆 · Sage Green</td><td class="t-num">35</td><td class="t-num">$929</td></tr>
+            <tr><td class="mono">324252515</td><td>Doveton 24 in. 单盆 · White</td><td class="t-num">41</td><td class="t-num">$379</td></tr>
+            <tr><td class="mono">324252657</td><td>Doveton 30 in. 单盆 · Weathered Tan</td><td class="t-num">42</td><td class="t-num">$439</td></tr>
+            <tr><td class="mono">332067771</td><td>Doveton 36 in. 单盆 · Sage Green</td><td class="t-num">73</td><td class="t-num">$539</td></tr>
+            <tr><td class="mono">332067760</td><td>Doveton 30 in. 单盆 · Dark Walnut</td><td class="t-num">85</td><td class="t-num">$459</td></tr>
+            <tr><td class="mono">332067765</td><td>Doveton 30 in. 单盆 · Sage Green</td><td class="t-num">88</td><td class="t-num">$459</td></tr>
+            <tr><td class="mono">332067758</td><td>Doveton 36 in. 单盆 · Dark Walnut</td><td class="t-num">126</td><td class="t-num">$539</td></tr>
+            <tr><td class="mono">332067755</td><td>Doveton 24 in. 单盆 · Sage Green</td><td class="t-num">184</td><td class="t-num">$399</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted">每条评论记着写评论时的商品页，月销按评论落到各商品页，再按商品页的尺寸、颜色打标；家族只决定份额与家族数怎么数。价格是 2026-11-03 当天的价，不是历史价。</p>
+    </div>
+    <div class="drawer__foot"><button class="btn" type="button" data-close>关闭</button></div>
+  </aside>
 
   <aside class="drawer" id="d-upload" role="dialog" aria-modal="true" aria-labelledby="d-upload-t" aria-hidden="true">
     <div class="drawer__head">

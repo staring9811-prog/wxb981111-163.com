@@ -264,6 +264,55 @@
           </div>
         </div>
 
+        <!-- v8 历史回补（REQ-F23-02、AC-F23-03、AC-F23-04、NFR-013） -->
+        <section class="section enter" style="--i:5" id="backfill" aria-labelledby="bfTitle">
+          <div class="section__head">
+            <h2 class="section__title" id="bfTitle">历史回补</h2>
+            <span class="section__note">为分渠道回测补 2024 年以来的月度历史：按类目榜单取前 N 个商品页（排除广告位），采每个商品页的全部历史评论与商品页规格</span>
+          </div>
+          <div class="banner">
+            <svg class="icon"><use href="#ph-info"/></svg>
+            <div class="banner__body small">Home Depot 直连公开页面，免费；相邻请求间隔 ≥ 1 秒，单个请求失败最多重试 3 次，遇 403 / 429 自动降速并记次数。Lowe's / Wayfair 经 Bright Data / Apify，按量计费，受 <a href="PAGE-F16-02.html">月度上限</a> 约束。评论超过站点单一排序可翻到的上限（Home Depot 约 17 页 · 510 条）时，按 1–5 星分片补采，某个星级仍到上限再加"仅 VP"分片；仍到上限的记为截断。回补完成后在 <a href="PAGE-F28-01.html#rebuild">其他渠道数据 · 历史重建</a> 按评论日期重建月度历史。</div>
+          </div>
+          <div class="table-wrap" style="margin-top: var(--space-3)">
+            <table class="table">
+              <thead><tr><th>渠道</th><th>起始月份</th><th class="t-num">商品页数 N（每个类目）</th><th>采集方式</th><th>状态</th><th>上次回补</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+              <tbody>
+                <tr><td class="cell-title">Home Depot</td><td><input class="input" type="month" value="2024-01" aria-label="Home Depot 起始月份" style="width:150px"></td><td class="t-num"><input class="input input--num" style="width:88px" value="300" aria-label="Home Depot 商品页数 N"></td><td class="small">直连 · 免费</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已完成</span></td><td class="small">2026-11-03 · 两类目 598 个商品页 · 0 截断</td><td class="t-nowrap"><button class="btn btn--sm" type="button" data-bf="hd"><svg class="icon"><use href="#ph-timer"/></svg><span>评估并回补</span></button></td></tr>
+                <tr><td class="cell-title">Lowe's</td><td><input class="input" type="month" value="2024-01" aria-label="Lowe's 起始月份" style="width:150px"></td><td class="t-num"><input class="input input--num" style="width:88px" value="300" aria-label="Lowe's 商品页数 N"></td><td class="small">Bright Data（列表、规格）+ Apify（评论）</td><td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未回补 · 未验证</span></td><td><span class="etag etag--nodata">无数据</span></td><td class="t-nowrap"><button class="btn btn--sm" type="button" data-bf="lowes"><svg class="icon"><use href="#ph-timer"/></svg><span>评估并回补</span></button></td></tr>
+                <tr><td class="cell-title">Wayfair</td><td><input class="input" type="month" value="2024-01" aria-label="Wayfair 起始月份" style="width:150px"></td><td class="t-num"><input class="input input--num" style="width:88px" value="300" aria-label="Wayfair 商品页数 N"></td><td class="small">Bright Data（列表、规格）+ Apify（评论）</td><td><span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未回补 · 未验证</span></td><td><span class="etag etag--nodata">无数据</span></td><td class="t-nowrap"><button class="btn btn--sm" type="button" data-bf="wayfair"><svg class="icon"><use href="#ph-timer"/></svg><span>评估并回补</span></button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="field__hint" style="margin-top: var(--space-2)">起始月份与 N 的默认值来自 <a href="PAGE-F27-01.html">品类配置 · 渠道参数</a>（参数 v3）；在这里改只作用于本次回补。N 加大时只采新增排名的商品页，已完成的商品页不重复请求。</p>
+
+          <div class="panel" style="margin-top: var(--space-4)">
+            <div class="panel__head">
+              <h3 class="panel__title">回补进度 · Home Depot</h3>
+              <span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已完成 · 2026-11-03</span>
+            </div>
+            <div class="panel__body stack">
+              <div class="prog" aria-label="Home Depot 回补进度">
+                <span>商品页</span><div class="meter"><i style="width:100%"></i></div><span class="num small">598 / 598（带台面 300 + 无台面 300，去重后）</span>
+                <span>评论家族</span><div class="meter"><i style="width:100%"></i></div><span class="num small">219 / 219（完整 185 · 0 条评论 34）</span>
+              </div>
+              <div class="stats">
+                <div class="stat"><div class="stat__label">评论（去重）</div><div class="stat__value num">19,359<span class="stat__unit">条</span></div><div class="stat__meta">2024-01 至 2026-10：14,397 条，VP 79%<span class="etag">实测</span></div></div>
+                <div class="stat"><div class="stat__label">分片补采</div><div class="stat__value num">7<span class="stat__unit">个家族</span></div><div class="stat__meta">按 1–5 星分片补全；仅 VP 分片 0 个</div></div>
+                <div class="stat"><div class="stat__label">截断</div><div class="stat__value num">0<span class="stat__unit">个商品页</span></div><div class="stat__meta">分片后没有仍到上限的家族</div></div>
+                <div class="stat"><div class="stat__label">失败 / 403 · 429</div><div class="stat__value num">3 / 0<span class="stat__unit">次</span></div><div class="stat__meta">请求 2,884 次，间隔 1.3–2.1 秒；失败为重试 3 次仍不成功</div></div>
+              </div>
+              <div class="row">
+                <button class="btn btn--sm" type="button" aria-disabled="true" title="回补已完成"><svg class="icon"><use href="#ph-minus"/></svg><span>暂停</span></button>
+                <button class="btn btn--sm" type="button" data-toast="已续采 Home Depot：跳过已完成的 598 个商品页，只重试失败的 3 个请求"><svg class="icon"><use href="#ph-play"/></svg><span>续采</span></button>
+                <span class="spacer"></span>
+                <a class="small" href="PAGE-F28-01.html#rebuild">去看历史重建</a>
+              </div>
+              <p class="small muted">运行中时这里实时显示：商品页、评论数、分片补采、截断数、失败数、403 / 429 次数；暂停后进度保存，续采不重复请求已完成的商品页。Lowe's / Wayfair 未回补，确认费用并开始后在这里显示进度。</p>
+            </div>
+          </div>
+        </section>
+
         <section class="section enter" style="--i:5">
           <div class="section__head">
             <h2 class="section__title">入口月度汇总（上一次完整导出）</h2>
@@ -318,6 +367,37 @@
     </div>
   </div>
 
+  <!-- 费用评估确认弹窗（CMP-F16-01）· 历史回补 -->
+  <div class="modal" id="dlgBackfill" role="dialog" aria-modal="true" aria-labelledby="dlgBfTitle" aria-hidden="true">
+    <div class="modal__dialog modal__dialog--wide">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="dlgBfTitle" data-bf-title>确认费用：历史回补 · Home Depot</h2><p class="modal__sub" data-bf-sub>起始 2024-01 · 每个类目前 400 个商品页 · 已完成的 598 个商品页不重复请求</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body stack">
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>步骤</th><th class="t-num">待采商品页</th><th class="t-num">预计请求</th><th class="t-num">BD 费用</th><th class="t-num">Apify 费用</th><th class="t-num">预计耗时</th></tr></thead>
+            <tbody data-bf-rows>
+              <tr><td>列表 + 商品页规格</td><td class="t-num">200</td><td class="t-num">约 220</td><td class="t-num">$0.00</td><td class="t-num">$0.00</td><td class="t-num">约 7 分钟</td></tr>
+              <tr><td>全部历史评论（含分片补采）</td><td class="t-num">200</td><td class="t-num">约 760</td><td class="t-num">$0.00</td><td class="t-num">$0.00</td><td class="t-num">约 22 分钟</td></tr>
+              <tr data-pin-bottom><td class="strong">合计</td><td class="t-num">200</td><td class="t-num strong">约 980</td><td class="t-num strong">$0.00</td><td class="t-num strong">$0.00</td><td class="t-num strong">约 30 分钟</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <dl class="kv" data-bf-kv>
+          <dt>本次新增费用</dt><dd class="num"><span class="strong">$0.00</span> · Home Depot 直连免费</dd>
+          <dt>估算依据</dt><dd>2026-11-03 回补：598 个商品页共 2,884 次请求，按新增商品页数折算<span class="etag">估算</span></dd>
+          <dt>限速</dt><dd>相邻请求间隔 ≥ 1 秒，失败重试 ≤ 3 次；遇 403 / 429 自动降速并记次数，仍失败时暂停该渠道并提示，已采部分保留</dd>
+        </dl>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn btn--primary" type="button" data-close data-bf-ok><svg class="icon"><use href="#ph-play"/></svg><span>确认并开始</span></button>
+      </div>
+    </div>
+  </div>
+
   <!-- 复制为新项目 -->
   <div class="modal" id="dlgCopy" role="dialog" aria-modal="true" aria-labelledby="dlgCopyTitle" aria-hidden="true">
     <div class="modal__dialog">
@@ -340,6 +420,56 @@
     (function () {
       var sel = document.getElementById('projSel');
       sel.addEventListener('change', function () { window.oppoToast('已切换项目：' + sel.value); });
+      /* 历史回补：按渠道起始月与 N 生成费用评估（CMP-F16-01） */
+      var BF = { hd: 'Home Depot', lowes: "Lowe's", wayfair: 'Wayfair' };
+      var bfChannel = 'hd';
+      function cell(text, cls) { return '<td class="' + (cls || 't-num') + '">' + text + '</td>'; }
+      function fillBackfill(ch, row) {
+        var inputs = row.querySelectorAll('input');
+        var start = inputs[0].value || '2024-01';
+        var n = parseInt(inputs[1].value, 10) || 300;
+        var dlg = document.getElementById('dlgBackfill');
+        var rows = dlg.querySelector('[data-bf-rows]');
+        var kv = dlg.querySelector('[data-bf-kv]');
+        dlg.querySelector('[data-bf-title]').textContent = '确认费用：历史回补 · ' + BF[ch];
+        if (ch === 'hd') {
+          var pages = Math.max(0, (n - 300) * 2);
+          var req = Math.round(pages * 2884 / 598);
+          var listReq = Math.round(req * 0.22);
+          var mins = function (r) { return '约 ' + Math.max(1, Math.round(r * 1.7 / 60)) + ' 分钟'; };
+          dlg.querySelector('[data-bf-sub]').textContent = '起始 ' + start + ' · 每个类目前 ' + n + ' 个商品页 · 已完成的 598 个商品页不重复请求';
+          rows.innerHTML = pages === 0
+            ? '<tr><td colspan="6" class="small muted">前 300 个商品页已全部完成，本次没有要采的商品页。加大 N 才会采新增排名的商品页。</td></tr>'
+            : '<tr>' + cell('列表 + 商品页规格', '') + cell(pages) + cell('约 ' + listReq) + cell('$0.00') + cell('$0.00') + cell(mins(listReq)) + '</tr>' +
+              '<tr>' + cell('全部历史评论（含分片补采）', '') + cell(pages) + cell('约 ' + (req - listReq)) + cell('$0.00') + cell('$0.00') + cell(mins(req - listReq)) + '</tr>' +
+              '<tr data-pin-bottom>' + cell('合计', 'strong') + cell(pages) + cell('约 ' + req, 't-num strong') + cell('$0.00', 't-num strong') + cell('$0.00', 't-num strong') + cell(mins(req), 't-num strong') + '</tr>';
+          kv.innerHTML = '<dt>本次新增费用</dt><dd class="num"><span class="strong">$0.00</span> · Home Depot 直连免费</dd>' +
+            '<dt>估算依据</dt><dd>2026-11-03 回补：598 个商品页共 2,884 次请求，按新增商品页数折算<span class="etag">估算</span></dd>' +
+            '<dt>限速</dt><dd>相邻请求间隔 ≥ 1 秒，失败重试 ≤ 3 次；遇 403 / 429 自动降速并记次数，仍失败时暂停该渠道并提示，已采部分保留</dd>';
+        } else {
+          var p = n * 2;
+          var listReq2 = Math.round(p * 1.03);
+          var bd = (listReq2 * 0.0015).toFixed(2);
+          dlg.querySelector('[data-bf-sub]').textContent = '起始 ' + start + ' · 每个类目前 ' + n + ' 个商品页 · 分两次确认：先采列表与规格，按真实商品数再估评论费用';
+          rows.innerHTML = '<tr>' + cell('列表 + 商品页规格（Bright Data）', '') + cell(p) + cell('约 ' + listReq2) + cell('$' + bd) + cell('$0.00') + cell('约 ' + Math.round(listReq2 * 3 / 60) + ' 分钟') + '</tr>' +
+            '<tr>' + cell('全部历史评论（Apify）', '') + cell(p) + cell('<span class="etag etag--nodata">列表采完后估算</span>') + cell('$0.00') + cell('<span class="etag etag--nodata">列表采完后估算</span>') + cell('<span class="etag etag--nodata">列表采完后估算</span>') + '</tr>' +
+            '<tr data-pin-bottom>' + cell('本次确认', 'strong') + cell(p) + cell('约 ' + listReq2, 't-num strong') + cell('$' + bd, 't-num strong') + cell('$0.00', 't-num strong') + cell('约 ' + Math.round(listReq2 * 3 / 60) + ' 分钟', 't-num strong') + '</tr>';
+          kv.innerHTML = '<dt>本次新增费用</dt><dd class="num"><span class="strong">$' + bd + '</span><span class="etag">估算</span> · 只含列表与规格</dd>' +
+            '<dt>Bright Data 本月</dt><dd class="num">已花 $14.20 / 上限 $40.00</dd>' +
+            '<dt>Apify 本月</dt><dd class="num">已花 $21.60 / 上限 $60.00</dd>' +
+            '<dt>达到上限时</dt><dd>月度上限先到即停，已采数据保留，可续采</dd>';
+        }
+        bfChannel = ch;
+      }
+      document.querySelectorAll('[data-bf]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          fillBackfill(btn.getAttribute('data-bf'), btn.closest('tr'));
+          window.oppoOpen('#dlgBackfill');
+        });
+      });
+      document.querySelector('[data-bf-ok]').addEventListener('click', function () {
+        window.oppoToast(bfChannel === 'hd' ? '已开始回补 Home Depot：只采新增排名的商品页' : '已开始回补 ' + BF[bfChannel] + '：先采列表与规格，完成后再确认评论费用');
+      });
       document.getElementById('btnCopy').addEventListener('click', function () {
         var input = document.getElementById('newProj');
         var name = input.value.trim();

@@ -103,29 +103,47 @@
           <div class="stat"><div class="stat__label">本批新子体（四个渠道）</div><div class="stat__value num">402<span class="stat__unit">个</span></div><div class="stat__meta">Amazon 286 · Home Depot 41 · Lowe's 23 · Wayfair 52</div></div>
           <div class="stat"><div class="stat__label">规则打标</div><div class="stat__value num">402<span class="stat__unit">/ 402</span></div><div class="stat__meta">8 类标签，每个标签带置信度</div><div class="meter"><i style="width:100%"></i></div></div>
           <div class="stat"><div class="stat__label">看图打元素（大模型 Claude）</div><div class="stat__value num">132<span class="stat__unit">/ 154</span></div><div class="stat__meta">规则判断不了元素的商品；Amazon 还剩 22 个</div><div class="meter"><i style="width:86%"></i></div></div>
-          <div class="stat"><div class="stat__label">确认队列</div><div class="stat__value num"><span data-pending-total>37</span><span class="stat__unit">条待确认</span></div><div class="stat__meta">已确认 81 · 不是本品类 4</div></div>
+          <div class="stat"><div class="stat__label">确认队列</div><div class="stat__value num"><span data-pending-total>37</span><span class="stat__unit">条待确认</span></div><div class="stat__meta">其中"装：未知"3 条 · 已确认 81 · 不是本品类 4</div></div>
         </div>
 
         <div class="section">
-          <div class="section__head"><h2 class="section__title" id="sec-progress">自动打标进度</h2><span class="section__note">低置信度阈值 0.80（品类配置 v3）· 打标规则 v3 · 四个渠道用同一套规则</span></div>
+          <div class="section__head"><h2 class="section__title" id="sec-progress">自动打标进度</h2><span class="section__note">低置信度阈值 0.80（品类配置 v3）· 打标规则 v3 · 四个渠道用同一套规则；其他渠道的尺寸、装、形态、台面、柜体、颜色先看商品页规格，规格缺失才用标题</span></div>
           <div class="table-wrap">
             <table class="table">
-              <thead><tr><th>渠道</th><th>数据月份</th><th class="t-num">新子体</th><th>规则打标</th><th>看图打元素</th><th class="t-num">进入确认队列</th><th class="t-num">待确认</th><th>状态</th></tr></thead>
+              <thead><tr><th>渠道</th><th>数据月份</th><th class="t-num">新子体</th><th>规则打标</th><th>分框标签来源</th><th>看图打元素</th><th class="t-num">进入确认队列</th><th class="t-num">待确认</th><th>状态</th></tr></thead>
               <tbody>
-                <tr><td class="cell-title">Amazon</td><td class="num">2026-10</td><td class="t-num">286</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td><td><span class="progress-cell"><span class="job__bar"><i style="width:77%"></i></span><span class="num small">74 / 96</span></span></td><td class="t-num">71</td><td class="t-num">22</td><td><span class="badge badge--watch"><svg class="icon spin"><use href="#ph-circle-notch"/></svg>进行中</span></td></tr>
-                <tr><td class="cell-title">Home Depot</td><td class="num">2026-10</td><td class="t-num">41</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成 18 / 18</span></td><td class="t-num">17</td><td class="t-num">6</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>打标完成</span></td></tr>
-                <tr><td class="cell-title">Lowe's</td><td class="num">2026-10</td><td class="t-num">23</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成 11 / 11</span></td><td class="t-num">11</td><td class="t-num">3</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>打标完成</span></td></tr>
-                <tr><td class="cell-title">Wayfair</td><td class="num">2026-10</td><td class="t-num">52</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成 29 / 29</span></td><td class="t-num">19</td><td class="t-num">6</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>打标完成</span></td></tr>
+                <tr><td class="cell-title">Amazon</td><td class="num">2026-10</td><td class="t-num">286</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td><td class="small">标题 · 看图</td><td><span class="progress-cell"><span class="job__bar"><i style="width:77%"></i></span><span class="num small">74 / 96</span></span></td><td class="t-num">71</td><td class="t-num">22</td><td><span class="badge badge--watch"><svg class="icon spin"><use href="#ph-circle-notch"/></svg>进行中</span></td></tr>
+                <tr><td class="cell-title">Home Depot</td><td class="num">2026-10</td><td class="t-num">41</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td><td class="small">规格 37 · 标题 2 · 装未知 2</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成 18 / 18</span></td><td class="t-num">17</td><td class="t-num">6</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>打标完成</span></td></tr>
+                <tr><td class="cell-title">Lowe's</td><td class="num">2026-10</td><td class="t-num">23</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td><td class="small">规格 19 · 标题 3 · 装未知 1</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成 11 / 11</span></td><td class="t-num">11</td><td class="t-num">3</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>打标完成</span></td></tr>
+                <tr><td class="cell-title">Wayfair</td><td class="num">2026-10</td><td class="t-num">52</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span></td><td class="small">规格 49 · 标题 3</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成 29 / 29</span></td><td class="t-num">19</td><td class="t-num">6</td><td><span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>打标完成</span></td></tr>
               </tbody>
             </table>
           </div>
+        </div>
+
+        <div class="panel" style="margin-top: var(--space-4)">
+          <div class="panel__head"><h3 class="panel__title">标签来源构成 · Home Depot 历史回补</h3><span class="section__note">1,904 个商品页（598 个在榜 + 1,306 个同家族、2024 年起有评论）· 按 2026 重建销量</span></div>
+          <div class="table-wrap table-wrap--flush">
+            <table class="table">
+              <thead><tr><th>标签</th><th class="t-num">商品页覆盖</th><th>来源构成</th><th>主要取值</th><th>无依据时</th></tr></thead>
+              <tbody>
+                <tr><td class="cell-title">装</td><td class="t-num">100%</td><td class="small"><span class="etag">规格</span> 98% · 同家族规格补 1% · <span class="etag">标题</span> 1%</td><td class="small">整装 80% · 拆装 19%</td><td class="small">记"未知"，进确认队列，不默认拆装</td></tr>
+                <tr><td class="cell-title">形态</td><td class="t-num">100%</td><td class="small"><span class="etag">规格</span> 95% · <span class="etag">标题</span> 4% · 同家族补 1%</td><td class="small">落地式 99% · 悬浮式 1%</td><td class="small">按落地式（与 Amazon 同口径），标低置信度</td></tr>
+                <tr><td class="cell-title">台面材质</td><td class="t-num">98%</td><td class="small"><span class="etag">规格</span> + <span class="etag">标题</span> 96% · 同家族补 1%</td><td class="small">岗石 36% · Cultured Marble 24% · 石英石 15%</td><td class="small">低置信度进队列</td></tr>
+                <tr><td class="cell-title">柜体材质</td><td class="t-num">93%</td><td class="small"><span class="etag">规格</span> + <span class="etag">标题</span> 94% · 同家族补 3%</td><td class="small">实木框架 33% · MDF 29% · 含刨花板 27%</td><td class="small">低置信度进队列</td></tr>
+                <tr><td class="cell-title">主色</td><td class="t-num">64%</td><td class="small"><span class="etag">规格</span> + <span class="etag">标题</span></td><td class="small">白 34% · 灰 11% · 原木 9%</td><td class="small">低置信度进队列</td></tr>
+                <tr><td class="cell-title">元素</td><td class="t-num">11%</td><td class="small"><span class="etag">标题</span> 规则；其余待 <span class="etag">看图</span></td><td class="small">夏克式 5% · 竖棱 1%</td><td class="small">进确认队列（看图打元素后）</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel__foot">标签来源只有四种：<span class="etag">规格</span> 商品页规格字段、<span class="etag">标题</span> 标题规则、<span class="etag">看图</span> 大模型看主图、<span class="etag">人工</span> 你确认或修改过。同系列没有自己规格的商品页，按同家族已知商品页的规格补，记为规格。</div>
         </div>
       </section>
 
       <section class="section enter" style="--i:2" aria-labelledby="sec-queue">
         <div class="section__head">
           <h2 class="section__title" id="sec-queue">确认队列</h2>
-          <span class="section__note">主图相同的商品分在一组，选一次即应用到整组；组内某个商品不一样时，在该行单独改</span>
+          <span class="section__note">主图相同的商品分在一组，选一次即应用到整组；组内某个商品不一样时，在该行单独改。每个标签注明来源：规格 / 标题 / 看图 / 人工</span>
         </div>
 
         <div class="tabs" role="tablist" aria-label="队列状态">
@@ -146,9 +164,10 @@
             <span class="filters__label">进队原因</span>
             <button class="chip" type="button" data-q="reason:all" aria-pressed="true">全部</button>
             <button class="chip" type="button" data-q="reason:element" aria-pressed="false">元素 <span class="count">24</span></button>
-            <button class="chip" type="button" data-q="reason:low" aria-pressed="false">低置信度 <span class="count">13</span></button>
+            <button class="chip" type="button" data-q="reason:low" aria-pressed="false">低置信度 <span class="count">10</span></button>
+            <button class="chip" type="button" data-q="reason:assembly" aria-pressed="false">装：未知 <span class="count">3</span></button>
             <span class="spacer"></span>
-            <span class="small muted">显示 <b class="num" data-shown>6</b> 组（共 14 组 37 条，按组内商品数排序）</span>
+            <span class="small muted">显示 <b class="num" data-shown>7</b> 组（共 15 组 37 条，按组内商品数排序）</span>
           </div>
 
           <div class="qgroups" id="queue">
@@ -157,7 +176,7 @@
               <div class="qgroup__head">
                 <svg class="thumb thumb--wood" role="img" aria-label="主图：30 英寸竖棱面板落地浴室柜，原木色"><use href="#img-fluted"/></svg>
                 <div class="qgroup__meta">
-                  <div class="row"><span class="badge badge--accent">元素</span><span class="badge">看图 · Claude</span><span class="small muted">同图 3 个商品 · 图指纹 <span class="fp">7c1e…a90b</span></span></div>
+                  <div class="row"><span class="badge badge--accent">元素</span><span class="badge">来源：看图 · Claude</span><span class="small muted">同图 3 个商品 · 图指纹 <span class="fp">7c1e…a90b</span></span></div>
                   <h3 class="qgroup__title" id="g1-title">这组的"元素"是什么？</h3>
                   <div class="choice-group" role="radiogroup" aria-label="候选值">
                     <label class="choice"><input type="radio" name="g1" value="竖棱" checked>竖棱 <span class="conf">0.64</span></label>
@@ -188,7 +207,7 @@
               <div class="qgroup__head">
                 <svg class="thumb thumb--wood" role="img" aria-label="主图：36 英寸夏克式落地浴室柜，浅木色"><use href="#img-vanity"/></svg>
                 <div class="qgroup__meta">
-                  <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span><span class="badge">主色 · 规则</span><span class="small muted">同图 2 个商品 · 图指纹 <span class="fp">2b04…e71c</span></span></div>
+                  <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span><span class="badge">主色 · 来源：标题</span><span class="small muted">同图 2 个商品 · 图指纹 <span class="fp">2b04…e71c</span></span></div>
                   <h3 class="qgroup__title" id="g2-title">这组的"主色"是什么？</h3>
                   <div class="choice-group" role="radiogroup" aria-label="候选值">
                     <label class="choice"><input type="radio" name="g2" value="原木" checked>原木 <span class="conf">0.58</span></label>
@@ -206,8 +225,8 @@
                 <table class="table">
                   <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>其他标签（自动）</th><th>本条主色</th><th>状态</th><th></th></tr></thead>
                   <tbody>
-                    <tr><td>Home Depot</td><td class="mono">328417652</td><td><div class="cell-title">Glacier Bay Brindley 36 in. Single Sink Freestanding Bath Vanity in Natural Oak</div></td><td class="tag-line"><b>36″</b> · 整装 · 落地式 · 夏克式 · 陶瓷一体</td><td><select class="select" aria-label="本条主色"><option selected>原木</option><option>深木</option><option>灰</option><option>白</option><option>黑</option></select></td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td><td><button class="btn btn--ghost btn--sm" type="button" data-row-notcat>不是本品类</button></td></tr>
-                    <tr><td>Home Depot</td><td class="mono">328417660</td><td><div class="cell-title">Glacier Bay Brindley 36 in. Single Sink Freestanding Bath Vanity in Natural Oak with Carrara Top</div></td><td class="tag-line"><b>36″</b> · 整装 · 落地式 · 夏克式 · 卡拉拉大理石</td><td><select class="select" aria-label="本条主色"><option selected>原木</option><option>深木</option><option>灰</option><option>白</option><option>黑</option></select></td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td><td><button class="btn btn--ghost btn--sm" type="button" data-row-notcat>不是本品类</button></td></tr>
+                    <tr><td>Home Depot</td><td class="mono">328417652</td><td><div class="cell-title">Glacier Bay Brindley 36 in. Single Sink Freestanding Bath Vanity in Natural Oak</div></td><td class="tag-line"><b>36″</b> · 整装<span class="etag">规格</span> · 落地式<span class="etag">规格</span> · 夏克式<span class="etag">标题</span> · 陶瓷一体</td><td><select class="select" aria-label="本条主色"><option selected>原木</option><option>深木</option><option>灰</option><option>白</option><option>黑</option></select></td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td><td><button class="btn btn--ghost btn--sm" type="button" data-row-notcat>不是本品类</button></td></tr>
+                    <tr><td>Home Depot</td><td class="mono">328417660</td><td><div class="cell-title">Glacier Bay Brindley 36 in. Single Sink Freestanding Bath Vanity in Natural Oak with Carrara Top</div></td><td class="tag-line"><b>36″</b> · 整装<span class="etag">规格</span> · 落地式<span class="etag">规格</span> · 夏克式<span class="etag">标题</span> · 卡拉拉大理石<span class="etag">规格</span></td><td><select class="select" aria-label="本条主色"><option selected>原木</option><option>深木</option><option>灰</option><option>白</option><option>黑</option></select></td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td><td><button class="btn btn--ghost btn--sm" type="button" data-row-notcat>不是本品类</button></td></tr>
                   </tbody>
                 </table>
               </div>
@@ -218,7 +237,7 @@
               <div class="qgroup__head">
                 <svg class="thumb" role="img" aria-label="主图：31 英寸白色落地浴室柜"><use href="#img-vanity"/></svg>
                 <div class="qgroup__meta">
-                  <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span><span class="badge">尺寸 · 规则</span><span class="small muted">1 个商品 · 标题写 31″，规格表写 30.5″</span></div>
+                  <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span><span class="badge">尺寸 · 来源：规格</span><span class="small muted">1 个商品 · 规格表写 30.5″，标题写 31″</span></div>
                   <h3 class="qgroup__title" id="g3-title">尺寸段归到哪一档？</h3>
                   <div class="choice-group" role="radiogroup" aria-label="候选值">
                     <label class="choice"><input type="radio" name="g3" value="30″" checked>30″ <span class="conf">0.71</span></label>
@@ -246,7 +265,7 @@
               <div class="qgroup__head">
                 <svg class="thumb thumb--grey" role="img" aria-label="主图：24 英寸灰色悬浮浴室柜"><use href="#img-float"/></svg>
                 <div class="qgroup__meta">
-                  <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span><span class="badge">柜体材质 · 规则</span><span class="small muted">同图 2 个商品 · 图指纹 <span class="fp">c93a…1f52</span></span></div>
+                  <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span><span class="badge">柜体材质 · 来源：标题</span><span class="small muted">同图 2 个商品 · 图指纹 <span class="fp">c93a…1f52</span></span></div>
                   <h3 class="qgroup__title" id="g4-title">这组的"柜体材质"是什么？</h3>
                   <div class="choice-group" role="radiogroup" aria-label="候选值">
                     <label class="choice"><input type="radio" name="g4" value="MDF" checked>MDF <span class="conf">0.66</span></label>
@@ -271,12 +290,41 @@
               </div>
             </article>
 
+            <!-- 组 7（v8）：Home Depot 装：未知，同图 2 个；规格没有 Assembled 字段、标题没写，不默认拆装 -->
+            <article class="qgroup" data-channel="hd" data-reason="assembly" aria-labelledby="g7-title">
+              <div class="qgroup__head">
+                <svg class="thumb" role="img" aria-label="主图：柜体加台面组合，沙色落地浴室柜"><use href="#img-vanity"/></svg>
+                <div class="qgroup__meta">
+                  <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>装：未知</span><span class="badge">装 · 无依据</span><span class="small muted">同图 2 个商品 · 规格没有 Assembled / Assembly Required 字段，标题也没写；不默认拆装</span></div>
+                  <h3 class="qgroup__title" id="g7-title">这组是整装还是拆装？</h3>
+                  <div class="choice-group" role="radiogroup" aria-label="候选值">
+                    <label class="choice"><input type="radio" name="g7" value="整装">整装</label>
+                    <label class="choice"><input type="radio" name="g7" value="拆装">拆装</label>
+                    <label class="choice"><input type="radio" name="g7" value="未知">仍不确定（保持未知，不进框）</label>
+                  </div>
+                </div>
+                <div class="qgroup__actions">
+                  <button class="btn" type="button" data-apply><svg class="icon"><use href="#ph-check"/></svg><span>应用到整组（2）</span></button>
+                  <button class="btn btn--ghost btn--sm" type="button" data-notcat><svg class="icon"><use href="#ph-prohibit"/></svg><span>看不出 / 不是本品类</span></button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>其他标签（自动）</th><th>本条装</th><th>状态</th><th></th></tr></thead>
+                  <tbody>
+                    <tr><td>Home Depot</td><td class="mono">339308578</td><td><div class="cell-title">Home Decorators Collection Winsome 36 in. Sand Bath Vanity Cabinet and 37 in. x 22 in. White Rectangular Sink Vanity Top Combo</div></td><td class="tag-line"><b>36″</b><span class="etag">标题</span> · 落地式<span class="etag">标题</span> <span class="conf">0.60</span> · 主色 沙<span class="etag">标题</span></td><td><select class="select" aria-label="本条装"><option selected>未知</option><option>整装</option><option>拆装</option></select></td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td><td><button class="btn btn--ghost btn--sm" type="button" data-row-notcat>不是本品类</button></td></tr>
+                    <tr><td>Home Depot</td><td class="mono">339308572</td><td><div class="cell-title">Home Decorators Collection Winsome 30 in. Sand Bath Vanity Cabinet and 31 in. x 22 in. White Rectangular Sink Vanity Top Combo</div></td><td class="tag-line"><b>30″</b><span class="etag">标题</span> · 落地式<span class="etag">标题</span> <span class="conf">0.60</span> · 主色 沙<span class="etag">标题</span></td><td><select class="select" aria-label="本条装"><option selected>未知</option><option>整装</option><option>拆装</option></select></td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td><td><button class="btn btn--ghost btn--sm" type="button" data-row-notcat>不是本品类</button></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
             <!-- 组 5：Amazon 元素，单个 -->
             <article class="qgroup" data-channel="amazon" data-reason="element" aria-labelledby="g5-title">
               <div class="qgroup__head">
                 <svg class="thumb thumb--dark" role="img" aria-label="主图：24 英寸黑色农场风落地浴室柜"><use href="#img-vanity"/></svg>
                 <div class="qgroup__meta">
-                  <div class="row"><span class="badge badge--accent">元素</span><span class="badge">看图 · Claude</span><span class="small muted">1 个商品</span></div>
+                  <div class="row"><span class="badge badge--accent">元素</span><span class="badge">来源：看图 · Claude</span><span class="small muted">1 个商品</span></div>
                   <h3 class="qgroup__title" id="g5-title">这个商品的"元素"是什么？</h3>
                   <div class="choice-group" role="radiogroup" aria-label="候选值">
                     <label class="choice"><input type="radio" name="g5" value="农场风装饰饰条" checked>农场风装饰饰条 <span class="conf">0.77</span></label>
@@ -304,7 +352,7 @@
               <div class="qgroup__head">
                 <svg class="thumb" role="img" aria-label="主图：带镜面的壁挂药柜"><use href="#img-mirror"/></svg>
                 <div class="qgroup__meta">
-                  <div class="row"><span class="badge badge--accent">元素</span><span class="badge">看图 · Claude</span><span class="small muted">1 个商品 · 大模型提示：主图像镜柜，可能不是浴室柜</span></div>
+                  <div class="row"><span class="badge badge--accent">元素</span><span class="badge">来源：看图 · Claude</span><span class="small muted">1 个商品 · 大模型提示：主图像镜柜，可能不是浴室柜</span></div>
                   <h3 class="qgroup__title" id="g6-title">这个商品的"元素"是什么？</h3>
                   <div class="choice-group" role="radiogroup" aria-label="候选值">
                     <label class="choice"><input type="radio" name="g6" value="纯色" checked>纯色 <span class="conf">0.41</span></label>
@@ -339,12 +387,12 @@
         <div id="tab-done" role="tabpanel" hidden>
           <div class="table-wrap">
             <table class="table">
-              <thead><tr><th>渠道</th><th>商品</th><th>标签</th><th>自动值（置信度）</th><th>确认值</th><th>确认方式</th><th>确认人 / 时间</th><th>生效</th></tr></thead>
+              <thead><tr><th>渠道</th><th>商品</th><th>标签</th><th>自动值（来源 · 置信度）</th><th>确认值（来源）</th><th>确认方式</th><th>确认人 / 时间</th><th>生效</th></tr></thead>
               <tbody>
-                <tr><td>Amazon</td><td class="mono">B0H2LM6BHK</td><td>元素</td><td>木条格栅 <span class="conf">0.52</span></td><td class="cell-title">自然木纹</td><td><span class="etag">人工修改</span></td><td class="small">wen · 2026-11-03 09:18</td><td><span class="small muted">下一次扫描</span></td></tr>
-                <tr><td>Amazon</td><td class="mono">B0GY4LJWQD</td><td>元素</td><td>农场风装饰饰条 <span class="conf">0.88</span></td><td class="cell-title">农场风装饰饰条</td><td><span class="etag">整组确认 · 3</span></td><td class="small">wen · 2026-11-03 09:16</td><td><span class="small muted">下一次扫描</span></td></tr>
-                <tr><td>Home Depot</td><td class="mono">330126478</td><td>台面材质</td><td>岗石 <span class="conf">0.69</span></td><td class="cell-title">石英石</td><td><span class="etag">人工修改</span></td><td class="small">wen · 2026-11-03 09:11</td><td><span class="small muted">下一次扫描</span></td></tr>
-                <tr><td>Wayfair</td><td class="mono">W111204958</td><td>形态</td><td>落地式 <span class="conf">0.74</span></td><td class="cell-title">落地式</td><td><span class="etag">确认</span></td><td class="small">wen · 2026-11-03 09:07</td><td><span class="small muted">下一次扫描</span></td></tr>
+                <tr><td>Amazon</td><td class="mono">B0H2LM6BHK</td><td>元素</td><td>木条格栅 <span class="etag">看图</span> <span class="conf">0.52</span></td><td class="cell-title">自然木纹<span class="etag">人工</span></td><td><span class="etag">人工修改</span></td><td class="small">wen · 2026-11-03 09:18</td><td><span class="small muted">下一次扫描</span></td></tr>
+                <tr><td>Amazon</td><td class="mono">B0GY4LJWQD</td><td>元素</td><td>农场风装饰饰条 <span class="etag">看图</span> <span class="conf">0.88</span></td><td class="cell-title">农场风装饰饰条<span class="etag">人工</span></td><td><span class="etag">整组确认 · 3</span></td><td class="small">wen · 2026-11-03 09:16</td><td><span class="small muted">下一次扫描</span></td></tr>
+                <tr><td>Home Depot</td><td class="mono">330126478</td><td>台面材质</td><td>岗石 <span class="etag">标题</span> <span class="conf">0.69</span></td><td class="cell-title">石英石<span class="etag">人工</span></td><td><span class="etag">人工修改</span></td><td class="small">wen · 2026-11-03 09:11</td><td><span class="small muted">下一次扫描</span></td></tr>
+                <tr><td>Wayfair</td><td class="mono">W111204958</td><td>形态</td><td>落地式 <span class="etag">标题</span> <span class="conf">0.74</span></td><td class="cell-title">落地式<span class="etag">人工</span></td><td><span class="etag">确认</span></td><td class="small">wen · 2026-11-03 09:07</td><td><span class="small muted">下一次扫描</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -404,7 +452,8 @@
     btn.addEventListener('click', function () {
       var group = btn.closest('.qgroup');
       var picked = group.querySelector('input[type=radio]:checked');
-      var value = picked ? picked.value : '';
+      if (!picked) { window.oppoToast('先选一个取值；"装"不确定时选"仍不确定"，不默认拆装'); return; }
+      var value = picked.value;
       var n = 0;
       rowsOf(group).forEach(function (tr) {
         if (tr.getAttribute('data-state')) return;
