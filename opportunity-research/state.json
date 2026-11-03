@@ -37,31 +37,63 @@
   ],
   "next_action": {
     "type": "user",
-    "description": "PRD 第二轮阶段 1：回答角色、产品形态、数据进入方式、第一版范围四个问题"
+    "description": "PRD 阶段 1 第二轮问题：外部软件交付形式、\"达标\"含义、大模型凭据、品类范围"
   },
   "open_questions": [
     {
       "id": "OQ-R2-01",
       "node": "角色与权限（谁操作、谁审批、谁只看）",
       "priority": "P0",
-      "status": "open"
+      "status": "resolved",
+      "answer": "三角色：wen 操作（导数据、生成 / 编辑决策卡）；老板审批（策略库、立项）；运营 / 采购 / 研发只读",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-02",
       "node": "产品形态（网页系统 / 本地报告）",
       "priority": "P0",
-      "status": "open"
+      "status": "resolved",
+      "answer": "浏览器网页系统（评审会投屏；展开项、勾选变量、审批）",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-03",
       "node": "数据进入方式（每月上传导出 / 用卖家精灵接口自动拉）及账号归属",
       "priority": "P0",
-      "status": "open"
+      "status": "partial",
+      "answer": "数据由 wen 方另做的\"全品店利润测算 + 数据拉取软件\"提供，本系统接入其输出；数据进来后本系统要做：1) 达标（打标？）及元素确认；2) 低置信度标签人工确认",
+      "source": "wen 2026-11-03"
     },
     {
       "id": "OQ-R2-04",
       "node": "第一版范围",
       "priority": "P0",
+      "status": "resolved",
+      "answer": "第一版全做：数据导入核对 + 机会扫描 + 决策卡；差评自动拉取与归类；预测台账 + 策略库审批；利润测算接入 + 模型更新回测",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-05",
+      "node": "外部\"全品店利润测算 + 数据拉取软件\"交给本系统的形式（文件 / 接口 / 共享库）与现状",
+      "priority": "P0",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-06",
+      "node": "\"达标以及元素的确认\"中\"达标\"的含义（打标？成功线判定？）",
+      "priority": "P1",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-07",
+      "node": "看图打标 / 差评归类用的大模型凭据归属与配置",
+      "priority": "P1",
+      "status": "open"
+    },
+    {
+      "id": "OQ-R2-08",
+      "node": "第一版品类范围（只浴室柜 / 可配置多品类）",
+      "priority": "P1",
       "status": "open"
     }
   ],
