@@ -60,6 +60,27 @@ def latest_run(s):
     return s.scalar(select(ModelRun).order_by(ModelRun.id.desc()).limit(1))
 
 
+def validity_statement(run, data_month: str, today=None) -> dict:
+    """工作台与决策卡顶部共用的有效性表述（AC-F19-04）：一律以最新 ModelRun 的数据截至月与重算时间为准。
+
+    “本月”指重算发生在当前自然月；未通过时照 AC-F19-04 原文。basis 是同一句依据：版本 · 数据截至月 · 重算日期。
+    data_month 晚于数据截至月时另给 pending（该月数据尚未纳入重算），不改变通过与否的说法。
+    """
+    if run is None:
+        return dict(kind="none")
+    today = today or datetime.now().date()
+    this_month = run.created_at.strftime("%Y-%m") == today.strftime("%Y-%m")
+    if not run.valid:
+        kind, title = "fail", "市场评分本月未通过有效性检验"
+    elif this_month:
+        kind, title = "pass", "市场评分本月通过有效性检验"
+    else:
+        kind, title = "stale", f"本月尚未重算，以下沿用数据截至 {run.month} 的结论"
+    basis = f"{run.version}，数据截至 {run.month}，{run.created_at:%Y-%m-%d} 重算"
+    pending = f"{data_month} 数据尚未纳入重算" if data_month and run.month < data_month else ""
+    return dict(kind=kind, title=title, basis=basis, msg="" if run.valid_msg == "市场评分本月未通过有效性检验" else (run.valid_msg or ""), pending=pending, month=run.month)
+
+
 def model_bias(run) -> float | None:
     """当月"模型偏差"（新品层近批预测 − 实际），按概率单位返回。newlayer 里按每 10 个记（如 1.2）时换算成 0.12。"""
     if run is None:

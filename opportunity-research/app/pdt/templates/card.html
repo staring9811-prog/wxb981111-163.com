@@ -85,12 +85,14 @@
 {% endblock %}
 
 {% block content %}
-{% if not run %}
+{% set v = validity %}
+{% if v.kind == 'none' %}
 <div class="banner banner--warn enter" style="--i:0"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">还没有模型评分：市场评分、做到概率显示“无数据”。{% if user.role != 'readonly' %}<a href="/models">去模型与回测</a>{% endif %}</div></div>
-{% elif not run.valid %}
-<div class="banner banner--block enter" role="alert" style="--i:0"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body"><div class="banner__title">市场评分本月未通过有效性检验</div><div>{{ run.version }}，{{ run.created_at.strftime('%Y-%m-%d') }} 重算{% if run.valid_msg %}：{{ run.valid_msg }}{% endif %}。本卡的市场评分只作参考。{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div></div>
+{% elif v.kind == 'fail' %}
+<div class="banner banner--block enter" role="alert" style="--i:0" data-validity="fail"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body"><div class="banner__title">{{ v.title }}</div><div>{{ v.basis }}{% if v.msg %}：{{ v.msg }}{% endif %}。{% if v.pending %}{{ v.pending }}。{% endif %}本卡的市场评分只作参考。{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div></div>
 {% else %}
-<div class="banner banner--ok enter" style="--i:0"><svg class="icon"><use href="#ph-seal-check"/></svg><div class="banner__body">市场评分本月通过有效性检验（{{ run.version }}，{{ run.created_at.strftime('%Y-%m-%d') }} 重算{% if run.valid_msg %}：{{ run.valid_msg }}{% endif %}）。{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div>
+<div class="banner banner--{{ 'ok' if v.kind == 'pass' else 'warn' }} enter" style="--i:0" data-validity="{{ v.kind }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if v.kind == 'pass' else 'hourglass' }}"/></svg><div class="banner__body">{{ v.title }}（{{ v.basis }}{% if v.msg %}：{{ v.msg }}{% endif %}）。{% if v.pending %}{{ v.pending }}。{% endif %}{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div>
+{% endif %}）。{% if user.role != 'readonly' %}<a href="/models">看回测</a>{% endif %}</div></div>
 {% endif %}
 {% if locked and new_data %}
 <div class="banner banner--stale">

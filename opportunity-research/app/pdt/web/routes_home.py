@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from ..auth import any_user
 from ..config import CHANNEL_NAMES, CHANNELS, SERVICES
 from ..db import session
-from ..models import Approval, Batch, Card, Forecast, Job, ModelRun, Strategy, User
+from ..models import Approval, Batch, Card, Forecast, Job, Strategy, User
 from .ui import render
 
 router = APIRouter()
@@ -40,18 +40,9 @@ def _data_month(today: date) -> str:
 
 
 def _validity(data_month: str):
+    from ..core import card as cardcore  # 与决策卡顶部共用同一表述函数
     with session() as s:
-        r = s.scalar(select(ModelRun).order_by(ModelRun.created_at.desc(), ModelRun.id.desc()).limit(1))
-        if not r:
-            return dict(kind="none")
-        d = dict(month=r.month, msg=r.valid_msg, at=r.created_at)
-    if not r.valid:
-        d["kind"] = "fail"
-    elif r.month < data_month:
-        d["kind"] = "stale"
-    else:
-        d["kind"] = "pass"
-    return d
+        return cardcore.validity_statement(cardcore.latest_run(s), data_month)
 
 
 def _data_status(data_month: str):

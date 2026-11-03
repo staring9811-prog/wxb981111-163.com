@@ -159,6 +159,13 @@ def chart(points, ref=None, pct=True, ref_line=None, label=""):
                 ref_y=f"{Y(ref_line):.1f}" if ref_line else None, ref_ty=f"{Y(ref_line) - 4:.1f}" if ref_line else None)
 
 
+def _validity(run):
+    """顶部有效性横幅：与工作台共用 cardcore.validity_statement（数据月 = 本月处理的上月）。"""
+    from datetime import date
+    from .routes_home import _data_month
+    return cardcore.validity_statement(run, _data_month(date.today()))
+
+
 def _view(s, c: Card, user):
     locked = c.status in cardcore.LOCKED
     snap = c.snapshot if (locked and c.snapshot) else None
@@ -192,7 +199,7 @@ def _view(s, c: Card, user):
     rv_max = max([x["n"] for x in reviews["cats"]] + [1])
     return dict(card=c, name=cardcore.card_name(c), n=numbers, bmax=bmax, rv_max=rv_max, prim=prim, narr=narr, profit=profit, rv=reviews, charts=charts,
                 events=events, pending=pend, pending_by=sub_by.name if sub_by else "", approved=last_ok, approver=approver.name if approver else "",
-                forecast=fc, run=run, new_data=cardcore.has_new_data(s, c), stops=stops, locked=locked,
+                forecast=fc, run=run, validity=_validity(run), new_data=cardcore.has_new_data(s, c), stops=stops, locked=locked,
                 can_edit=user.role == "operator" and c.status == "draft",
                 can_approve=user.role == "approver" and c.status == "pending" and pend is not None,
                 is_op=user.role == "operator", status_name=cardcore.STATUS_NAMES.get(c.status, c.status),

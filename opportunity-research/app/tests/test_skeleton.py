@@ -24,3 +24,16 @@ def test_readonly_cannot_post(client):
     assert r.status_code == 403 and r.json()["detail"] == "无权限"
     r = client.get("/")
     assert "设置" not in r.text.split('<nav class="nav">')[1].split("</nav>")[0]
+
+
+def test_sidebar_fixed_height_nav_scrolls(wen):
+    """DESIGN-02：侧栏固定视口高度，品牌区与"收起侧栏"不被压缩，菜单区单独滚动（pdt.css 在 app.css 之后引入）。"""
+    html = wen.get("/").text
+    head = html.split("</head>")[0]
+    assert head.index("/static/app.css") < head.index("/static/pdt.css")
+    css = wen.get("/static/pdt.css").text
+    side = css.split(".sidebar {", 1)[1].split("}", 1)[0]
+    assert "position: fixed" in side and "height: 100vh" in side and "overflow: hidden" in side
+    assert ".sidebar__brand, .sidebar__foot { flex: none; }" in css
+    nav = css.split(".sidebar .nav {", 1)[1].split("}", 1)[0]
+    assert "min-height: 0" in nav and "overflow-y: auto" in nav

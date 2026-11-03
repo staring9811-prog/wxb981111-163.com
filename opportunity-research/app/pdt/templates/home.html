@@ -30,37 +30,19 @@
 </div>
 
 {% set v = validity %}
-{% if v.kind == 'fail' %}
-<div class="banner banner--warn enter" style="--i:1" role="alert" data-validity="fail">
-  <svg class="icon"><use href="#ph-warning"/></svg>
-  <div class="banner__body">
-    <div class="banner__title">市场评分本月未通过有效性检验</div>
-    <div class="small">{{ v.msg or '回测显示 D 档之后变大比例超过 30%，或把握分档不再逐档上升。' }}依据 {{ v.month }} 数据的重算（{{ v.at|dt }}），在通过前不要据此立项。</div>
-  </div>
-  {% if role != 'readonly' %}<div class="banner__actions"><a class="btn btn--sm" href="/models">查看回测</a></div>{% endif %}
-</div>
-{% elif v.kind == 'pass' %}
-<div class="banner banner--ok enter" style="--i:1" role="status" data-validity="pass">
-  <svg class="icon"><use href="#ph-seal-check"/></svg>
-  <div class="banner__body">
-    <div class="banner__title">市场评分本月通过有效性检验</div>
-    <div class="small">{{ v.msg }}{% if v.msg %} {% endif %}依据 {{ v.month }} 数据的重算（{{ v.at|dt }}）。</div>
-  </div>
-  {% if role != 'readonly' %}<div class="banner__actions"><a class="btn btn--sm" href="/models">查看回测</a></div>{% endif %}
-</div>
-{% elif v.kind == 'stale' %}
-<div class="banner banner--warn enter" style="--i:1" role="status" data-validity="stale">
-  <svg class="icon"><use href="#ph-hourglass"/></svg>
-  <div class="banner__body">
-    <div class="banner__title">本月尚未重算，以下沿用 {{ v.month }} 结论</div>
-    <div class="small">{{ v.month }} 的有效性检验：通过。{{ v.msg }}</div>
-  </div>
-  {% if role != 'readonly' %}<div class="banner__actions"><a class="btn btn--sm" href="/models">查看回测</a></div>{% endif %}
-</div>
-{% else %}
+{% if v.kind == 'none' %}
 <div class="banner enter" style="--i:1" role="status" data-validity="none">
   <svg class="icon"><use href="#ph-info"/></svg>
   <div class="banner__body"><div class="banner__title">还没有市场评分</div><div class="small">数据并入后在模型与回测页做第一次重算，通过有效性检验后再看机会。</div></div>
+</div>
+{% else %}
+<div class="banner banner--{{ 'ok' if v.kind == 'pass' else 'warn' }} enter" style="--i:1" role="{{ 'alert' if v.kind == 'fail' else 'status' }}" data-validity="{{ v.kind }}">
+  <svg class="icon"><use href="#ph-{{ 'seal-check' if v.kind == 'pass' else ('warning' if v.kind == 'fail' else 'hourglass') }}"/></svg>
+  <div class="banner__body">
+    <div class="banner__title">{{ v.title }}</div>
+    <div class="small">{{ v.basis }}{% if v.msg %}：{{ v.msg }}{% endif %}。{% if v.pending %}{{ v.pending }}。{% endif %}{% if v.kind == 'fail' %}在通过前不要据此立项。{% endif %}</div>
+  </div>
+  {% if role != 'readonly' %}<div class="banner__actions"><a class="btn btn--sm" href="/models">查看回测</a></div>{% endif %}
 </div>
 {% endif %}
 
@@ -180,10 +162,12 @@
       <div class="panel__body spend">
         {% for u in spend %}
         <div class="spend__row" data-svc="{{ u.service }}">
-          {% set amt = (u.spent_qty|num ~ (' / ' ~ u.cap|num if u.cap is not none else '') ~ ' 次') if u.unit == 'calls' else ('$' ~ u.spent_usd|num(2) ~ (' / $' ~ u.cap|num(2) if u.cap is not none else '')) %}
+          {# 与预算页同一口径：已用 / 上限；没设上限写明“未设上限”，未连接在下方另行标注 #}
+          {% if u.unit == 'calls' %}{% set amt = (u.spent_qty|num ~ ' / ' ~ u.cap|num ~ ' 次') if u.cap is not none else (u.spent_qty|num ~ ' 次 / 未设上限') %}
+          {% else %}{% set amt = ('$' ~ u.spent_usd|num(2) ~ ' / $' ~ u.cap|num(2)) if u.cap is not none else ('$' ~ u.spent_usd|num(2) ~ ' / 未设上限') %}{% endif %}
           <div class="row"><span>{{ u.name }}</span><span class="num">{{ amt }}{% if u.pct is not none %}<span class="etag{% if u.status in ('warn', 'cap') %} etag--snap{% endif %}">{{ u.pct }}%</span>{% endif %}</span></div>
           {% if u.pct is not none %}<div class="meter{% if u.status == 'cap' %} meter--danger{% elif u.status == 'warn' %} meter--warn{% endif %}" role="meter" aria-valuenow="{{ u.pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ u.name }}已用 {{ u.pct }}%"><i style="width:{{ [u.pct, 100]|min }}%"></i></div>{% endif %}
-          {% if u.status == 'nc' %}<div class="field__hint">未连接 · <a href="/settings/keys">去填写密钥</a></div>
+          {% if u.status == 'nc' %}<div class="field__hint"><span class="badge badge--nodata"><svg class="icon"><use href="#ph-link-simple"/></svg>未连接</span> <a href="/settings/keys">去填写密钥</a>{% if u.cap is none %} · <a href="/settings/budget">设上限</a>{% endif %}</div>
           {% elif u.status == 'cap' %}<div class="field__hint" style="color: var(--danger)">已达上限，已停止新调用</div>
           {% elif u.status == 'warn' %}<div class="field__hint">接近上限：已用超过 80%，达到上限后自动停止新调用</div>
           {% elif u.status == 'nocap' %}<div class="field__hint">未设上限 · <a href="/settings/budget">去设置</a></div>{% endif %}
