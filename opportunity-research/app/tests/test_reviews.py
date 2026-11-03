@@ -84,3 +84,16 @@ def test_reviews_without_llm_only_show_text(wen):
         rows = s.query(CardReview).filter_by(card_id=cid).all()
         assert rows and all(r.reason == "" for r in rows)
     assert "大模型未连接：只显示原文、不归类" in wen.get(f"/cards/{cid}").text
+
+
+def test_sellersprite_review_without_id_and_ms_date():
+    """FLOW-15：卖家精灵 review 接口返回无评论 ID、date 为毫秒时间戳（2026-11-03 实测 B0D1QHH3QW 的返回格式），
+    归一后必须有稳定 ID（同一条重复拉取 ID 相同）、日期为 YYYY-MM-DD，不能被当成无效评论丢弃。"""
+    from pdt.core.reviews import _norm
+    raw = {"author": "Devin", "title": "You get what you pay for…", "content": "Sink is plastic, vanity walls are basically cardboard. DO NOT BUY.",
+           "date": 1765728000000, "star": 1, "verified": True}
+    a, b = _norm(raw), _norm(dict(raw))
+    assert a["review_id"] and a["review_id"] == b["review_id"]
+    assert a["date"] == "2025-12-14" and a["stars"] == 1.0 and "plastic" in a["text"]
+    other = _norm(dict(raw, author="Mel"))
+    assert other["review_id"] != a["review_id"]

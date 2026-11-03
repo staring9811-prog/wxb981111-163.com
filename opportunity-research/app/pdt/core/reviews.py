@@ -6,7 +6,9 @@
 - review_classify：只对还没归类的评论调用大模型归类（例如先拉了差评、后来才填大模型密钥）。
 - 改判：人工改归类后占比重算，记为人工修改（AC-F22-04）。
 """
+import hashlib
 import json
+from datetime import datetime, timezone
 import re
 
 from sqlalchemy import func, select
@@ -64,8 +66,17 @@ def _norm(r: dict) -> dict:
     """卖家精灵评论字段归一（不同接口版本字段名不同）。"""
     g = lambda *ks: next((r[k] for k in ks if r.get(k) not in (None, "")), None)
     star = g("star", "stars", "rating", "score")
-    return dict(review_id=str(g("reviewId", "review_id", "id") or ""), stars=float(star) if star is not None else None,
-                text=str(g("content", "text", "body", "reviewText") or ""), date=str(g("date", "reviewDate", "reviewTime") or "")[:10])
+    text = str(g("content", "text", "body", "reviewText") or "")
+    d = g("date", "reviewDate", "reviewTime")
+    if isinstance(d, (int, float)) or (isinstance(d, str) and d.isdigit() and len(d) >= 12):
+        # 卖家精灵 review 接口的 date 是毫秒时间戳（2026-11-03 实测）
+        d = datetime.fromtimestamp(int(d) / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
+    rid = g("reviewId", "review_id", "id")
+    if not rid:
+        # 卖家精灵 review 接口不返回评论 ID（2026-11-03 实测）：用评论人 + 日期 + 标题 + 正文生成稳定 ID，同一条评论多次拉取不重复入卡
+        key = "|".join(str(r.get(k) or "") for k in ("author", "date", "title")) + "|" + text
+        rid = "ss-" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+    return dict(review_id=str(rid), stars=float(star) if star is not None else None, text=text, date=str(d or "")[:10])
 
 
 def run_pull(ctx):
