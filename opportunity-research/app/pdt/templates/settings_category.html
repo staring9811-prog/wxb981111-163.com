@@ -145,6 +145,32 @@
       </div>
       <div class="panel__foot">默认值依据 2026 年 1–10 月数据：Home Depot 3,325、Lowe's 3,850、Wayfair 7,394 条去重评论。</div>
     </section>
+
+    <!-- v8 回补与打折参数（AC-F27-04） -->
+    <section class="panel" id="bfParams">
+      <div class="panel__head"><h2 class="panel__title">历史回补与打折规则</h2><span class="section__note">用于 <a href="/tools/vp#backfill">历史回补</a>、<a href="/models">渠道回测</a> 和扫描、决策卡上的打折后读法</span></div>
+      <div class="table-wrap table-wrap--flush">
+        <table class="table">
+          <thead><tr><th>渠道</th><th>回补起始月份</th><th class="t-num">商品页数 N（每个类目）</th><th class="t-num">秩相关减值</th><th class="t-num">把握 ≥ 70% 档减值（百分点）</th><th class="t-num">方向对上限</th><th>现状</th></tr></thead>
+          <tbody>
+            {% for c in channels %}
+            {% if c.key == 'amazon' %}
+            <tr><td class="cell-title">Amazon</td><td colspan="6" class="small muted">全量月度数据，不回补、不打折</td></tr>
+            {% else %}{% set bp = bf_params[c.key] %}
+            <tr><td class="cell-title">{{ c.name }}</td>
+              <td><input class="input" type="month" value="{{ bp.backfill.start }}" data-path="channels.{{ c.key }}.backfill.start" aria-label="{{ c.name }} 回补起始月份" style="width:150px"></td>
+              <td class="t-num"><input class="input input--num w-num" value="{{ bp.backfill.n }}" data-path="channels.{{ c.key }}.backfill.n" data-type="num" aria-label="{{ c.name }} 商品页数 N"></td>
+              <td class="t-num"><input class="input input--num w-num" value="{{ bp.discount.rank_corr }}" data-path="channels.{{ c.key }}.discount.rank_corr" data-type="num" aria-label="{{ c.name }} 秩相关减值"></td>
+              <td class="t-num"><input class="input input--num w-num" value="{{ bp.discount.high_pp }}" data-path="channels.{{ c.key }}.discount.high_pp" data-type="num" aria-label="{{ c.name }} 高档减值"></td>
+              <td class="t-num"><input class="input input--num w-num" value="{{ bp.discount.dir_cap }}" data-path="channels.{{ c.key }}.discount.dir_cap" data-type="num" aria-label="{{ c.name }} 方向对上限"> %</td>
+              <td class="small {{ '' if bf_state[c.key] else 'muted' }}">{% if bf_state[c.key] %}已回补 {{ bf_state[c.key].pages_listed|num }} 个商品页 · {{ bf_state[c.key].start }} 至 {{ bf_state[c.key].end }}{% else %}未回补 · 未验证{% endif %}</td></tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="panel__foot">打折后读法 = 秩相关减去减值；把握 ≥ 70% 档之后变大比例减去减值；方向对按不超过上限看。默认值来自幸存者偏差模拟（只留今天前 200 个家族重做 Amazon 回测）。N 加大只采新增排名的商品页。保存后之后的回补、回测与打折后读法用新值，结果上注明参数版本（当前 v{{ version }}）。</div>
+    </section>
   </section>
 
   <!-- 参数版本 -->

@@ -29,7 +29,13 @@ def _progress():
             need = s.scalar(select(func.count()).select_from(Tag).where(Tag.channel == ch, Tag.month == month, Tag.tag == '元素', Tag.source == 'rule', Tag.value == '')) or 0
             pend = s.scalar(select(func.count()).select_from(Tag).join(Product, (Product.channel == Tag.channel) & (Product.item_id == Tag.item_id))
                             .where(Tag.channel == ch, Tag.status == 'queued', Product.excluded.is_(False))) or 0
-            out.append(dict(channel=ch, name=CHANNEL_NAMES[ch], month=month, new=new, vision=vis, need_image=need, pending=pend))
+            # 分框标签来源（以“装”为代表）：规格 / 标题 / 装未知（AC-F18-08）
+            fs = dict(s.execute(select(Tag.source, func.count()).where(Tag.channel == ch, Tag.month == month, Tag.tag == '装', Tag.value != '')
+                                .group_by(Tag.source)).all())
+            unk = s.scalar(select(func.count()).select_from(Tag).where(Tag.channel == ch, Tag.month == month, Tag.tag == '装', Tag.value == '')) or 0
+            queued = s.scalar(select(func.count()).select_from(Tag).where(Tag.channel == ch, Tag.month == month, Tag.status == 'queued')) or 0
+            out.append(dict(channel=ch, name=CHANNEL_NAMES[ch], month=month, new=new, vision=vis, need_image=need, pending=pend, queued=queued,
+                            frame_src=dict(spec=fs.get('spec', 0), rule=fs.get('rule', 0) + fs.get('manual', 0) + fs.get('vision', 0), unknown=unk)))
     return out
 
 
@@ -45,7 +51,7 @@ def _excluded():
 @router.get('/tagging')
 def page(request: Request, channel: str = '', reason: str = '', tab: str = 'pending', page: int = 1, user=operator_only):
     ch = channel if channel in CHANNEL_NAMES else None
-    rs = reason if reason in ('element', 'low') else None
+    rs = reason if reason in ('element', 'low', 'assembly') else None
     cnt = tagging.counts()
     groups = tagging.queue(ch, rs, 'queued' if tab == 'pending' else 'confirmed') if tab in ('pending', 'done') else []
     pages = max(1, -(-len(groups) // PER_PAGE))
@@ -55,7 +61,19 @@ def page(request: Request, channel: str = '', reason: str = '', tab: str = 'pend
     return render(request, 'tagging.html', 'PAGE-F18-01', '打标确认', groups=groups[(page - 1) * PER_PAGE:page * PER_PAGE], n_groups=len(groups),
                   n_items=sum(len(g['items']) for g in groups), page=page, pages=pages, per_page=PER_PAGE, cnt=cnt, prog=_progress(), channel=ch or 'all',
                   reason=rs or 'all', tab=tab, excluded=excluded, thr=thr, ver=ver, rule_version=rules.get('rule_version', ''),
-                  llm=services.connected('llm'), vision_todo=len(tagging.vision_targets()), untagged=sum(len(v) for v in tagging.untagged_items().values()))
+                  llm=services.connected('llm'), vision_todo=len(tagging.vision_targets()), untagged=sum(len(v) for v in tagging.untagged_items().values()),
+                  tag_src=_tag_sources())
+
+
+def _tag_sources():
+    """其他渠道历史回补的标签来源构成（PAGE-F18-01 v8 面板，数据来自最近一次历史重建）。"""
+    from ..core import backfill
+    out = []
+    for ch in ('homedepot', 'lowes', 'wayfair'):
+        rb = backfill.last_rebuild(ch)
+        if rb and rb['stats'].get('tags'):
+            out.append(dict(channel=ch, name=CHANNEL_NAMES[ch], stats=rb['stats']))
+    return out
 
 
 @router.get('/tagging/export')
@@ -63,7 +81,7 @@ def export(channel: str = '', reason: str = '', tab: str = 'pending', user=opera
     """导出当前筛选下的队列明细（待确认 / 已确认按渠道与进队原因筛选；“不是本品类”导出被排除的商品）。"""
     from openpyxl import Workbook
     ch = channel if channel in CHANNEL_NAMES else None
-    rs = reason if reason in ('element', 'low') else None
+    rs = reason if reason in ('element', 'low', 'assembly') else None
     wb = Workbook()
     ws = wb.active
     if tab == 'out':
@@ -74,7 +92,7 @@ def export(channel: str = '', reason: str = '', tab: str = 'pending', user=opera
     else:
         ws.title = '待确认' if tab == 'pending' else '已确认'
         ws.append(['同图组', '标签', '进队原因', '来源', '渠道', '商品ID', '标题', '其他标签（自动）', '当前值', '置信度', '状态', '链接'])
-        src = {'vision': '看图', 'manual': '人工', 'rule': '规则'}
+        src = tagging.SRC_LABEL
         for g in tagging.queue(ch, rs, 'queued' if tab == 'pending' else 'confirmed'):
             for it in g['items']:
                 st = ('已确认' + (' · 单改' if it['confirm_mode'] == 'single' else '')) if it['status'] == 'confirmed' else '待确认'
@@ -83,7 +101,7 @@ def export(channel: str = '', reason: str = '', tab: str = 'pending', user=opera
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    fn = f"打标确认_{ws.title}{'_' + CHANNEL_NAMES[ch] if ch else ''}{'_' + ('元素' if rs == 'element' else '低置信度') if rs else ''}.xlsx"
+    fn = f"打标确认_{ws.title}{'_' + CHANNEL_NAMES[ch] if ch else ''}{'_' + {'element': '元素', 'low': '低置信度', 'assembly': '装未知'}[rs] if rs else ''}.xlsx"
     return StreamingResponse(buf, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                              headers={'Content-Disposition': "attachment; filename*=UTF-8''" + quote(fn)})
 

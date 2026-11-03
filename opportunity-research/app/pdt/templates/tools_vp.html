@@ -195,6 +195,77 @@
   </div>
 </div>
 
+<!-- v8 历史回补（REQ-F23-02、AC-F23-03、AC-F23-04、NFR-013） -->
+<section class="section enter" style="--i:5" id="backfill" aria-labelledby="bfTitle">
+  <div class="section__head">
+    <h2 class="section__title" id="bfTitle">历史回补</h2>
+    <span class="section__note">为分渠道回测补 {{ bf[0].params.start }} 以来的月度历史：按类目榜单取前 N 个商品页（排除广告位），采每个商品页的全部历史评论与商品页规格</span>
+  </div>
+  <div class="banner">
+    <svg class="icon"><use href="#ph-info"/></svg>
+    <div class="banner__body small">Home Depot 直连公开页面，免费；相邻请求间隔 ≥ 1 秒，单个请求失败最多重试 3 次，遇 403 / 429 自动降速并记次数。Lowe's / Wayfair 经 Bright Data / Apify，按量计费，受 <a href="/settings/budget">月度上限</a> 约束。评论超过站点单一排序可翻到的上限（Home Depot 约 17 页 · 510 条）时，按 1–5 星分片补采，某个星级仍到上限再加"仅 VP"分片；仍到上限的记为截断。回补完成后在 <a href="/data/channels#rebuild">其他渠道数据 · 历史重建</a> 按评论日期重建月度历史。</div>
+  </div>
+  <div class="table-wrap" style="margin-top: var(--space-3)">
+    <table class="table">
+      <thead><tr><th>渠道</th><th>起始月份</th><th class="t-num">商品页数 N（每个类目）</th><th>采集方式</th><th>状态</th><th>上次回补</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+      <tbody>
+      {% for b in bf %}{% set rb = b.rebuild %}{% set jb = b.job %}
+        <tr data-bf-row="{{ b.channel }}"><td class="cell-title">{{ b.name }}</td>
+          <td><input class="input" type="month" value="{{ b.params.start }}" data-bf-start aria-label="{{ b.name }} 起始月份" style="width:150px"></td>
+          <td class="t-num"><input class="input input--num" style="width:88px" value="{{ b.params.n }}" data-bf-n inputmode="numeric" aria-label="{{ b.name }} 商品页数 N"></td>
+          <td class="small">{{ '直连 · 免费' if b.channel == 'homedepot' else 'Bright Data（列表、规格）+ Apify（评论）' }}{% if not b.connected %}<div class="cell-sub">未连接，去 <a href="/settings/keys">密钥与大模型</a></div>{% endif %}</td>
+          <td>{% if b.status == 'running' %}<span class="badge badge--watch"><svg class="icon spin"><use href="#ph-circle-notch"/></svg>进行中</span>
+            {% elif b.status == 'paused' %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>已暂停</span>
+            {% elif b.status == 'lists_done' %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>列表已采，待确认评论费用</span>
+            {% elif b.status == 'done' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已完成</span>
+            {% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未回补 · 未验证</span>{% endif %}</td>
+          <td class="small">{% if rb %}{{ rb.stats.collected_on }} · {{ rb.stats.entries|length }} 类目 {{ rb.stats.pages_listed|num }} 个商品页 · {{ rb.stats.truncated_pages }} 截断{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
+          <td class="t-nowrap"><button class="btn btn--sm" type="button" data-cost-kind="channel_backfill" data-cost-target="backfill:{{ b.channel }}"
+              data-cost-params='{{ {"channel": b.channel, "start": b.params.start, "n": b.params.n}|tojson }}' {% if b.status == 'running' %}disabled title="正在运行"{% endif %}><svg class="icon"><use href="#ph-timer"/></svg><span>评估并回补</span></button></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="field__hint" style="margin-top: var(--space-2)">起始月份与 N 的默认值来自 <a href="/settings/category?tab=ch">品类配置 · 渠道参数</a>（参数 v{{ bf[0].params.config_version }}）；在这里改只作用于本次回补。N 加大时只采新增排名的商品页，已完成的商品页不重复请求。</p>
+
+  {% for b in bf if b.job or b.rebuild %}{% set jb = b.job %}{% set rb = b.rebuild %}{% set pg = (jb.progress if jb else {}) %}{% set st = rb.stats if rb else {} %}
+  <div class="panel" style="margin-top: var(--space-4)" data-bf-panel="{{ b.channel }}" {% if jb and jb.status in ('running', 'queued') %}data-bf-job="{{ jb.id }}"{% endif %}>
+    <div class="panel__head">
+      <h3 class="panel__title">回补进度 · {{ b.name }}</h3>
+      {% if b.status == 'running' %}<span class="badge badge--watch"><svg class="icon spin"><use href="#ph-circle-notch"/></svg>进行中</span>
+      {% elif b.status == 'paused' %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>已暂停</span>
+      {% elif b.status == 'lists_done' %}<span class="badge badge--watch">列表已采完</span>
+      {% else %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已完成 · {{ st.collected_on or (jb.finished_at|dt if jb else '') }}</span>{% endif %}
+    </div>
+    <div class="panel__body stack">
+      {% if pg.blocked %}<div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">{{ pg.blocked }}；可稍后续采。</div></div>{% endif %}
+      {% if jb and jb.status in ('failed', 'stopped_cap') %}<div class="banner banner--warn"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">{{ jb.error }}</div></div>{% endif %}
+      {% set p_done = pg.pages_done if pg.pages_total else st.pages_listed %}{% set p_tot = pg.pages_total or st.pages_listed %}
+      {% set f_done = pg.fams_done if pg.fams_total else st.families %}{% set f_tot = pg.fams_total or st.families %}
+      <div class="prog" aria-label="{{ b.name }} 回补进度">
+        <span>商品页</span><div class="meter"><i data-bfp-bar="pages" style="width:{{ (p_done / p_tot * 100) if p_tot else 0 }}%"></i></div><span class="num small"><span data-bfp="pages_done">{{ (p_done or 0)|num }}</span> / <span data-bfp="pages_total">{{ (p_tot or 0)|num }}</span>{% if st.entries %}（{% for n, e in st.entries.items() %}{{ n }} {{ e.n }}{% if not loop.last %} + {% endif %}{% endfor %}，去重后）{% endif %}</span>
+        <span>评论家族</span><div class="meter"><i data-bfp-bar="fams" style="width:{{ (f_done / f_tot * 100) if f_tot else 0 }}%"></i></div><span class="num small"><span data-bfp="fams_done">{{ (f_done or 0)|num }}</span> / <span data-bfp="fams_total">{{ (f_tot or 0)|num }}</span>{% if st.fam_status %}（{% for k, n in st.fam_status.items() %}{{ k }} {{ n }}{% if not loop.last %} · {% endif %}{% endfor %}）{% endif %}</span>
+      </div>
+      {% set rq = st.req or {} %}
+      <div class="stats">
+        <div class="stat"><div class="stat__label">评论（去重）</div><div class="stat__value num"><span data-bfp="reviews">{{ (pg.reviews or st.reviews_all or 0)|num }}</span><span class="stat__unit">条</span></div><div class="stat__meta">{% if st %}{{ st.start }} 至 {{ st.end }}：{{ st.reviews_window|num }} 条，VP {{ '%.0f%%'|format((st.vp_share or 0) * 100) }}<span class="etag">实测</span>{% else %}采集中{% endif %}</div></div>
+        <div class="stat"><div class="stat__label">分片补采</div><div class="stat__value num"><span data-bfp="sharded">{{ pg.sharded if pg.sharded is defined else st.sharded }}</span><span class="stat__unit">个家族</span></div><div class="stat__meta">到翻页上限后按 1–5 星（再按仅 VP）分片补全</div></div>
+        <div class="stat"><div class="stat__label">截断</div><div class="stat__value num"><span data-bfp="truncated">{{ st.truncated_pages if st else (pg.truncated or 0) }}</span><span class="stat__unit">个商品页</span></div><div class="stat__meta">{% if st and not st.truncated_pages %}分片后没有仍到上限的家族{% else %}分片后仍到上限，早于“完整到”的月份评论不全{% endif %}</div></div>
+        <div class="stat"><div class="stat__label">失败 / 403 · 429</div><div class="stat__value num"><span data-bfp="failed">{{ pg.failed if pg.failed is defined else rq.get('失败（重试 3 次）', 0) }}</span> / <span data-bfp="blocked">{{ (pg.http403 or 0) + (pg.http429 or 0) if pg.requests is defined else rq.get('HTTP 403', 0) + rq.get('HTTP 429', 0) }}</span><span class="stat__unit">次</span></div><div class="stat__meta">请求 <span data-bfp="requests">{{ (pg.requests if pg.requests is defined else rq.get('请求', 0))|num }}</span> 次，间隔 1.3–2.1 秒；失败为重试 3 次仍不成功</div></div>
+      </div>
+      <div class="row">
+        {% if jb and jb.status in ('running', 'queued') %}<button class="btn btn--sm" type="button" data-pause="{{ jb.id }}"><svg class="icon"><use href="#ph-minus"/></svg><span>暂停</span></button>
+        {% else %}<button class="btn btn--sm" type="button" aria-disabled="true" title="没有进行中的回补"><svg class="icon"><use href="#ph-minus"/></svg><span>暂停</span></button>{% endif %}
+        {% if jb and jb.status in ('paused', 'failed', 'stopped_cap') %}<button class="btn btn--sm" type="button" data-bf-resume="{{ jb.id }}"><svg class="icon"><use href="#ph-play"/></svg><span>续采</span></button>{% endif %}
+        <span class="spacer"></span>
+        {% if rb %}<a class="small" href="/data/channels?ch={{ b.channel }}#rebuild">去看历史重建</a>{% endif %}
+      </div>
+      <p class="small muted">运行中时这里实时显示：商品页、评论数、分片补采、截断数、失败数、403 / 429 次数；暂停后进度保存，续采不重复请求已完成的商品页。</p>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
 <section class="section enter" style="--i:5">
   <div class="section__head"><h2 class="section__title">入口月度汇总</h2><span class="section__note">{{ st.months[0] if st.months else '' }} 起 · 按评论 ID 去重，同系列共享评论不重复算 · Wayfair 只有 "Verified Purchase" 计 VP</span></div>
   {% if monthly and monthly|sum(attribute='total') %}
@@ -281,6 +352,36 @@
     });
   }
   window.addEventListener('pdt:job-started', function (ev) { if (ev.detail && ev.detail.id) poll(ev.detail.id); });
+  /* 历史回补：起始月 / N 改了就同步到“评估并回补”的估算参数；续采；运行中实时刷新计数 */
+  doc.querySelectorAll('[data-bf-row]').forEach(function (tr) {
+    var btn = tr.querySelector('[data-cost-kind]'), st = tr.querySelector('[data-bf-start]'), n = tr.querySelector('[data-bf-n]');
+    function sync() { btn.dataset.costParams = JSON.stringify({ channel: tr.getAttribute('data-bf-row'), start: st.value, n: parseInt(n.value, 10) || 0 }); }
+    st.addEventListener('change', sync); n.addEventListener('input', sync);
+    btn.addEventListener('click', function (e) {
+      if (!(parseInt(n.value, 10) > 0)) { e.stopImmediatePropagation(); n.setAttribute('aria-invalid', 'true'); window.oppoToast('商品页数 N 要填正整数'); }
+      else if (!st.value) { e.stopImmediatePropagation(); window.oppoToast('请填写起始月份'); }
+      else n.removeAttribute('aria-invalid');
+    }, true);
+  });
+  doc.querySelectorAll('[data-bf-resume]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      fetch('/jobs/' + b.getAttribute('data-bf-resume') + '/confirm', { method: 'POST', headers: { accept: 'application/json' } }).then(function (r) { return r.json(); })
+        .then(function (j) { window.oppoToast('已续采：跳过已完成的商品页'); poll(j.id); });
+    });
+  });
+  doc.querySelectorAll('[data-bf-job]').forEach(function (panel) {
+    (function tick() {
+      fetch('/jobs/' + panel.getAttribute('data-bf-job'), { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) {
+        var p = j.progress || {};
+        Object.keys(p).forEach(function (k) { var el = panel.querySelector('[data-bfp="' + k + '"]'); if (el) el.textContent = Number(p[k]).toLocaleString('en-US'); });
+        var bl = panel.querySelector('[data-bfp="blocked"]'); if (bl) bl.textContent = (p.http403 || 0) + (p.http429 || 0);
+        [['pages', p.pages_done, p.pages_total], ['fams', p.fams_done, p.fams_total]].forEach(function (x) {
+          var bar = panel.querySelector('[data-bfp-bar="' + x[0] + '"]'); if (bar && x[2]) bar.style.width = (x[1] / x[2] * 100) + '%';
+        });
+        if (j.status === 'running' || j.status === 'queued') setTimeout(tick, 2000);
+      });
+    })();
+  });
   var running = doc.querySelector('[data-pause]'); if (running) poll(running.getAttribute('data-pause'));
 })();
 </script>

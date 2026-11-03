@@ -15,6 +15,7 @@ from ..models_decision import ProfitQuote
 from ..core import card as cardcore
 from ..core import profit_ai
 from ..core import vp as vpcore
+from ..core import backfill
 from .ui import redirect, render
 
 router = APIRouter()
@@ -50,7 +51,16 @@ def vp_page(request: Request, name: str = "", user=operator_only):
         usage[svc] = dict(cap=cap, unit=unit, spent=amt if unit != "calls" else qty)
     return render(request, "tools_vp.html", "PAGE-F23-01", "评论 VP 追踪", names=names, name=name, cfg=cfg, st=st, jobs=jobs,
                   usage=usage, bd=_svc("brightdata"), ap=_svc("apify"), monthly=vpcore.monthly(name),
-                  month_short=vpcore.month_short, plats=vpcore.PLATS, cfg_json=json.dumps(cfg, ensure_ascii=False))
+                  month_short=vpcore.month_short, plats=vpcore.PLATS, cfg_json=json.dumps(cfg, ensure_ascii=False),
+                  bf=[backfill.state(c) for c in ("homedepot", "lowes", "wayfair")])
+
+
+@router.get("/tools/vp/backfill/{channel}")
+def vp_backfill_state(channel: str, user=operator_only):
+    """API-F23-02：历史回补状态（参数与版本、最近任务进度、最近一次重建摘要）。"""
+    if channel not in ("homedepot", "lowes", "wayfair"):
+        raise HTTPException(404, "未知渠道")
+    return backfill.state(channel)
 
 
 @router.post("/tools/vp/project")

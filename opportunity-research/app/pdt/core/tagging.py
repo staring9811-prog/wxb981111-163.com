@@ -8,6 +8,9 @@
 - 同图一组：主图相同（去掉尺寸后缀后的图片地址相同）的商品分一组，一次确认应用到整组，组内可单改（AC-F18-04）。
 - 确认后状态 confirmed，分析一律用确认值（panel.raw_frame）（AC-F18-05）。“看不出 / 不是本品类”→ Product.excluded（AC-F18-06），可恢复。
 - 其他渠道商品同一套规则、同一队列，带渠道（AC-F18-07）。
+- 其他渠道规格优先（AC-F18-08）：Home Depot / Lowe's / Wayfair 商品有商品页规格（channel_page_spec 表）时，尺寸段、装、形态、台面材质、
+  柜体材质、主色优先按规格字段打，Tag.source 记 spec（页面显示“规格”）；规格缺失才用标题规则（source = rule，页面显示“标题”）。
+  “装”没有依据时记空值（未知）进确认队列，候选不预选，不默认拆装；Amazon 仍按原规则（含业务默认）。
 """
 import hashlib
 import json
@@ -134,6 +137,124 @@ def rule_tag(text: dict, rules: dict | None = None) -> dict:
     return out
 
 
+SRC_LABEL = {'spec': '规格', 'rule': '标题', 'vision': '看图', 'manual': '人工'}  # 标签来源（页面显示）
+SPEC_KEYS = {  # 商品页规格字段（三个渠道的写法，按键名正则匹配）
+    'width': r'^(product|overall|cabinet|vanity|assembled)?\s*width',
+    'assembled': r'^assembled$|assembly level|level of assembly',
+    'assembly_required': r'^assembly required',
+    'form': r'vanity type|mount(ing)? type|installation type|^vanity style$',
+}
+
+
+def specs_from_text(text: str) -> dict:
+    """追踪器导出的“规格参数”（每行 “键: 值”）→ dict。"""
+    out = {}
+    for line in str(text or '').splitlines():
+        k, sep, v = line.partition(':')
+        if sep and k.strip() and v.strip():
+            out[k.strip()] = v.strip()
+    return out
+
+
+def _spec(specs: dict, key: str) -> str:
+    pat = SPEC_KEYS[key]
+    for k, v in (specs or {}).items():
+        if re.search(pat, str(k).strip(), re.I) and str(v or '').strip():
+            return str(v).strip()
+    return ''
+
+
+def _spec_width(specs: dict):
+    m = re.match(r'\s*(\d+(?:\.\d+)?)', _spec(specs, 'width'))
+    return float(m.group(1)) if m else None
+
+
+def spec_tag(text: dict, specs: dict | None = None, rules: dict | None = None, default_form: bool = True) -> dict:
+    """其他渠道：规格优先打标（AC-F18-08）。返回 {标签: (值, 置信度, 证据状态, 来源 spec / rule)}；值为空 = 未知。
+    做法与 HD 回测小试（solution-v2/trial/小平台_HD回测小试.py tag_variant）相同：v12.2 规则读标题 + 商品页规格（关掉业务默认值），
+    规格的“Assembled / Assembly Required / Assembly Level”“Vanity Type / Mount Type”字段与标题 “(Assembled)” 优先；装判断不了记未知。"""
+    rules = rules or DEFAULT_TAG_RULES
+    specs = specs or {}
+    row = {'子ASIN': text.get('item_id') or 'X', '商品标题': text.get('title') or '', 'SKU属性': '', '商品尺寸': ''}
+    ex = [{'attributes': ' | '.join(f'{k}:{v}' for k, v in specs.items() if v), 'features': ' '.join(text.get('highlights') or [])}] if specs else []
+    tags, ev, _c = T.Tagger(row, {}, export_rows=ex, accessory_default=False).run()
+    conf_map = rules.get('confidence') or DEFAULT_TAG_RULES['confidence']
+    H = T.HEADERS
+
+    def st(h):
+        return (ev.get(h) or {}).get('status', 'missing')
+
+    def src(h):
+        sel = (ev.get(h) or {}).get('selected') or []
+        return 'spec' if any(str(e.get('sourceField', '')).startswith('卖家精灵导出') for e in sel) else 'rule'
+
+    def cf(h, value):
+        return 0.0 if value in ('', None) else float(conf_map.get(st(h), 0.6))
+
+    def norm(v):
+        return '' if v is None or str(v) in fm.RAW_UNK else str(v)
+    spec_c = float(conf_map.get('text_supported', 0.95))
+    out = {}
+    # 尺寸段：规则读出的宽度（与小试同），读不出时用规格宽度；规格里有宽度字段即记“规格”
+    w, sw = tags.get(H[9]), _spec_width(specs)
+    if w is None:
+        w = sw
+    size = _band(w, rules.get('size_bands') or DEFAULT_TAG_RULES['size_bands'])
+    out['尺寸段'] = (size, spec_c if size and sw is not None else cf(H[9], size), 'text_supported' if sw is not None else st(H[9]), 'spec' if sw is not None else src(H[9]))
+    # 装：规格 Assembled / Assembly Level > 标题 (Assembled) / RTA > 规则（含规格 Assembly Required）> 未知（不默认拆装）
+    asm = _spec(specs, 'assembled').lower()
+    t = (text.get('title') or '').lower()
+    if re.search(r'^assembled|fully assembled|no assembly', asm):
+        out['装'] = ('整装', spec_c, 'text_supported', 'spec')
+    elif re.search(r'ready to assemble|unassembled|partial|assembly needed|assembly required', asm):
+        out['装'] = ('拆装', spec_c, 'text_supported', 'spec')
+    elif '(assembled)' in t or 'fully assembled' in t:
+        out['装'] = ('整装', spec_c, 'text_supported', 'rule')
+    elif re.search(r'ready[ -]to[ -]assemble|\brta\b|unassembled', t):
+        out['装'] = ('拆装', spec_c, 'text_supported', 'rule')
+    elif tags.get(H[1]) in ('整装', '拆装'):
+        out['装'] = (tags[H[1]], cf(H[1], tags[H[1]]), st(H[1]), src(H[1]))
+    else:
+        out['装'] = ('', 0.0, 'missing', 'rule')
+    # 形态：规格 Vanity Type / Mount Type > 规则；都没有时按落地式（与 Amazon 同口径），标低置信度
+    vt = _spec(specs, 'form').lower()
+    if re.search(r'float|wall', vt):
+        out['形态'] = ('悬浮式', spec_c, 'text_supported', 'spec')
+    elif 'corner' in vt:
+        out['形态'] = ('转角式', spec_c, 'text_supported', 'spec')
+    elif re.search(r'pedestal|console', vt):
+        out['形态'] = ('柱状盆', spec_c, 'text_supported', 'spec')
+    elif re.search(r'free ?standing|floor', vt):
+        out['形态'] = ('落地式', spec_c, 'text_supported', 'spec')
+    elif norm(tags.get(H[0])):
+        f = '落地式' if norm(tags.get(H[0])) == '两用' else norm(tags.get(H[0]))
+        out['形态'] = (f, cf(H[0], f), st(H[0]), src(H[0]))
+    else:
+        out['形态'] = ('', 0.0, 'missing', 'rule')
+    if default_form and not out['形态'][0]:
+        out['形态'] = ('落地式', 0.6, 'business_default', 'rule')
+    for tg, h in (('台面材质', H[7]), ('台盆材质', H[8])):
+        v = norm(tags.get(h))
+        out[tg] = (v, cf(h, v), st(h), src(h))
+    em = rules.get('element_map') or DEFAULT_TAG_RULES['element_map']
+    els = list(dict.fromkeys(em.get(x.strip()) for x in str(tags.get(H[4]) or '').split('；') if em.get(x.strip())))
+    e = '|'.join(els)
+    out['元素'] = (e, 0.7 if e else 0.0, 'text_clue' if e else 'need_image', src(H[4]) if e else 'rule')
+    cmap = rules.get('color_map') or fm.COLOR
+    c0 = tags.get(H[5])
+    col = '' if c0 is None or str(c0) in fm.RAW_UNK else cmap.get(str(c0), '其他')
+    out['主色'] = (col, cf(H[5], col), st(H[5]), src(H[5]))
+    cb = fm.cab(tags.get(H[6]))
+    cb = '' if cb == '未知' else cb
+    out['柜体材质'] = (cb, cf(H[6], cb), st(H[6]), src(H[6]))
+    return out
+
+
+def _page_specs(s, channel, items):
+    from ..models_data import ChannelPageSpec
+    return {r.item_id: r for r in s.scalars(select(ChannelPageSpec).where(ChannelPageSpec.channel == channel, ChannelPageSpec.item_id.in_(items)))}
+
+
 def _texts(s, channel, items):
     """商品文本：标题取 Product；SKU、尺寸、五点取最近一次快照 raw（导入时保存）。"""
     prods = {p.item_id: p for p in s.scalars(select(Product).where(Product.channel == channel, Product.item_id.in_(items)))}
@@ -151,39 +272,60 @@ def _texts(s, channel, items):
 
 
 def tag_products(channel: str, items: list[str], month: str = '') -> dict:
-    """规则打标并写 Tag（不覆盖已确认的标签）。返回统计。"""
-    rules, thr, ver = rules_cfg()
-    stat = dict(items=0, tags=0, queued=0, need_image=0)
+    """规则打标并写 Tag（不覆盖已确认的标签）。Amazon 用 rule_tag；其他渠道规格优先（spec_tag，AC-F18-08）。返回统计。"""
     if not items:
-        return stat
+        return dict(items=0, tags=0, queued=0, need_image=0)
+    rules, thr, ver = rules_cfg()
+    res, groups = {}, {}
     with session() as s:
         tx = _texts(s, channel, items)
-        existing = {(t.item_id, t.tag): t for t in s.scalars(select(Tag).where(Tag.channel == channel, Tag.item_id.in_(items)))}
+        sp = _page_specs(s, channel, items) if channel != 'amazon' else {}
         for i in items:
-            res = rule_tag(tx[i], rules)
-            grp = group_key(channel, tx[i]['image'], tx[i]['series'], tx[i]['brand'], tx[i]['title'])
+            if channel == 'amazon':
+                res[i] = {k: v + ('rule',) for k, v in rule_tag(tx[i], rules).items()}
+            else:
+                p = sp.get(i)
+                res[i] = spec_tag(dict(tx[i], highlights=p.highlights if p else []), p.specs if p else None, rules)
+            groups[i] = group_key(channel, tx[i]['image'], tx[i]['series'], tx[i]['brand'], tx[i]['title'])
+    return write_tags(channel, res, groups, month)
+
+
+def write_tags(channel: str, res: dict, groups: dict, month: str = '') -> dict:
+    """写入打标结果 {商品: {标签: (值, 置信度, 证据状态, 来源)}}；已确认的不覆盖，已有看图元素不被规则覆盖。
+    进队：元素一律进；置信度低于阈值进；“装”为空（未知）进，候选不预选（AC-F18-08）。"""
+    rules, thr, ver = rules_cfg()
+    stat = dict(items=0, tags=0, queued=0, need_image=0, assembly_unknown=0)
+    items = list(res)
+    with session() as s:
+        existing = {}
+        for k in range(0, len(items), 500):
+            for t in s.scalars(select(Tag).where(Tag.channel == channel, Tag.item_id.in_(items[k:k + 500]))):
+                existing[(t.item_id, t.tag)] = t
+        for i in items:
             stat['items'] += 1
             for tg in TAG_ORDER:
-                v, c, st = res[tg]
+                v, c, _st, src = res[i][tg]
                 old = existing.get((i, tg))
                 if old is not None and old.status == 'confirmed':
                     continue
                 if old is not None and old.source == 'vision' and tg == '元素' and old.value:
                     continue  # 已有看图结果，不用规则覆盖
-                queued = tg == '元素' or c < thr
-                cands = [v] if v else []
+                unknown_asm = tg == '装' and not v and channel != 'amazon'
+                queued = tg == '元素' or c < thr or unknown_asm
                 pool = rules.get('element_vocab') if tg == '元素' else CANDIDATES.get(tg, [])
+                cands = [v] if v else []
                 cands += [x for x in (pool or []) if x not in cands]
-                cand = [dict(value=x, confidence=(c if x == v else None)) for x in cands[:12]]
+                cand = [dict(value=x, confidence=(c if x == v and v else None)) for x in cands[:12]]
                 if old is None:
                     old = Tag(channel=channel, item_id=i, tag=tg)
                     s.add(old)
-                old.value, old.auto_value, old.confidence, old.source = v, v, c, 'rule'
+                old.value, old.auto_value, old.confidence, old.source = v, v, c, src
                 old.status = 'queued' if queued else 'auto'
-                old.candidates, old.img_group, old.month, old.config_version = cand, grp, month or old.month or '', ver
+                old.candidates, old.img_group, old.month, old.config_version = cand, groups.get(i, ''), month or old.month or '', ver
                 stat['tags'] += 1
                 stat['queued'] += int(queued)
                 stat['need_image'] += int(tg == '元素' and not v)
+                stat['assembly_unknown'] += int(unknown_asm)
     return stat
 
 
@@ -302,24 +444,33 @@ def queue(channel: str | None = None, reason: str | None = None, status: str = '
         if reason == 'element':
             q = q.where(Tag.tag == '元素')
         elif reason == 'low':
-            q = q.where(Tag.tag != '元素')
+            q = q.where(Tag.tag != '元素', ~((Tag.tag == '装') & (Tag.value == '') & (Tag.channel != 'amazon')))
+        elif reason == 'assembly':
+            q = q.where(Tag.tag == '装', Tag.value == '', Tag.channel != 'amazon')
         rows = list(s.execute(q))
         items = list({(t.channel, t.item_id) for t, _ in rows})
-        other = {}
+        other, osrc = {}, {}
         if items:
             for t in s.scalars(select(Tag).where(Tag.item_id.in_([i for _, i in items]))):
                 other.setdefault((t.channel, t.item_id), {})[t.tag] = t.value
+                osrc.setdefault((t.channel, t.item_id), {})[t.tag] = 'manual' if t.status == 'confirmed' and t.confirmed_by else t.source
         from .channels import item_link  # 没有商品链接时（追踪导出不带链接）按渠道商品 ID 拼链接
         groups = {}
         for t, p in rows:
+            asm = t.tag == '装' and not t.value and t.channel != 'amazon'
             gk = (t.img_group or f'{t.channel}:{t.item_id}', t.tag)
             g = groups.setdefault(gk, dict(key=f'{gk[0]}|{gk[1]}', img_group=gk[0], tag=t.tag, image=p.image_url, items=[], candidates=[], channels=set(),
-                                           source=t.source, reason='元素' if t.tag == '元素' else '低置信度',
+                                           source='manual' if status != 'queued' else t.source,
+                                           reason='元素' if t.tag == '元素' else ('装：未知' if asm else '低置信度'),
                                            by=('image' if p.image_url else ('series' if (t.img_group or '').startswith('s') else
                                                                          ('title' if (t.img_group or '').startswith('t') else 'item')))))
             o = other.get((t.channel, t.item_id), {})
+            os_ = osrc.get((t.channel, t.item_id), {})
             g['items'].append(dict(tag_id=t.id, channel=t.channel, item_id=t.item_id, title=p.title, value=t.value, confidence=t.confidence,
                                    status=t.status, link=p.link or item_link(t.channel, t.item_id), image=p.image_url, confirm_mode=t.confirm_mode,
+                                   source=SRC_LABEL.get('manual' if t.status == 'confirmed' and t.confirmed_by else t.source, t.source),
+                                   others_tags=[(o.get(k), SRC_LABEL.get(os_.get(k), '')) for k in ('尺寸段', '装', '形态', '台面材质', '主色', '柜体材质')
+                                                if k != t.tag and o.get(k) and o.get(k) != '未知'],
                                    others=' · '.join(x for x in [o.get('尺寸段'), o.get('装'), o.get('形态'), fm.top_type(o.get('台面材质'), o.get('台盆材质')) if o else '', o.get('主色')] if x and x != '未知')))
             g['channels'].add(t.channel)
             for c in (t.candidates or []):
@@ -362,9 +513,11 @@ def counts():
             q.setdefault(ch, {})[tg] = n
         confirmed = s.scalar(select(func.count()).select_from(Tag).where(Tag.status == 'confirmed', Tag.confirmed_by.is_not(None))) or 0
         excluded = s.scalar(select(func.count()).select_from(Product).where(Product.excluded.is_(True))) or 0
+        assembly = s.scalar(_queued_q(func.count()).where(Tag.tag == '装', Tag.value == '', Tag.channel != 'amazon')) or 0
     total = sum(sum(v.values()) for v in q.values())
-    return dict(by_channel={ch: sum(v.values()) for ch, v in q.items()}, element=sum(v.get('元素', 0) for v in q.values()),
-                low=total - sum(v.get('元素', 0) for v in q.values()), total=total, confirmed=confirmed, excluded=excluded)
+    element = sum(v.get('元素', 0) for v in q.values())
+    return dict(by_channel={ch: sum(v.values()) for ch, v in q.items()}, element=element, assembly=assembly,
+                low=total - element - assembly, total=total, confirmed=confirmed, excluded=excluded)
 
 
 def confirm_group(img_group: str, tag: str, value: str, user_id: int, channel: str | None = None) -> int:

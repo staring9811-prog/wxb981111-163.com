@@ -10,9 +10,9 @@ from ..auth import any_user, operator_only
 from ..config import CHANNEL_NAMES
 from ..db import session
 from ..models import Batch, Job, Snapshot
-from ..models_data import DataNote
+from ..models_data import ChannelFamily, ChannelPageSpec, DataNote
 from ..core import channels as chm
-from ..core import ingest, pipeline
+from ..core import backfill, ingest, pipeline
 from ..core.families import mi, ms
 from .routes_jobs import _job_json
 from .ui import redirect, render
@@ -21,7 +21,7 @@ router = APIRouter()
 
 STATUS = {'checking': ('核对中', 'watch'), 'suspect_month': ('疑似月份错误', 'block'), 'anomaly': ('核对异常', 'warn'), 'ok': ('核对通过', 'ok'),
           'merged': ('已并入', 'ok'), 'rejected': ('已放弃', 'insufficient'), 'superseded': ('已被新版本替换', 'insufficient'), 'reference': ('只作参考', 'incomplete')}
-SOURCE = {'api': '卖家精灵接口', 'upload': '手动上传', 'v2': '第二轮导入', 'tracker': '评论 VP 追踪'}
+SOURCE = {'api': '卖家精灵接口', 'upload': '手动上传', 'v2': '第二轮导入', 'tracker': '评论 VP 追踪', 'backfill': '历史回补重建'}
 
 
 def last_month() -> str:
@@ -135,7 +135,7 @@ def reject(batch_id: int, user=operator_only):
 
 # ---------------- 其他渠道 ----------------
 @router.get('/data/channels')
-def channels_page(request: Request, ch: str = 'homedepot', user=operator_only):
+def channels_page(request: Request, ch: str = 'homedepot', fp: int = 1, user=operator_only):
     summ = chm.summary()
     if ch not in CHANNEL_NAMES or ch == 'amazon':
         ch = 'homedepot'
@@ -152,14 +152,65 @@ def channels_page(request: Request, ch: str = 'homedepot', user=operator_only):
         d = imports.setdefault(k, dict(source=SOURCE.get(b.source, b.source), file=b.file_path.split('/')[-1] if b.file_path else '', at=k[2], channels=set(), months=set(), reference=set()))
         d['channels'].add(CHANNEL_NAMES[b.channel])
         (d['reference'] if b.status == 'reference' else d['months']).add(b.month)
-    months = sorted({m['month'] for v in summ.values() for m in v['months'] if m['complete']})
+    months = sorted({m['month'] for v in summ.values() for m in v['months'] if m['complete']})[-12:]  # 月度并入状态只列近 12 个月（历史重建另列）
     dedup = {}
     for c, v in summ.items():
         if v['last']:
             last = next(m for m in v['months'] if m['month'] == v['last'])
             dedup[c] = dict(month=v['last'], page=page_tot.get((c, v['last']), 0), dedup=last['reviews'])
+    rebuild = {c: backfill.last_rebuild(c) for c in ('homedepot', 'lowes', 'wayfair')}
+    fam_ch = next((c for c in ([ch] + list(rebuild)) if rebuild.get(c)), None)
+    fams, n_fams, fpages = _families(fam_ch, fp) if fam_ch else ([], 0, 1)
     return render(request, 'data_channels.html', 'PAGE-F28-01', '其他渠道数据', summ=summ, ch=ch, months=months, imports=list(imports.values())[:6],
-                  compare=chm.compare(ch, 20) if ch in summ else [], dedup=dedup)
+                  compare=chm.compare(ch, 20) if ch in summ else [], dedup=dedup, rebuild=rebuild, fam_ch=fam_ch, fams=fams, n_fams=n_fams,
+                  fp=min(max(1, fp), fpages), fpages=fpages, fam_per=FAM_PER)
+
+
+FAM_PER = 50
+
+
+def _families(channel: str, page: int):
+    """评论家族列表（按起始月以来评论数排，每页 50 个）与成员商品页（家族抽屉）。"""
+    with session() as s:
+        rows = list(s.scalars(select(ChannelFamily).where(ChannelFamily.channel == channel)
+                              .order_by(ChannelFamily.reviews_window.desc(), ChannelFamily.best_rank)))
+        pages = max(1, -(-len(rows) // FAM_PER))
+        page = min(max(1, page), pages)
+        cur = rows[(page - 1) * FAM_PER:page * FAM_PER]
+        ids = [p for f in cur for p in f.members]
+        spec = {r.item_id: r for r in s.scalars(select(ChannelPageSpec).where(ChannelPageSpec.channel == channel, ChannelPageSpec.item_id.in_(ids)))} if ids else {}
+        out = []
+        for f in cur:
+            out.append(dict(key=f.family_key, brand=f.brand, title=f.title, members=f.members, n_variants=len(f.variants or []), best_rank=f.best_rank,
+                            first=f.first_review, status=f.status, sharded=f.sharded, complete_to=f.complete_to, note=f.note,
+                            reviews=f.reviews_window, vp=(f.vp_window / f.reviews_window) if f.reviews_window else None,
+                            member_rows=[dict(item_id=p, title=(spec[p].title if p in spec else ''), rank=(spec[p].rank if p in spec else None),
+                                              entry=(spec[p].entry if p in spec else ''), price=(spec[p].price if p in spec else None)) for p in f.members]))
+    return out, len(rows), pages
+
+
+@router.post('/data/channels/{channel}/rebuild')
+def channels_rebuild(channel: str, user=operator_only):
+    """API-F28-02：用已有回补缓存重建历史（参数取品类配置当前版本）。"""
+    if channel not in ('homedepot', 'lowes', 'wayfair'):
+        raise HTTPException(404, '未知渠道')
+    try:
+        st = backfill.rebuild_from_cache(channel, log=lambda *a: None)
+    except ValueError as e:
+        return redirect('/data/channels#rebuild', str(e), 'error')
+    return redirect(f'/data/channels?ch={channel}#rebuild', f"已重建 {CHANNEL_NAMES[channel]} {st['start']} 至 {st['end']}：{st['pages_listed']} 个商品页、"
+                    f"{st['families']} 个评论家族、评论 {st['reviews_window']:,} 条")
+
+
+@router.get('/data/channels/{channel}/history')
+def channels_history(channel: str, user=any_user):
+    """API-F28-02：重建历史的月份范围、商品页 / 家族 / 评论数、截断、覆盖估计、前 50 重合率、季度历史。"""
+    if channel not in ('homedepot', 'lowes', 'wayfair'):
+        raise HTTPException(404, '未知渠道')
+    rb = backfill.last_rebuild(channel)
+    if not rb:
+        return JSONResponse({'detail': f'{CHANNEL_NAMES[channel]} 还没有历史重建（未回补 · 未验证）'}, status_code=404)
+    return dict(channel=channel, at=rb['at'], params=rb['params'], **rb['stats'])
 
 
 @router.post('/data/channels/import')

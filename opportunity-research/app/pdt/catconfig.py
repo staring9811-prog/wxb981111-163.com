@@ -102,3 +102,21 @@ DEFAULT["tag_rules"] = {
                       "\"alternatives\": [{{\"element\": \"…\", \"confidence\": 小数}}]}}。商品标题：{title}"),
     "vision_usd_per_call": [0.004, 0.012],
 }
+
+
+# ---------- 数据侧追加（v8，AC-F27-04）：历史回补参数与打折规则 ----------
+# backfill：历史回补起始月份、每个类目取前 N 个商品页（REQ-F23-02）。
+# discount：渠道回测打折后读法（模型侧 REQ-F19-03 使用）——秩相关减去 rank_corr；把握 ≥ 70% 档“之后变大”比例减去 high_pp 个百分点；
+#           方向对按不超过 dir_cap（%）看。默认值来自幸存者偏差模拟（solution-v2/开发建议/幸存者偏差模拟_小平台回测可行性.md §6.4）。
+BACKFILL_DEFAULT = {"start": "2024-01", "n": 300}
+DISCOUNT_DEFAULT = {"rank_corr": 0.1, "high_pp": 15, "dir_cap": 60}
+for _ch in ("homedepot", "lowes", "wayfair"):
+    DEFAULT["channels"][_ch]["backfill"] = dict(BACKFILL_DEFAULT)
+    DEFAULT["channels"][_ch]["discount"] = dict(DISCOUNT_DEFAULT)
+
+
+def channel_params(channel: str) -> tuple[int, dict]:
+    """某渠道的回补与打折参数（当前品类配置版本；旧版本配置里没有这两组键时用默认值）。返回 (参数版本, {backfill, discount})。"""
+    v, cfg = current()
+    c = (cfg.get("channels") or {}).get(channel) or {}
+    return v, dict(backfill=dict(BACKFILL_DEFAULT, **(c.get("backfill") or {})), discount=dict(DISCOUNT_DEFAULT, **(c.get("discount") or {})))

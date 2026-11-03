@@ -155,7 +155,8 @@ def channel_frame(raw: pd.DataFrame) -> pd.DataFrame:
     A['m'] = A['月份'].map(fm.mi)
     A['c'] = pd.to_numeric(raw['units'], errors='coerce').fillna(0).clip(lower=0).values
     A['尺寸段'] = raw['尺寸段'].replace('', None).values
-    A['装'] = np.where(raw['装'].eq('整装').values, '整装', '拆装')
+    # 其他渠道“装”没有依据时为未知、不进框（AC-F18-08，不默认拆装）
+    A['装'] = raw['装'].map(lambda v: v if v in ('整装', '拆装') else None).values
     A['柜体材质'] = raw['柜体材质'].map(lambda v: v or '未知').values
     A['台面类型'] = [fm.top_type(t, s) for t, s in zip(A['D8台面材质'], A['D8台盆材质'])]
     A['元素一'] = raw['元素'].map(fm.elements_from_tag).values
@@ -196,7 +197,7 @@ def load_panel(channel: str = 'amazon') -> pd.DataFrame:
             'rank', 'rating', 'ratings_count', 'age_months', 'frame', 'star'] + ['尺寸段', '装', '形态', '台面材质', '台盆材质', '台面', '元素', '主色', '柜体材质']
     if A.empty:
         return pd.DataFrame(columns=cols)
-    form_ok = A['尺寸段'].notna() & A['形态'].isin(['落地式', '悬浮式'])
+    form_ok = A['尺寸段'].notna() & A['装'].notna() & A['形态'].isin(['落地式', '悬浮式'])
     out = pd.DataFrame({
         'month': A['月份'], 'item_id': A['子ASIN'], 'parent': A['_parent'], 'family_key': A['家族键'], 'series': A['_series'], 'brand': A['品牌'],
         'title': A['标题'], 'image_url': A['主图500'], 'link': A['商品链接'], 'listed_at': A['_listed_at'], 'price': A['价格'], 'units': A['c'],

@@ -1,5 +1,6 @@
 """品类配置（PAGE-F27-01，API-F27-01；AC-F27-01～03）。仅操作者可用；第一版只有浴室柜，不提供新建品类入口。"""
 import json
+import re
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import JSONResponse
@@ -23,6 +24,8 @@ FIELD_NAMES = {
     "units": "成功线 · 估算月销", "scan": "参与扫描", "values": "取值", "tag_rules": "打标规则", "frame_dims": "分框维度",
     "scan_attrs": "扫描属性", "budget_warn_pct": "接近上限提示比例", "min_frame_units": "框最小月销",
     "min_value_units": "属性值最小月销", "verify": "Amazon 核对阈值",
+    "start": "回补起始月份", "n": "回补商品页数 N", "rank_corr": "打折 · 秩相关减值", "high_pp": "打折 · 把握 ≥70% 档减值（百分点）",
+    "dir_cap": "打折 · 方向对上限（%）", "backfill": "历史回补", "discount": "打折规则",
 }
 
 
@@ -77,6 +80,19 @@ def validate(new: dict) -> str:
         for k, v in (c.get("success") or {}).items():
             if not _pos(v):
                 return f"{name} {FIELD_NAMES.get(k, k)}：请填正数"
+        bf, dc = c.get("backfill") or {}, c.get("discount") or {}
+        if "start" in bf and not re.match(r"^20\d{2}-(0[1-9]|1[0-2])$", str(bf["start"])):
+            return f"{name} 回补起始月份格式应为 YYYY-MM"
+        if "n" in bf and not (_pos(bf["n"]) and float(bf["n"]) == int(float(bf["n"]))):
+            return f"{name} 商品页数 N 要填正整数"
+        for k, lo, hi in (("rank_corr", 0, 1), ("high_pp", 0, 100), ("dir_cap", 0, 100)):
+            if k in dc:
+                try:
+                    ok = lo <= float(dc[k]) <= hi
+                except (TypeError, ValueError):
+                    ok = False
+                if not ok:
+                    return f"{name} {FIELD_NAMES[k]}：需在 {lo}–{hi} 之间"
     for d in new.get("frame_dims") or []:
         if not d.get("values"):
             return f"分框维度 {d.get('dim')} 至少要有一个取值"
@@ -167,7 +183,10 @@ def category_page(request: Request, tab: str = "frame", user=operator_only):
     from ..core.tagging import queued_count, rules_cfg  # 队列条数与打标确认页、侧栏角标同一口径
     rules = rules_cfg()[0]
     conf = rules.get("confidence") or {}
-    return render(request, "settings_category.html", "PAGE-F27-01", "品类配置", version=v, cfg=cfg, channels=channels,
+    from ..core import backfill
+    bf_params = {c["key"]: catconfig.channel_params(c["key"])[1] for c in channels if c["key"] != "amazon"}
+    bf_state = {k: (backfill.last_rebuild(k) or {}).get("stats") for k in bf_params}
+    return render(request, "settings_category.html", "PAGE-F27-01", "品类配置", version=v, cfg=cfg, channels=channels, bf_params=bf_params, bf_state=bf_state,
                   history=hist, current=hist[0] if hist else None, methods=METHODS, min_fit=chm.MIN_RANK_POINTS,
                   tag_values=_tag_values(), queue_n=queued_count(), thr=thr, tag_rows=tag_rule_rows(rules), rule_version=rules.get("rule_version", ""),
                   conf_text="、".join(f"{CONF_NAMES.get(k, k)} {float(v):.2f}" for k, v in conf.items()), vision_usd=rules.get("vision_usd_per_call") or [],
