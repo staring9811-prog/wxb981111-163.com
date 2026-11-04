@@ -13,6 +13,21 @@ os.environ.setdefault('APIFY_TOKEN', 'proxy-injected')
 from reviewkit.common import Ctx  # noqa: E402
 from reviewkit import wayfair  # noqa: E402
 
+# 云环境里代理会改写 Authorization 头：有 APIFY_TOKEN_QS 时改用 ?token= 查询参数（值只从环境变量读，不落盘）
+if os.environ.get('APIFY_TOKEN_QS'):
+    import json as _json
+    from reviewkit import services as _sv
+    def _req(self, method, path, body=None, timeout=120):
+        sep = '&' if '?' in path else '?'
+        st, h, b = _sv._http(f"{_sv.APIFY}{path}{sep}token={os.environ['APIFY_TOKEN_QS']}",
+                             _json.dumps(body).encode() if body is not None else None,
+                             {'Content-Type': 'application/json'}, method, timeout)
+        try:
+            return st, _json.loads(b or b'null')
+        except Exception:
+            return st, b[:300]
+    _sv.Apify._req = _req
+
 src, budget = sys.argv[1], float(sys.argv[2]) if len(sys.argv) > 2 else 5.0
 OUT = os.path.join(ROOT, 'input/data_v2/渠道关键词/大词/wayfair_apify')
 os.makedirs(OUT, exist_ok=True)
