@@ -214,14 +214,14 @@ def spec_jobs():
     return jobs
 
 
-def fill_specs():
-    jobs = spec_jobs()
+def fill_specs(plats=('lowes', 'wayfair')):
+    jobs = [j for j in spec_jobs() if j[1] in plats]
     log(f"补规格 {len(jobs)}（Lowe's {sum(j[1] == 'lowes' for j in jobs)}，Wayfair {sum(j[1] == 'wayfair' for j in jobs)}）")
     stop = []
     def run(j):
         if stop: return
         r = B.pdp(j[1], j[2])
-        if r.get('budget') and not stop: stop.append(1); log('到 $4 线，停：' + r['budget'])
+        if r.get('budget') and not stop: stop.append(1); log('到预算线，停：' + r['budget'])
     with ThreadPoolExecutor(B.WORKERS) as ex: list(ex.map(run, jobs))
     log(f"补规格结束，ledger {load_json(K.LEDGER, {})}")
 
@@ -247,7 +247,8 @@ def lowes_review_family(pid, rurl):
         res = rl.get('results') or []
         for x in res:
             revs[x['id']] = dict(d=(x.get('submissionTime') or '')[:10], r=x.get('rating'), vp=bool(x.get('verifiedPurchaser')),
-                                 inc=bool(x.get('incentivizedReview')), syn=bool(x.get('isSyndicated')), pid=str(x.get('productId')))
+                                 inc=bool(x.get('incentivizedReview')), syn=bool(x.get('isSyndicated')), pid=str(x.get('productId')),
+                                 u=x.get('pdPageURL') or '')
         off += 20
         if not res or off >= (total or 0) or min((x.get('submissionTime') or '9')[:10] for x in res) < '2026-01-01': break
     out = {'状态': status, '评论总数': total, 'reviews': revs}
@@ -259,12 +260,8 @@ def lowes_reviews():
     """按商品表：类目节点里的多尺寸家族（评论 productId 拆尺寸用）+ 两词独有有评论家族（补月度），按 2026 评论量估计从大到小。"""
     import pandas as pd
     P = pd.read_csv(raw_path('三平台_商品表.csv'), dtype={'pid': str})
-    p = P[(P['渠道'] == "Lowe's") & P['有商品页'] & (P['页面评论数'].fillna(0) > 0)]
-    p = p[(p['来源'] == '两词') | p['多尺寸段'].fillna(False).astype(bool)]
-    todo = []
-    for _, r in p.iterrows():
-        pg = load_json(raw_path('pdp', 'lowes', f"{r['pid']}.json")) or {}
-        if pg.get('reviews_url'): todo.append((r['页面评论数'], r['pid'], pg['reviews_url']))
+    p = P[(P['渠道'] == "Lowe's") & (P['来源'] == '两词') & (P['页面评论数'].fillna(0) > 0) & P['浴室柜'].fillna(True).astype(bool)]
+    todo = [(r['页面评论数'], r['pid'], lowes_rurl(r['pid'])) for _, r in p.iterrows()]
     todo.sort(key=lambda t: -t[0])
     log(f"Lowe's 补评论家族 {len(todo)}（商品表里符合条件 {len(p)}，无评论链接 {len(p) - len(todo)}）")
     stop = []
@@ -436,7 +433,7 @@ def build_lw(XC, V, plat):
                 cnt = collections.defaultdict(lambda: [0, 0])
                 for x in rv['reviews'].values():
                     if x['d'][:7] in MONTHS:
-                        w = wmap.get(x['pid']); sg = XC.band(w) if w else (seg if not multi else '多尺寸未拆')
+                        w = review_width(x, wmap); sg = XC.band(w) if w else (seg if not multi else '多尺寸未拆')
                         cnt[(sg, x['d'][:7])][0 if x['vp'] else 1] += 1
                 for (sg, mm), (a, b_) in cnt.items():
                     mon.append(mrow(ch, key, pid0, sg, o['装'], o['形态'], mm, a, b_, msrc))
@@ -475,7 +472,8 @@ def split_weights(plat, pid0, pg, seg, bands):
         rv = load_json(raw_path('lowes_reviews', f'{pid0}.json')) or {}
         wmap = width_of_variant(pg or {})
         for x in (rv.get('reviews') or {}).values():
-            if x['pid'] in wmap: c[xc().band(wmap[x['pid']])] += 1
+            wv = review_width(x, wmap)
+            if wv: c[xc().band(wv)] += 1
     c.pop(None, None)
     if sum(c.values()) >= 5:
         n = sum(c.values()); return [(k, v / n) for k, v in c.items()]
@@ -530,12 +528,54 @@ def analyze():
         fb = m[k].groupby(['尺寸段', '装', '形态'])['销量'].sum().sort_values(ascending=False) / 10
         print('  框月均（前 12）', [(a, round(v)) for a, v in fb.head(12).items()])
 
+
+def slug_width(u):
+    """Lowe's 评论的 pdPageURL（写评论时的变体页）里的宽度：…-Sandbanks-48-in-Greige-… → 48。"""
+    m = re.search(r'[-/](\d{2}(?:\.\d+)?)-?(?:in|inch)(?:es)?\b', u or '', re.I)
+    if m and 15 <= float(m.group(1)) <= 100: return float(m.group(1))
+    return None
+
+
+def review_width(x, wmap):
+    return wmap.get(x.get('pid')) or slug_width(x.get('u'))
+
+
+def lowes_reviews_vp():
+    """第 1 步：类目节点（渠道VP表）里的多尺寸 / 尺寸未定家族，抓评论页（新到旧翻到 2026-01 前），按评论变体拆尺寸。"""
+    import pandas as pd
+    P = pd.read_csv(raw_path('三平台_商品表.csv'), dtype={'pid': str}); M = pd.read_csv(raw_path('三平台_月销表.csv'), dtype={'pid': str})
+    p = P[(P['渠道'] == "Lowe's") & P['来源'].isin(['类目节点', '两者'])]
+    bad = set(M[(M['渠道'] == "Lowe's") & (M['尺寸段'].isna() | (M['尺寸段'] == '多尺寸未拆'))]['fam'])
+    s26 = M[M['渠道'] == "Lowe's"].groupby('fam')['VP'].sum() + M[M['渠道'] == "Lowe's"].groupby('fam')['非VP'].sum()
+    p = p[p['fam'].isin(bad)].copy(); p['w'] = p['fam'].map(s26).fillna(0)
+    todo = [(r['w'], r['pid'], lowes_rurl(r['pid'])) for _, r in p.sort_values('w', ascending=False).iterrows() if r['w'] > 0]
+    log(f"Lowe's 类目节点待拆家族 {len(todo)}，2026 评论约 {int(sum(t[0] for t in todo))} 条")
+    run_lowes_reviews(todo)
+
+
+def lowes_rurl(pid):
+    pg = load_json(raw_path('pdp', 'lowes', f'{pid}.json')) or {}
+    return pg.get('reviews_url') or f'/reviews/x/{pid}'      # 不带商品名的评论页 URL 实测可用（同一父体）
+
+
+def run_lowes_reviews(todo):
+    stop = []
+    def run(t):
+        if stop: return
+        g = lowes_review_family(t[1], t[2])
+        if g.get('状态') == '预算停' and not stop: stop.append(1); log('到 $5.3 线，停')
+    with ThreadPoolExecutor(B.WORKERS) as ex: list(ex.map(run, todo))
+    log(f"Lowe's 评论结束，ledger {load_json(K.LEDGER, {})}")
+
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else ''
     if cmd == '现状': status()
     elif cmd == '补评论HD': hd_reviews()
     elif cmd == '补规格': fill_specs()
     elif cmd == '补评论Lowes': lowes_reviews()
+    elif cmd == '补评论Lowes类目': lowes_reviews_vp()
+    elif cmd == '补规格Wayfair': fill_specs(('wayfair',))
+    elif cmd == '补规格Lowes': fill_specs(('lowes',))
     elif cmd == '整理': build()
     elif cmd == '分析': analyze()
 
