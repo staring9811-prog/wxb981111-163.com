@@ -43,7 +43,7 @@ def reset_engine():
 def init_db():
     import importlib
     from . import models  # noqa: F401  注册全部表
-    for ext in ("models_settings", "models_data", "models_decision", "models_channel"):  # 各模块组追加的表
+    for ext in ("models_settings", "models_data", "models_decision", "models_channel", "models_research"):  # 各模块组追加的表
         try:
             importlib.import_module(f"{__package__}.{ext}")
         except ModuleNotFoundError as e:
