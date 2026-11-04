@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-11-03T17:03:55Z",
+  "last_updated_at_utc": "2026-11-04T10:00:00Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -28,16 +28,20 @@
       "source": "wen 2026-11-03：第一版全做（F15–F27）+ 追加其他渠道（F28、F29），只做浴室柜"
     }
   },
-  "contract_revision": 8,
+  "contract_revision": 9,
   "source_ids_changed": [
-    "F28",
-    "F29",
-    "REQ-F18-03",
-    "REQ-F26-03",
-    "REQ-F27-02"
+    "F30",
+    "US-F30-01",
+    "REQ-F30-01",
+    "REQ-F30-02",
+    "REQ-F30-03",
+    "REQ-F30-04",
+    "REQ-F30-05",
+    "AC-F30-01～32",
+    "NFR-014"
   ],
-  "current_stage": "goal",
-  "current_substep": "revision 8 开发与验收完成：58/61 通过，3 项待 wen 本地实测",
+  "current_stage": "design",
+  "current_substep": "revision 9 PRD 核心完成（PRD v9、requirements r9、analysis r9，校验通过）；设计决策蓝图 §12 草案待 wen 确认",
   "completed_stages": [
     "1",
     "2",
@@ -50,7 +54,7 @@
   "skipped_stages": [
     "3"
   ],
-  "next_action": "wen：本人电脑启动 + 局域网另一设备访问（SMOKE-01）；设置页填真实密钥并提供卖家精灵接口文档（RULE-08）；在电脑上用 Bright Data / Apify 回补 Lowe's / Wayfair 历史后渠道重算；账号页暂缓（DESIGN-03）；待办：回补渠道月度续更、按自动值批量确认、组合套装 / 实用水槽等新方向",
+  "next_action": "wen 确认设计决策蓝图 §12（渠道调研页结构与 4 个设计选择）后，Design 增量出 PAGE-F30-01 与受影响页面、技术方案、追溯矩阵，再进 TDD。r8 遗留（不变）：wen：本人电脑启动 + 局域网另一设备访问（SMOKE-01）；设置页填真实密钥并提供卖家精灵接口文档（RULE-08）；在电脑上用 Bright Data / Apify 回补 Lowe's / Wayfair 历史后渠道重算；账号页暂缓（DESIGN-03）；待办：回补渠道月度续更、按自动值批量确认、组合套装 / 实用水槽等新方向",
   "open_questions": [
     {
       "id": "OQ-R2-01",
@@ -185,6 +189,11 @@
       "id": "KD-R2-04",
       "decision": "第一版加入 Home Depot / Lowe's / Wayfair：分渠道扫描、决策卡并排；评论换算销量（VP×50、非VP×20，可改）+ 榜单排名平滑法；成功线 AI 提议默认值",
       "source": "wen 2026-11-03"
+    },
+    {
+      "id": "KD-R2-05",
+      "decision": "小平台调研单独成页（渠道调研），不并入机会扫描；第一版只做导入 + 展示，系统内抓取放第二版（REQ-F30-05）；证据等级\"历史观察\"，与\"经回测（打折）\"分开标",
+      "source": "wen 2026-11-04"
     }
   ],
   "category": "generic",
@@ -194,11 +203,11 @@
     "analysis": "output/requirements-analysis.md（P0=0、P1=0）"
   },
   "validation": {
-    "at": "2026-11-03T05:44:18Z",
+    "at": "2026-11-04T10:00:00Z",
     "check_evidence": "pass",
     "check_format": "pass",
-    "check_consistency": "pass",
-    "check_requirements_contract": "pass（104 个稳定对象）"
+    "check_consistency": "pass (US→F 16/16, 角色 16/16)",
+    "check_requirements_contract": "pass (182 stable objects, revision 9)"
   },
   "design": {
     "round": 2,
@@ -288,6 +297,10 @@
     {
       "at": "2026-11-03T17:03:55Z",
       "event": "revision 8（小平台回测）开发完成：143 个测试通过；7 个改动页面独立视觉复核通过；验收 58/61"
+    },
+    {
+      "at": "2026-11-04T10:00:00Z",
+      "event": "revision 9（小平台单元×指标观察，方案书 §11）：PRD v9 / requirements r9（新增 F30、NFR-014）/ analysis r9（RA-120～130）校验通过；蓝图 §12 草案待确认"
     }
   ]
 }
