@@ -75,6 +75,13 @@ for f in FILES:
                   'eligible': True, 'outside': False, '月新增评分数（MCP）': r.get('ratingsCv'), '上月购买标（MCP）': r.get('amzUnit'),
                   '卖家数（MCP）': r.get('sellers'), '卖家所属地（MCP）': r.get('sellerNation'), '大类BSR（MCP）': r.get('bsr')})
 
+# 2026-10（卖家精灵"最近 30 天"，按 10 月用）：子体月销用 wen 拉的子体流量词按同一公式算好的预估（"缺"记空）
+K10 = f'{D2}/子体流量词/分月/子体销量预估_2026-10(近30天).csv'
+if os.path.exists(K10):
+    e10 = {r['子ASIN']: num(r['子体月销预估']) for _, r in pd.read_csv(K10, dtype=str).fillna('').iterrows() if r['子体月销预估'] not in ('', '缺')}
+    for r in R:
+        if r['m'] == '2026-10': r['est26'] = e10.get(r['asin'])
+
 pay = json.load(open(f'{P15}/_work/data_root/sales_payload.json', encoding='utf-8'))['detailRows']
 q = pd.read_pickle(f'{P15}/BathroomVanities_202601-202605_分析用.pkl')
 if len(pay) != len(q) or any(p['子ASIN'] != a for p, a in zip(pay, q['子ASIN'])): raise SystemExit('1–5 月文字与分析用表逐行对不上')
@@ -316,7 +323,7 @@ def link(a, b):
             '同子体家族键相同': (k.a == k.b).mean()}
 have = set(I['月份'])
 LINKS = [(a, b, n, link(a, b)) for a, b, n in [('2024-12', '2025-01', 'MCP 内部（同为 12 → 1 月）'), ('2025-11', '2025-12', 'MCP 内部'), ('2025-12', '2026-01', 'MCP → 2026 月度表'),
-                                              ('2026-01', '2026-02', '月度表内部'), ('2026-05', '2026-06', '月度表 → v11 表'), ('2026-06', '2026-07', 'v11 表内部')]
+                                              ('2026-01', '2026-02', '月度表内部'), ('2026-05', '2026-06', '月度表 → v11 表'), ('2026-06', '2026-07', 'v11 表内部'), ('2026-09', '2026-10', 'v11 表 → MCP 近 30 天')]
          if a in have and b in have]
 
 # ---------- 8. 与 2026 年旧标签比（同一子体，各取最近月份） ----------
