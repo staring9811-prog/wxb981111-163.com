@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.1.0">
+<meta name="pc-app-version" content="1.1.1">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -468,12 +468,14 @@ const COST_CUR = {USD:"USD FOB（不含税）", RMB_TAX:"RMB 含税", RMB_NET:"R
 /* Platforms beyond Amazon. Each one is configured by P.plat[k]; the same engine settles all of them. */
 const PLATS = [{k:"lowesVC",name:"Lowe's VC"},{k:"lowesSC",name:"Lowe's SC"},{k:"hd",name:"Home Depot"},{k:"wf",name:"Wayfair"}];
 const SHIP = {self:"我们发货（尾程+燃油）",handling:"平台发货（只付订单处理费）",none:"平台仓（无尾程费用）"};
+/* 佣金基数: VC-style wholesale commission stays on the regular wholesale price (list ÷ markup) even during a promo. */
+const COMMBASE = {actual:"实际结算价",list:"原批发价（促销不降）"};
 const AMZ = [{k:"fbm",name:"Amazon FBM"},{k:"cg",name:"Amazon CG"},{k:"fba",name:"Amazon FBA"}];
 function platDefaults(){ return {
-  lowesVC:{on:true,upPct:15,markup:1.7,disc:10,ship:"handling",fixed:0.78,ads:10,fx:1,comm:5.2,refund:10,storage:2,outbound:0},
-  lowesSC:{on:true,upPct:15,markup:1,disc:30,ship:"self",fixed:0.78,ads:10,fx:1,comm:15,refund:10,storage:2,outbound:0},
-  hd:{on:true,upPct:15,markup:1.6,disc:25,ship:"handling",fixed:0.70,ads:10,fx:1,comm:3.22,refund:10,storage:2,outbound:0},
-  wf:{on:true,upPct:15,markup:2.1,disc:25,ship:"none",fixed:0,ads:10,fx:1,comm:4,refund:5,storage:2,outbound:4}}; }
+  lowesVC:{on:true,upPct:15,markup:1.7,disc:10,ship:"handling",fixed:0.78,ads:10,fx:1,comm:5.2,commBase:"list",refund:10,storage:2,outbound:0},
+  lowesSC:{on:true,upPct:15,markup:1,disc:30,ship:"self",fixed:0.78,ads:10,fx:1,comm:15,commBase:"actual",refund:10,storage:2,outbound:0},
+  hd:{on:true,upPct:15,markup:1.6,disc:25,ship:"handling",fixed:0.70,ads:10,fx:1,comm:3.22,commBase:"actual",refund:10,storage:2,outbound:0},
+  wf:{on:true,upPct:15,markup:2.1,disc:25,ship:"none",fixed:0,ads:10,fx:1,comm:4,commBase:"actual",refund:5,storage:2,outbound:4}}; }
 function defaultParams(){ return {
   rate:6.8, promo:10, fxLoss:1, refund:8, tax:13, residential:false,
   shipMode:"fob", domChan:"amz:fbm", seaViewDom:-1, cmpFob:-1, cmpDom:-1, dom:{vat:13, rebate:13, extra:0, sea:[]},
@@ -623,12 +625,13 @@ function calcPlatforms(p,r){
   for(const pl of PLATS){
     const c=P.plat[pl.k]; const pp=platPrices(p,r,pl.k);
     const logi=c.ship==="self"?sum(x=>x.fbmTotal):c.ship==="handling"?sum(x=>x.handling):0;
-    const pct=(nz(c.ads)+nz(c.fx)+nz(c.comm)+nz(c.refund)+nz(c.storage)+nz(c.outbound))/100;
-    const mk=nz(c.markup)||1, fixed=nz(c.fixed);
+    const pctO=(nz(c.ads)+nz(c.fx)+nz(c.refund)+nz(c.storage)+nz(c.outbound))/100, cm=nz(c.comm)/100, pct=pctO+cm;
+    const mk=nz(c.markup)||1, fixed=nz(c.fixed), commList=c.commBase==="list", listSettle=pp.list/mk;
     const sc=P.sea.map((s,i)=>{
       const sea=sum(x=>x.sea[i]), base=r.cost+sea+logi+fixed;
-      const at=retail=>{ const settle=retail/mk, fees=settle*pct, profit=settle-base-fees; return {retail,settle,fees,profit,margin:settle>0?profit/settle:NaN}; };
-      const need=m=>{ const d=1-pct-m; return d>0?base/d*mk:NaN; };
+      const at=retail=>{ const settle=retail/mk, comm=(commList?listSettle:settle)*cm, fees=settle*pctO+comm, profit=settle-base-fees; return {retail,settle,comm,fees,profit,margin:settle>0?profit/settle:NaN}; };
+      // break-even / target retail: with 原批发价 the commission is a fixed amount, so it moves into the base
+      const need=m=>{ const d=1-(commList?pctO:pct)-m; return d>0?(base+(commList?listSettle*cm:0))/d*mk:NaN; };
       return {sea,base,list:at(pp.list),promo:at(pp.promo),breakeven:need(0),target:need(nz(P.targetMargin)/100)};
     });
     out[pl.k]=Object.assign(pp,{noPrice:!(pp.list>0),disc:pp.list>0?1-pp.promo/pp.list:NaN,logi,fixed,pct,mk,sc});
@@ -863,7 +866,7 @@ function helpSections(){
    {id:"price",title:"售价、上架价、促销价",short:`平台上架价没填 = Amazon 售价 × ${P.listFactor}；促销价没填 = 上架价 × (1 − 默认折扣)`,html:`<div class="f">平台上架价 = 你填的上架价；没填时 = Amazon 售价 × 上架价系数（当前 ${esc(P.listFactor)}）
 平台促销价 = 你填的促销价；没填时 = 上架价 × (1 − 默认促销折扣)
 只填了促销价：上架价 = 促销价 ÷ (1 − 默认折扣)</div><p>平台以促销价为主看，上架价利润只作参考。批量改上架价用“比 Amazon 高 n%”。</p>`},
-   {id:"markup",title:"加价倍率 → 结算价",short:"结算价 = 前台价 ÷ 加价倍率；平台把差价留下，我们拿到的是结算价",html:`<div class="f">结算价 = 前台价 ÷ 加价倍率</div><p>例如前台 $439.99、倍率 1.7 → 结算价 $258.82。所有平台的比例费都按结算价算。倍率 1 表示我们直接按前台价结算（如 Lowe's SC）。</p>${perChan("markup","—（按售价）")}`},
+   {id:"markup",title:"加价倍率 → 结算价",short:"结算价 = 前台价 ÷ 加价倍率；平台把差价留下，我们拿到的是结算价",html:`<div class="f">结算价 = 前台价 ÷ 加价倍率</div><p>例如前台 $439.99、倍率 1.7 → 结算价 $258.82。平台的比例费都按结算价算（佣金基数选“原批发价”的渠道，佣金按上架价 ÷ 倍率算）。倍率 1 表示我们直接按前台价结算（如 Lowe's SC）。</p>${perChan("markup","—（按售价）")}`},
    {id:"disc",title:"默认促销折扣",short:"没填促销价时，促销价 = 上架价 × (1 − 默认折扣)",html:`<div class="f">促销价 = 上架价 × (1 − 默认促销折扣)</div>${perChan("disc")}`},
    {id:"cost",title:"采购成本（FOB 出货）",short:`USD FOB 直接用；RMB 含税 ÷ (1 + ${P.tax}%) ÷ 汇率；RMB 未税 ÷ 汇率；再加成本调整`,html:`<div class="f">USD FOB：采购成本 = 出厂价 + 成本调整
 RMB 含税：采购成本 = 出厂价 ÷ (1 + 采购税点 ${esc(P.tax)}%) ÷ 汇率 ${esc(P.rate)} + 成本调整
@@ -878,7 +881,8 @@ RMB 未税：采购成本 = 出厂价 ÷ 汇率 + 成本调整</div><p>成本调
    {id:"comm",title:"佣金",short:`Amazon 家具：$${P.commission.threshold} 以内 ${P.commission.furnLow}%、超出部分 ${P.commission.furnHigh}%；平台按结算价 %`,html:`<div class="f">Amazon 家具：售价 ≤ $${esc(P.commission.threshold)} → 售价 × ${esc(P.commission.furnLow)}%
               售价 > $${esc(P.commission.threshold)} → $${esc(P.commission.threshold)} × ${esc(P.commission.furnLow)}% + 超出部分 × ${esc(P.commission.furnHigh)}%
 Amazon 其他品类：售价 × 固定比例（汽配 ${esc(P.commission.汽配)}%、工业机械 ${esc(P.commission.工业机械)}%、农机花园 ${esc(P.commission.农机花园)}%、其他 ${esc(P.commission.其他)}%）
-平台：结算价 × 佣金 %</div>${perChan("comm","按品类（见上）")}`},
+平台：结算价 × 佣金 %
+佣金基数选“原批发价”的渠道（默认 Lowe's VC）：佣金 = 上架价 ÷ 加价倍率 × 佣金 %，促销时不跟着降价</div><p>VC 是平台按批发价向我们采购，佣金按 VC 原批发价算；做促销时我们拿到的结算价降了，佣金不变。可在变量 → 渠道费用的“佣金基数”里按渠道切换。</p>${perChan("comm","按品类（见上）")}`},
    {id:"storage",title:"仓储费",short:"按结算价的百分比；平台仓（如 Wayfair）的存储成本在这里扣",html:`<div class="f">仓储费 = 结算价 × 仓储 %</div>${perChan("storage")}`},
    {id:"outbound",title:"出仓费",short:"按结算价的百分比；平台仓出库费在这里扣（Wayfair 4%）",html:`<div class="f">出仓费 = 结算价 × 出仓 %</div>${perChan("outbound")}`},
    {id:"fixed",title:"平台订单费（$/单）",short:`平台每成交一单固定收的钱，不随售价和包裹数变；Lowe's VC/SC $${pl("lowesVC").fixed} / $${pl("lowesSC").fixed}，Home Depot $${pl("hd").fixed}`,html:`<div class="f">平台订单费 = 每单固定金额（每件产品扣一次）</div><p>这是<b>平台</b>按订单收的固定费用，来自你原来 LOWES / HDP 表里的“平台订单费”列（Lowe's 0.78、HDP 0.70）。它和下面的“订单处理费”不是一回事：订单处理费是海外仓按包裹重量收的拣货打包费。</p>${perChan("fixed")}`},
@@ -939,11 +943,11 @@ function setPath(p,v){ const ks=p.split("."); let o=P; for(let i=0;i<ks.length-1
 const CHROWS=[
   {label:"推广（广告费）%",short:"推广",amz:"promo",plat:"ads",all:1,g:0},{label:"汇损 %",short:"汇损",amz:"fxLoss",plat:"fx",all:1,g:0},{label:"退款 %",short:"退款",amz:"refund",plat:"refund",all:1,g:0},
   {label:"佣金 %",short:"佣金",amz:"@comm",plat:"comm",g:0},{label:"仓储费 %",short:"仓储",plat:"storage",g:0},{label:"出仓费 %",short:"出仓",plat:"outbound",g:0},
-  {label:"平台订单费 $/单",short:"平台订单费 $",plat:"fixed",g:1},{label:"加价倍率",short:"加价倍率",plat:"markup",tip:"前台价 ÷ 倍率 = 结算价",g:1},{label:"默认促销折扣 %",short:"默认折扣 %",plat:"disc",g:1},
+  {label:"佣金计算基数",short:"佣金基数",plat:"commBase",help:"comm",g:1},{label:"平台订单费 $/单",short:"平台订单费 $",plat:"fixed",g:1},{label:"加价倍率",short:"加价倍率",plat:"markup",tip:"前台价 ÷ 倍率 = 结算价",g:1},{label:"默认促销折扣 %",short:"默认折扣 %",plat:"disc",g:1},
   {label:"发货方",short:"发货方",amz:"@ship",plat:"ship",g:2}];
 const CHGROUPS=["比例费用 %（按结算价）","每单与价格","物流"];
 const COMM_PATHS=["commission.threshold","commission.furnLow","commission.furnHigh","commission.汽配","commission.工业机械","commission.农机花园","commission.其他"];
-const PLAT_FEES=["ads","fx","refund","comm","storage","outbound","fixed","markup","disc","ship"];
+const PLAT_FEES=["ads","fx","refund","comm","commBase","storage","outbound","fixed","markup","disc","ship"];
 const VB={
   chan:()=>["promo","fxLoss","refund",...COMM_PATHS,...PLATS.flatMap(pl=>PLAT_FEES.map(f=>`plat.${pl.k}.${f}`))],
   deliv:()=>["dom.extra","dom.vat","dom.rebate"],
@@ -963,11 +967,12 @@ function renderVars(){
   const nb=(id,b)=>{ const n=chgCount(b); document.getElementById(id).textContent=n?`已改 ${n} 项`:"全部为默认值"; };
   nb("vbChanN","chan"); nb("vbDelN","deliv"); nb("vbComN","common");
   // ① channel fees: one row per fee, one column per channel
-  const cell=(r,pl)=>{ const k=r.plat; if(k==="ship"){ const p=`plat.${pl.k}.ship`; return `<td><select data-path="${p}"${isChg(p)?` class="chg" title="默认 ${esc(SHIP[defVal(p)])}"`:""}>${Object.entries(SHIP).map(([v,l])=>`<option value="${v}" ${P.plat[pl.k].ship===v?"selected":""}>${l.replace(/（.*）/,"")}</option>`).join("")}</select></td>`; } return `<td>${vIn(`plat.${pl.k}.${k}`)}</td>`; };
+  const SELS={ship:SHIP,commBase:COMMBASE};
+  const cell=(r,pl)=>{ const k=r.plat, opts=SELS[k]; if(opts){ const p=`plat.${pl.k}.${k}`; return `<td><select data-path="${p}"${isChg(p)?` class="chg" title="默认 ${esc(opts[defVal(p)])}"`:""}>${Object.entries(opts).map(([v,l])=>`<option value="${v}" ${P.plat[pl.k][k]===v?"selected":""}>${l.replace(/（.*）/,"")}</option>`).join("")}</select></td>`; } return `<td>${vIn(`plat.${pl.k}.${k}`)}</td>`; };
   const amzCell=r=>!r.amz?`<td class="muted c">—</td>`:r.amz==="@comm"?`<td><button class="btn sm${COMM_PATHS.some(isChg)?" chg":""}" data-amzcomm="1" title="${esc(`Amazon 佣金按品类分档：家具 ${P.commission.furnLow}% / 超 $${P.commission.threshold} 部分 ${P.commission.furnHigh}%，点开修改`)}">按品类 ${vAmzOpen?"▴":"▾"}</button></td>`:r.amz==="@ship"?`<td class="note c">三种都算${hi("ship")}</td>`:`<td>${vIn(r.amz)}</td>`;
   // one row per channel, one column per fee (grouped by kind of fee); “全部渠道设为” is the last row
   const gh=CHGROUPS.map((g,i)=>{ const n=CHROWS.filter(r=>r.g===i).length; return `<th class="grp" colspan="${n}">${esc(g)}</th>`; }).join("");
-  const fh=CHROWS.map(r=>`<th>${esc(r.short)}${hi(r.plat)}</th>`).join("");
+  const fh=CHROWS.map(r=>`<th>${esc(r.short)}${hi(r.help||r.plat)}</th>`).join("");
   const amzRow=`<tr><th scope="row">Amazon<br><span class="note">FBM / CG / FBA</span></th>${CHROWS.map(r=>amzCell(r)).join("")}</tr>`;
   const platRows=PLATS.map(pl=>`<tr><th scope="row">${esc(pl.name)}</th>${CHROWS.map(r=>cell(r,pl)).join("")}</tr>`).join("");
   const allRow=`<tr class="allrow"><th scope="row">全部渠道设为</th>${CHROWS.map(r=>`<td>${r.all?`<input type="number" step="any" data-allrow="${r.plat}" placeholder="统一" aria-label="${esc(r.label)} 全部渠道设为">`:""}</td>`).join("")}</tr>`;
@@ -1084,7 +1089,7 @@ function breakdown(r,id,si){
   if(x.noPrice) return null;
   const sc=x.sc[si], v=sc[m], st=v.settle;
   const logi=c.ship==="self"?fbmSteps():c.ship==="handling"?[["订单处理",sum(x=>x.handling)]]:[];
-  const pctSteps=[["推广",c.ads],["汇损",c.fx],["佣金",c.comm],["退款",c.refund],["仓储费",c.storage],["出仓费",c.outbound]].filter(a=>nz(a[1])>0).map(a=>[`${a[0]} ${a[1]}%`,st*nz(a[1])/100]);
+  const pctSteps=[["推广",c.ads],["汇损",c.fx],["佣金",c.comm],["退款",c.refund],["仓储费",c.storage],["出仓费",c.outbound]].filter(a=>nz(a[1])>0).map(a=>a[0]==="佣金"?[`佣金 ${a[1]}%${c.commBase==="list"?"（按原批发价）":""}`,v.comm]:[`${a[0]} ${a[1]}%`,st*nz(a[1])/100]);
   const steps=[[r.dom?"采购成本（退税后）":"采购成本",r.cost],[r.dom?"头程运费":"海运费",sc.sea],...logi,...(nz(c.fixed)>0?[["平台订单费",nz(c.fixed)]]:[]),...pctSteps];
   return {priceLabel:m==="list"?"上架价":"促销价",price:m==="list"?x.list:x.promo,settle:st,mk:x.mk,steps,profit:v.profit,margin:v.margin,edit:m,est:x.est&&!(m==="promo"?x.promoSet:x.listSet)};
 }
@@ -1233,7 +1238,7 @@ document.getElementById("btnExport").addEventListener("click",()=>{
     ...P.sea.map(s=>[`海运方案（${seaKind(s)==="dom"?"国内":"FOB"}）：${s.name}`,`${s.rmb} RMB / ${s.cbm} CBM = $${f2(nz(s.rmb)/nz(s.cbm)/P.rate)}/m³`]),
     ["出货方式",P.shipMode==="dom"?"国内出货":"FOB"],["国内出货","增值税 "+P.dom.vat+"%，退税率 "+P.dom.rebate+"%，国内杂费 "+P.dom.extra+" RMB/柜"],
     ["平台上架价系数（× Amazon 售价）",P.listFactor],["目标利润率 %",P.targetMargin],
-    ...PLATS.flatMap(pl=>{ const c=P.plat[pl.k]; return [[`${pl.name}`,`${c.on!==false?"显示":"隐藏"}；${SHIP[c.ship]||c.ship}；加价倍率 ${c.markup}；默认促销折扣 ${c.disc}%；平台订单费 $${c.fixed}`],[`${pl.name} 比例费`,`推广 ${c.ads}% · 汇损 ${c.fx}% · 佣金 ${c.comm}% · 退款 ${c.refund}% · 仓储 ${c.storage}% · 出仓 ${c.outbound}%`]]; }),
+    ...PLATS.flatMap(pl=>{ const c=P.plat[pl.k]; return [[`${pl.name}`,`${c.on!==false?"显示":"隐藏"}；${SHIP[c.ship]||c.ship}；加价倍率 ${c.markup}；默认促销折扣 ${c.disc}%；平台订单费 $${c.fixed}`],[`${pl.name} 比例费`,`推广 ${c.ads}% · 汇损 ${c.fx}% · 佣金 ${c.comm}%（${(COMMBASE[c.commBase]||COMMBASE.actual).replace(/（.*）/,"")}） · 退款 ${c.refund}% · 仓储 ${c.storage}% · 出仓 ${c.outbound}%`]]; }),
     ["FBA 燃油/物流附加费 %",P.fba.fuel],["FBA 体积重除数",P.fba.dimDiv],["FBA 费率",fbaPeak()?"旺季":"非旺季"],["FBA 旺季区间",P.fba.peakStart+" ~ "+P.fba.peakEnd],["导出日期",new Date().toLocaleString()]];
   const ws3=aoaSheet(par); ws3["!cols"]=[{wch:26},{wch:40}];
   const M=mixData(R), L=platOn(), A=amzOn(), si=seaIdx(), sn=P.sea[si].name, r3=v=>isFinite(v)?Math.round(v*1000)/1000:"";
