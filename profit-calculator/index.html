@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.1.1">
+<meta name="pc-app-version" content="1.1.2">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -206,6 +206,23 @@ nav.steps button.helpnav{background:transparent;border-style:dashed}
 
 #btnTheme{width:34px;height:34px;padding:6px;display:inline-grid;place-items:center}
 #btnTheme svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* in-page navigation: a left rail in the page margin on wide screens, a “本页目录” button elsewhere */
+#pageToc{display:none}
+body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(safe-area-inset-left,0px));bottom:max(16px,env(safe-area-inset-bottom,0px))}
+#tocBtn{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+#pageToc .tocBox{display:none;position:absolute;bottom:calc(100% + 8px);left:0;width:210px;max-height:60vh;max-height:60dvh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px}
+#pageToc.open .tocBox{display:block}
+.tocT{font-size:12px;color:var(--muted);padding:2px 10px 6px;font-weight:600;letter-spacing:.04em}
+#tocList{list-style:none;margin:0;padding:0}
+#tocList a{display:block;padding:6px 10px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:13px;line-height:1.35;border-left:2px solid transparent}
+#tocList a:hover{background:var(--surface2)}
+#tocList a.on{color:var(--accent);background:var(--surface2);border-left-color:var(--accent);font-weight:600}
+@media (min-width:1800px){
+ body.has-toc:not(.drawer-open) #pageToc{top:var(--tocTop,96px);bottom:auto;left:calc((100vw - 1400px)/2 - 184px);width:168px}
+ body.has-toc:not(.drawer-open) #tocBtn{display:none}
+ body.has-toc:not(.drawer-open) #pageToc .tocBox{display:block;position:static;width:auto;max-height:calc(100vh - var(--tocTop,96px) - 24px);box-shadow:none;background:transparent;border:0;border-left:1px solid var(--line);border-radius:0;padding:0 0 0 6px}
+}
+@media print{#pageToc{display:none!important}}
 </style>
 
 <header class="bar"><div class="wrap">
@@ -458,6 +475,7 @@ nav.steps button.helpnav{background:transparent;border-style:dashed}
   <div class="tw" id="resDetail"></div>
 </section>
 </main>
+<nav id="pageToc" aria-label="本页导航"><button type="button" id="tocBtn" class="btn sm" aria-controls="tocList">☰ 本页目录</button><div class="tocBox"><div class="tocT">本页导航</div><ol id="tocList"></ol></div></nav>
 
 <script>
 "use strict";
@@ -684,7 +702,29 @@ document.addEventListener("click",e=>{ const t=e.target.closest("[data-happly]")
 /* ---------------- step navigation ---------------- */
 function go(n){ if(n!==4&&typeof closeVars==="function"&&!document.getElementById("varDrawer").hidden) closeVars(); step=n; for(let i=1;i<=6;i++) document.getElementById("s"+i).hidden=i!==n;
   document.querySelectorAll("#steps button").forEach(b=>{ if(+b.dataset.step===n) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current"); });
-  render(); try{ localStorage.setItem("pc_step",n);}catch(e){} window.scrollTo(0,0); }
+  render(); try{ localStorage.setItem("pc_step",n);}catch(e){} window.scrollTo(0,0); buildToc(); }
+/* ---------------- in-page navigation: the visible h2 headings of the current step (h3 too when a step has only one h2) ---------------- */
+let tocItems=[], tocFrame=0;
+const barH=()=>{ const b=document.querySelector("header.bar"); return b?b.getBoundingClientRect().bottom:0; };
+function tocHeads(){ const sec=document.getElementById("s"+step); if(!sec) return [];
+  const vis=h=>h.offsetParent!==null&&!h.closest("[hidden],dialog,.tw");
+  let hs=[...sec.querySelectorAll("h2")].filter(vis); if(hs.length<2) hs=[...sec.querySelectorAll("h2,h3")].filter(vis);
+  return hs; }
+const headText=h=>{ const c=h.cloneNode(true); c.querySelectorAll(".note,.hi,button,.chip").forEach(x=>x.remove()); return c.textContent.replace(/\s+/g," ").trim(); };
+function buildToc(){ const nav=document.getElementById("pageToc"); if(!nav) return; const hs=tocHeads(); tocItems=hs;
+  const names=hs.map(headText), sig=step+":"+names.join("|");
+  if(nav.dataset.sig!==sig){ nav.dataset.sig=sig; document.getElementById("tocList").innerHTML=names.map((t,i)=>`<li><a href="#" data-toc="${i}">${esc(t)}</a></li>`).join(""); }
+  document.body.classList.toggle("has-toc",hs.length>=2); if(hs.length<2) nav.classList.remove("open");
+  document.documentElement.style.setProperty("--tocTop",Math.round(barH()+20)+"px"); spyToc(); }
+function spyToc(){ if(!tocItems.length) return; const line=barH()+90; let cur=0;
+  tocItems.forEach((h,i)=>{ if(h.getBoundingClientRect().top<=line) cur=i; });
+  if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4) cur=tocItems.length-1;
+  document.querySelectorAll("#tocList a").forEach((a,i)=>{ a.classList.toggle("on",i===cur); if(i===cur) a.setAttribute("aria-current","location"); else a.removeAttribute("aria-current"); }); }
+document.getElementById("pageToc").addEventListener("click",e=>{ const nav=document.getElementById("pageToc"), a=e.target.closest("[data-toc]");
+  if(a){ e.preventDefault(); const h=tocItems[+a.dataset.toc]; if(h) window.scrollTo({top:h.getBoundingClientRect().top+window.scrollY-barH()-12,behavior:"smooth"}); nav.classList.remove("open"); return; }
+  if(e.target.closest("#tocBtn")) nav.classList.toggle("open"); });
+document.addEventListener("click",e=>{ if(!e.target.closest("#pageToc")) document.getElementById("pageToc").classList.remove("open"); });
+window.addEventListener("scroll",()=>{ if(!tocFrame) tocFrame=requestAnimationFrame(()=>{ tocFrame=0; spyToc(); }); },{passive:true});
 document.getElementById("steps").addEventListener("click",e=>{ const b=e.target.closest("button[data-step]"); if(b) go(+b.dataset.step); });
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-go]"); if(b) go(+b.dataset.go); });
 function render(){ renderBulk(); if(step===1) renderS1(); if(step===2) renderS2(); if(step===3) renderS3(); if(step===4) renderS4(); if(step===5) renderS5(); if(step===6) renderS6(); }
@@ -1658,7 +1698,7 @@ function prepareFrozenTables(){
  positionFrozenHeaders();
 }
 let frozenTablesFrame=0, headerFrame=0;
-function scheduleFrozenTables(){if(!frozenTablesFrame)frozenTablesFrame=requestAnimationFrame(()=>{frozenTablesFrame=0;prepareFrozenTables();});}
+function scheduleFrozenTables(){if(!frozenTablesFrame)frozenTablesFrame=requestAnimationFrame(()=>{frozenTablesFrame=0;prepareFrozenTables();buildToc();});}
 function scheduleHeaderPosition(){if(!headerFrame)headerFrame=requestAnimationFrame(()=>{headerFrame=0;positionFrozenHeaders();});}
 new MutationObserver(records=>{
  if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches("table")||n.querySelector("table")))))scheduleFrozenTables();
