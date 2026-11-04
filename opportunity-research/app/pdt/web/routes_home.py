@@ -74,11 +74,39 @@ def _data_status(data_month: str):
     return rows, any_batch == 0
 
 
+def _research_row():
+    """本月数据状态的“渠道调研”行（DEC-105）：窗口、分框待确认数、各渠道可读 / 达标框或尚未导入 / 数据不足。"""
+    from ..core import research
+    st = research.status_all()
+    done = [v for v in st.values() if v["state"] != "none"]
+    parts = []
+    for v in st.values():
+        if v["state"] == "none":
+            parts.append(f"{v['name']} 尚未导入")
+        elif v["state"] == "insufficient":
+            parts.append(f"{v['name']} 数据不足")
+        else:
+            parts.append(f"{v['name']} 可读 {v['readable']} / 达标 {v['big']} 框")
+    wins = [v["window"] for v in done if v.get("window")]
+    month = f"{min(w[0] for w in wins)} 至 {max(w[-1] for w in wins)[5:]}" if wins else "—"
+    pend = sum(v.get("pending", 0) for v in done)
+    at = max((v["computed_at"] for v in done if v.get("computed_at")), default=None)
+    imp = max((v["version"].created_at for v in done if v.get("version")), default=None)
+    if not done:
+        label, tone, icon = "尚未导入", "nodata", "link-simple"
+    elif pend:
+        label, tone, icon = f"分框待确认 {pend}", "unverified", "warning"
+    else:
+        label, tone, icon = "已导入", "ok", "check-circle"
+    return dict(channel="research", name="渠道调研", sub="历史观察 · 不进机会扫描", href="/research", month=month, label=label, tone=tone, icon=icon,
+                note=" · ".join(parts) + (f"（导入 {imp:%m-%d %H:%M}）" if imp else ""), full=True, at=at, action=False, last_merged="")
+
+
 def _tags():
     from ..core import tagging  # 与侧栏角标、打标确认页同一口径（排除“不是本品类”的商品）
     c = tagging.counts()
     return dict(total=c["total"], by_channel=[(CHANNEL_NAMES[ch], c["by_channel"].get(ch, 0)) for ch in CHANNELS], elem=c["element"],
-                low=c["low"], groups=tagging.queued_groups())
+                low=c["low"], assembly=c["assembly"], frame=c["frame"], groups=tagging.queued_groups())
 
 
 def _approvals(user):
@@ -149,6 +177,7 @@ def home(request: Request, user=any_user):
     ctx = dict(data_month=dm, validity=_validity(dm), links=_links(), due=_due())
     if role == "operator":
         ctx["data_rows"], ctx["no_data"] = _data_status(dm)
+        ctx["data_rows"].append(_research_row())
         ctx["tags"] = _tags()
         ctx["spend"] = [service_usage(k) for k in SERVICES]
     if role in ("operator", "approver"):

@@ -74,10 +74,10 @@
           <tbody>
             {% for r in data_rows %}
             <tr data-href="{{ r.href }}" data-channel="{{ r.channel }}">
-              <td><span class="cell-title">{{ r.name }}</span></td>
+              <td><span class="cell-title">{{ r.name }}</span>{% if r.sub %}<div class="cell-sub">{{ r.sub }}</div>{% endif %}</td>
               <td class="t-nowrap num">{{ r.month }}</td>
               <td><span class="badge badge--{{ r.tone }}"><svg class="icon"><use href="#ph-{{ r.icon }}"/></svg>{{ r.label }}</span></td>
-              <td class="col-note">{% if r.note|length > 32 %}<details class="note-more" data-no-row><summary>{{ r.note[:32] }}…<span class="tlink">展开</span></summary><div>{{ r.note }}</div></details>{% else %}<div>{{ r.note or '—' }}</div>{% endif %}{% if r.last_merged %}<div class="cell-sub">上一个已并入月份：{{ r.last_merged|replace('*', '') }}{% if '*' in r.last_merged %}<span class="star">*</span>（数据来源切换）{% endif %}</div>{% endif %}{% if r.channel == 'wayfair' %}<div class="cell-sub">VP 口径不同，只在渠道内比较</div>{% endif %}</td>
+              <td class="col-note">{% if r.note|length > 32 and not r.full %}<details class="note-more" data-no-row><summary>{{ r.note[:32] }}…<span class="tlink">展开</span></summary><div>{{ r.note }}</div></details>{% else %}<div>{{ r.note or '—' }}</div>{% endif %}{% if r.last_merged %}<div class="cell-sub">上一个已并入月份：{{ r.last_merged|replace('*', '') }}{% if '*' in r.last_merged %}<span class="star">*</span>（数据来源切换）{% endif %}</div>{% endif %}{% if r.channel == 'wayfair' %}<div class="cell-sub">VP 口径不同，只在渠道内比较</div>{% endif %}</td>
               <td class="t-nowrap muted small">{{ r.at.strftime('%m-%d %H:%M') if r.at else '—' }}</td>
               <td class="t-nowrap">{% if r.action %}<a class="btn btn--sm" href="{{ r.href }}">去处理</a>{% else %}<a class="tlink small" href="{{ r.href }}">查看</a>{% endif %}</td>
             </tr>
@@ -98,7 +98,7 @@
         </div>
         {% if tags.total %}
         <div class="panel__body">
-          <div class="wb-big"><span class="hero-figure num" data-tag-total>{{ tags.total|num }}</span><span class="muted">条 · 元素 {{ tags.elem|num }}、低置信度 {{ tags.low|num }}</span></div>
+          <div class="wb-big"><span class="hero-figure num" data-tag-total>{{ tags.total|num }}</span><span class="muted">条 · 元素 {{ tags.elem|num }}、低置信度 {{ tags.low|num }}{% if tags.assembly %}、装：未知 {{ tags.assembly|num }}{% endif %}{% if tags.frame %}、分框未知（渠道调研）{{ tags.frame|num }}{% endif %}</span></div>
           <dl class="wb-split">
             {% for name, n in tags.by_channel %}<div><dt>{{ name }}</dt><dd>{{ n|num }}</dd></div>{% endfor %}
           </dl>

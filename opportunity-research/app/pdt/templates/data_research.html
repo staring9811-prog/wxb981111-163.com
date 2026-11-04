@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .steps--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .upl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+  .sums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
+  .sumcard .kv { grid-template-columns: 96px minmax(0, 1fr); font-size: var(--text-sm); }
+  .conflict { margin-top: var(--space-4); display: grid; gap: var(--space-2); }
+  .actbar { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-4); padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .actbar .spacer { flex: 1; }
+  details.cols summary { cursor: pointer; font-size: var(--text-sm); }
+  details.cols summary:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+  details.cols p { font-size: var(--text-xs); color: var(--fg-2); margin: var(--space-2) 0 0; }
+  .dropzone input[type=file] { margin-top: var(--space-2); font-size: var(--text-xs); }
+  @media (max-width: 1279px) { .sums { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 767px) { .upl { grid-template-columns: minmax(0, 1fr); } .steps--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actbar { flex-wrap: wrap; } }
+</style>
+{% endblock %}
+{% block content %}
+{% macro pct(v, nd=0) %}{% if v is none %}—{% else %}{{ ('%.' ~ nd ~ 'f%%')|format(v * 100) }}{% endif %}{% endmacro %}
+{% set S = imp.summary if imp else {} %}
+{% set anyc = S.values()|selectattr('conflict')|list|length > 0 if imp else false %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>渠道调研导入</span></nav>
+    <h1>渠道调研导入</h1>
+    <p class="page-head__sub">导入 wen 本机抓好的小平台商品表与月销表（<span class="mono">大词抓取_三平台整理.py</span> 产出）· 只用于 <a href="/research">渠道调研</a>，不写入其他渠道分析库，机会扫描、模型、决策卡、台账不变</p>
+  </div>
+  <div class="page-head__actions"><a class="btn" href="/research"><svg class="icon"><use href="#ph-list-magnifying-glass"/></svg><span>去渠道调研</span></a></div>
+</div>
+
+<ol class="steps steps--4 enter" style="--i:1" aria-label="导入进度">
+  <li class="step {{ 'step--done' if imp or problems else 'step--current' }}"><span class="step__link"><span class="step__dot">{% if imp or problems %}<svg class="icon"><use href="#ph-check"/></svg>{% else %}1{% endif %}</span><span class="step__name">上传</span><span class="step__meta">{{ '2 个文件' if imp or problems else '选商品表与月销表' }}</span></span></li>
+  <li class="step {{ 'step--attention' if problems else ('step--done' if imp else 'step--todo') }}"><span class="step__link"><span class="step__dot">{% if problems %}<svg class="icon"><use href="#ph-x"/></svg>{% elif imp %}<svg class="icon"><use href="#ph-check"/></svg>{% else %}2{% endif %}</span><span class="step__name">检查</span><span class="step__meta">{% if problems %}未通过{% elif imp %}通过 · {{ imp.files.rows[0]|num }} + {{ imp.files.rows[1]|num }} 行{% else %}格式 / 渠道 / 重复 / 对不上{% endif %}</span></span></li>
+  <li class="step {{ ('step--attention' if anyc else 'step--current') if imp and not problems else 'step--todo' }}"><span class="step__link"><span class="step__dot">{% if imp and not problems and anyc %}<svg class="icon"><use href="#ph-warning"/></svg>{% else %}3{% endif %}</span><span class="step__name">核对摘要</span><span class="step__meta">{% if imp and not problems %}{% if anyc %}{{ S.values()|selectattr('conflict')|map(attribute='name')|join('、') }} 与已有数据不一致{% else %}按渠道核对{% endif %}{% else %}—{% endif %}</span></span></li>
+  <li class="step step--todo"><span class="step__link"><span class="step__dot">4</span><span class="step__name">确认导入</span><span class="step__meta">{{ '未确认，当前数据不变' if imp else '—' }}</span></span></li>
+</ol>
+
+<section class="section enter" style="--i:2" aria-labelledby="sec-up">
+  <div class="section__head"><h2 class="section__title" id="sec-up">上传</h2><span class="section__note">CSV（UTF-8）；两个文件都选好才能开始检查；核对摘要未确认时再次上传，会替换这一次</span></div>
+  <form method="post" action="/data/research/check" enctype="multipart/form-data" id="upform">
+    <div class="upl">
+      <label class="dropzone" for="f-prod"><svg class="icon"><use href="#ph-file-xls"/></svg><span><span class="strong">商品表</span>（三平台_商品表.csv）<br><span class="small muted">{{ files.products or (imp.files.products if imp else '') or '选择文件' }}</span><br><input id="f-prod" name="products" type="file" accept=".csv" required></span></label>
+      <label class="dropzone" for="f-mon"><svg class="icon"><use href="#ph-file-xls"/></svg><span><span class="strong">月销表</span>（三平台_月销表.csv）<br><span class="small muted">{{ files.monthly or (imp.files.monthly if imp else '') or '选择文件' }}</span><br><input id="f-mon" name="monthly" type="file" accept=".csv" required></span></label>
+    </div>
+    <div class="row" style="margin-top: var(--space-3)">
+      <details class="cols">
+        <summary>必需列</summary>
+        <p>商品表：渠道、fam、pid、title、来源、尺寸段、装、形态、台面材质、主色、柜体材质、元素、价格、评分、页面评论数（可选：首评月、月度来源、选项段、多尺寸段、浴室柜）。月销表：渠道、fam、pid、尺寸段、装、形态、月、VP、非VP、销量。渠道只认 Home Depot、Lowe's、Wayfair；"月"写 YYYY-MM；VP / 非VP / 销量为非负数。</p>
+      </details>
+      <span class="spacer"></span>
+      <button class="btn btn--primary" type="submit" data-start disabled><svg class="icon"><use href="#ph-play"/></svg><span>开始检查</span></button>
+    </div>
+  </form>
+  {% if problems %}
+  <div class="banner banner--block" id="fail" style="margin-top: var(--space-3)" role="alert"><svg class="icon"><use href="#ph-x-circle"/></svg><div class="banner__body"><div class="banner__title">未导入，当前调研数据不变</div>
+    <div class="table-wrap" style="margin-top: var(--space-2)"><table class="table" data-problems><thead><tr><th>问题</th><th class="t-num">行数</th><th>示例（前 20 条）</th></tr></thead><tbody>
+      {% for p in problems %}<tr><td>{{ p.title }}</td><td class="t-num">{{ '—' if p.n is none else p.n|num }}</td><td class="small">{{ p.examples|join('；') }}</td></tr>{% endfor %}
+    </tbody></table></div></div>
+    <div class="banner__actions"><label class="btn" for="f-prod"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>重新选择文件</span></label></div>
+  </div>
+  {% endif %}
+</section>
+
+{% if imp and not problems %}
+<form method="post" action="/data/research/{{ imp.id }}/confirm" id="confirm-form">
+<section class="section enter" style="--i:3" aria-labelledby="sec-sum" id="summary">
+  <div class="section__head"><h2 class="section__title" id="sec-sum">核对摘要</h2><span class="section__note">检查通过 · {{ imp.created_at|dt }} · 每个渠道单独确认；不勾选的渠道本次不导入</span></div>
+  <div class="sums">
+    {% for ch, c in S.items() %}{% set sm = c.summary %}
+    <article class="panel sumcard" data-channel="{{ ch }}">
+      <div class="panel__head"><h3 class="panel__title">{{ c.name }}</h3>
+        {% if c.conflict %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>需确认</span>
+        {% elif c.state == 'insufficient' %}<span class="badge badge--insufficient">导入后将显示"数据不足"</span>
+        {% else %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>核对通过</span>{% endif %}</div>
+      <div class="panel__body"><dl class="kv">
+        <dt>商品 / 家族</dt><dd>{{ sm.n_products|num }} 个商品 / {{ sm.n_families|num }} 个家族{% if sm.n_excluded %}（另有 {{ sm.n_excluded }} 个标为非浴室柜，不计）{% endif %}</dd>
+        <dt>完整月</dt><dd>{% if sm.window %}{{ sm.window[0] }} 至 {{ sm.window[-1] }}（{{ sm.n_months }} 个月）{% else %}—{% endif %}</dd>
+        <dt>窗口销量</dt><dd data-sales>{{ (sm.sales_monthly or 0)|num }} 件{% if sm.sales_est %} 有月度 + 估算 {{ sm.sales_est|num }} 件（低估计 {{ (sm.sales_est_low or 0)|num }}）{% endif %}</dd>
+        <dt>有月度销量</dt><dd>{{ pct(sm.monthly_share) }}{% if sm.n_static %}（{{ sm.n_static }} 个商品只有评论总数，按评论数档估算{% if sm.estimate.unestimable %}；{{ sm.estimate.unestimable }} 个无法估算{% endif %}）{% endif %}</dd>
+        <dt>已落框销量</dt><dd data-framed>{{ pct(sm.framed_share, 1) }}</dd>
+        <dt>分框待确认</dt><dd data-pending>{{ sm.pending_products }} 个{% if sm.pending_reasons %}（{% for k, n in sm.pending_reasons.items() %}{{ k }} {{ n }}{% if not loop.last %}、{% endif %}{% endfor %}）{% endif %}</dd>
+        <dt>只作参考</dt><dd data-reference>{% if sm.reference %}{% for m, n in sm.reference.items() %}{{ m }}：{{ n|num }} 行（未完整月），不计入{% if not loop.last %}；{% endif %}{% endfor %}{% else %}无{% endif %}</dd>
+        <dt>与已有评论 VP 数据</dt><dd>{% if not c.conflicts %}没有已并入的同月数据{% elif not c.conflict %}类目节点商品逐月差异均 ≤ 5%{% else %}见下表{% endif %}</dd>
+        <dt>替换</dt><dd>{% if c.current %}当前版本 v{{ c.current.no }}（{{ c.current.at }} 导入）→ 本次 v{{ c.current.no + 1 }}；v{{ c.current.no }} 保留在导入记录{% else %}首次导入 → v1{% endif %}</dd>
+      </dl>
+      {% if c.conflict %}
+      <div class="conflict" data-conflict>
+        <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>与已有数据不一致</span><span class="small muted">类目节点 / 两者商品当月 VP + 非VP 评论数 对比 已并入评论 VP 数据（按评论 ID 去重）</span></div>
+        <div class="table-wrap"><table class="table"><thead><tr><th>月份</th><th class="t-num">本次导入</th><th class="t-num">已并入</th><th class="t-num">差异</th><th></th></tr></thead><tbody>
+          {% for x in c.conflicts %}<tr{% if x.bad %} class="is-selected"{% endif %}><td class="num">{{ x.month }}</td><td class="t-num">{{ x.imported|num }}</td><td class="t-num">{{ x.merged|num }}</td><td class="t-num{% if x.bad %} strong{% endif %}">{% if x.diff is none %}已并入为 0{% else %}{{ '%+.1f%%'|format(x.diff * 100) }}{% endif %}</td><td>{% if x.bad %}<span class="badge badge--unverified">&gt; 5%</span>{% endif %}</td></tr>{% endfor %}
+        </tbody></table></div>
+        <p class="field__hint">差异 = |本次 − 已并入| ÷ 已并入。同系列 listing 部分共享评论，按 listing 合计会比按评论 ID 去重略多；勾选后才导入 {{ c.name }}，不勾选则本次不导入 {{ c.name }}。</p>
+      </div>
+      {% endif %}
+      </div>
+      <div class="panel__foot"><label class="check"><input type="checkbox" name="channels" value="{{ ch }}" data-pick="{{ c.name }}" data-pend="{{ sm.pending_products }}" data-rep="{% if c.current %}当前 v{{ c.current.no }} → v{{ c.current.no + 1 }}（v{{ c.current.no }} 保留）{% else %}首次导入 v1{% endif %}" {% if not c.conflict %}checked{% endif %}> 确认导入 {{ c.name }}</label></div>
+    </article>
+    {% endfor %}
+  </div>
+  <div class="actbar">
+    <span class="small">将导入：<b data-will>—</b> · 分框待确认 <b class="num" data-pend-total>0</b> 个会进入打标确认</span>
+    <span class="spacer"></span>
+    <button class="btn" type="submit" form="abandon-form"><svg class="icon"><use href="#ph-x"/></svg><span>放弃</span></button>
+    <button class="btn btn--primary" type="button" data-go><svg class="icon"><use href="#ph-check"/></svg><span>确认导入</span></button>
+  </div>
+</section>
+</form>
+<form method="post" action="/data/research/{{ imp.id }}/abandon" id="abandon-form"></form>
+{% endif %}
+
+<section class="section enter" style="--i:4" aria-labelledby="sec-log">
+  <div class="section__head"><h2 class="section__title" id="sec-log">导入记录</h2><span class="section__note">按渠道替换，旧版本保留可回看</span></div>
+  <div class="table-wrap"><table class="table" data-records><thead><tr><th>版本</th><th>渠道</th><th>导入时间</th><th>文件</th><th class="t-num">商品</th><th>月份范围</th><th>操作人</th><th>状态</th></tr></thead><tbody>
+    {% for r in records %}<tr><td class="num">{{ r.no }}</td><td>{{ r.name }}</td><td class="num">{{ r.at|dt }}</td><td class="small mono">{{ r.files.products }} / {{ r.files.monthly }}</td><td class="t-num">{{ r.n_products|num }}</td><td class="num">{% if r.months %}{{ r.months[0] }} 至 {{ r.months[-1] }}{% else %}—{% endif %}</td><td>{{ r.by }}</td>
+      <td><span class="badge badge--{{ {'当前': 'accent', '已替换': 'old', '已放弃': 'old'}[r.status] }}">{{ r.status }}</span></td></tr>
+    {% else %}<tr><td colspan="8" class="muted">还没有导入记录。</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}
+{% block modals %}
+{% if imp and not problems %}
+<div class="modal" id="m-imp" role="dialog" aria-modal="true" aria-labelledby="m-imp-t" aria-hidden="true">
+  <div class="modal__dialog">
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="m-imp-t">确认导入</h2><p class="modal__sub">渠道调研数据 · 不进入机会扫描与模型</p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body stack">
+      <dl class="kv"><dt>导入渠道</dt><dd data-will>—</dd><dt>替换</dt><dd data-replace>—</dd><dt>分框待确认</dt><dd><span data-pend-total>0</span> 个进入打标确认（已确认过的分框标签保留）</dd><dt>不变</dt><dd>其他渠道分析库（批次、快照），机会扫描、模型与回测、决策卡、预测台账的数字；未勾选的渠道</dd></dl>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn--primary" type="submit" form="confirm-form" data-done><svg class="icon"><use href="#ph-check"/></svg><span>确认导入</span></button>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var form = document.getElementById('upform');
+  var start = form.querySelector('[data-start]');
+  function ready() { start.disabled = !(form.elements.products.files.length && form.elements.monthly.files.length); }
+  form.elements.products.addEventListener('change', ready); form.elements.monthly.addEventListener('change', ready);
+  form.addEventListener('submit', function () { start.disabled = true; start.querySelector('span').textContent = '正在检查…'; });
+  var go = document.querySelector('[data-go]');
+  if (!go) return;
+  function sync() {
+    var picked = Array.prototype.slice.call(document.querySelectorAll('[data-pick]:checked'));
+    var names = picked.map(function (c) { return c.getAttribute('data-pick'); });
+    var n = picked.reduce(function (s, c) { return s + Number(c.getAttribute('data-pend')); }, 0);
+    document.querySelectorAll('[data-will]').forEach(function (el) { el.textContent = names.length ? names.join('、') : '（未选渠道）'; });
+    document.querySelectorAll('[data-pend-total]').forEach(function (el) { el.textContent = String(n); });
+    var r = document.querySelector('[data-replace]');
+    if (r) r.textContent = picked.length ? picked.map(function (c) { return c.getAttribute('data-pick') + ' ' + c.getAttribute('data-rep'); }).join('；') : '—';
+    go.disabled = names.length === 0;
+    go.title = names.length ? '' : '至少勾选一个渠道';
+  }
+  document.querySelectorAll('[data-pick]').forEach(function (c) { c.addEventListener('change', sync); });
+  go.addEventListener('click', function () { window.oppoOpen('#m-imp'); });
+  sync();
+})();
+</script>
+{% endblock %}
