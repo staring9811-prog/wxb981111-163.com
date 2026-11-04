@@ -708,6 +708,55 @@ def units_of(U, F, fr):
     return U[(U['框'] == fr) & (U['月均'] >= U_MIN)].sort_values(['属性', '月均'], ascending=[True, False])
 
 
+def est_section(D, ch, no):
+    """Wayfair / Lowe's 的按框章节（两者都有无月度实体的估算）。Lowe's 另给"只算有月度"的覆盖与可读性。"""
+    F, U = D['RES'][ch]; Fl, Fm, Um, Am = D['SENS'][ch]
+    F2 = F[F['框月均'] >= FR_MIN]; U2 = U[U['框'].isin(F2['框']) & (U['月均'] >= U_MIN)]
+    rd = F2['可读性'].value_counts()
+    P(f'## {no}、{ch}（按框）', '',
+      f'框月均 ≥ {FR_MIN} 的框 **{len(F2)} 个**（全部框 {len(F)} 个，合计月均 {num(F["框月均"].sum())}；达标框占 {pc(F2["框月均"].sum() / F["框月均"].sum())}），达标单元 **{len(U2)} 个**。'
+      f'可读性：' + '、'.join(f'{k} {v} 个' for k, v in rd.items()) + '。', '',
+      '"分框覆盖"把没进框的销量（多尺寸未拆、形态 / 装未知）按"已知维度一致"可能落到的框分摊（多尺寸实体只分到它选项里有的尺寸段）：**期望** = 按这些框已落框销量的比例分摊，**最坏** = 全部算给本框。期望 < 95% 的框，体量和份额都可能明显变化，只给方向参考。', '')
+    if ch == LW:
+        m2 = F2.set_index('框')
+        P('**Lowe\\'s 的覆盖缺口几乎全部来自估算部分**：两词独有、无月度的家族多数是多尺寸父体（拆不到尺寸段），它们的估算销量按选项尺寸段分摊后压低了所有框的覆盖。'
+          '只看有月度的部分（类目 Best Sellers 两榜家族，尺寸段已按评论变体宽度拆开）时，分框覆盖和可读性见表最后两列。'
+          '**本页 Lowe\\'s 的框内结论以"只算有月度"口径为准**（单元表和模式观察用有月度的销量），含估算的体量只作参考。', '')
+        P(*frame_table(F2, cover=True, tot=F['框月均'].sum()), '')
+        P('| 框 | 只算有月度：月均 | 分框覆盖（期望） | 可读性 |', '| :--- | ---: | ---: | :--- |',
+          *[f'| {k} | {num(Fm.set_index("框")["框月均"].get(k, np.nan))} | {pc(m2.at[k, "分框覆盖_期望_只算有月度"], 1)} | {m2.at[k, "可读性_只算有月度"]} |' for k in F2.sort_values('框月均', ascending=False)['框']], '')
+    else:
+        P(*frame_table(F2, cover=True, tot=F['框月均'].sum()), '')
+    lowname = '低估计' if ch == 'Wayfair' else '不计无月度'
+    S3 = pd.DataFrame({'中': F.set_index('框')['框月均'], '低': Fl.set_index('框')['框月均'], '仅有月度': Fm.set_index('框')['框月均']}).reindex(F2['框'])
+    for c in ('中', '低', '仅有月度'): S3[c + '名次'] = S3[c].rank(ascending=False)
+    S3 = S3.sort_values('中', ascending=False)
+    rows = [f'| {k} | {num(r["中"])} | {int(r["中名次"])} | ' + (f'{num(r["低"])} | {int(r["低名次"])} | ' if ch == 'Wayfair' else '') + f'{num(r["仅有月度"])} | {int(r["仅有月度名次"]) if r["仅有月度名次"] == r["仅有月度名次"] else "—"} |' for k, r in S3.iterrows()]
+    P(f'### {no}.2 敏感性：无月度实体的估算口径', '',
+      '| 框 | 月均（中估计） | 名次 | ' + ('月均（低估计） | 名次 | ' if ch == 'Wayfair' else '') + '月均（只算有月度） | 名次 |', '| :--- | ---: | ---: |' + (' ---: | ---: |' if ch == 'Wayfair' else '') + ' ---: | ---: |',
+      *rows, '', (f'名次相关（Spearman）：中 vs 低 {S3["中"].corr(S3["低"], method="spearman"):.2f}、' if ch == 'Wayfair' else '') + f'中 vs 只算有月度 {S3["中"].corr(S3["仅有月度"], method="spearman"):.2f}。', '')
+    P(f'### {no}.3 单元', '')
+    if ch == LW:
+        Fm2 = Fm[Fm['框月均'] >= FR_MIN]; okm = Fm2.loc[Fm2['可读性'] == '可读', '框']
+        Um2 = Um[Um['框'].isin(Fm2['框']) & (Um['月均'] >= U_MIN)]
+        P(f'只算有月度时达标框 {len(Fm2)} 个、达标单元 {len(Um2)} 个，其中可读框 {len(okm)} 个。下面列可读框里体量最大的 6 个（单元数字只用有月度的销量）。', '')
+        for fr in Fm2[Fm2['框'].isin(okm)].sort_values('框月均', ascending=False)['框'].head(6):
+            P(f'**{fr}**（只算有月度的框月均 {num(Fm2.set_index("框").at[fr, "框月均"])}）', '', *unit_table(units_of(Um, Fm2, fr), True, True), '')
+        P(f'**模式观察（Lowe\\'s，只算有月度、可读框：{"、".join(okm)}）**：条件同 HD（评分用页面总评分，"评论 ≥ 20"指页面评论数）。', '',
+          *patterns(Um2[Um2['框'].isin(okm)], LW, True, True))
+        D['ULm2'] = Um2; D['FLm2'] = Fm2
+        return
+    shown = [fr for fr in F2.sort_values('框月均', ascending=False)['框'] if F2.set_index('框').at[fr, '可读性'] != '不下结论（分框覆盖 < 95%）']
+    rest = [fr for fr in F2.sort_values('框月均', ascending=False)['框'] if fr not in shown][:4]
+    for fr in shown + rest:
+        r = F2.set_index('框').loc[fr]
+        P(f'**{fr}**（框月均 {num(r["框月均"])}；{r["可读性"]}）', '', *unit_table(units_of(U, F2, fr), True, True, has_static=True), '')
+    P(f'上面列分框覆盖 ≥ 95% 的框和体量最大的 {len(rest)} 个"不下结论"框；其余见全量 CSV。', '')
+    okW = F2.loc[F2['可读性'] == '可读', '框']; okS = F2.loc[F2['可读性'] != '不下结论（分框覆盖 < 95%）', '框']
+    P(f'**模式观察（{ch}）**：条件同 HD（评分用页面总评分，"评论 ≥ 20"指页面评论数）。份额趋势类只在可读框（{"、".join(okW)}），只用有月度的销量；评分、溢价类在分框覆盖 ≥ 95% 的框（{"、".join(okS)}）。', '',
+      *patterns(U2[U2['框'].isin(okW)], ch, False, False), *patterns(U2[U2['框'].isin(okS)], ch, True, True, trend=False))
+
+
 def report(D, CHKD):
     AH, AW, PH, PW, KW = D['AH'], D['AW'], D['PH'], D['PW'], D['KW']
     RES, REC, SMP, DIFF, PEND = D['RES'], D['REC'], D['SMP'], D['DIFF'], D['PEND']
@@ -719,27 +768,39 @@ def report(D, CHKD):
     wm = AW[AW['m'] >= 0]['c'].sum() / 10; wst = AW[AW['m'] < 0]['c'].sum() / 10; wstl = AW[AW['m'] < 0]['c_low'].sum() / 10
     nW = AW.drop_duplicates('fam').groupby('月度来源').size()
     P0 = bw_raw()[0]; nonvan = int(((P0['渠道'] == 'Wayfair') & (P0['浴室柜'].astype(str).str.lower() == 'false')).sum())
-    P('# 小平台调研：单元 × 指标（按框：Home Depot / Wayfair；Lowe\'s 补数据中）', '',
+    AL, PL, KL = D['AL'], D['PL'], D['KL']; FL, UL = RES[LW]
+    nonvanL = int(((P0['渠道'] == LW) & (P0['浴室柜'].astype(str).str.lower() == 'false')).sum())
+    lm = AL[AL['m'] >= 0]['c'].sum() / 10; lst = AL[AL['m'] < 0]['c'].sum() / 10; nLst = AL.loc[AL['m'] < 0, 'fam'].nunique()
+    Fm_ = D['SENS'][LW][1]; Um_ = D['SENS'][LW][2]; FLm2 = Fm_[Fm_['框月均'] >= FR_MIN]
+    D.update(FLm2=FLm2, ULm2=Um_[Um_['框'].isin(FLm2['框']) & (Um_['月均'] >= U_MIN)], FL2=FL[FL['框月均'] >= FR_MIN])
+    P('# 小平台调研：单元 × 指标（按框：Home Depot / Wayfair / Lowe\'s）', '',
       '> 由 `solution-v2/trial/小平台调研_单元指标.py` 生成（`python3 小平台调研_单元指标.py`），数字都是脚本实际运行结果。本页是**观察分析**，不是回测，不下立项结论。'
       '全量表在 `input/data_v2/渠道调研/`（不入库）：单元表 `小平台调研_按框_单元指标_全量.csv`、框表 `小平台调研_按框_框_全量.csv`、待人工确认清单 `小平台调研_待人工确认.csv`、抽检样本 `小平台调研_按框_抽检样本.csv`。'
       '上一版（HD 类目 Top Sellers + Lowe\'s / Wayfair 降级视图）用 `python3 小平台调研_单元指标.py 上一版` 可重跑，输出到 `input/data_v2/渠道调研/小平台调研_上一版_降级视图.md`；差异见 §八。', '')
     # ---------------- 一、口径
     P('## 一、口径', '',
       '**叫法**（wen 2026-11-04）：框 = 尺寸段 × 拆装 × 形态；属性 = 台面材质 / 元素 / 主色 / 柜体材质；取值 = 属性的值；单元（表的一行）= 框 × 属性取值；指标（表的一列）= 观察的数据维度；模式 = 指标组合成的信号。'
-      '**一切比较只在同一框、同一渠道内**；HD 与 Wayfair 对照（§五）只比同框内的结构和方向，不比绝对销量。', '',
+      '**一切比较只在同一框、同一渠道内**；三渠道对照（§五）只比同框内的结构和方向，不比绝对销量。', '',
       '**商品范围与销量**（数据整理见 `大词抓取_三平台.md`，表 `input/data_v2/渠道关键词/大词/三平台_商品表.csv`、`三平台_月销表.csv`）', '',
-      f'- 每个平台 = "bathroom vanity" + "bathroom vanity with sink" 自然位前 300 并集 + wen 渠道VP 表类目节点商品（HD 两类目各 100、Wayfair 主类目 200 + 无台面 50），合并去重（HD 按评论家族，Wayfair 按 listing）。销量 = 2026-01 至 10 月逐月评论 VP × 50 + 非 VP × 20；11 月不完整不计。',
+      f'- 每个平台 = "bathroom vanity" + "bathroom vanity with sink" 自然位前 300 并集 + wen 渠道VP 表类目节点商品（HD 两类目各 100、Lowe\'s 两个 Best Sellers 榜各 100、Wayfair 主类目 200 + 无台面 50），合并去重（HD 按评论家族，Lowe\'s 按父体，Wayfair 按 listing）。销量 = 2026-01 至 10 月逐月评论 VP × 50 + 非 VP × 20；11 月不完整不计。',
       f'- **Home Depot**：{PH["fam"].nunique()} 个评论家族、{len(PH)} 个变体（含评论里出现的同家族其他尺寸 / 颜色），1–10 月有销量的家族 {AH.loc[AH["c"] > 0, "fam"].nunique()} 个；月度全部来自变体级评论（类目节点家族用 HD 回测小试的评论缓存，两词独有家族本次直连补抓），月均 **{num(totH)}** 件。'
       '价格 = 采集日商品页 / 列表价，评论里出现、没有列表价的变体用同家族同尺寸段已知价补（再退到同家族）；评分 = 窗口内评论星级平均（同上一版）。',
       f'- **Wayfair**：{len(PW)} 个浴室柜 listing（标题不含 vanity 的 {nonvan} 个剔除），其中 {AW["fam"].nunique()} 个有销量（含估算）。逐月销量来源：渠道VP 表 {nW.get("渠道VP表（家族合计）", 0)} 个（家族合计，多尺寸的按商品页内嵌评论的 Overall Width 选项分布拆到尺寸段）、商品页内嵌全部评论 {nW.get("商品页内嵌评论（全部）", 0)} 个；'
       f'**只有评论总数、没有月度的 {nW.get(NOMON, 0)} 个**（评论翻页接口经 BD 返回 400）；其余 {len(PW) - AW["fam"].nunique()} 个没有销量（零评论 {int(PW["月度来源"].isna().sum())} 个，评论都在 2026 年以前 {len(PW) - AW["fam"].nunique() - int(PW["月度来源"].isna().sum())} 个）。'
-      f'有月度部分月均 {num(wm)} 件。价格 = 采集日商品页价；评分 = 页面总评分（按页面评论数加权，HD 与 Wayfair 口径不同，只在同渠道内比）。', '')
+      f'有月度部分月均 {num(wm)} 件。价格 = 采集日商品页价；评分 = 页面总评分（按页面评论数加权，HD 与 Wayfair 口径不同，只在同渠道内比）。',
+      f'- **Lowe\'s**（补数后，2026-11-04 第二轮）：{len(PL)} 个浴室柜父体（标题不含 vanity 的 {nonvanL} 个剔除）。逐月销量只有类目节点（两个 Best Sellers 榜）家族：渠道VP 表家族合计，按 BD 评论页每条评论的变体宽度拆到尺寸段（至少 5 条带宽度的评论才拆），有月度部分月均 {num(lm)} 件；'
+      f'**两词独有、有评论的 {nLst} 个家族没有月度**（Lowe\'s 对 BD 连续拦截，评论页没抓到，约占范围内页面评论的两成）。装来自商品页 Assembly / RTA 规格和标题，**不再用上一版"100% 整装"业务默认**，判断不了记未知。价格、评分 = 采集日商品页（页面总评分）。', '')
     kt = KW['中']; kl = KW['低']
     P(f'**Wayfair 无月度 listing 怎么进静态指标**：这些 listing 都来自两词搜索结果，用同样来自搜索结果（来源 = 两词 / 两者）、有月度的 listing，按页面评论数分档算"1–10 月销量 ÷ 页面评论数"，乘到无月度 listing 的页面评论数上，作为它们 1–10 月销量的**估算**：'
       + '；'.join(f'{"> " + str(int(i.left)) if not np.isfinite(i.right) else f"{int(i.left) + 1}–{int(i.right)}"} 条评论 {r.k:.1f}（{int(r.n)} 个）' for i, r in kt.iterrows()) +
       f'。合计月均 **{num(wst)}** 件，占 Wayfair 估算总量 {pc(wst / (wm + wst))}，**比例很大**。'
       f'评论多的老 listing 2026 年评论占比低，而"两词独有"的有月度 listing 里 > 100 条评论的只有 {int(kl.iloc[-1].n)} 个、换算系数只有 {kl.iloc[-1].k:.1f}（中估计同档 {kt.iloc[2].k:.1f} / {kt.iloc[3].k:.1f}），所以另给**低估计**（只用两词独有 listing 的系数）：无月度部分月均 {num(wstl)} 件。'
       '规则：体量、份额、家族数、价格、评分用中估计（含无月度 listing）；季度份额、近 3−前 3、斜率、走势、CV、新家族只用有月度的销量；框表给出"有月度占比"，单元表给出"仅有月度的份额"，§四.2 给出三种口径下的框月均。', '')
+    klc = KL['中']
+    P(f'**Lowe\'s 无月度家族的处理（与 Wayfair 同法，择"估算后只进静态指标"）**：用来源 = 两词 / 两者、有月度的家族按页面评论数分档算换算系数（Lowe\'s 有月度的两词来源家族都是"两者"，即同时在 Best Sellers 榜上）：'
+      + '；'.join(f'{"> " + str(int(i.left)) if not np.isfinite(i.right) else f"{int(i.left) + 1}–{int(i.right)}"} 条评论 {r.k:.1f}（{int(r.n)} 个）' for i, r in klc.iterrows()) +
+      f'。估算月均 **{num(lst)}** 件，占 Lowe\'s 估算总量 {pc(lst / (lm + lst))}。校准样本都是榜上商品，系数大概率偏高；又没有"两词独有"的有月度家族可做低估计，所以低估计 = 不计（只算有月度）。'
+      '这些家族多数是多尺寸父体，估算销量拆不到尺寸段，只进渠道级体量和"分框覆盖"的分母。**Lowe\'s 框内结论以"只算有月度"为准**（§六）。', '')
     P('**分框**：尺寸段用商品页宽度（Wayfair Overall Width，HD Product / Cabinet Width），标题兜底；装：HD 规格 Assembled，Wayfair Assembly 字段，**"Partially Assembled" 算拆装**（wen 2026-11-04 确认，与系统规格规则同）；形态：HD Vanity Type、Wayfair Mounting / Installation，标题兜底；同家族已知值补装、形态。'
       '**判断不了的记未知、不进框**（上一版 HD 形态没写的默认落地式，这一版不默认），单列待人工确认清单。多尺寸 listing 拆不到尺寸段的（"多尺寸未拆"）也不进框。', '')
     pend = PEND.groupby(['渠道', '原因']).agg(n=('pid', 'size'), s=('销量1_10月', 'sum'), r=('占渠道销量', 'sum')).reset_index()
@@ -750,14 +811,14 @@ def report(D, CHKD):
     P('**指标**（每个单元一行，与上一版相同）', '',
       '- 体量：月均 = 1–10 月估算销量 ÷ 10；份额 = 单元销量 ÷ **整框**销量（分母含该属性未知的部分，同一框同一属性的份额加起来 = 该属性已知占比，框表里给出）。',
       f'- 趋势：季度份额（1–3 / 4–6 / 7–9 / 10 月，CSV 有逐月）；近 3−前 3 = 8–10 月份额 − 1–3 月份额（百分点）；斜率 = 10 个月份额的线性斜率（百分点 / 月）；走势 = 份额 ln(近 3 ÷ 前 3) ≥ {LN} 记"抢份额"、≤ −{LN} 记"丢份额"、其余"随框"，括号是框本身近 3 ÷ 前 3（≥ 1.15 框涨、≤ 0.87 框跌），后两个数 = 单元销量、框销量各自的近 3 ÷ 前 3；CV = 月销变异系数。',
-      '- 新家族：HD = 家族首条评论在 2026 年；Wayfair = 页面累计评论数 ≤ 2026 年 1–10 月评论数（所有评论都在窗口内，无月度 listing 判断不了、记非新）；"卖起来" = 进入月到 10 月在该单元的月均 ≥ 同框单款月均；占比 = 新家族在单元销量里的占比，括号是同框。',
+      '- 新家族：HD = 家族首条评论在 2026 年；Wayfair / Lowe\'s = 页面累计评论数 ≤ 2026 年 1–10 月评论数（所有评论都在窗口内，无月度 listing 判断不了、记非新）；"卖起来" = 进入月到 10 月在该单元的月均 ≥ 同框单款月均；占比 = 新家族在单元销量里的占比，括号是同框。',
       '- 供给：家族 = 单元里有销量的家族数（Wayfair 一个 listing 算一个家族）；单款 ÷ 同框 = 单元每家族月均 ÷ 同框每家族月均。价格带 = 按销量加权 P25–P75；溢价 = 单元加权中位价 ÷ 同框加权中位价。评分：单元评分与同框评分的差。',
       '- Amazon 对照（同上一版）：Amazon 第二轮统一打标表 2026-04 至 09，同尺寸段 × 形态 × 取值（**不分拆装**）的家族数 · 价位段数 · 框内份额 4–6 → 7–9 月，箭头按 ln 变化 ±0.2。', '',
       f'**门槛**（同上一版）：框月均 ≥ {FR_MIN} 件、单元月均 ≥ {U_MIN} 件才列。1 条 VP 评论 = 50 件，月均 20 件的单元 10 个月只有约 4 条 VP 评论，小单元的趋势和 CV 噪声很大，家族数 1–2 的单元基本是单个产品的走势。'
-      '**可读性**（这一版新加）：框的分框覆盖（期望）≥ 95% 才在框内下结论，趋势类指标还要求有月度的销量 ≥ 60%（见 §四）。', '',
+      '**可读性**（这一版新加）：框的分框覆盖（期望）≥ 95% 才在框内下结论，趋势类指标还要求有月度的销量 ≥ 60%（见 §四、§六）。', '',
       '**幸存者偏差**（同上一版）：都是"今天在榜 / 在搜索前 300"的商品往回看，早月份框销量偏低，"框在涨""份额在涨"偏乐观、"份额在跌"偏少；新家族"卖起来"的比例偏高。', '')
     # 核对
-    r0, r1 = REC.iloc[0], REC.iloc[1]
+    r0, r1, r2 = REC.iloc[0], REC.iloc[1], REC.iloc[2]
     P('### 核对', '',
       '| 渠道 | 月销表销量（1–10 月） | 按 VP × 50 + 非VP × 20 重算 | 类目节点部分 1–10 月评论（VP / 非VP） | 渠道VP 表「渠道月度汇总」去重小计（VP / 非VP） | 「商品月度明细」按家族去重 | 差 |',
       '| :--- | ---: | ---: | :--- | :--- | ---: | :--- |',
@@ -767,17 +828,20 @@ def report(D, CHKD):
       f'- **Wayfair** 类目节点部分 {num(r1.类目节点VP + r1.类目节点非VP)} 条 = 「商品月度明细」按家族去重的 {num(r1.明细家族去重)} 条（完全一致）；比按评论 ID 去重的小计 {num(r1.表合计)} 多 {(r1.类目节点VP + r1.类目节点非VP) / r1.表合计 - 1:.1%}：同系列 listing 部分共享评论，按"序列相同"合家族去不掉这部分（上一版已说明）。',
       f'- **Home Depot** 类目节点家族 {num(r0.类目节点VP + r0.类目节点非VP)} 条，比小计 {num(r0.表合计)} 少 {1 - (r0.类目节点VP + r0.类目节点非VP) / r0.表合计:.1%}：少的部分主要是"柜体 + 台面"组合商品（如 Winsome 组合）的评论挂在组件商品页上，组件商品页属于两词范围里的另一个家族，评论按 ID 去重后算到那个家族，不是丢失。'
       '核对中发现并修正了整理脚本的一处漏计：评论缓存里的评论只落在"未列出的变体"上时整份文件被跳过（范围内 16 个家族、157 条评论、6,680 件，含 2 个类目节点家族），已改为按缓存文件名归家族（`大词抓取_三平台整理.py` build_hd 一行），HD 月销表从 200,070 变为 '
-      f'{num(r0.重算)}，只重建了两张表的 HD 行，Lowe\'s / Wayfair 行未动。', '')
-    P('**抽检**：按 1–10 月销量加权、固定种子随机抽 5 个能落框的商品（HD 2、Wayfair 3），对商品页原始规格手核分框标签：', '',
+      f'{num(r0.重算)}（Lowe\'s 补数时两张表整体重建，已含此修正，HD 行与修正后一致）。',
+      f'- **Lowe\'s** 类目节点（= 全部有月度部分）{num(r2.类目节点VP + r2.类目节点非VP)} 条 = 「商品月度明细」按家族去重的 {num(r2.明细家族去重)} 条，比按评论 ID 去重的小计 {num(r2.表合计)} 多 {num(r2.类目节点VP + r2.类目节点非VP - r2.表合计)} 条；拆到尺寸段后销量合计 {num(r2.重算)} 不变。', '')
+    P('**抽检**：按 1–10 月销量加权、固定种子随机抽能落框的商品（HD 2、Wayfair 3；Lowe\'s 补数后追加 2 个，按"父体 × 尺寸段"抽），对商品页原始规格手核分框标签：', '',
       '| 渠道 | 商品 | 标题 | 分框标签 | 标签来源 | 商品页原始规格 | 手核 |', '| :--- | :--- | :--- | :--- | :--- | :--- | :--- |',
       *[f'| {r.渠道} | {r.pid} | {r.title} | {r.标签} | {r.来源} | {r.原始规格} | {CHKD.get(str(r.pid), "未手核")} |' for r in SMP.itertuples()], '')
     P('### 打标覆盖', '')
-    for ch, (A, P_) in {'Home Depot': (AH, PH), 'Wayfair': (AW, PW)}.items():
+    for ch, (A, P_) in {'Home Depot': (AH, PH), 'Wayfair': (AW, PW), LW: (AL, PL)}.items():
         P(f'**{ch}**', '', *cov_new(A, P_, ch), '')
     fH, fW = frameable(AH), frameable(AW)
     P(f'**分框标签覆盖率**：HD 框可定 {pc(AH.loc[fH, "c"].sum() / AH["c"].sum(), 1)}（≥ 95%）；**Wayfair {pc(AW.loc[fW, "c"].sum() / AW["c"].sum(), 1)}（< 95%）**，'
       f'缺口 = 多尺寸未拆 {pc(AW.loc[AW["多尺寸未拆"], "c"].sum() / AW["c"].sum(), 1)}、形态未知 {pc(AW.loc[AW["形态"] == "未知", "c"].sum() / AW["c"].sum(), 1)}、装未知 {pc(AW.loc[AW["装"] == "未知", "c"].sum() / AW["c"].sum(), 1)}（有重叠）。'
-      'Wayfair 哪些框能下结论按框看（§四），整体不满足 95%。', '')
+      'Wayfair 哪些框能下结论按框看（§四），整体不满足 95%。'
+      f'**Lowe\'s 含估算 {pc(AL.loc[frameable(AL), "c"].sum() / AL["c"].sum(), 1)}（< 95%）**，缺口几乎都是无月度家族的估算销量拆不到尺寸段（多尺寸未拆 {pc(AL.loc[AL["多尺寸未拆"], "c"].sum() / AL["c"].sum(), 1)}）；'
+      f'只算有月度 {pc(AL.loc[frameable(AL) & (AL["m"] >= 0), "c"].sum() / AL.loc[AL["m"] >= 0, "c"].sum(), 1)}（≥ 95%）。', '')
     # ---------------- 二、关键发现
     P('## 二、关键发现', '', *findings(D), '')
     # ---------------- 三、HD
@@ -789,37 +853,10 @@ def report(D, CHKD):
     P(f'其余 {len(FH2) - 6} 个达标框的单元见全量 CSV。', '')
     P(f'**模式观察（HD，所有达标框）**：条件 —— 份额在涨 / 跌：ln(近 3 ÷ 前 3 份额) ≥ {LN} / ≤ −{LN}；新家族进入：有新家族且新家族销量占比高于同框；评分低于同框：差 ≤ −0.15、单款 ÷ 同框 ≥ 1、窗口评论 ≥ 20 条；高溢价：溢价 ≥ 1.3。只陈述事实，排序按 月均 × |份额 ln 变化|。', '',
       *patterns(UH2, 'Home Depot', True, True))
-    # ---------------- 四、Wayfair
-    rd = FW2['可读性'].value_counts()
-    P('## 四、Wayfair（按框）', '',
-      f'框月均 ≥ {FR_MIN} 的框 **{len(FW2)} 个**（全部框 {len(FW)} 个，合计月均 {num(FW["框月均"].sum())}；达标框占 {pc(FW2["框月均"].sum() / FW["框月均"].sum())}），达标单元 **{len(UW2)} 个**。'
-      f'可读性：' + '、'.join(f'{k} {v} 个' for k, v in rd.items()) + '。', '',
-      '"分框覆盖"把没进框的销量（多尺寸未拆、形态 / 装未知）按"已知维度一致"可能落到的框分摊（多尺寸 listing 只分到它选项里有的尺寸段）：**期望** = 按这些框已落框销量的比例分摊，**最坏** = 全部算给本框。期望 < 95% 的框，体量和份额都可能明显变化，只给方向参考。', '',
-      *frame_table(FW2, cover=True, tot=FW['框月均'].sum()), '')
-    # 4.2 敏感性
-    S3 = pd.DataFrame({'中': FW.set_index('框')['框月均'], '低': D['FWl'].set_index('框')['框月均'], '仅有月度': D['FWm'].set_index('框')['框月均']}).loc[FW2['框']]
-    for c in ('中', '低', '仅有月度'): S3[c + '名次'] = S3[c].rank(ascending=False)
-    S3 = S3.sort_values('中', ascending=False)
-    P('### 4.2 敏感性：无月度 listing 的估算口径', '', '| 框 | 月均（中估计） | 名次 | 月均（低估计） | 名次 | 月均（只算有月度） | 名次 |', '| :--- | ---: | ---: | ---: | ---: | ---: | ---: |',
-      *[f'| {k} | {num(r["中"])} | {int(r["中名次"])} | {num(r["低"])} | {int(r["低名次"])} | {num(r["仅有月度"])} | {int(r["仅有月度名次"])} |' for k, r in S3.iterrows()], '',
-      f'三种口径名次相关（Spearman）：中 vs 低 {S3["中"].corr(S3["低"], method="spearman"):.2f}、中 vs 只算有月度 {S3["中"].corr(S3["仅有月度"], method="spearman"):.2f}。', '')
-    P('### 4.3 单元', '')
-    shown = [fr for fr in FW2.sort_values('框月均', ascending=False)['框'] if FW2.set_index('框').at[fr, '可读性'] != '不下结论（分框覆盖 < 95%）']
-    rest = [fr for fr in FW2.sort_values('框月均', ascending=False)['框'] if fr not in shown][:4]
-    for fr in shown + rest:
-        r = FW2.set_index('框').loc[fr]
-        P(f'**{fr}**（框月均 {num(r["框月均"])}；{r["可读性"]}）', '', *unit_table(units_of(UW, FW2, fr), True, True, has_static=True), '')
-    P(f'上面列可读的框和体量最大的 {len(rest)} 个"不下结论"框；其余见全量 CSV。', '')
-    okW = FW2.loc[FW2['可读性'] == '可读', '框']; okS = FW2.loc[FW2['可读性'] != '不下结论（分框覆盖 < 95%）', '框']
-    P(f'**模式观察（Wayfair）**：条件同 HD（评分用页面总评分，"评论 ≥ 20"指页面评论数）。份额趋势类只在可读框（{"、".join(okW)}），只用有月度的销量；评分、溢价类在分框覆盖 ≥ 95% 的框（{"、".join(okS)}）。', '',
-      *patterns(UW2[UW2['框'].isin(okW)], 'Wayfair', False, False), *patterns(UW2[UW2['框'].isin(okS)], 'Wayfair', True, True, trend=False))
-    # ---------------- 五、HD vs Wayfair
-    P('## 五、HD 与 Wayfair 同框对照（+ Amazon，只比结构和方向）', '', *compare_hw(D), '')
-    # ---------------- 六、Lowe's
-    P('## 六、Lowe\'s：数据补全中', '',
-      '- Lowe\'s 的销量现在落不进尺寸段（能落框约 1%）：渠道VP 表只有父体合计，一个父体含多个尺寸；要抓 Lowe\'s 评论页（每条评论带变体 productId，对上商品页变体宽度即可拆到尺寸段）和补商品页规格（`大词抓取_三平台.md` §6）。wen 已批准补全（费用上限 $5.5），正在补。',
-      '- 补完后用同一脚本按框重跑（`bw_table("Lowe\'s")` 读同两张表；装：Lowe\'s 规格 Assembly Required / RTA，判断不了的记未知、进人工确认，不再用上一版的"业务默认整装"）。',
-      '- 在那之前，Lowe\'s 只有上一版的"不分尺寸段"降级视图（不满足同尺寸段硬规则，只能看属性结构），见 `python3 小平台调研_单元指标.py 上一版` 的输出，本页不再引用。', '')
+    # ---------------- 四、Wayfair / 五、对照 / 六、Lowe's
+    est_section(D, 'Wayfair', '四')
+    P('## 五、三渠道同框对照（+ Amazon，只比结构和方向）', '', *compare_hw(D), '')
+    est_section(D, LW, '六')
     # ---------------- 七、老文档
     P('## 七、对 wen 老文档判断的核对（只给事实）', '', *old_doc(D), '')
     # ---------------- 八、差异
@@ -827,11 +864,12 @@ def report(D, CHKD):
     # ---------------- 九、局限
     P('## 九、局限', '',
       f'1. **Wayfair 约 4 成销量是估算**：{nW.get(NOMON, 0)} 个只有评论总数的 listing 按评论数档换算，中估计与低估计差 {num(wst - wstl)} 件 / 月；体量排名受影响的框见 §4.2。趋势只用有月度的部分，有月度 < 60% 的框不读趋势。',
-      f'2. **Wayfair 分框覆盖 {pc(AW.loc[fW, "c"].sum() / AW["c"].sum())} < 95%**：多尺寸 listing 拆不到尺寸段、规格里没写安装方式的 listing 记形态未知；按框看，期望覆盖 ≥ 95% 的只有 {len(okW)} 个达标框，其余只给方向参考。待人工确认清单补完后可提高。',
+      f'2. **Wayfair 分框覆盖 {pc(AW.loc[fW, "c"].sum() / AW["c"].sum())} < 95%**：多尺寸 listing 拆不到尺寸段、规格里没写安装方式的 listing 记形态未知；按框看，期望覆盖 ≥ 95% 的只有 {int((FW2['可读性'] != '不下结论（分框覆盖 < 95%）').sum())} 个达标框，其余只给方向参考。待人工确认清单补完后可提高。',
+      f'2b. **Lowe\'s 只有 Best Sellers 两榜家族有月度**：两词独有的 {nLst} 个家族（约两成页面评论）没有月度，估算月均 {num(lst)} 件且拆不到尺寸段；框内结论只代表"榜上家族"的结构。Lowe\'s 补规格还缺 25 个商品、15 个类目家族评论不完整（`大词抓取_三平台.md` §6）。',
       '3. **销量是评论换算**（VP × 50 + 非 VP × 20），没有按渠道校准；Wayfair 非 VP 占比高（激励评论、Pro 会员评论计非 VP），系数偏差可能更大。小单元颗粒粗。',
       '4. **Wayfair 多尺寸 listing 的尺寸拆分**只用内嵌评论里写了 Overall Width 的评论比例（≥ 5 条才拆）；HD 评论带变体 ID，没有这个问题。',
-      '5. **评分口径两渠道不同**：HD = 窗口内评论星级，Wayfair = 页面总评分；只在同渠道同框里比。价格都是采集日当天价，套到整个窗口。',
-      '6. **元素只用文字规则**，两个渠道元素覆盖都很低（HD 约 5%、Wayfair 约 1% 销量），元素单元基本不可读；Wayfair 主色覆盖约一半。',
+      '5. **评分口径不同**：HD = 窗口内评论星级，Wayfair / Lowe\'s = 页面总评分；只在同渠道同框里比。价格都是采集日当天价，套到整个窗口。',
+      '6. **元素只用文字规则**，三个渠道元素覆盖都很低（HD 约 5%、Wayfair 约 1% 销量），元素单元基本不可读；Wayfair 主色覆盖约一半。',
       '7. **范围变了**：HD 从"类目 Top Sellers 前 300"改为"两词前 300 + 类目前 100"，与上一版的框数字不完全可比（§八）。Amazon 对照不分拆装，窗口 4–9 月。',
       '8. **幸存者偏差**同上一版；这是一次观察，没有回测，模式不代表之后会延续。', '')
 

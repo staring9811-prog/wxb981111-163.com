@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .fhead { display: grid; grid-template-columns: repeat(7, minmax(0, auto)); gap: var(--space-2) var(--space-6); align-items: end; padding: var(--space-4) var(--space-5); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .fhead .stat__label { margin-bottom: 2px; }
+  .fhead .v { font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ut-wrap { max-height: 72vh; }
+  .ut { min-width: 1640px; }
+  .ut.no-conc { min-width: 0; }
+  .ut .u-col { position: sticky; left: 0; z-index: 2; background: var(--surface); min-width: 220px; box-shadow: inset -1px 0 0 var(--border); text-align: left; }
+  .ut thead .u-col { z-index: 3; background: var(--surface-warm); }
+  .ut thead tr.grp th { top: 0; text-align: center; border-right: 1px solid var(--border-soft); color: var(--fg-2); }
+  .ut thead tr:nth-child(2) th { top: 33px; }
+  .ut tbody tr:hover .u-col { background: var(--surface-raised); }
+  .ut .table__divider td { position: sticky; left: 0; }
+  .attr-filter { margin: var(--space-4) 0 var(--space-3); }
+  .attr-filter .chip { text-decoration: none; }
+  .table-note { margin-top: var(--space-3); font-size: var(--text-xs); color: var(--muted); line-height: 1.7; }
+  @media (max-width: 1279px) { .fhead { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 767px) { .fhead { grid-template-columns: minmax(0, 1fr); } }
+</style>
+{% endblock %}
+{% block content %}
+{% set chn = st[ch].name %}
+{% macro pct(v, nd=0) %}{% if v is none %}—{% else %}{{ ('%.' ~ nd ~ 'f%%')|format(v * 100) }}{% endif %}{% endmacro %}
+{% macro psh(v) %}{% if v is none %}—{% elif v < 0.1 %}{{ '%.1f%%'|format(v * 100) }}{% else %}{{ '%.0f%%'|format(v * 100) }}{% endif %}{% endmacro %}
+{% macro sg(v, nd=2) %}{% if v is none %}—{% else %}{{ ('%+.' ~ nd ~ 'f')|format(v) }}{% endif %}{% endmacro %}
+{% macro spark(series, label) %}{% set vals = series|map('default', 0, true)|list %}{% set mx = vals|max if vals else 0 %}<svg class="spark" width="84" height="26" viewBox="0 0 84 26" role="img" aria-label="{{ label }}"><line class="spark__grid" x1="0" y1="22" x2="84" y2="22"/><polyline class="spark__line" points="{% for v in vals %}{{ '%.1f'|format(4 + loop.index0 * (76 / ([vals|length - 1, 1]|max))) }},{{ '%.1f'|format(22 - (18 * v / mx if mx else 0)) }} {% endfor %}"/></svg>{% endmacro %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><a href="/research">渠道调研</a><svg class="icon"><use href="#ph-caret-right"/></svg><a href="/research?channel={{ ch }}">{{ chn }}</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>{{ f.frame if f else key }}</span></nav>
+    <h1>{{ chn }} · {{ f.frame if f else key }}</h1>
+    {% if f %}<p class="page-head__sub">窗口 {{ data.summary.window[0] }} 至 {{ data.summary.window[-1] }} · 单元月均 ≥ 20 件才列 · 份额分母 = 整框销量（含该属性未知）· 证据等级 <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% if res.computed_at %} · 重算 {{ res.computed_at|dt }}{% endif %}</p>{% endif %}
+  </div>
+  {% if f %}
+  <div class="page-head__actions">
+    {% if prev %}<a class="btn" href="/research/{{ ch }}/frame/{{ prev }}" data-prev><svg class="icon"><use href="#ph-arrow-left"/></svg><span>上一框</span></a>{% else %}<button class="btn" type="button" disabled data-prev><svg class="icon"><use href="#ph-arrow-left"/></svg><span>上一框</span></button>{% endif %}
+    {% if next %}<a class="btn" href="/research/{{ ch }}/frame/{{ next }}" data-next><span>下一框</span><svg class="icon"><use href="#ph-arrow-right"/></svg></a>{% else %}<button class="btn" type="button" disabled data-next><span>下一框</span><svg class="icon"><use href="#ph-arrow-right"/></svg></button>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if not f %}
+<div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">这个框没有达到月均 200 件的门槛</div><div class="empty__desc">或该渠道尚未导入调研数据。</div><a class="btn btn--sm" href="/research?channel={{ ch }}">回到渠道调研</a></div>
+{% else %}
+{% set nc = f.read == 'noconc' %}{% set nt = f.read == 'notrend' or not data.trend_ok %}
+{% if res.status == 'error' %}<div class="banner banner--block" role="alert"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body">重算出错：{{ res.error }}；显示的是 {{ res.computed_at|dt }} 的结果。</div></div>{% endif %}
+<section class="enter" style="--i:1" aria-label="框头">
+  <div class="fhead">
+    <div><div class="stat__label">月均</div><div class="v">{{ f.units|num }} 件{% if f.estimated %} <span class="etag etag--n">估算</span>{% endif %}</div>{% if f.estimated %}<div class="cell-sub">低估计 {{ f.units_low|num }}{% if f.low_below %} · 低估计未达门槛{% endif %}</div>{% endif %}</div>
+    <div><div class="stat__label">渠道内份额</div><div class="v">{{ psh(f.channel_share) }}</div></div>
+    <div><div class="stat__label">近 3 ÷ 前 3</div><div class="v">{% if nc or nt or f.ratio is none %}—{% else %}{{ '%.2f'|format(f.ratio) }} <span class="cell-sub">{{ f.ratio_label }}</span>{% endif %}</div></div>
+    <div><div class="stat__label">家族</div><div class="v">{{ '—' if nc else f.families }}</div></div>
+    <div><div class="stat__label">分框覆盖（期望）</div><div class="v">{{ pct(f.cover, 1) }}</div></div>
+    <div><div class="stat__label">有月度占比</div><div class="v">{{ pct(f.monthly_share) }}</div></div>
+    <div><div class="stat__label">可读性</div><div data-read="{{ f.read }}">{% set rd = READ[f.read] %}<span class="badge badge--{{ rd[1] }}"><svg class="icon"><use href="#ph-{{ rd[2] }}"/></svg>{{ rd[0] }}{% if f.read == 'noconc' %}（分框覆盖 {{ pct(f.cover, 1) }}）{% elif f.read == 'notrend' %}（有月度 {{ pct(f.monthly_share) }}）{% endif %}</span> <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></div></div>
+  </div>
+  {% if nc %}<div class="banner banner--unverified" data-mode-note="no-conc" style="margin-top: var(--space-3)"><svg class="icon"><use href="#ph-prohibit"/></svg><div class="banner__body"><div class="banner__title">不下结论：分框覆盖 {{ pct(f.cover, 1) }} &lt; 95%</div><div>还有分框待确认的商品可能落进这个框，体量和份额会明显变化，只显示体量与份额作方向参考，其他指标不显示。{% if user.role == 'operator' %}<a href="/tagging?channel={{ ch }}&amp;reason=frame&amp;from=research">去确认分框</a>{% endif %}</div></div></div>
+  {% elif f.read == 'notrend' %}<div class="banner banner--unverified" data-mode-note="no-trend" style="margin-top: var(--space-3)"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">趋势不下结论：有月度销量只占 {{ pct(f.monthly_share) }} &lt; 60%</div><div>趋势与新品不显示（"—"），体量、份额、供给、价格、评分、Amazon 对照照常。</div></div></div>{% endif %}
+</section>
+
+<section class="section enter" style="--i:2" aria-labelledby="sec-units">
+  <h2 class="visually-hidden" id="sec-units">单元 × 指标</h2>
+  <div class="filters attr-filter" id="attr-filter">
+    <span class="filters__label">属性</span>
+    <a class="chip" href="?" aria-pressed="{{ 'true' if not attr else 'false' }}">全部</a>
+    {% for a in attrs %}<a class="chip" href="?attr={{ a }}" aria-pressed="{{ 'true' if attr == a else 'false' }}">{{ a }}</a>{% endfor %}
+    <span class="spacer"></span>
+    <span class="small muted">{{ units|length }} 个单元{% if not nc %} · 横向滚动时首列和表头固定{% endif %}</span>
+  </div>
+  {% if not units %}
+  <div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">本框没有月均 ≥ 20 件的单元</div></div>
+  {% else %}
+  <div class="table-wrap ut-wrap">
+    <table class="table ut{% if nc %} no-conc{% endif %}" id="ut" aria-label="单元 × 指标">
+      <thead>
+        {% if nc %}
+        <tr class="grp"><th class="u-col" rowspan="2" scope="col">单元（属性：取值）</th><th colspan="2" scope="colgroup">体量份额</th></tr>
+        <tr><th class="t-num">月均</th><th class="t-num">框内份额</th></tr>
+        {% else %}
+        <tr class="grp"><th class="u-col" rowspan="2" scope="col">单元（属性：取值）</th><th colspan="2" scope="colgroup">体量份额</th><th colspan="5" scope="colgroup">趋势（只用有月度销量）</th><th colspan="2" scope="colgroup">新品</th><th colspan="3" scope="colgroup">供给</th><th colspan="2" scope="colgroup">价格</th><th scope="colgroup">评分</th><th scope="colgroup">Amazon 同框对照</th><th scope="colgroup">回测</th></tr>
+        <tr><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">框内份额</th><th>逐月份额</th><th class="t-num">近 3 − 前 3</th><th>走势（单元 ÷ 框）</th><th class="t-num">斜率 pp/月</th><th class="t-num">波动 CV</th><th class="t-num">新家族（卖起来）</th><th class="t-num">新家族占比（同框）</th><th class="t-num">家族</th><th class="t-num">价位段</th><th class="t-num">单款 ÷ 同框</th><th class="t-num">P25–P75</th><th class="t-num">溢价</th><th class="t-num">评分（同框差）</th><th>家族 · 价位段 · 份额前 3 → 近 3 月</th><th>证据等级 · 分级</th></tr>
+        {% endif %}
+      </thead>
+      <tbody>
+      {% for u in units %}
+        {% if loop.first or u.attr != loop.previtem.attr %}<tr class="table__divider" data-attr="{{ u.attr }}"><td colspan="{{ 3 if nc else 20 }}">{{ u.attr }} · {{ units|selectattr('attr', 'equalto', u.attr)|list|length }} 个单元</td></tr>{% endif %}
+        <tr data-attr="{{ u.attr }}" data-value="{{ u.value }}">
+          <th scope="row" class="u-col cell-title">{{ u.attr }}：{{ u.value|vname }}</th>
+          <td class="t-num">{{ u.units|num }}{% if u.estimated %} <span class="etag etag--n">估算</span><div class="cell-sub">低 {{ u.units_low|num }} · {{ psh(u.share_low) }}</div>{% endif %}</td>
+          <td class="t-num">{{ psh(u.share) }}</td>
+          {% if not nc %}
+          {% if nt %}{% for i in range(7) %}<td class="t-num"><span class="muted">—{% if loop.first %}（{{ '月份不足' if not data.trend_ok else '有月度 ' ~ pct(f.monthly_share) }}）{% endif %}</span></td>{% endfor %}
+          {% else %}
+          <td>{{ spark(u.series, '逐月份额 ' ~ data.summary.window[0] ~ ' 至 ' ~ data.summary.window[-1]) }}</td>
+          <td class="t-num">{{ sg(u.diff_pp, 1) }} pp</td>
+          <td><span class="badge badge--{{ TREND.get(u.trend, 'watch') }}">{{ u.trend }}</span><div class="cell-sub">{{ '新出现' if u.unit_ratio is none else '%.2f'|format(u.unit_ratio) }} ÷ {{ '%.2f'|format(u.frame_ratio) }}（{{ f.ratio_label }}）</div></td>
+          <td class="t-num">{{ sg(u.slope_pp) }}</td>
+          <td class="t-num">{{ '—' if u.cv is none else '%.2f'|format(u.cv) }}</td>
+          <td class="t-num">{{ u.new_fams }}（{{ u.new_up }}）</td>
+          <td class="t-num">{{ pct(u.new_share) }}（{{ pct(u.frame_new_share) }}）<div class="cell-sub">{% if u.entries %}进入 {{ u.entries|join('、') }}{% endif %}</div></td>
+          {% endif %}
+          <td class="t-num">{{ u.families }}</td>
+          <td class="t-num">{{ u.price_bands if u.p50 is not none else '无' }}</td>
+          <td class="t-num">{{ '%.2f'|format(u.per_family_ratio) if u.per_family_ratio is not none else '—' }}</td>
+          <td class="t-num t-nowrap">{% if u.p50 is none %}无{% else %}${{ u.p25|num }}–{{ u.p75|num }}{% endif %}</td>
+          <td class="t-num">{% if u.premium is none %}无{% else %}{{ '%.2f'|format(u.premium) }}{% endif %}</td>
+          <td class="t-num t-nowrap">{% if u.rating is none %}无{% else %}{{ '%.2f'|format(u.rating) }}（{{ sg(u.rating_diff) }}）{% endif %}</td>
+          <td class="t-nowrap small">{% if u.amazon %}{{ u.amazon.fam }} · {{ u.amazon.pb }} · {{ psh(u.amazon.pre) }}→{{ psh(u.amazon.rec) }} <b>{{ u.amazon.dir }}</b>{% else %}<span class="muted">Amazon 无</span>{% endif %}</td>
+          <td class="t-nowrap" data-backtest>{% if u.backtest %}<a class="badge badge--pass" href="/scan?channel={{ ch }}&amp;frame={{ f.frame|urlencode }}"><svg class="icon"><use href="#ph-seal-check"/></svg>回测：{{ u.backtest.evidence }} · {{ u.backtest.grade }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  <p class="table-note">新家族按{{ data.summary.estimate.new_rule }}判定；"卖起来" = 进入月至 {{ data.summary.window[-1] }} 在本单元的月均 ≥ 同框每家族月均。份额分母含该属性未知。价位段 = 7 段绝对价位（与机会扫描的 Amazon 侧丰富度相同）。Amazon 同框对照 = Amazon 同尺寸段 × 形态 × 取值（不分拆装，元素按 6 类对齐）{{ data.summary.amazon_months or '最近 6 个完整月' }}，箭头按 ln 变化 ±0.2。回测列只引用{{ chn }}机会扫描的分级（该渠道最近一次回测为"经回测（打折）"时才有），和"历史观察"分开看。价格是采集日价，评分是页面评分按评论数加权，只在{{ chn }}同框内比较。{% if f.estimated %}含估算销量：体量、份额、家族、价格、评分用中估计，趋势与新品只用有月度的销量。{% endif %}</p>
+</section>
+{% endif %}
+{% endblock %}

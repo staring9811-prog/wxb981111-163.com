@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  .rs-tabs { margin-bottom: var(--space-4); }
+  .rs-tabs .tab { text-decoration: none; }
+  .rs-tabs .tab .badge { margin-left: var(--space-2); }
+  .rs-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); margin-bottom: var(--space-3); }
+  .pending-bar { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); background: var(--warn-tint); border: 1px solid var(--border); border-radius: var(--radius-lg); font-size: var(--text-sm); }
+  .pending-bar > .icon { color: var(--warn); }
+  .pending-bar .btn { margin-left: auto; }
+  .rs-tools { margin-bottom: var(--space-3); }
+  .rs-tools .legend .badge { margin: 0 2px; }
+  .rs-table tr.rd-noconc td { color: var(--muted); background: var(--surface-warm); }
+  .rs-table tr.rd-noconc .tlink { color: var(--fg-2); }
+  .rs-table tr[data-href] { cursor: pointer; }
+  .rs-table td .cell-sub .badge { margin-left: 2px; }
+  .scope-note summary { cursor: pointer; font-size: var(--text-sm); font-weight: 600; }
+  .scope-note summary:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+  .scope-note ul { margin: var(--space-2) 0 0; padding-left: var(--space-5); font-size: var(--text-xs); color: var(--fg-2); line-height: 1.7; }
+  .reasons { display: grid; gap: var(--space-2); max-width: 560px; margin-top: var(--space-4); }
+  .reason { display: grid; grid-template-columns: 96px minmax(0, 1fr) 56px; align-items: center; gap: var(--space-3); font-size: var(--text-sm); }
+  .reason .meter { margin-top: 0; }
+  .reason .num { text-align: right; }
+  .insufficient .row > .icon { color: var(--warn); }
+  .checklink { display: inline-flex; align-items: center; gap: var(--space-2); text-decoration: none; color: inherit; }
+  @media (max-width: 1279px) { .rs-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 767px) { .rs-stats { grid-template-columns: minmax(0, 1fr); } .pending-bar { flex-wrap: wrap; } }
+</style>
+{% endblock %}
+{% block content %}
+{% set op = user.role == 'operator' %}
+{% set sm = data.summary if data else {} %}
+{% macro pct(v, nd=0) %}{% if v is none %}—{% else %}{{ ('%.' ~ nd ~ 'f%%')|format(v * 100) }}{% endif %}{% endmacro %}
+{% macro psh(v) %}{% if v is none %}—{% elif v < 0.1 %}{{ '%.1f%%'|format(v * 100) }}{% else %}{{ '%.0f%%'|format(v * 100) }}{% endif %}{% endmacro %}
+{% macro readbadge(f) %}{% set rd = READ[f.read] %}<span class="badge badge--{{ rd[1] }}"><svg class="icon"><use href="#ph-{{ rd[2] }}"/></svg>{{ rd[0] }}{% if f.read == 'noconc' %}（分框覆盖 {{ pct(f.cover, 1) }}）{% elif f.read == 'notrend' %}（有月度 {{ pct(f.monthly_share) }}）{% endif %}</span>{% endmacro %}
+<div class="page-head enter" style="--i:0">
+  <div>
+    <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>分析</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>渠道调研</span></nav>
+    <h1>渠道调研</h1>
+    <p class="page-head__sub">小平台按"尺寸段 × 拆装 × 形态"框看单元 × 指标 · 只列月均 ≥ 200 件的框 · 证据等级 <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% if res and res.computed_at %} · 重算 <span data-computed-at>{{ res.computed_at|dt }}</span>{% endif %}</p>
+  </div>
+  {% if op %}<div class="page-head__actions"><a class="btn btn--primary" href="/data/research"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>导入调研数据</span></a></div>{% endif %}
+</div>
+
+{% if op and pend_imp %}
+<div class="banner banner--warn enter" style="--i:1"><svg class="icon"><use href="#ph-hourglass"/></svg><div class="banner__body">有一次导入核对完成、待确认（{{ pend_imp.created_at|dt }}）。</div><div class="banner__actions"><a class="btn btn--sm" href="/data/research">去确认</a></div></div>
+{% endif %}
+{% if res and res.status == 'error' %}
+<div class="banner banner--block enter" style="--i:1" role="alert"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body"><div class="banner__title">重算出错：{{ res.error }}</div><div>显示的是 {{ res.computed_at|dt }} 的结果（{{ res.error_at|dt }} 重算失败）。</div></div></div>
+{% elif res and res.status == 'running' %}
+<div class="banner enter" style="--i:1" role="status"><svg class="icon"><use href="#ph-hourglass"/></svg><div class="banner__body">重算中…下面是 {{ res.computed_at|dt }} 的结果。</div></div>
+{% endif %}
+
+<section class="enter" style="--i:1">
+  <div class="banner banner--cross">
+    <svg class="icon"><use href="#ph-info"/></svg>
+    <div class="banner__body">
+      <div class="banner__title">历史观察：不给把握、分级和"上 / 不上"，不进机会扫描</div>
+      <details class="scope-note" data-scope-note>
+        <summary>口径说明</summary>
+        <ul>
+          <li>商品范围：每个渠道 = "bathroom vanity" 与 "bathroom vanity with sink" 自然位前 300 并集 + 类目节点商品，合并去重；与机会扫描用的评论 VP 数据不是同一范围。</li>
+          <li>销量：逐月评论 VP × 50 + 非 VP × 20；没有逐月评论的商品按同来源、同评论数档换算，标"估算"并给低估计；趋势与新品只用有月度的销量。</li>
+          <li>价格是采集日价；评分是页面评分（按评论数加权）。各渠道口径不同，只在同渠道、同框内比较，不比跨渠道绝对销量。</li>
+          <li>家族：Home Depot 评论家族 / Lowe's 父体 / Wayfair listing。</li>
+          <li>幸存者偏差：只含今天仍在榜的商品，早月份偏低，"份额在涨""新家族卖起来"偏乐观。</li>
+        </ul>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="section enter" style="--i:2" aria-label="渠道">
+  <div class="tabs rs-tabs" role="tablist" aria-label="渠道">
+    {% for c, s in st.items() %}
+    <a class="tab" role="tab" href="/research?channel={{ c }}" aria-selected="{{ 'true' if c == ch else 'false' }}" data-ch="{{ c }}">{{ s.name }}{% if s.state == 'none' %}<span class="badge badge--nodata">尚未导入</span>{% elif s.state == 'insufficient' %}<span class="badge badge--insufficient">数据不足</span>{% else %}<span class="badge badge--{{ 'pass' if s.readable == s.big else 'unverified' }}">可读 {{ s.readable }} / 达标 {{ s.big }} 框</span>{% endif %}</a>
+    {% endfor %}
+  </div>
+
+  {% if not data %}
+  <div class="empty" data-state="none">
+    <svg class="icon"><use href="#ph-tray"/></svg>
+    <div class="empty__title">{{ st[ch].name }} 尚未导入</div>
+    {% if op %}<div class="empty__desc">导入 wen 本机抓好的商品表与月销表后，这里按框显示单元 × 指标。</div><a class="btn btn--primary btn--sm" href="/data/research"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>去导入</span></a>
+    {% else %}<div class="empty__desc">尚未导入，等操作者导入。</div>{% endif %}
+  </div>
+  {% elif data.state == 'insufficient' %}
+  <div class="panel insufficient" data-state="insufficient">
+    <div class="panel__body">
+      <div class="row"><svg class="icon"><use href="#ph-warning"/></svg><h2 class="section__title">{{ st[ch].name }} 数据不足，暂不列框</h2><span class="badge badge--insufficient">数据不足</span></div>
+      <p class="small">{{ ver.created_at|dt }} 导入 · {{ sm.n_products|num }} 个商品 · 窗口 {{ sm.window[0] }} 至 {{ sm.window[-1] }} · 没有任何框达到月均 200 件。已落框销量只有 <b class="num" data-framed>{{ pct(sm.framed_share, 1) }}</b>；补齐分框信息后重新导入即可替换这一版。</p>
+      <div class="reasons" role="list" aria-label="未落框原因构成（占渠道销量）">
+        {% for k in ['尺寸段未知', '多尺寸未拆', '装未知', '形态未知'] %}{% set v = sm.reasons.get(k) or 0 %}
+        <div class="reason" role="listitem" data-reason="{{ k }}"><span>{{ k }}</span><div class="meter{% if v > 0.3 %} meter--warn{% endif %}"><i style="width:{{ '%.1f'|format(v * 100) }}%"></i></div><span class="num">{{ pct(v, 1) }}</span></div>
+        {% endfor %}
+      </div>
+      <p class="small muted" style="margin-top: var(--space-3)">分框待确认 <b class="num" data-pending>{{ sm.pending_products }}</b> 个商品</p>
+      {% if op %}<div class="row" style="margin-top: var(--space-4)"><a class="btn" href="/tagging?channel={{ ch }}&amp;reason=frame&amp;from=research"><svg class="icon"><use href="#ph-list-checks"/></svg><span>分框待确认 {{ sm.pending_products }} 个</span></a><a class="btn" href="/data/research"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>重新导入 {{ st[ch].name }}</span></a></div>{% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="stats rs-stats">
+    <div class="stat"><div class="stat__label">窗口</div><div class="stat__value num">{{ sm.n_months }}<span class="stat__unit">个完整月</span></div><div class="stat__meta">{{ sm.window[0] }} 至 {{ sm.window[-1] }}{% for m, n in sm.reference.items() %} · {{ m }} 只作参考{% endfor %}</div></div>
+    <div class="stat"><div class="stat__label">商品 / 家族</div><div class="stat__value num">{{ sm.n_products|num }}<span class="stat__unit">个商品</span></div><div class="stat__meta">{{ sm.n_families|num }} 个家族（{{ sm.family_note }}），有销量 {{ sm.n_families_sold|num }} 个</div></div>
+    <div class="stat"><div class="stat__label">有月度销量</div><div class="stat__value num">{{ pct(sm.monthly_share) }}</div><div class="stat__meta">{% if sm.n_static %}{{ sm.n_static }} 个商品只有评论总数，按评论数档估算{% else %}全部来自逐月评论{% endif %}</div></div>
+    <div class="stat"><div class="stat__label">已落框销量</div><div class="stat__value num">{{ pct(sm.framed_share, 1) }}</div><div class="stat__meta">{% for k in ['多尺寸未拆', '形态未知', '装未知', '尺寸段未知'] %}{% if sm.reasons.get(k) %}{{ k }} {{ pct(sm.reasons.get(k), 1) }} {% endif %}{% endfor %}{% if sm.noframe_share %}· 不进框 {{ pct(sm.noframe_share, 1) }}{% endif %}</div></div>
+    <div class="stat"><div class="stat__label">渠道月均{% if sm.estimated %}（估算）{% endif %}</div><div class="stat__value num">{{ sm.monthly_avg|num }}<span class="stat__unit">件</span></div><div class="stat__meta">{% if sm.estimated %}低估计 {{ sm.monthly_avg_low|num }} · {% endif %}达门槛 {{ sm.frames_big }} / {{ sm.frames_all }} 框</div></div>
+  </div>
+  <p class="small muted" style="margin: 0 0 var(--space-3)">{{ ver.created_at|dt }} 导入 · 证据等级 <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% if res.computed_at %} · 重算 {{ res.computed_at|dt }}{% endif %}</p>
+  {% if op and sm.pending_products %}
+  <div class="pending-bar" data-pending-bar>
+    <svg class="icon"><use href="#ph-list-checks"/></svg><span><b class="num">分框待确认 {{ sm.pending_products }} 个</b> · 占渠道销量 {{ pct(sm.pending_share, 1) }}，确认后本渠道自动重算</span>
+    <a class="btn btn--sm" href="/tagging?channel={{ ch }}&amp;reason=frame&amp;from=research"><svg class="icon"><use href="#ph-arrow-right"/></svg><span>去打标确认</span></a>
+  </div>
+  {% endif %}
+  <div class="filters rs-tools">
+    <a class="checklink" href="/research?channel={{ ch }}{{ '' if readable else '&readable=1' }}" data-readable-only><input type="checkbox" tabindex="-1" {% if readable %}checked{% endif %} aria-label="只看可读框"> 只看可读框</a>
+    <span class="small muted" data-shown-count>显示 <b class="num">{{ frames|length }}</b> / {{ n_frames }} 个框 · 可读 {{ sm.frames_readable }} 个</span>
+    <span class="spacer"></span>
+    <span class="small muted legend"><span class="badge badge--pass">可读</span> 覆盖 ≥ 95% 且有月度 ≥ 60% · <span class="badge badge--unverified">趋势不下结论</span> 有月度 &lt; 60% · <span class="badge badge--insufficient">不下结论</span> 覆盖 &lt; 95%，只看体量和份额</span>
+  </div>
+  {% if frames %}
+  <div class="table-wrap">
+    <table class="table rs-table" aria-label="{{ st[ch].name }} 达门槛的框">
+      <thead><tr><th>框</th><th>可读性 · 历史观察</th><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">渠道内份额</th><th class="t-num">近 3 ÷ 前 3</th><th class="t-num">家族</th><th class="t-num">单款月均</th><th class="t-num">新家族（销量占比）</th><th class="t-num">中位价</th><th class="t-num">评分</th><th>台面 / 主色 / 柜体 / 元素 已知</th><th class="t-num">分框覆盖（期望）</th><th class="t-num">有月度占比</th></tr></thead>
+      <tbody>
+      {% for f in frames %}{% set nc = f.read == 'noconc' %}{% set nt = f.read == 'notrend' %}{% set href = '/research/' ~ ch ~ '/frame/' ~ f.slug %}
+        <tr class="rd-{{ f.read }}" data-read="{{ f.read }}" data-href="{{ href }}" data-frame="{{ f.frame }}" tabindex="0">
+          <td class="cell-title t-nowrap"><a class="tlink" href="{{ href }}">{{ f.frame }}</a></td>
+          <td class="t-nowrap">{{ readbadge(f) }}</td>
+          <td class="t-num"><span class="num">{{ f.units|num }}</span>{% if f.estimated %} <span class="etag etag--n">估算</span><div class="cell-sub">低估计 {{ f.units_low|num }}{% if f.low_below %} · <span class="badge badge--unverified">低估计未达门槛</span>{% endif %}</div>{% endif %}</td>
+          <td class="t-num">{{ psh(f.channel_share) }}</td>
+          {% if nc %}{% for i in range(7) %}<td class="t-num"><span class="muted">—</span></td>{% endfor %}<td class="small t-nowrap"><span class="muted">—</span></td>
+          {% else %}
+          <td class="t-num">{% if nt or f.ratio is none %}<span class="muted">—{% if not data.trend_ok %}（月份不足）{% endif %}</span>{% else %}<span class="num">{{ '%.2f'|format(f.ratio) }}</span> <span class="cell-sub">{{ f.ratio_label }}</span>{% endif %}</td>
+          <td class="t-num">{{ f.families }}</td>
+          <td class="t-num">{{ f.per_family|num }}</td>
+          <td class="t-num">{% if nt %}<span class="muted">—</span>{% else %}{{ f.new_fams }}（{{ pct(f.new_share) }}）{% endif %}</td>
+          <td class="t-num">{% if f.median_price is none %}无{% else %}${{ f.median_price|num }}{% endif %}</td>
+          <td class="t-num">{% if f.rating is none %}无{% else %}{{ '%.2f'|format(f.rating) }}{% endif %}</td>
+          <td class="small t-nowrap">{{ pct(f['known_台面材质']) }} / {{ pct(f['known_主色']) }} / {{ pct(f['known_柜体材质']) }} / {{ pct(f['known_元素']) }}</td>
+          {% endif %}
+          <td class="t-num">{{ pct(f.cover, 1) }}</td>
+          <td class="t-num">{{ pct(f.monthly_share) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr class="table__divider"><td colspan="13" data-small-frames>未达门槛（月均 &lt; 200 件）的框 {{ sm.small_n }} 个，合计月均 {{ (sm.small_units or 0)|num }} 件，不列出</td></tr></tfoot>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty" data-only-empty><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">这个渠道没有可读的框</div><div class="empty__desc">关掉"只看可读框"可以看全部达门槛的框。</div></div>
+  {% endif %}
+  {% endif %}
+</section>
+<p class="page-foot">点框进入单元 × 指标详情。{% if op %}要改分框标签去 <a href="/tagging?reason=frame">打标确认</a>；要更新数据去 <a href="/data/research">渠道调研导入</a>。{% endif %}</p>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  document.querySelectorAll('.rs-table tr[data-href]').forEach(function (tr) {
+    tr.addEventListener('click', function (e) { if (!e.target.closest('a')) location.href = tr.getAttribute('data-href'); });
+    tr.addEventListener('keydown', function (e) { if (e.key === 'Enter') location.href = tr.getAttribute('data-href'); });
+  });
+  try {  /* 默认渠道：上次查看的（本机记住）；地址带 channel 时以地址为准 */
+    var q = new URLSearchParams(location.search);
+    if (q.get('channel')) localStorage.setItem('pdt-research-channel', q.get('channel'));
+    else { var c = localStorage.getItem('pdt-research-channel'); if (c && c !== '{{ ch }}') location.replace('/research?channel=' + encodeURIComponent(c)); }
+  } catch (e) { /* 浏览器不允许本机存储时用默认渠道 */ }
+})();
+</script>
+{% endblock %}
