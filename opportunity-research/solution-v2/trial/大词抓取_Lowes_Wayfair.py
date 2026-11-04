@@ -23,8 +23,24 @@ log, raw_path = K.log, K.raw_path
 
 
 # ---------- 列表 ----------
+LOWES_PL = 'https://www.lowes.com/pl/bathroom-vanities-vanity-tops/bathroom-vanities/4294684461'
+
+
+def lowes_redirect(kw):
+    """部分尺寸词（24/36/72 inch）搜索被 Lowe's 转成"浴室柜类目 + Popular Widths 筛选"，搜索 URL 的 offset 无效；
+    改用类目 URL + refinement=<筛选 ID>（实测第 2 页正确）。返回筛选 ID 或 None。"""
+    f = raw_path('raw', 'lowes', f'{kw}_0.html')
+    if not os.path.exists(f): return None
+    st = K.lowes_state(open(f, 'rb').read()) or {}
+    if not str((st.get('requestParams') or {}).get('queryString', '')).startswith('department='): return None
+    ids = [v for vs in (st.get('selectedFacets') or {}).values() for v in vs]
+    return ','.join(ids) if ids else None
+
+
 def page_url(plat, kw, n):
     if plat == 'lowes':
+        ref = lowes_redirect(kw) if n else None
+        if ref: return add_query(LOWES_PL, refinement=ref, offset=n * 24)
         return add_query(f'https://www.lowes.com/search?searchTerm={urllib.parse.quote_plus(kw)}', offset=n * 24 or None)
     return add_query(f'https://www.wayfair.com/keyword.php?keyword={urllib.parse.quote_plus(kw)}', curpage=n + 1 if n else None)
 
