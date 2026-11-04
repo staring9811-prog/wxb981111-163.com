@@ -94,7 +94,7 @@
           {% else %}
           <td>{{ spark(u.series, '逐月份额 ' ~ data.summary.window[0] ~ ' 至 ' ~ data.summary.window[-1]) }}</td>
           <td class="t-num">{{ sg(u.diff_pp, 1) }} pp</td>
-          <td><span class="badge badge--{{ TREND.get(u.trend, 'watch') }}">{{ u.trend }}</span><div class="cell-sub">{{ '新出现' if u.unit_ratio is none else '%.2f'|format(u.unit_ratio) }} ÷ {{ '%.2f'|format(u.frame_ratio) }}（{{ f.ratio_label }}）</div></td>
+          <td><span class="badge badge--{{ TREND.get(u.trend, 'watch') }}">{{ u.trend }}</span><div class="cell-sub">{{ '新出现' if u.unit_ratio is none else '%.2f'|format(u.unit_ratio) }} ÷ {{ '%.2f'|format(u.frame_ratio) }}</div></td>
           <td class="t-num">{{ sg(u.slope_pp) }}</td>
           <td class="t-num">{{ '—' if u.cv is none else '%.2f'|format(u.cv) }}</td>
           <td class="t-num">{{ u.new_fams }}（{{ u.new_up }}）</td>

@@ -397,7 +397,7 @@ def test_flow37_wayfair_estimate_and_readability(v2):
     assert ro.count('data-read="ok"') == len(ref_read) and f'显示 <b class="num">{len(ref_read)}</b> / 23 个框' in ro
     # 框详情：不下结论只剩单元与体量份额；趋势不下结论的趋势、新品为"—"
     h = v2.get('/research/wayfair/frame/24-拆装-落地式').text
-    assert 'data-mode-note="no-conc"' in h and 'Amazon 同框对照' not in h and '框内份额' in h
+    assert 'data-mode-note="no-conc"' in h and '<th scope="colgroup">Amazon 同框对照</th>' not in h and '框内份额' in h and '>趋势（只用有月度销量）<' not in h
     h = v2.get('/research/wayfair/frame/30-整装-落地式').text
     assert 'data-mode-note="no-trend"' in h and '—（有月度 33%）' in h and 'Amazon 同框对照' in h and '>趋势（只用有月度销量）<' in h
 
@@ -579,7 +579,9 @@ def test_rule11_import_leaves_analysis_and_permissions(v2):
     scan_before = v2.get('/scan?channel=amazon').text
     import_channels(v2, ['homedepot', 'wayfair', 'lowes'])
     assert _analysis_state() == before
-    assert v2.get('/scan?channel=amazon').text.split('<main')[1].split('nav__count')[0] == scan_before.split('<main')[1].split('nav__count')[0]
+    def main(t):  # 只比主区内容；去掉“用时 x 秒”
+        return re.sub(r'用时 [\d.]+ 秒', '', t.split('<main')[1])
+    assert main(v2.get('/scan?channel=amazon').text) == main(scan_before)
     p, m = sample()
     upload(v2, p, m)
     iid = pending_id()
