@@ -51,3 +51,5 @@ node profit-calculator/tests/freeze-theme.cjs
 - 文件授权只在本次打开期间有效（在 file:// 页面把授权存进 IndexedDB 会让 Chromium 崩溃，已避免）。
 - 其他浏览器保留“下载新版文件”方式。
 - 已在有界面的 Chromium 中实测：更新 → 自动刷新为新版 → 回退 → 恢复旧版。
+- 平台订单费改为按包裹收：双包产品收两次（Lowe's $0.78×2、Home Depot $0.70×2），与 LOWES / HDP 表一致；变量表列名改为“平台订单费 $/包”。
+- Home Depot 佣金确认按实际成交（结算）价收取，不变。

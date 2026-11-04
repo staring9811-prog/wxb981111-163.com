@@ -645,7 +645,7 @@ function calcPlatforms(p,r){
     const c=P.plat[pl.k]; const pp=platPrices(p,r,pl.k);
     const logi=c.ship==="self"?sum(x=>x.fbmTotal):c.ship==="handling"?sum(x=>x.handling):0;
     const pctO=(nz(c.ads)+nz(c.fx)+nz(c.refund)+nz(c.storage)+nz(c.outbound))/100, cm=nz(c.comm)/100, pct=pctO+cm;
-    const mk=nz(c.markup)||1, fixed=nz(c.fixed), commList=c.commBase==="list", listSettle=pp.list/mk;
+    const mk=nz(c.markup)||1, fixed=nz(c.fixed)*Math.max(1,r.pk.length), commList=c.commBase==="list", listSettle=pp.list/mk;
     const sc=P.sea.map((s,i)=>{
       const sea=sum(x=>x.sea[i]), base=r.cost+sea+logi+fixed;
       const at=retail=>{ const settle=retail/mk, comm=(commList?listSettle:settle)*cm, fees=settle*pctO+comm, profit=settle-base-fees; return {retail,settle,comm,fees,profit,margin:settle>0?profit/settle:NaN}; };
@@ -926,7 +926,7 @@ Amazon 其他品类：售价 × 固定比例（汽配 ${esc(P.commission.汽配)
 佣金基数选“原批发价”的渠道（默认 Lowe's VC）：佣金 = 上架价 ÷ 加价倍率 × 佣金 %，促销时不跟着降价</div><p>VC 是平台按批发价向我们采购，佣金按 VC 原批发价算；做促销时我们拿到的结算价降了，佣金不变。可在变量 → 渠道费用的“佣金基数”里按渠道切换。</p>${perChan("comm","按品类（见上）")}`},
    {id:"storage",title:"仓储费",short:"按结算价的百分比；平台仓（如 Wayfair）的存储成本在这里扣",html:`<div class="f">仓储费 = 结算价 × 仓储 %</div>${perChan("storage")}`},
    {id:"outbound",title:"出仓费",short:"按结算价的百分比；平台仓出库费在这里扣（Wayfair 4%）",html:`<div class="f">出仓费 = 结算价 × 出仓 %</div>${perChan("outbound")}`},
-   {id:"fixed",title:"平台订单费（$/单）",short:`平台每成交一单固定收的钱，不随售价和包裹数变；Lowe's VC/SC $${pl("lowesVC").fixed} / $${pl("lowesSC").fixed}，Home Depot $${pl("hd").fixed}`,html:`<div class="f">平台订单费 = 每单固定金额（每件产品扣一次）</div><p>这是<b>平台</b>按订单收的固定费用，来自你原来 LOWES / HDP 表里的“平台订单费”列（Lowe's 0.78、HDP 0.70）。它和下面的“订单处理费”不是一回事：订单处理费是海外仓按包裹重量收的拣货打包费。</p>${perChan("fixed")}`},
+   {id:"fixed",title:"平台订单费（$/包裹）",short:`平台按包裹收的固定费用，双包产品收两次；Lowe's VC/SC $${pl("lowesVC").fixed} / $${pl("lowesSC").fixed}，Home Depot $${pl("hd").fixed}`,html:`<div class="f">平台订单费 = 每包裹固定金额 × 包裹数（双包产品收两次）</div><p>这是<b>平台</b>按包裹收的固定费用，来自你原来 LOWES / HDP 表里的“平台订单费”列（Lowe's 0.78、HDP 0.70）。它和下面的“订单处理费”不是一回事：订单处理费是海外仓按包裹重量收的拣货打包费。</p>${perChan("fixed")}`},
    {id:"ship",title:"发货方：我们发货 / 平台发货 / 平台仓",short:"我们发货：扣尾程+订单处理+异常+燃油；平台发货：只扣订单处理费；平台仓：不扣物流费",html:`<table><thead><tr><th>发货方</th><th>扣哪些物流费</th><th>实际情况</th></tr></thead><tbody>
      <tr><td>我们发货</td><td>FBM 尾程合计 = (尾程派送 + 订单处理 + 尾程异常 + 住宅附加) × (1 + 燃油 ${esc(P.fbm.fuel)}%)</td><td>货在我们的海外仓，我们打包、付快递费</td></tr>
      <tr><td>平台发货</td><td>只扣订单处理费</td><td>货在我们的海外仓，我们拣货打包，平台派车取货并付运费</td></tr>
@@ -984,7 +984,7 @@ function setPath(p,v){ const ks=p.split("."); let o=P; for(let i=0;i<ks.length-1
 const CHROWS=[
   {label:"推广（广告费）%",short:"推广",amz:"promo",plat:"ads",all:1,g:0},{label:"汇损 %",short:"汇损",amz:"fxLoss",plat:"fx",all:1,g:0},{label:"退款 %",short:"退款",amz:"refund",plat:"refund",all:1,g:0},
   {label:"佣金 %",short:"佣金",amz:"@comm",plat:"comm",g:0},{label:"仓储费 %",short:"仓储",plat:"storage",g:0},{label:"出仓费 %",short:"出仓",plat:"outbound",g:0},
-  {label:"佣金计算基数",short:"佣金基数",plat:"commBase",help:"comm",g:1},{label:"平台订单费 $/单",short:"平台订单费 $",plat:"fixed",g:1},{label:"加价倍率",short:"加价倍率",plat:"markup",tip:"前台价 ÷ 倍率 = 结算价",g:1},{label:"默认促销折扣 %",short:"默认折扣 %",plat:"disc",g:1},
+  {label:"佣金计算基数",short:"佣金基数",plat:"commBase",help:"comm",g:1},{label:"平台订单费 $/包裹",short:"平台订单费 $/包",plat:"fixed",g:1},{label:"加价倍率",short:"加价倍率",plat:"markup",tip:"前台价 ÷ 倍率 = 结算价",g:1},{label:"默认促销折扣 %",short:"默认折扣 %",plat:"disc",g:1},
   {label:"发货方",short:"发货方",amz:"@ship",plat:"ship",g:2}];
 const CHGROUPS=["比例费用 %（按结算价）","每单与价格","物流"];
 const COMM_PATHS=["commission.threshold","commission.furnLow","commission.furnHigh","commission.汽配","commission.工业机械","commission.农机花园","commission.其他"];
@@ -1131,7 +1131,7 @@ function breakdown(r,id,si){
   const sc=x.sc[si], v=sc[m], st=v.settle;
   const logi=c.ship==="self"?fbmSteps():c.ship==="handling"?[["订单处理",sum(x=>x.handling)]]:[];
   const pctSteps=[["推广",c.ads],["汇损",c.fx],["佣金",c.comm],["退款",c.refund],["仓储费",c.storage],["出仓费",c.outbound]].filter(a=>nz(a[1])>0).map(a=>a[0]==="佣金"?[`佣金 ${a[1]}%${c.commBase==="list"?"（按原批发价）":""}`,v.comm]:[`${a[0]} ${a[1]}%`,st*nz(a[1])/100]);
-  const steps=[[r.dom?"采购成本（退税后）":"采购成本",r.cost],[r.dom?"头程运费":"海运费",sc.sea],...logi,...(nz(c.fixed)>0?[["平台订单费",nz(c.fixed)]]:[]),...pctSteps];
+  const steps=[[r.dom?"采购成本（退税后）":"采购成本",r.cost],[r.dom?"头程运费":"海运费",sc.sea],...logi,...(nz(c.fixed)>0?[["平台订单费",x.fixed]]:[]),...pctSteps];
   return {priceLabel:m==="list"?"上架价":"促销价",price:m==="list"?x.list:x.promo,settle:st,mk:x.mk,steps,profit:v.profit,margin:v.margin,edit:m,est:x.est&&!(m==="promo"?x.promoSet:x.listSet)};
 }
 function renderAll(R){
@@ -1279,7 +1279,7 @@ document.getElementById("btnExport").addEventListener("click",()=>{
     ...P.sea.map(s=>[`海运方案（${seaKind(s)==="dom"?"国内":"FOB"}）：${s.name}`,`${s.rmb} RMB / ${s.cbm} CBM = $${f2(nz(s.rmb)/nz(s.cbm)/P.rate)}/m³`]),
     ["出货方式",P.shipMode==="dom"?"国内出货":"FOB"],["国内出货","增值税 "+P.dom.vat+"%，退税率 "+P.dom.rebate+"%，国内杂费 "+P.dom.extra+" RMB/柜"],
     ["平台上架价系数（× Amazon 售价）",P.listFactor],["目标利润率 %",P.targetMargin],
-    ...PLATS.flatMap(pl=>{ const c=P.plat[pl.k]; return [[`${pl.name}`,`${c.on!==false?"显示":"隐藏"}；${SHIP[c.ship]||c.ship}；加价倍率 ${c.markup}；默认促销折扣 ${c.disc}%；平台订单费 $${c.fixed}`],[`${pl.name} 比例费`,`推广 ${c.ads}% · 汇损 ${c.fx}% · 佣金 ${c.comm}%（${(COMMBASE[c.commBase]||COMMBASE.actual).replace(/（.*）/,"")}） · 退款 ${c.refund}% · 仓储 ${c.storage}% · 出仓 ${c.outbound}%`]]; }),
+    ...PLATS.flatMap(pl=>{ const c=P.plat[pl.k]; return [[`${pl.name}`,`${c.on!==false?"显示":"隐藏"}；${SHIP[c.ship]||c.ship}；加价倍率 ${c.markup}；默认促销折扣 ${c.disc}%；平台订单费 $${c.fixed}/包裹`],[`${pl.name} 比例费`,`推广 ${c.ads}% · 汇损 ${c.fx}% · 佣金 ${c.comm}%（${(COMMBASE[c.commBase]||COMMBASE.actual).replace(/（.*）/,"")}） · 退款 ${c.refund}% · 仓储 ${c.storage}% · 出仓 ${c.outbound}%`]]; }),
     ["FBA 燃油/物流附加费 %",P.fba.fuel],["FBA 体积重除数",P.fba.dimDiv],["FBA 费率",fbaPeak()?"旺季":"非旺季"],["FBA 旺季区间",P.fba.peakStart+" ~ "+P.fba.peakEnd],["导出日期",new Date().toLocaleString()]];
   const ws3=aoaSheet(par); ws3["!cols"]=[{wch:26},{wch:40}];
   const M=mixData(R), L=platOn(), A=amzOn(), si=seaIdx(), sn=P.sea[si].name, r3=v=>isFinite(v)?Math.round(v*1000)/1000:"";
