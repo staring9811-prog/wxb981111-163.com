@@ -97,6 +97,7 @@ class ResearchResult(Base):
     error: Mapped[str] = mapped_column(Text, default="")
     error_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     data: Mapped[dict] = mapped_column(JSON, default=dict)
+    pending_n: Mapped[int] = mapped_column(Integer, default=0)  # 分框待确认条目数（侧栏角标用，免得每页读整份结果）
     category: Mapped[str] = Cat()
     __table_args__ = (Index("ix_rres", "category", "channel"),)
 

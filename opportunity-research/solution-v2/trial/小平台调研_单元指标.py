@@ -133,6 +133,11 @@ def bw_raw():
     return _BW['P'], _BW['M']
 
 
+def nomon_mask(p, m):
+    """有页面评论、但没有 2026 年逐月评论来源的实体（Wayfair 标"无（只有评论总数）"；Lowe's 两词独有家族评论页没抓到，月度来源为空）。"""
+    return (p['月度来源'] == NOMON) | (p['月度来源'].isna() & (p['页面评论数'].fillna(0) > 0) & ~p['fam'].isin(m['fam']))
+
+
 def static_k(p, fs, low=False):
     """只有评论总数的 listing 都来自两词结果 → 用同样来自搜索结果（来源 = 两词 / 两者）且有月度的 listing，按页面评论数分档算
     1–10 月销量 ÷ 页面评论数（合计口径）。low = 只用"两词独有"的 listing（与无月度的同一来源，但 > 100 条评论的只有 6 个，两档合并），作低估计。"""
@@ -156,10 +161,12 @@ def bw_table(ch):
     m['m'] = m['月'].map(mi); m['c'] = m['销量']
     A = m[['fam', 'pid', 'm', 'c', 'VP', '非VP', '尺寸段', '装', '形态']].join(p.set_index(['fam', 'pid'])[cols], on=['fam', 'pid'])
     K = None; A['c_low'] = A['c']
-    if ch == 'Wayfair':
+    if ch != 'Home Depot':
         fs = m.groupby('fam')['c'].sum(); K = {}
-        s = p[p['月度来源'] == NOMON].copy()
+        s = p[nomon_mask(p, m)].copy()
         for nm, low, col in (('中', False, 'c'), ('低', True, 'c_low')):
+            if low and ch == "Lowe's":   # Lowe's 有月度的都是类目节点商品，没有"两词独有"的校准样本 → 低估计 = 不计（只算有月度）
+                K[nm] = None; s[col] = 0.0; continue
             k, bins = static_k(p, fs, low); K[nm] = k
             s[col] = pd.cut(s['页面评论数'], bins, right=True).map(k['k']).astype(float) * s['页面评论数']
         s['尺寸段'] = s['尺寸段'].where(~s['多尺寸段'].astype(str).str.lower().eq('true'), '多尺寸未拆')
@@ -1014,7 +1021,7 @@ def reconcile():
     P, M = bw_raw(); out = []
     S = pd.read_excel(XLSX, '渠道月度汇总'); X = pd.read_excel(XLSX, '商品月度明细')
     vc = [f'{ms(m)} VP' for m in MON]; nc = [f'{ms(m)} 非VP' for m in MON]
-    for ch in ('Home Depot', 'Wayfair'):
+    for ch in ('Home Depot', 'Wayfair', LW):
         m = M[M['渠道'] == ch]; p = P[P['渠道'] == ch]
         recal = (m['VP'] * 50 + m['非VP'] * 20).sum()
         if ch == 'Home Depot': cat = m[m['fam'].isin(p.loc[p['来源'].isin(['类目节点', '两者']), 'fam'])]
@@ -1029,12 +1036,16 @@ def reconcile():
     return pd.DataFrame(out)
 
 
-def sample_check(AH, AW):
+def sample_check(AH, AW, AL):
     """随机抽 5 个能落框的商品（HD 2 个、Wayfair 3 个，按 1–10 月销量加权，固定种子），列出标签与原始规格，供手核。"""
     rng = np.random.default_rng(SEED); rows = []
-    for ch, A, n in (('Home Depot', AH, 2), ('Wayfair', AW, 3)):
-        g = A[frameable(A)].groupby(['fam', 'pid']).agg(c=('c', 'sum'), 尺寸段=('尺寸段', 'first'), 装=('装', 'first'), 形态=('形态', 'first'),
-                                                      装来源=('装来源', 'first'), 形态来源=('形态来源', 'first'), title=('title', 'first')).reset_index()
+    for ch, A, n in (('Home Depot', AH, 2), ('Wayfair', AW, 3), (LW, AL, 2)):   # Lowe's 2 个在补数后追加（种子序列不变，前 5 个不变）
+        if ch == LW:   # Lowe's 一个父体拆到多个尺寸段：按"父体 × 尺寸段"抽
+            g = A[frameable(A)].groupby(['fam', 'pid', '尺寸段']).agg(c=('c', 'sum'), 装=('装', 'first'), 形态=('形态', 'first'),
+                                                                 装来源=('装来源', 'first'), 形态来源=('形态来源', 'first'), title=('title', 'first')).reset_index()
+        else:
+            g = A[frameable(A)].groupby(['fam', 'pid']).agg(c=('c', 'sum'), 尺寸段=('尺寸段', 'first'), 装=('装', 'first'), 形态=('形态', 'first'),
+                                                          装来源=('装来源', 'first'), 形态来源=('形态来源', 'first'), title=('title', 'first')).reset_index()
         idx = rng.choice(len(g), n, replace=False, p=g['c'] / g['c'].sum())
         for i in idx:
             r = g.iloc[i]
@@ -1042,10 +1053,15 @@ def sample_check(AH, AW):
                 pg = HD.load_json(os.path.join(BWDIR, 'hd_pages', f"{r['pid']}.json")) or HD.load_json(os.path.join(HD.CACHE, 'pages', f"{r['pid']}.json")) or {}
                 sp = pg.get('specs') or {}
                 raw = {k: sp.get(k) for k in ('Product Width (in.)', 'Cabinet Width (in.)', 'Assembled', 'Assembly Required', 'Vanity Type')}
-            else:
+            elif ch == 'Wayfair':
                 pg = HD.load_json(os.path.join(BWDIR, 'pdp', 'wayfair', f"{r['pid']}.json")) or {}
                 sp = pg.get('specs') or {}
                 raw = {k: sp.get(k) for k in ('Overall Width from Side to Side', 'Overall Dimensions', 'Assembly', 'Mounting / Installation', 'Product Type')}
+            else:
+                pg = HD.load_json(os.path.join(BWDIR, 'pdp', 'lowes', f"{r['pid']}.json")) or {}
+                sp = pg.get('specs') or {}
+                raw = {k: v for k, v in sp.items() if re.search(r'width|assembl|rta|install|floating|mount', k, re.I)}
+                raw['本父体落到的尺寸段（评论变体宽度拆分）'] = '、'.join(sorted(A.loc[A['pid'] == r['pid'], '尺寸段'].dropna().unique()))
             rows.append(dict(渠道=ch, pid=r['pid'], title=r['title'], 标签=f"{r['尺寸段']} · {r['装']} · {r['形态']}", 来源=f"装：{r['装来源']}；形态：{r['形态来源']}",
                              原始规格='；'.join(f'{k} = {v}' for k, v in raw.items() if v) or '无商品页规格（标签来自标题）'))
     return pd.DataFrame(rows)
@@ -1067,29 +1083,40 @@ def old_vs_new_hd(FH_new, AH_new):
 
 def main():
     L.clear()
-    print('读 HD / Wayfair（大词范围）…'); AH, PH, _ = bw_table('Home Depot'); AW, PW, KW = bw_table('Wayfair')
+    print('读 HD / Wayfair / Lowe\'s（大词范围）…'); AH, PH, _ = bw_table('Home Depot'); AW, PW, KW = bw_table('Wayfair'); AL, PL, KL = bw_table(LW)
     print('读 Amazon …'); B = az_table(); AZs = az_cells(B, '尺寸段')
-    CH = {'Home Depot': AH, 'Wayfair': AW}
+    CH = {'Home Depot': AH, 'Wayfair': AW, LW: AL}
     RES, COVR = {}, {}
-    for ch, A in CH.items():
-        F, U = metrics(A, '框', ch); U = attach_az(U, AZs, '尺寸段'); RES[ch] = (F, U); COVR[ch] = frame_cover(A, F)
-        F['分框覆盖_期望'] = F['框'].map(lambda k: COVR[ch].get(k, (np.nan, np.nan))[0]); F['分框覆盖_最坏'] = F['框'].map(lambda k: COVR[ch].get(k, (np.nan, np.nan))[1])
+
+    def framed(A, F, ch):
+        C = frame_cover(A, F)
+        F['分框覆盖_期望'] = F['框'].map(lambda k: C.get(k, (np.nan, np.nan))[0]); F['分框覆盖_最坏'] = F['框'].map(lambda k: C.get(k, (np.nan, np.nan))[1])
         F['可读性'] = F.apply(readability, axis=1)
-    # Wayfair 敏感性：无月度 listing 用低估计 / 不计
-    AWl = AW.assign(c=AW['c_low']); FWl, UWl = metrics(AWl, '框', 'Wayfair')
-    FWm, UWm = metrics(AW[AW['m'] >= 0], '框', 'Wayfair')
-    PEND = pd.concat([pending_list(AH, 'Home Depot'), pending_list(AW, 'Wayfair')])
+        return C
+    for ch, A in CH.items():
+        F, U = metrics(A, '框', ch); U = attach_az(U, AZs, '尺寸段'); RES[ch] = (F, U); COVR[ch] = framed(A, F, ch)
+    # 敏感性：无月度实体用低估计 / 不计（Lowe's 低估计 = 不计）；只算有月度时的覆盖与可读性
+    SENS = {}
+    for ch, A in ((ch, CH[ch]) for ch in ('Wayfair', LW)):
+        Fl, _ = metrics(A.assign(c=A['c_low']), '框', ch)
+        Am = A[A['m'] >= 0]; Fm, Um = metrics(Am, '框', ch); Um = attach_az(Um, AZs, '尺寸段'); framed(Am, Fm, ch)
+        SENS[ch] = (Fl, Fm, Um, Am)
+    F, U = RES[LW]; Fm = SENS[LW][1].set_index('框')
+    F['可读性_只算有月度'] = F['框'].map(Fm['可读性']); F['分框覆盖_期望_只算有月度'] = F['框'].map(Fm['分框覆盖_期望'])
+    FWl, FWm, UWm = SENS['Wayfair'][0], SENS['Wayfair'][1], SENS['Wayfair'][2]
+    PEND = pd.concat([pending_list(A, ch) for ch, A in CH.items()])
     os.makedirs(OUTDIR, exist_ok=True)
     pd.concat([RES[c][1] for c in CH]).to_csv(os.path.join(OUTDIR, '小平台调研_按框_单元指标_全量.csv'), index=False, encoding='utf-8-sig')
     pd.concat([RES[c][0] for c in CH]).to_csv(os.path.join(OUTDIR, '小平台调研_按框_框_全量.csv'), index=False, encoding='utf-8-sig')
     PEND.to_csv(os.path.join(OUTDIR, '小平台调研_待人工确认.csv'), index=False, encoding='utf-8-sig')
-    REC = reconcile(); SMP = sample_check(AH, AW)
+    REC = reconcile(); SMP = sample_check(AH, AW, AL)
     SMP.to_csv(os.path.join(OUTDIR, '小平台调研_按框_抽检样本.csv'), index=False, encoding='utf-8-sig')
     CHKD = json.load(open(CHK, encoding='utf-8')) if os.path.exists(CHK) else {}
     print('读上一版 HD（对比用）…'); FO, UO, DIFF = old_vs_new_hd(RES['Home Depot'][0], AH)
     AOW = lw_table('Wayfair')[0]; FOW, _ = metrics(AOW, '框', 'Wayfair'); FOWd, _ = metrics(AOW, '不分拆装', 'Wayfair')
-    RESX = {'F': RES, 'FWl': FWl, 'FWm': FWm, 'UWm': UWm, 'FO': FO, 'UO': UO}
-    globals()['_LAST'] = dict(AH=AH, AW=AW, PH=PH, PW=PW, KW=KW, RES=RES, COVR=COVR, PEND=PEND, REC=REC, SMP=SMP, DIFF=DIFF, B=B, AZs=AZs, FOW=FOW, FOWd=FOWd, **RESX)
+    AOL = lw_table(LW)[0]; FOLd, _ = metrics(AOL, '不分尺寸段', LW)
+    RESX = {'F': RES, 'FWl': FWl, 'FWm': FWm, 'UWm': UWm, 'FO': FO, 'UO': UO, 'SENS': SENS, 'FOLd': FOLd}
+    globals()['_LAST'] = dict(AH=AH, AW=AW, AL=AL, PH=PH, PW=PW, PL=PL, KW=KW, KL=KL, RES=RES, COVR=COVR, PEND=PEND, REC=REC, SMP=SMP, DIFF=DIFF, B=B, AZs=AZs, FOW=FOW, FOWd=FOWd, **RESX)
     report(globals()['_LAST'], CHKD)
     open(OUTMD, 'w', encoding='utf-8').write('\n'.join(L) + '\n')
     print('写出', OUTMD, len(L), '行')

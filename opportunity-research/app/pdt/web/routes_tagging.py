@@ -2,7 +2,7 @@
 import io
 from urllib.parse import quote
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 
@@ -48,13 +48,22 @@ def _excluded():
                 for p in s.scalars(select(Product).where(Product.excluded.is_(True)).order_by(Product.excluded_at.desc()))]
 
 
+def _research_groups(ch):
+    """“分框未知（渠道调研）”条目（REQ-F30-04）→ 与队列组同形的卡片：每个商品的每个未知维度一张，按窗口销量从大到小。"""
+    from ..core import research
+    return [dict(research=True, key=f"r:{e['channel']}:{e['pid']}:{e['tag']}", tag=e['tag'], reason='分框未知（渠道调研）', items=[e], channels=[e['channel']], e=e)
+            for e in research.pending_entries(ch)]
+
+
 @router.get('/tagging')
-def page(request: Request, channel: str = '', reason: str = '', tab: str = 'pending', page: int = 1, user=operator_only):
+def page(request: Request, channel: str = '', reason: str = '', tab: str = 'pending', page: int = 1, src: str = Query('', alias='from'), user=operator_only):
     ch = channel if channel in CHANNEL_NAMES else None
-    rs = reason if reason in ('element', 'low', 'assembly') else None
+    rs = reason if reason in ('element', 'low', 'assembly', 'frame') else None
     cnt = tagging.counts()
     fc = tagging.counts('confirmed') if tab == 'done' else cnt  # 筛选上的数量随当前页签
-    groups = tagging.queue(ch, rs, 'queued' if tab == 'pending' else 'confirmed') if tab in ('pending', 'done') else []
+    groups = tagging.queue(ch, rs, 'queued' if tab == 'pending' else 'confirmed') if tab in ('pending', 'done') and rs != 'frame' else []
+    if tab == 'pending' and rs in (None, 'frame'):
+        groups = groups + _research_groups(ch)
     pages = max(1, -(-len(groups) // PER_PAGE))
     page = min(max(1, page), pages)
     excluded = _excluded() if tab == 'out' else []
@@ -63,7 +72,7 @@ def page(request: Request, channel: str = '', reason: str = '', tab: str = 'pend
                   n_items=sum(len(g['items']) for g in groups), page=page, pages=pages, per_page=PER_PAGE, cnt=cnt, fc=fc, prog=_progress(), channel=ch or 'all',
                   reason=rs or 'all', tab=tab, excluded=excluded, thr=thr, ver=ver, rule_version=rules.get('rule_version', ''),
                   llm=services.connected('llm'), vision_todo=len(tagging.vision_targets()), untagged=sum(len(v) for v in tagging.untagged_items().values()),
-                  tag_src=_tag_sources())
+                  tag_src=_tag_sources(), src=src if src == 'research' else '')
 
 
 def _tag_sources():

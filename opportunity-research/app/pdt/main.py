@@ -28,6 +28,7 @@ MODULES = [
     "routes_approval",  # F25-01 / F25-02
     "routes_ledger",    # F26-01
     "routes_category",  # F27-01
+    "routes_research",  # F30-01 / F30-02 / F30-03
 ]
 
 

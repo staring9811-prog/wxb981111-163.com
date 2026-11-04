@@ -496,9 +496,10 @@ def _queued_q(*cols):
 
 
 def queued_count() -> int:
-    """待确认标签条数；侧栏角标、工作台、打标确认页共用此口径。"""
+    """待确认条数；侧栏角标、工作台、打标确认页共用此口径（含"分框未知（渠道调研）"条目，REQ-F30-04）。"""
+    from . import research
     with session() as s:
-        return s.scalar(_queued_q(func.count())) or 0
+        return (s.scalar(_queued_q(func.count())) or 0) + research.pending_count()
 
 
 def queued_groups() -> int:
@@ -530,8 +531,17 @@ def counts(status: str = 'queued'):
         assembly = s.scalar(sq(func.count()).where(Tag.tag == '装', Tag.value == '', Tag.channel != 'amazon')) or 0
     total = sum(sum(v.values()) for v in q.values())
     element = sum(v.get('元素', 0) for v in q.values())
-    return dict(by_channel={ch: sum(v.values()) for ch, v in q.items()}, element=element, assembly=assembly,
-                low=total - element - assembly, total=total, confirmed=confirmed, excluded=excluded)
+    by_channel = {ch: sum(v.values()) for ch, v in q.items()}
+    frame, frame_by = 0, {}
+    if status == 'queued':  # "分框未知（渠道调研）"条目（来自渠道调研最近一次计算，REQ-F30-04）
+        from . import research
+        frame_by = research.pending_by_channel()
+        frame = sum(frame_by.values())
+        for ch, n in frame_by.items():
+            if n:
+                by_channel[ch] = by_channel.get(ch, 0) + n
+    return dict(by_channel=by_channel, element=element, assembly=assembly, frame=frame, frame_by=frame_by,
+                low=total - element - assembly, total=total + frame, confirmed=confirmed, excluded=excluded)
 
 
 def confirm_group(img_group: str, tag: str, value: str, user_id: int, channel: str | None = None) -> int:

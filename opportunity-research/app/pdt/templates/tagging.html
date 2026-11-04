@@ -27,7 +27,7 @@
 {% endblock %}
 {% block content %}
 {% from "_pager.html" import pager %}
-{% set qs = 'channel=' ~ channel ~ '&reason=' ~ reason ~ '&tab=' ~ tab %}
+{% set qs = 'channel=' ~ channel ~ '&reason=' ~ reason ~ '&tab=' ~ tab ~ ('&from=research' if src else '') %}
 {% set SRC = {'spec': '规格', 'rule': '标题', 'vision': '看图', 'manual': '人工'} %}
 {% set back = '/tagging?' ~ qs ~ '&page=' ~ page %}
 <div class="page-head enter" style="--i:0">
@@ -53,7 +53,7 @@
     <div class="stat"><div class="stat__label">本批新子体（各渠道）</div><div class="stat__value num">{{ prog|sum(attribute='new')|num }}<span class="stat__unit">个</span></div><div class="stat__meta">{% for p in prog %}{{ p.name }} {{ p.new }}{% if not loop.last %} · {% endif %}{% endfor %}</div></div>
     <div class="stat"><div class="stat__label">规则打标</div><div class="stat__value num">{{ prog|sum(attribute='new')|num }}<span class="stat__unit">/ {{ (prog|sum(attribute='new') + untagged)|num }}</span></div><div class="stat__meta">8 类标签，每个标签带置信度 · 规则 {{ rule_version[-5:] }}</div><div class="meter"><i style="width:{{ 100 if not untagged else 50 }}%"></i></div></div>
     <div class="stat"><div class="stat__label">看图打元素{% if llm %}（大模型）{% endif %}</div><div class="stat__value num">{{ prog|sum(attribute='vision')|num }}<span class="stat__unit">/ {{ (prog|sum(attribute='vision') + vision_todo)|num }}</span></div><div class="stat__meta">{% if llm %}规则判断不了元素的商品；还剩 {{ vision_todo }} 个{% else %}大模型未配置：这些商品直接进确认队列{% endif %}</div></div>
-    <div class="stat"><div class="stat__label">确认队列</div><div class="stat__value num">{{ cnt.total|num }}<span class="stat__unit">条待确认</span></div><div class="stat__meta">其中"装：未知"{{ cnt.assembly|num }} 条 · 已确认 {{ cnt.confirmed|num }} · 不是本品类 {{ cnt.excluded|num }}</div></div>
+    <div class="stat"><div class="stat__label">确认队列</div><div class="stat__value num">{{ cnt.total|num }}<span class="stat__unit">条待确认</span></div><div class="stat__meta">其中"装：未知"{{ cnt.assembly|num }} 条、"分框未知（渠道调研）"{{ cnt.frame|num }} 条 · 已确认 {{ cnt.confirmed|num }} · 不是本品类 {{ cnt.excluded|num }}</div></div>
   </div>
 
   <div class="section">
@@ -97,6 +97,13 @@
 
 <section class="section enter" style="--i:2" aria-labelledby="sec-queue">
   <div class="section__head"><h2 class="section__title" id="sec-queue">确认队列</h2><span class="section__note">主图相同的商品分在一组，选一次即应用到整组；组内某个商品不一样时，在该行单独改。每个标签注明来源：规格 / 标题 / 看图 / 人工</span></div>
+  {% if src and tab == 'pending' %}
+  <div class="banner banner--cross" id="from-research">
+    <svg class="icon"><use href="#ph-list-magnifying-glass"/></svg>
+    <div class="banner__body"><div class="banner__title">从渠道调研进来：已筛 {{ channel_names.get(channel, '全部渠道') }} · 分框未知（渠道调研）</div><div>确认尺寸段、装、形态后，该渠道的渠道调研自动重算。分框确认也会用于机会扫描（同一商品只有一个值）。</div></div>
+    <div class="banner__actions"><a class="btn btn--sm" href="/research{{ '?channel=' ~ channel if channel != 'all' else '' }}" data-back-research><svg class="icon"><use href="#ph-arrow-left"/></svg><span>返回渠道调研</span></a></div>
+  </div>
+  {% endif %}
   <div class="tabs" role="tablist" aria-label="队列状态">
     <a class="tab" role="tab" aria-selected="{{ 'true' if tab == 'pending' else 'false' }}" href="/tagging?tab=pending">待确认 <span class="count">{{ cnt.total }}</span></a>
     <a class="tab" role="tab" aria-selected="{{ 'true' if tab == 'done' else 'false' }}" href="/tagging?tab=done">已确认 <span class="count">{{ cnt.confirmed }}</span></a>
@@ -114,12 +121,46 @@
     <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=element" aria-pressed="{{ 'true' if reason == 'element' else 'false' }}">元素 <span class="count">{{ fc.element }}</span></a>
     <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=low" aria-pressed="{{ 'true' if reason == 'low' else 'false' }}">低置信度 <span class="count">{{ fc.low }}</span></a>
     <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=assembly" aria-pressed="{{ 'true' if reason == 'assembly' else 'false' }}">装：未知 <span class="count">{{ fc.assembly }}</span></a>
+    <a class="chip" href="/tagging?tab={{ tab }}&channel={{ channel }}&reason=frame" aria-pressed="{{ 'true' if reason == 'frame' else 'false' }}">分框未知（渠道调研） <span class="count">{{ fc.frame or 0 }}</span></a>
     <span class="spacer"></span>
-    <span class="small muted">共 <b class="num">{{ n_groups|num }}</b> 组 · {{ n_items|num }} 条，按组内商品数排序{% if pages > 1 %} · 第 {{ page }} / {{ pages }} 页，每页 {{ per_page }} 组{% endif %}</span>
+    <span class="small muted">共 <b class="num">{{ n_groups|num }}</b> 组 · {{ n_items|num }} 条，按组内商品数排序；"分框未知"按窗口销量排序{% if pages > 1 %} · 第 {{ page }} / {{ pages }} 页，每页 {{ per_page }} 组{% endif %}</span>
   </div>
 
   <div class="qgroups" id="queue">
   {% for g in groups %}{% set gi = loop.index %}
+    {% if g.research %}{% set e = g.e %}
+    <article class="qgroup" data-channel="{{ e.channel }}" data-reason="frame" aria-labelledby="g{{ gi }}-title">
+      <form method="post" action="/tagging/research/confirm" class="qgroup__head">
+        <input type="hidden" name="channel" value="{{ e.channel }}"><input type="hidden" name="pid" value="{{ e.pid }}"><input type="hidden" name="tag" value="{{ e.tag }}"><input type="hidden" name="back" value="{{ back }}">
+        <div class="thumb thumb--noimg" data-noimg><span>调研导入，无主图</span>{% if e.link %}<a class="tlink" href="{{ e.link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>
+        <div class="qgroup__meta">
+          <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>分框未知（渠道调研）</span>
+            <span class="badge">{{ e.tag }} · {{ '多尺寸未拆' if e.reason == '多尺寸未拆' else '无依据' }}</span><span class="etag">调研导入</span>
+            <span class="small muted">窗口销量 {{ (e.sales or 0)|num }} 件{% if e.reason == '多尺寸未拆' and e.raw.get('选项段') %} · 选项段 {{ e.raw.get('选项段')|replace('、', ' / ') }}{% endif %}</span></div>
+          <h3 class="qgroup__title" id="g{{ gi }}-title">{% if e.reason == '多尺寸未拆' %}这个商品的销量算哪个尺寸段？{% elif e.tag == '尺寸段' %}这个商品是哪个尺寸段？{% elif e.tag == '装' %}这个商品是整装还是拆装？{% else %}这个商品是落地式还是悬浮式？{% endif %}</h3>
+          <div class="choice-group" role="radiogroup" aria-label="候选值">
+            {% for c in e.candidates %}<label class="choice"><input type="radio" name="value" value="{{ c }}">{% if c == '不进框' %}不进框（不再进队列）{% elif e.reason == '多尺寸未拆' %}{{ c }}（全部销量计入）{% else %}{{ c }}{% endif %}</label>{% endfor %}
+          </div>
+          <p class="small muted" style="margin:6px 0 0">此确认也用于机会扫描（同一渠道同一商品只有一个值）；确认后 {{ channel_names[e.channel] }} 渠道调研自动重算。</p>
+        </div>
+        <div class="qgroup__actions">
+          <button class="btn" type="submit"><svg class="icon"><use href="#ph-check"/></svg><span>确认</span></button>
+        </div>
+      </form>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>原值</th><th>本条{{ e.tag }}</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>{{ channel_names[e.channel] }}</td><td class="mono">{% if e.link %}<a class="tlink" href="{{ e.link }}" target="_blank" rel="noopener">{{ e.pid }}</a>{% else %}{{ e.pid }}{% endif %}</td>
+              <td><div class="cell-title">{{ e.title[:90] }}</div>{% if e.brand %}<div class="cell-sub">{{ e.brand }}</div>{% endif %}</td>
+              <td class="small">{% set rw = e.raw %}{% if rw.get('宽') %}宽 {{ rw.get('宽') }}{% endif %}{% if rw.get('选项段') %} · 选项段 {{ rw.get('选项段')|replace('、', ' / ') }}{% endif %}{% if e.asm and e.tag != '装' %} · 装 {{ e.asm }}{% endif %}{% if e.form and e.tag != '形态' %} · 形态 {{ e.form }}{% endif %}{% if rw.get('颜色原值') %} · 颜色 {{ rw.get('颜色原值') }}{% endif %}{% if rw.get('台面原值') %} · 台面 {{ rw.get('台面原值') }}{% endif %}{% if rw.get('柜体原值') %} · 柜体 {{ rw.get('柜体原值') }}{% endif %}</td>
+              <td>{{ '多尺寸未拆' if e.reason == '多尺寸未拆' else '未知' }}</td>
+              <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+    {% else %}
     {% set asm = g.reason == '装：未知' %}
     <article class="qgroup" data-channel="{{ g.channels|join(' ') }}" data-reason="{{ 'element' if g.tag == '元素' else ('assembly' if asm else 'low') }}" aria-labelledby="g{{ gi }}-title">
       <form method="post" action="/tagging/groups/confirm" class="qgroup__head">
@@ -163,6 +204,7 @@
         </table>
       </div>
     </article>
+    {% endif %}
   {% else %}
     <div class="banner banner--ok"><svg class="icon"><use href="#ph-check-circle"/></svg><div class="banner__body"><div class="banner__title">{{ '确认队列已清空' if tab == 'pending' else '还没有人工确认的标签' }}</div><div class="small">{% if tab == 'pending' %}可以到 <a href="/models">模型与回测</a> 重算。{% endif %}</div></div></div>
   {% endfor %}

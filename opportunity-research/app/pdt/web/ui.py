@@ -17,8 +17,10 @@ NAV = [
     ("PAGE-F15-02", "/", "ph-house", "工作台", "", "operator approver readonly"),
     ("PAGE-F17-01", "/data/amazon", "ph-package", "Amazon 月度数据", "数据", "operator"),
     ("PAGE-F28-01", "/data/channels", "ph-tray", "其他渠道数据", "数据", "operator"),
+    ("PAGE-F30-03", "/data/research", "ph-upload-simple", "渠道调研导入", "数据", "operator"),
     ("PAGE-F18-01", "/tagging", "ph-list-checks", "打标确认", "数据", "operator"),
     ("PAGE-F20-01", "/scan", "ph-target", "机会扫描", "分析", "operator approver readonly"),
+    ("PAGE-F30-01", "/research", "ph-list-magnifying-glass", "渠道调研", "分析", "operator approver readonly"),
     ("PAGE-F19-01", "/models", "ph-flask", "模型与回测", "分析", "operator approver"),
     ("PAGE-F21-01", "/cards", "ph-cards", "决策卡", "决策", "operator approver readonly"),
     ("PAGE-F25-01", "/approvals", "ph-seal-check", "审批", "审批与台账", "operator approver"),
@@ -45,7 +47,8 @@ def nav_for(user, page_id: str):
         if group and group != last_group:
             items.append({"group": group})
             last_group = group
-        items.append(dict(pid=pid, href=href, icon=icon, name=name, current=pid == page_id, count=counts.get(pid, 0)))
+        cur = pid == page_id or (pid == "PAGE-F30-01" and page_id == "PAGE-F30-02")  # 框详情归在“渠道调研”下
+        items.append(dict(pid=pid, href=href, icon=icon, name=name, current=cur, count=counts.get(pid, 0)))
     return items
 
 
