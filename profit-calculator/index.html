@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.2.0">
+<meta name="pc-app-version" content="1.2.1">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -436,6 +436,14 @@ body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(s
     <button class="btn primary" id="btnLibToProj" disabled>选中的加入当前测算</button>
   </div>
   <div class="tw" id="libMatrix"></div>
+  <h2>从历史库 / 报价库添加</h2>
+  <p class="lead">选一个历史版本或报价版本，勾选要放进产品库的产品。已经在产品库里的（同品名、同系列、同尺寸）默认不勾；勾上会用这个版本的数据更新它。</p>
+  <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+    <div class="row"><label class="f" style="flex-direction:row;align-items:center;gap:6px">来源<select id="libSrc" style="min-width:280px"></select></label>
+      <button class="btn sm" id="btnLibSrcAll">全选</button><button class="btn sm" id="btnLibSrcNone">全不选</button>
+      <span style="flex:1"></span><button class="btn primary" id="btnLibSrcAdd" disabled>添加选中到产品库</button></div>
+    <div class="tw" id="libSrcList"></div>
+  </div>
   <h2>产品库清单</h2>
   <p class="lead">在这里改系列、尺寸、颜色、状态和图片，矩阵会跟着变。点图片可以换图（选文件或粘贴截图）。成本、包裹和价格在“加入当前测算”后到第 2 步改，改完再点“存入产品库”同步回来。</p>
   <div class="tw" id="libList"></div>
@@ -1775,15 +1783,36 @@ function saveLib(){ try{ localStorage.setItem("pc_lib",JSON.stringify(libItems))
 function libChanged(){ const el=document.getElementById("libCount"); if(el) el.textContent=libItems.length; if(step===7) renderS7(); }
 /* Size from the name (24寸 / 30" / shaker-mix36) and series = the name without size / pack words. */
 function guessSize(name){ const t=String(name||""); let m=t.match(/(\d{2,3}(?:\.\d)?)\s*(?:寸|"|”|''|inch\b|in\b|英寸)/i)||t.match(/(?:^|[^\d.])(\d{2})(?!\d)/); const v=m?+m[1]:NaN; return v>=12&&v<=120?String(v):""; }
-function guessSeries(name){ return String(name||"").replace(/(\d{2,3}(?:\.\d)?)\s*(?:寸|"|”|''|inch\b|in\b|英寸)/ig," ").replace(/(^|[^\d.])(\d{2})(?!\d)/,(m,a,d)=>(+d>=12&&+d<=120?a:m)).replace(/[（(]?(单包|双包|分包|三包|[一二三两]包)[)）]?/g," ").replace(/[\s\-_/·]+$/,"").replace(/^[\s\-_/·]+/,"").replace(/\s{2,}/g," ").trim(); }
+function guessSeries(name){ return String(name||"").replace(/(\d{2,3}(?:\.\d)?)\s*(?:寸|"|”|''|inch\b|in\b|英寸)/ig," ").replace(/(^|[^\d.])(\d{2})(?!\d)/,(m,a,d)=>(+d>=12&&+d<=120?a:m)).replace(/[（(]?(单包|双包|分包|三包|[一二三两]包)[)）]?/g," ").replace(/[\s\-_/·]+$/,"").replace(/^[\s\-_/·]+/,"").replace(/\s{2,}/g," ").trim().replace(/^[（(]([^）)]*)[)）]$/,"$1"); }
 function fillSeriesSize(p){ if(!p.size) p.size=guessSize(p.name)||guessSize(p.key); if(!p.series) p.series=guessSeries(p.name)||"未分系列"; if(!p.status) p.status="在售"; return p; }
 const LIB_FIELDS=["name","key","desc","supplier","category","peak","price","prices","cost","costRmb","costCur","adj","pkgs","qty","img","series","size","color","status"];
 function libFromProduct(p,old){ const o=old||{id:"lb"+uid(),createdAt:Date.now()}; for(const k of LIB_FIELDS) if(p[k]!==undefined) o[k]=clone(p[k]); o.updatedAt=Date.now(); return fillSeriesSize(o); }
-function libUpsertFromProject(){ if(!products.length){ toast("当前测算里还没有产品"); return; } let add=0, upd=0;
-  for(const p of products){ fillSeriesSize(p); let old=p.libId&&libItems.find(x=>x.id===p.libId);
-    if(!old) old=libItems.find(x=>x.name===p.name&&String(x.series||"")===String(p.series||"")&&String(x.size||"")===String(p.size||""));
-    if(old){ libFromProduct(p,old); upd++; } else { old=libFromProduct(p); libItems.push(old); add++; } p.libId=old.id; }
-  save(); if(saveLib()) toast(`产品库：新增 ${add} 个，更新 ${upd} 个`); }
+const libMatch=p=>(p.libId&&libItems.find(x=>x.id===p.libId))||libItems.find(x=>x.name===p.name&&String(x.series||"")===String(p.series||"")&&String(x.size||"")===String(p.size||""));
+function libUpsertList(list){ let add=0, upd=0;
+  for(const p of list){ fillSeriesSize(p); let old=libMatch(p); if(old){ libFromProduct(p,old); upd++; } else { old=libFromProduct(p); libItems.push(old); add++; } p.libId=old.id; }
+  return {add,upd}; }
+function libUpsertFromProject(){ if(!products.length){ toast("当前测算里还没有产品"); return; } const r=libUpsertList(products);
+  save(); if(saveLib()) toast(`产品库：新增 ${r.add} 个，更新 ${r.upd} 个`); }
+/* Sources for “从历史库 / 报价库添加”: every saved history version and every quote version. */
+let libSrcSel=new Set(), libSrcKey="";
+function libSources(){ return [...hist.items.filter(h=>Array.isArray(h.products)&&h.products.length).map(h=>({key:"h:"+h.id,label:`历史库 · ${h.name||"未命名"}（${h.products.length} 个，${fmtTime(h.savedAtMs).slice(0,10)}）`,get:()=>clone(h.products)})),
+  ...qlib.items.filter(q=>Array.isArray(q.items)&&q.items.length).map(q=>({key:"q:"+q.id,label:`报价库 · ${q.factory||"未知工厂"} · ${q.version||""}（${q.items.length} 个）`,get:()=>itemsToProducts(clone(q.items),q.factory)}))]; }
+function libSrcProducts(){ const src=libSources().find(x=>x.key===libSrcKey); return src?src.get().map(fillSeriesSize):[]; }
+function renderLibSrc(){ const S=libSources(), sel=document.getElementById("libSrc");
+  if(!S.find(x=>x.key===libSrcKey)){ libSrcKey=S[0]?S[0].key:""; libSrcSel=null; }
+  sel.innerHTML=S.length?S.map(x=>`<option value="${esc(x.key)}" ${x.key===libSrcKey?"selected":""}>${esc(x.label)}</option>`).join(""):`<option value="">历史库和报价库都还是空的</option>`;
+  const ps=libSrcProducts(); if(libSrcSel===null) libSrcSel=new Set(ps.map((p,i)=>libMatch(p)?null:i).filter(i=>i!==null));
+  document.getElementById("libSrcList").innerHTML=!ps.length?`<p class="muted" style="padding:10px">这个来源里没有产品。</p>`:`<table><thead><tr><th></th><th>图片</th><th>品名</th><th>系列</th><th>尺寸</th><th>包裹</th><th>采购成本 $</th><th>Amazon 售价 $</th><th>产品库</th></tr></thead><tbody>${ps.map((p,i)=>{ const inLib=libMatch(p); return `<tr>
+    <td class="c"><input type="checkbox" data-libsrc="${i}" ${libSrcSel.has(i)?"checked":""} aria-label="选中 ${esc(p.name)}"></td><td>${p.img?`<span class="pimg"><img data-img="${esc(p.img)}" alt=""></span>`:'<span class="note">无图</span>'}</td>
+    <td>${esc(p.name)}</td><td>${esc(p.series||"")}</td><td class="c">${esc(p.size||"")}</td><td class="c">${p.pkgs?p.pkgs.length:0}</td>
+    <td class="n">${isFinite(costUSD(p))&&costUSD(p)>0?f2(costUSD(p)):"–"}</td><td class="n">${nz(p.price)>0?f2(nz(p.price)):"–"}</td><td>${inLib?'<span class="chip">已在库（勾上则更新）</span>':'<span class="chip ok">新</span>'}</td></tr>`; }).join("")}</tbody></table>`;
+  const b=document.getElementById("btnLibSrcAdd"); b.disabled=!libSrcSel.size; b.textContent=libSrcSel.size?`添加选中的 ${libSrcSel.size} 个到产品库`:"添加选中到产品库"; }
+document.getElementById("libSrc").addEventListener("change",e=>{ libSrcKey=e.target.value; libSrcSel=null; renderLibSrc(); });
+document.getElementById("libSrcList").addEventListener("change",e=>{ const t=e.target; if(t.dataset.libsrc===undefined) return; const i=+t.dataset.libsrc; if(t.checked) libSrcSel.add(i); else libSrcSel.delete(i); renderLibSrc(); });
+document.getElementById("btnLibSrcAll").addEventListener("click",()=>{ libSrcSel=new Set(libSrcProducts().map((p,i)=>i)); renderLibSrc(); });
+document.getElementById("btnLibSrcNone").addEventListener("click",()=>{ libSrcSel=new Set(); renderLibSrc(); });
+document.getElementById("btnLibSrcAdd").addEventListener("click",()=>{ const ps=libSrcProducts().filter((p,i)=>libSrcSel.has(i)); if(!ps.length) return;
+  ps.forEach(p=>{ delete p.libId; delete p.id; }); const r=libUpsertList(ps); if(saveLib()){ toast(`产品库：新增 ${r.add} 个，更新 ${r.upd} 个`); libSrcSel=null; renderLibSrc(); } });
 function libToProject(){ const ids=[...libSel]; if(!ids.length) return; let n=0;
   for(const id of ids){ const x=libItems.find(i=>i.id===id); if(!x) continue; if(products.some(p=>p.libId===id)) continue; const p={id:uid(),libId:id}; for(const k of LIB_FIELDS) if(x[k]!==undefined) p[k]=clone(x[k]); p.prices=p.prices||{}; p.pkgs=p.pkgs&&p.pkgs.length?p.pkgs:[{l:"",w:"",h:"",kg:""}]; products.push(p); n++; }
   libSel.clear(); save(); toast(n?`已把 ${n} 个产品加入当前测算`:"选中的产品已经在当前测算里了"); go(2); }
@@ -1809,6 +1838,7 @@ function renderS7(){
     <td><input data-libf="${x.id}" data-k="color" value="${esc(x.color||"")}" style="width:90px"></td><td>${stSel(x)}</td><td class="c">${x.pkgs?x.pkgs.length:0}</td>
     <td class="n">${isFinite(costUSD(x))&&costUSD(x)>0?f2(costUSD(x)):"–"}</td><td class="n">${nz(x.price)>0?f2(nz(x.price)):"–"}</td><td class="note">${x.updatedAt?new Date(x.updatedAt).toLocaleDateString():""}</td>
     <td><button class="btn sm danger" data-libdel="${x.id}">删</button></td></tr>`).join("")}</tbody></table><datalist id="libSeriesList">${[...new Set(libItems.map(x=>x.series).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`;
+  renderLibSrc();
   document.getElementById("btnLibToProj").disabled=!libSel.size; document.getElementById("btnLibToProj").textContent=libSel.size?`选中的 ${libSel.size} 个加入当前测算`:"选中的加入当前测算";
 }
 document.getElementById("libMetric").addEventListener("change",e=>{ P.libMetric=e.target.value; save(); renderS7(); });
