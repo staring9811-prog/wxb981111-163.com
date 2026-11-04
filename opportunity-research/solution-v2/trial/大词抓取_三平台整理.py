@@ -450,6 +450,26 @@ def build_lw(XC, V, plat):
                     cnt[(sg, mm)][0 if x.get('badge') == 'Verified Purchase' else 1] += 1
                 for (sg, mm), (a, b_) in cnt.items():
                     mon.append(mrow(ch, key, pid0, sg, o['装'], o['形态'], mm, a, b_, msrc))
+            elif load_json(raw_path('wayfair_apify', 'wayfair', 'apify', f'{pid0}.json')):
+                # 只有评论总数的 listing：Apify（abotapi/wayfair-scraper）补到 2026-01–10 逐月评论；VP 口径同上（徽章 = Verified Purchase）。
+                # 多尺寸 listing 与 Lowe's 同法：按 2026 年评论 purchasedOptions 里的宽度分布把月销拆到尺寸段（至少 5 条带宽度才拆）
+                rv = (load_json(raw_path('wayfair_apify', 'wayfair', 'apify', f'{pid0}.json'))['item'].get('reviews') or [])
+                part = apify_status().get(pid0, '完整') != '完整'
+                msrc = 'Apify 评论' + ('（部分：只抓到最近 100 条，更早的 2026 评论缺）' if part else '')
+                cnt = collections.defaultdict(lambda: [0, 0]); wd = collections.Counter()
+                for x in rv:
+                    dt = x.get('date') or ''
+                    mm = f'{dt[6:10]}-{dt[0:2]}' if len(dt) == 10 else ''
+                    if mm not in MONTHS: continue
+                    cnt[mm][0 if x.get('badge') == 'Verified Purchase' else 1] += 1
+                    wv = next((B.num(v) for n, v in (x.get('purchasedOptions') or {}).items() if re.search(r'width|size', n, re.I)), None)
+                    if wv and XC.band(wv): wd[XC.band(wv)] += 1
+                if not multi: split = [(seg, 1.0)]
+                elif sum(wd.values()) >= 5: split = [(k, v / sum(wd.values())) for k, v in wd.items()]; msrc += '；按评论选项拆尺寸'
+                else: split = [('多尺寸未拆', 1.0)]
+                for mm, (a, b_) in cnt.items():
+                    for sg, w in split:
+                        mon.append(mrow(ch, key, pid0, sg, o['装'], o['形态'], mm, a, b_, msrc, w))
             elif page_rev:
                 msrc = '无（只有评论总数）'
         prod.append(dict(渠道=ch, fam=key, pid=pid0, title=title, 品牌=(pg or {}).get('brand') or (f or {}).get('brand') or (g.iloc[0]['品牌'] if g is not None else None),
@@ -458,6 +478,20 @@ def build_lw(XC, V, plat):
                          价格=price, 评分=rating, 页面评论数=page_rev, 有商品页=pg is not None, 多尺寸段=multi, 选项段='、'.join(bands), 月度来源=msrc,
                          浴室柜=is_vanity(title)))
     return prod, mon
+
+
+_APS = {}
+
+
+def apify_status():
+    """Wayfair 补评论_月度.csv 的状态（完整 / 部分（只抓到最近 100 条…））。"""
+    if not _APS:
+        import pandas as pd
+        f = raw_path('wayfair_apify', 'Wayfair补评论_月度.csv')
+        if os.path.exists(f):
+            d = pd.read_csv(f, dtype={'pid': str})
+            _APS.update(d.drop_duplicates('pid').set_index('pid')['状态'].to_dict())
+    return _APS
 
 
 def split_weights(plat, pid0, pg, seg, bands):
