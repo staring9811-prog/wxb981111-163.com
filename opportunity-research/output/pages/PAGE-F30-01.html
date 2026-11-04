@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F30-01">
+  <title>渠道调研 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .rs-tabs { margin-bottom: var(--space-4); }
+    .rs-tabs .tab .badge { margin-left: var(--space-2); }
+    .rs-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); margin-bottom: var(--space-3); }
+    .pending-bar { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); background: var(--warn-tint); border: 1px solid var(--border); border-radius: var(--radius-lg); font-size: var(--text-sm); }
+    .pending-bar > .icon { color: var(--warn); }
+    .pending-bar .btn { margin-left: auto; }
+    .rs-tools { margin-bottom: var(--space-3); }
+    .rs-tools .legend .badge { margin: 0 2px; }
+    .rs-table tr.rd-noconc td { color: var(--muted); background: var(--surface-warm); }
+    .rs-table tr.rd-noconc .tlink { color: var(--fg-2); }
+    .rs-table td .cell-sub .badge { margin-left: 2px; }
+    .scope-note summary { cursor: pointer; font-size: var(--text-sm); font-weight: 600; }
+    .scope-note summary:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+    .scope-note ul { margin: var(--space-2) 0 0; padding-left: var(--space-5); font-size: var(--text-xs); color: var(--fg-2); line-height: 1.7; }
+    .reasons { display: grid; gap: var(--space-2); max-width: 560px; margin-top: var(--space-4); }
+    .reason { display: grid; grid-template-columns: 96px minmax(0, 1fr) 56px; align-items: center; gap: var(--space-3); font-size: var(--text-sm); }
+    .reason .meter { margin-top: 0; }
+    .reason .num { text-align: right; }
+    .insufficient .row > .icon { color: var(--warn); }
+    body.as-viewer .op-only { display: none !important; }
+    @media (max-width: 1279px) { .rs-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 767px) { .rs-stats { grid-template-columns: minmax(0, 1fr); } .pending-bar { flex-wrap: wrap; } }
+  </style>
+</head>
+<body>
+<script src="assets/icons.js"></script>
+<div class="app">
+  <aside class="sidebar" aria-label="主导航">
+    <div class="sidebar__brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+      <span>品类机会判定台</span>
+    </div>
+    <nav class="nav">
+      <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+      <div class="nav__group">数据</div>
+      <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+      <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+      <a class="nav__item" href="PAGE-F30-03.html"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>渠道调研导入</span></a>
+      <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 268 条">268</em></a>
+      <div class="nav__group">分析</div>
+      <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+      <a class="nav__item" href="PAGE-F30-01.html" aria-current="page"><svg class="icon"><use href="#ph-list-magnifying-glass"/></svg><span>渠道调研</span></a>
+      <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+      <div class="nav__group">决策</div>
+      <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+      <div class="nav__group">审批与台账</div>
+      <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+      <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+      <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+      <div class="nav__group">工具</div>
+      <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+      <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+      <div class="nav__group">设置</div>
+      <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+      <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+      <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+      <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+    </nav>
+    <div class="sidebar__foot">
+      <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar__category">浴室柜</span>
+      <span class="spacer"></span>
+      <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+      <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>退出登录</span></a>
+    </header>
+
+    <main class="content">
+      <div class="page-head enter" style="--i:0">
+        <div>
+          <nav class="crumbs" aria-label="面包屑"><a href="PAGE-F15-02.html">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>分析</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>渠道调研</span></nav>
+          <h1>渠道调研</h1>
+          <p class="page-head__sub">小平台按"尺寸段 × 拆装 × 形态"框看单元 × 指标 · 只列月均 ≥ 200 件的框 · 证据等级 <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span> · 重算 2026-11-04 15:02</p>
+        </div>
+        <div class="page-head__actions op-only">
+          <a class="btn btn--primary" href="PAGE-F30-03.html"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>导入调研数据</span></a>
+        </div>
+      </div>
+
+      <section class="enter" style="--i:1">
+        <div class="banner banner--cross">
+          <svg class="icon"><use href="#ph-info"/></svg>
+          <div class="banner__body">
+            <div class="banner__title">历史观察：不给把握、分级和"上 / 不上"，不进机会扫描</div>
+            <details class="scope-note">
+              <summary>口径说明</summary>
+              <ul>
+                <li>商品范围：每个渠道 = "bathroom vanity" 与 "bathroom vanity with sink" 自然位前 300 并集 + 类目节点商品，合并去重；与机会扫描用的评论 VP 数据不是同一范围。</li>
+                <li>销量：逐月评论 VP × 50 + 非 VP × 20；没有逐月评论的商品按同来源、同评论数档换算，标"估算"并给低估计；趋势与新品只用有月度的销量。</li>
+                <li>价格是采集日价；评分是页面评分（按评论数加权）。各渠道口径不同，只在同渠道、同框内比较，不比跨渠道绝对销量。</li>
+                <li>家族：Home Depot 评论家族 / Lowe's 父体 / Wayfair listing。</li>
+                <li>幸存者偏差：只含今天仍在榜的商品，早月份偏低，"份额在涨""新家族卖起来"偏乐观。</li>
+              </ul>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section enter" style="--i:2" aria-label="渠道">
+        <div class="tabs rs-tabs" role="tablist" aria-label="渠道">
+          <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="rs-hd" data-ch="hd">Home Depot<span class="badge badge--pass">可读 15 / 达标 15 框</span></button>
+          <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="rs-lw" data-ch="lowes">Lowe's<span class="badge badge--insufficient">数据不足</span></button>
+          <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="rs-wf" data-ch="wayfair">Wayfair<span class="badge badge--unverified">可读 2 / 达标 23 框</span></button>
+        </div>
+        <div id="rs-hd" role="tabpanel">
+          <div class="stats rs-stats">
+            <div class="stat"><div class="stat__label">窗口</div><div class="stat__value num">10<span class="stat__unit">个完整月</span></div><div class="stat__meta">2026-01 至 2026-10 · 2026-11 只作参考</div></div>
+            <div class="stat"><div class="stat__label">商品 / 家族</div><div class="stat__value num">1,545<span class="stat__unit">个变体</span></div><div class="stat__meta">218 个评论家族，有销量 166 个</div></div>
+            <div class="stat"><div class="stat__label">有月度销量</div><div class="stat__value num">100%<span class="stat__unit"></span></div><div class="stat__meta">全部来自逐月评论</div></div>
+            <div class="stat"><div class="stat__label">已落框销量</div><div class="stat__value num">99.3%<span class="stat__unit"></span></div><div class="stat__meta">形态未知 0.7% 待确认</div></div>
+            <div class="stat"><div class="stat__label">渠道月均</div><div class="stat__value num">20,675<span class="stat__unit">件</span></div><div class="stat__meta">达门槛 15 / 25 框</div></div>
+          </div>
+          <div class="pending-bar op-only">
+            <svg class="icon"><use href="#ph-list-checks"/></svg><span><b class="num">分框待确认 36 个</b> · 占渠道销量 0.7%，确认后本渠道自动重算</span>
+            <a class="btn btn--sm" href="PAGE-F18-01.html?channel=homedepot&amp;reason=frame&amp;from=research"><svg class="icon"><use href="#ph-arrow-right"/></svg><span>去打标确认</span></a>
+          </div>
+          <div class="filters rs-tools">
+            <label class="check"><input type="checkbox" data-readable-only> 只看可读框</label>
+            <span class="small muted">显示 <b class="num" data-shown>15</b> / 15 个框 · 可读 15 个</span>
+            <span class="spacer"></span>
+            <span class="small muted legend"><span class="badge badge--pass">可读</span> 覆盖 ≥ 95% 且有月度 ≥ 60% · <span class="badge badge--unverified">趋势不下结论</span> 有月度 &lt; 60% · <span class="badge badge--insufficient">不下结论</span> 覆盖 &lt; 95%，只看体量和份额</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table rs-table" aria-label="Home Depot 达门槛的框">
+              <thead><tr><th>框</th><th>可读性 · 历史观察</th><th class="t-num"><button class="th-sort" type="button">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></button></th><th class="t-num">渠道内份额</th><th class="t-num">近 3 ÷ 前 3</th><th class="t-num">家族</th><th class="t-num">单款月均</th><th class="t-num">新家族（销量占比）</th><th class="t-num">中位价</th><th class="t-num">评分</th><th>台面 / 主色 / 柜体 / 元素 已知</th><th class="t-num">分框覆盖（期望）</th><th class="t-num">有月度占比</th></tr></thead>
+              <tbody>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=30-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=30-整装-落地式">30″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">3,787</span></td><td class="t-num">18%</td><td class="t-num"><span class="num">1.04</span> <span class="cell-sub">框平</span></td><td class="t-num">63</td><td class="t-num">60</td><td class="t-num">3（4%）</td><td class="t-num">$429</td><td class="t-num">4.03</td><td class="small t-nowrap">98% / 69% / 95% / 4%</td><td class="t-num">99.1%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=24-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=24-整装-落地式">24″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">3,163</span></td><td class="t-num">15%</td><td class="t-num"><span class="num">0.90</span> <span class="cell-sub">框平</span></td><td class="t-num">59</td><td class="t-num">54</td><td class="t-num">6（7%）</td><td class="t-num">$299</td><td class="t-num">4.10</td><td class="small t-nowrap">93% / 73% / 93% / 6%</td><td class="t-num">99.4%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=36-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=36-整装-落地式">36″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">2,572</span></td><td class="t-num">13%</td><td class="t-num"><span class="num">0.76</span> <span class="cell-sub">框跌</span></td><td class="t-num">68</td><td class="t-num">38</td><td class="t-num">2（3%）</td><td class="t-num">$499</td><td class="t-num">3.88</td><td class="small t-nowrap">98% / 65% / 91% / 4%</td><td class="t-num">98.7%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=48-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=48-整装-落地式">48″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">2,253</span></td><td class="t-num">11%</td><td class="t-num"><span class="num">0.67</span> <span class="cell-sub">框跌</span></td><td class="t-num">59</td><td class="t-num">38</td><td class="t-num">2（1%）</td><td class="t-num">$799</td><td class="t-num">4.12</td><td class="small t-nowrap">99% / 66% / 96% / 3%</td><td class="t-num">99.6%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=60-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=60-整装-落地式">60″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">1,608</span></td><td class="t-num">8%</td><td class="t-num"><span class="num">0.68</span> <span class="cell-sub">框跌</span></td><td class="t-num">57</td><td class="t-num">28</td><td class="t-num">3（2%）</td><td class="t-num">$1,122</td><td class="t-num">3.84</td><td class="small t-nowrap">100% / 63% / 91% / 1%</td><td class="t-num">99.7%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=42-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=42-整装-落地式">42″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">1,016</span></td><td class="t-num">5%</td><td class="t-num"><span class="num">0.77</span> <span class="cell-sub">框跌</span></td><td class="t-num">28</td><td class="t-num">36</td><td class="t-num">3（6%）</td><td class="t-num">$699</td><td class="t-num">4.03</td><td class="small t-nowrap">99% / 62% / 90% / 0%</td><td class="t-num">99.5%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=72p-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=72p-整装-落地式">72″+ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">828</span></td><td class="t-num">4%</td><td class="t-num"><span class="num">1.10</span> <span class="cell-sub">框平</span></td><td class="t-num">34</td><td class="t-num">24</td><td class="t-num">0（0%）</td><td class="t-num">$1,699</td><td class="t-num">3.68</td><td class="small t-nowrap">100% / 62% / 85% / 1%</td><td class="t-num">96.6%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=18-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=18-整装-落地式">18″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">824</span></td><td class="t-num">4%</td><td class="t-num"><span class="num">1.21</span> <span class="cell-sub">框涨</span></td><td class="t-num">16</td><td class="t-num">52</td><td class="t-num">2（4%）</td><td class="t-num">$209</td><td class="t-num">4.12</td><td class="small t-nowrap">100% / 79% / 78% / 5%</td><td class="t-num">100.0%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=72p-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=72p-拆装-落地式">72″+ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">815</span></td><td class="t-num">4%</td><td class="t-num"><span class="num">0.91</span> <span class="cell-sub">框平</span></td><td class="t-num">10</td><td class="t-num">82</td><td class="t-num">0（0%）</td><td class="t-num">$1,852</td><td class="t-num">4.09</td><td class="small t-nowrap">100% / 81% / 67% / 0%</td><td class="t-num">99.1%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=36-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=36-拆装-落地式">36″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">788</span></td><td class="t-num">4%</td><td class="t-num"><span class="num">0.83</span> <span class="cell-sub">框跌</span></td><td class="t-num">20</td><td class="t-num">39</td><td class="t-num">1（1%）</td><td class="t-num">$1,099</td><td class="t-num">3.97</td><td class="small t-nowrap">83% / 82% / 94% / 12%</td><td class="t-num">99.1%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=60-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=60-拆装-落地式">60″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">786</span></td><td class="t-num">4%</td><td class="t-num"><span class="num">1.28</span> <span class="cell-sub">框涨</span></td><td class="t-num">13</td><td class="t-num">60</td><td class="t-num">1（1%）</td><td class="t-num">$1,549</td><td class="t-num">4.29</td><td class="small t-nowrap">100% / 79% / 76% / 3%</td><td class="t-num">99.7%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=48-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=48-拆装-落地式">48″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">616</span></td><td class="t-num">3%</td><td class="t-num"><span class="num">0.96</span> <span class="cell-sub">框平</span></td><td class="t-num">14</td><td class="t-num">44</td><td class="t-num">0（0%）</td><td class="t-num">$1,429</td><td class="t-num">4.09</td><td class="small t-nowrap">100% / 70% / 82% / 5%</td><td class="t-num">100.0%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=30-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=30-拆装-落地式">30″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">469</span></td><td class="t-num">2%</td><td class="t-num"><span class="num">1.48</span> <span class="cell-sub">框涨</span></td><td class="t-num">19</td><td class="t-num">25</td><td class="t-num">2（9%）</td><td class="t-num">$323</td><td class="t-num">3.94</td><td class="small t-nowrap">77% / 91% / 61% / 11%</td><td class="t-num">100.0%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=24-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=24-拆装-落地式">24″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">354</span></td><td class="t-num">2%</td><td class="t-num"><span class="num">0.77</span> <span class="cell-sub">框跌</span></td><td class="t-num">18</td><td class="t-num">20</td><td class="t-num">1（3%）</td><td class="t-num">$280</td><td class="t-num">4.06</td><td class="small t-nowrap">39% / 91% / 41% / 18%</td><td class="t-num">100.0%</td><td class="t-num">100%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=hd&amp;frame=42-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=hd&amp;frame=42-拆装-落地式">42″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">345</span></td><td class="t-num">2%</td><td class="t-num"><span class="num">0.97</span> <span class="cell-sub">框平</span></td><td class="t-num">9</td><td class="t-num">38</td><td class="t-num">0（0%）</td><td class="t-num">$1,409</td><td class="t-num">4.23</td><td class="small t-nowrap">100% / 92% / 85% / 4%</td><td class="t-num">100.0%</td><td class="t-num">100%</td></tr>
+              </tbody>
+              <tfoot><tr class="table__divider"><td colspan="13">未达门槛（月均 &lt; 200 件）的框 10 个，合计月均 154 件，不列出</td></tr></tfoot>
+            </table>
+          </div>
+          <div class="empty" data-only-empty hidden><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">这个渠道没有可读的框</div><div class="empty__desc">关掉"只看可读框"可以看全部达门槛的框。</div></div>
+        </div>
+        <div id="rs-lw" role="tabpanel" hidden>
+          <div class="panel insufficient">
+            <div class="panel__body">
+              <div class="row"><svg class="icon"><use href="#ph-warning"/></svg><h2 class="section__title">Lowe's 数据不足，暂不列框</h2><span class="badge badge--insufficient">数据不足</span></div>
+              <p class="small">2026-11-04 10:05 wen 导入 · 473 个商品 · 窗口 2026-01 至 10 · 没有任何框达到月均 200 件。已落框销量只有 <b class="num">1.1%</b>：Lowe's 一个父体含多个尺寸，评论页还没拆到尺寸段。补完评论页后重新导入即可替换这一版。</p>
+              <div class="reasons" role="list" aria-label="未落框原因构成（占渠道销量）">
+                <div class="reason" role="listitem"><span>多尺寸未拆</span><div class="meter meter--warn"><i style="width:98.4%"></i></div><span class="num">98.4%</span></div>
+                <div class="reason" role="listitem"><span>装未知</span><div class="meter"><i style="width:1.1%"></i></div><span class="num">1.1%</span></div>
+                <div class="reason" role="listitem"><span>形态未知</span><div class="meter"><i style="width:0.5%"></i></div><span class="num">0.5%</span></div>
+                <div class="reason" role="listitem"><span>尺寸段未知</span><div class="meter"><i style="width:0.3%"></i></div><span class="num">0.3%</span></div>
+              </div>
+              <div class="row op-only" style="margin-top: var(--space-4)"><a class="btn" href="PAGE-F18-01.html?channel=lowes&amp;reason=frame&amp;from=research"><svg class="icon"><use href="#ph-list-checks"/></svg><span>分框待确认 112 个</span></a><a class="btn" href="PAGE-F30-03.html"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>重新导入 Lowe's</span></a></div>
+            </div>
+          </div>
+        </div>
+        <div id="rs-wf" role="tabpanel" hidden>
+          <div class="stats rs-stats">
+            <div class="stat"><div class="stat__label">窗口</div><div class="stat__value num">10<span class="stat__unit">个完整月</span></div><div class="stat__meta">2026-01 至 2026-10 · 2026-11 只作参考</div></div>
+            <div class="stat"><div class="stat__label">商品 / 家族</div><div class="stat__value num">633<span class="stat__unit">个 listing</span></div><div class="stat__meta">一个 listing 算一个家族；527 个有销量</div></div>
+            <div class="stat"><div class="stat__label">有月度销量</div><div class="stat__value num">60%<span class="stat__unit"></span></div><div class="stat__meta">168 个 listing 只有评论总数，按评论数档估算</div></div>
+            <div class="stat"><div class="stat__label">已落框销量</div><div class="stat__value num">88.1%<span class="stat__unit"></span></div><div class="stat__meta">多尺寸未拆 7.3% · 形态未知 4.1% · 装未知 0.5%</div></div>
+            <div class="stat"><div class="stat__label">渠道月均（估算）</div><div class="stat__value num">55,271<span class="stat__unit">件</span></div><div class="stat__meta">低估计 42,453 · 达门槛 23 / 28 框</div></div>
+          </div>
+          <div class="pending-bar op-only">
+            <svg class="icon"><use href="#ph-list-checks"/></svg><span><b class="num">分框待确认 83 个</b> · 占渠道销量 11.9%，确认后本渠道自动重算</span>
+            <a class="btn btn--sm" href="PAGE-F18-01.html?channel=wayfair&amp;reason=frame&amp;from=research"><svg class="icon"><use href="#ph-arrow-right"/></svg><span>去打标确认</span></a>
+          </div>
+          <div class="filters rs-tools">
+            <label class="check"><input type="checkbox" data-readable-only> 只看可读框</label>
+            <span class="small muted">显示 <b class="num" data-shown>23</b> / 23 个框 · 可读 2 个</span>
+            <span class="spacer"></span>
+            <span class="small muted legend"><span class="badge badge--pass">可读</span> 覆盖 ≥ 95% 且有月度 ≥ 60% · <span class="badge badge--unverified">趋势不下结论</span> 有月度 &lt; 60% · <span class="badge badge--insufficient">不下结论</span> 覆盖 &lt; 95%，只看体量和份额</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table rs-table" aria-label="Wayfair 达门槛的框">
+              <thead><tr><th>框</th><th>可读性 · 历史观察</th><th class="t-num"><button class="th-sort" type="button">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></button></th><th class="t-num">渠道内份额</th><th class="t-num">近 3 ÷ 前 3</th><th class="t-num">家族</th><th class="t-num">单款月均</th><th class="t-num">新家族（销量占比）</th><th class="t-num">中位价</th><th class="t-num">评分</th><th>台面 / 主色 / 柜体 / 元素 已知</th><th class="t-num">分框覆盖（期望）</th><th class="t-num">有月度占比</th></tr></thead>
+              <tbody>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=24-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=24-拆装-落地式">24″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 93.7%）</span></td><td class="t-num"><span class="num">5,456</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 4,010</div></td><td class="t-num">11%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">93.7%</td><td class="t-num">61%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=30-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=30-拆装-落地式">30″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">5,267</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 4,042</div></td><td class="t-num">11%</td><td class="t-num"><span class="num">1.19</span> <span class="cell-sub">框涨</span></td><td class="t-num">66</td><td class="t-num">80</td><td class="t-num">12（7%）</td><td class="t-num">$439</td><td class="t-num">4.55</td><td class="small t-nowrap">96% / 67% / 99% / 1%</td><td class="t-num">95.1%</td><td class="t-num">63%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=60-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=60-整装-落地式">60″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 79.4%）</span></td><td class="t-num"><span class="num">3,811</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 2,908</div></td><td class="t-num">8%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">79.4%</td><td class="t-num">53%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=36-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=36-整装-落地式">36″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 87.7%）</span></td><td class="t-num"><span class="num">3,761</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 2,999</div></td><td class="t-num">8%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">87.7%</td><td class="t-num">66%</td></tr>
+<tr class="rd-notrend" data-read="notrend" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=30-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=30-整装-落地式">30″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>趋势不下结论（有月度 33%）</span></td><td class="t-num"><span class="num">3,748</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 2,285</div></td><td class="t-num">8%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num">27</td><td class="t-num">139</td><td class="t-num"><span class="muted">—</span></td><td class="t-num">$710</td><td class="t-num">4.62</td><td class="small t-nowrap">100% / 25% / 100% / 0%</td><td class="t-num">96.5%</td><td class="t-num">33%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=36-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=36-拆装-落地式">36″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 80.4%）</span></td><td class="t-num"><span class="num">3,724</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 2,856</div></td><td class="t-num">8%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">80.4%</td><td class="t-num">60%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=48-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=48-整装-落地式">48″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 88.9%）</span></td><td class="t-num"><span class="num">3,172</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 2,129</div></td><td class="t-num">7%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">88.9%</td><td class="t-num">49%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=42-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=42-整装-落地式">42″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 93.8%）</span></td><td class="t-num"><span class="num">2,827</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 1,939</div></td><td class="t-num">6%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">93.8%</td><td class="t-num">51%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=48-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=48-拆装-落地式">48″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 87.0%）</span></td><td class="t-num"><span class="num">2,775</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 2,686</div></td><td class="t-num">6%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">87.0%</td><td class="t-num">93%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=24-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=24-整装-落地式">24″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 84.4%）</span></td><td class="t-num"><span class="num">2,711</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 2,336</div></td><td class="t-num">6%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">84.4%</td><td class="t-num">71%</td></tr>
+<tr class="rd-ok" data-read="ok" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=72p-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=72p-拆装-落地式">72″+ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></td><td class="t-num"><span class="num">2,220</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 1,796</div></td><td class="t-num">5%</td><td class="t-num"><span class="num">0.77</span> <span class="cell-sub">框跌</span></td><td class="t-num">8</td><td class="t-num">278</td><td class="t-num">0（0%）</td><td class="t-num">$2,100</td><td class="t-num">4.70</td><td class="small t-nowrap">100% / 32% / 100% / 0%</td><td class="t-num">97.1%</td><td class="t-num">76%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=18-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=18-拆装-落地式">18″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 91.7%）</span></td><td class="t-num"><span class="num">1,688</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 1,092</div></td><td class="t-num">3%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">91.7%</td><td class="t-num">48%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=72p-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=72p-整装-落地式">72″+ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 71.4%）</span></td><td class="t-num"><span class="num">1,246</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 1,185</div></td><td class="t-num">3%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">71.4%</td><td class="t-num">90%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=30-拆装-悬浮式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=30-拆装-悬浮式">30″ · 拆装 · 悬浮式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 83.8%）</span></td><td class="t-num"><span class="num">970</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 779</div></td><td class="t-num">2%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">83.8%</td><td class="t-num">73%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=18-整装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=18-整装-落地式">18″ · 整装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 85.8%）</span></td><td class="t-num"><span class="num">916</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 474</div></td><td class="t-num">2%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">85.8%</td><td class="t-num">27%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=24-拆装-悬浮式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=24-拆装-悬浮式">24″ · 拆装 · 悬浮式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 86.4%）</span></td><td class="t-num"><span class="num">797</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 570</div></td><td class="t-num">2%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">86.4%</td><td class="t-num">61%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=36-拆装-悬浮式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=36-拆装-悬浮式">36″ · 拆装 · 悬浮式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 79.4%）</span></td><td class="t-num"><span class="num">710</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 699</div></td><td class="t-num">1%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">79.4%</td><td class="t-num">85%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=60-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=60-拆装-落地式">60″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 78.7%）</span></td><td class="t-num"><span class="num">657</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 456</div></td><td class="t-num">1%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">78.7%</td><td class="t-num">48%</td></tr>
+<tr class="rd-notrend" data-read="notrend" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=42-拆装-落地式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=42-拆装-落地式">42″ · 拆装 · 落地式</a></td><td class="t-nowrap"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>趋势不下结论（有月度 26%）</span></td><td class="t-num"><span class="num">608</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 447</div></td><td class="t-num">1%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num">6</td><td class="t-num">101</td><td class="t-num"><span class="muted">—</span></td><td class="t-num">$1,099</td><td class="t-num">4.59</td><td class="small t-nowrap">100% / 36% / 100% / 0%</td><td class="t-num">97.5%</td><td class="t-num">26%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=36-整装-悬浮式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=36-整装-悬浮式">36″ · 整装 · 悬浮式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 77.2%）</span></td><td class="t-num"><span class="num">398</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 398</div></td><td class="t-num">1%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">77.2%</td><td class="t-num">100%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=24-整装-悬浮式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=24-整装-悬浮式">24″ · 整装 · 悬浮式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 94.8%）</span></td><td class="t-num"><span class="num">315</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 315</div></td><td class="t-num">1%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">94.8%</td><td class="t-num">97%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=30-整装-悬浮式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=30-整装-悬浮式">30″ · 整装 · 悬浮式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 80.4%）</span></td><td class="t-num"><span class="num">292</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 122 · <span class="badge badge--unverified">低估计未达门槛</span></div></td><td class="t-num">1%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">80.4%</td><td class="t-num">2%</td></tr>
+<tr class="rd-noconc" data-read="noconc" data-href="PAGE-F30-02.html?ch=wayfair&amp;frame=48-整装-悬浮式" tabindex="0"><td class="cell-title t-nowrap"><a class="tlink" href="PAGE-F30-02.html?ch=wayfair&amp;frame=48-整装-悬浮式">48″ · 整装 · 悬浮式</a></td><td class="t-nowrap"><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-prohibit"/></svg>不下结论（分框覆盖 82.1%）</span></td><td class="t-num"><span class="num">290</span> <span class="etag etag--n">估算</span><div class="cell-sub">低估计 157 · <span class="badge badge--unverified">低估计未达门槛</span></div></td><td class="t-num">1%</td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="t-num"><span class="muted">—</span></td><td class="small t-nowrap"><span class="muted">—</span></td><td class="t-num">82.1%</td><td class="t-num">8%</td></tr>
+              </tbody>
+              <tfoot><tr class="table__divider"><td colspan="13">未达门槛（月均 &lt; 200 件）的框 5 个，合计月均 714 件，不列出</td></tr></tfoot>
+            </table>
+          </div>
+          <div class="empty" data-only-empty hidden><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">这个渠道没有可读的框</div><div class="empty__desc">关掉"只看可读框"可以看全部达门槛的框。</div></div>
+        </div>
+      </section>
+      <p class="page-foot">点框进入单元 × 指标详情。要改分框标签去 <a href="PAGE-F18-01.html">打标确认</a>；要更新数据去 <a href="PAGE-F30-03.html">渠道调研导入</a>。</p>
+    </main>
+  </div>
+</div>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  if (params.get('as') === 'viewer') document.body.classList.add('as-viewer');
+  var want = params.get('channel') || params.get('ch');
+  if (want) {
+    var t = document.querySelector('.rs-tabs .tab[data-ch="' + (want === 'homedepot' ? 'hd' : want) + '"]');
+    if (t) t.click();
+  }
+  document.querySelectorAll('[data-readable-only]').forEach(function (box) {
+    box.addEventListener('change', function () {
+      var panel = box.closest('[role="tabpanel"]');
+      var shown = 0;
+      panel.querySelectorAll('tbody tr').forEach(function (tr) {
+        var ok = !box.checked || tr.getAttribute('data-read') === 'ok';
+        tr.hidden = !ok; if (ok) shown += 1;
+      });
+      panel.querySelector('[data-shown]').textContent = String(shown);
+      panel.querySelector('[data-only-empty]').hidden = shown > 0;
+    });
+  });
+})();
+</script>
+</body>
+</html>

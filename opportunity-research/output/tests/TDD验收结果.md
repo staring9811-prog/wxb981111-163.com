@@ -1,6 +1,6 @@
 # TDD 验收结果 · 品类机会判定台
 
-- contract_sha256: sha256:c09d21c8d717fe139645a6a014d676028e0c7f5dd87522108a184ed392a37fe2
+- contract_sha256: sha256:a13d5b1442d84a3f49575462a9fde7d87e3b1ce2beafda36a38f16394cc2555d
 - run_started_at: 2026-11-03T17:03:43Z
 
 | TDD ID | 状态 | 实际验证动作 | 证据 |
@@ -39,14 +39,22 @@
 | `FLOW-30` | pass | 运行全量 pytest，对应用例：test_channel_model::test_flow30_discount_params_from_category_config、test_channel_model::test_flow30_hd_rescore_from_imported_cache、test_channel_model::test_flow30_history_short_and_failed_rules、test_channel_model::test_flow30_lowes_not_backfilled_unverified、test_channel_model::test_flow30_port_reproduces_trial_report | command=cd app && python -m pytest -q（2026-11-03 revision 8 全量，junit 存档）; exit_code=0; failed=0; passed=143 |
 | `FLOW-31` | pass | 运行全量 pytest，对应用例：test_channel_model::test_flow31_out_of_sample_units、test_channel_model::test_flow31_richness_30_floor_black | command=cd app && python -m pytest -q（2026-11-03 revision 8 全量，junit 存档）; exit_code=0; failed=0; passed=143 |
 | `FLOW-32` | pass | 运行全量 pytest，对应用例：test_backfill::test_flow32_backfill_and_discount_params_versioned | command=cd app && python -m pytest -q（2026-11-03 revision 8 全量，junit 存档）; exit_code=0; failed=0; passed=143 |
+| `FLOW-33` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `FLOW-34` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `FLOW-35` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `FLOW-36` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `FLOW-37` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `FLOW-38` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `FLOW-39` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `FLOW-40` | pending | 未执行：revision 9 新增验收行 | 无 |
 | `DESIGN-01` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-01_PAGE-F15-01_登录_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
-| `DESIGN-02` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-02_PAGE-F15-02_工作台_操作者_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
+| `DESIGN-02` | pending | revision 9 契约变更后待重新验证：通过标准新增本月数据状态"渠道调研"行与"分框未知（渠道调研）"构成（DEC-105） | 原 revision 8 证据只覆盖旧通过标准，已失效（保留在 git 历史） |
 | `DESIGN-03` | pending | 未复核：账号管理页按 wen 2026-11-03 要求暂缓 | 暂缓 |
 | `DESIGN-04` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-04_PAGE-F16-01_密钥_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-05` | pass | 独立视觉验收官（第 5 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-05_PAGE-F16-02_预算_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-06` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-06_PAGE-F17-01_Amazon月度数据_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-07` | pass | 独立视觉验收官（revision 8 第二轮，DESIGN-12 第三轮）用 Read 实际查看真实运行成品截图，逐项核对原有与 v8 六类锚点并与原型比对；弹窗、页签、抽屉、审批者与已批准状态另行只读补拍（app/tests/visual/accept8/复核*） | actual=tests/visual/v8_DESIGN-07_PAGE-F28-01_其他渠道_历史重建_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
-| `DESIGN-08` | pass | 独立视觉验收官（revision 8 第二轮，DESIGN-12 第三轮）用 Read 实际查看真实运行成品截图，逐项核对原有与 v8 六类锚点并与原型比对；弹窗、页签、抽屉、审批者与已批准状态另行只读补拍（app/tests/visual/accept8/复核*） | actual=tests/visual/v8_DESIGN-08_PAGE-F18-01_打标确认_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
+| `DESIGN-08` | pending | revision 9 契约变更后待重新验证：通过标准新增"分框未知（渠道调研）"原因、调研条目卡片、多尺寸候选、预筛与返回横幅 | 原 revision 8 证据只覆盖旧通过标准，已失效（保留在 git 历史） |
 | `DESIGN-09` | pass | 独立视觉验收官（revision 8 第二轮，DESIGN-12 第三轮）用 Read 实际查看真实运行成品截图，逐项核对原有与 v8 六类锚点并与原型比对；弹窗、页签、抽屉、审批者与已批准状态另行只读补拍（app/tests/visual/accept8/复核*） | actual=tests/visual/v8_DESIGN-09_PAGE-F19-01_模型与回测_HomeDepot_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-10` | pass | 独立视觉验收官（revision 8 第二轮，DESIGN-12 第三轮）用 Read 实际查看真实运行成品截图，逐项核对原有与 v8 六类锚点并与原型比对；弹窗、页签、抽屉、审批者与已批准状态另行只读补拍（app/tests/visual/accept8/复核*） | actual=tests/visual/v8_DESIGN-10_PAGE-F20-01_机会扫描_HomeDepot_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-11` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-11_PAGE-F21-01_决策卡列表_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
@@ -57,7 +65,10 @@
 | `DESIGN-16` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-16_PAGE-F25-02_策略库_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-17` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-17_PAGE-F26-01_预测台账_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-18` | pass | 独立视觉验收官（revision 8 第二轮，DESIGN-12 第三轮）用 Read 实际查看真实运行成品截图，逐项核对原有与 v8 六类锚点并与原型比对；弹窗、页签、抽屉、审批者与已批准状态另行只读补拍（app/tests/visual/accept8/复核*） | actual=tests/visual/v8_DESIGN-18_PAGE-F27-01_品类配置_渠道参数_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
-| `RULE-01` | pass | 运行全量 pytest，对应用例：test_category::test_category_operator_only、test_home::test_rule01_all_routes | command=cd app && python -m pytest -q（2026-11-03 全量，junit 存档）; exit_code=0; failed=0; passed=113 |
+| `DESIGN-19` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `DESIGN-20` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `DESIGN-21` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `RULE-01` | pending | revision 9 契约变更后待重新验证："遍历全部路由"新增渠道调研与导入路由（API-F30-01、API-F30-02） | 原 revision 8 证据只覆盖旧通过标准，已失效（保留在 git 历史） |
 | `RULE-02` | pass | 运行全量 pytest，对应用例：test_settings::test_rule02_keys_never_leak | command=cd app && python -m pytest -q（2026-11-03 全量，junit 存档）; exit_code=0; failed=0; passed=113 |
 | `RULE-03` | pass | 运行全量 pytest，对应用例：test_cards::test_rule03_snapshot_after_approval | command=cd app && python -m pytest -q（2026-11-03 全量，junit 存档）; exit_code=0; failed=0; passed=113 |
 | `RULE-04` | pass | 运行全量 pytest，对应用例：test_data::test_cap_resume_no_duplicate_calls_single_task | command=cd app && python -m pytest -q（2026-11-03 全量，junit 存档）; exit_code=0; failed=0; passed=113 |
@@ -66,3 +77,5 @@
 | `RULE-07` | pass | 运行全量 pytest，对应用例：test_data::test_history_replay | command=cd app && python -m pytest -q（2026-11-03 全量，junit 存档）; exit_code=0; failed=0; passed=113 |
 | `RULE-08` | pending | 未执行：需 wen 在设置页填入真实密钥后对四类服务点测试并拉一个真实分片 | 卖家精灵评论接口格式已用 MCP 实测并据此修正客户端；HTTP 接口地址与鉴权待 wen 提供文档 |
 | `RULE-09` | pass | 运行全量 pytest，对应用例：test_backfill::test_rule09_blocked_pauses_channel、test_backfill::test_rule09_polite_rate_limit_retry_and_resume | command=cd app && python -m pytest -q（2026-11-03 revision 8 全量，junit 存档）; exit_code=0; failed=0; passed=143 |
+| `RULE-10` | pending | 未执行：revision 9 新增验收行 | 无 |
+| `RULE-11` | pending | 未执行：revision 9 新增验收行 | 无 |

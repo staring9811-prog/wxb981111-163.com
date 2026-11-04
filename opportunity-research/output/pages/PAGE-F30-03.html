@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F30-03">
+  <title>渠道调研导入 · 品类机会判定台</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="assets/app.css">
+  <style>
+    .steps--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .upl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+    .sums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
+    .sumcard .kv { grid-template-columns: 96px minmax(0, 1fr); font-size: var(--text-sm); }
+    .conflict { margin-top: var(--space-4); display: grid; gap: var(--space-2); }
+    .actbar { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-4); padding: var(--space-3) var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    .actbar .spacer { flex: 1; }
+    details.cols summary { cursor: pointer; font-size: var(--text-sm); }
+    details.cols summary:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+    details.cols p { font-size: var(--text-xs); color: var(--fg-2); margin: var(--space-2) 0 0; }
+    @media (max-width: 1279px) { .sums { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 767px) { .upl { grid-template-columns: minmax(0, 1fr); } .steps--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actbar { flex-wrap: wrap; } }
+  </style>
+</head>
+<body>
+<script src="assets/icons.js"></script>
+<div class="app">
+  <aside class="sidebar" aria-label="主导航">
+    <div class="sidebar__brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+      <span>品类机会判定台</span>
+    </div>
+    <nav class="nav">
+      <a class="nav__item" href="PAGE-F15-02.html"><svg class="icon"><use href="#ph-house"/></svg><span>工作台</span></a>
+      <div class="nav__group">数据</div>
+      <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
+      <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
+      <a class="nav__item" href="PAGE-F30-03.html" aria-current="page"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>渠道调研导入</span></a>
+      <a class="nav__item" href="PAGE-F18-01.html"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 268 条">268</em></a>
+      <div class="nav__group">分析</div>
+      <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+      <a class="nav__item" href="PAGE-F30-01.html"><svg class="icon"><use href="#ph-list-magnifying-glass"/></svg><span>渠道调研</span></a>
+      <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
+      <div class="nav__group">决策</div>
+      <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
+      <div class="nav__group">审批与台账</div>
+      <a class="nav__item" href="PAGE-F25-01.html"><svg class="icon"><use href="#ph-seal-check"/></svg><span>审批</span><em class="nav__count" aria-label="待审批 2 条">2</em></a>
+      <a class="nav__item" href="PAGE-F25-02.html"><svg class="icon"><use href="#ph-stack"/></svg><span>策略库</span></a>
+      <a class="nav__item" href="PAGE-F26-01.html"><svg class="icon"><use href="#ph-book-open-text"/></svg><span>预测台账</span></a>
+      <div class="nav__group">工具</div>
+      <a class="nav__item" href="PAGE-F23-01.html"><svg class="icon"><use href="#ph-chart-bar"/></svg><span>评论 VP 追踪</span></a>
+      <a class="nav__item" href="PAGE-F24-01.html"><svg class="icon"><use href="#ph-scales"/></svg><span>利润测算</span></a>
+      <div class="nav__group">设置</div>
+      <a class="nav__item" href="PAGE-F16-01.html"><svg class="icon"><use href="#ph-fingerprint"/></svg><span>密钥与大模型</span></a>
+      <a class="nav__item" href="PAGE-F16-02.html"><svg class="icon"><use href="#ph-timer"/></svg><span>预算与费用</span></a>
+      <a class="nav__item" href="PAGE-F15-03.html"><svg class="icon"><use href="#ph-user-circle"/></svg><span>账号</span></a>
+      <a class="nav__item" href="PAGE-F27-01.html"><svg class="icon"><use href="#ph-sliders-horizontal"/></svg><span>品类配置</span></a>
+    </nav>
+    <div class="sidebar__foot">
+      <button class="btn btn--ghost btn--sm" type="button" data-collapse-sidebar aria-expanded="true"><svg class="icon"><use href="#ph-sidebar-simple"/></svg><span>收起侧栏</span></button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar__category">浴室柜</span>
+      <span class="spacer"></span>
+      <span class="operator"><svg class="icon"><use href="#ph-user-circle"/></svg>wen · 操作者</span>
+      <a class="btn btn--ghost btn--sm" href="PAGE-F15-01.html"><svg class="icon"><use href="#ph-arrow-square-out"/></svg><span>退出登录</span></a>
+    </header>
+
+    <main class="content">
+      <div class="page-head enter" style="--i:0">
+        <div>
+          <nav class="crumbs" aria-label="面包屑"><a href="PAGE-F15-02.html">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>渠道调研导入</span></nav>
+          <h1>渠道调研导入</h1>
+          <p class="page-head__sub">导入 wen 本机抓好的小平台商品表与月销表（<span class="mono">大词抓取_三平台整理.py 整理</span> 产出）· 只用于 <a href="PAGE-F30-01.html">渠道调研</a>，不写入其他渠道分析库，机会扫描、模型、决策卡、台账不变</p>
+        </div>
+        <div class="page-head__actions"><a class="btn" href="PAGE-F30-01.html"><svg class="icon"><use href="#ph-list-magnifying-glass"/></svg><span>去渠道调研</span></a></div>
+      </div>
+
+      <ol class="steps steps--4 enter" style="--i:1" aria-label="导入进度">
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">上传</span><span class="step__meta">2 个文件</span></span></li>
+            <li class="step step--done"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-check"/></svg></span><span class="step__name">检查</span><span class="step__meta">通过 · 2,615 + 7,443 行</span></span></li>
+            <li class="step step--attention"><span class="step__link"><span class="step__dot"><svg class="icon"><use href="#ph-warning"/></svg></span><span class="step__name">核对摘要</span><span class="step__meta">Wayfair 与已有数据不一致</span></span></li>
+            <li class="step step--todo"><span class="step__link"><span class="step__dot">4</span><span class="step__name">确认导入</span><span class="step__meta">未确认，当前数据不变</span></span></li>
+      </ol>
+
+      <section class="section enter" style="--i:2" aria-labelledby="sec-up">
+        <div class="section__head"><h2 class="section__title" id="sec-up">上传</h2><span class="section__note">CSV（UTF-8）；两个文件都选好才能开始检查；核对摘要未确认时再次上传，会替换这一次</span></div>
+        <div class="upl">
+          <label class="dropzone" for="f-prod"><svg class="icon"><use href="#ph-file-xls"/></svg><span><span class="strong">三平台_商品表.csv</span><br><span class="small muted">2,615 行 · 28 列 · 2026-11-04 13:58</span></span><input class="visually-hidden" id="f-prod" type="file" accept=".csv"></label>
+          <label class="dropzone" for="f-mon"><svg class="icon"><use href="#ph-file-xls"/></svg><span><span class="strong">三平台_月销表.csv</span><br><span class="small muted">7,443 行 · 11 列 · 2026-11-04 13:58</span></span><input class="visually-hidden" id="f-mon" type="file" accept=".csv"></label>
+        </div>
+        <details class="cols" style="margin-top: var(--space-3)">
+          <summary>必需列</summary>
+          <p>商品表：渠道、fam、pid、title、来源、尺寸段、装、形态、台面材质、主色、柜体材质、元素、价格、评分、页面评论数（可选：首评月）。月销表：渠道、fam、pid、尺寸段、装、形态、月、VP、非VP、销量。渠道只认 Home Depot、Lowe's、Wayfair；"月"写 YYYY-MM；VP / 非VP / 销量为非负数。</p>
+        </details>
+        <div class="banner banner--block" id="fail" hidden style="margin-top: var(--space-3)"><svg class="icon"><use href="#ph-x-circle"/></svg><div class="banner__body"><div class="banner__title">未导入，当前调研数据不变</div>
+          <div class="table-wrap" style="margin-top: var(--space-2)"><table class="table"><thead><tr><th>问题</th><th class="t-num">行数</th><th>示例（前 20 条）</th></tr></thead><tbody>
+            <tr><td>商品表缺少列</td><td class="t-num">—</td><td>装</td></tr>
+            <tr><td>渠道值不认识</td><td class="t-num">12</td><td>"Amazon"（第 2,604–2,615 行）</td></tr>
+            <tr><td>月销表商品在商品表里找不到</td><td class="t-num">3</td><td>Wayfair W009360680、W009360681、W009360682</td></tr>
+          </tbody></table></div></div>
+          <div class="banner__actions"><label class="btn" for="f-prod"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>重新选择文件</span></label></div>
+        </div>
+      </section>
+
+      <section class="section enter" style="--i:3" aria-labelledby="sec-sum" id="summary">
+        <div class="section__head"><h2 class="section__title" id="sec-sum">核对摘要</h2><span class="section__note">检查通过 · 2026-11-04 14:12 · 每个渠道单独确认；不勾选的渠道本次不导入</span></div>
+        <div class="sums">
+          <article class="panel sumcard">
+            <div class="panel__head"><h3 class="panel__title">Home Depot</h3><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>核对通过</span></div>
+            <div class="panel__body"><dl class="kv"><dt>商品 / 家族</dt><dd>1,545 个变体 / 218 个评论家族</dd><dt>完整月</dt><dd>2026-01 至 2026-10（10 个月）</dd><dt>窗口销量</dt><dd>206,750 件</dd><dt>有月度销量</dt><dd>100%</dd><dt>已落框销量</dt><dd>99.3%</dd><dt>分框待确认</dt><dd>36 个（形态未知 35、尺寸段未知 1）</dd><dt>只作参考</dt><dd>2026-11：138 行（未完整月），不计入</dd><dt>与已有评论 VP 数据</dt><dd>类目节点商品逐月差异 −0.9% 至 −3.8%，均 ≤ 5%</dd><dt>替换</dt><dd>当前版本 v1（2026-10-28 导入）→ 本次 v2；v1 保留在导入记录</dd></dl></div>
+            <div class="panel__foot"><label class="check"><input type="checkbox" data-pick="Home Depot" checked> 确认导入 Home Depot</label></div>
+          </article>
+          <article class="panel sumcard">
+            <div class="panel__head"><h3 class="panel__title">Wayfair</h3><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>需确认</span></div>
+            <div class="panel__body"><dl class="kv"><dt>商品 / 家族</dt><dd>633 个 listing（一个 listing 算一个家族）</dd><dt>完整月</dt><dd>2026-01 至 2026-10（10 个月）</dd><dt>窗口销量</dt><dd>333,580 件有月度 + 估算 219,130 件（低估计 90,950）</dd><dt>有月度销量</dt><dd>60%（168 个 listing 只有评论总数，按评论数档估算）</dd><dt>已落框销量</dt><dd>88.1%</dd><dt>分框待确认</dt><dd>83 个（多尺寸未拆 44、形态未知 24、装未知 15）</dd><dt>只作参考</dt><dd>2026-11：274 行，不计入</dd><dt>替换</dt><dd>当前版本 v1（2026-10-28 导入）→ 本次 v2</dd></dl><div class="conflict">
+              <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>与已有数据不一致</span><span class="small muted">类目节点 / 两者商品当月 VP + 非VP 评论数 对比 已并入评论 VP 数据（按评论 ID 去重）</span></div>
+              <div class="table-wrap"><table class="table"><thead><tr><th>月份</th><th class="t-num">本次导入</th><th class="t-num">已并入</th><th class="t-num">差异</th><th></th></tr></thead><tbody>
+                <tr><td class="num">2026-01</td><td class="t-num">688</td><td class="t-num">671</td><td class="t-num">+2.5%</td><td></td></tr>
+                <tr><td class="num">2026-02</td><td class="t-num">702</td><td class="t-num">690</td><td class="t-num">+1.7%</td><td></td></tr>
+                <tr class="is-selected"><td class="num">2026-03</td><td class="t-num">812</td><td class="t-num">760</td><td class="t-num strong">+6.8%</td><td><span class="badge badge--unverified">&gt; 5%</span></td></tr>
+                <tr><td class="num">2026-04 至 10</td><td class="t-num">5,348</td><td class="t-num">5,252</td><td class="t-num">+0.4% 至 +3.1%</td><td></td></tr>
+              </tbody></table></div>
+              <p class="field__hint">差异 = |本次 − 已并入| ÷ 已并入。同系列 listing 部分共享评论，按 listing 合计会比按评论 ID 去重略多；确认后才导入 Wayfair，不勾选则本次不导入 Wayfair。</p>
+            </div></div>
+            <div class="panel__foot"><label class="check"><input type="checkbox" data-pick="Wayfair"> 确认导入 Wayfair</label></div>
+          </article>
+          <article class="panel sumcard">
+            <div class="panel__head"><h3 class="panel__title">Lowe's</h3><span class="badge badge--insufficient">导入后将显示"数据不足"</span></div>
+            <div class="panel__body"><dl class="kv"><dt>商品 / 家族</dt><dd>473 个商品 / 473 个父体</dd><dt>完整月</dt><dd>2026-01 至 2026-10</dd><dt>窗口销量</dt><dd>173,040 件</dd><dt>已落框销量</dt><dd>1.1%（多尺寸未拆 98.4%）</dd><dt>分框待确认</dt><dd>112 个</dd><dt>替换</dt><dd>当前 v1（2026-11-04 10:05 导入）→ 本次 v2；评论页补齐前仍显示"数据不足"</dd></dl></div>
+            <div class="panel__foot"><label class="check"><input type="checkbox" data-pick="Lowe's" checked> 确认导入 Lowe's</label></div>
+          </article>
+        </div>
+        <div class="actbar">
+          <span class="small">将导入：<b data-will>Home Depot、Lowe's</b> · 分框待确认 <b class="num" data-pend>148</b> 个会进入打标确认</span>
+          <span class="spacer"></span>
+          <button class="btn" type="button" data-toast="已放弃本次导入，当前调研数据不变"><svg class="icon"><use href="#ph-x"/></svg><span>放弃</span></button>
+          <button class="btn btn--primary" type="button" data-open="#m-imp" data-go><svg class="icon"><use href="#ph-check"/></svg><span>确认导入</span></button>
+        </div>
+      </section>
+
+      <section class="section enter" style="--i:4" aria-labelledby="sec-log">
+        <div class="section__head"><h2 class="section__title" id="sec-log">导入记录</h2><span class="section__note">按渠道替换，旧版本保留可回看</span></div>
+        <div class="table-wrap"><table class="table"><thead><tr><th>版本</th><th>渠道</th><th>导入时间</th><th>文件</th><th class="t-num">商品</th><th>月份范围</th><th>操作人</th><th>状态</th></tr></thead><tbody>
+          <tr><td class="num">v1</td><td>Lowe's</td><td class="num">2026-11-04 10:05</td><td class="small mono">三平台_商品表.csv / 三平台_月销表.csv</td><td class="t-num">473</td><td class="num">2026-01 至 10</td><td>wen</td><td><span class="badge badge--accent">当前</span></td></tr>
+          <tr><td class="num">v1</td><td>Home Depot</td><td class="num">2026-10-28 16:40</td><td class="small mono">三平台_商品表.csv / 三平台_月销表.csv</td><td class="t-num">1,418</td><td class="num">2026-01 至 09</td><td>wen</td><td><span class="badge badge--accent">当前</span></td></tr>
+          <tr><td class="num">v1</td><td>Wayfair</td><td class="num">2026-10-28 16:40</td><td class="small mono">三平台_商品表.csv / 三平台_月销表.csv</td><td class="t-num">598</td><td class="num">2026-01 至 09</td><td>wen</td><td><span class="badge badge--accent">当前</span></td></tr>
+          <tr><td class="num">—</td><td>Wayfair</td><td class="num">2026-10-28 16:12</td><td class="small mono">三平台_商品表.csv / 三平台_月销表.csv</td><td class="t-num">598</td><td class="num">2026-01 至 09</td><td>wen</td><td><span class="badge badge--old">已放弃</span></td></tr>
+        </tbody></table></div>
+      </section>
+
+  <div class="modal" id="m-imp" role="dialog" aria-modal="true" aria-labelledby="m-imp-t" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div><h2 class="modal__title" id="m-imp-t">确认导入</h2><p class="modal__sub">渠道调研数据 · 不进入机会扫描与模型</p></div>
+        <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+      </div>
+      <div class="modal__body stack">
+        <dl class="kv"><dt>导入渠道</dt><dd data-will>Home Depot、Lowe's</dd><dt>替换</dt><dd>Home Depot 当前 v1 → v2（v1 保留）；Lowe's 当前 v1 → v2</dd><dt>分框待确认</dt><dd><span data-pend>148</span> 个进入打标确认（已确认过的分框标签保留）</dd><dt>不变</dt><dd>机会扫描、模型与回测、决策卡、预测台账的数字</dd></dl>
+      </div>
+      <div class="modal__foot">
+        <button class="btn" type="button" data-close>取消</button>
+        <a class="btn btn--primary" href="PAGE-F30-01.html" data-done><svg class="icon"><use href="#ph-check"/></svg><span>确认导入</span></a>
+      </div>
+    </div>
+  </div>
+    </main>
+  </div>
+</div>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  if (new URLSearchParams(location.search).get('state') === 'fail') {
+    document.getElementById('fail').hidden = false;
+    document.getElementById('summary').hidden = true;
+  }
+  var pend = { 'Home Depot': 36, 'Wayfair': 83, "Lowe's": 112 };
+  function sync() {
+    var picked = Array.prototype.slice.call(document.querySelectorAll('[data-pick]:checked')).map(function (c) { return c.getAttribute('data-pick'); });
+    var n = picked.reduce(function (s, k) { return s + pend[k]; }, 0);
+    document.querySelectorAll('[data-will]').forEach(function (el) { el.textContent = picked.length ? picked.join('、') : '（未选渠道）'; });
+    document.querySelectorAll('[data-pend]').forEach(function (el) { el.textContent = String(n); });
+    var go = document.querySelector('[data-go]'); go.disabled = picked.length === 0;
+    go.title = picked.length ? '' : '至少勾选一个渠道';
+  }
+  document.querySelectorAll('[data-pick]').forEach(function (c) { c.addEventListener('change', sync); });
+  sync();
+})();
+</script>
+</body>
+</html>

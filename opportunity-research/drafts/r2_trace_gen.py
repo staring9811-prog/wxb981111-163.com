@@ -1,4 +1,4 @@
-"""生成 output/设计追溯矩阵.md（第二轮，revision 7）。"""
+"""生成 output/设计追溯矩阵.md（第二轮，revision 9）。"""
 import re, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent / "output"
 req = (ROOT / "requirements.md").read_text(encoding="utf-8").split("## Retired")[0]
@@ -38,6 +38,7 @@ F = {
  "F27": ("PAGE-F27-01", "API-F27-01, DATA-F27-01", "§5.1"),
  "F28": ("PAGE-F28-01", "API-F28-01, DATA-F28-01", "§5.1"),
  "F29": ("PAGE-F20-01, PAGE-F21-02", "API-F20-01, API-F29-01, DATA-F20-01, DATA-F28-01", "§5.1"),
+ "F30": ("PAGE-F30-01, PAGE-F30-02", "API-F30-02, DATA-F30-02", "附录 A.1、A.2"),
 }
 # 个别条目落点细化（页面, 其他 ID）
 OVR = {
@@ -81,7 +82,35 @@ OVR = {
  "AC-F29-02": ("PAGE-F20-01", "API-F20-01, DATA-F20-01"),
  "AC-F29-03": ("PAGE-F21-02", "API-F29-01, DATA-F21-01"),
  "AC-F29-04": ("PAGE-F21-02", "API-F29-01, DATA-F21-01"),
+ # v9 渠道调研
+ "REQ-F30-01": ("PAGE-F30-03", "API-F30-01, DATA-F30-01, DATA-F30-02, SEQ-F30-01"),
+ **{f"AC-F30-0{i}": ("PAGE-F30-03", "API-F30-01, DATA-F30-01, DATA-F30-02, SEQ-F30-01") for i in range(1, 9)},
+ "AC-F30-06": ("PAGE-F30-03", "API-F30-01, DATA-F30-01, DATA-F28-01, SEQ-F30-01"),
+ "AC-F30-08": ("PAGE-F30-03", "API-F30-01, DATA-F30-02, DATA-F28-01, DATA-F20-01"),
+ "AC-F30-09": ("PAGE-F30-03, PAGE-F30-01", "API-F30-01, API-F15-01"),
+ "AC-F30-10": ("PAGE-F30-01", "API-F30-02, DATA-F30-02, DATA-F18-01"),
+ "AC-F30-16": ("PAGE-F30-02", "API-F30-02, DATA-F30-02, DATA-F17-02"),
+ "AC-F30-22": ("PAGE-F30-01, PAGE-F15-02", "API-F30-02, DATA-F30-01, DEC-105"),
+ "AC-F30-23": ("PAGE-F30-01, PAGE-F15-02", "API-F30-02, DATA-F30-02, DEC-105"),
+ "AC-F30-25": ("PAGE-F30-02", "API-F30-02, API-F19-02, API-F20-01, DATA-F19-02"),
+ "REQ-F30-04": ("PAGE-F18-01, PAGE-F30-01", "API-F30-01, API-F30-02, API-F18-02, DATA-F18-01, SEQ-F30-01"),
+ "AC-F30-26": ("PAGE-F18-01", "API-F30-01, API-F18-02, DATA-F18-01, SEQ-F30-01"),
+ "AC-F30-27": ("PAGE-F30-01, PAGE-F18-01", "API-F30-02, API-F18-02"),
+ "AC-F30-28": ("PAGE-F18-01", "API-F18-02, DATA-F18-01"),
+ "AC-F30-29": ("PAGE-F18-01, PAGE-F30-01", "API-F18-02, API-F30-02, DATA-F30-02, SEQ-F30-01, DEC-106"),
+ "AC-F30-30": ("PAGE-F30-03, PAGE-F18-01", "API-F30-01, DATA-F18-01"),
 }
+# 第二版（planned）：只有骨架落点
+PLANNED = {
+ "REQ-F30-05": ("PAGE-F30-01, API-F16-03, DATA-F30-01", "页面清单.md（PAGE-F30-01 planned 能力）; 设计决策蓝图.md §12.1; 技术方案.md §8.3", "第二版启动时补抓取入口、费用闸门与核对衔接的详细设计；抓取产出须与导入同字段、走 API-F30-01 同一核对"),
+}
+PLANNED["AC-F30-31"] = PLANNED["REQ-F30-05"]
+PLANNED["AC-F30-32"] = ("PAGE-F30-01, API-F16-03, DATA-F30-01", PLANNED["REQ-F30-05"][1], "第二版启动时设计月度续更的断点与不重复计费（沿用 NFR-011 机制）")
+# 本期 F30 中落在 PAGE-F30-02 的条目
+for _k in ("AC-F30-13", "AC-F30-14", "AC-F30-15", "AC-F30-17"):
+    OVR[_k] = ("PAGE-F30-02", "API-F30-02, DATA-F30-02")
+for _k in ("AC-F30-11", "AC-F30-12", "AC-F30-18", "AC-F30-19", "AC-F30-20", "AC-F30-21", "AC-F30-24"):
+    OVR[_k] = ("PAGE-F30-01, PAGE-F30-02", "API-F30-02, DATA-F30-02")
 NFR = {
  "NFR-007": ("PAGE-F15-01", "API-F15-01", "§7.1；附录 A.4", "integration（监听地址检查）"),
  "NFR-008": ("PAGE-F16-01", "API-F16-01, DATA-F16-01", "§7.2、§7.3；附录 A.4", "integration + 仓库/日志扫描"),
@@ -90,6 +119,7 @@ NFR = {
  "NFR-011": ("PAGE-F17-01, PAGE-F23-01", "API-F16-03, DATA-F16-03, SEQ-F17-01", "§4 后台任务；附录 A.4", "integration（中断重跑计数）"),
  "NFR-013": ("PAGE-F23-01", "API-F23-02, DATA-F28-02, SEQ-F23-01", "§4 后台任务；附录 A.3、A.4", "integration（假站点记录请求时间戳与重试）"),
  "NFR-012": ("PAGE-F17-01, PAGE-F19-01", "API-F17-03, DATA-F17-01", "§5.1；附录 A.4", "integration（历史月份重放）"),
+ "NFR-014": ("PAGE-F30-01, PAGE-F30-02, PAGE-F30-03", "API-F30-01, API-F30-02, DATA-F30-02", "附录 A.4", "性能计时（三平台实际规模 CSV）"),
 }
 
 def surface(sid):
@@ -109,27 +139,31 @@ for sid, it in items.items():
     if sid.startswith("NFR"):
         if sid not in NFR: continue
         pages, other, sec, ver = NFR[sid]
-        rows.append((sid, it["rev"], f"{pages}, {other}", arts(pages, sec), it["inv"], ver))
+        rows.append((sid, it["rev"], f"{pages}, {other}", arts(pages, sec), it["inv"], ver, "covered"))
         continue
     f = re.search(r"-(F\d\d)-", sid).group(1)
     pages, other, sec = F[f]
     if sid in OVR: pages, other = OVR[sid]
-    rows.append((sid, it["rev"], f"{pages}, {other}", arts(pages, sec), it["inv"].replace("|", "/"), surface(sid)))
+    if sid in PLANNED:
+        d, a, note = PLANNED[sid]
+        rows.append((sid, it["rev"], d, a, note, "第二版启动时深设计与验收", "planned"))
+        continue
+    rows.append((sid, it["rev"], f"{pages}, {other}", arts(pages, sec), it["inv"].replace("|", "/"), surface(sid), "covered"))
 
 head = """# 设计追溯矩阵（第二轮）
 
-> 来源：`requirements.md` revision 8（scope = 第一版）。全部 active REQ / AC / NFR 都属于本期，状态均为 covered。
+> 来源：`requirements.md` revision 9（scope = 第一版）。第一版的 active REQ / AC / NFR 状态为 covered；REQ-F30-05、AC-F30-31、AC-F30-32 属第二版（未启动），状态为 planned。
 >
 > 第一轮（revision 5）的条目和设计 ID 已 retired，见 `change-impact.md`。
 >
-> 设计 ID 定义：PAGE 见 `页面清单.md` 与 `pages/`；CMP-F16-01 = 费用评估确认弹窗（见 PAGE-F16-02）；API / DATA / SEQ 见 `技术方案.md` 附录 A；DEC-101 = 工作台（design-derived，见 `设计决策蓝图.md`）。
+> 设计 ID 定义：PAGE 见 `页面清单.md` 与 `pages/`；CMP-F16-01 = 费用评估确认弹窗（见 PAGE-F16-02）；API / DATA / SEQ 见 `技术方案.md` 附录 A；DEC-101 = 工作台、DEC-105 = 工作台渠道调研行、DEC-106 = 重算出错保留上次结果（design-derived，见 `设计决策蓝图.md`）。
 >
 > 本文件由 `drafts/r2_trace_gen.py` 从需求契约生成；Error/Invariant 列取自各条目的 SHALL / Measure 原文。
 
 | Source ID | Source Revision | Design IDs | Artifact | Error/Invariant | Verification Surface | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 """
-body = "\n".join(f"| {a} | {b} | {c} | {d} | {e} | {f} | covered |" for a, b, c, d, e, f in rows)
+body = "\n".join(f"| {a} | {b} | {c} | {d} | {e} | {f} | {g} |" for a, b, c, d, e, f, g in rows)
 tail = """
 
 ## Design-derived 对象
@@ -139,6 +173,8 @@ tail = """
 | DEC-101 / PAGE-F15-02 / API-F15-04 | 登录后需要一处汇总各角色待办（待确认标签、待审批、到期对账、费用），否则入口分散；wen 已在蓝图确认 | AC-F15-02, AC-F19-04, AC-F26-02 |
 | DEC-102 / PAGE-F17-01 | AC-F17-04 只说"超出设定阈值"，没给默认值。设计默认：品类总月销环比 ±30% 内、家族键月间一致率 ≥ 90%、每个标签覆盖率 ≥ 95%；wen 2026-11-03 确认 | AC-F17-04 |
 | DEC-103 / PAGE-F15-03 | 最后一个正常状态的操作者不能停用，防止没人能管账号；wen 2026-11-03 确认 | AC-F15-04 |
+| DEC-105 / PAGE-F15-02 | 渠道调研不在"其他渠道数据"里，工作台本月数据状态需要一行汇总各渠道调研状态与分框待确认数，否则入口只在侧栏；wen 2026-11-04 蓝图 §12 确认 | AC-F30-22, AC-F30-23 |
+| DEC-106 / PAGE-F30-01 / API-F30-02 | AC-F30-29 只规定确认后重算，没规定重算出错时显示什么；设计默认保留上次结果并显示出错原因与结果时间，避免空白页；wen 2026-11-04 蓝图 §12 确认 | AC-F30-29 |
 | DEC-104 / PAGE-F16-02 | 用到月度上限 80% 时显示"接近上限"，只提示，不改变到上限即停（AC-F16-06）；wen 2026-11-03 确认 | AC-F16-06 |
 """
 (ROOT / "设计追溯矩阵.md").write_text(head + body + tail, encoding="utf-8")

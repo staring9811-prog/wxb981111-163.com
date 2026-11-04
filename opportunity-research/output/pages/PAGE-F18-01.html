@@ -53,9 +53,11 @@
       <div class="nav__group">数据</div>
       <a class="nav__item" href="PAGE-F17-01.html"><svg class="icon"><use href="#ph-package"/></svg><span>Amazon 月度数据</span></a>
       <a class="nav__item" href="PAGE-F28-01.html"><svg class="icon"><use href="#ph-tray"/></svg><span>其他渠道数据</span></a>
-      <a class="nav__item" href="PAGE-F18-01.html" aria-current="page"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 37 条">37</em></a>
+      <a class="nav__item" href="PAGE-F30-03.html"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>渠道调研导入</span></a>
+      <a class="nav__item" href="PAGE-F18-01.html" aria-current="page"><svg class="icon"><use href="#ph-list-checks"/></svg><span>打标确认</span><em class="nav__count" aria-label="待确认 268 条">268</em></a>
       <div class="nav__group">分析</div>
       <a class="nav__item" href="PAGE-F20-01.html"><svg class="icon"><use href="#ph-target"/></svg><span>机会扫描</span></a>
+      <a class="nav__item" href="PAGE-F30-01.html"><svg class="icon"><use href="#ph-list-magnifying-glass"/></svg><span>渠道调研</span></a>
       <a class="nav__item" href="PAGE-F19-01.html"><svg class="icon"><use href="#ph-flask"/></svg><span>模型与回测</span></a>
       <div class="nav__group">决策</div>
       <a class="nav__item" href="PAGE-F21-01.html"><svg class="icon"><use href="#ph-cards"/></svg><span>决策卡</span></a>
@@ -103,7 +105,7 @@
           <div class="stat"><div class="stat__label">本批新子体（四个渠道）</div><div class="stat__value num">402<span class="stat__unit">个</span></div><div class="stat__meta">Amazon 286 · Home Depot 41 · Lowe's 23 · Wayfair 52</div></div>
           <div class="stat"><div class="stat__label">规则打标</div><div class="stat__value num">402<span class="stat__unit">/ 402</span></div><div class="stat__meta">8 类标签，每个标签带置信度</div><div class="meter"><i style="width:100%"></i></div></div>
           <div class="stat"><div class="stat__label">看图打元素（大模型 Claude）</div><div class="stat__value num">132<span class="stat__unit">/ 154</span></div><div class="stat__meta">规则判断不了元素的商品；Amazon 还剩 22 个</div><div class="meter"><i style="width:86%"></i></div></div>
-          <div class="stat"><div class="stat__label">确认队列</div><div class="stat__value num"><span data-pending-total>37</span><span class="stat__unit">条待确认</span></div><div class="stat__meta">其中"装：未知"3 条 · 已确认 81 · 不是本品类 4</div></div>
+          <div class="stat"><div class="stat__label">确认队列</div><div class="stat__value num"><span data-pending-total>268</span><span class="stat__unit">条待确认</span></div><div class="stat__meta">其中"装：未知"3 条、"分框未知（渠道调研）"231 条 · 已确认 81 · 不是本品类 4</div></div>
         </div>
 
         <div class="section">
@@ -146,8 +148,14 @@
           <span class="section__note">主图相同的商品分在一组，选一次即应用到整组；组内某个商品不一样时，在该行单独改。每个标签注明来源：规格 / 标题 / 看图 / 人工</span>
         </div>
 
+        <div class="banner banner--cross" id="from-research" hidden>
+          <svg class="icon"><use href="#ph-list-magnifying-glass"/></svg>
+          <div class="banner__body"><div class="banner__title">从渠道调研进来：已筛 <span data-from-ch>Wayfair</span> · 分框未知（渠道调研）</div><div>确认尺寸段、装、形态后，该渠道的渠道调研自动重算。分框确认也会用于机会扫描（同一商品只有一个值）。</div></div>
+          <div class="banner__actions"><a class="btn btn--sm" href="PAGE-F30-01.html?channel=wayfair" data-back-research><svg class="icon"><use href="#ph-arrow-left"/></svg><span>返回渠道调研</span></a></div>
+        </div>
+
         <div class="tabs" role="tablist" aria-label="队列状态">
-          <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="tab-pending">待确认 <span class="count" data-pending-total>37</span></button>
+          <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="tab-pending">待确认 <span class="count" data-pending-total>268</span></button>
           <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-done">已确认 <span class="count">81</span></button>
           <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-out">不是本品类 <span class="count">4</span></button>
         </div>
@@ -155,19 +163,20 @@
         <div id="tab-pending" role="tabpanel">
           <div class="filters" id="queue-filters">
             <span class="filters__label">渠道</span>
-            <button class="chip" type="button" data-q="channel:all" aria-pressed="true">全部 <span class="count">37</span></button>
+            <button class="chip" type="button" data-q="channel:all" aria-pressed="true">全部 <span class="count">268</span></button>
             <button class="chip" type="button" data-q="channel:amazon" aria-pressed="false">Amazon <span class="count">22</span></button>
-            <button class="chip" type="button" data-q="channel:hd" aria-pressed="false">Home Depot <span class="count">6</span></button>
-            <button class="chip" type="button" data-q="channel:lowes" aria-pressed="false">Lowe's <span class="count">3</span></button>
-            <button class="chip" type="button" data-q="channel:wayfair" aria-pressed="false">Wayfair <span class="count">6</span></button>
+            <button class="chip" type="button" data-q="channel:hd" aria-pressed="false">Home Depot <span class="count">42</span></button>
+            <button class="chip" type="button" data-q="channel:lowes" aria-pressed="false">Lowe's <span class="count">115</span></button>
+            <button class="chip" type="button" data-q="channel:wayfair" aria-pressed="false">Wayfair <span class="count">89</span></button>
             <span class="filters__sep" aria-hidden="true"></span>
             <span class="filters__label">进队原因</span>
             <button class="chip" type="button" data-q="reason:all" aria-pressed="true">全部</button>
             <button class="chip" type="button" data-q="reason:element" aria-pressed="false">元素 <span class="count">24</span></button>
             <button class="chip" type="button" data-q="reason:low" aria-pressed="false">低置信度 <span class="count">10</span></button>
             <button class="chip" type="button" data-q="reason:assembly" aria-pressed="false">装：未知 <span class="count">3</span></button>
+            <button class="chip" type="button" data-q="reason:frame" aria-pressed="false">分框未知（渠道调研） <span class="count">231</span></button>
             <span class="spacer"></span>
-            <span class="small muted">显示 <b class="num" data-shown>7</b> 组（共 15 组 37 条，按组内商品数排序）</span>
+            <span class="small muted">显示 <b class="num" data-shown>7</b> 组（共 246 组 268 条，按组内商品数排序；"分框未知"按窗口销量排序）</span>
           </div>
 
           <div class="qgroups" id="queue">
@@ -373,6 +382,64 @@
                 </table>
               </div>
             </article>
+
+            <!-- 组 8（v9）：Wayfair 渠道调研 · 多尺寸未拆（单个商品；调研商品没有主图） -->
+            <article class="qgroup" data-channel="wayfair" data-reason="frame" aria-labelledby="g8-title">
+              <div class="qgroup__head">
+                <svg class="thumb" role="img" aria-label="无主图（渠道调研导入）"><use href="#img-vanity"/></svg>
+                <div class="qgroup__meta">
+                  <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>分框未知（渠道调研）</span><span class="badge">尺寸段 · 多尺寸未拆</span><span class="etag">调研导入</span><span class="small muted">窗口销量 6,240 件（1–10 月）· 选项段 24″ / 30″ / 36″ · 评论里能对上尺寸的不足 5 条</span></div>
+                  <h3 class="qgroup__title" id="g8-title">这个 listing 的销量算哪个尺寸段？</h3>
+                  <div class="choice-group" role="radiogroup" aria-label="候选值">
+                    <label class="choice"><input type="radio" name="g8" value="24″">24″（全部销量计入）</label>
+                    <label class="choice"><input type="radio" name="g8" value="30″">30″（全部销量计入）</label>
+                    <label class="choice"><input type="radio" name="g8" value="36″">36″（全部销量计入）</label>
+                    <label class="choice"><input type="radio" name="g8" value="不进框">不进框（不再进队列）</label>
+                  </div>
+                </div>
+                <div class="qgroup__actions">
+                  <button class="btn" type="button" data-apply><svg class="icon"><use href="#ph-check"/></svg><span>确认</span></button>
+                  <button class="btn btn--ghost btn--sm" type="button" data-notcat><svg class="icon"><use href="#ph-prohibit"/></svg><span>看不出 / 不是本品类</span></button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>原值</th><th>本条尺寸段</th><th>状态</th><th></th></tr></thead>
+                  <tbody>
+                    <tr><td>Wayfair</td><td class="mono"><a class="tlink" href="https://www.wayfair.com/" rel="noopener">W005896233</a></td><td><div class="cell-title">Andover Mills Kamari 24"–36" Single Bathroom Vanity Set</div></td><td class="small">宽 24 / 30 / 36（选项）· 颜色 White · 台面 Engineered Stone · 柜体 Solid + Manufactured Wood</td><td><select class="select" aria-label="本条尺寸段"><option selected>多尺寸未拆</option><option>24″</option><option>30″</option><option>36″</option><option>不进框</option></select></td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td><td><button class="btn btn--ghost btn--sm" type="button" data-row-notcat>不是本品类</button></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <!-- 组 9（v9）：Wayfair 渠道调研 · 形态未知 -->
+            <article class="qgroup" data-channel="wayfair" data-reason="frame" aria-labelledby="g9-title">
+              <div class="qgroup__head">
+                <svg class="thumb" role="img" aria-label="无主图（渠道调研导入）"><use href="#img-vanity"/></svg>
+                <div class="qgroup__meta">
+                  <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>分框未知（渠道调研）</span><span class="badge">形态 · 无依据</span><span class="etag">调研导入</span><span class="small muted">窗口销量 3,120 件 · 规格没有 Mounting / Installation，标题也没写</span></div>
+                  <h3 class="qgroup__title" id="g9-title">这个商品是落地式还是悬浮式？</h3>
+                  <div class="choice-group" role="radiogroup" aria-label="候选值">
+                    <label class="choice"><input type="radio" name="g9" value="落地式">落地式</label>
+                    <label class="choice"><input type="radio" name="g9" value="悬浮式">悬浮式</label>
+                    <label class="choice"><input type="radio" name="g9" value="转角式">转角式</label>
+                    <label class="choice"><input type="radio" name="g9" value="未知">仍不确定（保持未知，不进框）</label>
+                  </div>
+                </div>
+                <div class="qgroup__actions">
+                  <button class="btn" type="button" data-apply><svg class="icon"><use href="#ph-check"/></svg><span>确认</span></button>
+                  <button class="btn btn--ghost btn--sm" type="button" data-notcat><svg class="icon"><use href="#ph-prohibit"/></svg><span>看不出 / 不是本品类</span></button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>原值</th><th>本条形态</th><th>状态</th><th></th></tr></thead>
+                  <tbody>
+                    <tr><td>Wayfair</td><td class="mono"><a class="tlink" href="https://www.wayfair.com/" rel="noopener">W100312744</a></td><td><div class="cell-title">Wade Logan Arliss 30" Single Bathroom Vanity with Ceramic Top</div></td><td class="small">宽 30″ · 装 Partially Assembled（拆装）· 颜色 Black · 台面 Ceramic</td><td><select class="select" aria-label="本条形态"><option selected>未知</option><option>落地式</option><option>悬浮式</option><option>转角式</option></select></td><td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td><td><button class="btn btn--ghost btn--sm" type="button" data-row-notcat>不是本品类</button></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
           </div>
 
           <div class="empty" id="queue-empty" hidden>
@@ -414,7 +481,7 @@
         </div>
       </section>
 
-      <p class="page-foot">确认后的值在下一次 <a href="PAGE-F20-01.html">机会扫描</a> 和 <a href="PAGE-F19-01.html">模型重算</a> 中使用；本批 37 条确认完后即可重算 2026-10。看图打元素按次计费，已记入 <a href="PAGE-F16-02.html">预算与费用</a>。</p>
+      <p class="page-foot">确认后的值在下一次 <a href="PAGE-F20-01.html">机会扫描</a> 和 <a href="PAGE-F19-01.html">模型重算</a> 中使用；本批 268 条确认完后即可重算 2026-10。看图打元素按次计费，已记入 <a href="PAGE-F16-02.html">预算与费用</a>。</p>
     </main>
   </div>
 </div>
@@ -434,7 +501,7 @@
 <script>
 (function () {
   'use strict';
-  var pending = 37;
+  var pending = 268;
   function setPending(delta) {
     pending = Math.max(0, pending + delta);
     document.querySelectorAll('[data-pending-total]').forEach(function (el) { el.textContent = String(pending); });
@@ -469,7 +536,11 @@
       group.classList.add('is-done');
       btn.disabled = true;
       setPending(-n);
-      window.oppoToast('已确认 ' + n + ' 个商品，下一次扫描和评分使用确认后的值');
+      if (group.getAttribute('data-reason') === 'frame') {
+        window.oppoToast('已确认 ' + n + ' 个商品；' + (group.getAttribute('data-channel') === 'wayfair' ? 'Wayfair' : '该渠道') + ' 渠道调研已重算（15:02），也用于下一次机会扫描');
+      } else {
+        window.oppoToast('已确认 ' + n + ' 个商品，下一次扫描和评分使用确认后的值');
+      }
     });
   });
 
@@ -530,6 +601,20 @@
     document.querySelector('[data-shown]').textContent = String(shown);
     document.getElementById('queue-empty').hidden = shown > 0;
   }
+  var qp = new URLSearchParams(location.search);
+  var CH = { homedepot: 'hd', hd: 'hd', lowes: 'lowes', wayfair: 'wayfair', amazon: 'amazon' };
+  var NAMES = { hd: 'Home Depot', lowes: "Lowe's", wayfair: 'Wayfair' };
+  if (qp.get('channel') && CH[qp.get('channel')]) active.channel = CH[qp.get('channel')];
+  if (qp.get('reason')) active.reason = qp.get('reason');
+  document.querySelectorAll('#queue-filters .chip[data-q]').forEach(function (c) {
+    var p = c.getAttribute('data-q').split(':'); c.setAttribute('aria-pressed', String(active[p[0]] === p[1]));
+  });
+  if (qp.get('from') === 'research') {
+    var b = document.getElementById('from-research'); b.hidden = false;
+    b.querySelector('[data-from-ch]').textContent = NAMES[active.channel] || '全部渠道';
+    b.querySelector('[data-back-research]').href = 'PAGE-F30-01.html?channel=' + (active.channel === 'hd' ? 'homedepot' : active.channel);
+  }
+  apply();
   document.querySelectorAll('#queue-filters .chip[data-q]').forEach(function (chip) {
     chip.addEventListener('click', function () {
       var parts = chip.getAttribute('data-q').split(':');

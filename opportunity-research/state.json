@@ -2,7 +2,7 @@
   "state_schema_version": 1,
   "project_name": "opportunity-research",
   "project_started_at_utc": "2026-10-26T12:02:40Z",
-  "last_updated_at_utc": "2026-11-04T10:00:00Z",
+  "last_updated_at_utc": "2026-11-04T12:00:00Z",
   "work_type": "feature",
   "workflow_mode": "standard",
   "delivery_target": "tdd",
@@ -40,8 +40,8 @@
     "AC-F30-01～32",
     "NFR-014"
   ],
-  "current_stage": "design",
-  "current_substep": "revision 9 PRD 核心完成（PRD v9、requirements r9、analysis r9，校验通过）；设计决策蓝图 §12 草案待 wen 确认",
+  "current_stage": "goal",
+  "current_substep": "revision 9：PRD 核心、Design 增量（蓝图 §12 wen 确认）、TDD 契约均完成并校验通过；待 /goal 开发验收（提示 output/tests/goal_prompt_r9.md）",
   "completed_stages": [
     "1",
     "2",
@@ -54,7 +54,7 @@
   "skipped_stages": [
     "3"
   ],
-  "next_action": "wen 确认设计决策蓝图 §12（渠道调研页结构与 4 个设计选择）后，Design 增量出 PAGE-F30-01 与受影响页面、技术方案、追溯矩阵，再进 TDD。r8 遗留（不变）：wen：本人电脑启动 + 局域网另一设备访问（SMOKE-01）；设置页填真实密钥并提供卖家精灵接口文档（RULE-08）；在电脑上用 Bright Data / Apify 回补 Lowe's / Wayfair 历史后渠道重算；账号页暂缓（DESIGN-03）；待办：回补渠道月度续更、按自动值批量确认、组合套装 / 实用水槽等新方向",
+  "next_action": "按 output/tests/goal_prompt_r9.md 执行 /goal：实现渠道调研（PAGE-F30-01～03）与打标确认 / 工作台增量，验证新增与失效的 TDD 行。。r8 遗留（不变）：wen：本人电脑启动 + 局域网另一设备访问（SMOKE-01）；设置页填真实密钥并提供卖家精灵接口文档（RULE-08）；在电脑上用 Bright Data / Apify 回补 Lowe's / Wayfair 历史后渠道重算；账号页暂缓（DESIGN-03）；待办：回补渠道月度续更、按自动值批量确认、组合套装 / 实用水槽等新方向",
   "open_questions": [
     {
       "id": "OQ-R2-01",
@@ -216,19 +216,25 @@
       "at": "2026-11-03T06:04:06Z",
       "source": "wen：沿用第一轮风格，蓝图确认，继续出页面"
     },
-    "source_revision": 7,
-    "revision": 7,
+    "source_revision": 9,
+    "revision": 9,
     "status": "completed",
-    "pages": 18,
-    "local_link_scan": "473 个本地链接全部存在；外链仅 amazon.com 商品页（AC-F21-04）",
-    "trace_rows": 111,
+    "pages": 21,
+    "local_link_scan": "717 个本地链接目标全部存在（2026-11-04）",
+    "trace_rows": 166,
     "design_derived": [
       "DEC-101",
       "DEC-102",
       "DEC-103",
-      "DEC-104"
+      "DEC-104",
+      "DEC-105",
+      "DEC-106"
     ],
-    "completed_at_utc": "2026-11-03T06:27:53Z"
+    "completed_at_utc": "2026-11-04T12:00:00Z",
+    "blueprint_confirmed_r9": {
+      "at": "2026-11-04",
+      "source": "wen：蓝图 §12 四个选择全部按推荐（1A 独立框详情页、2A 宽表、3A 数据分区导入页、4A 全部列出降灰 + 只看可读框）"
+    }
   },
   "tdd": {
     "entry_check": {
@@ -250,9 +256,9 @@
     "contract": "output/tests/TDD验收契约.md",
     "rows": {
       "SMOKE": 2,
-      "FLOW": 26,
-      "DESIGN": 18,
-      "RULE": 8
+      "FLOW": 40,
+      "DESIGN": 21,
+      "RULE": 11
     },
     "validation": {
       "validator": "tdd-master/validators/check_delivery_contract.py",
@@ -264,10 +270,10 @@
       ],
       "run_at": "2026-10-26T16:23:20Z"
     },
-    "revision": 7,
+    "revision": 9,
     "status": "completed",
-    "validator": "check_delivery_contract.py 通过（111 source / 18 pages / 54 rows）",
-    "completed_at_utc": "2026-11-03T06:31:02Z"
+    "validator": "check_delivery_contract.py 通过（163 required source / 21 scope pages / 74 rows）",
+    "completed_at_utc": "2026-11-04T12:00:00Z"
   },
   "history": [
     {
@@ -301,6 +307,10 @@
     {
       "at": "2026-11-04T10:00:00Z",
       "event": "revision 9（小平台单元×指标观察，方案书 §11）：PRD v9 / requirements r9（新增 F30、NFR-014）/ analysis r9（RA-120～130）校验通过；蓝图 §12 草案待确认"
+    },
+    {
+      "at": "2026-11-04T12:00:00Z",
+      "event": "revision 9 Design 增量（PAGE-F30-01～03 新增，PAGE-F18-01 / PAGE-F15-02 局部更新，技术方案附录 API/DATA/SEQ-F30、追溯矩阵 166 行）与 TDD 契约（新增 FLOW-33～40、DESIGN-19～21、RULE-10～11，DESIGN-02 / 08、RULE-01 失效重验）完成；/goal 提示 output/tests/goal_prompt_r9.md"
     }
   ]
 }
