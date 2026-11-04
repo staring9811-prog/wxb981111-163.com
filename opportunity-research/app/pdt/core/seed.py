@@ -105,8 +105,10 @@ def import_keywords() -> int:
     return len(out)
 
 
-def import_amazon(log=print) -> dict:
+def import_amazon(log=print, until: str | None = None) -> dict:
     A = rows_from_pkl()
+    if until:  # 只导到某月（回归测试固定在第二轮的 2024-10 至 2026-09；统一打标表 2026-11-04 起并入了 2026-10）
+        A = A[A['月份'].astype(str) <= until].reset_index(drop=True)
     log(f'读入 {len(A):,} 行（{A["月份"].min()} 至 {A["月份"].max()}）')
     tags_rows = [row_tags(r) for _, r in A.iterrows()]
     A['_tags'] = tags_rows
@@ -175,9 +177,9 @@ def import_amazon(log=print) -> dict:
     return stat
 
 
-def run(channels=False, suspect=False, compute=True, log=print) -> dict:
+def run(channels=False, suspect=False, compute=True, log=print, until: str | None = None) -> dict:
     init_db()
-    out = dict(amazon=import_amazon(log), keywords=import_keywords())
+    out = dict(amazon=import_amazon(log, until), keywords=import_keywords())
     log(f"搜索量 {out['keywords']:,} 行")
     if channels and VP_XLSX.exists():
         from . import channels as chm

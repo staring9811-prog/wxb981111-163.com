@@ -36,7 +36,7 @@ def _base(tmp_path_factory):
     services.clear_fakes()
     from pdt.core import panel, seed
     panel.clear_cache()
-    seed.run(channels=True, suspect=False, compute=True, log=lambda m: None)
+    seed.run(channels=True, suspect=False, compute=True, log=lambda m: None, until='2026-09')  # 期望值来自第二轮（数据到 2026-09）
     from pdt.main import create_app
     create_app()  # 建初始操作者 wen
     from sqlalchemy import text
