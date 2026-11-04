@@ -2,7 +2,7 @@
 <meta name="pc-app-version" content="1.1.0">
 <meta name="pc-data-schema" content="1">
 <script>
-(()=>{let theme="light";try{if(localStorage.getItem("pc_theme")==="dark")theme="dark";}catch(e){}document.documentElement.dataset.theme=theme;})();
+(()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
 </script>
 
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -181,7 +181,8 @@ nav.steps button.helpnav{background:transparent;border-style:dashed}
 @media (prefers-reduced-motion:no-preference){.btn,nav.steps button{transition:background .15s,border-color .15s}}
 
 /* Freeze each complete header group, including its labels and units. */
-.tw{overflow:auto;max-height:65vh;max-height:65dvh;isolation:isolate;scrollbar-gutter:stable;overscroll-behavior:contain}
+.tw{overflow:auto;max-height:65vh;max-height:65dvh;isolation:isolate;scrollbar-gutter:stable}
+#varPanel .tw,#helpModal .tw{max-height:none}
 .tw table{border-collapse:separate;border-spacing:0}
 .tw thead{position:sticky;top:0;z-index:4;background:var(--surface2);box-shadow:0 2px 0 var(--line)}
 .tw thead th{position:relative;top:auto;z-index:auto}
@@ -218,7 +219,7 @@ nav.steps button.helpnav{background:transparent;border-style:dashed}
     <button data-step="6">报价库<span class="chip" id="quoteCount" style="padding:0 6px">0</span></button>
     <button type="button" data-help="overview" class="helpnav">ⓘ 计算说明</button>
   </nav>
-<button class="btn sm" id="btnCheckUpdate" type="button">检查更新 · v1.1.0</button>
+<button class="btn sm" id="btnCheckUpdate" type="button">检查更新</button>
 <button class="btn sm" id="btnTheme" type="button" aria-label="切换深色界面" title="切换深色界面">☾</button>
 </div></header>
 
@@ -227,7 +228,7 @@ nav.steps button.helpnav{background:transparent;border-style:dashed}
 </div>
 <dialog id="pcUpdateDialog" aria-labelledby="pcUpdateTitle">
  <div class="row"><h2 id="pcUpdateTitle" style="margin:0">系统更新与完整备份</h2><button class="btn sm" id="btnUpdateClose">关闭</button></div>
- <p>当前版本 v1.1.0。新版只更新系统功能，报价、产品、参数和 API 设置保存在各自浏览器，不上传到 GitHub。</p>
+ <p>当前版本 v<span class="pcVer"></span>。新版只更新系统功能，报价、产品、参数和 API 设置保存在各自浏览器，不上传到 GitHub。</p>
  <p>本地文件请替换原位置的 <b>index.html</b>，并使用同一浏览器。换文件名、目录、浏览器或电脑时，先导出完整备份，再在新页面恢复。</p>
  <label class="chk"><input type="checkbox" id="pcBackupKey" checked>完整备份包含 API Key（仅保留本机，请勿分享）</label>
  <div class="row" style="margin-top:12px"><button class="btn" id="btnFullBackup">下载完整备份</button><button class="btn" id="btnRestoreBackup">恢复完整备份</button><button class="btn primary" id="btnGetUpdate" hidden>确认下载新版系统</button></div>
@@ -1061,15 +1062,7 @@ function renderS4(){
 /* Keep the leading columns in view while a wide table scrolls sideways.
    Widths are measured from the first header row, so it runs after each render. */
 const FREEZE={resAll:2,resMix:1,resSummary:1,resScen:1,resDom:1,resDetail:1,qCompare:1};
-function freezeCols(id){
-  const n=FREEZE[id], t=document.querySelector("#"+id+" table"); if(!n||!t||!t.rows.length) return;
-  const head=[...t.rows[0].cells].slice(0,n); if(head.length<n||head.some(c=>c.colSpan>1)) return;
-  const lefts=[]; let x=0; head.forEach(c=>{ lefts.push(x); x+=c.getBoundingClientRect().width; }); if(!x) return;
-  const hdr=t.tHead?t.tHead.rows.length:0;
-  [...t.rows].forEach((row,ri)=>{ if(ri>0&&ri<hdr) return;
-    const cells=[...row.cells]; for(let i=0;i<n&&i<cells.length;i++){ const c=cells[i]; if(c.colSpan>1) break;
-      c.classList.add("fz"); if(i===n-1) c.classList.add("fzl"); c.style.left=Math.max(0,Math.floor(lefts[i])-(i?1:0))+"px"; } });
-}
+function freezeCols(id){ const t=document.querySelector("#"+id+" table"); if(t&&FREEZE[id]) freezeTableKeys(t,FREEZE[id]); }
 function freezeS4(){ ["resAll","resMix","resSummary","resScen","resDom","resDetail"].forEach(freezeCols); }
 let fzTimer=null;
 window.addEventListener("resize",()=>{ clearTimeout(fzTimer); fzTimer=setTimeout(()=>{ if(step===4) renderS4(); if(step===6) renderS6(); },200); });
@@ -1625,7 +1618,7 @@ function freezeTableKeys(table, count){
    const width=cell.colSpan||1;
    if(col<count && col+width<=count){
     cell.classList.add("fz");
-    cell.style.left=(lefts[col]||0)+"px";
+    cell.style.left=Math.max(0,Math.floor(lefts[col]||0)-(col?1:0))+"px";   // 1px overlap hides the sub-pixel seam between frozen columns
     if(col+width===count)cell.classList.add("fzl");
    }
    for(let c=col;c<col+width;c++)spans[c]=Math.max(spans[c]||0,cell.rowSpan||1);
@@ -1646,6 +1639,7 @@ function positionFrozenHeaders(){
 }
 function prepareFrozenTables(){
  document.querySelectorAll("table").forEach(table=>{
+  if(table.closest("#helpModal")) return;          // help tables are short reference tables: no scroll box
   let box=table.parentElement;
   if(!box.classList.contains("tw")){
    const wrapper=document.createElement("div");wrapper.className="tw";
@@ -1658,16 +1652,19 @@ function prepareFrozenTables(){
  });
  positionFrozenHeaders();
 }
-let frozenTablesFrame=0;
+let frozenTablesFrame=0, headerFrame=0;
 function scheduleFrozenTables(){if(!frozenTablesFrame)frozenTablesFrame=requestAnimationFrame(()=>{frozenTablesFrame=0;prepareFrozenTables();});}
+function scheduleHeaderPosition(){if(!headerFrame)headerFrame=requestAnimationFrame(()=>{headerFrame=0;positionFrozenHeaders();});}
 new MutationObserver(records=>{
  if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches("table")||n.querySelector("table")))))scheduleFrozenTables();
 }).observe(document.body,{childList:true,subtree:true});
-window.addEventListener("scroll",scheduleFrozenTables,{passive:true,capture:true});
+window.addEventListener("scroll",scheduleHeaderPosition,{passive:true,capture:true});
 window.addEventListener("resize",scheduleFrozenTables,{passive:true});
 document.addEventListener("toggle",scheduleFrozenTables,true);
+/* No saved choice = follow the OS; the toggle saves an explicit light/dark choice. */
+function effectiveDark(){ const t=document.documentElement.dataset.theme; if(t==="dark") return true; if(t==="light") return false; return !!(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches); }
 function renderThemeButton(){
- const dark=document.documentElement.dataset.theme==="dark";
+ const dark=effectiveDark();
  const button=document.getElementById("btnTheme");
  button.innerHTML=dark?'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.2A8.7 8.7 0 0 1 10.8 3.5 8.7 8.7 0 1 0 20.5 13.2Z"/></svg>';
  button.title=dark?"切换浅色界面":"切换深色界面";
@@ -1675,16 +1672,20 @@ function renderThemeButton(){
  document.getElementById("btnTheme").setAttribute("aria-pressed",String(dark));
 }
 document.getElementById("btnTheme").addEventListener("click",()=>{
- const theme=document.documentElement.dataset.theme==="dark"?"light":"dark";
+ const theme=effectiveDark()?"light":"dark";
  document.documentElement.dataset.theme=theme;
  try{localStorage.setItem("pc_theme",theme);}catch(e){}
  renderThemeButton();scheduleFrozenTables();
 });
+if(window.matchMedia) try{ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",renderThemeButton); }catch(e){}
 renderThemeButton();prepareFrozenTables();
 /* System updates never include user records or API credentials. */
-const PC_RELEASE={version:"1.1.0",schema:1,url:"https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/profit-calculator/index.html"};
+const pcMeta=n=>{ const m=document.querySelector&&document.querySelector(`meta[name="${n}"]`); return m?m.content:""; };
+const PC_RELEASE={version:pcMeta("pc-app-version"),schema:Number(pcMeta("pc-data-schema")),url:"https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/profit-calculator/index.html"};
 const PC_DATA_KEYS=["pc_products","pc_params","pc_quotes","pc_history","pc_ai_cfg","pc_theme","pc_step","pc_cur"];
-const pcUpdate={remote:null,busy:false,backupData:null};
+const pcUpdate={remote:null,busy:false,backupData:null,backupKey:true};
+const PC_VOLATILE=["pc_step","pc_cur","pc_theme"];   // navigation/theme changes don't make a backup stale
+const backupSig=(data)=>{ const d=Object.assign({},data); PC_VOLATILE.forEach(k=>delete d[k]); return JSON.stringify(d); };
 function compareAppVersions(a,b){
  const aa=a.split('.').map(Number),bb=b.split('.').map(Number);
  for(let i=0;i<3;i++){if(aa[i]!==bb[i])return aa[i]>bb[i]?1:-1;}return 0;
@@ -1745,7 +1746,7 @@ async function exportFullBackup(){
   const includeKey=document.getElementById("pcBackupKey").checked;
   const backup=makeFullBackup(includeKey);
   if(await offer(`利润测算完整备份_${stamp()}.json`,JSON.stringify(backup,null,2),"application/json")===false)throw Error("备份下载未成功发起");
-  pcUpdate.backupData=JSON.stringify(backup.data);
+  pcUpdate.backupData=backupSig(backup.data); pcUpdate.backupKey=includeKey;
   setUpdateStatus(includeKey?"备份下载已发起。包含 API Key，请仅保留在本机，不要分享。":"备份下载已发起，不包含 API Key。");
   return true;
  }catch(e){setUpdateStatus("备份失败："+e.message);return false;}
@@ -1757,7 +1758,7 @@ async function checkSystemUpdate(manual=false){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
  try{
   const res=await fetch(PC_RELEASE.url+"?check="+Date.now(),{cache:"no-store",credentials:"omit",signal:controller.signal});
-  if(!res.ok)throw Error("GitHub 返回 "+res.status);
+  if(!res.ok)throw Error(res.status===404?"GitHub 返回 404：仓库可能是私有的，原始文件链接不能公开下载":"GitHub 返回 "+res.status);
   const remote=parseUpdateDocument(await res.text());pcUpdate.remote=remote;
   try{localStorage.setItem("pc_update_checked",String(Date.now()));}catch(e){}
   const newer=compareAppVersions(remote.version,PC_RELEASE.version)>0;
@@ -1773,17 +1774,20 @@ function openUpdatePanel(){const d=document.getElementById("pcUpdateDialog");if(
 async function downloadSystemUpdate(){
  const remote=pcUpdate.remote;if(!remote||compareAppVersions(remote.version,PC_RELEASE.version)<=0)return;
  if(remote.schema!==PC_RELEASE.schema){setUpdateStatus("新版数据格式不同，本版本不能安全迁移。请先导出完整备份并联系维护者，已暂停下载。");return;}
- let freshData;try{freshData=JSON.stringify(readLocalData(true));}catch(e){setUpdateStatus("无法读取本机数据，已暂停更新："+e.message);return;}
- if(pcUpdate.backupData!==freshData){setUpdateStatus("请先下载包含 API 设置的完整备份；数据有改动时需要重新备份，再下载系统更新。");return;}
+ let freshData;try{freshData=backupSig(readLocalData(pcUpdate.backupKey));}catch(e){setUpdateStatus("无法读取本机数据，已暂停更新："+e.message);return;}
+ if(pcUpdate.backupData!==freshData){setUpdateStatus(pcUpdate.backupData?"备份之后数据有改动，请重新下载完整备份，再下载系统更新。":"请先下载完整备份，再下载系统更新。");return;}
  const msg=`下载 v${remote.version} 系统更新？\n不会覆盖你的报价、产品或 API 设置。\n请先下载完整备份。用新文件替换原位置的 index.html；若换位置或浏览器，请用完整备份恢复。`;
  if(!window.confirm(msg))return;
  try{
-  // Abort before download if the browser cannot preserve a complete local snapshot.
-  localStorage.setItem("pc_update_snapshot",JSON.stringify(makeFullBackup(true)));
   if(await offer("index.html",remote.html,"text/html;charset=utf-8")===false)throw Error("系统文件下载未成功发起");
   setUpdateStatus("系统文件下载已发起。替换原位置的 index.html 后重新打开；换位置时请导入完整备份。旧文件仍可保留用于回退。");
  }catch(e){setUpdateStatus("更新未完成："+e.message+"。原程序和数据仍保留，请先导出完整备份。");}
 }
+/* Only the downloaded HTML file needs this: the claude.ai page is updated by republishing and cannot reach GitHub. */
+const PC_LOCAL=location.protocol==="file:";
+document.querySelectorAll(".pcVer").forEach(e=>e.textContent=PC_RELEASE.version);
+document.getElementById("btnCheckUpdate").textContent="检查更新 · v"+PC_RELEASE.version;
+document.getElementById("btnCheckUpdate").hidden=!PC_LOCAL;
 document.getElementById("btnCheckUpdate").addEventListener("click",()=>{openUpdatePanel();checkSystemUpdate(true);});
 document.getElementById("btnUpdateReview").addEventListener("click",openUpdatePanel);
 document.getElementById("btnUpdateLater").addEventListener("click",()=>document.getElementById("pcUpdateBanner").hidden=true);
@@ -1802,6 +1806,7 @@ document.getElementById("pcBackupFile").addEventListener("change",async e=>{
  }catch(err){setUpdateStatus("恢复未完成："+err.message);}
  finally{e.target.value="";}
 });
+try{ localStorage.removeItem("pc_update_snapshot"); }catch(e){}   // left behind by the first v1.1.0 build
 // A successful update check sends only a public file request, never user state.
-setTimeout(()=>{let last=0;try{last=Number(localStorage.getItem("pc_update_checked")||0);}catch(e){}if(Date.now()-last>86400000)checkSystemUpdate(false);},3000);
+if(PC_LOCAL) setTimeout(()=>{let last=0;try{last=Number(localStorage.getItem("pc_update_checked")||0);}catch(e){}if(Date.now()-last>86400000)checkSystemUpdate(false);},3000);
 </script>
