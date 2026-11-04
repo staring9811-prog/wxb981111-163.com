@@ -211,11 +211,12 @@ def parse_wf(b):
                 rating=float(tot.group(1)) if tot else None, reviews=int(tot.group(2)) if tot else None, price=float(pr.group(1)) if pr else None)
 
 
-def pdps():
+def pdps(plats=('lowes', 'wayfair'), min_reviews=1):
+    """只抓评论数 ≥ min_reviews 的家族（零评论家族对销量 / 评论占比没有贡献，预算不够时不抓，字段只用列表 + 标题）。"""
     todo = []
-    for plat in ('lowes', 'wayfair'):
+    for plat in plats:
         for fk, f in merged(plat).items():
-            todo.append((-(f['reviews'] or 0), plat, f))
+            if (f['reviews'] or 0) >= min_reviews: todo.append((-(f['reviews'] or 0), plat, f))
     todo.sort(key=lambda x: x[0])           # 评论多的先抓；两个平台交替按评论数排
     log(f'商品页待抓 {len(todo)}（Lowe\'s {sum(t[1] == "lowes" for t in todo)}，Wayfair {sum(t[1] == "wayfair" for t in todo)}）')
     stop = []
@@ -281,11 +282,11 @@ def fields_wf(f, pg, TR):
     t = K.tag_text(TR, f['title'])
     o = {}
     sel = next((c for c in (pg or {}).get('choices') or [] if re.search(r'width|size', c['name'] or '', re.I)), None)
-    w = (num(sel['selected']) if sel else None) or wf_width(sp.get('Overall Dimensions'))
+    w = (num(sel['selected']) if sel else None) or num(sp.get('Overall Width from Side to Side')) or wf_width(sp.get('Overall Dimensions'))
     o['宽'], o['宽来源'] = (w, '商品页') if w else (t['宽'], '标题' if t['宽'] else '')
     a = str(sp.get('Assembly') or sp.get('Level of Assembly') or '').lower()
     if 'no assembly' in a: o['装'], o['装来源'] = '整装', '规格'
-    elif 'assembly' in a: o['装'], o['装来源'] = '拆装', '规格'
+    elif 'assembl' in a: o['装'], o['装来源'] = '拆装', '规格'   # Full Assembly Needed / Partially Assembled（同 HD 口径，部分组装算拆装）
     elif t['装'] != '未知': o['装'], o['装来源'] = t['装'], '标题'
     else: o['装'], o['装来源'] = None, ''
     m = str(sp.get('Mounting / Installation') or sp.get('Mounting Type') or '').lower()
@@ -293,7 +294,8 @@ def fields_wf(f, pg, TR):
     elif 'freestanding' in m or 'floor' in m: o['形态'], o['形态来源'] = '落地式', '规格'
     elif t['形态'] != '未知': o['形态'], o['形态来源'] = t['形态'], '标题'
     else: o['形态'], o['形态来源'] = None, ''
-    o['颜色'] = sp.get('Base Color') or sp.get('Color')
+    o['颜色'] = sp.get('Base Color') or sp.get('Base Finish') or sp.get('Color')
+    o['装原值'] = sp.get('Assembly')
     o['台面'] = sp.get('Countertop Material') or sp.get('Top Material')
     o['柜体'] = sp.get('Base Material') or sp.get('Material')
     widths = set()
@@ -384,6 +386,6 @@ def main():
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else ''
     if cmd == '列表': lists()
-    elif cmd == '商品页': pdps()
+    elif cmd == '商品页': pdps(tuple(sys.argv[2:]) or ('lowes', 'wayfair'), int(os.environ.get('MIN_REVIEWS', '1')))
     elif cmd == '分析':
         main()

@@ -30,6 +30,7 @@
 - ✅ 2026-11-04：小平台"单元 × 指标"调研（观察，不回测）：solution-v2/trial/小平台调研_单元指标.py → solution-v2/开发建议/小平台调研_单元×指标_HD_Lowes_Wayfair.md，全量表 input/data_v2/渠道调研/（不入库）。门槛 框月均 ≥200、单元 ≥20（AI 定）。数据限制：Lowe's 标题几乎不写尺寸（尺寸段销量覆盖 0%）只能给"不分尺寸段"降级视图；Wayfair 标题装只覆盖 2%，主视图无达标框，用"尺寸段 × 形态（不分拆装）"降级视图；Lowe's / Wayfair 无价格、评分，主色 / 柜体材质覆盖 < 10%。要按同框做 Lowe's / Wayfair 需补商品页规格（尺寸、装、颜色、价格）。
 - ✅ 2026-11-04：关键词抓取测试 reeded：solution-v2/trial/关键词抓取测试_reeded.py → solution-v2/开发建议/关键词抓取测试_reeded.md（缓存 input/data_v2/渠道关键词/reeded/，不入库）。AI 结论：HD 搜索不认 reeded（前 300 只 13 条含 reeded/fluted，返回的是整类目）；Lowe's 结果只有 36 条且 reeded 全零评论；Wayfair 有相关度但前 300 未饱和、标题拆装 8%。字段：Lowe's 评论页每条带 productId（变体）、商品页有全部变体与规格；Wayfair 评论带 choices（Overall Width 等）但商品页只内嵌 5 条。BD 36 次 ≈ $0.05。
 - ▶️ 2026-11-04：大词抓取 Lowe's / Wayfair（wen 确认）：solution-v2/trial/大词抓取_Lowes_Wayfair.py，缓存 input/data_v2/渠道关键词/大词/（不入库），报告 solution-v2/开发建议/大词抓取_Lowes_Wayfair.md。
+- ✅ 2026-11-04：10 月数据重导核对通过（卖家精灵"最近 30 天"，11-03 采集，约 10-04 至 11-03）：与 9 月小类排名相同仅 1.2%，是新数据；当作 2026-10 用。已生成子体流量词拉取清单（需拉 3,961 行 / 244 个家族）交 wen 拉取；记录在 solution-v2/数据准备/卖家精灵导出_2025-03至12_核对.md 末节。原件 input/data_v2/sellersprite_2026-10_最近30天/（不入库）。
 - ✅ 2026-11-02：wen 复核完 92 张（自动采用的 350 张没改）；看图标签并入统一打标；回归第二版 solution-v2/回归_新家族_第二版.md（元素用看图分类）。
 - ✅ 2026-11-02（晚）：第五版（大属性为线）、第六至八版（回归预测 + 评分）回测完成，第八版定为市场层 + 新品层的方法，总结见 solution-v2/开发建议/第八版_回测与回归总结.md；下一步进入 PRD（先核实解题方案书 v2）。
 - ▶️ 进行中（已过时，留作记录）：全市场补图（1,404 个家族键，A、B 两组各 10 批，例图和规则在 scratchpad/看图补标2/）；补完后按 S2-55 跑回归第三版。之前：等 wen 逐条判断回归第二版。复核页 https://claude.ai/artifact/RYNWsHwhswvHm1aJ1vLWh8 （私有，picks 集合）保留，后续批次可接着用。
