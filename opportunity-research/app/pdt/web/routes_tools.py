@@ -1,6 +1,8 @@
 """工具：评论 VP 追踪（PAGE-F23-01，API-F23-01）与利润测算（PAGE-F24-01，API-F24-01 / 02）。"""
+import hashlib
 import json
 from datetime import timezone
+from functools import lru_cache
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
@@ -9,6 +11,7 @@ from sqlalchemy import select
 
 from .. import costgate, services
 from ..auth import any_user, operator_only
+from ..config import APP_DIR, PROJECT_DIR
 from ..db import session
 from ..models import Card, Job, ProfitPlan, Secret, User, now
 from ..models_decision import ProfitQuote
@@ -178,6 +181,21 @@ def _link(s, p: ProfitPlan, card_id: int, result: dict | None, user_id):
     cardcore.log(s, c.id, "profit", f"利润方案“{p.name}”回写“钱”一节" + ("（卡片已批准，快照不变）" if c.status in cardcore.LOCKED else ""), user_id)
 
 
+PROFIT_TOOL = PROJECT_DIR / "tools" / "利润测算台" / "index.html"
+PROFIT_SYNC = APP_DIR / "profit_sync.json"
+
+
+@lru_cache(maxsize=1)
+def profit_tool_outdated() -> bool:
+    """启动后第一次打开利润测算页时检测一次：wen 的原工具 index.html 与上次同步（tools_sync_profit.py 写的 profit_sync.json）不同，
+    就在页面顶部提示运行同步脚本。只提示，不在启动时改代码；原工具或同步记录不在（例如只拷了 app/）时不提示。"""
+    try:
+        rec = json.loads(PROFIT_SYNC.read_text(encoding="utf-8"))
+        return hashlib.sha256(PROFIT_TOOL.read_bytes()).hexdigest() != rec.get("source_sha256")
+    except (OSError, ValueError):
+        return False
+
+
 @router.get("/tools/profit")
 def profit_page(request: Request, card: int | None = None, plan: int | None = None, user=any_user):
     with session() as s:
@@ -206,7 +224,8 @@ def profit_page(request: Request, card: int | None = None, plan: int | None = No
     pdt = dict(init=init, planId=item["id"] if item else None, llm=llm, planName=item["name"] if item else "", step=step,
                readonly=user.role != "operator", card=cinfo, linkProduct=(item or {}).get("result", {}).get("product") if item else None,
                savedAt=item["savedAt"] if item else None)
-    return render(request, "tools_profit.html", "PAGE-F24-01", "利润测算", pdt=pdt, card=cinfo, plan=item, is_op=user.role == "operator")
+    return render(request, "tools_profit.html", "PAGE-F24-01", "利润测算", pdt=pdt, card=cinfo, plan=item, is_op=user.role == "operator",
+                  tool_outdated=user.role == "operator" and profit_tool_outdated())
 
 
 @router.get("/tools/profit/plans")

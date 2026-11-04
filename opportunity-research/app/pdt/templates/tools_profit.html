@@ -10,8 +10,9 @@
   #pc-root nav.steps button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--fg-2); padding: var(--space-2) var(--space-3); }
   #pc-root nav.steps button[aria-current="step"] { color: var(--fg); border-bottom-color: var(--fg); background: none; font-weight: 600; }
   #pc-root nav.steps button b { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1px solid var(--border-control); border-radius: 50%; font-size: var(--text-2xs); }
+  #pc-root nav.steps button.helpnav { margin-left: auto; color: var(--muted); }
   #pc-root section > h2:first-child { margin-top: 0; }
-  body[data-ro] #pc-root :is(#drop, #btnSample, #btnBlank, #btnLoadJson, #btnImport, #btnAddProd, #btnBulkCat, #btnBulkPeak, #bulkCat, #bulkPeak, #btnRateImport, #btnResetParams, #btnAddSea, #btnHistSave, #btnHistSave2, #histName, #histName2, #btnQtyReset, .bulkPlat, [data-act], [data-delsea], #aiFile, #btnAi, #btnAiThis, #btnAiImport, #btnAiSaveQ, #btnAiBoth, #qFactory, #qVersion, #qDate, #btnQSave, [data-qact="del"], [data-aidel]) { display: none !important; }
+  body[data-ro] #pc-root :is(#drop, #btnSample, #btnBlank, #btnLoadJson, #btnImport, #btnAddProd, #btnBulkCat, #btnBulkPeak, #bulkCat, #bulkPeak, #btnRateImport, #btnResetParams, [data-addsea], [data-vreset], [data-allrow], [data-sv], #btnQtyReset, .bulkPlat, [data-act], [data-delsea], #aiFile, #btnAi, #btnAiThis, #btnAiImport, #btnAiSaveQ, #btnAiBoth, #qFactory, #qVersion, #qDate, #btnQSave, [data-qact="del"], [data-aidel]) { display: none !important; }
 </style>
 {% endblock %}
 {% block content %}
@@ -25,6 +26,9 @@
     <span class="saved" data-saved>{% if plan %}<svg class="icon"><use href="#ph-check-circle"/></svg>已保存到系统 · <span class="num" data-saved-at></span>{% else %}还没有保存到系统{% endif %}</span>
   </div>
 </div>
+{% if tool_outdated %}
+<div class="banner banner--warn enter" style="--i:1" data-tool-outdated><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">原工具有更新，运行同步脚本</div><div class="small">tools/利润测算台/index.html 与上次同步的不一样。在 app 目录运行 <code>python tools_sync_profit.py</code>，成功后重启判定台；脚本停下报错时把报错发给 AI。</div></div></div>
+{% endif %}
 {% if card %}
 <div class="linkcard enter" style="--i:1">
   <svg class="icon icon--lg"><use href="#ph-link-simple"/></svg>
@@ -35,14 +39,15 @@
   {% if is_op %}<button class="btn btn--primary" type="button" id="btnWriteback"><svg class="icon"><use href="#ph-arrow-up-right"/></svg><span>保存并回写决策卡</span></button>{% endif %}
 </div>
 {% endif %}
-<div class="section enter" style="--i:2" id="pc-root">
+<div class="section" id="pc-root"><!-- 不加 enter 进场动画：动画会让 #pc-root 成为独立层，变量抽屉和计算说明会被页头、侧栏盖住 -->
   <nav class="steps" id="steps" aria-label="利润测算步骤">
     <button data-step="1" type="button"><b>1</b>导入报价表</button>
     <button data-step="2" type="button"><b>2</b>确认尺寸与价格</button>
-    <button data-step="3" type="button"><b>3</b>参数设置</button>
+    <button data-step="3" type="button"><b>3</b>变量</button>
     <button data-step="4" type="button"><b>4</b>利润测算表</button>
     <button data-step="5" type="button"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史库 <span class="count" id="histCount">0</span></button>
     <button data-step="6" type="button"><svg class="icon"><use href="#ph-stack"/></svg>报价库 <span class="count" id="quoteCount">0</span></button>
+    <button type="button" data-help="overview" class="helpnav"><svg class="icon"><use href="#ph-info"/></svg>计算说明</button>
   </nav>
   <main>
   {% include "_profit_sections.html" %}

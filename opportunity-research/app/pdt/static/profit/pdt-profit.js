@@ -75,7 +75,11 @@
     if (blockReason(i, R)) return {};  // 缺必填时只保存方案，不改卡片上的数字
     return { card_id: cid, result: R };
   };
-  PDT.onSaved = function (it) { PDT.planId = it.id; PDT.savedAt = it.savedAt; showSaved(); var n = document.querySelector('[data-plan-name]'); if (n) n.textContent = it.name; };
+  /* 当前版本变了（打开、保存回当前版本、另存为新版本、改名、删除）：engine.js 的 setCur 已同步 PDT.planId，这里更新页头的方案名与保存时间 */
+  PDT.onCur = function (c, it) {
+    var n = document.querySelector('[data-plan-name]'); if (n && c) n.textContent = c.name;
+    if (it && it.savedAt) { PDT.savedAt = it.savedAt; showSaved(); }
+  };
   PDT.onOpened = function (it) { if (it.result && it.result.product) PDT.linkProduct = it.result.product; };
 
   function money(v) { return v == null || !isFinite(v) ? '—' : (v < 0 ? '−' : '') + '$' + Math.abs(v).toFixed(2); }
@@ -98,6 +102,8 @@
         });
       };
       render = function () { orig(); lock(); };
+      var origVars = renderVars;  // 变量抽屉单独重画变量面板，同样锁上
+      renderVars = function () { origVars(); lock(); };
       lock();
     }
     var btn = document.getElementById('btnWriteback');

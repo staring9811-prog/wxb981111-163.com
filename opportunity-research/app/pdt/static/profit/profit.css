@@ -1,4 +1,4 @@
-/* 原利润测算台样式（新版），限定在 #pc-root 内，颜色映射到判定台 tokens。 */
+/* 原利润测算台样式（由 tools_sync_profit.py 从原工具生成，勿手改），限定在 #pc-root 内，颜色映射到判定台 tokens。 */
 #pc-root{--surface2:var(--surface-raised);--ink:var(--fg);--line:var(--border);--accent-ink:var(--accent-on);--accent-soft:var(--accent-tint);
 --input:var(--surface);--input-line:var(--border-control);--pos:var(--success);--pos-soft:var(--success-tint);--neg:var(--danger);--neg-soft:var(--danger-tint);
 --warn-soft:var(--warn-tint);--f-ui:inherit;--f-head:inherit;--f-num:var(--font-mono);--r:var(--radius-md);font-size:var(--text-sm)}
@@ -16,6 +16,7 @@
 #pc-root .row.end{justify-content:flex-end}
 #pc-root .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 14px;border-radius:var(--r);font:inherit;cursor:pointer;white-space:nowrap}
 #pc-root .btn:hover{border-color:var(--accent)}
+#pc-root .btn:disabled{opacity:.45;cursor:default}
 #pc-root .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
 #pc-root .btn.ghost{background:transparent}
 #pc-root .btn.sm{padding:3px 8px;font-size:12px}
@@ -65,8 +66,13 @@
 #pc-root .mini .h{color:var(--muted);text-align:right}
 #pc-root .mini .l{color:var(--muted)}
 #pc-root .mini .v{font-family:var(--f-num);text-align:right;font-variant-numeric:tabular-nums}
-#pc-root .sticky-params{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px}
+#pc-root .sticky-params{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px}
 #pc-root .sticky-params label.f input{width:86px}
+#pc-root .qg{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px 10px;background:var(--surface2)}
+#pc-root .qgt{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px}
+#pc-root .qgf{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end}
+#pc-root .qnote{grid-column:1/-1;font-size:12px;color:var(--muted)}
+#pc-root .savebar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);margin:12px 0}
 #pc-root .pp{display:flex;flex-direction:column;gap:3px}
 #pc-root .pp label{display:flex;gap:4px;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted)}
 #pc-root .pp input{width:76px}
@@ -93,4 +99,48 @@
 #pc-root .fz{position:sticky;z-index:2;background:var(--surface)}
 #pc-root th.fz{z-index:3;background:var(--surface2)}
 #pc-root .fzl{box-shadow:inset -2px 0 0 var(--line)}
-#pc-root .btn,#pc-root nav.steps button{transition:background .15s,border-color .15s}
+#pc-root .varsum{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
+#pc-root .varsum .chip{font-size:12px}
+#pc-root .vblock{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:12px}
+#pc-root .vbh{display:flex;gap:10px;align-items:baseline;margin-bottom:8px}
+#pc-root .vbh h3{margin:0}
+#pc-root .vbh .btn{margin-left:auto}
+#pc-root .vgrid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr))}
+#pc-root .vgrid .vblock{margin-bottom:0}
+#pc-root .vcols{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+#pc-root h4{font-size:13px;margin:2px 0 6px}
+#pc-root table.cm{width:auto;min-width:0;font-size:12px}
+#pc-root table.cm th,#pc-root table.cm td{padding:3px 5px;text-align:center}
+#pc-root table.cm thead th{font-size:11.5px}
+#pc-root table.cm tbody th{position:sticky;left:0;z-index:1;background:var(--surface2);text-align:left;white-space:nowrap;font-size:12.5px}
+#pc-root table.cm .cm0{position:sticky;left:0;z-index:3;text-align:left}
+#pc-root table.cm input[type=number]{width:54px;padding:2px 4px;font-size:12px}
+#pc-root table.cm select{padding:2px 2px;font-size:12px}
+#pc-root table.cm tbody tr:hover td,#pc-root table.cm tbody tr:hover th{background:var(--accent-soft)}
+#pc-root table.cm tr.allrow td,#pc-root table.cm tr.allrow th{background:var(--surface2);border-top:2px solid var(--line)}
+#pc-root table.cm .btn.sm{padding:2px 6px;font-size:11.5px}
+#pc-root table.cm .btn.chg{box-shadow:inset 3px 0 0 var(--accent)}
+#pc-root .chg>input,#pc-root .chg>select,#pc-root input.chg,#pc-root select.chg{box-shadow:inset 3px 0 0 var(--accent)}
+#pc-root #varDrawer{position:fixed;top:0;right:0;bottom:0;width:min(620px,100vw);background:var(--bg);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.14);z-index:30;overflow:auto;padding:env(safe-area-inset-top,0px) 16px 24px}
+#pc-root .vdh{position:sticky;top:0;z-index:3;background:var(--bg);display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:12px}
+@media (min-width:1180px){body.drawer-open #pc-root{margin-right:calc(min(620px,100vw) + 8px)}}
+#pc-root .hi{border:0;background:none;color:var(--accent);cursor:help;padding:0 0 0 3px;font-size:12px;line-height:1;vertical-align:baseline}
+#pc-root .hi:hover{color:var(--ink)}
+#pc-root nav.steps button.helpnav{background:transparent;border-style:dashed}
+#pc-root #helpModal{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.45);display:flex;justify-content:center;padding:max(12px,env(safe-area-inset-top,0px)) 12px 12px}
+#pc-root #helpModal[hidden]{display:none!important}
+#pc-root .hbox{background:var(--bg);color:var(--ink);width:min(1080px,100%);height:100%;border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line)}
+#pc-root .hhead{display:flex;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+#pc-root .hmain{flex:1;display:grid;grid-template-columns:220px 1fr;min-height:0}
+#pc-root #helpToc{overflow:auto;border-right:1px solid var(--line);padding:10px 8px;background:var(--surface)}
+#pc-root #helpToc button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:inherit;font-size:13px;padding:5px 8px;border-radius:4px;cursor:pointer}
+#pc-root #helpToc button:hover,#pc-root #helpToc button.on{background:var(--accent-soft)}
+#pc-root #helpBody{overflow:auto;padding:4px 20px 40px}
+#pc-root .hsec{padding:14px 12px;border-bottom:1px solid var(--line);border-radius:var(--r);scroll-margin-top:8px}
+#pc-root .hsec h3{font-size:15px;margin:0 0 6px}
+#pc-root .hsec .f{font-family:var(--f-num);background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:6px 10px;margin:6px 0;white-space:pre-wrap;font-size:12.5px}
+#pc-root .hsec table{width:auto;min-width:0;margin:6px 0}
+#pc-root .hsec.flash{background:var(--accent-soft);transition:background 1.6s}
+@media (max-width:720px){#pc-root .hmain{grid-template-columns:1fr}#pc-root #helpToc{display:none}}
+body>.toast{position:fixed;right:24px;bottom:24px;z-index:80;opacity:1}
+@media (prefers-reduced-motion:no-preference){#pc-root .btn,#pc-root nav.steps button{transition:background .15s,border-color .15s}}
