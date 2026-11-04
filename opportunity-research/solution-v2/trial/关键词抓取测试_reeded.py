@@ -1,8 +1,8 @@
 """关键词抓取测试（reeded）：三个小平台按关键词搜索，抓前 300 条，核实尺寸 / 拆装 / 变体 / 评论选项字段，估计覆盖。
 用法：
-  python 关键词抓取测试_reeded.py 采集     # 断点续采；原始缓存 input/data_v2/渠道关键词/reeded/（不入库）
+  python 关键词抓取测试_reeded.py hd / lowes / wayfair   # 断点续采列表（HD 另抓商品页）；原始缓存 input/data_v2/渠道关键词/reeded/（不入库）
   python 关键词抓取测试_reeded.py 抽样     # 商品页 / 评论变体字段核实（Lowe's、Wayfair 各 3 个经 Bright Data；HD 3 个直连）
-  python 关键词抓取测试_reeded.py 分析     # → solution-v2/开发建议/关键词抓取测试_reeded.md
+  python 关键词抓取测试_reeded.py 分析     # 打印报告数字（报告 solution-v2/开发建议/关键词抓取测试_reeded.md 手写叙述 + 这些数字）
 网络：Home Depot 直连（≥1.3 秒/次）；Lowe's / Wayfair 经 Bright Data Web Unlocker 异步接口（代理注入密钥，代码里是占位值）。
 Bright Data 本次测试总请求上限 BD_CAP 次（ledger.json 记账，提交即计数，超过即停）。不改 tools/ 与 app/ 原文件，只 import。"""
 import os, sys, re, json, time, random, html, math, collections, urllib.request, urllib.error, urllib.parse
@@ -307,7 +307,7 @@ def hd_pages():
 
 
 # ---------- 3. 抽样：商品页 / 评论的变体字段 ----------
-SAMPLE = {'lowes': ['5014516369', '5017482105', '5022709982'], 'wayfair': ['GCNE1307', 'GCNE1351', 'W111053305'],
+SAMPLE = {'lowes': ['5014516369', '5017482105', '5022709982', '5019332077'], 'wayfair': ['GCNE1307', 'GCNE1351', 'W111053305'],
           'homedepot': ['327193858', '319735856', '333485322']}
 
 
@@ -317,12 +317,190 @@ def sample_pages():
         g = load_json(raw_path('lists', f'{plat}_{KW}.json'))
         by = {r['id']: r for p in g['pages'] for r in p}
         for pid in SAMPLE[plat]:
+            if pid in ('5022709982',): continue   # 商品页两次 BD 502（02:21、02:26），换 5019332077
             jobs.append((plat, pid, by[pid]['url']))
     ok = {'lowes': lowes_ok, 'wayfair': lambda b: len(b) > 300000}
     with ThreadPoolExecutor(6) as ex:
         list(ex.map(lambda j: bd_cached(j[2], j[1], j[0] + '_pdp', ok[j[0]], tries=2), jobs))
     for pid in SAMPLE['homedepot']:
         hd_page(pid, keep_reviews=True)
+
+
+# ---------- 分析 ----------
+RE_KW = re.compile(r'reeded|fluted|fluting|ribbed|channel(?:ed)?\b', re.I)
+RE_KW_STRICT = re.compile(r'reeded|fluted', re.I)
+
+
+def tagger():
+    sys.path.insert(0, os.path.join(ROOT, 'app', 'pdt', 'core'))
+    import tagging_rules as TR
+    from families import band
+    return TR, band
+
+
+def tag_text(TR, title, extra=''):
+    """v12.2 Tagger，只用文字（标题 + 可选列表字段），不用默认值。返回 宽 / 装 / 形态。"""
+    row = {'子ASIN': 'X', '商品标题': title or '', 'SKU属性': '', '商品尺寸': ''}
+    ex = [{'attributes': '', 'features': extra}] if extra else []
+    t = TR.Tagger(row, {}, export_rows=ex, accessory_default=False).run()[0]
+    low = (title or '').lower() + ' ' + (extra or '').lower()
+    if re.search(r'ready[ -]to[ -]assemble|\brta\b|unassembled|assembly required', low): asm = '拆装'
+    elif re.search(r'\(assembled\)|fully assembled|pre[- ]?assembled|\bassembled\b', low): asm = '整装'
+    elif t['D2安装方式'] in ('整装', '拆装'): asm = t['D2安装方式']
+    else: asm = '未知'
+    if re.search(r'float|wall[- ]?mount|wall[- ]?hung', low): form = '悬浮式'
+    elif re.search(r'freestanding|free[- ]standing|floor[- ]?standing', low): form = '落地式'
+    elif t['D1产品形态'] not in ('未知', '信息不足', '待图片核验', '', None): form = t['D1产品形态']
+    else: form = '未知'
+    w = t['D9宽(in)']
+    w = w if w not in ('未知', '', None) else title_width(title)
+    return dict(宽=w, 装=asm, 形态=form, 色=t['D6柜体颜色'])
+
+
+RE_W = re.compile(r'(?<![\d./])(\d{2}(?:\.\d+)?)\s*(?:-|\s)?(?:in\b\.?|inch(?:es)?\b|"|\'\'|″)(?!\s*(?:\.\s*)?(?:h\b|d\b|tall|high|deep|height|depth))', re.I)
+
+
+def title_width(title):
+    """Tagger 没认出宽时的补充：标题里第一个"数字 + in/inch/\""、且后面不是 H / D 的数（15–100）。多尺寸写法（24"/30"）不认。"""
+    if re.search(r'\d\s*["″]?\s*/\s*\d', title or ''): return None
+    for m in RE_W.finditer(title or ''):
+        v = float(m.group(1))
+        if 15 <= v <= 100: return v
+    return None
+
+
+def hd_spec_tags(pg):
+    sp = pg.get('specs') or {}
+    asm = str(sp.get('Assembled', '')).lower()
+    a = '拆装' if ('unassembled' in asm or 'ready to assemble' in asm or 'partially' in asm) else ('整装' if asm.startswith('assembled') or asm == 'fully assembled' else None)
+    vt = str(sp.get('Vanity Type', '')).lower()
+    f = '悬浮式' if ('float' in vt or 'wall' in vt) else ('落地式' if 'freestanding' in vt else None)
+    w = None
+    for k in ('Product Width (in.)', 'Cabinet Width (in.)', 'Vanity Width (in.)'):
+        m = re.match(r'\s*(\d+(?:\.\d+)?)', str(sp.get(k, '')))
+        if m: w = float(m.group(1)); break
+    return dict(宽=w, 装=a, 形态=f)
+
+
+def ranked_rows(plat, kw=KW):
+    g = load_json(raw_path('lists', f'{plat}_{kw}.json'))
+    seen, out = set(), []
+    allrows = [r for p in g['pages'] for r in p]
+    for r in allrows:
+        if r['sponsored'] or r['id'] in seen: continue
+        seen.add(r['id']); out.append(dict(r, rank=len(out) + 1))
+    return g, allrows, out[:TOPN]
+
+
+def stem(title):
+    t = re.sub(r'\d+(\.\d+)?\s*(in\.?|inch(es)?|["\'″]+|-in\b)?', ' ', title.lower())
+    t = re.sub(r'\b(single|double|sink|bath(room)?|vanity|with|and|in|w|x|d|h|top|the|a)\b', ' ', t)
+    return ' '.join(t.split()[:4])
+
+
+def hd_families(rows):
+    parent = {}
+    def root(x):
+        while parent.get(x, x) != x: x = parent[x]
+        return x
+    by_sig = {}
+    for r in rows:
+        pg = load_json(raw_path('hd_pages', f"{r['id']}.json")) or {}
+        sig = tuple(pg.get('sig') or [])
+        parent.setdefault(r['id'], r['id'])
+        if sig:
+            if sig in by_sig: parent[root(r['id'])] = root(by_sig[sig])
+            else: by_sig[sig] = r['id']
+        for q in pg.get('sig_pids') or []:
+            if q in parent and q != r['id']: parent[root(q)] = root(r['id'])
+    return {r['id']: root(r['id']) for r in rows}
+
+
+def coverage(rows, fam, val):
+    """家族按最靠前的排名计一次；val(r) = 评论数或 价格×评论数。返回分段表与幂律外推。"""
+    import numpy as np
+    seen, F = set(), []
+    for r in rows:
+        f = fam[r['id']]
+        if f in seen: continue
+        seen.add(f); F.append((r['rank'], val(r)))
+    tot = sum(v for _, v in F) or 1
+    seg = []
+    for lo, hi in ((1, 50), (51, 100), (101, 200), (201, 300)):
+        d = [v for rk, v in F if lo <= rk <= hi]
+        seg.append(dict(seg=f'{lo}–{hi}', n=len(d), pos=sum(v > 0 for v in d), sum=sum(d), share=sum(d) / tot, mean=(sum(d) / len(d)) if d else 0))
+    fit = [(i + 1, v) for i, (rk, v) in enumerate(F) if rk > 50 and v > 0]
+    ext = {}
+    if len(fit) > 8:
+        b, a = np.polyfit(np.log([x for x, _ in fit]), np.log([v for _, v in fit]), 1)
+        # 有正值的家族比例，用于把外推乘上"有评论"的概率
+        p_pos = len(fit) / max(1, sum(1 for rk, _ in F if rk > 50))
+        for N in (1000, 3000):
+            tail = sum(math.exp(a) * k ** b for k in range(len(F) + 1, N + 1)) * p_pos
+            ext[N] = tot / (tot + tail)
+        ext['b'] = b
+    return seg, ext, len(F), tot
+
+
+def analyze():
+    import numpy as np
+    TR, band = tagger()
+    L = []; P = lambda *a: L.extend(a)
+    led = load_json(LEDGER, {})
+    res = {}
+    for plat in ('homedepot', 'lowes', 'wayfair'):
+        g, allrows, rows = ranked_rows(plat)
+        g2 = load_json(raw_path('lists', f'{plat}_{KW2}.json')) or {}
+        if plat == 'homedepot':
+            fam = hd_families(rows)
+        elif plat == 'lowes':
+            fam = {r['id']: (r.get('parent') or r['id']) for r in rows}
+        else:
+            fam = {r['id']: r['id'] for r in rows}
+        stems = {r['id']: ((r.get('brand') or '').lower(), stem(r['title'])) for r in rows}
+        for r in rows:
+            extra = r.get('bullets', '') if plat == 'lowes' else ''
+            t1 = tag_text(TR, r['title']); t2 = tag_text(TR, r['title'], extra) if extra else t1
+            r['宽_标题'], r['装_标题'], r['形态_标题'] = t1['宽'], t1['装'], t1['形态']
+            r['宽_列表'], r['装_列表'], r['形态_列表'] = t2['宽'], t2['装'], t2['形态']
+            if plat == 'homedepot':
+                pg = load_json(raw_path('hd_pages', f"{r['id']}.json")) or {}
+                sp = hd_spec_tags(pg)
+                r['宽_页'] = t1['宽'] or sp['宽']; r['装_页'] = sp['装'] or t1['装']; r['形态_页'] = sp['形态'] or t1['形态']
+            r['段_标题'] = band(r['宽_标题']); r['段_列表'] = band(r['宽_列表']); r['段_页'] = band(r.get('宽_页'))
+            r['kw'] = bool(RE_KW_STRICT.search(r['title'])); r['kw_list'] = bool(RE_KW_STRICT.search(r['title'] + ' ' + r.get('bullets', '')))
+            r['fam'] = fam[r['id']]
+        res[plat] = dict(g=g, g2=g2, allrows=allrows, rows=rows, fam=fam, stems=stems)
+    save_json(raw_path('分析_rows.json'), {k: v['rows'] for k, v in res.items()})
+    return res, led
+
+
+def summary():
+    """打印报告用的全部数字（报告 solution-v2/开发建议/关键词抓取测试_reeded.md 的数字出自这里）。"""
+    res, led = analyze()
+    print('Bright Data ledger', led)
+    for p, v in res.items():
+        g, rows = v['g'], v['rows']; fam = v['fam']
+        famc = collections.Counter(fam.values()); stc = collections.Counter(v['stems'].values())
+        print('=====', p, 'total', g.get('total'), 'pages', len(g['pages']), 'allrows', len(v['allrows']), 'sp', sum(r['sponsored'] for r in v['allrows']),
+              'dupe rows', len(v['allrows']) - len({r['id'] for r in v['allrows']}), 'n', len(rows))
+        print(' fluted total', v['g2'].get('total'), 'fluted p1 kw', sum(bool(RE_KW_STRICT.search(r['title'])) for p_ in v['g2'].get('pages', []) for r in p_), '/', sum(len(p_) for p_ in v['g2'].get('pages', [])))
+        print(' fam', len(famc), 'multi', sum(c > 1 for c in famc.values()), 'max', max(famc.values()), 'rows in multi', sum(c for c in famc.values() if c > 1),
+              'stem fam', len(stc), 'rows in multi stem', sum(c for c in stc.values() if c > 1))
+        for key in ('段_标题', '段_页', '装_标题', '装_页', '形态_标题', '形态_页'):
+            if key in rows[0]: print(' ', key, collections.Counter(r[key] for r in rows).most_common())
+        print(' kw', sum(r['kw'] for r in rows), 'kw by seg', [sum(r['kw'] for r in rows if lo <= r['rank'] <= hi) for lo, hi in ((1, 50), (51, 100), (101, 200), (201, 300))])
+        print(' price', sum(r['price'] is not None for r in rows), 'rating', sum(r['rating'] is not None for r in rows), 'rev>0', sum((r['reviews'] or 0) > 0 for r in rows), 'reviews', sum(r['reviews'] or 0 for r in rows))
+        if p == 'wayfair':
+            ms = [r for r in rows if 'Sizes' in (r.get('choices') or '')]
+            print(' choices', collections.Counter(r.get('choices') is not None for r in rows), 'multi-size', len(ms), sum(r['reviews'] for r in ms))
+        if p == 'lowes':
+            print(' variant types', collections.Counter(r.get('variant_type') for r in rows), 'marketplace', sum(r['marketplace'] for r in rows))
+        for val, lab in ((lambda r: r['reviews'] or 0, '评论'), (lambda r: (r['reviews'] or 0) * (r['price'] or 0), '价×评')):
+            seg, ext, nf, tot = coverage(rows, fam, val)
+            print(' cov', lab, nf, round(tot), [(x['seg'], x['n'], x['pos'], round(x['share'], 3)) for x in seg], {a: round(float(b), 3) for a, b in ext.items()})
+        kr = [r for r in rows if r['kw']]
+        print(' kw reviews', sum(r['reviews'] or 0 for r in kr), 'kw rev>0', sum((r['reviews'] or 0) > 0 for r in kr))
 
 
 if __name__ == '__main__':
@@ -335,6 +513,8 @@ if __name__ == '__main__':
         lowes_list(KW); lowes_list(KW2, max_pages=1)
     if cmd == '抽样':
         sample_pages()
+    if cmd == '分析':
+        summary()
     if cmd == 'probe':
         which = sys.argv[2]
         if which == 'hd':
