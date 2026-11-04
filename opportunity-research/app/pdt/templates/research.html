@@ -115,7 +115,7 @@
   {% endif %}
   <div class="filters rs-tools">
     <a class="checklink" href="/research?channel={{ ch }}{{ '' if readable else '&readable=1' }}" data-readable-only><input type="checkbox" tabindex="-1" {% if readable %}checked{% endif %} aria-label="只看可读框"> 只看可读框</a>
-    <span class="small muted" data-shown-count>显示 <b class="num">{{ frames|length }}</b> / {{ n_frames }} 个框 · 可读 {{ sm.frames_readable }} 个</span>
+    <span class="small muted" data-shown-count>显示 <b class="num">{{ frames|length }}</b> / {{ n_frames }} 个框 · 可读 {{ sm.frames_readable }} 个 · 表格可横向滚动</span>
     <span class="spacer"></span>
     <span class="small muted legend"><span class="badge badge--pass">可读</span> 覆盖 ≥ 95% 且有月度 ≥ 60% · <span class="badge badge--unverified">趋势不下结论</span> 有月度 &lt; 60% · <span class="badge badge--insufficient">不下结论</span> 覆盖 &lt; 95%，只看体量和份额</span>
   </div>

@@ -95,7 +95,7 @@ def _research_row():
     if not done:
         label, tone, icon = "尚未导入", "nodata", "link-simple"
     elif pend:
-        label, tone, icon = f"分框待确认 {pend}", "unverified", "warning"
+        label, tone, icon = f"分框待确认 {pend} 个商品", "unverified", "warning"
     else:
         label, tone, icon = "已导入", "ok", "check-circle"
     return dict(channel="research", name="渠道调研", sub="历史观察 · 不进机会扫描", href="/research", month=month, label=label, tone=tone, icon=icon,
