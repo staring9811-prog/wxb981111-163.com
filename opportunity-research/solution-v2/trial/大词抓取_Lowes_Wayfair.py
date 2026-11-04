@@ -65,8 +65,10 @@ def get_page(plat, kw, n):
         log(str(e)); return None
     if not b: return None
     if plat == 'lowes':
-        st = K.lowes_state(b)
-        if not st: return None
+        try: st = K.lowes_state(b)
+        except ValueError: st = None
+        if not st:
+            log(f'  Lowes {kw} 第 {n + 1} 页：HTML 不完整，删缓存'); os.remove(raw_path('raw', plat, f'{kw}_{n}.html')); return None
         rows, _ = K.lowes_rows_from(st)
         if n and ((st.get('pagination') or {}).get('page') != n + 1):
             log(f'  Lowes {kw} 第 {n + 1} 页：服务端仍返回第 {(st.get("pagination") or {}).get("page")} 页（offset 被忽略），记失败'); os.remove(raw_path('raw', plat, f'{kw}_{n}.html')); return None
@@ -164,7 +166,8 @@ def pdp(plat, fam):
         b = K.bd_cached(fam['url'], fam['id'], plat + '_pdp', K.lowes_ok if plat == 'lowes' else (lambda b: len(b) > 300000), tries=2)
     except K.BudgetExceeded as e:
         return {'budget': str(e)}
-    out = parse_lowes(b, fam['id']) if (b and plat == 'lowes') else (parse_wf(b) if b else None)
+    try: out = parse_lowes(b, fam['id']) if (b and plat == 'lowes') else (parse_wf(b) if b else None)
+    except ValueError: out = None   # HTML 被截断
     if out is None: out = {'失败': True}
     save_json(f, out)
     return out
@@ -335,7 +338,7 @@ def table(plat):
         ok = bool(pg) and not pg.get('失败') and not pg.get('budget')
         o = (fields_lowes if plat == 'lowes' else fields_wf)(f, pg if ok else None, TR)
         bands = {band(x) for x in o['选项宽']} - {None}
-        o.update(fam=fk, id=f['id'], title=f['title'], kws=f['kws'], n_ids=len(f['ids']), 商品页=ok,
+        o.update(marketplace=f.get('marketplace'), fam=fk, id=f['id'], title=f['title'], kws=f['kws'], n_ids=len(f['ids']), 商品页=ok,
                  price=f['price'] if f['price'] is not None else (pg or {}).get('price') if ok else f['price'],
                  rating=f['rating'] if f['rating'] is not None else ((pg or {}).get('rating') if ok else None),
                  reviews=f['reviews'] or 0, 段=band(o['宽']), 选项段=sorted(bands), 多尺寸段=len(bands) > 1)
@@ -382,9 +385,19 @@ def main():
         if plat == 'wayfair':
             P = [o for o in T if o['商品页']]
             print('  内嵌评论', sum(o['内嵌评论'] for o in P), '带选项', sum(o['评论带选项'] for o in P), '有带选项评论的 listing', sum(o['评论带选项'] > 0 for o in P), '/', sum(o['内嵌评论'] > 0 for o in P))
+            M = [o for o in P if o['多尺寸段']]
+            wc = 0; wt = 0
+            for o in M:
+                pg = load_json(raw_path('pdp', plat, f"{o['id']}.json")) or {}
+                for r in pg.get('reviews_embedded') or []:
+                    wt += 1; wc += any(re.search(r'width|size', n, re.I) for n, _ in r['choices'])
+            print('  多尺寸段 listing', len(M), '内嵌评论', wt, '带尺寸选项', wc, '内嵌/页面评论', round(wt / (sum(o['reviews'] for o in M) or 1), 3))
+            print('  装原值（按评论）', sorted(((k, round(sum(o['reviews'] for o in T if o.get('装原值') == k) / rv, 3)) for k in set(o.get('装原值') for o in T)), key=lambda x: -x[1])[:8])
+            emb = sum(o['内嵌评论'] for o in P); print('  内嵌评论占页面评论', round(emb / (sum(o['reviews'] for o in P) or 1), 3))
         if plat == 'lowes':
             P = [o for o in T if o['商品页'] and 'reviews_pdp' in o]
             print('  列表评论数 vs 商品页评论数 一致', sum(o['reviews'] == o['reviews_pdp'] for o in P), '/', len(P))
+            print('  有评论家族', sum(o['reviews'] > 0 for o in T), '其中有商品页', sum(o['reviews'] > 0 and o['商品页'] for o in T), 'Marketplace(全部)', sum(1 for o in T if o.get('marketplace')))
         # 覆盖：主词按排名分段
         rows = organic(plat, 'bathroom vanity', 99)[:500]
         famof = (lambda r: r.get('parent') or r['id']) if plat == 'lowes' else (lambda r: r['id'])
