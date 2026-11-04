@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.1.2">
+<meta name="pc-app-version" content="1.1.3">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -241,14 +241,15 @@ body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(s
 </div></header>
 
 <div id="pcUpdateBanner" class="msg ok" hidden style="margin:12px auto;max-width:1368px" role="status">
- <b id="pcUpdateAvailable"></b> <button class="btn sm" id="btnUpdateReview">查看更新</button> <button class="btn sm" id="btnUpdateLater">稍后</button>
+ <b id="pcUpdateAvailable"></b> <button class="btn sm primary" id="btnUpdateNow" hidden>立即更新</button> <button class="btn sm" id="btnUpdateReview">查看更新</button> <button class="btn sm" id="btnUpdateLater">稍后</button>
 </div>
 <dialog id="pcUpdateDialog" aria-labelledby="pcUpdateTitle">
  <div class="row"><h2 id="pcUpdateTitle" style="margin:0">系统更新与完整备份</h2><button class="btn sm" id="btnUpdateClose">关闭</button></div>
  <p>当前版本 v<span class="pcVer"></span>。新版只更新系统功能，报价、产品、参数和 API 设置保存在各自浏览器，不上传到 GitHub。</p>
- <p>本地文件请替换原位置的 <b>index.html</b>，并使用同一浏览器。换文件名、目录、浏览器或电脑时，先导出完整备份，再在新页面恢复。</p>
+ <p id="pcSelfNote">Chrome / Edge 可以<b>一键更新</b>：点“立即更新”后选中你正在用的这个 HTML 文件（会自动打开到它所在的文件夹），再点“保存更改”，就会直接覆盖它并自动刷新，数据不动。更新前会自动在浏览器里保留旧版和数据快照，可一键回退。</p>
+ <p>其他浏览器请下载新文件，替换原位置的同名文件，并使用同一浏览器。换文件名、目录、浏览器或电脑时，先导出完整备份，再在新页面恢复。</p>
  <label class="chk"><input type="checkbox" id="pcBackupKey" checked>完整备份包含 API Key（仅保留本机，请勿分享）</label>
- <div class="row" style="margin-top:12px"><button class="btn" id="btnFullBackup">下载完整备份</button><button class="btn" id="btnRestoreBackup">恢复完整备份</button><button class="btn primary" id="btnGetUpdate" hidden>确认下载新版系统</button></div>
+ <div class="row" style="margin-top:12px"><button class="btn" id="btnFullBackup">下载完整备份</button><button class="btn" id="btnRestoreBackup">恢复完整备份</button><button class="btn primary" id="btnSelfUpdate" hidden>一键更新（覆盖当前文件）</button><button class="btn" id="btnGetUpdate" hidden>下载新版文件</button><button class="btn" id="btnRollback" hidden>回退到上一版</button></div>
  <input type="file" id="pcBackupFile" accept=".json" hidden>
  <p id="pcUpdateStatus" role="status" class="note">更新前请先下载完整备份。恢复备份需要再次确认。</p>
 </dialog>
@@ -1808,9 +1809,10 @@ async function checkSystemUpdate(manual=false){
   try{localStorage.setItem("pc_update_checked",String(Date.now()));}catch(e){}
   const newer=compareAppVersions(remote.version,PC_RELEASE.version)>0;
   document.getElementById("btnGetUpdate").hidden=!newer;
+  document.getElementById("btnSelfUpdate").hidden=!(newer&&PC_SELF);document.getElementById("btnUpdateNow").hidden=!(newer&&PC_SELF);
   const banner=document.getElementById("pcUpdateBanner");banner.hidden=!newer;
   document.getElementById("pcUpdateAvailable").textContent=`发现新版 v${remote.version}（当前 v${PC_RELEASE.version}）`;
-  if(newer){setUpdateStatus(`发现 v${remote.version}。只有你确认后才下载；当前数据和接口设置不会被发送。`);}
+  if(newer){setUpdateStatus(PC_SELF?`发现 v${remote.version}。点“一键更新”直接覆盖当前文件并刷新；数据和接口设置不会被发送或改动。`:`发现 v${remote.version}。只有你确认后才下载；当前数据和接口设置不会被发送。`);}
   else if(manual)setUpdateStatus("当前已是最新正式版本，数据和设置未改动。");
  }catch(e){if(manual)setUpdateStatus("检查更新失败："+(e.name==="AbortError"?"连接超时":e.message)+"。可以继续使用当前版本。");}
  finally{clearTimeout(timer);pcUpdate.busy=false;btn.disabled=false;}
@@ -1828,6 +1830,57 @@ async function downloadSystemUpdate(){
   setUpdateStatus("系统文件下载已发起。替换原位置的 index.html 后重新打开；换位置时请导入完整备份。旧文件仍可保留用于回退。");
  }catch(e){setUpdateStatus("更新未完成："+e.message+"。原程序和数据仍保留，请先导出完整备份。");}
 }
+/* ---- 一键更新: overwrite the open HTML file in place (File System Access API: Chrome / Edge).
+   The user picks the open file (the picker reopens in that folder); the handle is kept in memory only, because reading a
+   stored file handle back from IndexedDB on a file:// page crashes Chromium. Same file path → same browser storage, so data stays.
+   Before writing, the old HTML and a full data snapshot are kept in IndexedDB for 回退到上一版. ---- */
+const PC_SELF=typeof window!=="undefined"&&typeof window.showOpenFilePicker==="function"&&typeof indexedDB!=="undefined";
+const pcReload=()=>location.reload();
+let pcSelfH=null;
+function pcIdb(mode,fn){ return new Promise((ok,bad)=>{ const rq=indexedDB.open("pc_self_update",1);
+  rq.onupgradeneeded=()=>rq.result.createObjectStore("kv"); rq.onerror=()=>bad(rq.error);
+  rq.onsuccess=()=>{ const db=rq.result, tx=db.transaction("kv",mode), st=tx.objectStore("kv"); let out; Promise.resolve(fn(st)).then(r=>{ out=r; });
+    tx.oncomplete=()=>{ db.close(); ok(out&&"result" in out?out.result:out); }; tx.onerror=()=>{ db.close(); bad(tx.error); }; }; }); }
+const idbGet=k=>pcIdb("readonly",st=>st.get(k)), idbPut=(k,v)=>pcIdb("readwrite",st=>{ st.put(v,k); });
+const pcFileName=()=>{ try{ return decodeURIComponent(location.pathname.split("/").pop()||""); }catch(e){ return ""; } };
+async function pcSelfHandle(){
+ let h=pcSelfH;
+ if(!h){
+  const picked=await window.showOpenFilePicker({id:"pcself",startIn:"downloads",multiple:false,types:[{description:"利润测算台网页",accept:{"text/html":[".html",".htm"]}}]});
+  h=picked[0]; const f=await h.getFile(), t=await f.text();
+  if(!t.includes('id="btnCheckUpdate"')||!t.includes(`name="pc-app-version" content="${PC_RELEASE.version}"`)) throw Error("选的不是当前打开的这个利润测算台文件（版本对不上），文件未改动。请选地址栏里这个文件");
+  if(pcFileName()&&f.name!==pcFileName()&&!window.confirm(`你选的是“${f.name}”，当前打开的是“${pcFileName()}”。确定覆盖“${f.name}”吗？`)) throw Error("已取消");
+  pcSelfH=h;
+ }
+ let perm=await h.queryPermission({mode:"readwrite"}); if(perm!=="granted") perm=await h.requestPermission({mode:"readwrite"});
+ if(perm!=="granted") throw Error("浏览器没有允许修改这个文件");
+ return h;
+}
+async function pcWriteSelf(h,html){ const w=await h.createWritable(); await w.write(new Blob([html],{type:"text/html"})); await w.close();
+ const back=await (await h.getFile()).text(); if(back!==html) throw Error("写入后核对不一致"); }
+async function selfUpdate(){
+ const remote=pcUpdate.remote; if(!remote||compareAppVersions(remote.version,PC_RELEASE.version)<=0) return;
+ if(remote.schema!==PC_RELEASE.schema){ setUpdateStatus("新版数据格式不同，本版本不能安全迁移。请先导出完整备份并联系维护者，已暂停更新。"); return; }
+ openUpdatePanel(); setUpdateStatus("正在更新：请选中当前打开的这个 HTML 文件，然后点“保存更改”…");
+ try{
+  const h=await pcSelfHandle();
+  const old=await (await h.getFile()).text();
+  if(!old.includes('id="btnCheckUpdate"')) throw Error("记住的文件已不是利润测算台，请重新选择");
+  await idbPut("snapshot",{version:PC_RELEASE.version,savedAt:new Date().toISOString(),html:old,backup:makeFullBackup(true)});   // rollback point
+  await pcWriteSelf(h,remote.html);
+  setUpdateStatus(`已更新到 v${remote.version}，正在刷新…`); setTimeout(pcReload,400);
+ }catch(e){
+  if(e&&e.name==="AbortError"){ setUpdateStatus("已取消，文件没有改动。"); return; }
+  if(e&&(e.name==="NotFoundError"||e.name==="NotReadableError")) pcSelfH=null;
+  setUpdateStatus("一键更新未完成："+(e&&e.message||e)+"。原文件和数据没有改动；也可以点“下载新版文件”手动替换。");
+ }
+}
+async function selfRollback(){
+ try{ const snap=await idbGet("snapshot"); if(!snap||!snap.html) throw Error("没有可回退的旧版");
+  if(!window.confirm(`回退到 v${snap.version}（${snap.savedAt.slice(0,16).replace("T"," ")} 更新前的版本）？数据不变。`)) return;
+  const h=await pcSelfHandle(); await pcWriteSelf(h,snap.html); setUpdateStatus(`已回退到 v${snap.version}，正在刷新…`); setTimeout(pcReload,400);
+ }catch(e){ if(e&&e.name==="AbortError") return; setUpdateStatus("回退未完成："+(e&&e.message||e)); }
+}
 /* Only the downloaded HTML file needs this: the claude.ai page is updated by republishing and cannot reach GitHub. */
 const PC_LOCAL=location.protocol==="file:";
 document.querySelectorAll(".pcVer").forEach(e=>e.textContent=PC_RELEASE.version);
@@ -1839,6 +1892,11 @@ document.getElementById("btnUpdateLater").addEventListener("click",()=>document.
 document.getElementById("btnUpdateClose").addEventListener("click",()=>document.getElementById("pcUpdateDialog").close());
 document.getElementById("btnFullBackup").addEventListener("click",exportFullBackup);
 document.getElementById("btnGetUpdate").addEventListener("click",downloadSystemUpdate);
+document.getElementById("btnSelfUpdate").addEventListener("click",selfUpdate);
+document.getElementById("btnUpdateNow").addEventListener("click",selfUpdate);
+document.getElementById("btnRollback").addEventListener("click",selfRollback);
+document.getElementById("pcSelfNote").hidden=!PC_SELF;
+if(PC_SELF&&PC_LOCAL) idbGet("snapshot").then(s=>{ if(s&&s.html&&s.version!==PC_RELEASE.version){ const b=document.getElementById("btnRollback"); b.hidden=false; b.textContent=`回退到 v${s.version}`; } }).catch(()=>{});
 document.getElementById("btnRestoreBackup").addEventListener("click",()=>document.getElementById("pcBackupFile").click());
 document.getElementById("pcBackupFile").addEventListener("change",async e=>{
  const file=e.target.files[0];if(!file)return;
