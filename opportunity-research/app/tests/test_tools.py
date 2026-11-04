@@ -1,6 +1,7 @@
 """工具：评论 VP 追踪（FLOW-16）与利润测算（FLOW-17、FLOW-18）。
 - FLOW-16：Bright Data / Apify 用假服务；导出与原工具（tools/评论月度VP追踪器/reviewkit）对同一批明细的导出逐格比对。
-- FLOW-17：利润数字的基准由原工具 tools/利润测算台/index.html 的 JS 在 node 里算出，与并入版 engine.js 逐项比对。"""
+- FLOW-17：利润数字的基准由原工具 tools/利润测算台/index.html（wen 2026-11-03 第二版：变量抽屉、保存回当前版本、渠道费用矩阵、计算说明）
+  的 JS 在 node 里算出，与并入版 engine.js 逐项比对；engine.js / profit.css / _profit_sections.html 由 tools_sync_profit.py 从原工具生成。"""
 import html
 import json
 import shutil
@@ -13,6 +14,7 @@ from fastapi.testclient import TestClient
 from openpyxl import load_workbook
 
 import decision_seed as ds
+import tools_sync_profit as sync
 from conftest import login_as, make_user
 from pdt import costgate, services
 from pdt.config import PROJECT_DIR
@@ -344,6 +346,73 @@ console.log(JSON.stringify({product: products[0].name, rows: chanList().map(func
     assert fbm2 > fbm1 and money(fbm2) in sec8 and money(fbm1) not in sec8
     with session() as s:
         assert s.get(Card, cid).profit_plan_id == plan["id"] and s.get(ProfitPlan, plan["id"]).card_id == cid
+
+
+@needs_node
+def test_sync_script_regenerates_committed_files():
+    """同步脚本：对现在的原工具运行成功，生成的 engine.js / profit.css / _profit_sections.html 与提交的版本逐字相同；
+    补丁清单每条都有说明和【判定台改动】编号；同步记录里的哈希就是原工具文件的哈希（启动时据此判断原工具有没有更新）。"""
+    out = sync.build(PROFIT_HTML.read_text(encoding="utf-8"))
+    for path, text in out.items():
+        assert path.read_text(encoding="utf-8") == text, path.name
+    assert all(p["why"] and p["mark"] in sync.MARKS for p in sync.PATCHES)
+    assert {p["mark"] for p in sync.PATCHES} >= {"1/4", "2/4", "3/4", "4/4"}
+    assert json.loads(sync.STAMP.read_text(encoding="utf-8"))["source_sha256"] == sync.file_sha(PROFIT_HTML)
+    eng = out[sync.OUT_ENGINE]
+    # 新版界面在系统里：变量抽屉、计算说明、渠道费用矩阵、保存回当前版本；“当前版本”不再记在本浏览器
+    for key in ("function openVars()", "function openHelp(id)", 'class="cm"', "function histSaveCur()", "function getCur(){ return (window.PDT&&PDT.cur)||null; }"):
+        assert key in eng, key
+    assert "pc_cur" not in eng and "window.claude" not in eng and "x-api-key" not in eng
+    body = out[sync.OUT_HTML]
+    for key in ('id="varDrawer"', 'id="helpModal"', 'id="saveBar4"', 'id="saveBar5"', 'id="vChan"'):
+        assert key in body, key
+    assert "#pc-root #varDrawer{" in out[sync.OUT_CSS] and "\nbody{" not in out[sync.OUT_CSS]
+
+
+def test_sync_script_stops_when_anchor_missing(tmp_path, monkeypatch, capsys):
+    """原工具里某条补丁的锚点没了（这里删掉“初始方案”那两行）：脚本报出是第几条、原工具哪一段变了，不生成半成品、不覆盖现有文件。"""
+    outs = {}
+    for name in ("OUT_ENGINE", "OUT_CSS", "OUT_HTML", "STAMP", "DEFAULT_SRC"):
+        src = getattr(sync, name)
+        dst = tmp_path / src.name
+        dst.write_text(src.read_text(encoding="utf-8") if name != "DEFAULT_SRC" else "", encoding="utf-8")
+        monkeypatch.setattr(sync, name, dst)
+        outs[dst] = dst.read_text(encoding="utf-8")
+    html = PROFIT_HTML.read_text(encoding="utf-8")
+    cut = 'let products = load("pc_products") || sampleProducts();\n'
+    assert html.count(cut) == 1
+    bad = tmp_path / "利润测算台_改过.html"
+    bad.write_text(html.replace(cut, ""), encoding="utf-8")
+    assert sync.main(["--from", str(bad)]) == 1
+    err = capsys.readouterr().err
+    assert "同步停下，没有改动任何文件" in err and "补丁 #1" in err and "【判定台改动 1/4】" in err and "需要找 AI" in err
+    assert '-let products = load("pc_products") || sampleProducts();' in err  # 差异里指出原工具哪一行没了
+    for p, text in outs.items():
+        assert p.read_text(encoding="utf-8") == text, p.name  # 现有文件原样保留
+    # 锚点出现两次同样停下
+    a1 = sync.PATCHES[0]["anchor"]
+    bad.write_text(html.replace(a1, a1 + a1), encoding="utf-8")
+    assert sync.main(["--from", str(bad)]) == 1 and "出现 2 次" in capsys.readouterr().err
+    # 页面结构变了（少了一条要去掉的整页样式）也停下
+    bad.write_text(html.replace("header.bar .wrap{", "header.top .wrap{"), encoding="utf-8")
+    assert sync.main(["--from", str(bad)]) == 1 and "header.bar .wrap" in capsys.readouterr().err
+    for p, text in outs.items():
+        assert p.read_text(encoding="utf-8") == text, p.name
+
+
+def test_profit_page_hints_when_original_tool_changed(wen, tmp_path, monkeypatch):
+    """启动时检测：原工具 index.html 与上次同步的哈希不同，利润测算页顶部提示“原工具有更新，运行同步脚本”；相同则不提示。只提示，不改代码。"""
+    from pdt.web import routes_tools
+    stamp = tmp_path / "profit_sync.json"
+    monkeypatch.setattr(routes_tools, "PROFIT_SYNC", stamp)
+    stamp.write_text(json.dumps({"source_sha256": sync.file_sha(PROFIT_HTML)}), encoding="utf-8")
+    routes_tools.profit_tool_outdated.cache_clear()
+    assert "原工具有更新" not in wen.get("/tools/profit").text
+    stamp.write_text(json.dumps({"source_sha256": "0" * 64}), encoding="utf-8")
+    routes_tools.profit_tool_outdated.cache_clear()
+    page = wen.get("/tools/profit").text
+    assert "原工具有更新，运行同步脚本" in page and "python tools_sync_profit.py" in page
+    routes_tools.profit_tool_outdated.cache_clear()
 
 
 def test_flow18_writeback_rejects_missing_inputs(wen):
