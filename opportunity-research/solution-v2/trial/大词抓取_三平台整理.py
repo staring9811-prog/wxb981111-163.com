@@ -514,6 +514,15 @@ def split_weights(plat, pid0, pg, seg, bands):
     return [('多尺寸未拆', 1.0)]
 
 
+def dedupe_pid(P, M):
+    """同渠道同 pid 只留一行（系统导入按 AC-F30-03 拒绝重复）：留月销表里有该 渠道+fam+pid 的那行，都有或都没有时留第一行。
+    例：Lowe's 5018243355 同时挂在父体 5018441651（有月销）和 6003479666（列表顺带、无月销）下。"""
+    has = set(zip(M['渠道'], M['fam'].astype(str), M['pid'].astype(str)))
+    P = P.assign(_有月销=[(c, str(f), str(p)) in has for c, f, p in zip(P['渠道'], P['fam'], P['pid'])])
+    P = P.sort_values('_有月销', ascending=False, kind='stable').drop_duplicates(['渠道', 'pid']).sort_index()
+    return P.drop(columns='_有月销')
+
+
 def build():
     import pandas as pd
     XC = xc(); V = vp_table()
@@ -521,6 +530,7 @@ def build():
     for fn in (lambda: build_hd(XC, V), lambda: build_lw(XC, V, 'lowes'), lambda: build_lw(XC, V, 'wayfair')):
         p_, m_ = fn(); P += p_; M += m_
     P = pd.DataFrame(P); M = pd.DataFrame(M)
+    P = dedupe_pid(P, M)
     P.to_csv(raw_path('三平台_商品表.csv'), index=False, encoding='utf-8-sig')
     M.to_csv(raw_path('三平台_月销表.csv'), index=False, encoding='utf-8-sig')
     # 装判断不了的：记未知、不进框，单列待确认清单（wen 2026-11-04）
