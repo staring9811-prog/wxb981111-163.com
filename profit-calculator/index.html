@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.2.1">
+<meta name="pc-app-version" content="1.2.2">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -2011,15 +2011,23 @@ async function exportFullBackup(){
   return true;
  }catch(e){setUpdateStatus("备份失败："+e.message);return false;}
 }
+/* The GitHub contents API is fresh within a minute; raw.githubusercontent.com can serve a copy up to 5 minutes old,
+   so a check right after a release could miss it. Plain GET, no headers or credentials either way. */
+const PC_API_URL="https://api.github.com/repos/staring9811-prog/wxb981111-163.com/contents/profit-calculator/index.html?ref=main";
+async function fetchLatestHtml(signal){
+ try{ const r=await fetch(PC_API_URL+"&t="+Date.now(),{cache:"no-store",credentials:"omit",signal});
+  if(r.ok){ const j=await r.json(); if(j&&j.encoding==="base64"&&j.content){ const bin=atob(String(j.content).replace(/\s/g,"")); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return new TextDecoder().decode(u); } } }
+ catch(e){ if(e&&e.name==="AbortError")throw e; }
+ const res=await fetch(PC_RELEASE.url+"?check="+Date.now(),{cache:"no-store",credentials:"omit",signal});
+ if(!res.ok)throw Error(res.status===404?"GitHub 返回 404：仓库可能是私有的，原始文件链接不能公开下载":"GitHub 返回 "+res.status);
+ return await res.text(); }
 async function checkSystemUpdate(manual=false){
  if(pcUpdate.busy)return;
  pcUpdate.busy=true;const btn=document.getElementById("btnCheckUpdate");btn.disabled=true;
  if(manual)setUpdateStatus("正在检查 GitHub 正式版本…");
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
  try{
-  const res=await fetch(PC_RELEASE.url+"?check="+Date.now(),{cache:"no-store",credentials:"omit",signal:controller.signal});
-  if(!res.ok)throw Error(res.status===404?"GitHub 返回 404：仓库可能是私有的，原始文件链接不能公开下载":"GitHub 返回 "+res.status);
-  const remote=parseUpdateDocument(await res.text());pcUpdate.remote=remote;
+  const remote=parseUpdateDocument(await fetchLatestHtml(controller.signal));pcUpdate.remote=remote;
   try{localStorage.setItem("pc_update_checked",String(Date.now()));}catch(e){}
   const newer=compareAppVersions(remote.version,PC_RELEASE.version)>0;
   document.getElementById("btnGetUpdate").hidden=!newer;

@@ -9,7 +9,7 @@ const ctx={products:[{id:'p1',name:'test',pkgs:[{l:10,w:20,h:30,kg:5}]}],P:{rate
  localStorage:{getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>{if(k===failKey){failKey=null;throw Error('quota')}data.set(k,String(v));},removeItem:k=>data.delete(k)},
  location:{protocol:'file:'},document:{getElementById:node,querySelectorAll:()=>[],querySelector:q=>q.includes('pc-app-version')?{content:'1.1.0'}:q.includes('pc-data-schema')?{content:'1'}:null},window:{confirm:()=>true},offer:async(...args)=>offers.push(args),stamp:()=>"test",Date,AbortController,setTimeout,clearTimeout,
  DOMParser:class{parseFromString(text){return {querySelector:q=>q.includes('pc-app-version')?{content:text.includes('older')?'1.0.0':'1.2.0'}:q.includes('pc-data-schema')?{content:'1'}:{}}}},
- fetch:async(...args)=>{requests.push(args);return {ok:true,text:async()=>'<html>new-system-only</html>'};}}
+ atob,TextDecoder,fetch:async(...args)=>{requests.push(args);const body='<html>new-system-only</html>';return {ok:true,text:async()=>body,json:async()=>({encoding:'base64',content:Buffer.from(body).toString('base64')})};}}
 vm.createContext(ctx);vm.runInContext(html.slice(start,end),ctx);const run=s=>vm.runInContext(s,ctx);
 (async()=>{
  assert.equal(run('compareAppVersions("1.10.0","1.2.0")'),1);
