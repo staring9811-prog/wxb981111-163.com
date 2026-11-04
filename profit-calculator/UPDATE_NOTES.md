@@ -32,3 +32,9 @@ node profit-calculator/tests/freeze-theme.cjs
 ## 发布与更新
 此次尚未发布到 main。首次用户必须重新下载此版，旧版没有检查更新代码，无法自动补装。后续发版只需提高 HTML 里的 pc-app-version。pc-data-schema 不变时保留 pc_products / pc_params / pc_quotes / pc_history / pc_ai_cfg / pc_theme / pc_step / pc_cur。schema 变化时停止旧版内下载，需先实现并验证迁移。
 本地 HTML 请保持原浏览器、文件名和原目录。跨目录/浏览器/电脑必须用完整备份迁移。云端报价/历史库仍由原账户管理，不由本地备份恢复覆盖。
+
+# v1.1.1：VC 佣金按原批发价
+- 渠道费用表新增“佣金基数”列：实际结算价 / 原批发价（促销不降）。
+- Lowe's VC 默认“原批发价”：佣金 = 上架价 ÷ 加价倍率 × 5.2%，促销时结算价下降但佣金不变（与 LOWESHDPWF 表 AN 列一致）；其他渠道默认按实际结算价。
+- 保本价/目标价按固定佣金重新求解；明细表列名显示“（按原批发价）”；计算说明与 Excel 参数页同步。
+- 旧数据自动补上该字段，不覆盖已保存的其他参数。
