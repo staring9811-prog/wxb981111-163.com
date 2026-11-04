@@ -88,7 +88,7 @@
       <div class="conflict" data-conflict>
         <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>与已有数据不一致</span><span class="small muted">类目节点 / 两者商品当月 VP + 非VP 评论数 对比 已并入评论 VP 数据（按评论 ID 去重）</span></div>
         <div class="table-wrap"><table class="table"><thead><tr><th>月份</th><th class="t-num">本次导入</th><th class="t-num">已并入</th><th class="t-num">差异</th><th></th></tr></thead><tbody>
-          {% for x in c.conflicts %}<tr{% if x.bad %} class="is-selected"{% endif %}><td class="num">{{ x.month }}</td><td class="t-num">{{ x.imported|num }}</td><td class="t-num">{{ x.merged|num }}</td><td class="t-num{% if x.bad %} strong{% endif %}">{% if x.diff is none %}已并入为 0{% else %}{{ '%+.1f%%'|format(x.diff * 100) }}{% endif %}</td><td>{% if x.bad %}<span class="badge badge--unverified">&gt; 5%</span>{% endif %}</td></tr>{% endfor %}
+          {% for x in c.conflicts %}<tr{% if x.bad %} class="is-selected"{% endif %}><td class="num t-nowrap">{{ x.month }}</td><td class="t-num">{{ x.imported|num }}</td><td class="t-num">{{ x.merged|num }}</td><td class="t-num{% if x.bad %} strong{% endif %}">{% if x.diff is none %}已并入为 0{% else %}{{ '%+.1f%%'|format(x.diff * 100) }}{% endif %}</td><td>{% if x.bad %}<span class="badge badge--unverified">&gt; 5%</span>{% endif %}</td></tr>{% endfor %}
         </tbody></table></div>
         <p class="field__hint">差异 = |本次 − 已并入| ÷ 已并入。同系列 listing 部分共享评论，按 listing 合计会比按评论 ID 去重略多；勾选后才导入 {{ c.name }}，不勾选则本次不导入 {{ c.name }}。</p>
       </div>
