@@ -204,7 +204,7 @@ def lowes_list(kw, topn=TOPN, max_pages=None):
     f = raw_path('lists', f'lowes_{kw}.json'); got = load_json(f) or {'pages': [], 'done': False, 'off': 0}
     while not got['done'] and len({r['id'] for p in got['pages'] for r in p if not r['sponsored']}) < topn and (max_pages is None or len(got['pages']) < max_pages):
         n = len(got['pages'])
-        url = add_query(f'https://www.lowes.com/search?searchTerm={urllib.parse.quote_plus(kw)}', offset=got['off'] or None)
+        url = add_query(f'https://www.lowes.com/search?searchTerm={urllib.parse.quote_plus(kw)}', offset=n * 24 or None)   # 页面 offset 按每页 24 计（adjustedNextOffset=20 实测无效）
         b = bd_cached(url, f'{kw}_{n}', 'lowes', lowes_ok, tries=2)
         st = lowes_state(b) if b else None
         if not st: log(f'Lowes {kw} 第 {n + 1} 页失败，停'); break
@@ -213,8 +213,8 @@ def lowes_list(kw, topn=TOPN, max_pages=None):
         if not rows: got['done'] = True; break
         got['pages'].append(rows)
         pg = st.get('pagination') or {}
-        if not nxt or nxt <= got['off'] or (pg.get('page') or 0) >= (pg.get('pageCount') or 0): got['done'] = True
-        got['off'] = nxt or got['off']; save_json(f, got)
+        if (pg.get('page') or 0) >= (pg.get('pageCount') or 0): got['done'] = True
+        save_json(f, got)
         log(f'Lowes {kw} 第 {n + 1} 页 {len(rows)} 条（总 {got.get("total")}）')
     return got
 
@@ -306,6 +306,25 @@ def hd_pages():
         if i % 25 == 0: log(f'HD 商品页 {i + 1}/{min(len(todo), TOPN)}')
 
 
+# ---------- 3. 抽样：商品页 / 评论的变体字段 ----------
+SAMPLE = {'lowes': ['5014516369', '5017482105', '5022709982'], 'wayfair': ['GCNE1307', 'GCNE1351', 'W111053305'],
+          'homedepot': ['327193858', '319735856', '333485322']}
+
+
+def sample_pages():
+    jobs = []
+    for plat in ('lowes', 'wayfair'):
+        g = load_json(raw_path('lists', f'{plat}_{KW}.json'))
+        by = {r['id']: r for p in g['pages'] for r in p}
+        for pid in SAMPLE[plat]:
+            jobs.append((plat, pid, by[pid]['url']))
+    ok = {'lowes': lowes_ok, 'wayfair': lambda b: len(b) > 300000}
+    with ThreadPoolExecutor(6) as ex:
+        list(ex.map(lambda j: bd_cached(j[2], j[1], j[0] + '_pdp', ok[j[0]], tries=2), jobs))
+    for pid in SAMPLE['homedepot']:
+        hd_page(pid, keep_reviews=True)
+
+
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else ''
     if cmd == 'hd':
@@ -314,6 +333,8 @@ if __name__ == '__main__':
         wf_list(KW); wf_list(KW2, max_pages=1)
     if cmd == 'lowes':
         lowes_list(KW); lowes_list(KW2, max_pages=1)
+    if cmd == '抽样':
+        sample_pages()
     if cmd == 'probe':
         which = sys.argv[2]
         if which == 'hd':
