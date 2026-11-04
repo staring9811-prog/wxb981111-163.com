@@ -700,12 +700,36 @@ def cov_new(A, P_, ch):
     add('价格', A['价格'].notna(), V['价格'].notna(), src('价格来源') if ch == 'Home Depot' else '采集日当天价')
     add('评分', A['rn'] > 0 if ch == 'Home Depot' else A['评分'].notna(), (A.groupby('pid')['rn'].sum() > 0).reindex(V.index).values if ch == 'Home Depot' else V['评分'].notna(),
         '窗口内评论星级（按行：有评论的变体 × 月）' if ch == 'Home Depot' else '页面总评分')
-    add('有逐月销量', A['m'] >= 0, V.index.isin(A.loc[A['m'] >= 0, 'pid']), '' if ch == 'Home Depot' else '其余 = 只有评论总数，按评论数档换算（见上）')
+    add('有逐月销量', A['m'] >= 0, V.index.isin(A.loc[A['m'] >= 0, 'pid']), '' if ch == 'Home Depot' or (A['m'] >= 0).all() else '其余 = 只有评论总数，按评论数档换算（见上）')
     return ['| 标签 | 实体覆盖 | 1–10 月销量覆盖 | 说明 |', '| :--- | ---: | ---: | :--- |'] + rows
 
 
 def units_of(U, F, fr):
     return U[(U['框'] == fr) & (U['月均'] >= U_MIN)].sort_values(['属性', '月均'], ascending=[True, False])
+
+
+def wf_apify_check(D):
+    """Wayfair 168 个原"只有评论总数"listing 补到 Apify 逐月评论后：回看上一轮的评论数档估算准不准，并给 3 个"部分"listing 的影响。"""
+    P, M = bw_raw(); p = P[(P['渠道'] == 'Wayfair') & P['浴室柜'].astype(str).str.lower().ne('false')]; m = M[M['渠道'] == 'Wayfair']
+    apf = p[p['月度来源'].astype(str).str.startswith('Apify')]
+    q = p[~p['fam'].isin(apf['fam'])]; fs = m[~m['fam'].isin(apf['fam'])].groupby('fam')['销量'].sum()
+    act = m[m['fam'].isin(apf['fam'])].groupby('fam')['销量'].sum().reindex(apf['fam']).fillna(0)
+    est = {}
+    for nm, low in (('中', False), ('低', True)):
+        k, bins = static_k(q, fs, low)
+        est[nm] = (pd.cut(apf['页面评论数'], bins, right=True).map(k['k']).astype(float) * apf['页面评论数']).set_axis(apf['fam']).fillna(0)
+    AW = D['AW']; ap = AW[AW['月度来源'].astype(str).str.startswith('Apify')]
+    fr_act = ap[frameable(ap)].assign(框=lambda x: x['尺寸段'] + ' · ' + x['装'] + ' · ' + x['形态']).groupby('框')['c'].sum() / 10
+    e = apf.assign(c=apf['fam'].map(est['中']), 尺寸段=apf['尺寸段'].where(~apf['多尺寸段'].astype(str).str.lower().eq('true')))
+    e = e[e['尺寸段'].notna() & e['装'].notna() & e['形态'].notna()]
+    fr_est = e.assign(框=e['尺寸段'] + ' · ' + e['装'] + ' · ' + e['形态']).groupby('框')['c'].sum() / 10
+    part = apf[apf['月度来源'].astype(str).str.contains('部分')]
+    pm = m[m['fam'].isin(part['fam'])]
+    first = pm[pm['销量'] > 0].groupby('fam')['月'].min()
+    return dict(n=len(apf), act=act.sum() / 10, mid=est['中'].sum() / 10, low=est['低'].sum() / 10,
+                rho=act.corr(est['中'], method='spearman'), fr=pd.DataFrame({'估算（中）': fr_est, 'Apify 实测': fr_act}).fillna(0),
+                part=part, part_s=pm['销量'].sum() / 10, part_first=first, part_rows=pm, nsplit=int(apf['月度来源'].astype(str).str.contains('拆尺寸').sum()),
+                nmulti=int(apf['多尺寸段'].astype(str).str.lower().eq('true').sum()), rev=int((m.loc[m['fam'].isin(apf['fam']), 'VP'] + m.loc[m['fam'].isin(apf['fam']), '非VP']).sum()))
 
 
 def est_section(D, ch, no):
@@ -727,7 +751,18 @@ def est_section(D, ch, no):
           *[f'| {k} | {num(Fm.set_index("框")["框月均"].get(k, np.nan))} | {pc(m2.at[k, "分框覆盖_期望_只算有月度"], 1)} | {m2.at[k, "可读性_只算有月度"]} |' for k in F2.sort_values('框月均', ascending=False)['框']], '')
     else:
         P(*frame_table(F2, cover=True, tot=F['框月均'].sum()), '')
-    lowname = '低估计' if ch == 'Wayfair' else '不计无月度'
+    if ch == 'Wayfair' and 'APF' in D:
+        AC = D['APF']; T = AC['fr'].reindex(F2.sort_values('框月均', ascending=False)['框']).fillna(0)
+        P(f'### {no}.2 估算回看：上一轮评论数档估算 vs Apify 实测（{AC["n"]} 个原无月度 listing）', '',
+          f'渠道合计：中估计月均 {num(AC["mid"])}、低估计 {num(AC["low"])}、Apify 实测 {num(AC["act"])}；listing 级 Spearman {AC["rho"]:.2f}。按框（估算时多尺寸 listing 不进框，实测已按评论选项拆尺寸）：', '',
+          '| 框 | 估算（中） | Apify 实测 | 本框现月均 | 实测占本框 |', '| :--- | ---: | ---: | ---: | ---: |',
+          *[f'| {k} | {num(r["估算（中）"])} | {num(r["Apify 实测"])} | {num(F2.set_index("框").at[k, "框月均"])} | {pc(r["Apify 实测"] / F2.set_index("框").at[k, "框月均"])} |' for k, r in T.iterrows()], '')
+    else:
+        _est_sens(D, ch, no, F, F2, Fl, Fm)
+    _est_units(D, ch, no, F, U, F2, U2, Fm, Um)
+
+
+def _est_sens(D, ch, no, F, F2, Fl, Fm):
     S3 = pd.DataFrame({'中': F.set_index('框')['框月均'], '低': Fl.set_index('框')['框月均'], '仅有月度': Fm.set_index('框')['框月均']}).reindex(F2['框'])
     for c in ('中', '低', '仅有月度'): S3[c + '名次'] = S3[c].rank(ascending=False)
     S3 = S3.sort_values('中', ascending=False)
@@ -735,6 +770,9 @@ def est_section(D, ch, no):
     P(f'### {no}.2 敏感性：无月度实体的估算口径', '',
       '| 框 | 月均（中估计） | 名次 | ' + ('月均（低估计） | 名次 | ' if ch == 'Wayfair' else '') + '月均（只算有月度） | 名次 |', '| :--- | ---: | ---: |' + (' ---: | ---: |' if ch == 'Wayfair' else '') + ' ---: | ---: |',
       *rows, '', (f'名次相关（Spearman）：中 vs 低 {S3["中"].corr(S3["低"], method="spearman"):.2f}、' if ch == 'Wayfair' else '') + f'中 vs 只算有月度 {S3["中"].corr(S3["仅有月度"], method="spearman"):.2f}。', '')
+
+
+def _est_units(D, ch, no, F, U, F2, U2, Fm, Um):
     P(f'### {no}.3 单元', '')
     if ch == LW:
         Fm2 = Fm[Fm['框月均'] >= FR_MIN]; okm = Fm2.loc[Fm2['可读性'] == '可读', '框']
@@ -750,7 +788,7 @@ def est_section(D, ch, no):
     rest = [fr for fr in F2.sort_values('框月均', ascending=False)['框'] if fr not in shown][:4]
     for fr in shown + rest:
         r = F2.set_index('框').loc[fr]
-        P(f'**{fr}**（框月均 {num(r["框月均"])}；{r["可读性"]}）', '', *unit_table(units_of(U, F2, fr), True, True, has_static=True), '')
+        P(f'**{fr}**（框月均 {num(r["框月均"])}；{r["可读性"]}）', '', *unit_table(units_of(U, F2, fr), True, True, has_static=bool((D['AW']['m'] < 0).any())), '')
     P(f'上面列分框覆盖 ≥ 95% 的框和体量最大的 {len(rest)} 个"不下结论"框；其余见全量 CSV。', '')
     okW = F2.loc[F2['可读性'] == '可读', '框']; okS = F2.loc[F2['可读性'] != '不下结论（分框覆盖 < 95%）', '框']
     P(f'**模式观察（{ch}）**：条件同 HD（评分用页面总评分，"评论 ≥ 20"指页面评论数）。份额趋势类只在可读框（{"、".join(okW)}），只用有月度的销量；评分、溢价类在分框覆盖 ≥ 95% 的框（{"、".join(okS)}）。', '',
@@ -786,16 +824,26 @@ def report(D, CHKD):
       f'- **Home Depot**：{PH["fam"].nunique()} 个评论家族、{len(PH)} 个变体（含评论里出现的同家族其他尺寸 / 颜色），1–10 月有销量的家族 {AH.loc[AH["c"] > 0, "fam"].nunique()} 个；月度全部来自变体级评论（类目节点家族用 HD 回测小试的评论缓存，两词独有家族本次直连补抓），月均 **{num(totH)}** 件。'
       '价格 = 采集日商品页 / 列表价，评论里出现、没有列表价的变体用同家族同尺寸段已知价补（再退到同家族）；评分 = 窗口内评论星级平均（同上一版）。',
       f'- **Wayfair**：{len(PW)} 个浴室柜 listing（标题不含 vanity 的 {nonvan} 个剔除），其中 {AW["fam"].nunique()} 个有销量（含估算）。逐月销量来源：渠道VP 表 {nW.get("渠道VP表（家族合计）", 0)} 个（家族合计，多尺寸的按商品页内嵌评论的 Overall Width 选项分布拆到尺寸段）、商品页内嵌全部评论 {nW.get("商品页内嵌评论（全部）", 0)} 个；'
-      f'**只有评论总数、没有月度的 {nW.get(NOMON, 0)} 个**（评论翻页接口经 BD 返回 400）；其余 {len(PW) - AW["fam"].nunique()} 个没有销量（零评论 {int(PW["月度来源"].isna().sum())} 个，评论都在 2026 年以前 {len(PW) - AW["fam"].nunique() - int(PW["月度来源"].isna().sum())} 个）。'
+      + (f'**只有评论总数、没有月度的 {nW.get(NOMON, 0)} 个**（评论翻页接口经 BD 返回 400）；' if nW.get(NOMON, 0) else
+         f'**Apify 补抓逐月评论 {sum(v for k, v in nW.items() if str(k).startswith("Apify"))} 个**（原"只有评论总数"的两词独有 listing，2026-11-04 用 Apify abotapi/wayfair-scraper 补到 2026-01–10 逐月评论，VP 口径相同；多尺寸的按评论 purchasedOptions 宽度分布拆到尺寸段，同 Lowe\'s）；') +
+      f'其余 {len(PW) - AW["fam"].nunique()} 个没有销量（零评论 {int(PW["月度来源"].isna().sum())} 个，评论都在 2026 年以前 {len(PW) - AW["fam"].nunique() - int(PW["月度来源"].isna().sum())} 个）。'
       f'有月度部分月均 {num(wm)} 件。价格 = 采集日商品页价；评分 = 页面总评分（按页面评论数加权，HD 与 Wayfair 口径不同，只在同渠道内比）。',
       f'- **Lowe\'s**（补数后，2026-11-04 第二轮）：{len(PL)} 个浴室柜父体（标题不含 vanity 的 {nonvanL} 个剔除）。逐月销量只有类目节点（两个 Best Sellers 榜）家族：渠道VP 表家族合计，按 BD 评论页每条评论的变体宽度拆到尺寸段（至少 5 条带宽度的评论才拆），有月度部分月均 {num(lm)} 件；'
       f'**两词独有、有评论的 {nLst} 个家族没有月度**（Lowe\'s 对 BD 连续拦截，评论页没抓到，约占范围内页面评论的两成）。装来自商品页 Assembly / RTA 规格和标题，**不再用上一版"100% 整装"业务默认**，判断不了记未知。价格、评分 = 采集日商品页（页面总评分）。', '')
     kt = KW['中']; kl = KW['低']
-    P(f'**Wayfair 无月度 listing 怎么进静态指标**：这些 listing 都来自两词搜索结果，用同样来自搜索结果（来源 = 两词 / 两者）、有月度的 listing，按页面评论数分档算"1–10 月销量 ÷ 页面评论数"，乘到无月度 listing 的页面评论数上，作为它们 1–10 月销量的**估算**：'
-      + '；'.join(f'{"> " + str(int(i.left)) if not np.isfinite(i.right) else f"{int(i.left) + 1}–{int(i.right)}"} 条评论 {r.k:.1f}（{int(r.n)} 个）' for i, r in kt.iterrows()) +
-      f'。合计月均 **{num(wst)}** 件，占 Wayfair 估算总量 {pc(wst / (wm + wst))}，**比例很大**。'
-      f'评论多的老 listing 2026 年评论占比低，而"两词独有"的有月度 listing 里 > 100 条评论的只有 {int(kl.iloc[-1].n)} 个、换算系数只有 {kl.iloc[-1].k:.1f}（中估计同档 {kt.iloc[2].k:.1f} / {kt.iloc[3].k:.1f}），所以另给**低估计**（只用两词独有 listing 的系数）：无月度部分月均 {num(wstl)} 件。'
-      '规则：体量、份额、家族数、价格、评分用中估计（含无月度 listing）；季度份额、近 3−前 3、斜率、走势、CV、新家族只用有月度的销量；框表给出"有月度占比"，单元表给出"仅有月度的份额"，§四.2 给出三种口径下的框月均。', '')
+    if wst > 0:
+        P(f'**Wayfair 无月度 listing 怎么进静态指标**：这些 listing 都来自两词搜索结果，用同样来自搜索结果（来源 = 两词 / 两者）、有月度的 listing，按页面评论数分档算"1–10 月销量 ÷ 页面评论数"，乘到无月度 listing 的页面评论数上，作为它们 1–10 月销量的**估算**：'
+          + '；'.join(f'{"> " + str(int(i.left)) if not np.isfinite(i.right) else f"{int(i.left) + 1}–{int(i.right)}"} 条评论 {r.k:.1f}（{int(r.n)} 个）' for i, r in kt.iterrows()) +
+          f'。合计月均 **{num(wst)}** 件，占 Wayfair 估算总量 {pc(wst / (wm + wst))}，**比例很大**。'
+          f'评论多的老 listing 2026 年评论占比低，而"两词独有"的有月度 listing 里 > 100 条评论的只有 {int(kl.iloc[-1].n)} 个、换算系数只有 {kl.iloc[-1].k:.1f}（中估计同档 {kt.iloc[2].k:.1f} / {kt.iloc[3].k:.1f}），所以另给**低估计**（只用两词独有 listing 的系数）：无月度部分月均 {num(wstl)} 件。'
+          '规则：体量、份额、家族数、价格、评分用中估计（含无月度 listing）；季度份额、近 3−前 3、斜率、走势、CV、新家族只用有月度的销量；框表给出"有月度占比"，单元表给出"仅有月度的份额"，§四.2 给出三种口径下的框月均。', '')
+    else:
+        AC = wf_apify_check(D); D['APF'] = AC
+        P(f'**Wayfair 不再有估算**：上一轮 168 个只有评论总数的 listing 已用 Apify 补到逐月评论（{AC["n"]} 个，2026 年 1–10 月评论 {num(AC["rev"])} 条，与 `wayfair_apify/Wayfair补评论_月度.csv` 合计一致），月均 **{num(AC["act"])}** 件。'
+          f'回看上一轮的评论数档估算：中估计 {num(AC["mid"])}、低估计 {num(AC["low"])}，实测落在中估计的 {pc(AC["act"] / AC["mid"])}，listing 级 Spearman {AC["rho"]:.2f}（§四.2 有分框对比）。'
+          f'其中 {AC["nmulti"]} 个多尺寸 listing、{AC["nsplit"]} 个按评论选项宽度拆到了尺寸段，其余记"多尺寸未拆"进待确认清单。'
+          f'**{len(AC["part"])} 个"部分"listing**（只抓到最近 100 条，2026 年更早的评论缺）1–10 月合计月均 {num(AC["part_s"])} 件，占 Wayfair {pc(AC["part_s"] / (wm + wst), 1)}；它们最早有评论的月份是 '
+          + '、'.join(f'{fm}（{v}）' for fm, v in AC['part_first'].items()) + '，早月份偏低会让所在框的份额趋势偏"涨"，影响见 §九。', '')
     klc = KL['中']
     P(f'**Lowe\'s 无月度家族的处理（与 Wayfair 同法，择"估算后只进静态指标"）**：用来源 = 两词 / 两者、有月度的家族按页面评论数分档算换算系数（Lowe\'s 有月度的两词来源家族都是"两者"，即同时在 Best Sellers 榜上）：'
       + '；'.join(f'{"> " + str(int(i.left)) if not np.isfinite(i.right) else f"{int(i.left) + 1}–{int(i.right)}"} 条评论 {r.k:.1f}（{int(r.n)} 个）' for i, r in klc.iterrows()) +
@@ -863,7 +911,9 @@ def report(D, CHKD):
     P('## 八、和上一版的差异', '', *diff_old(D), '')
     # ---------------- 九、局限
     P('## 九、局限', '',
-      f'1. **Wayfair 约 4 成销量是估算**：{nW.get(NOMON, 0)} 个只有评论总数的 listing 按评论数档换算，中估计与低估计差 {num(wst - wstl)} 件 / 月；体量排名受影响的框见 §四.2。趋势只用有月度的部分，有月度 < 60% 的框不读趋势。',
+      (f'1. **Wayfair 约 4 成销量是估算**：{nW.get(NOMON, 0)} 个只有评论总数的 listing 按评论数档换算，中估计与低估计差 {num(wst - wstl)} 件 / 月；体量排名受影响的框见 §四.2。趋势只用有月度的部分，有月度 < 60% 的框不读趋势。' if wst > 0 else
+       f'1. **Wayfair 已全部是逐月评论**（Apify 补抓 {D["APF"]["n"]} 个 listing）。其中 {len(D["APF"]["part"])} 个"部分"listing 只抓到最近 100 条评论、2026 年早月份缺，1–10 月合计月均 {num(D["APF"]["part_s"])} 件（占 Wayfair {pc(D["APF"]["part_s"] / (wm + wst), 1)}），所在框（'
+       + '、'.join(sorted({f"{r.尺寸段} · {r.装} · {r.形态}" for r in D["APF"]["part_rows"].itertuples() if isinstance(r.尺寸段, str) and r.尺寸段 != "多尺寸未拆"})) + '）的份额趋势会略偏"涨"；这几个框都是"不下结论"框，不进本页的趋势结论；占渠道不到 2%，不改变框排序。'),
       f'2. **Wayfair 分框覆盖 {pc(AW.loc[fW, "c"].sum() / AW["c"].sum())} < 95%**：多尺寸 listing 拆不到尺寸段、规格里没写安装方式的 listing 记形态未知；按框看，期望覆盖 ≥ 95% 的只有 {int((FW2['可读性'] != '不下结论（分框覆盖 < 95%）').sum())} 个达标框，其余只给方向参考。待人工确认清单补完后可提高。',
       f'2b. **Lowe\'s 只有 Best Sellers 两榜家族有月度**：两词独有的 {nLst} 个家族（约两成页面评论）没有月度，估算月均 {num(lst)} 件且拆不到尺寸段；框内结论只代表"榜上家族"的结构。Lowe\'s 补规格还缺 25 个商品、15 个类目家族评论不完整（`大词抓取_三平台.md` §6）。',
       '3. **销量是评论换算**（VP × 50 + 非 VP × 20），没有按渠道校准；Wayfair 非 VP 占比高（激励评论、Pro 会员评论计非 VP），系数偏差可能更大。小单元颗粒粗。',
@@ -913,7 +963,7 @@ def compare_hw(D):
         x = A.explode('元素') if att == '元素' else A
         x = x[~x[att].astype(str).isin(UNK | {'其他'}) & ~x[att].astype(str).str.startswith('其他（')]
         return x.groupby(att)['c'].sum() / A['c'].sum()
-    out += ['**结构：各渠道取值占渠道销量的比例**（全尺寸、全形态、不分拆装，只看结构；Wayfair、Lowe\'s 含估算）', '']
+    out += ['**结构：各渠道取值占渠道销量的比例**（全尺寸、全形态、不分拆装，只看结构；Lowe\'s 含估算）', '']
     for att in ('台面材质', '主色', '柜体材质'):
         S = {'Home Depot': struct(AH, att), 'Wayfair': struct(AW, att), LW: struct(AL, att), 'Amazon（4–9 月）': struct(B, att)}
         vals = pd.concat(S, axis=1).fillna(0); vals = vals[vals.max(axis=1) >= 0.02].sort_values('Home Depot', ascending=False)
@@ -950,7 +1000,7 @@ def old_doc(D):
                + '、'.join(f'{k} {v:.0%}' for k, v in (cb.groupby('柜体材质')['c'].sum() / cb['c'].sum()).sort_values(ascending=False).items() if v >= 0.02) + '（Base Material 常写"Solid + Manufactured Wood"，规则按含人造板归类，口径与老文档可能不同）。')
     fam = AW[AW['形态'] != '未知'].groupby(['fam', '形态'])['c'].sum().reset_index(); fam['月均'] = fam['c'] / 10
     fs = fam.groupby('形态')['月均'].agg(['count', 'mean', 'median'])
-    out.append('- **Wayfair 悬浮式单链接贡献高（老文档 556 vs 落地 199）**：按 listing 1–10 月月均（含估算）：' + '；'.join(f'{k} {int(r["count"])} 个，平均 {num(r["mean"])}、中位 {num(r["median"])}' for k, r in fs.iterrows()) + '。'
+    out.append('- **Wayfair 悬浮式单链接贡献高（老文档 556 vs 落地 199）**：按 listing 1–10 月月均：' + '；'.join(f'{k} {int(r["count"])} 个，平均 {num(r["mean"])}、中位 {num(r["median"])}' for k, r in fs.iterrows()) + '。'
                + (('悬浮式平均高于落地式。' if fs.loc['悬浮式', 'mean'] > fs.loc['落地式', 'mean'] else '本样本里悬浮式的单 listing 月均不高于落地式。') if '悬浮式' in fs.index else ''))
     parts = []
     for nm, A_ in (('HD', AH), ('Wayfair', AW), ('Lowe\'s（只算有月度）', D['AL'][D['AL']['m'] >= 0]), ('Amazon（4–9 月）', B)):
@@ -991,7 +1041,7 @@ def diff_old(D):
     FOW, FOWd, FW2 = D['FOW'], D['FOWd'], D['FW2']
     out += ['**Wayfair**', '',
             f'- 上一版：只有渠道VP 表（类目节点 250 个商品页）、只有标题，装覆盖约 2%，按框主视图 {int((FOW["框月均"] >= FR_MIN).sum())} 个达标框；降级视图（尺寸段 × 形态，不分拆装）{int((FOWd["框月均"] >= FR_MIN).sum())} 个；没有价格、评分。',
-            f'- 这一版：加两词前 300、补商品页规格（尺寸 / 装 / 形态 / 颜色 / 材质 / 价格 / 评分），按框 **{len(FW2)}** 个达标框、**{len(D["UW2"])}** 个达标单元，有价格和评分；但分框覆盖 < 95%、约 4 成销量是估算（§四）。',
+            f'- 这一版：加两词前 300、补商品页规格（尺寸 / 装 / 形态 / 颜色 / 材质 / 价格 / 评分），按框 **{len(FW2)}** 个达标框、**{len(D["UW2"])}** 个达标单元，有价格和评分；但分框覆盖 < 95%' + ('、约 4 成销量是估算（§四）' if (D['AW']['m'] < 0).any() else '；168 个只有评论总数的 listing 已用 Apify 补到逐月评论，不再估算（§一）') + '。',
             '- 拆装认定变了：上一版标题几乎不写装、借 wen 文档"拆装约 23%"；这一版用 Assembly 字段且部分组装算拆装，拆装是 Wayfair 主流（§七）。', '',
             '**Lowe\'s**', '',
             f'- 上一版：只有渠道VP 表、只有标题，尺寸段销量覆盖 0%，只能给"不分尺寸段 × 装（业务默认整装）× 形态"降级视图（{int((D["FOLd"]["框月均"] >= FR_MIN).sum())} 个达标"框"），不满足同尺寸段硬规则。',
@@ -1010,22 +1060,26 @@ def findings(D):
     out = []
     # 1 拆装 / 整装 结构
     rH = FH.loc[FH['框'].str.contains('拆装'), '框月均'].sum() / FH['框月均'].sum(); rW = FW.loc[FW['框'].str.contains('拆装'), '框月均'].sum() / FW['框月均'].sum()
-    AWx = D['AW']
+    AWx = D['AW']; nost = not (AWx['m'] < 0).any()
     rWm = D['FWm'].loc[D['FWm']['框'].str.contains('拆装'), '框月均'].sum() / D['FWm']['框月均'].sum()
     k = '30″ · 拆装 · 落地式'
     FLm = D['SENS'][LW][1]; rL = FLm.loc[FLm['框'].str.contains('拆装'), '框月均'].sum() / FLm['框月均'].sum()
-    out.append(f'1. **Wayfair 是拆装为主的渠道，HD、Lowe\'s 是整装为主，主力框不同。** Wayfair 能落框的销量里拆装框占 {pc(rW)}（只算有月度的 {pc(rWm)}），HD 只占 {pc(rH)}，Lowe\'s（只算有月度）{pc(rL)}；'
-               f'Wayfair 最大的两个框是 24″ · 拆装 · 落地式（月均 {num(fw.at["24″ · 拆装 · 落地式", "框月均"])}）和 30″ · 拆装 · 落地式（{num(fw.at[k, "框月均"])}），三种估算口径下都是前两名（§四.2）；'
+    out.append(f'1. **Wayfair 是拆装为主的渠道，HD、Lowe\'s 是整装为主，主力框不同。** Wayfair 能落框的销量里拆装框占 {pc(rW)}{'' if nost else f'（只算有月度的 {pc(rWm)}）'}，HD 只占 {pc(rH)}，Lowe\'s（只算有月度）{pc(rL)}；'
+               f'Wayfair 最大的两个框是 24″ · 拆装 · 落地式（月均 {num(fw.at["24″ · 拆装 · 落地式", "框月均"])}）和 30″ · 拆装 · 落地式（{num(fw.at[k, "框月均"])}）{'，两个都可读' if nost else '，三种估算口径下都是前两名（§四.2）'}；'
                f'HD 最大的是 30″ / 24″ · 整装 · 落地式（{num(fh.at["30″ · 整装 · 落地式", "框月均"])} / {num(fh.at["24″ · 整装 · 落地式", "框月均"])}），同一个 30″ · 拆装 · 落地式在 HD 只有 {num(fh.at[k, "框月均"])} 件 / 月、{fh.at[k, "家族"]} 个家族。'
                '老文档"Wayfair 拆装约 23%"按现在的口径（部分组装算拆装）不成立（§七）。'
-               f'*来源*：Wayfair 商品页 Assembly 字段（装覆盖 {pc(AWx.loc[AWx["装"] != "未知", "c"].sum() / AWx["c"].sum(), 1)}），销量含无月度 listing 的估算。*局限*：Wayfair 分框覆盖 {pc(AWx.loc[frameable(AWx), "c"].sum() / AWx["c"].sum())} < 95%，24″ · 拆装 · 落地式期望覆盖 {pc(fw.at["24″ · 拆装 · 落地式", "分框覆盖_期望"], 1)}，只能说"是最大框之一"，份额细节不下结论；跨渠道只比结构，不比绝对销量。')
+               f'*来源*：Wayfair 商品页 Assembly 字段（装覆盖 {pc(AWx.loc[AWx["装"] != "未知", "c"].sum() / AWx["c"].sum(), 1)}），' + ('销量全部来自逐月评论（含 Apify 补抓）。' if nost else '销量含无月度 listing 的估算。') + f'*局限*：Wayfair 分框覆盖 {pc(AWx.loc[frameable(AWx), "c"].sum() / AWx["c"].sum())} < 95%，24″ · 拆装 · 落地式期望覆盖 {pc(fw.at["24″ · 拆装 · 落地式", "分框覆盖_期望"], 1)}{'（≥ 95%，可读）' if fw.at["24″ · 拆装 · 落地式", "分框覆盖_期望"] >= 0.95 else '，只能说"是最大框之一"，份额细节不下结论'}；跨渠道只比结构，不比绝对销量。')
     # 2 Wayfair 30″ 拆装：低价新品抢份额、评分偏低
     w, rs, pb, sw = u(UW, k, '主色', '白'), u(UW, k, '台面材质', '树脂'), u(UW, k, '柜体材质', '含刨花板'), u(UW, k, '柜体材质', '实木框架')
-    out.append(f'2. **Wayfair 30″ · 拆装 · 落地式（可读框，月均 {num(fw.at[k, "框月均"])}，框销量近 3 ÷ 前 3 = {fw.at[k, "近3"] / fw.at[k, "前3"]:.2f}）：低价位的白色 / 树脂台面 / 含刨花板产品在抢份额，评分低于同框。** '
-               f'主色白 份额 {sh(w)}（新家族 {w["新家族"]} 个、{w["新家族卖起来"]} 个卖起来；评分 {w["评分"]:.2f}，同框 {w["框评分"]:.2f}）；树脂台面 {sh(rs)}（单款 ÷ 同框 {rs["单款比"]:.2f}，评分 {rs["评分"]:.2f}）；'
-               f'含刨花板 {sh(pb)}（新家族 {pb["新家族"]} 个、{pb["新家族卖起来"]} 个卖起来，价格带 ${num(pb["P25"])}–{num(pb["P75"])}，溢价 {pb["溢价"]:.2f}）；同期实木框架 {sh(sw)}。'
-               f'Amazon 同尺寸段落地式里白色份额 {ps(w["AZ份额前"])}→{ps(w["AZ份额近"])}、树脂一体 {ps(rs["AZ份额前"])}→{ps(rs["AZ份额近"])}（不分拆装）。'
-               f'*来源*：Wayfair 渠道VP 表 + 商品页内嵌评论的逐月评论（本框有月度 {pc(fw.at[k, "有月度占比"])}），页面总评分。*局限*：趋势只用有月度的 6 成销量；幸存者偏差让"抢份额 + 新家族卖起来"偏乐观；白 / 树脂 / 刨花板多是同一批产品，不是三个独立信号。')
+    lab = lambda r: r['走势'].split('（')[0]
+    d24 = u(UW, '24″ · 拆装 · 落地式', '主色', '深木')
+    out.append(f'2. **Wayfair 30″ · 拆装 · 落地式（{fw.at[k, "可读性"]}，月均 {num(fw.at[k, "框月均"])}，框销量近 3 ÷ 前 3 = {fw.at[k, "近3"] / fw.at[k, "前3"]:.2f}）：低价含刨花板新品在抢份额，树脂台面在丢；卖得多的白色、树脂款评分低于同框。** '
+               f'含刨花板 {sh(pb)}（{lab(pb)}；新家族 {pb["新家族"]} 个、{pb["新家族卖起来"]} 个卖起来，价格带 ${num(pb["P25"])}–{num(pb["P75"])}，溢价 {pb["溢价"]:.2f}，评分 {pb["评分"]:.2f}）；'
+               f'树脂台面 {sh(rs)}（{lab(rs)}；单款 ÷ 同框 {rs["单款比"]:.2f}，评分 {rs["评分"]:.2f}）；主色白 {sh(w)}（{lab(w)}；新家族 {w["新家族"]} 个、{w["新家族卖起来"]} 个卖起来，评分 {w["评分"]:.2f}）；实木框架 {sh(sw)}（{lab(sw)}），同框评分 {w["框评分"]:.2f}。'
+               f'同为可读框的 24″ · 拆装 · 落地式（{fw.at["24″ · 拆装 · 落地式", "近3"] / fw.at["24″ · 拆装 · 落地式", "前3"]:.2f}）里最大的变化是深木 {sh(d24)}（{lab(d24)}）。'
+               f'Amazon 同尺寸段落地式里白色 {ps(w["AZ份额前"])}→{ps(w["AZ份额近"])}、树脂一体 {ps(rs["AZ份额前"])}→{ps(rs["AZ份额近"])}（不分拆装）。'
+               f'*来源*：Wayfair 渠道VP 表 + 商品页内嵌评论' + ('+ Apify 补抓' if nost else '') + f'的逐月评论（本框有月度 {pc(fw.at[k, "有月度占比"])}），页面总评分。*局限*：幸存者偏差让"抢份额 + 新家族卖起来"偏乐观；含刨花板单元月均只有 {num(pb["月均"])}；'
+               '与上一轮（缺 168 个 listing 月度时）相比，这一框的趋势结论变了：框从"涨"变"平"、树脂从"抢"变"丢"，说明 Wayfair 的单元趋势对样本覆盖很敏感。')
     # 3 HD 整装：卡拉拉大理石丢、石英石抢
     zz = [x for x in D['FH2']['框'] if '整装' in x]
     H = UH[UH['框'].isin(zz) & (UH['月均'] >= U_MIN) & (UH['属性'] == '台面材质')]
@@ -1052,7 +1106,7 @@ def findings(D):
     out.append('5. **同一个框，各渠道卖的是不同价位的产品：HD 的拆装是高价款，Wayfair 的拆装是低价款；整装 Wayfair 最贵、Lowe\'s 最便宜。** 加权中位价 HD vs Wayfair（vs Lowe\'s）：'
                + '；'.join(f'{fr} {mp(fh, fr)} vs {mp(fw, fr)}' + (f' vs {mp(fl_, fr)}' if fr in fl_.index else '') for fr in ('36″ · 拆装 · 落地式', '48″ · 拆装 · 落地式', '30″ · 拆装 · 落地式', '24″ · 整装 · 落地式', '30″ · 整装 · 落地式', '36″ · 整装 · 落地式', '48″ · 整装 · 落地式')) + '。'
                f'HD 36″–48″ 实木类 × 岗石 / 石英石的加权中位价 ${num(wq(hs["价格"], hs["c"], .5))}、$649–799 段销量占 {pc(hs.loc[hs["价格"].between(649, 799), "c"].sum() / hs["c"].sum())}（§七）。所以"同框"跨渠道对照时价格不可直接搬，开发定价要按渠道各自的框内价格带。'
-               '*来源*：采集日价格（HD 商品页 / 列表，Wayfair 商品页），按 1–10 月销量加权。*局限*：当天价套整个窗口；Wayfair 拆装框除 30″ 外分框覆盖 < 95%。')
+               '*来源*：采集日价格（HD 商品页 / 列表，Wayfair 商品页），按 1–10 月销量加权。*局限*：当天价套整个窗口；' + f'Wayfair 拆装框里分框覆盖 ≥ 95% 的只有 {"、".join(sorted(x for x in fw.index if "拆装" in x and fw.at[x, "分框覆盖_期望"] >= 0.95)) or "无"}。')
     # 6 悬浮式
     fl = FW[FW['框'].str.contains('悬浮') & (FW['框月均'] >= FR_MIN)]; flH = FH[FH['框'].str.contains('悬浮')]
     flL = D['FLm2'][D['FLm2']['框'].str.contains('悬浮')]
