@@ -489,7 +489,13 @@ def build():
     P = pd.DataFrame(P); M = pd.DataFrame(M)
     P.to_csv(raw_path('三平台_商品表.csv'), index=False, encoding='utf-8-sig')
     M.to_csv(raw_path('三平台_月销表.csv'), index=False, encoding='utf-8-sig')
-    log(f'整理：商品表 {len(P)} 行，月销表 {len(M)} 行')
+    # 装判断不了的：记未知、不进框，单列待确认清单（wen 2026-11-04）
+    s26 = M.groupby(['渠道', 'fam'])['销量'].sum()
+    Q = P[(P['装'] == '未知') | P['装'].isna()].copy()
+    Q['1–10 月销量'] = [s26.get((c, f), 0) for c, f in zip(Q['渠道'], Q['fam'])]
+    Q = Q[['渠道', 'fam', 'pid', 'title', '来源', '尺寸段', '形态', '页面评论数', '1–10 月销量', '有商品页']].sort_values(['渠道', '1–10 月销量'], ascending=[True, False])
+    Q.to_csv(raw_path('三平台_装待确认.csv'), index=False, encoding='utf-8-sig')
+    log(f'整理：商品表 {len(P)} 行，月销表 {len(M)} 行，装待确认 {len(Q)} 行')
     return P, M
 
 
