@@ -80,7 +80,7 @@ K10 = f'{D2}/子体流量词/分月/子体销量预估_2026-10(近30天).csv'
 if os.path.exists(K10):
     e10 = {r['子ASIN']: num(r['子体月销预估']) for _, r in pd.read_csv(K10, dtype=str).fillna('').iterrows() if r['子体月销预估'] not in ('', '缺')}
     for r in R:
-        if r['m'] == '2026-10': r['est26'] = e10.get(r['asin'])
+        if r['m'] == '202610': r['est26'] = e10.get(r['asin'])
 
 pay = json.load(open(f'{P15}/_work/data_root/sales_payload.json', encoding='utf-8'))['detailRows']
 q = pd.read_pickle(f'{P15}/BathroomVanities_202601-202605_分析用.pkl')
