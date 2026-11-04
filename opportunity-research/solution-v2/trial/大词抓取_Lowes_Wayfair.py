@@ -1,4 +1,5 @@
-"""大词抓取（Lowe's / Wayfair）：主词 "bathroom vanity" 前 500 + 6 个尺寸词各前 300，合并去重；按需抓商品页规格。
+"""大词抓取（Lowe's / Wayfair）："bathroom vanity" 与 "bathroom vanity with sink" 各前 300 自然位，合并去重；按需抓商品页规格。
+（第一版另有 24/30/36/48/60/72 inch 尺寸词各前 300，wen 2026-11-04 改为不用，缓存保留，仅作参考计数。）
 用法（可续跑，缓存在 input/data_v2/渠道关键词/大词/，不入库）：
   python 大词抓取_Lowes_Wayfair.py 列表      # 各词第 1–2 页先探翻页，再并发抓到目标条数
   python 大词抓取_Lowes_Wayfair.py 商品页    # 合并去重后，按评论数从高到低抓商品页（Lowe's 每父体 1 次，Wayfair 每 listing 1 次）
@@ -17,7 +18,10 @@ REEDED_USED = 36
 K.BD_CAP = int(os.environ.get('BD_CAP', str(int(3333 * 0.8) - REEDED_USED)))
 from reviewkit.common import save_json, load_json, add_query   # noqa: E402
 
-KWS = {'bathroom vanity': 500, **{f'{w} inch bathroom vanity': 300 for w in (24, 30, 36, 48, 60, 72)}}
+# 范围（wen 2026-11-04 再改）：只用两个词，各前 300 自然位，合并去重；另并入 wen 渠道VP 表里的类目节点商品（见 分析）。
+KWS = {'bathroom vanity': 300, 'bathroom vanity with sink': 300}
+# 第一版的尺寸拆词（已抓缓存保留，只在报告里作参考计数，不进分析范围、不再抓商品页）
+SIZE_KWS = {f'{w} inch bathroom vanity': 300 for w in (24, 30, 36, 48, 60, 72)}
 WORKERS = int(os.environ.get('WORKERS', '24'))
 log, raw_path = K.log, K.raw_path
 
@@ -107,7 +111,7 @@ def lists():
             if new == 0:
                 log(f'{p} {kw}: 翻页无效（第 2 页与第 1 页相同），停在第 1 页'); continue
             per = max(new, 10)
-            pages = math.ceil(N / per) + (2 if p == 'wayfair' else 1)
+            pages = min(math.ceil(N / per) + (2 if p == 'wayfair' else 1), 30)
             if p == 'lowes':
                 pc = (p0['meta'].get('pagination') or {}).get('pageCount') or pages
                 pages = min(pages, pc, 30)   # Lowe's maxOffset 720 = 30 页
@@ -124,7 +128,7 @@ def lists():
                 while load_json(raw_path('pages', p, f'{kw}_{n_have}.json')) is not None: n_have += 1
                 if n_have < 2: continue
                 last = load_json(raw_path('pages', p, f'{kw}_{n_have - 1}.json'))
-                if len(organic(p, kw, n_have)) < N and last and last['rows'] and n_have < 40:
+                if len(organic(p, kw, n_have)) < N and last and last['rows'] and n_have < 34:
                     if p == 'lowes':
                         pc = (load_json(raw_path('pages', p, f'{kw}_0.json'))['meta'].get('pagination') or {}).get('pageCount') or 0
                         if n_have >= min(pc, 30): continue
@@ -140,10 +144,10 @@ def lists():
             log(f'{p} {kw}: {n_have} 页，自然位去重 {len(organic(p, kw, n_have))}（目标 {N}）')
 
 
-def merged(plat):
+def merged(plat, kws=None):
     """各词前 N 合并；Lowe's 按父体去重、Wayfair 按 listing 去重。返回 {家族: 代表行}，代表行带 kws / best_rank。"""
     fams = {}
-    for kw, N in KWS.items():
+    for kw, N in (kws or KWS).items():
         n_have = 0
         while load_json(raw_path('pages', plat, f'{kw}_{n_have}.json')) is not None: n_have += 1
         for r in organic(plat, kw, n_have)[:N]:
