@@ -376,7 +376,8 @@ def test_flow37_wayfair_estimate_and_readability(v2):
     F = pd.read_csv(OLD / '小平台调研_按框_框_Wayfair.csv').set_index('框')
     op = pd.read_csv(OLD / '三平台_商品表.csv', dtype=str, keep_default_na=False)
     om = pd.read_csv(OLD / '三平台_月销表.csv', dtype=str, keep_default_na=False)
-    assert int((op['月度来源'] == '无（只有评论总数）').sum()) and (op[op['渠道'] == 'Wayfair']['月度来源'] == '无（只有评论总数）').sum() == 168
+    w = op[(op['渠道'] == 'Wayfair') & (op['浴室柜'].str.lower() != 'false')]
+    assert (w['月度来源'] == '无（只有评论总数）').sum() == 168
     import_channels(v2, ['wayfair'], op, om)
     d = rjson(v2, 'wayfair')['data']
     big = F[F['框月均'] >= 200]
