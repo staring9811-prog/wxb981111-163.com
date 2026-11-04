@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SAMPLE = ROOT / 'input' / 'data_v2' / '渠道关键词' / '大词'
 REF = ROOT / 'input' / 'data_v2' / '渠道调研'
 DUP = ("Lowe's", '5018243355', '6003479666')
+OLD = REF / '估算版样本'  # 2026-11-04 上午版样本副本（Wayfair 168 个 listing 只有评论总数），只用于估算规则
 _S = {}
 
 
@@ -367,9 +368,16 @@ def test_flow36_hd_frames_units_match_trial(v2):
 # =============================================================== FLOW-37 估算与可读性（Wayfair）
 def test_flow37_wayfair_estimate_and_readability(v2):
     """FLOW-37（AC-F30-17～21）：Wayfair 无月度 listing 按评论数档估算；24″ · 拆装 · 落地式 5,456 估算 / 低估计 4,010；30″ · 整装 · 悬浮式 低估计
-    122 标"低估计未达门槛"；可读框与小试相同；不下结论整行降灰只显示体量份额；30″ · 整装 · 落地式 趋势不下结论（有月度 33%）；只看可读框。"""
-    F = ref_frames('Wayfair')
-    import_channels(v2, ['wayfair'])
+    122 标"低估计未达门槛"；可读框与小试相同；不下结论整行降灰只显示体量份额；30″ · 整装 · 落地式 趋势不下结论（有月度 33%）；只看可读框。
+    样本：最终表的 Wayfair 已全部补到逐月评论、没有估算对象，估算规则用 2026-11-04 上午版样本副本（OLD，168 个 listing 只有评论总数）验证，
+    期望 = 小试脚本在该副本上的输出与报告上午版数字。"""
+    if not (OLD / '三平台_商品表.csv').exists() or not (OLD / '小平台调研_按框_框_Wayfair.csv').exists():
+        pytest.skip(f'本机没有估算版样本副本 {OLD}（不入库），跳过')
+    F = pd.read_csv(OLD / '小平台调研_按框_框_Wayfair.csv').set_index('框')
+    op = pd.read_csv(OLD / '三平台_商品表.csv', dtype=str, keep_default_na=False)
+    om = pd.read_csv(OLD / '三平台_月销表.csv', dtype=str, keep_default_na=False)
+    assert int((op['月度来源'] == '无（只有评论总数）').sum()) and (op[op['渠道'] == 'Wayfair']['月度来源'] == '无（只有评论总数）').sum() == 168
+    import_channels(v2, ['wayfair'], op, om)
     d = rjson(v2, 'wayfair')['data']
     big = F[F['框月均'] >= 200]
     fr = {f['frame']: f for f in d['frames']}
