@@ -325,7 +325,7 @@ def build_hd(XC, V):
         g = load_json(fn) or {}
         if g.get('状态') not in ('完整', '截断'): continue
         rv = g.get('reviews') or {}
-        fk = next((fam_of[x['pid']] for x in rv.values() if x.get('pid') in fam_of), None)
+        fk = next((fam_of[x['pid']] for x in rv.values() if x.get('pid') in fam_of), None) or fam_of.get(os.path.basename(fn)[1:-5])   # 评论只落在未列出的变体上时，按文件名（F+家族根商品页）归家族
         if fk is None: continue
         for rid, x in rv.items():
             if (x.get('d') or '')[:7] in MONTHS: R[rid] = dict(x, fam=fk)
