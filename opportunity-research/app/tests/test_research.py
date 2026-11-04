@@ -22,6 +22,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
 from conftest import login_as, make_user
+from v2fixture import v2  # noqa: F401  （第二轮数据夹具）
 
 ROOT = Path(__file__).resolve().parents[2]
 SAMPLE = ROOT / 'input' / 'data_v2' / '渠道关键词' / '大词'
