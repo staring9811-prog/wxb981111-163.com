@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.1.3">
+<meta name="pc-app-version" content="1.2.0">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -206,6 +206,24 @@ nav.steps button.helpnav{background:transparent;border-style:dashed}
 
 #btnTheme{width:34px;height:34px;padding:6px;display:inline-grid;place-items:center}
 #btnTheme svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* product images + product library matrix */
+.pimg{width:44px;height:44px;flex:none;border:1px dashed var(--line);border-radius:6px;background:var(--surface2);display:inline-flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;color:var(--muted);font-size:11px;padding:0;vertical-align:middle}
+.pimg img{width:100%;height:100%;object-fit:contain;background:#fff}
+.pimg.lg{width:72px;height:72px}
+.pimg:hover{border-color:var(--accent)}
+.namecell{display:flex;gap:8px;align-items:flex-start}
+.mx{border-collapse:separate;border-spacing:0}
+.mx th.mxs{min-width:120px;text-align:left;vertical-align:top}
+.mx td{vertical-align:top;min-width:200px;padding:6px}
+.mx td.empty{background:repeating-linear-gradient(45deg,transparent 0 6px,var(--surface2) 6px 12px);color:var(--muted);text-align:center;font-size:12px}
+.mcard{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--surface);margin-bottom:6px;position:relative}
+.mcard.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.mcard .mb{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.mcard .mn{font-weight:600;font-size:13px;line-height:1.3;word-break:break-word}
+.mcard .mm{font-family:var(--f-num);font-size:13px;font-weight:600;border-radius:4px;padding:0 6px;align-self:flex-start}
+.mm.g{background:var(--pos-soft);color:var(--pos)}.mm.y{background:var(--warn-soft);color:var(--warn)}.mm.r{background:var(--neg-soft);color:var(--neg)}.mm.n{background:var(--surface2);color:var(--muted)}
+.mcard input[type=checkbox]{position:absolute;top:6px;right:6px}
+.st-在售{color:var(--pos)}.st-开发中{color:var(--warn)}.st-停产{color:var(--muted);text-decoration:line-through}
 /* in-page navigation: a left rail in the page margin on wide screens, a “本页目录” button elsewhere */
 #pageToc{display:none}
 body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(safe-area-inset-left,0px));bottom:max(16px,env(safe-area-inset-bottom,0px))}
@@ -234,6 +252,7 @@ body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(s
     <button data-step="4"><b>4</b>利润测算表</button>
     <button data-step="5">历史库<span class="chip" id="histCount" style="padding:0 6px">0</span></button>
     <button data-step="6">报价库<span class="chip" id="quoteCount" style="padding:0 6px">0</span></button>
+    <button data-step="7">产品库<span class="chip" id="libCount" style="padding:0 6px">0</span></button>
     <button type="button" data-help="overview" class="helpnav">ⓘ 计算说明</button>
   </nav>
 <button class="btn sm" id="btnCheckUpdate" type="button">检查更新</button>
@@ -251,6 +270,7 @@ body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(s
  <label class="chk"><input type="checkbox" id="pcBackupKey" checked>完整备份包含 API Key（仅保留本机，请勿分享）</label>
  <div class="row" style="margin-top:12px"><button class="btn" id="btnFullBackup">下载完整备份</button><button class="btn" id="btnRestoreBackup">恢复完整备份</button><button class="btn primary" id="btnSelfUpdate" hidden>一键更新（覆盖当前文件）</button><button class="btn" id="btnGetUpdate" hidden>下载新版文件</button><button class="btn" id="btnRollback" hidden>回退到上一版</button></div>
  <input type="file" id="pcBackupFile" accept=".json" hidden>
+ <input type="file" id="imgFile" accept="image/*" hidden>
  <p id="pcUpdateStatus" role="status" class="note">更新前请先下载完整备份。恢复备份需要再次确认。</p>
 </dialog>
 
@@ -341,6 +361,7 @@ body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(s
   <p class="lead">逐个核对包装尺寸（cm）、毛重（kg）、出厂价和售价。各平台价格可以不填：灰色是默认值（上架价 = Amazon 售价 × 系数，促销价 = 上架价 × (1 − 默认折扣)）；只填促销价时，上架价按折扣反推。一个产品可以有多个包裹。“采购成本$”按出厂价币种自动换算：FOB 美元价直接计入，不扣税点；RMB 含税价 ÷ (1+税点) ÷ 汇率；RMB 未税价 ÷ 汇率。</p>
   <div class="row" style="margin-bottom:10px">
     <button class="btn" id="btnAddProd">+ 新增产品</button>
+    <button class="btn" id="btnLibFromProj2" title="把这里的产品（含图片）存入产品库；已在库里的会更新">存入产品库</button>
     <span class="muted">批量设置：</span>
     <select id="bulkCat"></select><button class="btn sm" id="btnBulkCat">品类应用到全部</button>
     <label class="f" style="flex-direction:row;align-items:center;gap:6px">FBM旺季（全部产品）<select id="bulkPeak"><option value="mixed" disabled>各产品不同</option><option>非旺季</option><option>旺季</option></select></label>
@@ -402,6 +423,24 @@ body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(s
 </aside>
 
 <!-- AI preview lives in step 1 -->
+<!-- PRODUCT LIBRARY -->
+<section id="s7" hidden>
+  <h2>产品矩阵</h2>
+  <p class="lead">产品库里的全部产品，按系列 × 尺寸排开。颜色是所选渠道的促销利润率（按当前变量和海运方案）：绿 = 达到目标利润率，黄 = 赚钱但没到目标，红 = 亏损。空格 = 这个系列还没有这个尺寸。</p>
+  <div class="row" style="margin-bottom:10px">
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">看<select id="libMetric"></select></label>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">状态<select id="libStatus"><option value="">全部</option><option>在售</option><option>开发中</option><option>停产</option></select></label>
+    <input id="libSearch" placeholder="搜索品名 / 系列 / 颜色" style="width:200px" aria-label="搜索产品库">
+    <span style="flex:1"></span>
+    <button class="btn" id="btnLibFromProj">把当前测算的产品存入产品库</button>
+    <button class="btn primary" id="btnLibToProj" disabled>选中的加入当前测算</button>
+  </div>
+  <div class="tw" id="libMatrix"></div>
+  <h2>产品库清单</h2>
+  <p class="lead">在这里改系列、尺寸、颜色、状态和图片，矩阵会跟着变。点图片可以换图（选文件或粘贴截图）。成本、包裹和价格在“加入当前测算”后到第 2 步改，改完再点“存入产品库”同步回来。</p>
+  <div class="tw" id="libList"></div>
+</section>
+
 <!-- STEP 6 -->
 <section id="s6" hidden>
   <h2>报价库</h2>
@@ -702,7 +741,7 @@ document.addEventListener("change",e=>{ const t=e.target; if(t.dataset&&t.datase
 document.addEventListener("click",e=>{ const t=e.target.closest("[data-happly]"); if(!t) return; const k=t.dataset.happly, inp=t.parentElement.querySelector("[data-hpct]"); applyUp([k], inp&&inp.value!==""?num(inp.value):nz(P.plat[k].upPct)); });
 
 /* ---------------- step navigation ---------------- */
-function go(n){ if(n!==4&&typeof closeVars==="function"&&!document.getElementById("varDrawer").hidden) closeVars(); step=n; for(let i=1;i<=6;i++) document.getElementById("s"+i).hidden=i!==n;
+function go(n){ if(n!==4&&typeof closeVars==="function"&&!document.getElementById("varDrawer").hidden) closeVars(); step=n; for(let i=1;i<=7;i++) document.getElementById("s"+i).hidden=i!==n;
   document.querySelectorAll("#steps button").forEach(b=>{ if(+b.dataset.step===n) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current"); });
   render(); try{ localStorage.setItem("pc_step",n);}catch(e){} window.scrollTo(0,0); buildToc(); }
 /* ---------------- in-page navigation: the visible h2 headings of the current step (h3 too when a step has only one h2) ---------------- */
@@ -729,7 +768,7 @@ document.addEventListener("click",e=>{ if(!e.target.closest("#pageToc")) documen
 window.addEventListener("scroll",()=>{ if(!tocFrame) tocFrame=requestAnimationFrame(()=>{ tocFrame=0; spyToc(); }); },{passive:true});
 document.getElementById("steps").addEventListener("click",e=>{ const b=e.target.closest("button[data-step]"); if(b) go(+b.dataset.step); });
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-go]"); if(b) go(+b.dataset.go); });
-function render(){ renderBulk(); if(step===1) renderS1(); if(step===2) renderS2(); if(step===3) renderS3(); if(step===4) renderS4(); if(step===5) renderS5(); if(step===6) renderS6(); }
+function render(){ renderBulk(); if(step===1) renderS1(); if(step===2) renderS2(); if(step===3) renderS3(); if(step===4) renderS4(); if(step===5) renderS5(); if(step===6) renderS6(); if(step===7) renderS7(); }
 
 /* ---------------- step 1: import ---------------- */
 const FIELDS=[
@@ -755,10 +794,10 @@ function renderS1(){ aiModeText();
   const n=products.length, k=products.reduce((a,p)=>a+p.pkgs.length,0);
   document.getElementById("projInfo").textContent = n? `已有 ${n} 个产品、${k} 个包裹。导入新报价表时可选择替换或追加。` : "还没有产品。";
 }
-let lastFile=null;
+let lastFile=null, lastBuf=null;
 function readFile(f){ lastFile=f;
   const r=new FileReader();
-  r.onload=e=>{ try{ wbIn=XLSX.read(new Uint8Array(e.target.result),{type:"array"}); setupMap(); }catch(err){ toast("无法读取这个文件："+err.message); } };
+  r.onload=e=>{ try{ lastBuf=new Uint8Array(e.target.result); wbIn=XLSX.read(lastBuf,{type:"array"}); setupMap(); }catch(err){ toast("无法读取这个文件："+err.message); } };
   r.readAsArrayBuffer(f);
 }
 function sheetRows(name){ return XLSX.utils.sheet_to_json(wbIn.Sheets[name],{header:1,defval:"",raw:true,blankrows:true}); }
@@ -795,7 +834,7 @@ function parseRows(){
   const kd=document.getElementById("unitDim").value==="in"?2.54:1, kw=document.getElementById("unitWt").value==="lb"?0.45359237:1;
   const cur=document.getElementById("unitCost").value, defCat=document.getElementById("defCat").value;
   const get=(r,k)=>m[k]>=0?r[m[k]]:"";
-  const out=[]; let cur_p=null;
+  const out=[]; let cur_p=null; const r0=sheetRow0(wbIn.Sheets[mapState.sheet]);
   for(let i=mapState.header+1;i<rows.length;i++){
     const r=rows[i]; if(!r) continue;
     let l=num(get(r,"l")),w=num(get(r,"w")),h=num(get(r,"h"));
@@ -804,10 +843,10 @@ function parseRows(){
     if(!hasDims&&!name) continue;
     if(!hasDims&&name&&!isFinite(num(get(r,"cost")))&&!isFinite(num(get(r,"price")))) continue;
     const pkg={l:hasDims?+(l*kd).toFixed(2):"",w:hasDims?+(w*kd).toFixed(2):"",h:hasDims?+(h*kd).toFixed(2):"",kg:isFinite(num(get(r,"kg")))?+(num(get(r,"kg"))*kw).toFixed(3):""};
-    if(!name&&cur_p){ cur_p.pkgs.push(pkg); if(!isFinite(num(cur_p.cost))&&isFinite(num(get(r,"cost")))) cur_p.cost=num(get(r,"cost")); if(!isFinite(num(cur_p.price))&&isFinite(num(get(r,"price")))) cur_p.price=num(get(r,"price")); continue; }
+    if(!name&&cur_p){ cur_p.pkgs.push(pkg); cur_p._rows.push(r0+i); if(!isFinite(num(cur_p.cost))&&isFinite(num(get(r,"cost")))) cur_p.cost=num(get(r,"cost")); if(!isFinite(num(cur_p.price))&&isFinite(num(get(r,"price")))) cur_p.price=num(get(r,"price")); continue; }
     const cat=norm(get(r,"category")); const pk=norm(get(r,"peak"));
     cur_p={id:uid(),name:name||("产品"+(out.length+1)),desc:norm(get(r,"desc")),supplier:norm(get(r,"supplier")),category:CATS.includes(cat)?cat:(cat||defCat),peak:pk==="旺季"?"旺季":"非旺季",
-      price:isFinite(num(get(r,"price")))?num(get(r,"price")):"",cost:isFinite(num(get(r,"cost")))?num(get(r,"cost")):"",costCur:cur,adj:0,pkgs:[pkg],prices:{}};
+      price:isFinite(num(get(r,"price")))?num(get(r,"price")):"",cost:isFinite(num(get(r,"cost")))?num(get(r,"cost")):"",costCur:cur,adj:0,pkgs:[pkg],prices:{},_rows:[r0+i]};
     const pv=k=>{ const v=num(get(r,k)); return isFinite(v)&&v>0?v:""; };
     if(pv("vcList")) cur_p.prices.lowesVC={list:pv("vcList")}; if(pv("scPromo")) cur_p.prices.lowesSC={promo:pv("scPromo")};
     if(pv("hdList")) cur_p.prices.hd={list:pv("hdList")}; if(pv("wfList")) cur_p.prices.wf={list:pv("wfList")};
@@ -824,8 +863,11 @@ document.getElementById("mapSheet").addEventListener("change",e=>{ mapState.shee
 document.getElementById("mapHeader").addEventListener("change",e=>{ mapState.header=Math.max(0,(parseInt(e.target.value)||1)-1); mapState.map=guessMap(sheetRows(mapState.sheet)[mapState.header]||[]); drawMap(); });
 document.getElementById("mapFields").addEventListener("change",e=>{ const s=e.target.closest("[data-map]"); if(s){ mapState.map[s.dataset.map]=+s.value; drawMap(); } });
 ["unitDim","unitWt","unitCost","defCat"].forEach(id=>document.getElementById(id).addEventListener("change",()=>mapState&&drawMap()));
-document.getElementById("btnImport").addEventListener("click",()=>{ const ps=parseRows(); if(!ps.length){ toast("没有可导入的数据行"); return; }
-  products = document.getElementById("importMode").value==="append"? products.concat(ps) : ps; save(); toast(`已导入 ${ps.length} 个产品`); go(2); });
+document.getElementById("btnImport").addEventListener("click",async()=>{ const ps=parseRows(); if(!ps.length){ toast("没有可导入的数据行"); return; }
+  let nImg=0; try{ const im=await xlsxImages(lastBuf,wbIn), byRow=im&&im[mapState.sheet];
+    if(byRow) for(const p of ps){ const row=p._rows.find(r=>byRow.has(r)); if(row!==undefined){ const id=await imgSave(byRow.get(row)); if(id){ p.img=id; nImg++; } } } }catch(e){ console.warn("image import",e); }
+  ps.forEach(p=>{ delete p._rows; fillSeriesSize(p); });
+  products = document.getElementById("importMode").value==="append"? products.concat(ps) : ps; save(); toast(`已导入 ${ps.length} 个产品${nImg?`，${nImg} 张产品图片`:""}`); go(2); });
 document.getElementById("btnSample").addEventListener("click",()=>{ products=sampleProducts(); save(); toast("已加载示例数据"); go(2); });
 document.getElementById("btnBlank").addEventListener("click",()=>{ products.push(blankProduct()); save(); go(2); });
 document.getElementById("btnLoadJson").addEventListener("click",()=>document.getElementById("jsonFile").click());
@@ -847,7 +889,7 @@ function renderS2(){
       if(gi===0&&[g.l,g.w,g.h,g.kg].some(v=>!(nz(v)>0))) issues.push(`${p.name}：包裹尺寸或毛重不完整`);
       const pc= nz(g.l)*nz(g.w)*nz(g.h)/1e6;
       const head = gi? "" : `
-        <td rowspan="${n}"><input class="wide" data-p="${pi}" data-k="name" value="${esc(p.name)}"><br><input class="wide" data-p="${pi}" data-k="key" value="${esc(p.key||"")}" placeholder="对比键：${esc(autoKey(p.name))}" title="对比键：报价库里对齐不同工厂同一规格用，例如 30寸 落地式" style="margin-top:4px;font-size:12px"></td>
+        <td rowspan="${n}"><div class="namecell">${imgBox(p.img,`data-imgp="${pi}"`)}<div><input class="wide" data-p="${pi}" data-k="name" value="${esc(p.name)}"><br><input class="wide" data-p="${pi}" data-k="key" value="${esc(p.key||"")}" placeholder="对比键：${esc(autoKey(p.name))}" title="对比键：报价库里对齐不同工厂同一规格用，例如 30寸 落地式" style="margin-top:4px;font-size:12px"></div></div></td>
         <td rowspan="${n}"><textarea data-p="${pi}" data-k="desc">${esc(p.desc)}</textarea></td>
         <td rowspan="${n}"><input data-p="${pi}" data-k="supplier" value="${esc(p.supplier)}" style="width:90px"></td>
         <td rowspan="${n}"><select data-p="${pi}" data-k="category">${catOpts(p.category)}</select></td>
@@ -885,7 +927,8 @@ ct.addEventListener("change",e=>{ const t=e.target;
   if(t.dataset.plat){ const p=products[+t.dataset.p]; p.prices=p.prices||{}; const o=p.prices[t.dataset.plat]=p.prices[t.dataset.plat]||{}; o[t.dataset.pk]=t.value===""?"":num(t.value); save(); renderS2(); return; }
   if(!t.dataset.k) return; const p=products[+t.dataset.p]; const numK=["price","cost","costRmb","adj","l","w","h","kg"].includes(t.dataset.k);
   const v=numK?(t.value===""?"":num(t.value)):t.value; if(t.dataset.g!==undefined) p.pkgs[+t.dataset.g][t.dataset.k]=v; else p[t.dataset.k]=v; save(); renderS2(); });
-ct.addEventListener("click",e=>{ const b=e.target.closest("[data-act]"); if(!b) return; const pi=+b.dataset.p;
+ct.addEventListener("click",e=>{ const im=e.target.closest("[data-imgp]"); if(im){ const p=products[+im.dataset.imgp]; pickImage(id=>{ p.img=id; save(); renderS2(); }); return; }
+  const b=e.target.closest("[data-act]"); if(!b) return; const pi=+b.dataset.p;
   if(b.dataset.act==="addPkg") products[pi].pkgs.push({l:"",w:"",h:"",kg:""});
   if(b.dataset.act==="delPkg") products[pi].pkgs.splice(+b.dataset.g,1);
   if(b.dataset.act==="delProd"){ if(b.dataset.confirm!=="1"){ b.dataset.confirm="1"; b.textContent="确认删除?"; setTimeout(()=>{ if(b.isConnected){ b.dataset.confirm=""; b.textContent="删产品"; } },3000); return; } products.splice(pi,1); }
@@ -1325,7 +1368,10 @@ function autoKey(name){ const m=String(name||"").match(/(\d{2,3})\s*(寸|"|”|'
 const today=()=>{ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 const fileB64=f=>new Promise((ok,no)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]); r.onerror=()=>no(r.error); r.readAsDataURL(f); });
 function sheetText(wb){ const MAX=70000; let out="", cut=false;
-  for(const n of wb.SheetNames){ const csv=XLSX.utils.sheet_to_csv(wb.Sheets[n],{blankrows:false}).split("\n").filter(l=>l.replace(/,/g,"").trim()).join("\n"); const part=`\n### 工作表：${n}\n${csv}\n`;
+  for(const n of wb.SheetNames){ const ws=wb.Sheets[n], r0=sheetRow0(ws);
+    // every line starts with its sheet row number (R12:) so the AI can say which row a product is on → picture lookup
+    const csv=XLSX.utils.sheet_to_csv(ws,{blankrows:true}).split("\n").map((l,i)=>[i,l.replace(/=?(_xlfn\.)?DISPIMG\([^)]*\)/g,"[图片]")]).filter(([i,l])=>l.replace(/,/g,"").trim()).map(([i,l])=>`R${r0+i+1}:${l}`).join("\n");
+    const part=`\n### 工作表：${n}\n${csv}\n`;
     if(out.length+part.length>MAX){ out+=part.slice(0,Math.max(0,MAX-out.length)); cut=true; break; } out+=part; }
   return {text:out,cut}; }
 function aiPrompt(body){
@@ -1333,7 +1379,7 @@ function aiPrompt(body){
   return `你是外贸采购助理。下面是一份工厂报价单，格式不固定（可能有多个工作表、合并单元格、中英文混排、一个产品占多行、多包裹）。请提取每个产品的报价信息。
 
 只输出一个 JSON 对象，不要任何解释文字。格式：
-{"factory":"工厂名，找不到就空字符串","quote_date":"YYYY-MM-DD，找不到就空字符串","items":[{"name":"型号或品名","desc":"材质/颜色/配置，简短","match_key":"规格键","price":数字或null,"price_currency":"USD 或 RMB","price_tax":"FOB 或 含税 或 未税","price_rmb_tax":数字或null,"moq":数字或null,"packages":[{"l":数字,"w":数字,"h":数字,"dim_unit":"cm 或 mm 或 in","weight":数字或null,"weight_unit":"kg 或 lb"}],"notes":"拿不准的地方，没有就空字符串"}]}
+{"factory":"工厂名，找不到就空字符串","quote_date":"YYYY-MM-DD，找不到就空字符串","items":[{"sheet":"所在工作表名，没有就空字符串","row":产品第一行的行号（表格每行开头 R 后面的数字），没有就 null,"name":"型号或品名","series":"系列/款式名（不含尺寸，如 Shaker、Fluted）","desc":"材质/颜色/配置，简短","match_key":"规格键","price":数字或null,"price_currency":"USD 或 RMB","price_tax":"FOB 或 含税 或 未税","price_rmb_tax":数字或null,"moq":数字或null,"packages":[{"l":数字,"w":数字,"h":数字,"dim_unit":"cm 或 mm 或 in","weight":数字或null,"weight_unit":"kg 或 lb"}],"notes":"拿不准的地方，没有就空字符串"}]}
 
 规则：
 1. packages 用外箱/纸箱/包装尺寸和毛重，不要用产品本身尺寸或净重；一个产品分几个箱子就列几个 package。
@@ -1385,15 +1431,15 @@ function normItems(raw){
     const pk=(Array.isArray(it.packages)?it.packages:[]).map(g=>({l:cv(g.l,g.dim_unit),w:cv(g.w,g.dim_unit),h:cv(g.h,g.dim_unit),kg:wv(g.weight,g.weight_unit)}));
     let cost=isFinite(num(it.price))?num(it.price):"", costRmb=isFinite(num(it.price_rmb_tax))?num(it.price_rmb_tax):"";
     if(cur==="RMB_TAX"&&cost!==""&&costRmb===""){ costRmb=cost; cost=""; }   // RMB VAT-inclusive price = domestic-shipment price
-    return {key:String(it.match_key||autoKey(it.name)||"").trim(),name:String(it.name||"").trim()||"未命名",desc:String(it.desc||""),cost,costRmb,costCur:cur==="RMB_TAX"?"USD":cur,moq:isFinite(num(it.moq))?num(it.moq):"",pkgs:pk.length?pk:[{l:"",w:"",h:"",kg:""}],notes:String(it.notes||"")}; }); }
+    return {sheet:String(it.sheet||""),row:Number.isInteger(+it.row)&&+it.row>0?+it.row:null,series:String(it.series||"").trim(),key:String(it.match_key||autoKey(it.name)||"").trim(),name:String(it.name||"").trim()||"未命名",desc:String(it.desc||""),cost,costRmb,costCur:cur==="RMB_TAX"?"USD":cur,moq:isFinite(num(it.moq))?num(it.moq):"",pkgs:pk.length?pk:[{l:"",w:"",h:"",kg:""}],notes:String(it.notes||"")}; }); }
 async function aiRun(file){
   if(!file){ toast("先选择报价单文件"); return; }
   const st=document.getElementById("aiStatus"), stop=document.getElementById("btnAiStop"), go_=document.getElementById("btnAi");
-  const ext=(file.name.split(".").pop()||"").toLowerCase(); let prompt, images=[], pdf=null, note="";
+  const ext=(file.name.split(".").pop()||"").toLowerCase(); let prompt, images=[], pdf=null, note="", xbuf=null, xwb=null;
   try{
     if(["png","jpg","jpeg","webp"].includes(ext)){ images=[file]; prompt=aiPrompt("（见附带的报价单图片）"); }
     else if(ext==="pdf"){ pdf=file; prompt=aiPrompt("（见附带的 PDF 报价单）"); }
-    else { const wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:"array"}); const t=sheetText(wb); if(t.cut) note="（表格太长，只发送了前约 7 万字，后面的产品请拆分文件再识别）"; prompt=aiPrompt(t.text); }
+    else { xbuf=new Uint8Array(await file.arrayBuffer()); const wb=xwb=XLSX.read(xbuf,{type:"array"}); const t=sheetText(wb); if(t.cut) note="（表格太长，只发送了前约 7 万字，后面的产品请拆分文件再识别）"; prompt=aiPrompt(t.text); }
   }catch(e){ st.textContent="读不了这个文件："+(e.message||e); return; }
   aiCtl=new AbortController(); stop.hidden=false; go_.disabled=true; const t0=Date.now(); let chars=0;
   const tick=setInterval(()=>{ st.textContent=`AI 识别中… 已用 ${Math.round((Date.now()-t0)/1000)} 秒${chars?`，已输出 ${chars} 字`:""}${note}`; },1000);
@@ -1402,8 +1448,9 @@ async function aiRun(file){
     const out=await aiCall(prompt,{images,pdf,signal:aiCtl.signal,onProgress:n=>{chars=n;}});
     const items=normItems(out&&out.items);
     if(!items.length){ st.textContent="AI 没有在这份文件里找到产品报价。"; return; }
+    let nImg=0; if(xbuf) try{ nImg=await attachItemImages(items,xbuf,xwb); }catch(e){ console.warn("image import",e); }
     aiResult={factory:String(out.factory||""),date:/^\d{4}-\d{2}-\d{2}$/.test(out.quote_date||"")?out.quote_date:today(),items,file:file.name};
-    st.textContent=`识别完成：${items.length} 个产品，用时 ${Math.round((Date.now()-t0)/1000)} 秒。请在下方核对。${note}`;
+    st.textContent=`识别完成：${items.length} 个产品${nImg?`、${nImg} 张产品图片`:""}，用时 ${Math.round((Date.now()-t0)/1000)} 秒。请在下方核对。${note}`;
     showAi();
   }catch(e){
     const msg={cancelled:"已停止。",not_granted:"你没有允许这个页面使用 Claude。",rate_limited:"调用太频繁或已达用量上限，请稍后再试。",sampling_disabled:"你的账号当前不能在页面里使用 Claude。",invalid_json:"AI 返回的格式不对，请再试一次。",refused:"AI 拒绝处理这份内容。"}[e&&e.code];
@@ -1416,8 +1463,8 @@ function showAi(){ const a=document.getElementById("aiArea"); a.hidden=false;
 const itemBad=it=>!(nz(it.cost)>0||nz(it.costRmb)>0)||it.pkgs.some(g=>[g.l,g.w,g.h,g.kg].some(v=>!(nz(v)>0)));
 function renderAiTable(){
   const it=aiResult.items, ccy=(v,i)=>`<select data-ai="${i}" data-k="costCur">${Object.entries(COST_CUR).map(([k,l])=>`<option value="${k}" ${k===v?"selected":""}>${l}</option>`).join("")}</select>`;
-  document.getElementById("aiTable").innerHTML=`<table><thead><tr><th>#</th><th>对比键</th><th>品名 / 型号</th><th>描述</th><th>包裹（长×宽×高 cm · 毛重 kg）</th><th>FOB 出厂价</th><th>币种</th><th>国内出货价 ¥<br><span class="note">含税</span></th><th>MOQ</th><th>AI 备注</th><th></th></tr></thead><tbody>${it.map((x,i)=>`<tr class="${itemBad(x)?"bad":""}">
-    <td class="c">${i+1}</td><td><input class="key" data-ai="${i}" data-k="key" value="${esc(x.key)}"></td><td><input class="wide" data-ai="${i}" data-k="name" value="${esc(x.name)}"></td>
+  document.getElementById("aiTable").innerHTML=`<table><thead><tr><th>#</th><th>图片</th><th>对比键</th><th>品名 / 型号</th><th>描述</th><th>包裹（长×宽×高 cm · 毛重 kg）</th><th>FOB 出厂价</th><th>币种</th><th>国内出货价 ¥<br><span class="note">含税</span></th><th>MOQ</th><th>AI 备注</th><th></th></tr></thead><tbody>${it.map((x,i)=>`<tr class="${itemBad(x)?"bad":""}">
+    <td class="c">${i+1}</td><td>${imgBox(x.img,`data-imgai="${i}"`)}</td><td><input class="key" data-ai="${i}" data-k="key" value="${esc(x.key)}"></td><td><input class="wide" data-ai="${i}" data-k="name" value="${esc(x.name)}"></td>
     <td class="note" style="max-width:220px;white-space:normal">${esc(x.desc)}</td>
     <td class="pk">${x.pkgs.map(g=>`${f1(num(g.l))}×${f1(num(g.w))}×${f1(num(g.h))} · ${f1(num(g.kg))}`).join("<br>")}</td>
     <td><input type="number" step="any" data-ai="${i}" data-k="cost" value="${esc(x.cost)}"></td><td>${ccy(x.costCur,i)}</td><td><input type="number" step="any" data-ai="${i}" data-k="costRmb" value="${esc(x.costRmb??"")}"></td><td class="n">${esc(x.moq)}</td>
@@ -1426,17 +1473,19 @@ function renderAiTable(){
   const bad=it.filter(itemBad).length; document.getElementById("aiCount").textContent=`${it.length} 个产品${bad?`，${bad} 个缺数据（导入后可在第 2 步补）`:""}`;
 }
 document.getElementById("aiTable").addEventListener("change",e=>{ const t=e.target; if(t.dataset.ai===undefined) return; const x=aiResult.items[+t.dataset.ai]; x[t.dataset.k]=t.dataset.k==="cost"||t.dataset.k==="costRmb"?(t.value===""?"":num(t.value)):t.value; setTimeout(renderAiTable); });
-document.getElementById("aiTable").addEventListener("click",e=>{ const b=e.target.closest("[data-aidel]"); if(!b) return; aiResult.items.splice(+b.dataset.aidel,1); renderAiTable(); });
+document.getElementById("aiTable").addEventListener("click",e=>{ const im=e.target.closest("[data-imgai]"); if(im){ pickImage(id=>{ aiResult.items[+im.dataset.imgai].img=id; renderAiTable(); }); return; }
+  const b=e.target.closest("[data-aidel]"); if(!b) return; aiResult.items.splice(+b.dataset.aidel,1); renderAiTable(); });
 const findByKey=key=>{ const k=String(key||"").trim().toLowerCase(); return k?products.find(p=>String(p.key||autoKey(p.name)).trim().toLowerCase()===k):null; };
 /* Quote items → products. Prices (Amazon + platforms) carry over from current products with the same match key. */
 function itemsToProducts(items,factory){ const pk=allPeak()==="旺季"?"旺季":"非旺季";
   return items.map(x=>{ const old=findByKey(x.key); return {id:uid(),name:x.name,key:x.key,desc:x.desc,supplier:factory||"",category:old?old.category:"家具",peak:old?old.peak:pk,
-    price:old?old.price:"",prices:old?clone(old.prices||{}):{},qty:old?old.qty:undefined,cost:x.cost,costRmb:x.costRmb??"",costCur:x.costCur,adj:0,pkgs:clone(x.pkgs)}; }); }
+    price:old?old.price:"",prices:old?clone(old.prices||{}):{},qty:old?old.qty:undefined,cost:x.cost,costRmb:x.costRmb??"",costCur:x.costCur,adj:0,pkgs:clone(x.pkgs),
+    img:x.img||(old&&old.img)||"",series:x.series||(old&&old.series)||"",size:old&&old.size||"",color:old&&old.color||"",status:old&&old.status||"",libId:old&&old.libId||""}; }).map(fillSeriesSize); }
 function aiMeta(){ return {factory:document.getElementById("aiFactory").value.trim(),version:document.getElementById("aiVersion").value.trim(),date:document.getElementById("aiDate").value||today()}; }
 function aiImport(){ const m=aiMeta(), ps=itemsToProducts(aiResult.items,m.factory); const kept=ps.filter(p=>nz(p.price)>0).length;
   products=document.getElementById("aiMode2").value==="append"?products.concat(ps):ps; save(); toast(`已导入 ${ps.length} 个产品${kept?`，${kept} 个沿用了原来的售价`:""}`); }
 async function aiSaveQ(){ const m=aiMeta(); if(!m.factory){ toast("先填工厂名"); document.getElementById("aiFactory").focus(); return false; }
-  return await qSave({factory:m.factory,version:m.version||`${m.date} 报价`,date:m.date,source:aiResult.file||"",items:clone(aiResult.items).map(({notes,...x})=>x)}); }
+  return await qSave({factory:m.factory,version:m.version||`${m.date} 报价`,date:m.date,source:aiResult.file||"",items:clone(aiResult.items).map(({notes,sheet,row,...x})=>x)}); }
 document.getElementById("btnAi").addEventListener("click",()=>aiRun(document.getElementById("aiFile").files[0]));
 document.getElementById("btnAiThis").addEventListener("click",()=>aiRun(lastFile));
 document.getElementById("btnAiStop").addEventListener("click",()=>aiCtl&&aiCtl.abort());
@@ -1648,8 +1697,136 @@ function migrate(){ const d=defaultParams(); for(const k in d) if(P[k]===undefin
   for(const k in d.plat){ if(!P.plat[k]) P.plat[k]=d.plat[k]; else for(const f in d.plat[k]) if(P.plat[k][f]===undefined) P.plat[k][f]=d.plat[k][f]; }
   if(!(nz(P.seaView)>=0&&nz(P.seaView)<P.sea.length)) P.seaView=0;
   products.forEach(p=>{ if(!p.prices||typeof p.prices!=="object") p.prices={}; }); }
+/* ================= product images (IndexedDB, compressed thumbnails) ================= */
+const IMG_DB="pc_images", imgUrls=new Map();
+function imgIdb(mode,fn){ return new Promise((ok,bad)=>{ let rq; try{ rq=indexedDB.open(IMG_DB,1); }catch(e){ bad(e); return; }
+  rq.onupgradeneeded=()=>rq.result.createObjectStore("img"); rq.onerror=()=>bad(rq.error);
+  rq.onsuccess=()=>{ const db=rq.result, tx=db.transaction("img",mode), r=fn(tx.objectStore("img"));
+    tx.oncomplete=()=>{ db.close(); ok(r&&"result" in r?r.result:undefined); }; tx.onerror=()=>{ db.close(); bad(tx.error); }; }; }); }
+const imgGetRec=id=>imgIdb("readonly",st=>st.get(id));
+const imgPutRec=(id,rec)=>imgIdb("readwrite",st=>{ st.put(rec,id); });
+const imgAllKeys=()=>imgIdb("readonly",st=>st.getAllKeys());
+/* Any picture → ≤360px thumbnail (WebP, JPEG where WebP can't be encoded). Returns null for formats the browser can't draw (EMF/WMF). */
+async function makeThumb(blob){
+  let bmp; try{ bmp=await createImageBitmap(blob); }catch(e){ return null; }
+  const k=Math.min(1,360/Math.max(bmp.width,bmp.height)), w=Math.max(1,Math.round(bmp.width*k)), h=Math.max(1,Math.round(bmp.height*k));
+  const c=document.createElement("canvas"); c.width=w; c.height=h; const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,w,h); g.drawImage(bmp,0,0,w,h); bmp.close&&bmp.close();
+  const enc=t=>new Promise(r=>c.toBlob(r,t,0.82)); let out=await enc("image/webp"); if(!out||out.type!=="image/webp") out=await enc("image/jpeg"); return out; }
+async function imgSave(blob){ try{ const t=await makeThumb(blob); if(!t) return ""; const id="im"+Date.now().toString(36)+uid(); await imgPutRec(id,{blob:t,at:Date.now()}); return id; }catch(e){ console.warn("imgSave",e); return ""; } }
+async function imgUrl(id){ if(!id) return ""; if(imgUrls.has(id)) return imgUrls.get(id);
+  try{ const r=await imgGetRec(id); if(!r||!r.blob) return ""; const u=URL.createObjectURL(r.blob); imgUrls.set(id,u); return u; }catch(e){ return ""; } }
+const imgBox=(id,attrs,cls="")=>`<button type="button" class="pimg ${cls}" ${attrs} title="${id?"点击换图（选文件，或复制图片后点开再粘贴）":"添加产品图片"}">${id?`<img data-img="${esc(id)}" alt="产品图片">`:"＋图片"}</button>`;
+function hydrateImgs(root=document){ root.querySelectorAll("img[data-img]:not([src])").forEach(async im=>{ const u=await imgUrl(im.dataset.img); if(u) im.src=u; else im.replaceWith(document.createTextNode("无图")); }); }
+new MutationObserver(rs=>{ if(rs.some(r=>r.addedNodes.length)) hydrateImgs(); }).observe(document.body,{childList:true,subtree:true});
+/* Pick a picture: file chooser, or paste (Ctrl/⌘+V) while the chooser prompt is up. */
+let imgPickCb=null;
+function pickImage(cb){ imgPickCb=cb; toast("选择图片文件；也可以先复制图片，再按 Ctrl+V / ⌘+V 粘贴"); document.getElementById("imgFile").click(); setTimeout(()=>{ if(imgPickCb===cb) imgPickCb=null; },60000); }
+async function takeImage(blob){ const cb=imgPickCb; imgPickCb=null; if(!cb||!blob) return; const id=await imgSave(blob); if(id){ cb(id); toast("图片已更新"); } else toast("这张图片的格式浏览器读不了，换成 PNG / JPG 再试"); }
+document.getElementById("imgFile").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(f) takeImage(f); });
+document.addEventListener("paste",e=>{ if(!imgPickCb) return; const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(x=>x.type.startsWith("image/")); if(it){ e.preventDefault(); takeImage(it.getAsFile()); } });
+/* Drop images nobody refers to any more (only after 30 days, so nothing in flight is lost). */
+async function imgGc(){ try{ const refs=new Set(); const scan=o=>{ JSON.stringify(o||null).replace(/"img":"(im[^"]+)"/g,(m,id)=>{ refs.add(id); return m; }); };
+  scan(products); scan(libItems); scan(hist.items); scan(qlib.items); for(const k of ["pc_history","pc_quotes","pc_products","pc_lib"]){ try{ (localStorage.getItem(k)||"").replace(/"img":"(im[^"]+)"/g,(m,id)=>{ refs.add(id); return m; }); }catch(e){} }
+  if(hist.mode!=="local"||qlib.mode!=="local") return;   // cloud libraries may hold references we can't see
+  const keys=await imgAllKeys(); for(const id of keys){ if(refs.has(id)) continue; const r=await imgGetRec(id); if(r&&Date.now()-r.at>30*864e5) await imgIdb("readwrite",st=>{ st.delete(id); }); } }catch(e){} }
+
+/* ================= pictures inside .xlsx files: WPS cell images (DISPIMG) + floating pictures ================= */
+const sheetRow0=ws=>{ try{ return XLSX.utils.decode_range(ws["!ref"]).s.r; }catch(e){ return 0; } };
+const xmlAttr=(tag,name)=>{ const m=tag.match(new RegExp("\\b"+name+'="([^"]*)"')); return m?m[1]:""; };
+function relsOf(txt){ const m=new Map(); (txt||"").replace(/<Relationship\b[^>]*>/g,t=>{ m.set(xmlAttr(t,"Id"),xmlAttr(t,"Target")); return t; }); return m; }
+function joinPath(base,target){ if(target.startsWith("/")) return target.slice(1); const parts=base.split("/"); parts.pop(); for(const seg of target.split("/")){ if(seg==="..") parts.pop(); else if(seg&&seg!==".") parts.push(seg); } return parts.join("/"); }
+const IMG_MIME={png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",bmp:"image/bmp",webp:"image/webp",tif:"image/tiff",tiff:"image/tiff"};
+/* → {sheetName: Map(0-based sheet row → Blob)} or null. */
+async function xlsxImages(buf,wb){
+  if(!buf||!wb) return null; let z; try{ z=XLSX.CFB.read(buf,{type:"array"}); }catch(e){ return null; }
+  const raw=p=>{ const f=XLSX.CFB.find(z,"/"+p); return f&&f.content&&f.content.length?f.content:null; };
+  const txt=p=>{ const c=raw(p); return c?new TextDecoder().decode(c):""; };
+  const blobAt=p=>{ const c=raw(p); const ext=(p.split(".").pop()||"").toLowerCase(); return c&&IMG_MIME[ext]?new Blob([c],{type:IMG_MIME[ext]}):null; };
+  const out={}; const put=(sheet,row,blob)=>{ if(!blob) return; (out[sheet]=out[sheet]||new Map()); if(!out[sheet].has(row)) out[sheet].set(row,blob); };
+  // 1) WPS “嵌入单元格”的图片: xl/cellimages.xml names each picture ID_xxx; cells hold =DISPIMG("ID_xxx",1)
+  const ci=txt("xl/cellimages.xml"); let wps=null;
+  if(ci){ const rel=relsOf(txt("xl/_rels/cellimages.xml.rels")), byId=new Map();
+    ci.replace(/<(?:\w+:)?cellImage\b[\s\S]*?<\/(?:\w+:)?cellImage>/g,blk=>{ const nm=(blk.match(/<(?:\w+:)?cNvPr\b[^>]*>/)||[""])[0], em=(blk.match(/r:embed="([^"]+)"/)||[])[1];
+      const name=xmlAttr(nm,"name"); if(name&&em&&rel.has(em)) byId.set(name,joinPath("xl/cellimages.xml",rel.get(em))); return blk; });
+    wps=byId; }
+  // 2) floating pictures anchored on the sheet (Excel 插入图片 / WPS 浮动图片): use the anchor's top-left row
+  const wbRel=relsOf(txt("xl/_rels/workbook.xml.rels"));
+  txt("xl/workbook.xml").replace(/<sheet\b[^>]*>/g,t=>{ const name=xmlAttr(t,"name").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"'), rid=xmlAttr(t,"r:id"); const target=wbRel.get(rid); if(!target) return t;
+    const sp=joinPath("xl/workbook.xml",target), sRel=relsOf(txt(sp.replace(/([^/]+)$/,"_rels/$1.rels")));
+    // cells written by WPS as =DISPIMG("ID_xxx",1) — read straight from the sheet XML (the formula may have no cached value)
+    if(wps) txt(sp).replace(/<c\b([^>]*)>([\s\S]*?)<\/c>/g,(m0,at,body)=>{ const id=(body.match(/DISPIMG\(\s*(?:&quot;|")([^"&]+)/)||[])[1]; const ref=xmlAttr(at,"r");
+      if(id&&ref&&wps.has(id)) put(name,XLSX.utils.decode_cell(ref).r,blobAt(wps.get(id))); return m0; });
+    for(const [,tg] of sRel){ if(!/drawings\/[^/]+\.xml$/.test(tg)) continue; const dp=joinPath(sp,tg), dRel=relsOf(txt(dp.replace(/([^/]+)$/,"_rels/$1.rels")));
+      txt(dp).replace(/<(?:\w+:)?(twoCellAnchor|oneCellAnchor)\b[\s\S]*?<\/(?:\w+:)?\1>/g,blk=>{ const row=+((blk.match(/<(?:\w+:)?from>[\s\S]*?<(?:\w+:)?row>(\d+)</)||[])[1]); const em=(blk.match(/r:embed="([^"]+)"/)||[])[1];
+        if(Number.isFinite(row)&&em&&dRel.has(em)) put(name,row,blobAt(joinPath(dp,dRel.get(em)))); return blk; }); }
+    return t; });
+  return out; }
+/* AI items carry (sheet,row 1-based) → picture of that row (or the next 2 rows, for merged product cells). */
+async function attachItemImages(items,buf,wb){ const im=await xlsxImages(buf,wb); if(!im) return 0; let n=0; const one=Object.keys(im).length===1?im[Object.keys(im)[0]]:null;
+  const sk=it=>im[it.sheet]?it.sheet:(one?Object.keys(im)[0]:it.sheet), taken=new Set(items.filter(i=>i.row).map(i=>sk(i)+"|"+(i.row-1)));
+  for(const it of items){ if(!it.row) continue; const m=im[it.sheet]||one; if(!m) continue; const r=it.row-1, s0=sk(it);
+    // the picture may sit a row or two lower (merged cells), but never on the next product's row
+    const k=[r,r+1,r+2].find((x,j)=>m.has(x)&&![...Array(j)].some((_,q)=>taken.has(s0+"|"+(r+q+1)))); if(k===undefined) continue; const id=await imgSave(m.get(k)); if(id){ it.img=id; n++; } } return n; }
+
+/* ================= product library (产品库) + matrix ================= */
+const LIB_STATUS=["在售","开发中","停产"];
+let libItems=load("pc_lib")||[], libSel=new Set();
+function saveLib(){ try{ localStorage.setItem("pc_lib",JSON.stringify(libItems)); }catch(e){ toast("产品库保存失败：浏览器存储空间不足"); return false; } libChanged(); return true; }
+function libChanged(){ const el=document.getElementById("libCount"); if(el) el.textContent=libItems.length; if(step===7) renderS7(); }
+/* Size from the name (24寸 / 30" / shaker-mix36) and series = the name without size / pack words. */
+function guessSize(name){ const t=String(name||""); let m=t.match(/(\d{2,3}(?:\.\d)?)\s*(?:寸|"|”|''|inch\b|in\b|英寸)/i)||t.match(/(?:^|[^\d.])(\d{2})(?!\d)/); const v=m?+m[1]:NaN; return v>=12&&v<=120?String(v):""; }
+function guessSeries(name){ return String(name||"").replace(/(\d{2,3}(?:\.\d)?)\s*(?:寸|"|”|''|inch\b|in\b|英寸)/ig," ").replace(/(^|[^\d.])(\d{2})(?!\d)/,(m,a,d)=>(+d>=12&&+d<=120?a:m)).replace(/[（(]?(单包|双包|分包|三包|[一二三两]包)[)）]?/g," ").replace(/[\s\-_/·]+$/,"").replace(/^[\s\-_/·]+/,"").replace(/\s{2,}/g," ").trim(); }
+function fillSeriesSize(p){ if(!p.size) p.size=guessSize(p.name)||guessSize(p.key); if(!p.series) p.series=guessSeries(p.name)||"未分系列"; if(!p.status) p.status="在售"; return p; }
+const LIB_FIELDS=["name","key","desc","supplier","category","peak","price","prices","cost","costRmb","costCur","adj","pkgs","qty","img","series","size","color","status"];
+function libFromProduct(p,old){ const o=old||{id:"lb"+uid(),createdAt:Date.now()}; for(const k of LIB_FIELDS) if(p[k]!==undefined) o[k]=clone(p[k]); o.updatedAt=Date.now(); return fillSeriesSize(o); }
+function libUpsertFromProject(){ if(!products.length){ toast("当前测算里还没有产品"); return; } let add=0, upd=0;
+  for(const p of products){ fillSeriesSize(p); let old=p.libId&&libItems.find(x=>x.id===p.libId);
+    if(!old) old=libItems.find(x=>x.name===p.name&&String(x.series||"")===String(p.series||"")&&String(x.size||"")===String(p.size||""));
+    if(old){ libFromProduct(p,old); upd++; } else { old=libFromProduct(p); libItems.push(old); add++; } p.libId=old.id; }
+  save(); if(saveLib()) toast(`产品库：新增 ${add} 个，更新 ${upd} 个`); }
+function libToProject(){ const ids=[...libSel]; if(!ids.length) return; let n=0;
+  for(const id of ids){ const x=libItems.find(i=>i.id===id); if(!x) continue; if(products.some(p=>p.libId===id)) continue; const p={id:uid(),libId:id}; for(const k of LIB_FIELDS) if(x[k]!==undefined) p[k]=clone(x[k]); p.prices=p.prices||{}; p.pkgs=p.pkgs&&p.pkgs.length?p.pkgs:[{l:"",w:"",h:"",kg:""}]; products.push(p); n++; }
+  libSel.clear(); save(); toast(n?`已把 ${n} 个产品加入当前测算`:"选中的产品已经在当前测算里了"); go(2); }
+const LIB_METRICS=()=>[...AMZ.map(a=>[`amz:${a.k}`,`${a.name} 利润率`]),...PLATS.map(pl=>[`plat:${pl.k}:promo`,`${pl.name} 促销利润率`]),["cost","采购成本 $"],["price","Amazon 售价 $"]];
+const sizeNum=s=>{ const v=parseFloat(s); return isFinite(v)?v:1e9; };
+function libMetric(x,met,si){ if(met==="cost"){ const v=costUSD(x); return {txt:isFinite(v)&&v>0?"$"+f2(v):"–",cls:"n"}; } if(met==="price"){ const v=nz(x.price); return {txt:v>0?"$"+f2(v):"–",cls:"n"}; }
+  try{ const r=calcProduct(x), b=breakdown(r,met,si); if(!b||!isFinite(b.margin)) return {txt:"缺数据",cls:"n"}; const tg=nz(P.targetMargin)/100; return {txt:pct(b.margin)+" · "+money(b.profit),cls:b.margin>=tg?"g":b.margin>=0?"y":"r"}; }catch(e){ return {txt:"缺数据",cls:"n"}; } }
+function libFiltered(){ const st=document.getElementById("libStatus").value, q=document.getElementById("libSearch").value.trim().toLowerCase();
+  return libItems.filter(x=>(!st||(x.status||"在售")===st)&&(!q||[x.name,x.series,x.color,x.desc,x.key].some(v=>String(v||"").toLowerCase().includes(q)))); }
+function renderS7(){
+  const ms=document.getElementById("libMetric"); if(!ms.options.length){ ms.innerHTML=LIB_METRICS().map(([v,l])=>`<option value="${v}">${esc(l)}</option>`).join(""); ms.value=P.libMetric||"amz:fbm"; }
+  const met=ms.value, si=seaIdx(), L=libFiltered();
+  const series=[...new Set(L.map(x=>x.series||"未分系列"))].sort((a,b)=>a.localeCompare(b,"zh")), sizes=[...new Set(L.map(x=>String(x.size||"")))].sort((a,b)=>sizeNum(a)-sizeNum(b));
+  const card=x=>{ const m=libMetric(x,met,si), st=x.status||"在售"; return `<div class="mcard${libSel.has(x.id)?" sel":""}"><input type="checkbox" data-libsel="${x.id}" ${libSel.has(x.id)?"checked":""} aria-label="选中 ${esc(x.name)}">${imgBox(x.img,`data-imglib="${x.id}"`,"lg")}
+    <div class="mb"><span class="mn">${esc(x.name)}</span><span class="note">${x.pkgs?x.pkgs.length:0} 包${x.color?" · "+esc(x.color):""} · <span class="st-${st}">${st}</span></span><span class="mm ${m.cls}">${esc(m.txt)}</span></div></div>`; };
+  document.getElementById("libMatrix").innerHTML=!libItems.length?`<p class="muted" style="padding:12px">产品库还是空的。到第 2 步或这里点“把当前测算的产品存入产品库”，或导入报价表后再存入。</p>`
+    :!L.length?`<p class="muted" style="padding:12px">没有符合筛选的产品。</p>`
+    :`<table class="mx"><thead><tr><th class="mxs">系列 \\ 尺寸</th>${sizes.map(z=>`<th>${z?esc(z)+" 寸":"未填尺寸"}</th>`).join("")}</tr></thead><tbody>${series.map(sr=>`<tr><th class="mxs" scope="row">${esc(sr)}<br><span class="note">${L.filter(x=>(x.series||"未分系列")===sr).length} 个</span></th>${sizes.map(z=>{ const xs=L.filter(x=>(x.series||"未分系列")===sr&&String(x.size||"")===z); return xs.length?`<td>${xs.map(card).join("")}</td>`:`<td class="empty">缺</td>`; }).join("")}</tr>`).join("")}</tbody></table>`;
+  const stSel=x=>`<select data-libf="${x.id}" data-k="status">${LIB_STATUS.map(v=>`<option ${v===(x.status||"在售")?"selected":""}>${v}</option>`).join("")}</select>`;
+  document.getElementById("libList").innerHTML=!libItems.length?"":`<table><thead><tr><th>图片</th><th>品名</th><th>系列</th><th>尺寸（寸）</th><th>颜色</th><th>状态</th><th>包裹</th><th>采购成本 $</th><th>Amazon 售价 $</th><th>更新时间</th><th></th></tr></thead><tbody>${L.map(x=>`<tr>
+    <td>${imgBox(x.img,`data-imglib="${x.id}"`)}</td><td><input class="wide" data-libf="${x.id}" data-k="name" value="${esc(x.name)}"></td>
+    <td><input data-libf="${x.id}" data-k="series" value="${esc(x.series||"")}" list="libSeriesList" style="width:130px"></td><td><input data-libf="${x.id}" data-k="size" value="${esc(x.size||"")}" style="width:60px"></td>
+    <td><input data-libf="${x.id}" data-k="color" value="${esc(x.color||"")}" style="width:90px"></td><td>${stSel(x)}</td><td class="c">${x.pkgs?x.pkgs.length:0}</td>
+    <td class="n">${isFinite(costUSD(x))&&costUSD(x)>0?f2(costUSD(x)):"–"}</td><td class="n">${nz(x.price)>0?f2(nz(x.price)):"–"}</td><td class="note">${x.updatedAt?new Date(x.updatedAt).toLocaleDateString():""}</td>
+    <td><button class="btn sm danger" data-libdel="${x.id}">删</button></td></tr>`).join("")}</tbody></table><datalist id="libSeriesList">${[...new Set(libItems.map(x=>x.series).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`;
+  document.getElementById("btnLibToProj").disabled=!libSel.size; document.getElementById("btnLibToProj").textContent=libSel.size?`选中的 ${libSel.size} 个加入当前测算`:"选中的加入当前测算";
+}
+document.getElementById("libMetric").addEventListener("change",e=>{ P.libMetric=e.target.value; save(); renderS7(); });
+document.getElementById("libStatus").addEventListener("change",renderS7);
+document.getElementById("libSearch").addEventListener("input",renderS7);
+document.getElementById("btnLibFromProj").addEventListener("click",libUpsertFromProject);
+document.getElementById("btnLibFromProj2").addEventListener("click",libUpsertFromProject);
+document.getElementById("btnLibToProj").addEventListener("click",libToProject);
+document.getElementById("s7").addEventListener("change",e=>{ const t=e.target;
+  if(t.dataset.libsel){ if(t.checked) libSel.add(t.dataset.libsel); else libSel.delete(t.dataset.libsel); renderS7(); return; }
+  if(t.dataset.libf){ const x=libItems.find(i=>i.id===t.dataset.libf); if(!x) return; x[t.dataset.k]=t.dataset.k==="size"?String(t.value).replace(/[^\d.]/g,""):t.value.trim(); x.updatedAt=Date.now();
+    products.forEach(p=>{ if(p.libId===x.id&&["series","size","color","status","name"].includes(t.dataset.k)) p[t.dataset.k]=x[t.dataset.k]; }); save(); saveLib(); } });
+document.getElementById("s7").addEventListener("click",e=>{ const im=e.target.closest("[data-imglib]"); if(im){ const x=libItems.find(i=>i.id===im.dataset.imglib); if(x) pickImage(id=>{ x.img=id; x.updatedAt=Date.now(); products.forEach(p=>{ if(p.libId===x.id) p.img=id; }); save(); saveLib(); }); return; }
+  const d=e.target.closest("[data-libdel]"); if(d){ const x=libItems.find(i=>i.id===d.dataset.libdel); if(x&&confirm(`从产品库删除“${x.name}”？当前测算和历史里的产品不受影响。`)){ libItems=libItems.filter(i=>i!==x); libSel.delete(x.id); products.forEach(p=>{ if(p.libId===x.id) delete p.libId; }); save(); saveLib(); } } });
+libChanged(); setTimeout(imgGc,8000);
+
 migrate();
-let st=4; try{ st=+(localStorage.getItem("pc_step")||4)||4; if(st<1||st>6) st=4; }catch(e){}
+let st=4; try{ st=+(localStorage.getItem("pc_step")||4)||4; if(st<1||st>7) st=4; }catch(e){}
 go(st);
 
 /* Freeze headers during both page scroll and table scroll; preserve row spans. */
@@ -1729,7 +1906,7 @@ renderThemeButton();prepareFrozenTables();
 /* System updates never include user records or API credentials. */
 const pcMeta=n=>{ const m=document.querySelector&&document.querySelector(`meta[name="${n}"]`); return m?m.content:""; };
 const PC_RELEASE={version:pcMeta("pc-app-version"),schema:Number(pcMeta("pc-data-schema")),url:"https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/profit-calculator/index.html"};
-const PC_DATA_KEYS=["pc_products","pc_params","pc_quotes","pc_history","pc_ai_cfg","pc_theme","pc_step","pc_cur"];
+const PC_DATA_KEYS=["pc_products","pc_params","pc_quotes","pc_history","pc_ai_cfg","pc_theme","pc_step","pc_cur","pc_lib"];
 const pcUpdate={remote:null,busy:false,backupData:null,backupKey:true};
 const PC_VOLATILE=["pc_step","pc_cur","pc_theme"];   // navigation/theme changes don't make a backup stale
 const backupSig=(data)=>{ const d=Object.assign({},data); PC_VOLATILE.forEach(k=>delete d[k]); return JSON.stringify(d); };
@@ -1750,6 +1927,7 @@ function readLocalData(includeKey=true){
  data.pc_products=JSON.stringify(products);data.pc_params=JSON.stringify(P);
  if(qlib.mode==="local")data.pc_quotes=JSON.stringify(qlib.items);
  if(hist.mode==="local")data.pc_history=JSON.stringify(hist.items);
+ if(typeof libItems!=="undefined")data.pc_lib=JSON.stringify(libItems);
  if(!includeKey&&data.pc_ai_cfg){const cfg=JSON.parse(data.pc_ai_cfg);delete cfg.key;data.pc_ai_cfg=JSON.stringify(cfg);}
  return data;
 }
@@ -1759,9 +1937,9 @@ function validateBackup(raw){
  if(!raw.data.pc_products||!raw.data.pc_params||entries.some(([k,v])=>!PC_DATA_KEYS.includes(k)||typeof v!=="string"))throw Error("备份字段无效，原数据未改动。");
  for(const [k,v] of entries){
   if(k==="pc_theme"){if(!["dark","light"].includes(v))throw Error("主题设置无效");continue;}
-  if(k==="pc_step"){if(!/^[1-6]$/.test(v))throw Error("页面设置无效");continue;}
+  if(k==="pc_step"){if(!/^[1-7]$/.test(v))throw Error("页面设置无效");continue;}
   const parsed=JSON.parse(v);
-  if(["pc_products","pc_quotes","pc_history"].includes(k)&&!Array.isArray(parsed))throw Error("备份列表格式错误");
+  if(["pc_products","pc_quotes","pc_history","pc_lib"].includes(k)&&!Array.isArray(parsed))throw Error("备份列表格式错误");
   if(["pc_params","pc_ai_cfg"].includes(k)&&(!parsed||typeof parsed!=="object"||Array.isArray(parsed)))throw Error("备份设置格式错误");
  }
  return raw;
@@ -1787,11 +1965,16 @@ function restoreLocalData(raw){
  }
 }
 function makeFullBackup(includeKey){return {app:"profit-calculator",format:1,schema:PC_RELEASE.schema,appVersion:PC_RELEASE.version,savedAt:new Date().toISOString(),includesApiKey:includeKey,data:readLocalData(includeKey)};}
+/* Pictures referenced by the backed-up data, as data URLs (restored into this browser's picture store). */
+async function backupImages(data){ const ids=new Set(); JSON.stringify(data).replace(/\\?"img\\?":\\?"(im[A-Za-z0-9]+)/g,(m,id)=>{ ids.add(id); return m; }); const out={};
+ for(const id of ids){ try{ const r=await imgGetRec(id); if(r&&r.blob) out[id]=await new Promise((ok,no)=>{ const fr=new FileReader(); fr.onload=()=>ok(fr.result); fr.onerror=()=>no(fr.error); fr.readAsDataURL(r.blob); }); }catch(e){} } return out; }
+async function restoreImages(images){ let n=0; if(!images||typeof images!=="object") return 0; for(const [id,u] of Object.entries(images)){ if(!/^im[A-Za-z0-9]+$/.test(id)||typeof u!=="string"||!/^data:image\/(webp|jpeg|png);base64,/.test(u)) continue;
+ try{ const b=await (await fetch(u)).blob(); await imgPutRec(id,{blob:b,at:Date.now()}); n++; }catch(e){} } return n; }
 function setUpdateStatus(text){document.getElementById("pcUpdateStatus").textContent=text;}
 async function exportFullBackup(){
  try{
   const includeKey=document.getElementById("pcBackupKey").checked;
-  const backup=makeFullBackup(includeKey);
+  const backup=makeFullBackup(includeKey); backup.images=await backupImages(backup.data);
   if(await offer(`利润测算完整备份_${stamp()}.json`,JSON.stringify(backup,null,2),"application/json")===false)throw Error("备份下载未成功发起");
   pcUpdate.backupData=backupSig(backup.data); pcUpdate.backupKey=includeKey;
   setUpdateStatus(includeKey?"备份下载已发起。包含 API Key，请仅保留在本机，不要分享。":"备份下载已发起，不包含 API Key。");
@@ -1906,7 +2089,7 @@ document.getElementById("pcBackupFile").addEventListener("change",async e=>{
   if(!window.confirm("恢复这份完整备份？将替换本浏览器备份中对应的产品、参数、报价库、历史和接口设置。"))return;
   // If a cloud library is active, do not claim local restoration will replace it.
   if(qlib.mode==="cloud"||hist.mode==="cloud")throw Error("当前使用云端报价库或历史库。请在本地 HTML 中恢复，云端数据不会被此操作覆盖。");
-  restoreLocalData(raw);window.location.reload();
+  restoreLocalData(raw); await restoreImages(raw.images); window.location.reload();
  }catch(err){setUpdateStatus("恢复未完成："+err.message);}
  finally{e.target.value="";}
 });
