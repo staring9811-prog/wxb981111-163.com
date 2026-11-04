@@ -4,19 +4,19 @@
 
 - work_type: feature
 - workflow_mode: standard
-- revision: 8
+- revision: 9
 - scope: 第一版
 - source_prd: PRD详细版.md
 - status: active
 
-> 第二轮（2026-11-03）：承接第二轮《解题方案书》与场景锚点（wen 确认）。第一轮 F01–F14、NFR-001～006 全部 retired（见文末），ID 不复用；第二轮从 F15、NFR-007 起编。第一版 = 浴室柜、在 wen 电脑运行局域网共享、F15–F29 全部交付。revision 7（2026-11-03）：wen 要求把 Home Depot / Lowe's / Wayfair 加入第一版，新增 F28、F29，F18、F26、F27 各增一条 REQ。revision 8（2026-11-03）：小平台回测增量（方案书 §10）——F18、F19、F23、F28、F29 各增一条 REQ，F27 增一条 AC，REQ-F20-01 证据等级语义变更（revision 2），新增 NFR-013。
+> 第二轮（2026-11-03）：承接第二轮《解题方案书》与场景锚点（wen 确认）。第一轮 F01–F14、NFR-001～006 全部 retired（见文末），ID 不复用；第二轮从 F15、NFR-007 起编。第一版 = 浴室柜、在 wen 电脑运行局域网共享、F15–F29 全部交付。revision 7（2026-11-03）：wen 要求把 Home Depot / Lowe's / Wayfair 加入第一版，新增 F28、F29，F18、F26、F27 各增一条 REQ。revision 8（2026-11-03）：小平台回测增量（方案书 §10）——F18、F19、F23、F28、F29 各增一条 REQ，F27 增一条 AC，REQ-F20-01 证据等级语义变更（revision 2），新增 NFR-013。revision 9（2026-11-04）：小平台"单元 × 指标"观察分析（方案书 §11）——新增 F30 渠道调研（REQ-F30-01～04 为第一版；REQ-F30-05 系统内抓取为第二版，planned），新增 NFR-014；已有 ID 语义不变。
 
 ## External capability configuration
 
 | Capability | Credential owner | Configuration actor | Surface | Scope | Lifecycle | Stage | Requirement IDs |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 卖家精灵接口（Amazon 月度数据、Amazon 评论） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F17-01, REQ-F22-01 |
-| Bright Data（Lowe's / Wayfair 页面） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F23-01, REQ-F23-02 |
+| Bright Data（Lowe's / Wayfair 页面） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版, 第二版 | REQ-F16-01, REQ-F23-01, REQ-F23-02, REQ-F30-05 |
 | Apify（Lowe's / Wayfair 评论） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F23-01, REQ-F23-02 |
 | 大模型（Claude / OpenAI 等，看图打元素、差评归类、叙述草稿） | wen（公司账号） | 操作者 | settings | system | 添加、测试、掩码显示后 4 位、更换、删除；失效时相关功能显示未连接 | 第一版 | REQ-F16-01, REQ-F18-01, REQ-F21-03, REQ-F22-02 |
 
@@ -29,6 +29,8 @@
 | 大模型密钥（至少一家） | committed | wen | wen 2026-11-03 确认由其在设置页填写；截止：第一版联调开始前 | 元素全部进入人工确认；差评只显示原文、不归类；不起草叙述 | 第一版 | REQ-F18-01, REQ-F22-02, REQ-F21-03 |
 | Home Depot 公开页面直连（列表、商品页规格、评论接口） | ready | wen | 2026-11-03 小试：两个类目各前 300 个商品页、约 2,900 次请求无 403 / 429（solution-v2/开发建议/小平台_HD回测小试.md） | 降速重试；仍失败时该渠道回补暂停并提示，已采部分保留 | 第一版 | REQ-F23-02 |
 | wen 电脑作为运行机、局域网可访问 | ready | wen | wen 2026-11-03 选择"你的电脑上运行，局域网共享" | 只在 wen 本机使用，决策卡导出分享 | 第一版 | REQ-F15-01 |
+| wen 本机产出的小平台调研数据（三平台_商品表.csv、三平台_月销表.csv，由 solution-v2/trial/大词抓取_三平台整理.py 整理） | ready | wen | 2026-11-04 已产出：商品表 2,615 行、月销表 7,443 行，Home Depot、Wayfair 可按框（solution-v2/开发建议/大词抓取_三平台.md §5；小平台调研_单元×指标_HD_Lowes_Wayfair.md）；Lowe's 评论页补数进行中（wen 2026-11-04 批准，Bright Data 上限 $5.5） | 未导入的渠道显示"尚未导入"；Lowe's 补齐前导入后显示"数据不足"（AC-F30-22、AC-F30-23），其他渠道照常 | 第一版 | REQ-F30-01 |
+| 系统内关键词 + 类目节点抓取（Lowe's / Wayfair 经 Bright Data；Wayfair 逐月评论翻页经 Bright Data 返回 400，需另选采集方式） | planned | wen | 第二版启动时核实：Bright Data 已在用（tools/评论月度VP追踪器/services.md）；Wayfair 评论翻页接口经 Bright Data 返回 400（大词抓取_三平台.md §7） | 继续由 wen 本机抓取后导入（REQ-F30-01） | 第二版 | REQ-F30-05 |
 
 ## Feature F15 · 账号与角色
 
@@ -1363,6 +1365,403 @@ WHEN 某单元在该渠道前 N 个商品页里没有任何家族
 THE SYSTEM SHALL 标"该渠道样本外，仅参考"，只显示 Amazon 侧事实，不给该渠道的把握与分级
 ```
 
+## Feature F30 · 渠道调研（单元 × 指标观察）
+
+### US-F30-01 · 导入本机抓好的 Home Depot / Lowe's / Wayfair 商品与逐月评论数据，按渠道 × 框看"单元 × 指标"
+
+- Role: 操作者
+- Goal: 导入本机抓好的 Home Depot / Lowe's / Wayfair 商品与逐月评论数据，按渠道 × 框看"单元 × 指标"
+- Value: 在小平台还不能回测时，也能按同框观察各属性取值的体量、份额、趋势和供给，并知道哪些框的数据够下结论
+- Stage: 第一版
+- Status: active
+
+### REQ-F30-01 · 导入与核对
+
+- Story: US-F30-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F30-01 · 格式不对拒绝
+
+- Parent: REQ-F30-01
+- Priority: P0
+- EARS:
+
+```text
+WHEN wen 在渠道调研页上传商品表与月销表（CSV），任一文件缺少必需列（商品表：渠道、fam、pid、title、来源、尺寸段、装、形态、台面材质、主色、柜体材质、元素、价格、评分、页面评论数；月销表：渠道、fam、pid、尺寸段、装、形态、月、VP、非VP、销量），或"月"不是 YYYY-MM、VP / 非VP / 销量不是非负数
+THE SYSTEM SHALL 拒绝整次导入，列出缺少的列名或出错的行号与列，当前调研数据不变
+```
+
+### AC-F30-02 · 渠道不认识拒绝
+
+- Parent: REQ-F30-01
+- Priority: P0
+- EARS:
+
+```text
+WHEN 任一行的"渠道"不是 Home Depot、Lowe's、Wayfair 之一（含 Amazon 或空值）
+THE SYSTEM SHALL 拒绝整次导入，列出不认识的渠道值及其行数，当前调研数据不变
+```
+
+### AC-F30-03 · 重复与对不上拒绝
+
+- Parent: REQ-F30-01
+- Priority: P0
+- EARS:
+
+```text
+WHEN 商品表中同一渠道 + pid 出现多行，或月销表中同一渠道 + pid + 尺寸段 + 月出现多行，或月销表的渠道 + pid 在商品表中不存在
+THE SYSTEM SHALL 拒绝整次导入，按问题类型列出行数和前 20 条示例，当前调研数据不变
+```
+
+### AC-F30-04 · 未完整月只作参考
+
+- Parent: REQ-F30-01
+- Priority: P1
+- EARS:
+
+```text
+WHEN 月销表含晚于最近一个完整自然月的月份
+THE SYSTEM SHALL 这些行不计入任何指标，核对摘要中显示为"只作参考"及其行数
+```
+
+### AC-F30-05 · 核对摘要与确认
+
+- Parent: REQ-F30-01
+- Priority: P0
+- EARS:
+
+```text
+WHEN 一次上传通过格式、渠道、重复检查
+THE SYSTEM SHALL 先按渠道显示核对摘要（商品数、家族数、完整月范围、窗口销量合计、有月度销量占比、能落框销量占比、分框待确认商品数），wen 点"确认导入"后才生效；未确认或放弃时当前调研数据不变
+```
+
+### AC-F30-06 · 与已有渠道数据冲突
+
+- Parent: REQ-F30-01
+- Priority: P0
+- EARS:
+
+```text
+WHEN 导入的某渠道在某月已有并入的评论 VP 数据（F28），且导入数据中来源为"类目节点"或"两者"的商品当月 VP + 非VP 评论数合计与已并入数据该月按评论 ID 去重的评论数相差超过 5%（差异 = |导入 − 已并入| ÷ 已并入；已并入为 0 而导入 > 0 也算不一致）
+THE SYSTEM SHALL 在核对摘要中把该渠道标"与已有数据不一致"，逐月显示两边条数与差异百分比；wen 勾选确认该渠道后才能导入它，未勾选的渠道不导入
+```
+
+### AC-F30-07 · 按渠道替换并留版本
+
+- Parent: REQ-F30-01
+- Priority: P1
+- EARS:
+
+```text
+WHEN wen 确认导入某渠道
+THE SYSTEM SHALL 该渠道的调研数据替换为本次导入，上一版本保留并可在导入记录里查看（导入时间、文件名、商品数、月份范围、操作人）；本次未导入的渠道数据不变
+```
+
+### AC-F30-08 · 导入不改分析库
+
+- Parent: REQ-F30-01
+- Priority: P0
+- EARS:
+
+```text
+WHEN 任一调研导入生效
+THE SYSTEM SHALL 不写入其他渠道分析库（F28）；机会扫描、模型与回测、决策卡和预测台账的数字与导入前相同
+```
+
+### AC-F30-09 · 非操作者只能看
+
+- Parent: REQ-F30-01
+- Priority: P1
+- EARS:
+
+```text
+WHEN 审批者或只读打开渠道调研页
+THE SYSTEM SHALL 可查看全部调研结果；不显示上传、确认导入和分框确认入口，直接调用这些操作被拒绝并提示"无权限"
+```
+
+### REQ-F30-02 · 框与单元指标
+
+- Story: US-F30-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F30-10 · 分框
+
+- Parent: REQ-F30-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 计算某渠道调研结果
+THE SYSTEM SHALL 按商品的尺寸段、装、形态把月销表销量放进框（框 = 尺寸段 × 拆装 × 形态）；打标确认中已确认的分框标签优先于导入值；任一项为空、"未知"或尺寸段为"多尺寸未拆"的销量不进任何框，计入该渠道"待确认"销量
+```
+
+### AC-F30-11 · 门槛
+
+- Parent: REQ-F30-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 显示框列表与单元表
+THE SYSTEM SHALL 只列月均 ≥ 200 件的框和框内月均 ≥ 20 件的单元（单元 = 框 × 属性取值；月均 = 窗口销量 ÷ 窗口完整月数，窗口 = 导入数据中的完整月，本期为 2026-01 至 2026-10）；未达门槛的框只在列表底部显示个数与合计月均
+```
+
+### AC-F30-12 · 体量与份额
+
+- Parent: REQ-F30-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 显示任一框或单元
+THE SYSTEM SHALL 框显示月均与渠道内份额（框销量 ÷ 该渠道已落框销量），单元显示月均与框内份额（单元销量 ÷ 整框销量，分母含该属性未知的销量），并显示该框台面材质、元素、主色、柜体材质各自的已知占比
+```
+
+### AC-F30-13 · 趋势
+
+- Parent: REQ-F30-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 显示可读框（AC-F30-20、AC-F30-21 之外）里的单元
+THE SYSTEM SHALL 只用有月度的销量显示：逐月份额；近 3 月对前 3 月（窗口最后 3 个月与最前 3 个月的份额差，百分点）与走势（ln(近 3 份额 ÷ 前 3 份额) ≥ 0.3 为"抢份额"、≤ −0.3 为"丢份额"、其余"随框"，前 3 月份额为 0 而近 3 月 > 0 为"新出现"），并附框本身近 3 ÷ 前 3（≥ 1.15 框涨、≤ 0.87 框跌）；斜率（逐月份额的线性斜率，百分点 / 月）；波动（单元月销的变异系数）；窗口少于 6 个完整月时近 3 对前 3 与走势显示"—（月份不足）"
+```
+
+### AC-F30-14 · 新品
+
+- Parent: REQ-F30-02
+- Priority: P1
+- EARS:
+
+```text
+WHEN 显示可读框里的单元
+THE SYSTEM SHALL 显示新家族数（首评月在窗口内的家族；商品表没有"首评月"列时，以页面累计评论数 ≤ 窗口内评论数判定；没有月度的商品记非新）、其中"卖起来"的个数（进入月至窗口末在该单元的月均 ≥ 同框每家族月均）、各新家族进入的月份、新家族销量占比与同框新家族销量占比，并注明本次所用的新家族判定方式
+```
+
+### AC-F30-15 · 供给、价格、评分
+
+- Parent: REQ-F30-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 显示单元
+THE SYSTEM SHALL 显示家族数（窗口内有销量的家族）、价位段数（与 F29 相同的 7 段绝对价位）、单款 ÷ 同框（单元每家族月均 ÷ 同框每家族月均）、价格带（按销量加权 P25–P75）与溢价（单元加权中位价 ÷ 同框加权中位价）、评分（按页面评论数加权）与同框评分差；没有价格或评分时显示"无"，不按 0 计算
+```
+
+### AC-F30-16 · Amazon 同框对照
+
+- Parent: REQ-F30-02
+- Priority: P1
+- EARS:
+
+```text
+WHEN 显示单元
+THE SYSTEM SHALL 同时显示 Amazon 同尺寸段 × 形态 × 取值（不分拆装，元素按 F29 的 6 类对齐）最近 6 个完整月的家族数、价位段数、份额前 3 月 → 近 3 月及方向（ln 变化 ≥ 0.2 上升、≤ −0.2 下降、其余持平）；Amazon 没有该单元时显示"Amazon 无"
+```
+
+### AC-F30-17 · 无月度商品估算
+
+- Parent: REQ-F30-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 某商品在月销表中没有行，但页面评论数 > 0
+THE SYSTEM SHALL 按同渠道、来源为"两词"或"两者"、同评论数档（1–20、21–100、101–300、> 300 条）且有月度商品的"合计窗口销量 ÷ 合计页面评论数"换算出中估计；只用来源为"两词"的有月度商品同档系数换算出低估计；该档没有参照商品时不估算，计入"无法估算"商品数
+```
+
+### AC-F30-18 · 估算的使用与标注
+
+- Parent: REQ-F30-02
+- Priority: P0
+- EARS:
+
+```text
+WHEN 框或单元含估算销量
+THE SYSTEM SHALL 体量、份额、家族数、价格、评分用中估计，趋势与新品只用有月度的销量；在月均与份额旁标"估算"，同时显示低估计的月均与份额，以及有月度销量占比；框是否达门槛按中估计判断，低估计下框月均 < 200 件时另标"低估计未达门槛"
+```
+
+### REQ-F30-03 · 可读性与证据等级
+
+- Story: US-F30-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F30-19 · 分框覆盖
+
+- Parent: REQ-F30-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 计算框的可读性
+THE SYSTEM SHALL 按分框覆盖（期望）= 本框已落框销量 ÷（本框已落框销量 + 待确认销量中按已知的尺寸段 / 装 / 形态可能落到本框、并按各候选框已落框销量比例分摊给本框的部分）计算；多尺寸未拆只分摊到其选项段里出现的尺寸段
+```
+
+### AC-F30-20 · 不下结论
+
+- Parent: REQ-F30-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 某框分框覆盖 < 95%
+THE SYSTEM SHALL 该框标"不下结论（分框覆盖 x%）"，框和框内单元只显示体量与份额，其他指标不显示
+```
+
+### AC-F30-21 · 趋势不下结论
+
+- Parent: REQ-F30-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 某框分框覆盖 ≥ 95%，但有月度销量占比 < 60%
+THE SYSTEM SHALL 该框标"趋势不下结论（有月度 x%）"，趋势与新品指标显示"—"，体量、份额、供给、价格、评分、Amazon 对照照常显示
+```
+
+### AC-F30-22 · 尚未导入
+
+- Parent: REQ-F30-03
+- Priority: P1
+- EARS:
+
+```text
+WHEN 用户在渠道调研页选择一个还没有调研导入的渠道
+THE SYSTEM SHALL 显示"尚未导入"；操作者另显示导入入口；不显示框列表
+```
+
+### AC-F30-23 · 数据不足
+
+- Parent: REQ-F30-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 某渠道已导入，但没有任何框达到月均 200 件门槛
+THE SYSTEM SHALL 该渠道显示"数据不足"，给出已落框销量占比、未落框原因构成（尺寸段未知、多尺寸未拆、装未知、形态未知各占渠道销量的比例）和待确认商品数，不显示框列表
+```
+
+### AC-F30-24 · 历史观察
+
+- Parent: REQ-F30-03
+- Priority: P0
+- EARS:
+
+```text
+WHEN 显示渠道调研结果
+THE SYSTEM SHALL 页面和每个框标证据等级"历史观察"，不显示把握、分级或"上 / 不上"结论；注明商品范围（两词自然位前 300 + 类目节点商品）、换算系数、价格与评分口径、幸存者偏差，并说明只在同渠道、同框内比较
+```
+
+### AC-F30-25 · 与回测结论分开标
+
+- Parent: REQ-F30-03
+- Priority: P1
+- EARS:
+
+```text
+WHEN 该渠道最近一次回测为"经回测（打折）"（AC-F19-06），且同一框 × 属性取值在该渠道机会扫描中有分级
+THE SYSTEM SHALL 在单元行另列"回测"标记（证据等级与分级，可跳到机会扫描对应单元），与"历史观察"分开显示，不合并成一个等级
+```
+
+### REQ-F30-04 · 分框待确认与重算
+
+- Story: US-F30-01
+- Stage: 第一版
+- Revision: 1
+- Status: active
+
+### AC-F30-26 · 进确认队列
+
+- Parent: REQ-F30-04
+- Priority: P0
+- EARS:
+
+```text
+WHEN 一次调研导入生效
+THE SYSTEM SHALL 尺寸段、装、形态任一未知（含多尺寸未拆）的商品进入打标确认队列，原因为"分框未知（渠道调研）"，带渠道、窗口销量、标题、链接与原值（宽、选项段、颜色 / 台面 / 柜体原值），按窗口销量从大到小排；已有确认值的商品不进队列
+```
+
+### AC-F30-27 · 从调研页进队列
+
+- Parent: REQ-F30-04
+- Priority: P1
+- EARS:
+
+```text
+WHEN wen 在渠道调研页点某渠道的"待确认 N 个"
+THE SYSTEM SHALL 打开打标确认页，并已按该渠道和"分框未知（渠道调研）"筛选
+```
+
+### AC-F30-28 · 多尺寸未拆的确认
+
+- Parent: REQ-F30-04
+- Priority: P1
+- EARS:
+
+```text
+WHEN wen 确认一个"多尺寸未拆"商品
+THE SYSTEM SHALL 可选一个尺寸段（该商品全部销量计入该段）或"不进框"；选"不进框"的商品不再进入队列，其销量单列为"不进框"，不计入待确认
+```
+
+### AC-F30-29 · 确认后重算
+
+- Parent: REQ-F30-04
+- Priority: P0
+- EARS:
+
+```text
+WHEN wen 在打标确认页确认或修改一个调研商品的尺寸段、装或形态
+THE SYSTEM SHALL 该渠道调研结果重算，受影响框的指标、可读性和待确认数更新，页面显示重算时间
+```
+
+### AC-F30-30 · 再导入保留确认
+
+- Parent: REQ-F30-04
+- Priority: P1
+- EARS:
+
+```text
+WHEN 同一渠道再次导入
+THE SYSTEM SHALL 已确认的分框标签按渠道 + pid 保留并优先于新导入值，只有新的未知商品进入队列
+```
+
+### REQ-F30-05 · 系统内抓取（第二版）
+
+- Story: US-F30-01
+- Stage: 第二版
+- Revision: 1
+- Status: active
+
+### AC-F30-31 · 关键词与类目节点抓取
+
+- Parent: REQ-F30-05
+- Priority: P1
+- EARS:
+
+```text
+WHEN wen 在渠道调研页为某渠道发起抓取（关键词默认 "bathroom vanity"、"bathroom vanity with sink" 各取自然位前 300，加品类配置里的类目节点）并在费用评估后确认
+THE SYSTEM SHALL Home Depot 直连、Lowe's / Wayfair 经 Bright Data 采集列表、商品页规格与评论，产出与导入相同字段的商品表和月销表，并按导入核对（REQ-F30-01）后生效
+```
+
+### AC-F30-32 · 每月续更
+
+- Parent: REQ-F30-05
+- Priority: P1
+- EARS:
+
+```text
+WHEN 一个新的完整月结束后 wen 发起该渠道月度更新
+THE SYSTEM SHALL 只补抓新月份评论与新进入范围的商品，已抓部分不重复请求、不重复计费
+```
+
 ## Non-functional requirements
 
 ### NFR-007 · 局域网访问
@@ -1413,6 +1812,13 @@ THE SYSTEM SHALL 标"该渠道样本外，仅参考"，只显示 Amazon 侧事�
 - Revision: 1
 - Status: active
 - Measure: 直连采集同一站点的相邻请求间隔 ≥ 1 秒，单个请求失败重试 ≤ 3 次；遇 403 / 429 自动降速并记录次数；中断后续采不重复请求已完成的商品页
+
+### NFR-014 · 渠道调研响应
+
+- Applies-to: REQ-F30-01, REQ-F30-02, REQ-F30-04
+- Revision: 1
+- Status: active
+- Measure: 三个渠道合计 ≤ 3,000 行商品、≤ 10,000 行月销的数据量下：上传到显示核对摘要 ≤ 60 秒；打开某渠道框列表 ≤ 5 秒；打开框内单元表 ≤ 3 秒；确认一个分框标签后该渠道重算完成 ≤ 30 秒
 
 ## Retired（第一轮，revision 5 及以前）
 
