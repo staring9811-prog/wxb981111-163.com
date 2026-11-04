@@ -395,7 +395,7 @@ def build_lw(XC, V, plat):
         hit = next((known[i] for i in g['id'] if i in known), None)
         key = hit or f'VP{vf}'
         e = ent.setdefault(key, dict(fam=key, rep=None, ids=set(), kws={}, vp=None))
-        e['ids'] |= set(g['id']); e['vp'] = g
+        e['ids'] |= set(g['id']); e['vp'] = g if e['vp'] is None else pd.concat([e['vp'], g])
     prod, mon = [], []
     for key, e in ent.items():
         f = e['rep']
@@ -422,11 +422,12 @@ def build_lw(XC, V, plat):
         # 月度
         msrc = ''
         if g is not None:
-            r0 = g.iloc[0]; msrc = '渠道VP表（家族合计）'
+            msrc = '渠道VP表（家族合计）'
             split = split_weights(plat, pid0, pg, seg, bands)
-            for mm in MONTHS:
-                for (sg, w) in split:
-                    mon.append(mrow(ch, key, pid0, sg, o['装'], o['形态'], mm, r0[f'{mm} VP'], r0[f'{mm} 非VP'], msrc + ('；按评论选项拆尺寸' if len(split) > 1 else ''), w))
+            for _, r0 in g.drop_duplicates('vfam').iterrows():     # 一个实体可能并入渠道VP表的多个家族
+                for mm in MONTHS:
+                    for (sg, w) in split:
+                        mon.append(mrow(ch, key, pid0, sg, o['装'], o['形态'], mm, r0[f'{mm} VP'], r0[f'{mm} 非VP'], msrc + ('；按评论选项拆尺寸' if len(split) > 1 else ''), w))
         elif plat == 'lowes':
             rv = load_json(raw_path('lowes_reviews', f'{pid0}.json'))
             if rv and rv.get('状态') in ('完整', '部分'):
