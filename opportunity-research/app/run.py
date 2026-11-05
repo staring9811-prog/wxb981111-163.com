@@ -5,15 +5,33 @@ import socket
 import uvicorn
 
 
+def _private(ip: str) -> bool:
+    """真实局域网地址：10/8、172.16/12、192.168/16。198.18/15 是代理 / VPN（如 Clash TUN）的虚拟网卡，不算。"""
+    try:
+        a, b = (int(x) for x in ip.split(".")[:2])
+    except ValueError:
+        return False
+    return a == 10 or (a == 172 and 16 <= b <= 31) or (a == 192 and b == 168)
+
+
 def lan_ip() -> str:
+    cands = []
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("10.255.255.255", 1))  # 不发包，只取出口网卡地址
-        return s.getsockname()[0]
+        cands.append(s.getsockname()[0])
     except OSError:
-        return "127.0.0.1"
+        pass
     finally:
         s.close()
+    try:
+        cands += [i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)]
+    except OSError:
+        pass
+    for ip in cands:
+        if _private(ip):
+            return ip
+    return "127.0.0.1"
 
 
 if __name__ == "__main__":
