@@ -101,11 +101,12 @@
                 <table class="table">
                   <thead><tr><th>顺序</th><th>维度</th><th>取值</th><th>来源标签</th><th><span class="visually-hidden">操作</span></th></tr></thead>
                   <tbody>
-                    <tr><td class="num">1</td><td class="cell-title">尺寸段</td><td><div class="vals"><span class="val">24″</span><span class="val">30″</span><span class="val">36″</span><span class="val">48″</span><span class="val">60″</span><span class="val">72″</span></div></td><td>宽度（英寸，按最近尺寸段归入）</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="num">1</td><td class="cell-title">尺寸段</td><td><div class="vals"><span class="val">18″</span><span class="val">24″</span><span class="val">28″</span><span class="val">30″</span><span class="val">36″</span><span class="val">42″</span><span class="val">48″</span><span class="val">60″</span><span class="val">72″+</span></div></td><td>宽度（英寸，按最近尺寸段归入）</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
                     <tr><td class="num">2</td><td class="cell-title">拆装</td><td><div class="vals"><span class="val">拆装</span><span class="val">整装</span></div></td><td>标题与规格中的组装方式</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
-                    <tr><td class="num">3</td><td class="cell-title">形态</td><td><div class="vals"><span class="val">落地式</span><span class="val">悬浮式</span></div></td><td>安装方式（看图 + 规格）</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="num">3</td><td class="cell-title">形态</td><td><div class="vals"><span class="val">落地式</span><span class="val">悬浮式</span><span class="val">开放式</span></div></td><td>安装方式（看图 + 规格）</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
                   </tbody>
                 </table>
+<div class="row" style="margin-top: var(--space-3)"><button class="btn" type="button">按当前规则重打分框标签</button><span class="small muted">只改未人工确认的尺寸段、形态标签；完成后自动重扫描，模型与回测需另点重算。上次：尺寸段改 812 条、形态改 436 条（2026-11-05）</span></div>
               </div>
               <div class="panel__foot">共 24 个框；近 6 个月月销 &lt; 200 件的框不扫描。</div>
             </section>
@@ -146,9 +147,9 @@
                 <table class="table">
                   <thead><tr><th>标签</th><th>方式</th><th>规则摘要</th><th class="t-num">规则数</th><th><span class="visually-hidden">操作</span></th></tr></thead>
                   <tbody>
-                    <tr><td class="cell-title">尺寸段</td><td>规则</td><td class="small">标题 / 规格中的宽度英寸数，22–26 归 24″，28–32 归 30″ …</td><td class="t-num">6</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="cell-title">尺寸段</td><td>规则</td><td class="small">标题 / 规格中的宽度英寸数（下限含、上限不含）：18″ [15, 21)、24″ [21, 26)、28″ [26, 29)、30″ [29, 33)、36″ [33, 39)、42″ [39, 45)、48″ [45, 54)、60″ [54, 66)、72″+ ≥ 66</td><td class="t-num">9</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
                     <tr><td class="cell-title">拆装</td><td>规则</td><td class="small">含 "assembly required" / "RTA" 归拆装；"fully assembled" 归整装</td><td class="t-num">9</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
-                    <tr><td class="cell-title">形态</td><td>规则 + 看图</td><td class="small">"wall mounted" / "floating" 归悬浮式；无关键词时看主图</td><td class="t-num">5</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
+                    <tr><td class="cell-title">形态</td><td>规则 + 看图</td><td class="small">"wall mounted" / "floating" 归悬浮式；落地式中写明不带门的开放层板（open shelf、side shelves、console vanity 等）归开放式，只有 open storage 这类泛指词的低置信度进确认；无关键词时看主图</td><td class="t-num">6</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
                     <tr><td class="cell-title">台面材质</td><td>规则</td><td class="small">"resin" + "integrated" 归树脂一体；"ceramic" 归陶瓷一体 …</td><td class="t-num">14</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
                     <tr><td class="cell-title">元素</td><td>看图</td><td class="small">大模型看主图判断；未配置大模型时全部进入人工确认</td><td class="t-num">6</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>
                     <tr><td class="cell-title">主色 / 柜体材质</td><td>规则 + 看图</td><td class="small">颜色词表 + 主图主色；材质关键词</td><td class="t-num">21</td><td><button class="btn btn--sm" type="button" data-open="#dwDim">编辑</button></td></tr>

@@ -1,4 +1,4 @@
-"""生成 output/设计追溯矩阵.md（第二轮，revision 9）。"""
+"""生成 output/设计追溯矩阵.md（第二轮，revision 10）。"""
 import re, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent / "output"
 req = (ROOT / "requirements.md").read_text(encoding="utf-8").split("## Retired")[0]
@@ -122,6 +122,32 @@ NFR = {
  "NFR-014": ("PAGE-F30-01, PAGE-F30-02, PAGE-F30-03", "API-F30-01, API-F30-02, DATA-F30-02", "附录 A.4", "性能计时（三平台实际规模 CSV）"),
 }
 
+# v10 决策卡改版、白话、需求范围、分框调整、调研主图与门槛
+for _k in ("REQ-F18-05", "AC-F18-09", "AC-F18-10", "AC-F18-11"):
+    OVR[_k] = ("PAGE-F18-01, PAGE-F27-01", "API-F18-03, DATA-F18-01, DATA-F27-02")
+for _k in ("REQ-F18-06", "AC-F18-12", "AC-F18-13"):
+    OVR[_k] = ("PAGE-F18-01", "API-F18-02, DATA-F30-03")
+for _k in ("REQ-F19-04", "AC-F19-07", "AC-F19-08", "AC-F19-09", "AC-F19-10", "AC-F19-11"):
+    OVR[_k] = ("PAGE-F19-01", "API-F19-01, DATA-F19-01, CMP-F21-01, CMP-F21-02")
+for _k in ("REQ-F20-03", "AC-F20-06", "AC-F20-07", "AC-F20-08"):
+    OVR[_k] = ("PAGE-F20-01", "API-F20-02, DATA-F20-01, CMP-F21-01")
+for _k in ("REQ-F21-04", "AC-F21-07", "AC-F21-08", "AC-F21-09"):
+    OVR[_k] = ("PAGE-F21-02", "API-F21-03, DATA-F21-01, CMP-F21-01")
+for _k in ("REQ-F21-05", "AC-F21-10", "AC-F21-11"):
+    OVR[_k] = ("PAGE-F21-02, PAGE-F26-01", "API-F21-03, API-F26-01, DATA-F21-01, DATA-F26-01")
+for _k in ("REQ-F21-06", "AC-F21-12", "AC-F21-13"):
+    OVR[_k] = ("PAGE-F21-02", "API-F21-03, CMP-F21-01, CMP-F21-02")
+for _k in ("REQ-F21-07", "AC-F21-14", "AC-F21-15", "AC-F21-16", "AC-F21-17", "AC-F21-18"):
+    OVR[_k] = ("PAGE-F21-02", "API-F21-03, API-F30-02, DATA-F21-01, DATA-F30-02, DATA-F30-03, CMP-F21-03")
+for _k in ("REQ-F30-06", "AC-F30-33"):
+    OVR[_k] = ("PAGE-F30-03, PAGE-F18-01, PAGE-F21-02", "API-F30-01, DATA-F30-03")
+for _k in ("REQ-F30-07", "AC-F30-34", "AC-F30-35"):
+    OVR[_k] = ("PAGE-F30-01, PAGE-F30-02, PAGE-F27-01, PAGE-F21-02", "API-F30-02, DATA-F27-02")
+OVR["REQ-F26-02"] = ("PAGE-F26-01", "API-F26-01, DATA-F26-01, SEQ-F26-01")
+OVR["REQ-F27-01"] = ("PAGE-F27-01", "API-F27-01, DATA-F27-01, DATA-F27-02")
+OVR["AC-F27-01"] = ("PAGE-F27-01", "API-F27-01, DATA-F27-01, DATA-F27-02")
+NFR["NFR-015"] = ("PAGE-F18-01, PAGE-F19-01, PAGE-F20-01, PAGE-F21-02", "CMP-F21-01, CMP-F21-02", "附录 A.4、A.5；DESIGN.md 表头说明", "视觉复核 + 页面文本扫描")
+
 def surface(sid):
     if sid.startswith("REQ"): return "unit + integration + e2e"
     return "integration + e2e"
@@ -152,11 +178,11 @@ for sid, it in items.items():
 
 head = """# 设计追溯矩阵（第二轮）
 
-> 来源：`requirements.md` revision 9（scope = 第一版）。第一版的 active REQ / AC / NFR 状态为 covered；REQ-F30-05、AC-F30-31、AC-F30-32 属第二版（未启动），状态为 planned。
+> 来源：`requirements.md` revision 10（scope = 第一版）。第一版的 active REQ / AC / NFR 状态为 covered；REQ-F30-05、AC-F30-31、AC-F30-32 属第二版（未启动），状态为 planned。
 >
 > 第一轮（revision 5）的条目和设计 ID 已 retired，见 `change-impact.md`。
 >
-> 设计 ID 定义：PAGE 见 `页面清单.md` 与 `pages/`；CMP-F16-01 = 费用评估确认弹窗（见 PAGE-F16-02）；API / DATA / SEQ 见 `技术方案.md` 附录 A；DEC-101 = 工作台、DEC-105 = 工作台渠道调研行、DEC-106 = 重算出错保留上次结果（design-derived，见 `设计决策蓝图.md`）。
+> 设计 ID 定义：PAGE 见 `页面清单.md` 与 `pages/`；CMP-F16-01 = 费用评估确认弹窗（见 PAGE-F16-02）；CMP-F21-01～03 = 表头说明、好坏着色、按月柱状图（见 DESIGN.md）；API / DATA / SEQ 见 `技术方案.md` 附录 A；DEC-101 = 工作台、DEC-105 = 工作台渠道调研行、DEC-106 = 重算出错保留上次结果（design-derived，见 `设计决策蓝图.md`）。
 >
 > 本文件由 `drafts/r2_trace_gen.py` 从需求契约生成；Error/Invariant 列取自各条目的 SHALL / Measure 原文。
 

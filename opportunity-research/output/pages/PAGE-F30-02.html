@@ -97,7 +97,7 @@
           <div><div class="stat__label">家族</div><div class="v" data-f="fam">63</div></div>
           <div><div class="stat__label">分框覆盖（期望）</div><div class="v" data-f="cov">99.1%</div></div>
           <div><div class="stat__label">有月度占比</div><div class="v" data-f="monthly">100%</div></div>
-          <div><div class="stat__label">可读性</div><div data-f="read"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></div></div>
+          <div><div class="stat__label">可读性</div><div data-f="read"><span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>可读</span></div><div class="small muted">（状态示例：框月均 100–200 件时此处显示 <span class="badge badge--insufficient">样本少，只作参考</span>，数字照常列出、不写走势结论）</div></div>
         </div>
         <div class="banner banner--unverified mode-note" data-mode-note="no-conc" hidden style="margin-top: var(--space-3)"><svg class="icon"><use href="#ph-prohibit"/></svg><div class="banner__body"><div class="banner__title">不下结论：分框覆盖 93.7% &lt; 95%</div><div>还有分框待确认的商品可能落进这个框，体量和份额会明显变化，只显示体量与份额作方向参考，其他指标不显示。<a href="PAGE-F18-01.html?channel=wayfair&amp;reason=frame&amp;from=research">去确认分框</a></div></div></div>
         <div class="banner banner--unverified mode-note" data-mode-note="no-trend" hidden style="margin-top: var(--space-3)"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">趋势不下结论：有月度销量只占 33% &lt; 60%</div><div>趋势与新品不显示（"—"），体量、份额、供给、价格、评分、Amazon 对照照常。</div></div></div>
@@ -119,7 +119,7 @@
           <table class="table ut" id="ut" aria-label="单元 × 指标">
               <thead>
                 <tr class="grp"><th class="u-col" rowspan="2" scope="col">单元（属性：取值）</th><th colspan="2" scope="colgroup">体量份额</th><th colspan="5" scope="colgroup" class="tr-c">趋势（只用有月度销量）</th><th colspan="2" scope="colgroup" class="tr-c">新品</th><th colspan="3" scope="colgroup" class="g-c">供给</th><th colspan="2" scope="colgroup" class="g-c">价格</th><th scope="colgroup" class="g-c">评分</th><th scope="colgroup" class="g-c">Amazon 同框对照</th><th scope="colgroup" class="g-c">回测</th></tr>
-                <tr><th class="t-num"><button class="th-sort" type="button">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></button></th><th class="t-num">框内份额</th><th class="tr-c">逐月份额</th><th class="t-num tr-c">近 3 − 前 3</th><th class="tr-c">走势（单元 ÷ 框）</th><th class="t-num tr-c">斜率 pp/月</th><th class="t-num tr-c">波动 CV</th><th class="t-num tr-c">新家族（卖起来）</th><th class="t-num tr-c">新家族占比（同框）</th><th class="t-num g-c">家族</th><th class="t-num g-c">价位段</th><th class="t-num g-c">单款 ÷ 同框</th><th class="t-num g-c">P25–P75</th><th class="t-num g-c">溢价</th><th class="t-num g-c">评分（同框差）</th><th class="g-c">家族 · 价位段 · 份额前 3 → 近 3 月</th><th class="g-c">证据等级 · 分级</th></tr>
+                <tr><th class="t-num"><button class="th-sort" type="button">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></button></th><th class="t-num">框内份额</th><th class="tr-c">逐月份额</th><th class="t-num tr-c">近 3 − 前 3</th><th class="tr-c">走势（单元 ÷ 框）</th><th class="t-num tr-c">斜率 pp/月</th><th class="t-num tr-c">波动 CV</th><th class="t-num tr-c">新款（卖起来）</th><th class="t-num tr-c">新款占比（同框）</th><th class="t-num g-c">家族</th><th class="t-num g-c">价位段</th><th class="t-num g-c">单款 ÷ 同框</th><th class="t-num g-c">P25–P75</th><th class="t-num g-c">溢价</th><th class="t-num g-c">评分（同框差）</th><th class="g-c">家族 · 价位段 · 份额前 3 → 近 3 月</th><th class="g-c">证据等级 · 分级</th></tr>
               </thead>
               <tbody id="ut-hd">
 <tr class="table__divider" data-attr="主色"><td colspan="20">主色 · 7 个单元</td></tr>
@@ -157,7 +157,7 @@
               </tbody>
           </table>
         </div>
-        <p class="table-note">新家族按首评月在窗口内判定；"卖起来" = 进入月至 10 月在本单元的月均 ≥ 同框每家族月均。价位段 = 7 段绝对价位（与机会扫描的 Amazon 侧丰富度相同）。Amazon 同框对照 = Amazon 同尺寸段 × 形态 × 取值（不分拆装，元素按 6 类对齐）2026-04 至 09，箭头按 ln 变化 ±0.2。回测列只引用 Home Depot 机会扫描的分级，和"历史观察"分开看。评分为窗口内评论星级，只在 Home Depot 内比较。</p>
+        <p class="table-note">新款按首评月在窗口内判定；"卖起来" = 进入月至 10 月在本单元的月均 ≥ 同框每家族月均。价位段 = 7 段绝对价位（与机会扫描的 Amazon 侧丰富度相同）。Amazon 同框对照 = Amazon 同尺寸段 × 形态 × 取值（不分拆装，元素按 6 类对齐）2026-04 至 09，箭头按 ln 变化 ±0.2。回测列只引用 Home Depot 机会扫描的分级，和"历史观察"分开看。评分为窗口内评论星级，只在 Home Depot 内比较。</p>
       </section>
     </main>
   </div>
