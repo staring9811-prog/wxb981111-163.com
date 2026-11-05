@@ -536,9 +536,9 @@ def image_index():
     大词与 reeded 两套缓存都读。解析结果存 主图索引.json（v2），缓存有变化时删掉它重建。HD 读 hd_images/（直连商品页）。"""
     if _IMG: return _IMG
     f = raw_path('主图索引.json'); got = load_json(f)
-    if got and got.get('_v') == 2: _IMG.update(got); _IMG['homedepot'] = hd_image_index(); return _IMG
+    if got and got.get('_v') == 3: _IMG.update(got); _IMG['homedepot'] = hd_image_index(); return _IMG
     import glob, html as H
-    idx = {'_v': 2, 'lowes': {}, 'wayfair': {}}
+    idx = {'_v': 3, 'lowes': {}, 'wayfair': {}}
     roots = [raw_path('raw'), os.path.join(os.path.dirname(K.CACHE), 'reeded', 'raw')]
     og = re.compile(r'property="og:image"\s+content="([^"]+)"|content="([^"]+)"\s+property="og:image"')
     def ogimg(fn):
@@ -572,7 +572,7 @@ def image_index():
     for r in roots:
         for plat in ('lowes', 'wayfair'):                                 # 商品页 og:image（最高优先）
             for fn in glob.glob(os.path.join(r, f'{plat}_pdp', '*.html')):
-                put(plat, os.path.basename(fn)[:-5], ogimg(fn), '商品页')
+                put(plat, os.path.basename(fn)[:-5], ogimg(fn), '商品页（BD）')   # Lowe's / Wayfair 商品页都经 Bright Data 抓
     save_json(f, idx); _IMG.update(idx)
     _IMG['homedepot'] = hd_image_index()
     return _IMG
