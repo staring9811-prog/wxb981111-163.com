@@ -258,7 +258,7 @@ def test_tagging_export_current_filter(wen):
 
 def test_other_channel_image_sources_and_noimage_placeholder(wen):
     """DESIGN-08 / FLOW-08：其他渠道主图来源——评论追踪采集的商品详情里有“主图URL”（Home Depot / Wayfair 只在详情里，Lowe's 在列表行里）时并入写 Product.image_url；
-    渠道 VP 汇总导出没有图片列时，分组卡片显示“该渠道数据未提供主图”并给商品链接，不显示截断的商品 ID 当图指纹（不再出现“wayf…765)”）；
+    渠道 VP 汇总导出没有图片列时，分组卡片显示“没有主图，点商品链接去商品页看”并给商品链接，不显示截断的商品 ID 当图指纹（不再出现“wayf…765)”）；
     无图商品按同系列或同品牌同标题分组，而不是一商品一组。"""
     from pdt.core import channels, tagging
     revs = lambda iid: [{'评论ID': f'{iid}-r{k}', '评论日期': f'2026-10-1{k}', 'VP状态': 'VP', '评分': 5} for k in range(3)]
@@ -285,7 +285,7 @@ def test_other_channel_image_sources_and_noimage_placeholder(wen):
     assert sorted(len(x['items']) for x in g) == [1, 2]  # 同品牌同标题两个商品一组
     assert tagging.queued_groups() == len(tagging.queue())
     html = wen.get('/tagging', params={'channel': 'wayfair'}).text
-    assert '该渠道数据未提供主图' in html and 'href="https://www.wayfair.com/keyword.php?keyword=W115187693"' in html
+    assert '没有主图，点商品链接去商品页看' in html and 'href="https://www.wayfair.com/keyword.php?keyword=W115187693"' in html
     assert '无主图 · 同品牌同标题 2 个商品' in html
     queue_html = html.split('id="queue"')[1]
     assert '图指纹' not in queue_html and 'wayf…' not in queue_html and '765)' not in queue_html

@@ -66,9 +66,10 @@ def test_flow21_reconcile_amazon_and_unlinked(team):
         assert a.result["amazon"]["basis"] == "2026-06 小类 BSR 38 ≤ 50" and a.result["amazon"]["window"] == "2026-05 至 2026-10"
         stops = {x["text"]: x for x in a.result["_stop"]}
         assert stops["前 3 个月评分 < 4.2"]["triggered"] is False  # 2026-05 至 07 评分 4.4 / 4.3 / 4.3
-        units = next(x for t, x in stops.items() if t.startswith("第 2–3 个月月销 <"))
-        limit = float(units["text"].split("<")[1].split("件")[0])
-        assert units["triggered"] is (70 < limit) and "70" in units["why"]  # 第 2–3 个月（06、07）月销 88、70 件
+        units = next(x for t, x in stops.items() if t.startswith("上架第 2–3 个月整个父体（所有尺寸、颜色加起来）月销低于"))
+        limit = float(units["text"].split("月销低于 ")[1].split(" 件")[0])
+        # revision 10：整款口径，第 2–3 个月（06、07）整款月销 88、70 件 → 两月平均 79 件（AC-F26-02 r2）
+        assert units["triggered"] is (79 < limit) and units["why"] == "第 2–3 个月整个父体（所有尺寸、颜色加起来）月销平均 79 件"
         assert b.status == "unlinked"
         assert s.get(Card, ca).status == "reconciled"
     assert ledger.unlinked_alerts()[0]["card"] == "陶瓷 · 30″ 拆装 · 落地式"  # 工作台提示用

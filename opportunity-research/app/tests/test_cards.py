@@ -32,10 +32,13 @@ def test_flow12_ten_sections_numbers_sources_readonly(seeded):
     for no, sec in enumerate(["分框决策", "我们在赌什么", "看到什么就停", "被放弃的选项", "大数据层：时间线", "SKU 层", "差评归类", "钱", "上架后跟踪", "数据限制"], 1):
         assert f'<span class="csec__no">{no:02d}</span>{sec}' in html, sec
     s2 = html.split('id="s2"')[1].split('id="s3"')[0]
-    assert "把握 57%" in s2 and "B 档" in s2 and "13.1%（80% 区间 9.6%–17.4%）" in s2  # 市场评分（UnitScore）
-    assert "6.4 / 6.2" in s2 and "扣偏差 1.2 后" in s2 and "5.2 / 5.0" in s2  # 原值与扣偏差值并列（AC-F21-03）
-    assert re.search(r"新家族 <span class=\"num\">6</span> 个做到 <span class=\"num\">5</span> 个；同框其他 <span class=\"num\">79</span> 个做到 <span class=\"num\">37</span> 个 · <span class=\"num\">p = 0.11</span>", s2)
-    assert "$200–250：" in s2 and "月销中位" in s2  # 拟定价位实测成交
+    assert "把握 57%" in s2 and "B 档" in s2 and "13.1%（十次有八次落在 9.6%–17.4%）" in s2  # 市场评分（UnitScore）
+    assert "6.4 / 6.2" in s2 and "扣掉多估的 1.2 后" in s2 and "5.2 / 5.0" in s2  # 原值与扣偏差值并列（AC-F21-03，revision 10 白话）
+    assert "照这个方向开发新品，估计每 10 个约有 5 个能做到成功线（模型原始算出 6.4，它过去在同类新品上平均多估 1.2，扣掉后是 5.2）" in s2  # AC-F21-07
+    assert re.search(r"新款 <span class=\"num\">6</span> 个做到 <span class=\"num\">5</span> 个；同框其他 <span class=\"num\">79</span> 个做到 <span class=\"num\">37</span> 个", s2)
+    assert "同框里带树脂的新品 6 个做到 5 个（83%），同框其他台面材质 47%；样本太少，看不出树脂占优势" in s2  # AC-F21-08
+    assert 'data-tip="p = 0.11|' in s2 and "p = 0.11" not in re.sub(r'data-tip="[^"]*"', "", s2)  # p 值只在悬停
+    assert "打算定的价位，实际卖得怎么样" in s2 and "$200–250：一般" in s2 and "这档单个链接（子体）每月一般卖" in s2  # AC-F21-09
     assert "4.09" in s2 and "4.27" in s2
     # 每个数字的来源浮层都带框、月份、样本数（AC-F21-02）
     pops = re.findall(r'data-pop="([^"]*)"', html)
@@ -108,13 +111,14 @@ def test_flow26_card_channels_side_by_side(seeded):
     assert set(by) == {"amazon", "homedepot", "lowes", "wayfair"}
     assert (by["amazon"]["direction"], by["amazon"]["grade"], by["amazon"]["verdict"]) == ("涨", "B", "上")
     assert (by["homedepot"]["direction"], by["homedepot"]["verdict"]) == ("涨", "观察")
-    assert by["lowes"]["sample_ok"] is False and by["lowes"]["verdict"] == "不上"
-    assert (by["wayfair"]["direction"], by["wayfair"]["verdict"]) == ("跌", "不上")
-    assert j["marks"]["agree"] == ["Amazon", "Home Depot"] and j["marks"]["diverge"] == ["Wayfair"]
+    # revision 10：Lowe's、Wayfair 改用渠道调研（AC-F21-15、16）；本测试库没有调研导入 → 写原因、只作观察，不再用 F28 数据下结论
+    assert by["lowes"]["sample_ok"] is False and by["lowes"]["verdict"] == "只作观察" and by["lowes"]["research"]["reason"] == "尚未导入渠道调研"
+    assert (by["wayfair"]["direction"], by["wayfair"]["verdict"], by["wayfair"]["evidence"]) == (None, "只作观察", "历史观察")
+    assert j["marks"]["agree"] == ["Amazon", "Home Depot"] and j["marks"]["diverge"] == []
     html = seeded.get(f"/cards/{cid}").text
     s1 = html.split('id="s1"')[1].split('id="s2"')[0]
-    assert "多渠道印证：Amazon、Home Depot 都在涨" in s1 and "渠道分歧：Wayfair 在跌" in s1
-    assert "8.4% → 11.5%" in s1 and "6.1% → 9.8%" in s1 and "14.2% → 10.6%" in s1 and "样本不足" in s1
+    assert "多渠道印证：Amazon、Home Depot 都在涨" in s1 and "渠道分歧" not in s1
+    assert "8.4% → " in s1 and "11.5% ↑" in s1 and "6.1% → " in s1 and "9.8% ↑" in s1 and "尚未导入渠道调研" in s1
     assert "只在本渠道内比较份额，不比较绝对销量" in s1 and "未验证" in s1
 
 

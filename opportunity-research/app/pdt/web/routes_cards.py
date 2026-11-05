@@ -325,7 +325,7 @@ def card_channels(card_id: int, user=any_user):
             raise HTTPException(404, "决策卡不存在")
         n = c.snapshot["numbers"] if (c.status in cardcore.LOCKED and c.snapshot) else c.numbers
     keep = ("channel", "name", "has_data", "sample_ok", "share_prev", "share_now", "direction", "grade", "grasp", "verified",
-            "families", "units", "verdict", "estimated", "evidence", "evidence_note", "hide_scores", "rich")  # v8：证据等级、打折后读法、Amazon 侧丰富度（API-F29-02）
+            "families", "units", "verdict", "estimated", "evidence", "evidence_note", "hide_scores", "rich", "research", "bars")  # r10：调研行与按月柱（API-F21-03）  # v8：证据等级、打折后读法、Amazon 侧丰富度（API-F29-02）
     return {"channels": [{k: ch.get(k) for k in keep} for ch in n["channels"]], "marks": n["marks"]}
 
 

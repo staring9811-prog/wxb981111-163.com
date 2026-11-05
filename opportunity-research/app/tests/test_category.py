@@ -20,7 +20,8 @@ def test_flow23_view_defaults_only_bathroom_vanity(wen):
         assert tab in html
     cfg = _cfg_from_page(html)
     assert [d["dim"] for d in cfg["frame_dims"]] == ["尺寸段", "拆装", "形态"]
-    assert cfg["frame_dims"][2]["values"] == ["落地式", "悬浮式"]
+    assert cfg["frame_dims"][2]["values"] == ["落地式", "悬浮式", "开放式"]  # revision 10：开放式单独成框
+    assert cfg["frame_dims"][0]["values"] == ["18″", "24″", "28″", "30″", "36″", "42″", "48″", "60″", "72″+"]
     assert [a["attr"] for a in cfg["scan_attrs"]] == ["台面材质", "元素", "主色", "柜体材质"]
     assert cfg["low_conf_threshold"] == 0.75
     for ch, units in (("homedepot", 250), ("lowes", 150), ("wayfair", 120)):
@@ -99,7 +100,7 @@ def test_tag_rules_tab_chinese_summary(wen):
     assert tags == ["尺寸段", "拆装", "形态", "台面材质", "元素", "主色", "柜体材质"]
     for raw in ("color_map", "vision_prompt", "element_map", "size_bands", "rule_version", "\\u"):
         assert raw not in body, raw
-    assert "27–33 英寸 → 30″" in body and "Fluted / Reeded → 竖棱" in body and "胡桃木色 / 深咖啡色 / 棕色 → 深木" in body
+    assert "26–29 英寸 → 28″" in body and "29–33 英寸 → 30″" in body and "开放式" in body and "Fluted / Reeded → 竖棱" in body and "胡桃木色 / 深咖啡色 / 棕色 → 深木" in body
     assert "树脂 / Cultured Marble → 树脂一体" in body
     drawer = html.split('id="dwRules"')[1].split("</textarea>")[0]
     assert "\\u" not in drawer

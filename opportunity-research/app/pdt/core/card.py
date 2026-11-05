@@ -4,6 +4,7 @@
 停止条件阈值）。批准时把数字与利润回写结果存进 Card.snapshot，之后页面只读快照（AC-F25-02）。
 """
 import copy
+import html
 import math
 import time
 from datetime import datetime
@@ -359,7 +360,7 @@ def panel_products(channel: str, frame: str, attr: str, value: str, recent: list
         listed = min(la)[:7] if la else ""
         new = bool(listed) and listed >= first_new
         since = mon[mon.index >= listed].mean() if listed else None
-        rows.append(dict(fam=str(fk), pid=str(it), title=last.get("title") or "", brand=last.get("brand") or "", price=as_float(last.get("price")),
+        rows.append(dict(fam=str(fk), pid=str(it), title=html.unescape(last.get("title") or ""), brand=html.unescape(last.get("brand") or ""), price=as_float(last.get("price")),
                          rating=as_float(last.get("rating")), reviews=as_float(last.get("ratings_count")), image=last.get("image_url") or "",
                          link=last.get("link") or "", units=float(r6["units"].sum() / len(recent)), listed=listed, listed_kind="上架",
                          series=[as_float(mon.get(m)) if m in mon.index else None for m in months12], months=[m[2:] for m in months12],
@@ -458,7 +459,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
                        rich=richness.for_unit(ch, frame, attr, value) if ch != "amazon" else None, research=rsv)
             if rsv is not None:
                 row["bars"] = ([dict(m=m, v=v) for m, v in zip(rsv.get("months") or [], rsv.get("series") or [])] if rsv.get("series") else [])
-                row["products"] = research.unit_products(ch, frame, attr, value)
+                row["products"] = research.unit_products(ch, frame, attr, value) if rsv["state"] == "ok" else dict(top=[], new=[])
                 row["src"] = pop(框=frame, 取值=unit_label, 来源=f"渠道调研（{rsv.get('window') or '—'}）", 说明=rsv.get("reason") or "",
                                  样本数=f"{rsv.get('families') or 0} 款，月均 {rsv.get('units') or 0:,.0f} 件" if rsv["state"] == "ok" else "")
             else:

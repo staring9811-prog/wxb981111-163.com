@@ -126,7 +126,7 @@ def tag_rule_rows(rules: dict) -> list[dict]:
     """打标规则按业务标签分行的中文摘要（PAGE-F27-01 打标规则表）；JSON 原文只在“编辑”抽屉里。"""
     from ..core.tagging import CANDIDATES
     bands = rules.get("size_bands") or []
-    size = "；".join(f"{lo:g}–{hi:g} 英寸 → {c}″" for c, lo, hi in bands) + "；≥ 66 英寸 → 72″+"
+    size = "；".join(f"{lo:g}–{hi:g} 英寸 → {c}″" for c, lo, hi in bands) + "；≥ 66 英寸 → 72″+（每档含下限、不含上限，如 26 英寸算 28″、29 英寸算 30″）"
     em = rules.get("element_map") or {}
     vocab = rules.get("element_vocab") or []
     cm = rules.get("color_map") or {}
@@ -136,7 +136,8 @@ def tag_rule_rows(rules: dict) -> list[dict]:
         dict(tag="尺寸段", method="规则", n=len(bands) + 1, summary=f"读标题、规格、商品尺寸中的宽度，按区间归段：{size}"),
         dict(tag="拆装", method="规则", n=3, summary="写明 fully assembled / no assembly required / 到货已组装 → 整装；"
                                                      "assembly required、RTA、partially assembled 等或没写 → 拆装"),
-        dict(tag="形态", method="规则", n=5, summary="floating / wall mounted → 悬浮式；freestanding / floor standing → 落地式；"
+        dict(tag="形态", method="规则", n=6, summary="floating / wall mounted → 悬浮式；freestanding / floor standing → 落地式；"
+                                                    "落地式中写明不带门的开放层板（open shelf、side shelves、console vanity 等）→ 开放式（只有 open storage / open space 这类泛指词的进确认队列）；"
                                                     "pedestal sink → 柱状盆；corner vanity → 转角式；同时写可壁挂和可落地 → 两用；无关键词默认落地式"),
         dict(tag="台面材质", method="规则", n=len(CANDIDATES["台面材质"]),
              summary=f"读台面描述归入 {len(CANDIDATES['台面材质'])} 种材质（{'、'.join(CANDIDATES['台面材质'][:6])} …）；分析时再归大类：{top}"),

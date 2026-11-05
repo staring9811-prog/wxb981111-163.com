@@ -13,6 +13,7 @@
 """
 import collections
 import hashlib
+import html
 import io
 import re
 import shutil
@@ -954,7 +955,7 @@ def unit_products(channel: str, frame: str, attr: str, value: str, top: int = 5)
         e = int(e) if pd.notna(e) else None
         since = g.loc[g['m'] >= (e or 0), 'c'].sum() / (n - (e or 0)) if e is not None else None
         fm_ = _clean(r.get('首评月')) if hasattr(r, 'get') else ''
-        rows.append(dict(fam=str(fam), pid=str(pid), title=_clean(r.get('title')), brand=_clean(r.get('品牌')), price=_f(r.get('价格')),
+        rows.append(dict(fam=str(fam), pid=str(pid), title=html.unescape(_clean(r.get('title'))), brand=html.unescape(_clean(r.get('品牌'))), price=_f(r.get('价格')),
                          rating=_f(r.get('评分')), reviews=_f(r.get('页面评论数')), image=_clean(r.get('主图')) if '主图' in pi.columns else '',
                          link=item_link(channel, pid), units=_f(tot / n), listed=fm_ or (window[e] if e is not None and e < n else ''),
                          listed_kind='首评月' if fm_ else '首次有销量', series=series, months=[m[2:] for m in window],

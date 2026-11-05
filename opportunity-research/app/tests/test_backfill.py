@@ -431,8 +431,8 @@ def test_flow28_page_and_api(hd_cache):
     wen, st = hd_cache
     html = wen.get('/data/channels?ch=homedepot').text
     for s_ in ('历史重建', '幸存者偏差：只含当前仍在榜的商品', '2024-01 至 2026-10', '598 / 219', '14,397', '73% / 58%', '78%',
-               '前 N 覆盖（按排名分段）', '换手（前 50 / 前 20 家族重合率）', '重建的月度历史（按季度）', '16,507', '评论家族 · Home Depot',
-               '219 个家族（完整 185 · 无评论 34）', 'd-family', '未回补 · 未验证'):
+               '前 N 覆盖（按排名分段）', '换手（前 50 / 前 20 款重合率）', '重建的月度历史（按季度）', '16,507', '款（评论家族） · Home Depot',
+               '219 款（完整 185 · 无评论 34）', 'd-family', '未回补 · 未验证'):
         assert s_ in html, s_
     h = wen.get('/data/channels/homedepot/history').json()
     assert h['families'] == 219 and h['reviews_window'] == 14397 and h['start'] == '2024-01'
