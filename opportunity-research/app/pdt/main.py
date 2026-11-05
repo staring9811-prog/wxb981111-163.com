@@ -54,6 +54,7 @@ def create_app() -> FastAPI:
     from .core import ingest, tagging
     tagging.fill_groups()  # 无主图商品按同系列 / 同品牌同标题补分组键（之前一商品一组）
     ingest.recheck_stuck()  # 上次进程在核对中途退出的批次补做核对（否则一直显示“核对中”）
+    tagging.ensure_frame_rules()  # 分框规则升级到 revision 10 时重打尺寸段 / 形态并重扫描（AC-F18-11）；已是则不动
     app = FastAPI(title="品类机会判定台", docs_url=None, redoc_url=None, openapi_url=None)
     app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
 

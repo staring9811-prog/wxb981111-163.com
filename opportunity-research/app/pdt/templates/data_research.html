@@ -75,7 +75,9 @@
         {% elif c.state == 'insufficient' %}<span class="badge badge--insufficient">导入后将显示"数据不足"</span>
         {% else %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-check-circle"/></svg>核对通过</span>{% endif %}</div>
       <div class="panel__body"><dl class="kv">
-        <dt>商品 / 家族</dt><dd>{{ sm.n_products|num }} 个商品 / {{ sm.n_families|num }} 个家族{% if sm.n_excluded %}（另有 {{ sm.n_excluded }} 个标为非浴室柜，不计）{% endif %}</dd>
+        <dt>商品 / 款</dt><dd>{{ sm.n_products|num }} 个商品 / {{ sm.n_families|num }} 款{% if sm.n_excluded %}（另有 {{ sm.n_excluded }} 个标为非浴室柜，不计）{% endif %}</dd>
+        <dt>有主图</dt><dd data-images>{{ (sm.n_images or 0)|num }} / {{ sm.n_products|num }}</dd>
+        <dt>框门槛</dt><dd>月均 {{ (sm.frame_min or 100)|num }} 件（品类配置可改）</dd>
         <dt>完整月</dt><dd>{% if sm.window %}{{ sm.window[0] }} 至 {{ sm.window[-1] }}（{{ sm.n_months }} 个月）{% else %}—{% endif %}</dd>
         <dt>窗口销量</dt><dd data-sales>{{ (sm.sales_monthly or 0)|num }} 件{% if sm.sales_est %} 有月度 + 估算 {{ sm.sales_est|num }} 件（低估计 {{ (sm.sales_est_low or 0)|num }}）{% endif %}</dd>
         <dt>有月度销量</dt><dd>{{ pct(sm.monthly_share) }}{% if sm.n_static %}（{{ sm.n_static }} 个商品只有评论总数，按评论数档估算{% if sm.estimate.unestimable %}；{{ sm.estimate.unestimable }} 个无法估算{% endif %}）{% endif %}</dd>

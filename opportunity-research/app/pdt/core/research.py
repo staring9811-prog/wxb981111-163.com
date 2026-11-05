@@ -32,19 +32,20 @@ CHANNELS = ['homedepot', 'lowes', 'wayfair']
 NAME2KEY = {'Home Depot': 'homedepot', "Lowe's": 'lowes', 'Wayfair': 'wayfair'}
 PROD_COLS = ['渠道', 'fam', 'pid', 'title', '来源', '尺寸段', '装', '形态', '台面材质', '主色', '柜体材质', '元素', '价格', '评分', '页面评论数']
 MON_COLS = ['渠道', 'fam', 'pid', '尺寸段', '装', '形态', '月', 'VP', '非VP', '销量']
-RAW_KEYS = ['宽', '选项段', '多尺寸段', '颜色原值', '台面原值', '柜体原值', '月度来源', '浴室柜', '装来源', '形态来源']
+RAW_KEYS = ['宽', '选项段', '多尺寸段', '颜色原值', '台面原值', '柜体原值', '月度来源', '浴室柜', '装来源', '形态来源', '主图']  # 主图：可选列（AC-F30-33）
 NOMON = '无（只有评论总数）'
 MULTI = '多尺寸未拆'
 NOFRAME = '不进框'
 KBINS = [0, 20, 100, 300, np.inf]          # 评论数档：1–20、21–100、101–300、> 300
 LOW_BINS = [0, 20, 100, np.inf]            # 低估计：> 100 合成一档（小试口径）
-FR_MIN, U_MIN = 200, 20                    # 框月均 ≥ 200、单元月均 ≥ 20（AC-F30-11）
+FR_MIN, U_MIN = 100, 20                    # 框门槛默认月均 ≥ 100（分渠道可配，AC-F30-35）、单元月均 ≥ 20（AC-F30-11）
+READ_MIN = 200                             # 月均 < 200 的达门槛框标"样本少，只作参考"（AC-F30-34）
 COVER_MIN, MONTHLY_MIN = 0.95, 0.60        # 可读性（AC-F30-19～21）
 LN, DIR, EPS = 0.3, 0.2, 0.002             # 走势 ±0.3、Amazon 方向 ±0.2；份额 ln 加 0.002 平滑（小试口径）
 ATTRS = ('台面材质', '元素', '主色', '柜体材质')
 UNK = {'未知', '信息不足', '待图片核验', '', 'nan', 'None', '<NA>'}
-SIZES = ['18″', '24″', '30″', '36″', '42″', '48″', '60″', '72″+']
-FORMS = ['落地式', '悬浮式', '转角式']
+SIZES = ['18″', '24″', '28″', '30″', '36″', '42″', '48″', '60″', '72″+']
+FORMS = ['落地式', '悬浮式', '开放式', '转角式']
 ASMS = ['拆装', '整装']
 PRICE_ABS = [0, 200, 300, 450, 650, 900, 1300, np.inf]  # 与 F29 相同的 7 段绝对价位
 REASONS = ['尺寸段未知', MULTI, '装未知', '形态未知']
@@ -53,6 +54,22 @@ FAMILY_NOTE = {'homedepot': 'Home Depot 评论家族', 'lowes': "Lowe's 父体",
 
 def today() -> date:
     return date.today()
+
+
+def frame_min(channel: str) -> float:
+    """该渠道调研框门槛（品类配置 research.frame_min，默认 100，AC-F30-35）。"""
+    from .. import catconfig
+    return float(((catconfig.current()[1].get('research') or {}).get('frame_min') or {}).get(channel, FR_MIN))
+
+
+def image_map(channel: str) -> dict:
+    """渠道 + 商品编号 → 主图网址（当前调研版本的"主图"列，AC-F30-33）；没有该列时为空。"""
+    ver = current_version(channel)
+    if ver is None:
+        return {}
+    with session() as s:
+        return {p.pid: (p.raw or {}).get('主图') for p in s.scalars(select(ResearchProduct).where(ResearchProduct.version_id == ver.id))
+                if (p.raw or {}).get('主图')}
 
 
 def last_complete_month() -> str:
@@ -524,6 +541,7 @@ def compute(channel: str, P: pd.DataFrame, M: pd.DataFrame, with_amazon: bool = 
     if conf is None:
         conf, noframe = confirmations(channel, P['pid'])
     A, est = build_rows(P, M, window, conf, noframe or set())
+    fmin = frame_min(channel)
     Pk = P[~_excluded_mask(P)]
     tot = A['c'].sum()
     ok = frameable(A)
@@ -539,6 +557,7 @@ def compute(channel: str, P: pd.DataFrame, M: pd.DataFrame, with_amazon: bool = 
     est_any = bool(est['n_static']) and bool((A['m'] < 0).any())
     summ = dict(window=window, n_months=n, reference=ref, ref_rows=int(sum(ref.values())),
                 n_products=int(Pk['pid'].nunique()), n_families=int(Pk['fam'].nunique()),
+                n_images=int(Pk.drop_duplicates('pid')['主图'].map(_clean).astype(bool).sum()) if '主图' in Pk.columns else 0,
                 n_families_sold=int(A.loc[A['c'] > 0, 'fam'].nunique()), n_excluded=int(_excluded_mask(P).sum()),
                 sales=_f(tot), sales_monthly=_f(A.loc[A['m'] >= 0, 'c'].sum()), sales_est=_f(A.loc[A['m'] < 0, 'c'].sum()),
                 sales_est_low=_f(A.loc[A['m'] < 0, 'c_low'].sum()), sales_low=_f(A['c_low'].sum()),
@@ -554,11 +573,11 @@ def compute(channel: str, P: pd.DataFrame, M: pd.DataFrame, with_amazon: bool = 
     for f in frames:
         e, w = cov.get(f['frame'], (None, None))
         f['cover'], f['cover_worst'] = _f(e), _f(w)
-        f['read'] = readability(f['cover'], f['monthly_share'])
+        f['read'] = 'small' if f['units'] < READ_MIN else readability(f['cover'], f['monthly_share'])
         f['channel_share'] = _f(f['units'] / framed_tot) if framed_tot else None
-        f['low_below'] = bool(f['estimated'] and f['units_low'] < FR_MIN)
-    big = sorted([f for f in frames if f['units'] >= FR_MIN], key=lambda f: -f['units'])
-    small = [f for f in frames if f['units'] < FR_MIN]
+        f['low_below'] = bool(f['estimated'] and f['units_low'] < fmin)
+    big = sorted([f for f in frames if f['units'] >= fmin], key=lambda f: -f['units'])
+    small = [f for f in frames if f['units'] < fmin]
     az = amazon_cells() if with_amazon else {}
     out_units = {}
     for f in big:
@@ -568,7 +587,7 @@ def compute(channel: str, P: pd.DataFrame, M: pd.DataFrame, with_amazon: bool = 
             u['amazon'] = a
         us.sort(key=lambda u: (ATTRS.index(u['attr']), -u['units']))
         out_units[f['frame']] = us
-    summ.update(frames_all=len(frames), frames_big=len(big), frames_readable=sum(f['read'] == 'ok' for f in big),
+    summ.update(frame_min=fmin, frames_all=len(frames), frames_big=len(big), frames_small=sum(f['read'] == 'small' for f in big), frames_readable=sum(f['read'] == 'ok' for f in big),
                 small_n=len(small), small_units=_f(sum(f['units'] for f in small)), amazon_months=az.get('_months', '') if az else '')
     state = 'insufficient' if not big else 'ok'
     return dict(channel=channel, state=state, summary=summ, frames=big, units=out_units, pending=pend, trend_ok=n >= 6)
@@ -864,3 +883,81 @@ def backtest_marks(channel: str) -> dict:
     if run is None or run.evidence != channel_model.EVIDENCE_OK:
         return {}
     return {k: dict(grade=v.get('grade'), evidence=run.evidence) for k, v in (run.units or {}).items() if v.get('grade')}
+
+
+# ====================================================================== 7. 决策卡渠道段读取（AC-F21-15～18，revision 10；只读，不写 F28）
+def unit_view(channel: str, frame: str, attr: str, value: str) -> dict:
+    """决策卡 Lowe's / Wayfair 行：当前调研版本里同框同属性取值的结果；不可用时给原因（AC-F21-16）。"""
+    ver = current_version(channel)
+    r = result(channel)
+    if ver is None or r is None or not r.data:
+        return dict(state='none', reason='尚未导入渠道调研')
+    data = r.data
+    sm = data.get('summary') or {}
+    win = sm.get('window') or []
+    base = dict(window=f'{win[0]} 至 {win[-1]}' if win else '', months=[m[2:] for m in win], frame_min=sm.get('frame_min', FR_MIN))
+    if data.get('state') == 'insufficient':
+        return dict(base, state='na', reason=f"该渠道调研数据不足（没有框达到月均 {sm.get('frame_min', FR_MIN):.0f} 件门槛）")
+    f = next((x for x in data.get('frames', []) if x['frame'] == frame), None)
+    if f is None:
+        return dict(base, state='na', reason=f"该框月均不到门槛（{sm.get('frame_min', FR_MIN):.0f} 件）")
+    u = next((x for x in (data.get('units') or {}).get(frame, []) if x['attr'] == attr and x['value'] == value), None)
+    read = f.get('read')
+    if u is None:
+        return dict(base, state='na', read=read, reason=f'该取值在这个框里月均不到 {U_MIN} 件')
+    out = dict(base, state='ok', read=read, frame_units=f['units'], units=u['units'], families=u['families'], share=u['share'],
+               share_pre=u.get('share_pre'), share_rec=u.get('share_rec'), series=u.get('series') or [], estimated=u.get('estimated'),
+               cover=f.get('cover'), monthly_share=f.get('monthly_share'), per_family=f.get('per_family'))
+    if read == 'noconc':
+        out.update(reason=f"不下结论（分框覆盖 {(f.get('cover') or 0) * 100:.0f}%）", share_pre=None, share_rec=None, series=[])
+    elif read == 'notrend':
+        out.update(reason=f"趋势不下结论（有月度 {(f.get('monthly_share') or 0) * 100:.0f}%）", share_pre=None, share_rec=None, series=[])
+    elif read == 'small':
+        out.update(reason='样本少，只作参考')
+    return out
+
+
+def unit_products(channel: str, frame: str, attr: str, value: str, top: int = 5) -> dict:
+    """同框同属性取值按窗口月销的前 N 款与近 6 个月新款（AC-F21-17、18）。款 = 导入的 fam；代表商品取窗口销量最大的 pid。"""
+    ver = current_version(channel)
+    if ver is None:
+        return dict(top=[], new=[])
+    P, M = _version_frames(ver.id)
+    window, _ = window_of(M)
+    n = len(window)
+    if not n or P.empty:
+        return dict(top=[], new=[])
+    conf, nof = confirmations(channel, P['pid'])
+    A, _est = build_rows(P[~_excluded_mask(P)], M, window, conf, nof)
+    A = A[frameable(A)].copy()
+    A['框'] = A['尺寸段'].astype(str) + ' · ' + A['装'] + ' · ' + A['形态']
+    G = A[A['框'] == frame]
+    if G.empty:
+        return dict(top=[], new=[])
+    famavg = G['c'].sum() / n / max(G.loc[G['c'] > 0, 'fam'].nunique(), 1)
+    U = G[G[attr].map(lambda v: value in v) if attr == '元素' else G[attr] == value]
+    if U.empty:
+        return dict(top=[], new=[])
+    pi = P.drop_duplicates('pid').set_index('pid')
+    from .channels import item_link
+    rows = []
+    for fam, g in U.groupby('fam'):
+        tot = g['c'].sum()
+        if tot <= 0:
+            continue
+        pid = g.groupby('pid')['c'].sum().idxmax()
+        r = pi.loc[pid]
+        mon = g[g['m'] >= 0].groupby('m')['c'].sum()
+        series = [_f(mon.get(i)) if i in mon.index else None for i in range(n)]
+        e = g['进入月'].iloc[0]
+        new = bool(g['新家族'].iloc[0]) and pd.notna(e) and int(e) >= n - 6
+        e = int(e) if pd.notna(e) else None
+        since = g.loc[g['m'] >= (e or 0), 'c'].sum() / (n - (e or 0)) if e is not None else None
+        fm_ = _clean(r.get('首评月')) if hasattr(r, 'get') else ''
+        rows.append(dict(fam=str(fam), pid=str(pid), title=_clean(r.get('title')), brand=_clean(r.get('品牌')), price=_f(r.get('价格')),
+                         rating=_f(r.get('评分')), reviews=_f(r.get('页面评论数')), image=_clean(r.get('主图')) if '主图' in pi.columns else '',
+                         link=item_link(channel, pid), units=_f(tot / n), listed=fm_ or (window[e] if e is not None and e < n else ''),
+                         listed_kind='首评月' if fm_ else '首次有销量', series=series, months=[m[2:] for m in window],
+                         new=new, sold=bool(since is not None and since >= famavg)))
+    rows.sort(key=lambda x: -(x['units'] or 0))
+    return dict(top=rows[:top], new=[x for x in rows if x['new']][:top], per_family=_f(famavg))

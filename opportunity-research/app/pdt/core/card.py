@@ -8,6 +8,7 @@ import math
 import time
 from datetime import datetime
 
+import pandas as pd
 from sqlalchemy import select
 
 from .. import catconfig, costgate, services
@@ -221,6 +222,148 @@ def _channel_evidence(ch, frame, attr, value) -> dict:
         note += f"，大单元秩相关打折后 {rhob:+.2f}"
     return dict(evidence=run.evidence, note=note, hide=False, score=dict(grasp=g, grade=u.get("grade"), share_now=u.get("share6"),
                                                                              sources=dict(frame=frame, months=f"渠道回测 {run.month}", n=None)))
+
+
+# ---------------------------------------------------------------- revision 10：白话读法、整款停止线、按月柱、代表产品
+STOP_MIN_N, STOP_FALLBACK = 10, 60  # 做成的新品少于 10 款退档；再不足用起量线 60 件（AC-F21-11）
+
+
+def prob_reading(raw, bias, adj) -> str:
+    """新品做到概率白话（AC-F21-07）：raw / adj 为概率，bias 为概率单位的偏差（正 = 模型多估）。"""
+    if raw is None:
+        return ""
+    if bias is None or adj is None:
+        return f"照这个方向开发新品，模型估计每 10 个约有 {round(raw * 10):.0f} 个能做到成功线（{raw * 10:.1f}，本月没有偏差可扣）"
+    b = bias * 10
+    how = f"它过去在同类新品上平均多估 {b:.1f}，扣掉后是 {adj * 10:.1f}" if b >= 0 else f"它过去在同类新品上平均少估 {-b:.1f}，加上后是 {adj * 10:.1f}"
+    return f"照这个方向开发新品，估计每 10 个约有 {round(adj * 10):.0f} 个能做到成功线（模型原始算出 {raw * 10:.1f}，{how}）"
+
+
+def made_reading(value, attr, n, made, other_n, other_made, p) -> str:
+    """框内历史做到率结论（AC-F21-08）。"""
+    if not n:
+        return f"同框里带{value}的新品还没有走完 6 个月观察期的，看不出{value}占优势"
+    r1 = made / n
+    s = f"同框里带{value}的新品 {n} 个做到 {made} 个（{r1:.0%}）"
+    if other_n:
+        r2 = other_made / other_n
+        s += f"，同框其他{attr} {r2:.0%}"
+    else:
+        r2 = None
+    if n + (other_n or 0) < 20 or n < 5 or r2 is None:
+        return s + f"；样本太少，看不出{value}占优势"
+    if p is not None and p < 0.05:
+        return s + (f"；差别明显，{value}更容易做到" if r1 > r2 else f"；差别明显，{value}更难做到")
+    return s + f"；差别不明显，看不出{value}占优势"
+
+
+def p_tip(p) -> str:
+    if p is None:
+        return ""
+    return f"p = {p:.2f}|这么大的差别纯靠运气出现的可能约 {p:.0%}；越小越说明差别是真的，一般小于 5% 才算明显（Fisher 精确检验）"
+
+
+def band_reading(b) -> str:
+    """打算定的价位，实际卖得怎么样（AC-F21-09）；m = 子体 × 月销量中位，M = 最高。"""
+    m, mx = b.get("median_units"), b.get("max_units")
+    if m is None:
+        return ""
+    if m >= 20:
+        c = "这个价位走量稳"
+    elif m < 10 and (mx or 0) >= 100:
+        c = "这个价位能卖，但单个链接量小，要靠多款或爆款"
+    elif (mx or 0) < 50:
+        c = "这个价位卖得少，要慎重"
+    else:
+        c = "这个价位能卖，量中等"
+    return f"{b['band']} 这档单个链接（子体）每月一般卖 {m:,.0f} 件、最多 {mx or 0:,.0f} 件：{c}"
+
+
+def _made_families(d: pd.DataFrame, channel: str, succ: dict) -> list:
+    """已做成的新品款（上架 6 个月内达到成功线）各自上架第 2、3 个月整款月销的两月平均（两个月都在数据里才计）。"""
+    if d.empty:
+        return []
+    g = d.groupby(["family_key", "month"]).agg(units=("units", "sum"), revenue=("revenue", "sum"), rank=("rank", "min"),
+                                                age=("age_months", "min")).reset_index()
+    if channel == "amazon":
+        hit = (g["rank"] <= succ.get("bsr_top", 50)) | (g["revenue"] >= succ.get("spu_revenue", 100000))
+    else:
+        hit = (g["rank"] <= succ.get("rank_top", 50)) | (g["units"] >= (succ.get("units") or 1e12))
+    made = set(g.loc[hit & (g["age"] >= 1) & (g["age"] <= 6), "family_key"])
+    out = []
+    for fk, h in g[g["family_key"].isin(made)].groupby("family_key"):
+        a = h.set_index("age")["units"]
+        if 2 in a.index and 3 in a.index:
+            out.append(float((a[2] + a[3]) / 2))
+    return out
+
+
+def stop_line(channel: str, frame: str) -> dict:
+    """月销停止线（AC-F21-10、11）：同框做成的新品款上架第 2–3 个月整款月销（两月平均）的第 10 百分位；
+    不足 10 款退同尺寸段，再不足用起量线 60 件。整款 = 同一款（同父体 / 家族）所有尺寸、颜色加起来。"""
+    import numpy as np
+    cfg = catconfig.current()[1]
+    succ = ((cfg.get("channels") or {}).get(channel) or {}).get("success", {})
+    df = pa.load_panel(channel)
+    if df.empty:
+        return dict(value=STOP_FALLBACK, scope="fallback", n=0, n_frame=0, basis=f"没有数据，用起量线 {STOP_FALLBACK} 件兜底")
+    vals = _made_families(df[df["frame"] == frame], channel, succ)
+    nf = len(vals)
+    if nf >= STOP_MIN_N:
+        v = int(round(float(np.percentile(vals, 10))))
+        return dict(value=v, scope="frame", n=nf, n_frame=nf,
+                    basis=f"同框做成的新品 {nf} 款，上架第 2–3 个月整款月销从低到高排，最低一成处 {v} 件")
+    size = frame.split(" · ")[0]
+    vals2 = _made_families(df[(df["尺寸段"] == size) & df["frame"].notna()], channel, succ)
+    if len(vals2) >= STOP_MIN_N:
+        v = int(round(float(np.percentile(vals2, 10))))
+        return dict(value=v, scope="size", n=len(vals2), n_frame=nf,
+                    basis=f"同框只有 {nf} 款，按同尺寸段 {len(vals2)} 款算：上架第 2–3 个月整款月销最低一成处 {v} 件")
+    return dict(value=STOP_FALLBACK, scope="fallback", n=len(vals2), n_frame=nf,
+                basis=f"样本不足（同框 {nf} 款、同尺寸段 {len(vals2)} 款），用起量线 {STOP_FALLBACK} 件兜底")
+
+
+def month_bars(ts: list, last: str, n: int = 12) -> list:
+    """近 n 个月的逐月份额（没有数据的月份为 None，页面留空不画 0；AC-F21-14）。"""
+    if not last:
+        return []
+    by = {r["month"]: r.get("share") for r in ts}
+    months = [add_months(last, -i) for i in range(n - 1, -1, -1)]
+    return [dict(m=m[2:], v=by.get(m)) for m in months]
+
+
+def panel_products(channel: str, frame: str, attr: str, value: str, recent: list, top: int = 5) -> dict:
+    """Amazon / Home Depot：同框同属性取值近 6 个月月销前 5 款与近 6 个月新款（AC-F21-17、18）。款 = family_key。"""
+    df = pa.load_panel(channel)
+    if df.empty or not recent or attr not in df.columns:
+        return dict(top=[], new=[])
+    F = df[df["frame"] == frame]
+    R6 = F[F["month"].isin(recent)]
+    famavg = R6["units"].sum() / len(recent) / max(R6["family_key"].nunique(), 1)
+    U = F[pa._has(F[attr], value)]
+    if U.empty:
+        return dict(top=[], new=[])
+    months12 = [add_months(recent[-1], -i) for i in range(11, -1, -1)]
+    first_new = recent[0]
+    rows = []
+    for fk, g in U.groupby("family_key"):
+        r6 = g[g["month"].isin(recent)]
+        if r6["units"].sum() <= 0:
+            continue
+        mon = g.groupby("month")["units"].sum()
+        it = r6.groupby("item_id")["units"].sum().idxmax()
+        last = g[g["item_id"] == it].sort_values("month").iloc[-1]
+        la = [x for x in g["listed_at"] if isinstance(x, str) and x]
+        listed = min(la)[:7] if la else ""
+        new = bool(listed) and listed >= first_new
+        since = mon[mon.index >= listed].mean() if listed else None
+        rows.append(dict(fam=str(fk), pid=str(it), title=last.get("title") or "", brand=last.get("brand") or "", price=as_float(last.get("price")),
+                         rating=as_float(last.get("rating")), reviews=as_float(last.get("ratings_count")), image=last.get("image_url") or "",
+                         link=last.get("link") or "", units=float(r6["units"].sum() / len(recent)), listed=listed, listed_kind="上架",
+                         series=[as_float(mon.get(m)) if m in mon.index else None for m in months12], months=[m[2:] for m in months12],
+                         new=new, sold=bool(since is not None and since >= famavg)))
+    rows.sort(key=lambda x: -(x["units"] or 0))
+    return dict(top=rows[:top], new=[x for x in rows if x["new"]][:top], per_family=float(famavg))
 
 
 # ---------------------------------------------------------------- 生成数字

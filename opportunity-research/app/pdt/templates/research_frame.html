@@ -41,7 +41,7 @@
 </div>
 
 {% if not f %}
-<div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">这个框没有达到月均 200 件的门槛</div><div class="empty__desc">或该渠道尚未导入调研数据。</div><a class="btn btn--sm" href="/research?channel={{ ch }}">回到渠道调研</a></div>
+<div class="empty"><svg class="icon"><use href="#ph-info"/></svg><div class="empty__title">这个框没有达到月均 {{ ((data.summary.frame_min if data and data.summary else none) or 100)|num }} 件的门槛</div><div class="empty__desc">或该渠道尚未导入调研数据。</div><a class="btn btn--sm" href="/research?channel={{ ch }}">回到渠道调研</a></div>
 {% else %}
 {% set nc = f.read == 'noconc' %}{% set nt = f.read == 'notrend' or not data.trend_ok %}
 {% if res.status == 'error' %}<div class="banner banner--block" role="alert"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body">重算出错：{{ res.error }}；显示的是 {{ res.computed_at|dt }} 的结果。</div></div>{% endif %}
@@ -56,6 +56,7 @@
     <div><div class="stat__label">可读性</div><div data-read="{{ f.read }}">{% set rd = READ[f.read] %}<span class="badge badge--{{ rd[1] }}"><svg class="icon"><use href="#ph-{{ rd[2] }}"/></svg>{{ rd[0] }}{% if f.read == 'noconc' %}（分框覆盖 {{ pct(f.cover, 1) }}）{% elif f.read == 'notrend' %}（有月度 {{ pct(f.monthly_share) }}）{% endif %}</span> <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></div></div>
   </div>
   {% if nc %}<div class="banner banner--unverified" data-mode-note="no-conc" style="margin-top: var(--space-3)"><svg class="icon"><use href="#ph-prohibit"/></svg><div class="banner__body"><div class="banner__title">不下结论：分框覆盖 {{ pct(f.cover, 1) }} &lt; 95%</div><div>还有分框待确认的商品可能落进这个框，体量和份额会明显变化，只显示体量与份额作方向参考，其他指标不显示。{% if user.role == 'operator' %}<a href="/tagging?channel={{ ch }}&amp;reason=frame&amp;from=research">去确认分框</a>{% endif %}</div></div></div>
+  {% elif f.read == 'small' %}<div class="banner banner--stale" data-mode-note="small" style="margin-top: var(--space-3)"><svg class="icon"><use href="#ph-info"/></svg><div class="banner__body"><div class="banner__title">样本少，只作参考：框月均 {{ f.units|num }} 件，不到 200 件</div><div>数字照常列出，不写走势结论；放大样本后再下结论。</div></div></div>
   {% elif f.read == 'notrend' %}<div class="banner banner--unverified" data-mode-note="no-trend" style="margin-top: var(--space-3)"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body"><div class="banner__title">趋势不下结论：有月度销量只占 {{ pct(f.monthly_share) }} &lt; 60%</div><div>趋势与新品不显示（"—"），体量、份额、供给、价格、评分、Amazon 对照照常。</div></div></div>{% endif %}
 </section>
 

@@ -20,6 +20,7 @@ from ..db import engine
 from . import families as fm
 
 TAGS = ['尺寸段', '装', '形态', '台面材质', '台盆材质', '元素', '主色', '柜体材质']
+FRAME_FORMS = ['落地式', '悬浮式', '开放式']  # 进框的形态（AC-F18-10）；柱状盆、转角式、两用不进框
 UNKNOWN_VALUES = {'', '未知', '信息不足', '待图片核验', 'None', 'nan'}
 _cache: dict = {}
 _lock = threading.Lock()
@@ -59,7 +60,7 @@ def raw_frame(channel: str = 'amazon') -> pd.DataFrame:
         "where b.status = 'merged' and s.channel = :ch and s.category = :c order by s.id"), eng, params=dict(ch=channel, c=CATEGORY))
     prods = pd.read_sql(text("select item_id, parent, family_key, series, brand, title, image_url, link, listed_at, excluded from product "
                              "where channel = :ch and category = :c"), eng, params=dict(ch=channel, c=CATEGORY)).set_index('item_id')
-    tags = pd.read_sql(text("select item_id, tag, value, status from tag where channel = :ch and category = :c"), eng, params=dict(ch=channel, c=CATEGORY))
+    tags = pd.read_sql(text("select item_id, tag, value, status, source from tag where channel = :ch and category = :c"), eng, params=dict(ch=channel, c=CATEGORY))
     cols = ['month', 'item_id', 'family_key', 'parent', 'series', 'brand', 'title', 'image_url', 'link', 'listed_at', 'price', 'units', 'fam_units',
             'child_units', 'revenue', 'rank', 'rating', 'ratings_count', 'vp', 'nonvp', 'star', 'anomaly_reason'] + TAGS
     if snaps.empty:
@@ -89,10 +90,14 @@ def raw_frame(channel: str = 'amazon') -> pd.DataFrame:
     # 标签：确认值 > 并入时标签 > 当前自动值
     conf = tags[tags['status'] == 'confirmed'].set_index(['item_id', 'tag'])['value'].to_dict()
     auto = tags[tags['status'] != 'confirmed'].set_index(['item_id', 'tag'])['value'].to_dict()
+    # 分框规则变更后重打的尺寸段 / 形态（source = rule_r10，AC-F18-11）优先于并入时的旧标签
+    r10 = tags[(tags['status'] != 'confirmed') & (tags['source'] == 'rule_r10')].set_index(['item_id', 'tag'])['value'].to_dict()
     for t in TAGS:
         vals = []
         for i, r in zip(out['item_id'], raw):
             v = conf.get((i, t))
+            if v is None:
+                v = r10.get((i, t))
             if v is None:
                 v = (r.get('tags') or {}).get(t)
             if v is None:
@@ -197,7 +202,7 @@ def load_panel(channel: str = 'amazon') -> pd.DataFrame:
             'rank', 'rating', 'ratings_count', 'age_months', 'frame', 'star'] + ['尺寸段', '装', '形态', '台面材质', '台盆材质', '台面', '元素', '主色', '柜体材质']
     if A.empty:
         return pd.DataFrame(columns=cols)
-    form_ok = A['尺寸段'].notna() & A['装'].notna() & A['形态'].isin(['落地式', '悬浮式'])
+    form_ok = A['尺寸段'].notna() & A['装'].notna() & A['形态'].isin(FRAME_FORMS)
     out = pd.DataFrame({
         'month': A['月份'], 'item_id': A['子ASIN'], 'parent': A['_parent'], 'family_key': A['家族键'], 'series': A['_series'], 'brand': A['品牌'],
         'title': A['标题'], 'image_url': A['主图500'], 'link': A['商品链接'], 'listed_at': A['_listed_at'], 'price': A['价格'], 'units': A['c'],

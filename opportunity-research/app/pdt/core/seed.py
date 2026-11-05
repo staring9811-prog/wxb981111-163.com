@@ -24,6 +24,7 @@ from ..models import Batch, Product, Snapshot, Tag, now
 from ..models_data import SearchVolume
 from . import families as fm
 from . import verify as vf
+from .ingest import open_form
 
 D2 = PROJECT_DIR / 'input' / 'data_v2'
 PKL = D2 / '统一打标' / '统一打标_分析用.pkl'
@@ -75,7 +76,7 @@ def row_tags(r) -> dict:
     cab = r['_cab']
     col = fm.color(r['D6柜体颜色'])
     return {'尺寸段': fm.band(r['D9宽(in)']) or '', '装': '整装' if r['D2安装方式'] == '整装' else '拆装',
-            '形态': _norm(r['形态（怎么装）']) or '落地式', '台面材质': _norm(r['D8台面材质']), '台盆材质': _norm(r['D8台盆材质']),
+            '形态': open_form(_norm(r['形态（怎么装）']) or '落地式', r.get('柜体结构')), '台面材质': _norm(r['D8台面材质']), '台盆材质': _norm(r['D8台盆材质']),
             '元素': r['_el'], '主色': '' if col == '未知' else col, '柜体材质': '' if cab == '未知' else cab}
 
 

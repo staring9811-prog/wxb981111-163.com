@@ -9,7 +9,7 @@ from .ui import redirect, render
 
 router = APIRouter()
 
-READ = {'ok': ('可读', 'pass', 'check-circle'), 'notrend': ('趋势不下结论', 'unverified', 'warning'), 'noconc': ('不下结论', 'insufficient', 'prohibit')}
+READ = {'small': ('样本少，只作参考', 'insufficient', 'info'), 'ok': ('可读', 'pass', 'check-circle'), 'notrend': ('趋势不下结论', 'unverified', 'warning'), 'noconc': ('不下结论', 'insufficient', 'prohibit')}
 TREND = {'抢份额': 'hit', '丢份额': 'miss', '随框': 'watch', '新出现': 'accent'}
 
 

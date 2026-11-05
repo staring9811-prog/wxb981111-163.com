@@ -22,15 +22,18 @@ from .. import catconfig, costgate, services
 from ..db import session
 from ..models import Product, Snapshot, Batch, Tag, now
 from . import families as fm
+from . import openshelf
 from . import tagging_rules as T
 
 TAG_ORDER = ['尺寸段', '装', '形态', '台面材质', '台盆材质', '元素', '主色', '柜体材质']
 
 # 打标规则默认值在品类配置 tag_rules（catconfig.DEFAULT，分析组追加）；规则正则在 tagging_rules.py（v12.2 原文）。
 DEFAULT_TAG_RULES = catconfig.DEFAULT['tag_rules']
+# 开放式置信度：写明开放层板 / console 0.95；只有泛指词（open storage / open space）0.6，低于阈值进确认队列（AC-F18-10）
+OPEN_CONF = {openshelf.STRONG: 0.95, openshelf.WEAK: 0.6, None: 0.95}
 
 CANDIDATES = {
-    '尺寸段': ['18″', '24″', '30″', '36″', '42″', '48″', '60″', '72″+'], '装': ['拆装', '整装'], '形态': ['落地式', '悬浮式', '柱状盆', '转角式', '两用'],
+    '尺寸段': ['18″', '24″', '28″', '30″', '36″', '42″', '48″', '60″', '72″+'], '装': ['拆装', '整装'], '形态': ['落地式', '悬浮式', '开放式', '柱状盆', '转角式', '两用'],
     '台面材质': ['陶瓷', '树脂', '木板', '岗石', '石英石', '岩板', '卡拉拉大理石', 'Cultured Marble', '玻璃', '不锈钢', '不适用（不含台面）'],
     '台盆材质': ['陶瓷盆', '树脂盆', '玻璃盆', '岗石盆', 'Cultured Marble盆', '不锈钢盆', '不适用（不含盆）'],
     '主色': ['白', '黑', '灰', '原木', '深木', '蓝', '绿', '其他'], '柜体材质': ['MDF', '实木框架', '实木', '含胶合板', '含刨花板', '其他'],
@@ -116,7 +119,11 @@ def rule_tag(text: dict, rules: dict | None = None) -> dict:
     z = '整装' if tags.get(H[1]) == '整装' else '拆装'
     out['装'] = (z, cf(H[1], z), (ev.get(H[1]) or {}).get('status', 'missing'))
     f = norm(tags.get(H[0])) or '落地式'
-    out['形态'] = (f, cf(H[0], f), (ev.get(H[0]) or {}).get('status', 'missing'))
+    f2, k = openshelf.form_of(f, text.get('title'), text.get('sku'))  # 开放式单独成形态（AC-F18-10）
+    if f2 != f or k:
+        out['形态'] = (f2, OPEN_CONF[k], 'text_supported' if k == openshelf.STRONG else 'business_inference')
+    else:
+        out['形态'] = (f, cf(H[0], f), (ev.get(H[0]) or {}).get('status', 'missing'))
     t = norm(tags.get(H[7]))
     out['台面材质'] = (t, cf(H[7], t), (ev.get(H[7]) or {}).get('status', 'missing'))
     s = norm(tags.get(H[8]))
@@ -224,8 +231,10 @@ def spec_tag(text: dict, specs: dict | None = None, rules: dict | None = None, d
         out['形态'] = ('悬浮式', spec_c, 'text_supported', 'spec')
     elif 'corner' in vt:
         out['形态'] = ('转角式', spec_c, 'text_supported', 'spec')
-    elif re.search(r'pedestal|console', vt):
+    elif 'pedestal' in vt:
         out['形态'] = ('柱状盆', spec_c, 'text_supported', 'spec')
+    elif 'console' in vt:  # console vanity = 开放层板（AC-F18-10，与打标技能 console → 开放式同口径）
+        out['形态'] = ('开放式', spec_c, 'text_supported', 'spec')
     elif re.search(r'free ?standing|floor', vt):
         out['形态'] = ('落地式', spec_c, 'text_supported', 'spec')
     elif norm(tags.get(H[0])):
@@ -235,6 +244,10 @@ def spec_tag(text: dict, specs: dict | None = None, rules: dict | None = None, d
         out['形态'] = ('', 0.0, 'missing', 'rule')
     if default_form and not out['形态'][0]:
         out['形态'] = ('落地式', 0.6, 'business_default', 'rule')
+    if out['形态'][0] == '落地式':
+        f2, k = openshelf.form_of(out['形态'][0], text.get('title'), _spec(specs, 'form'))
+        if f2 != out['形态'][0]:
+            out['形态'] = (f2, OPEN_CONF[k], 'text_supported' if k == openshelf.STRONG else 'business_inference', out['形态'][3])
     for tg, h in (('台面材质', H[7]), ('台盆材质', H[8])):
         v = norm(tags.get(h))
         out[tg] = (v, cf(h, v), st(h), src(h))
@@ -592,3 +605,103 @@ def pending_for_month(channel: str = 'amazon', month: str | None = None) -> int:
         items = select(Snapshot.item_id).join(Batch, Batch.id == Snapshot.batch_id).where(Batch.status == 'merged', Batch.channel == channel, Batch.month == month)
         return s.scalar(select(func.count()).select_from(Tag).join(Product, (Product.channel == Tag.channel) & (Product.item_id == Tag.item_id))
                         .where(Tag.channel == channel, Tag.status == 'queued', Product.excluded.is_(False), Tag.item_id.in_(items))) or 0
+
+
+# ---------------------------------------------------------------- 分框规则变更后重打标（AC-F18-11，revision 10）
+R10 = 'rule_r10'  # 重打标写入的 Tag.source：分析面板对尺寸段 / 形态以它优先于并入时的旧标签（已确认值仍最优先）
+
+
+def _width(channel, tx, spec):
+    """规则读出的宽度（英寸）；其他渠道读不出时用商品页规格宽度。"""
+    row = {'子ASIN': tx.get('item_id') or 'X', '目标月份': '', 'SKU属性': tx.get('sku') or '', '商品标题': tx.get('title') or '',
+           '商品尺寸': tx.get('dimension') or '', '五点描述': None, '五点来源': None, '五点来源ASIN': tx.get('item_id'), '核验父ASIN': None,
+           '商品价格': tx.get('price')}
+    w = T.Tagger(row, {}, None, None).run()[0].get(T.HEADERS[9])
+    if w is None and spec is not None:
+        w = _spec_width(spec.specs)
+    return w
+
+
+def retag_frames(user_id=None) -> dict:
+    """按当前分框规则重打尺寸段、形态（只改未人工确认的；AC-F18-11）。
+    尺寸段：只有当前为 24″ / 30″ 的商品受 28″ 新档影响，按宽度重分档；形态：当前为落地式的按开放层板规则重判。
+    当前值 = 已确认 > 本规则已重打 > 并入时标签（快照 raw.tags，取最近一次）> 自动值，与分析面板同口径。返回各渠道改动数。"""
+    rules, thr, ver = rules_cfg()
+    bands = rules.get('size_bands') or DEFAULT_TAG_RULES['size_bands']
+    out = {}
+    with session() as s:
+        channels = [c for (c,) in s.execute(select(Product.channel).distinct())]
+    for ch in channels:
+        st = dict(size=0, form=0, queued=0)
+        with session() as s:
+            items = [i for (i,) in s.execute(select(Product.item_id).where(Product.channel == ch, Product.excluded.is_(False)))]
+            tags = {(t.item_id, t.tag): t for t in s.scalars(select(Tag).where(Tag.channel == ch, Tag.tag.in_(['尺寸段', '形态'])))}
+            raw = {}
+            for i, r in s.execute(select(Snapshot.item_id, Snapshot.raw).where(Snapshot.channel == ch).order_by(Snapshot.id)):
+                tg = (r or {}).get('tags') if isinstance(r, dict) else None
+                if tg:
+                    raw[i] = tg
+            tx = _texts(s, ch, items)
+            sp = _page_specs(s, ch, items) if ch != 'amazon' else {}
+
+            def cur(i, tg):
+                t = tags.get((i, tg))
+                if t is not None and (t.status == 'confirmed' or t.source == R10):
+                    return t.value, t.status == 'confirmed'
+                v = (raw.get(i) or {}).get(tg)
+                if v is None and t is not None:
+                    v = t.value
+                return v or '', False
+            for i in items:
+                for tg in ('尺寸段', '形态'):
+                    v, confirmed = cur(i, tg)
+                    if confirmed:
+                        continue
+                    new, c = v, None
+                    if tg == '尺寸段' and v in ('24″', '30″'):
+                        b = _band(_width(ch, tx[i], sp.get(i)), bands)
+                        if b and b != v:
+                            new, c = b, float((rules.get('confidence') or {}).get('text_supported', 0.95))
+                    if tg == '形态' and v == '落地式':
+                        p = sp.get(i)
+                        f2, k = openshelf.form_of('落地式', tx[i].get('title'), tx[i].get('sku'), _spec(p.specs, 'form') if p else '')
+                        if f2 != v:
+                            new, c = f2, OPEN_CONF[k]
+                    if new == v:
+                        continue
+                    t = tags.get((i, tg))
+                    if t is None:
+                        t = Tag(channel=ch, item_id=i, tag=tg)
+                        s.add(t)
+                    q = c < thr
+                    pool = CANDIDATES.get(tg, [])
+                    t.value, t.auto_value, t.confidence, t.source = new, new, c, R10
+                    t.status = 'queued' if q else 'auto'
+                    t.candidates = [dict(value=x, confidence=(c if x == new else None)) for x in [new] + [x for x in pool if x != new]]
+                    t.img_group = t.img_group or group_key(ch, tx[i]['image'], tx[i]['series'], tx[i]['brand'], tx[i]['title'])
+                    t.config_version = ver
+                    st['size' if tg == '尺寸段' else 'form'] += 1
+                    st['queued'] += int(q)
+        out[ch] = st
+    from .. import services
+    services.put_setting('frame_rules_version', catconfig.FRAME_RULES)
+    services.put_setting('frame_retag', dict(at=now().strftime('%Y-%m-%d %H:%M'), result=out))
+    services.put_setting('models_stale_frames', True)
+    return out
+
+
+def ensure_frame_rules() -> dict | None:
+    """启动时检查：品类配置分框规则还不是 revision 10 时升级配置、重打标、重扫描（AC-F18-11）。已是则什么都不做。"""
+    from .. import services
+    if services.get_setting('frame_rules_version', '') == catconfig.FRAME_RULES:
+        return None
+    catconfig.upgrade_frames()
+    res = retag_frames()
+    from . import panel, pipeline, research
+    panel.clear_cache()
+    for ch in res:
+        pipeline.rescan(ch)  # 没有并入数据的渠道返回空，不报错
+    for ch in research.CHANNELS:
+        research.recompute(ch)
+    services.put_setting('frame_retag', dict(at=now().strftime('%Y-%m-%d %H:%M'), result=res))
+    return res

@@ -37,7 +37,7 @@
   <div>
     <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>分析</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>渠道调研</span></nav>
     <h1>渠道调研</h1>
-    <p class="page-head__sub">小平台按"尺寸段 × 拆装 × 形态"框看单元 × 指标 · 只列月均 ≥ 200 件的框 · 证据等级 <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% if res and res.computed_at %} · 重算 <span data-computed-at>{{ res.computed_at|dt }}</span>{% endif %}</p>
+    <p class="page-head__sub">小平台按"尺寸段 × 拆装 × 形态"框看单元 × 指标 · 框门槛月均 {{ ((data.summary.frame_min if data and data.summary else none) or 100)|num }} 件（月均 100–200 件的框标"样本少，只作参考"） · 证据等级 <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% if res and res.computed_at %} · 重算 <span data-computed-at>{{ res.computed_at|dt }}</span>{% endif %}</p>
   </div>
   {% if op %}<div class="page-head__actions"><a class="btn btn--primary" href="/data/research"><svg class="icon"><use href="#ph-upload-simple"/></svg><span>导入调研数据</span></a></div>{% endif %}
 </div>
@@ -88,7 +88,7 @@
   <div class="panel insufficient" data-state="insufficient">
     <div class="panel__body">
       <div class="row"><svg class="icon"><use href="#ph-warning"/></svg><h2 class="section__title">{{ st[ch].name }} 数据不足，暂不列框</h2><span class="badge badge--insufficient">数据不足</span></div>
-      <p class="small">{{ ver.created_at|dt }} 导入 · {{ sm.n_products|num }} 个商品 · 窗口 {{ sm.window[0] }} 至 {{ sm.window[-1] }} · 没有任何框达到月均 200 件。已落框销量只有 <b class="num" data-framed>{{ pct(sm.framed_share, 1) }}</b>；补齐分框信息后重新导入即可替换这一版。</p>
+      <p class="small">{{ ver.created_at|dt }} 导入 · {{ sm.n_products|num }} 个商品 · 窗口 {{ sm.window[0] }} 至 {{ sm.window[-1] }} · 没有任何框达到月均 {{ (sm.frame_min or 100)|num }} 件的门槛。已落框销量只有 <b class="num" data-framed>{{ pct(sm.framed_share, 1) }}</b>；补齐分框信息后重新导入即可替换这一版。</p>
       <div class="reasons" role="list" aria-label="未落框原因构成（占渠道销量）">
         {% for k in ['尺寸段未知', '多尺寸未拆', '装未知', '形态未知'] %}{% set v = sm.reasons.get(k) or 0 %}
         <div class="reason" role="listitem" data-reason="{{ k }}"><span>{{ k }}</span><div class="meter{% if v > 0.3 %} meter--warn{% endif %}"><i style="width:{{ '%.1f'|format(v * 100) }}%"></i></div><span class="num">{{ pct(v, 1) }}</span></div>
@@ -117,7 +117,7 @@
     <a class="checklink" href="/research?channel={{ ch }}{{ '' if readable else '&readable=1' }}" data-readable-only><input type="checkbox" tabindex="-1" {% if readable %}checked{% endif %} aria-label="只看可读框"> 只看可读框</a>
     <span class="small muted" data-shown-count>显示 <b class="num">{{ frames|length }}</b> / {{ n_frames }} 个框 · 可读 {{ sm.frames_readable }} 个 · 表格可横向滚动</span>
     <span class="spacer"></span>
-    <span class="small muted legend"><span class="badge badge--pass">可读</span> 覆盖 ≥ 95% 且有月度 ≥ 60% · <span class="badge badge--unverified">趋势不下结论</span> 有月度 &lt; 60% · <span class="badge badge--insufficient">不下结论</span> 覆盖 &lt; 95%，只看体量和份额</span>
+    <span class="small muted legend"><span class="badge badge--insufficient">样本少，只作参考</span> 框月均 {{ (sm.frame_min or 100)|num }}–200 件，数字照常、不下结论 · <span class="badge badge--pass">可读</span> 月均 ≥ 200、覆盖 ≥ 95% 且有月度 ≥ 60% · <span class="badge badge--unverified">趋势不下结论</span> 有月度 &lt; 60% · <span class="badge badge--insufficient">不下结论</span> 覆盖 &lt; 95%，只看体量和份额</span>
   </div>
   {% if frames %}
   <div class="table-wrap">
@@ -145,7 +145,7 @@
         </tr>
       {% endfor %}
       </tbody>
-      <tfoot><tr class="table__divider"><td colspan="13" data-small-frames>未达门槛（月均 &lt; 200 件）的框 {{ sm.small_n }} 个，合计月均 {{ (sm.small_units or 0)|num }} 件，不列出</td></tr></tfoot>
+      <tfoot><tr class="table__divider"><td colspan="13" data-small-frames>未达门槛（月均 &lt; {{ (sm.frame_min or 100)|num }} 件）的框 {{ sm.small_n }} 个，合计月均 {{ (sm.small_units or 0)|num }} 件，不列出</td></tr></tfoot>
     </table>
   </div>
   {% else %}

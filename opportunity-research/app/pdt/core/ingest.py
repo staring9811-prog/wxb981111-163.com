@@ -127,6 +127,11 @@ def normalize(df: pd.DataFrame, source_name: str = '') -> pd.DataFrame:
     return out
 
 
+def open_form(form: str, struct) -> str:
+    """统一打标表的"柜体结构 = 开放式"（不带门的开放层板）从落地式分出为开放式（AC-F18-10）；悬浮式等不改。"""
+    return '开放式' if form in ('落地式', '开放式') and str(struct or '').strip() == '开放式' else form
+
+
 def file_tags(r) -> dict:
     g = r.get
     el = g('元素（看图）')
@@ -140,7 +145,7 @@ def file_tags(r) -> dict:
     color = fm.color(g('D6柜体颜色'))
     cabv = fm.cab(g('D7柜体材质（价格复核前）') if g('D7柜体材质（价格复核前）') is not None else g('D7柜体材质'))
     return {'尺寸段': fm.band(g('D9宽(in)')) or '', '装': '整装' if g('D2安装方式') == '整装' else '拆装',
-            '形态': norm(g('形态（怎么装）')) or norm(g('D1产品形态')) or '落地式', '台面材质': norm(g('D8台面材质')), '台盆材质': norm(g('D8台盆材质')),
+            '形态': open_form(norm(g('形态（怎么装）')) or norm(g('D1产品形态')) or '落地式', g('柜体结构')), '台面材质': norm(g('D8台面材质')), '台盆材质': norm(g('D8台盆材质')),
             '元素': e, '主色': '' if color == '未知' else color, '柜体材质': '' if cabv == '未知' else cabv}
 
 
