@@ -94,6 +94,15 @@ async def import_check(request: Request, products: UploadFile = File(...), month
     return redirect('/data/research', '检查通过，请核对摘要后确认导入')
 
 
+@router.post('/data/research/images')
+async def import_images(request: Request, index: UploadFile = File(...), user=operator_only):
+    """导入主图索引（渠道、商品编号、主图URL），给其他渠道商品补主图（AC-F18-12）。"""
+    r = R.import_image_index(await index.read())
+    if not r['ok']:
+        return redirect('/data/research', '主图索引缺少列：' + '、'.join(r['missing']), 'error')
+    return redirect('/data/research', f"主图索引 {r['rows']:,} 行，给 {r['matched']:,} 个其他渠道商品补上主图（已有图的不改）")
+
+
 @router.post('/data/research/{import_id}/confirm')
 async def import_confirm(request: Request, import_id: int, user=operator_only):
     form = await request.form()

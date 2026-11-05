@@ -962,3 +962,31 @@ def unit_products(channel: str, frame: str, attr: str, value: str, top: int = 5)
                          new=new, sold=bool(since is not None and since >= famavg)))
     rows.sort(key=lambda x: -(x['units'] or 0))
     return dict(top=rows[:top], new=[x for x in rows if x['new']][:top], per_family=_f(famavg))
+
+
+# ====================================================================== 8. 主图索引（AC-F18-12，revision 10）
+IMG_COLS = ['渠道', '商品编号', '主图URL']
+
+
+def import_image_index(content: bytes) -> dict:
+    """一次性导入"主图索引.csv"（渠道、商品编号、主图URL）：按渠道 + 商品编号给"其他渠道数据"（F28）里还没有图的商品补主图
+    （Wayfair 商品编号形如"W111999433 (piid …)"时也按去掉括号的编号匹配）。不改快照、不改已有图。缺列整次拒绝。"""
+    from ..models import Product
+    df = read_csv(content)
+    miss = [c for c in IMG_COLS if c not in df.columns]
+    if miss:
+        return dict(ok=False, missing=miss)
+    df = df[df['主图URL'].fillna('').str.startswith('http')]
+    df['ch'] = df['渠道'].map(NAME2KEY)
+    bad = int(df['ch'].isna().sum())
+    m = {(c, str(i).strip()): u for c, i, u in zip(df['ch'], df['商品编号'], df['主图URL']) if isinstance(c, str)}
+    n = 0
+    with session() as s:
+        for p in s.scalars(select(Product).where(Product.channel.in_(CHANNELS))):
+            if p.image_url:
+                continue
+            u = m.get((p.channel, p.item_id)) or m.get((p.channel, str(p.item_id).split(' ')[0]))
+            if u:
+                p.image_url = u
+                n += 1
+    return dict(ok=True, rows=int(len(df)), matched=n, bad_channel=bad)

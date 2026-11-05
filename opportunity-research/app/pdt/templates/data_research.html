@@ -53,6 +53,11 @@
       <button class="btn btn--primary" type="submit" data-start disabled><svg class="icon"><use href="#ph-play"/></svg><span>开始检查</span></button>
     </div>
   </form>
+  <form method="post" action="/data/research/images" enctype="multipart/form-data" class="row small" style="margin-top: var(--space-3); gap: var(--space-2)" id="imgform">
+    <span class="muted">主图索引（可选，一次性）：渠道、商品编号、主图URL 三列；给"其他渠道数据"里没有图的商品补主图，打标确认卡片用它</span>
+    <input type="file" name="index" accept=".csv" required>
+    <button class="btn btn--sm" type="submit">导入主图索引</button>
+  </form>
   {% if problems %}
   <div class="banner banner--block" id="fail" style="margin-top: var(--space-3)" role="alert"><svg class="icon"><use href="#ph-x-circle"/></svg><div class="banner__body"><div class="banner__title">未导入，当前调研数据不变</div>
     <div class="table-wrap" style="margin-top: var(--space-2)"><table class="table" data-problems><thead><tr><th>问题</th><th class="t-num">行数</th><th>示例（前 20 条）</th></tr></thead><tbody>
