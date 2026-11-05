@@ -288,3 +288,23 @@ def test_flow48_models_page_plain_language(wen):
     foot = h.split('data-rho-reading>')[1].split('</div>')[0]
     assert foot.startswith('把握和实际变化方向基本一致，月销 ≥ 300 件的大单元更一致') and '+0.28' in foot.split('data-tip=')[1]
     assert 'A 档之后真有 78% 份额变大，D 档只有 19%' in h
+
+
+def test_flow46_image_index_import(wen):
+    """主图索引（渠道、商品编号、主图URL）一次性导入：给其他渠道没有图的商品补图；Wayfair 带 piid 的编号按去括号后匹配；已有图不改；缺列拒绝。"""
+    from pdt.core import research as R
+    from pdt.db import session
+    from pdt.models import Product
+    with session() as s:
+        s.add(Product(channel='homedepot', item_id='335644797', title='HD 1'))
+        s.add(Product(channel='wayfair', item_id='W111999433 (piid 1959543287)', title='WF 1'))
+        s.add(Product(channel='lowes', item_id='5017604281', title='LW 1', image_url='https://old.example.com/a.jpg'))
+    csv = ('渠道,商品编号,主图URL,来源,编号来自\nHome Depot,335644797,https://images.example.com/hd.jpg,商品页,三平台_商品表\n'
+           'Wayfair,W111999433,https://images.example.com/wf.jpg,商品页,渠道VP\nLowe\'s,5017604281,https://images.example.com/lw.jpg,商品页,三平台_商品表\n').encode('utf-8-sig')
+    r = wen.post('/data/research/images', files={'index': ('主图索引.csv', csv, 'text/csv')}, follow_redirects=False)
+    assert r.status_code == 303 and 'kind=error' not in r.headers['location']
+    with session() as s:
+        img = {p.item_id: p.image_url for p in s.query(Product).all()}
+    assert img['335644797'] == 'https://images.example.com/hd.jpg' and img['W111999433 (piid 1959543287)'] == 'https://images.example.com/wf.jpg'
+    assert img['5017604281'] == 'https://old.example.com/a.jpg'
+    assert R.import_image_index('渠道,商品编号\nHome Depot,1\n'.encode())['missing'] == ['主图URL']

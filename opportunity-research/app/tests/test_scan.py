@@ -213,8 +213,8 @@ def test_scan_export_and_action_cell(wen):
     r = wen.get('/scan/export', params={'channel': 'amazon', 'vars': 'el'})
     assert r.status_code == 200 and 'spreadsheetml' in r.headers['content-type']
     rows = list(load_workbook(io.BytesIO(r.content)).active.values)
-    assert rows[0][:6] == ('框', '框月销', '机会类型', '属性', '取值', '月销')
-    assert rows[1:] == [(fr, 5320, '增长型', '元素', '竖棱', 812, 0.094, 0.153, 6, 1.12, 4.31, 4.42, 1.08, 329, 0.38, 0.21, 2, 4, 6, 19, '经回测')]
+    assert rows[0][:10] == ('框', '框月销', '机会类型', '属性', '取值', '需求范围', '月销', '份额（前期）', '份额（近期）', '在卖的款数')  # r10：需求范围列
+    assert rows[1:] == [(fr, 5320, '增长型', '元素', '竖棱', '细分需求', 812, 0.094, 0.153, 6, 1.12, 4.31, 4.42, 1.08, 329, 0.38, 0.21, 2, 4, 6, 19, '经回测')]
     all_rows = list(load_workbook(io.BytesIO(wen.get('/scan/export', params={'channel': 'amazon'}).content)).active.values)
     assert sorted(x[4] for x in all_rows[1:]) == ['岗石', '竖棱']  # 无机会标记的“白”不导出，与页面一致
 

@@ -298,33 +298,36 @@ def test_flow35_conflict_needs_tick(wen):
 
 # =============================================================== FLOW-36 指标数值回归（Home Depot）
 def test_flow36_hd_frames_units_match_trial(v2):
-    """FLOW-36（AC-F30-10～16）：Home Depot 达门槛 15 框、216 个单元，框与单元的体量、份额、趋势、供给与小试全量表一致；
+    """FLOW-36（AC-F30-10～16）：Home Depot 达门槛 20 框（其中样本少 5 框）、231 个单元（revision 10 门槛 100），框与单元的体量、份额、趋势、供给与小试全量表一致；
     价格带、溢价、评分差、Amazon 对照与按 AC-F30-15 / 16 独立计算的期望一致；"无"与"Amazon 无"。"""
     F = ref_frames('Home Depot')
     U = ref_units('Home Depot')
     import_channels(v2, ['homedepot'])
     d = rjson(v2, 'homedepot')['data']
-    big = F[F['框月均'] >= 200]
-    assert d['state'] == 'ok' and len(d['frames']) == len(big) == 15
-    assert d['summary']['small_n'] == len(F) - 15 == 10 and round(d['summary']['small_units']) == round(F[F['框月均'] < 200]['框月均'].sum())
+    # revision 10：小平台框门槛 100（AC-F30-35），月均 100–200 的框标"样本少，只作参考"（AC-F30-34）；参考表由数据侧按同口径（28″、开放式、门槛 100）重跑
+    big = F[F['框月均'] >= 100]
+    assert d['state'] == 'ok' and len(d['frames']) == len(big) == 20
+    assert d['summary']['small_n'] == len(F) - 20 == 18 and round(d['summary']['small_units']) == round(F[F['框月均'] < 100]['框月均'].sum())
+    assert {f['frame'] for f in d['frames'] if f['read'] == 'small'} == set(big[big['框月均'] < 200].index)
     tot = F['框月均'].sum()
     for f in d['frames']:
         r = F.loc[f['frame']]
         assert round(f['units']) == round(r['框月均']) and page_share(f['channel_share']) == page_share(r['框月均'] / tot)
         assert f'{f["ratio"]:.2f}' == f"{r['近3'] / r['前3']:.2f}" and f['families'] == r['家族'] and round(f['per_family']) == round(r['单款月均'])
-        assert f'{f["cover"] * 100:.1f}' == f"{r['分框覆盖_期望'] * 100:.1f}" and f['read'] == 'ok'
+        assert f'{f["cover"] * 100:.1f}' == f"{r['分框覆盖_期望'] * 100:.1f}" and f['read'] == ('small' if r['可读性'] == '样本少，只作参考' else 'ok')
     UU = U[U['框'].isin(big.index) & (U['月均'] >= 20)]
     got = {(fr, u['attr'], u['value']): u for fr, us in d['units'].items() for u in us}
-    assert len(got) == len(UU) == 216
+    assert len(got) == len(UU) == 231  # revision 10：门槛 100 后多 5 个"样本少"框（旧口径 216）
     for r in UU.itertuples():
         u = got[(r.框, r.属性, str(r.取值))]
         assert round(u['units']) == round(r.月均) and page_share(u['share']) == page_share(r.份额)
         assert f"{u['diff_pp']:+.1f}" == f'{r.份额差pp:+.1f}' and f"{u['slope_pp']:+.2f}" == f'{r.斜率pp:+.2f}' and f"{u['cv']:.2f}" == f'{r.CV:.2f}'
         assert u['families'] == r.家族 and f"{u['per_family_ratio']:.2f}" == f'{r.单款比:.2f}'
-    # 报告的例子：30″ · 整装 · 落地式 卡拉拉大理石 月均 285、份额 7.5%、近 3 − 前 3 −6.0 pp；Cultured Marble 40%
+    # 报告的例子（revision 10 新口径重跑：28″ 分出后 30″ 框变小）：30″ · 整装 · 落地式 卡拉拉大理石 月均 266、份额 7.6%、近 3 − 前 3 −6.3 pp；
+    # Cultured Marble 44%（旧口径 285、7.5%、−6.0 pp、40%）
     k = got[('30″ · 整装 · 落地式', '台面材质', '卡拉拉大理石')]
-    assert round(k['units']) == 285 and page_share(k['share']) == '7.5%' and f"{k['diff_pp']:+.1f}" == '-6.0' and k['trend'] == '丢份额'
-    assert page_share(got[('30″ · 整装 · 落地式', '台面材质', 'Cultured Marble')]['share']) == '40%'
+    assert round(k['units']) == 266 and page_share(k['share']) == '7.6%' and f"{k['diff_pp']:+.1f}" == '-6.3' and k['trend'] == '丢份额'
+    assert page_share(got[('30″ · 整装 · 落地式', '台面材质', 'Cultured Marble')]['share']) == '44%'
     # 价格 / 评分（AC-F30-15）独立计算：30″ · 整装 · 落地式 的月销行 × 商品表价格、评分（评分按页面评论数 × 销量 ÷ 家族销量加权）
     p, m = sample()
     p, m = p[p['渠道'] == 'Home Depot'].copy(), m[m['渠道'] == 'Home Depot'].copy()
@@ -334,6 +337,10 @@ def test_flow36_hd_frames_units_match_trial(v2):
     m = m.merge(p[['pid', '价格', '评分', '页面评论数', '台面材质']], on='pid', how='left')
     famt = m.groupby('fam')['c'].transform('sum')
     m['w'] = (m['页面评论数'].fillna(0) * m['c'] / famt).where(m['评分'] > 0, 0).fillna(0)
+    # 同家族补形态（小试口径，research.build_rows）：形态未知的行按同家族销量最大的已知形态补（新表有 163 行形态"未知"）
+    kn = m[m['形态'] != '未知'].groupby(['fam', '形态'])['c'].sum().reset_index().sort_values('c').drop_duplicates('fam', keep='last').set_index('fam')['形态']
+    unk = m['形态'] == '未知'
+    m.loc[unk, '形态'] = m.loc[unk, 'fam'].map(kn).fillna('未知')
     fr = m[(m['尺寸段'] == '30″') & (m['装'] == '整装') & (m['形态'] == '落地式')]
     gr = fr[fr['台面材质'] == '岗石']
     g = got[('30″ · 整装 · 落地式', '台面材质', '岗石')]
@@ -359,9 +366,9 @@ def test_flow36_hd_frames_units_match_trial(v2):
     # 页面
     html = v2.get('/research/homedepot/frame/30-整装-落地式').text
     row = html.split('data-value="卡拉拉大理石"')[1].split('</tr>')[0]
-    assert '>285<' in row and '7.5%' in row and '-6.0 pp' in row and 'badge--miss">丢份额' in row
+    assert '>266<' in row and '7.6%' in row and '-6.3 pp' in row and 'badge--miss">丢份额' in row  # revision 10 新口径
     assert 'Amazon 无' in html or all(u['amazon'] for us in d['units'].values() for u in us)
-    assert '新家族按页面累计评论数 ≤ 窗口内评论数（商品表没有首评月）判定' in html
+    assert '新款按页面累计评论数 ≤ 窗口内评论数（商品表没有首评月）判定' in html or '新家族按页面累计评论数 ≤ 窗口内评论数（商品表没有首评月）判定' in html
     assert '把握' not in html and '上 / 不上' not in html.replace('"上 / 不上"', '')
 
 
@@ -378,6 +385,10 @@ def test_flow37_wayfair_estimate_and_readability(v2):
     om = pd.read_csv(OLD / '三平台_月销表.csv', dtype=str, keep_default_na=False)
     w = op[(op['渠道'] == 'Wayfair') & (op['浴室柜'].str.lower() != 'false')]
     assert (w['月度来源'] == '无（只有评论总数）').sum() == 168
+    from pdt import catconfig
+    _, cfg = catconfig.current()
+    cfg['research']['frame_min']['wayfair'] = 200  # 上午版副本的参考表按门槛 200 产出（revision 10 前），这里按同门槛核对估算规则
+    catconfig.save(cfg, None)
     import_channels(v2, ['wayfair'], op, om)
     d = rjson(v2, 'wayfair')['data']
     big = F[F['框月均'] >= 200]

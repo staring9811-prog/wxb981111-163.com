@@ -68,7 +68,8 @@
   .chk-row { display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--text-sm); }
   @media (max-width: 1279px) { .card-layout { grid-template-columns: minmax(0, 1fr); } .card-side { position: static; } .charts { grid-template-columns: minmax(0, 1fr); } }
   #chan-table td { vertical-align: middle; }
-  #chan-table td:nth-child(5) { min-width: 12em; }
+  #chan-table td:nth-child(5) { min-width: 10em; }
+  #chan-table .cell-sub { max-width: 14em; }
   #rich-table tr.is-oos td { color: var(--muted); background: var(--surface-warm); }
   /* 丰富度对照：数字与渠道名不折行，读法列保留可读宽度；证据等级与“样本外”可同时显示，上下排 */
   #rich-table th { white-space: nowrap; vertical-align: bottom; }
@@ -205,7 +206,7 @@
                 <td><span class="small muted">无数据</span></td>
                 {% else %}
                 <td class="t-num">{{ pc(ch.share_prev) }} → {{ updown(ch.share_prev, ch.share_now) }}{{ src(ch.name ~ ' 框内份额', ch.src, ('估算' if ch.estimated else 'n=' ~ (ch.families or 0))) }}</td>
-                <td>{% if ch.bars is defined %}{{ mbars(ch.bars, w=200, h=70, muted=ch.channel != card.channel) }}{% elif ch.spark %}<svg class="spark mini {{ '' if ch.sample_ok else 'is-muted' }}" width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="{{ ch.spark }}"/></svg>{% endif %}{% if not ch.sample_ok and not rs %} <span class="small muted">样本不足</span>{% endif %}</td>
+                <td>{% if ch.bars is defined %}{{ mbars(ch.bars, w=168, h=66, muted=ch.channel != card.channel) }}{% elif ch.spark %}<svg class="spark mini {{ '' if ch.sample_ok else 'is-muted' }}" width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="{{ ch.spark }}"/></svg>{% endif %}{% if not ch.sample_ok and not rs %} <span class="small muted">样本不足</span>{% endif %}</td>
                 {% endif %}
                 <td>{% if rs %}<span class="etag etag--nodata">只作观察</span>{% elif ch.hide_scores %}<span class="etag etag--nodata">不显示</span>{% elif ch.grade %}{{ ch.grade }}{% if ch.grasp is not none %} · 把握 {{ pc0(ch.grasp) }}{% endif %}{% if ch.evidence is not defined and not ch.verified %} <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
                 <td>{% if ch.evidence == '历史观察' %}<span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% if rs and rs.read == 'small' %}<div><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本少，只作参考</span></div>{% endif %}{% elif ch.evidence == '经回测' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测</span>{% elif ch.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% elif ch.evidence %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}{% if ch.evidence_note %}<div class="cell-sub">{{ ch.evidence_note }}</div>{% endif %}</td>
