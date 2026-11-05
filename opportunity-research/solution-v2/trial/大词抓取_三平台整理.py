@@ -345,7 +345,7 @@ def build_hd(XC, V):
                          两词排名=json.dumps((it or {}).get('kws') or {}, ensure_ascii=False), 宽=t['宽'], 尺寸段=XC.band(t['宽']),
                          装=t['装'], 装来源=t['装来源'], 形态=t['形态'], 形态来源=t['形态来源'], **mapped(XC, t),
                          价格=(it or {}).get('price') or pg.get('price'), 评分=(it or {}).get('rating'), 页面评论数=(it or {}).get('reviews'),
-                         有商品页=bool(pg.get('specs')), 月度来源='评论（变体级）'))
+                         有商品页=bool(pg.get('specs')), 月度来源='评论（变体级）', 主图=None))   # HD 缓存（商品页规格 / 列表接口）没存图片字段，补图要新请求
     # 同家族补装（同系列只换颜色 / 尺寸；与 小平台调研_单元指标 同口径）
     fm = collections.defaultdict(collections.Counter)
     for p_, L_ in lab.items():
@@ -476,11 +476,59 @@ def build_lw(XC, V, plat):
                          来源=src, 两词排名=json.dumps(e['kws'], ensure_ascii=False), 宽=o['宽'], 尺寸段=seg, 装=o['装'] or '未知', 装来源=o['装来源'] or '',
                          形态=o['形态'] or '未知', 形态来源=o['形态来源'] or '', **mapped(XC, t), 颜色原值=o['颜色'], 台面原值=o['台面'], 柜体原值=o['柜体'],
                          价格=price, 评分=rating, 页面评论数=page_rev, 有商品页=pg is not None, 多尺寸段=multi, 选项段='、'.join(bands), 月度来源=msrc,
-                         浴室柜=is_vanity(title)))
+                         浴室柜=is_vanity(title), 主图=main_image(plat, [pid0] + ([f['id']] if f else []) + sorted(e['ids']) + [o for vals in ((pg or {}).get('variants') or {}).values() for _, o in vals])))
     return prod, mon
 
 
 _APS = {}
+_IMG = {}
+
+
+def image_index():
+    """主图索引（只读已抓缓存，不发请求）：{平台: {商品 ID: 图片 URL}}。优先级从低到高：列表页卡片 < Lowe's 评论页 og:image < Wayfair Apify imageUrl < 商品页 og:image。
+    解析结果存 主图索引.json，缓存有变化时删掉它重建。"""
+    if _IMG: return _IMG
+    f = raw_path('主图索引.json'); got = load_json(f)
+    if got: _IMG.update(got); return _IMG
+    import glob, html as H
+    idx = {'lowes': {}, 'wayfair': {}}
+    og = re.compile(r'property="og:image"\s+content="([^"]+)"|content="([^"]+)"\s+property="og:image"')
+    def ogimg(fn):
+        m = og.search(open(fn, encoding='utf-8', errors='ignore').read())
+        u = m and (m.group(1) or m.group(2))
+        return ('https:' + u if u and u.startswith('//') else u) or None
+    for fn in glob.glob(raw_path('raw', 'lowes', '*.html')):             # Lowe's 列表页：__PRELOADED_STATE__.itemList[].product.imageUrl
+        st = K.lowes_state(open(fn, 'rb').read()) or {}
+        for it in st.get('itemList') or []:
+            p = it.get('product') or {}; u = p.get('imageUrl') or p.get('alternateImageUrl')
+            if p.get('omniItemId') and u: idx['lowes'][str(p['omniItemId'])] = u if u.startswith('http') else 'https://mobileimages.lowes.com' + u
+    for fn in glob.glob(raw_path('raw', 'wayfair', '*.html')):           # Wayfair 列表页：卡片里第一张 assets.wfcdn.com 图
+        s_ = open(fn, encoding='utf-8', errors='ignore').read(); starts = [m.start() for m in re.finditer(r'data-clio-id="ListingCardContents::', s_)] + [len(s_)]
+        for a, b in zip(starts, starts[1:]):
+            ts = s_.rfind('<', 0, a); tag = s_[ts:s_.find('>', a)]
+            mm = re.search(r'data-tracking-metadata="([^"]*)"', tag)
+            try: lid = json.loads(H.unescape(mm.group(1))).get('metadata', {}).get('displayListingId') if mm else None
+            except ValueError: lid = None
+            im = re.search(r'(https://assets\.wfcdn\.com/im/[^"\s]+)', s_[a:b])
+            if lid and im: idx['wayfair'][str(lid)] = H.unescape(im.group(1))
+    for fn in glob.glob(raw_path('raw', 'lowes_rnr', '*_0.html')):       # Lowe's 评论页 og:image
+        u = ogimg(fn)
+        if u: idx['lowes'][os.path.basename(fn)[:-7]] = u
+    for fn in glob.glob(raw_path('wayfair_apify', 'wayfair', 'apify', '*.json')):   # Wayfair Apify 原始返回
+        it = (load_json(fn) or {}).get('item') or {}
+        u = it.get('imageUrl') or next((x if isinstance(x, str) else (x or {}).get('url') for x in it.get('images') or []), None)
+        if u: idx['wayfair'][os.path.basename(fn)[:-5]] = u
+    for plat in ('lowes', 'wayfair'):                                     # 商品页 og:image（最高优先）
+        for fn in glob.glob(raw_path('raw', f'{plat}_pdp', '*.html')):
+            u = ogimg(fn)
+            if u: idx[plat][os.path.basename(fn)[:-5]] = u
+    save_json(f, idx); _IMG.update(idx)
+    return _IMG
+
+
+def main_image(plat, ids):
+    d = image_index().get(plat) or {}
+    return next((d[str(i)] for i in ids if i and str(i) in d), None)
 
 
 def apify_status():
