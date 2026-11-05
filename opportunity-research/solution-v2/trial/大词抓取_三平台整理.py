@@ -310,6 +310,51 @@ def mapped(XC, t):
                 元素='、'.join(sorted({XC.HD.ELEM_MAP[x] for x in str(t['D5']).split('；') if x in XC.HD.ELEM_MAP})) or '未知')
 
 
+# ---------------- 分框口径 revision 10（wen 2026-11-05）----------------
+def band10(x):
+    """尺寸段（revision 10）：在原 ±3 寸归段基础上新增 28″（26 ≤ 宽 < 29），30″ 改为 29 ≤ 宽 < 33，24″ 相应变为 21 ≤ 宽 < 26。
+    其余同 families.band（18″ 15–21、36″ 33–39、42″ 39–45、48″ 45–54、60″ 54–66、72″+ ≥ 66）。系统侧 tag_rules.size_bands 改完后以系统为准。"""
+    try: x = float(x)
+    except (TypeError, ValueError): return None
+    if x != x: return None
+    for c, lo, hi in ((18, 15, 21), (24, 21, 26), (28, 26, 29), (30, 29, 33), (36, 33, 39), (42, 39, 45), (48, 45, 54), (60, 54, 66)):
+        if lo <= x < hi: return f'{c}″'
+    return '72″+' if x >= 66 else None
+
+
+# 开放式 = 不带门的开放层板 / 开放储物格（规则照搬 solution-v2/数据准备/卖家精灵导出_打标.py 第 5 点 open_cue）；从落地式分出
+OPEN_RE = re.compile(r'\bopen(?:[ -]+(?:storage|display|side|bottom|lower|middle|upper|top|left|right|tier))*[ -]+(?:shel(?:f|ves|ving)|storage|cubb(?:y|ies)|cubes?|compartments?|spaces)\b'
+                     r'|\bopening\s+(?:bottom\s+|lower\s+|side\s+)?shel(?:f|ves)\b'
+                     r'|\bside\s+(?:open\s+)?(?:storage\s+)?shel(?:f|ves)\b'
+                     r'|\b(?:2|3|two|three)[ -]tier(?:ed)?\s+(?:open\s+)?(?:side\s+)?(?:storage\s+)?shel(?:f|ves)\b'
+                     r'|\bconsole\s+(?:vanity|sink|table)\b', re.I)
+NEG_RE = re.compile(r'\b(?:no|not|without)\s+(?:an?\s+|any\s+)?$', re.I)
+MIRROR_BEFORE = re.compile(r'\b(?:mirror|medicine)\s+cabinet\b[^.|]{0,40}$', re.I)
+PIPES_AFTER = re.compile(r'^[^.|]{0,20}\b(?:accommodat\w*|fits?|for|around|hid(?:es?|ing))\s+(?:the\s+)?(?:pipes?|plumbing)\b', re.I)
+DOOR_RACK_BEFORE = re.compile(r'\bdoors?\s+(?:features?|has|have|with|includes?)\s+(?:an?\s+)?$', re.I)
+DOOR_RACK_AFTER = re.compile(r'^\s*(?:on|inside|behind|in)\b', re.I)
+
+
+def open_cue(text):
+    import html as H
+    t = H.unescape(str(text or ''))
+    for mm in OPEN_RE.finditer(t):
+        before, after = t[max(0, mm.start() - 60):mm.start()], t[mm.end():mm.end() + 40]
+        if NEG_RE.search(before[-20:]): continue
+        if MIRROR_BEFORE.search(before) or PIPES_AFTER.search(after): continue
+        if re.match(r'(?:2|3|two|three)[ -]tier', mm.group(0), re.I) and 'open' not in mm.group(0).lower() \
+                and (DOOR_RACK_BEFORE.search(before) or DOOR_RACK_AFTER.search(after)): continue
+        return True
+    return False
+
+
+def open_form(form, src, texts):
+    """落地式且标题 / 规格 / 卖点文字写了开放层板 → 开放式（来源记"规则（开放层板）"）。"""
+    if form == '落地式' and any(open_cue(t) for t in texts if t):
+        return '开放式', '规则（开放层板）'
+    return form, src
+
+
 def mrow(ch, fam, pid, seg, asm, form, m, vp, nvp, src, w=1.0):
     return dict(渠道=ch, fam=fam, pid=pid, 尺寸段=seg, 装=asm, 形态=form, 月=m, VP=vp * w, 非VP=nvp * w, 销量=(vp * 50 + nvp * 20) * w, 月度来源=src)
 
@@ -338,11 +383,12 @@ def build_hd(XC, V):
         it = items.get(p); pg = (it or {}).get('page') or load_json(os.path.join(K.OLD_HD, f'{p}.json')) or {}
         title = (it or {}).get('title') or pg.get('title') or names.get(p) or ''
         t = labels(XC, title, pg.get('specs'), pg.get('highlights'))
+        t['形态'], t['形态来源'] = open_form(t['形态'], t['形态来源'], [title, ' | '.join(f'{k}: {v}' for k, v in (pg.get('specs') or {}).items()), ' | '.join(pg.get('highlights') or []), pg.get('description')])
         fam = (it or {}).get('fam') or next(x['fam'] for x in R.values() if x['pid'] == p)
         lab[p] = dict(t, fam=fam, title=title, page=bool(pg.get('specs')))
         src = '两者' if it and it['kws'] and it['vp_entries'] else ('两词' if it and it['kws'] else ('类目节点' if it and it['vp_entries'] else '同家族变体（评论里出现）'))
         prod.append(dict(渠道='Home Depot', fam=fam, pid=p, title=title, 品牌=pg.get('brand'), 来源=src,
-                         两词排名=json.dumps((it or {}).get('kws') or {}, ensure_ascii=False), 宽=t['宽'], 尺寸段=XC.band(t['宽']),
+                         两词排名=json.dumps((it or {}).get('kws') or {}, ensure_ascii=False), 宽=t['宽'], 尺寸段=band10(t['宽']),
                          装=t['装'], 装来源=t['装来源'], 形态=t['形态'], 形态来源=t['形态来源'], **mapped(XC, t),
                          价格=(it or {}).get('price') or pg.get('price'), 评分=(it or {}).get('rating'), 页面评论数=(it or {}).get('reviews'),
                          有商品页=bool(pg.get('specs')), 月度来源='评论（变体级）', 主图=None))   # HD 缓存（商品页规格 / 列表接口）没存图片字段，补图要新请求
@@ -353,12 +399,12 @@ def build_hd(XC, V):
     for p_, L_ in lab.items():
         if L_['装'] == '未知' and fm[L_['fam']]: L_['装'] = fm[L_['fam']].most_common(1)[0][0]; L_['装来源'] = '家族补'
     for r_ in prod:
-        L_ = lab[r_['pid']]; r_['装'], r_['装来源'], r_['宽'], r_['尺寸段'] = L_['装'], L_['装来源'], L_['宽'], XC.band(L_['宽'])
+        L_ = lab[r_['pid']]; r_['装'], r_['装来源'], r_['宽'], r_['尺寸段'] = L_['装'], L_['装来源'], L_['宽'], band10(L_['宽'])
     agg = collections.defaultdict(lambda: [0, 0])
     for x in R.values():
         agg[(x['pid'], x['d'][:7])][0 if x['vp'] else 1] += 1
     for (p, m), (a, b) in agg.items():
-        L_ = lab[p]; mon.append(mrow('Home Depot', L_['fam'], p, XC.band(L_['宽']), L_['装'], L_['形态'], m, a, b, '评论（变体级）'))
+        L_ = lab[p]; mon.append(mrow('Home Depot', L_['fam'], p, band10(L_['宽']), L_['装'], L_['形态'], m, a, b, '评论（变体级）'))
     return prod, mon
 
 
@@ -407,10 +453,11 @@ def build_lw(XC, V, plat):
         if plat == 'wayfair' and pg and pg.get('title'): title = re.sub(r'\s*&amp; Reviews.*|\s*& Reviews.*', '', pg['title'])
         row = dict(f or {}, title=title, bullets=(f or {}).get('bullets', ''))
         o = (B.fields_lowes if plat == 'lowes' else B.fields_wf)(row, pg, TRx)
+        o['形态'], o['形态来源'] = open_form(o['形态'], o['形态来源'], [title, (f or {}).get('bullets'), ' | '.join(f'{k}: {v}' for k, v in ((pg or {}).get('specs') or {}).items())])
         # 颜色：商品页颜色字段（Lowe's Color/Finish Family、Wayfair Base Color / Base Finish）接在标题后交给 Tagger 认主色
         t = labels(XC, title + (f" in {o['颜色']}" if o['颜色'] else ''), {k: v for k, v in ((pg or {}).get('specs') or {}).items() if v} or None)
-        bands = sorted({XC.band(x) for x in o['选项宽']} - {None})
-        seg = XC.band(o['宽'])
+        bands = sorted({band10(x) for x in o['选项宽']} - {None})
+        seg = band10(o['宽'])
         page_rev = (f or {}).get('reviews') or (int(g['页面累计评论数'].max()) if g is not None and pd.notna(g['页面累计评论数'].max()) else 0)
         src = '两者' if e['kws'] and g is not None else ('两词' if e['kws'] else '类目节点')
         price = (f or {}).get('price') or (pg or {}).get('price')
@@ -433,7 +480,7 @@ def build_lw(XC, V, plat):
                 cnt = collections.defaultdict(lambda: [0, 0])
                 for x in rv['reviews'].values():
                     if x['d'][:7] in MONTHS:
-                        w = review_width(x, wmap); sg = XC.band(w) if w else (seg if not multi else '多尺寸未拆')
+                        w = review_width(x, wmap); sg = band10(w) if w else (seg if not multi else '多尺寸未拆')
                         cnt[(sg, x['d'][:7])][0 if x['vp'] else 1] += 1
                 for (sg, mm), (a, b_) in cnt.items():
                     mon.append(mrow(ch, key, pid0, sg, o['装'], o['形态'], mm, a, b_, msrc))
@@ -446,7 +493,7 @@ def build_lw(XC, V, plat):
                     mm = f'{dt[6:10]}-{dt[0:2]}' if len(dt) == 10 else ''
                     if mm not in MONTHS: continue
                     wv = next((B.num(v) for n, v in x['choices'] if re.search(r'width|size', n, re.I)), None)
-                    sg = XC.band(wv) if wv else (seg if not multi else '多尺寸未拆')
+                    sg = band10(wv) if wv else (seg if not multi else '多尺寸未拆')
                     cnt[(sg, mm)][0 if x.get('badge') == 'Verified Purchase' else 1] += 1
                 for (sg, mm), (a, b_) in cnt.items():
                     mon.append(mrow(ch, key, pid0, sg, o['装'], o['形态'], mm, a, b_, msrc))
@@ -463,7 +510,7 @@ def build_lw(XC, V, plat):
                     if mm not in MONTHS: continue
                     cnt[mm][0 if x.get('badge') == 'Verified Purchase' else 1] += 1
                     wv = next((B.num(v) for n, v in (x.get('purchasedOptions') or {}).items() if re.search(r'width|size', n, re.I)), None)
-                    if wv and XC.band(wv): wd[XC.band(wv)] += 1
+                    if wv and band10(wv): wd[band10(wv)] += 1
                 if not multi: split = [(seg, 1.0)]
                 elif sum(wd.values()) >= 5: split = [(k, v / sum(wd.values())) for k, v in wd.items()]; msrc += '；按评论选项拆尺寸'
                 else: split = [('多尺寸未拆', 1.0)]
@@ -549,13 +596,13 @@ def split_weights(plat, pid0, pg, seg, bands):
     if plat == 'wayfair':
         for x in (pg or {}).get('reviews_embedded') or []:
             wv = next((B.num(v) for n, v in x['choices'] if re.search(r'width|size', n, re.I)), None)
-            if wv: c[xc().band(wv)] += 1
+            if wv: c[band10(wv)] += 1
     else:
         rv = load_json(raw_path('lowes_reviews', f'{pid0}.json')) or {}
         wmap = width_of_variant(pg or {})
         for x in (rv.get('reviews') or {}).values():
             wv = review_width(x, wmap)
-            if wv: c[xc().band(wv)] += 1
+            if wv: c[band10(wv)] += 1
     c.pop(None, None)
     if sum(c.values()) >= 5:
         n = sum(c.values()); return [(k, v / n) for k, v in c.items()]
@@ -571,6 +618,10 @@ def dedupe_pid(P, M):
     return P.drop(columns='_有月销')
 
 
+PCOLS = ['渠道', 'fam', 'pid', 'title', '品牌', '来源', '两词排名', '宽', '尺寸段', '装', '装来源', '形态', '形态来源', '台面材质', '主色', '柜体材质', '元素',
+         '价格', '评分', '页面评论数', '有商品页', '月度来源', '颜色原值', '台面原值', '柜体原值', '多尺寸段', '选项段', '浴室柜', '主图']
+
+
 def build():
     import pandas as pd
     XC = xc(); V = vp_table()
@@ -579,6 +630,7 @@ def build():
         p_, m_ = fn(); P += p_; M += m_
     P = pd.DataFrame(P); M = pd.DataFrame(M)
     P = dedupe_pid(P, M)
+    P = P[[c for c in PCOLS if c in P] + [c for c in P if c not in PCOLS]]   # 列顺序固定（新列追加在后）
     P.to_csv(raw_path('三平台_商品表.csv'), index=False, encoding='utf-8-sig')
     M.to_csv(raw_path('三平台_月销表.csv'), index=False, encoding='utf-8-sig')
     # 装判断不了的：记未知、不进框，单列待确认清单（wen 2026-11-04）

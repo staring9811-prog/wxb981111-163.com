@@ -113,8 +113,24 @@ def lw_table(ch):
     return A, V
 
 
-def az_table():
-    B = XC.az_rows(); B = B[B['m'].isin(AZM)].copy()
+def band10(x):
+    """尺寸段 revision 10（wen 2026-11-05，与 大词抓取_三平台整理.band10 同）：新增 28″（26–29），30″ 改为 29–33，24″ 为 21–26。"""
+    try: x = float(x)
+    except (TypeError, ValueError): return None
+    if x != x: return None
+    for c, lo, hi in ((18, 15, 21), (24, 21, 26), (28, 26, 29), (30, 29, 33), (36, 33, 39), (42, 39, 45), (48, 45, 54), (60, 54, 66)):
+        if lo <= x < hi: return f'{c}″'
+    return '72″+' if x >= 66 else None
+
+
+def az_table(v10=False):
+    """v10：Amazon 也按 revision 10 分框——尺寸段用 band10，落地式里柜体结构 = 开放式的改为"开放式"形态（上一版视图仍用旧口径）。"""
+    B = XC.az_rows()
+    if v10:
+        A = pd.read_pickle(os.path.join(ROOT, 'input/data_v2/统一打标/统一打标_分析用.pkl')); A = A[A['纳入浴室柜分析']]
+        B['尺寸段'] = A['D9宽(in)'].map(band10).values
+        B.loc[(B['形态'] == '落地式').values & A['柜体结构'].eq('开放式').values, '形态'] = '开放式'
+    B = B[B['m'].isin(AZM)].copy()
     return B
 
 
@@ -850,7 +866,9 @@ def report(D, CHKD):
       f'。估算月均 **{num(lst)}** 件，占 Lowe\'s 估算总量 {pc(lst / (lm + lst))}。校准样本都是榜上商品，系数大概率偏高；又没有"两词独有"的有月度家族可做低估计，所以低估计 = 不计（只算有月度）。'
       '这些家族多数是多尺寸父体，估算销量拆不到尺寸段，只进渠道级体量和"分框覆盖"的分母。**Lowe\'s 框内结论以"只算有月度"为准**（§六）。', '')
     P('**分框**：尺寸段用商品页宽度（Wayfair Overall Width，HD Product / Cabinet Width），标题兜底；装：HD 规格 Assembled，Wayfair Assembly 字段，**"Partially Assembled" 算拆装**（wen 2026-11-04 确认，与系统规格规则同）；形态：HD Vanity Type、Wayfair Mounting / Installation，标题兜底；同家族已知值补装、形态。'
-      '**判断不了的记未知、不进框**（上一版 HD 形态没写的默认落地式，这一版不默认），单列待人工确认清单。多尺寸 listing 拆不到尺寸段的（"多尺寸未拆"）也不进框。', '')
+      '**判断不了的记未知、不进框**（上一版 HD 形态没写的默认落地式，这一版不默认），单列待人工确认清单。'
+      '**分框口径 revision 10**（wen 2026-11-05）：尺寸段新增 28″（26 ≤ 宽 < 29），30″ 改为 29 ≤ 宽 < 33，24″ 为 21 ≤ 宽 < 26，其余不变；形态改为落地式 / 悬浮式 / 开放式，开放式 = 落地式里标题、规格或卖点写了不带门的开放层板（open shelf / open storage / open cubes / console 等，规则同 `卖家精灵导出_打标.py` 第 5 点）。'
+      'Amazon 对照同口径（宽度按新尺寸段重分，柜体结构 = 开放式的落地式记开放式）。系统侧 tag_rules.size_bands 改完后以系统边界为准。多尺寸 listing 拆不到尺寸段的（"多尺寸未拆"）也不进框。', '')
     pend = PEND.groupby(['渠道', '原因']).agg(n=('pid', 'size'), s=('销量1_10月', 'sum'), r=('占渠道销量', 'sum')).reset_index()
     P('**待人工确认清单**（`input/data_v2/渠道调研/小平台调研_待人工确认.csv`，按 1–10 月销量从大到小）：', '',
       '| 渠道 | 原因 | 商品数 | 1–10 月销量 | 占渠道销量 |', '| :--- | :--- | ---: | ---: | ---: |',
@@ -921,7 +939,8 @@ def report(D, CHKD):
       '5. **评分口径不同**：HD = 窗口内评论星级，Wayfair / Lowe\'s = 页面总评分；只在同渠道同框里比。价格都是采集日当天价，套到整个窗口。',
       '6. **元素只用文字规则**，三个渠道元素覆盖都很低（HD 约 5%、Wayfair 约 1% 销量），元素单元基本不可读；Wayfair 主色覆盖约一半。',
       '7. **范围变了**：HD 从"类目 Top Sellers 前 300"改为"两词前 300 + 类目前 100"，与上一版的框数字不完全可比（§八）。Amazon 对照不分拆装，窗口 4–9 月。',
-      '8. **幸存者偏差**同上一版；这是一次观察，没有回测，模式不代表之后会延续。', '')
+      '8. **幸存者偏差**同上一版；这是一次观察，没有回测，模式不代表之后会延续。',
+      '9. **开放式按文字规则判**（与 Amazon 同规则）：会把"open storage space"这类指柜内空间的写法也算成开放层板（例：Lowe\'s 5017604281，带门柜，月均 333 件被判开放式），开放式框和它所在尺寸段的落地式框都可能有误差，需人工确认。', '')
 
 
 def compare_hw(D):
@@ -1208,7 +1227,7 @@ def old_vs_new_hd(FH_new, AH_new):
 def main():
     L.clear()
     print('读 HD / Wayfair / Lowe\'s（大词范围）…'); AH, PH, _ = bw_table('Home Depot'); AW, PW, KW = bw_table('Wayfair'); AL, PL, KL = bw_table(LW)
-    print('读 Amazon …'); B = az_table(); AZs = az_cells(B, '尺寸段')
+    print('读 Amazon …'); B = az_table(v10=True); AZs = az_cells(B, '尺寸段')
     CH = {'Home Depot': AH, 'Wayfair': AW, LW: AL}
     RES, COVR = {}, {}
 
