@@ -391,7 +391,7 @@ def build_hd(XC, V):
                          两词排名=json.dumps((it or {}).get('kws') or {}, ensure_ascii=False), 宽=t['宽'], 尺寸段=band10(t['宽']),
                          装=t['装'], 装来源=t['装来源'], 形态=t['形态'], 形态来源=t['形态来源'], **mapped(XC, t),
                          价格=(it or {}).get('price') or pg.get('price'), 评分=(it or {}).get('rating'), 页面评论数=(it or {}).get('reviews'),
-                         有商品页=bool(pg.get('specs')), 月度来源='评论（变体级）', 主图=None))   # HD 缓存（商品页规格 / 列表接口）没存图片字段，补图要新请求
+                         有商品页=bool(pg.get('specs')), 月度来源='评论（变体级）', 主图=main_image('homedepot', [p])))   # HD 主图：hd_images/ 直连商品页缓存（补主图HD）
     # 同家族补装（同系列只换颜色 / 尺寸；与 小平台调研_单元指标 同口径）
     fm = collections.defaultdict(collections.Counter)
     for p_, L_ in lab.items():
@@ -536,7 +536,7 @@ def image_index():
     解析结果存 主图索引.json，缓存有变化时删掉它重建。"""
     if _IMG: return _IMG
     f = raw_path('主图索引.json'); got = load_json(f)
-    if got: _IMG.update(got); return _IMG
+    if got: _IMG.update(got); _IMG['homedepot'] = hd_image_index(); return _IMG
     import glob, html as H
     idx = {'lowes': {}, 'wayfair': {}}
     og = re.compile(r'property="og:image"\s+content="([^"]+)"|content="([^"]+)"\s+property="og:image"')
@@ -570,7 +570,42 @@ def image_index():
             u = ogimg(fn)
             if u: idx[plat][os.path.basename(fn)[:-5]] = u
     save_json(f, idx); _IMG.update(idx)
+    _IMG['homedepot'] = hd_image_index()
     return _IMG
+
+
+def hd_image_index():
+    """HD 主图：hd_images/<商品页 ID>.json（补主图HD 直连抓商品页 og:image 的缓存）。每次读最新缓存。"""
+    import glob
+    out = {}
+    for fn in glob.glob(raw_path('hd_images', '*.json')):
+        g = load_json(fn) or {}
+        if g.get('image'): out[os.path.basename(fn)[:-5]] = g['image']
+    return out
+
+
+def hd_images(order):
+    """直连（不经 BD、免费）抓 HD 商品页的 og:image，≤ 2 并发、每次请求前随机等 1.3–2.1 秒（hd_get 遇 403/429 自动降速重试）。
+    order = 商品页 ID 列表（按优先级）；已缓存的跳过；连续 5 个商品最终都是 403/429 就停。"""
+    import threading
+    lk = threading.Lock(); bad = [0]; stop = []; done = [0]
+    def one(pid):
+        if stop: return
+        f = raw_path('hd_images', f'{pid}.json')
+        if (load_json(f) or {}).get('status') in (200, 404): return
+        st, b = K.hd_get(f'https://www.homedepot.com/p/{pid}')
+        s_ = b.decode('utf-8', 'ignore') if isinstance(b, (bytes, bytearray)) else str(b)
+        m = re.search(r'property="og:image"\s+content="([^"]+)"', s_)
+        img = m.group(1) if (st == 200 and m) else None
+        if not img and st == 200:
+            m = re.search(r'https://images\.thdstatic\.com/productImages/[^"\\ ]+?_(?:1000|600)\.jpg', s_); img = m.group(0) if m else None
+        save_json(f, dict(status=st, image=img, url=f'https://www.homedepot.com/p/{pid}'))
+        with lk:
+            bad[0] = bad[0] + 1 if st in (403, 429) else 0; done[0] += 1
+            if bad[0] >= 5 and not stop: stop.append(1); log(f'HD 主图：连续 {bad[0]} 个 403/429，停')
+            if done[0] % 50 == 0: log(f'HD 主图 {done[0]} / {len(order)}')
+    with ThreadPoolExecutor(2) as ex: list(ex.map(one, order))
+    return bool(stop)
 
 
 def main_image(plat, ids):
@@ -727,5 +762,7 @@ if __name__ == '__main__':
     elif cmd == '补规格Wayfair': fill_specs(('wayfair',))
     elif cmd == '补规格Lowes': fill_specs(('lowes',))
     elif cmd == '整理': build()
+    elif cmd == '补主图HD':   # 顺序文件：每行一个 HD 商品页 ID（待确认优先、各框前 5 次之、其余按销量）
+        print('停' if hd_images([x.strip() for x in open(sys.argv[2]) if x.strip()]) else '完成')
     elif cmd == '分析': analyze()
 
