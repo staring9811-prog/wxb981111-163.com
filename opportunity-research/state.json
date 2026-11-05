@@ -199,15 +199,15 @@
   "category": "generic",
   "deliverables": {
     "prd": "output/PRD详细版.md",
-    "requirements": "output/requirements.md（revision 6）",
+    "requirements": "output/requirements.md（revision 10）",
     "analysis": "output/requirements-analysis.md（P0=0、P1=0）"
   },
   "validation": {
-    "at": "2026-11-04T10:00:00Z",
+    "at": "2026-11-05T03:00:00Z",
     "check_evidence": "pass",
     "check_format": "pass",
-    "check_consistency": "pass (US→F 16/16, 角色 16/16)",
-    "check_requirements_contract": "pass (182 stable objects, revision 9)"
+    "check_consistency": "pass (未识别 User Goals 章节提示，与 v9 同)",
+    "check_requirements_contract": "pass (218 stable objects, revision 10)"
   },
   "design": {
     "round": 2,
@@ -312,5 +312,6 @@
       "at": "2026-11-04T12:00:00Z",
       "event": "revision 9 Design 增量（PAGE-F30-01～03 新增，PAGE-F18-01 / PAGE-F15-02 局部更新，技术方案附录 API/DATA/SEQ-F30、追溯矩阵 166 行）与 TDD 契约（新增 FLOW-33～40、DESIGN-19～21、RULE-10～11，DESIGN-02 / 08、RULE-01 失效重验）完成；/goal 提示 output/tests/goal_prompt_r9.md"
     }
-  ]
+  ],
+  "revision": 10
 }
