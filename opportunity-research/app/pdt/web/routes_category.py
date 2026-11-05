@@ -172,6 +172,31 @@ def _history(cfg: dict):
     return out
 
 
+def _retag_info():
+    """上次"按当前规则重打分框标签"的时间与改动数（AC-F18-11）。"""
+    from .. import services
+    r = services.get_setting("frame_retag", None) or {}
+    res = r.get("result") or {}
+    return dict(at=r.get("at", ""), size=sum(v.get("size", 0) for v in res.values()), form=sum(v.get("form", 0) for v in res.values()),
+                queued=sum(v.get("queued", 0) for v in res.values()))
+
+
+@router.post("/settings/category/retag-frames")
+def retag_frames(request: Request, user=operator_only):
+    """API-F18-03：按当前分框规则重打尺寸段、形态（只改未人工确认的），之后各渠道重扫描、渠道调研重算，模型与回测标"需重算"。"""
+    from .. import services
+    from ..core import panel, pipeline, research, tagging
+    res = tagging.retag_frames(user.id)
+    panel.clear_cache()
+    for ch in res:
+        pipeline.rescan(ch)
+    for ch in research.CHANNELS:
+        research.recompute(ch)
+    services.put_setting("frame_retag", dict(at=__import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M"), result=res))
+    n = sum(v["size"] + v["form"] for v in res.values())
+    return redirect("/settings/category?tab=tag", f"已按当前规则重打分框标签：改动 {n:,} 条（已人工确认的未改），机会扫描已重算；模型与回测需另点重算")
+
+
 @router.get("/settings/category")
 def category_page(request: Request, tab: str = "frame", user=operator_only):
     v, cfg = catconfig.current()
@@ -191,7 +216,7 @@ def category_page(request: Request, tab: str = "frame", user=operator_only):
     bf_ev = {k: channel_model.evidence(k) for k in bf_params}
     return render(request, "settings_category.html", "PAGE-F27-01", "品类配置", version=v, cfg=cfg, channels=channels, bf_params=bf_params, bf_state=bf_state, bf_ev=bf_ev,
                   history=hist, current=hist[0] if hist else None, methods=METHODS, min_fit=chm.MIN_RANK_POINTS,
-                  tag_values=_tag_values(), queue_n=queued_count(), thr=thr, tag_rows=tag_rule_rows(rules), rule_version=rules.get("rule_version", ""),
+                  retag=_retag_info(), tag_values=_tag_values(), queue_n=queued_count(), thr=thr, tag_rows=tag_rule_rows(rules), rule_version=rules.get("rule_version", ""),
                   conf_text="、".join(f"{CONF_NAMES.get(k, k)} {float(v):.2f}" for k, v in conf.items()), vision_usd=rules.get("vision_usd_per_call") or [],
                   rules_json=json.dumps(cfg.get("tag_rules") or {}, ensure_ascii=False, indent=2),
                   tab=tab if tab in ("frame", "tag", "ch", "ver") else "frame")

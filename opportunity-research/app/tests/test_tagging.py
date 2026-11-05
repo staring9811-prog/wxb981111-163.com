@@ -290,7 +290,7 @@ def test_other_channel_image_sources_and_noimage_placeholder(wen):
     queue_html = html.split('id="queue"')[1]
     assert '图指纹' not in queue_html and 'wayf…' not in queue_html and '765)' not in queue_html
     hd = wen.get('/tagging', params={'channel': 'homedepot'}).text.split('id="queue"')[1]
-    assert 'src="https://images.thdstatic.com/' in hd and '图指纹' in hd
+    assert 'src="https://images.thdstatic.com/' in hd and '同图分组' in hd
 
 
 def test_group_key_series_title_and_fill_existing():

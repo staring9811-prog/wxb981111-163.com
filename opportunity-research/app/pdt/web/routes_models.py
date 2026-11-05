@@ -15,8 +15,9 @@ from ..core import channel_model, pipeline, tagging
 from .ui import redirect, render
 
 router = APIRouter()
-NAMES = {'b6': '份额斜率（近 6 个月每月对数变化）', 'x5': '新品占比（近 6 个月新上架款的销量占比 − 品类整体）', 'x3': '搜索同比',
-         'x4': '体量（ln 月均销，中心化）', 'x2': '新进款（相对增长）'}
+NAMES = {'b6': '近 6 个月份额每月平均变化多快', 'x5': '近 6 个月上架不到半年的款卖的件数占比，比全品类高多少', 'x3': '搜索量比去年同期多还是少',
+         'x4': '每月卖多少件，跟一般单元比', 'x2': '最近新出现的款多不多（跟之前比）'}
+LABEL = {'b6': '份额最近半年走势', 'x5': '新品卖得好不好', 'x3': '搜索比去年多还是少', 'x4': '单元体量大小', 'x2': '新进来的款多不多'}
 WHO = {'b6': '份额最近半年在涨的单元', 'x5': '新品卖得比同框多的单元', 'x3': '搜索比去年多的单元', 'x4': '体量大的单元', 'x2': '新进来的款越多的单元'}
 
 
@@ -104,7 +105,7 @@ def page(request: Request, channel: str = 'amazon', user=roles('operator', 'appr
             side.setdefault(r['T0'], {})[r['ver']] = r
     from .. import services
     return render(request, 'models.html', 'PAGE-F19-01', '模型与回测', channel='amazon', run=run, bt=bt, pre=pre, state=st, reason=reason, names=NAMES, side=side,
-                  plain=plain_coef(bt.get('coef') or {}), frames_stale=bool(services.get_setting('models_stale_frames', False)),
+                  plain=plain_coef(bt.get('coef') or {}), labels=LABEL, frames_stale=bool(services.get_setting('models_stale_frames', False)),
                   newlayer=(run.newlayer or {}) if run else {}, market=(run.market or {}) if run else {})
 
 

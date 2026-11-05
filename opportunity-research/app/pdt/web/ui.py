@@ -104,3 +104,18 @@ def zip_bars(months, series):
 
 
 templates.env.filters["zip_bars"] = zip_bars
+
+
+def unescape(v):
+    """商品标题里存着网页转义（&quot; &amp;），显示前还原。"""
+    import html
+    return html.unescape(v or "")
+
+
+def short_id(v):
+    """Wayfair 商品编号形如"W111999433 (piid 1959543287)"，页面主表述只显示前面的编号。"""
+    return str(v or "").split(" (piid")[0]
+
+
+templates.env.filters["unescape"] = unescape
+templates.env.filters["short_id"] = short_id

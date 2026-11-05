@@ -315,7 +315,7 @@ def test_flow31_richness_30_floor_black(hd_run):
     assert richness.for_unit('homedepot', '30″ · 拆装 · 落地式', '主色', '黑')['az_fam'] == 102
     # 扫描：HD 表“Amazon 家族 / 价位段”“差距 G”两列（30″ 整装黑未入四类，用“未入四类”筛出）
     h = c.get('/scan', params={'channel': 'homedepot', 'frame': '30″ · 整装 · 落地式', 'type': 'none', 'vars': 'color'}).text
-    assert 'Amazon 款数 / 价位段' in h and '差距 G' in h
+    assert 'Amazon 款数 / 价位段' in h and '款数差距' in h
     row = _text(h)[_text(h).find('主色： 黑'):][:400]
     assert '102 / 6' in row and '12% → 18%' in row and '+3.25' in row and '本渠道 3 / 1' in row and '经回测（打折）' in row
     assert 'G=ln((102 + 1) ÷ (3 + 1)) = +3.25' in h
@@ -326,7 +326,7 @@ def test_flow31_richness_30_floor_black(hd_run):
     assert '证据等级 · 读法' in t and 'Amazon 侧丰富度对照' in t
     i = t.find('Amazon 侧丰富度对照')
     assert re.search(r'Home Depot 102 / 6 1[12]\.\d% → 1[78]\.\d% 3 / 1 \+3\.25 来源 经回测（打折） Amazon 结构领先', t[i:])
-    assert re.search(r'Home Depot [\d.]+% → [\d.]+% [↑↓]? ?估算 [\d ]+ [ABCD] · 把握 \d+% 经回测（打折） 只看排序与坑（框内第 \d+ / \d+）', t)
+    assert re.search(r'Home Depot [\d.]+% → [\d.]+% ?[↑↓]? ?估算 [\d ]+ [ABCD] · 把握 \d+% .{0,12}?经回测（打折） 只用来排先后、认出坑（框内第 \d+ / \d+）', t)
     assert re.search(r"Lowe&#39;s 尚未导入渠道调研", t)
     j = c.get(f'/cards/{cid}/channels').json()['channels']
     hd = next(x for x in j if x['channel'] == 'homedepot')

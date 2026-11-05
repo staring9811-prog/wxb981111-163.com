@@ -2,6 +2,7 @@
 {% block head %}
 <style>
   .thumb { width: 72px; height: 72px; flex: none; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); object-fit: contain; }
+  .cell-title.clip2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .thumb-box { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); flex: none; }
   .thumb--noimg { width: 96px; height: auto; min-height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-2); border-style: dashed; font-size: var(--text-2xs); line-height: 1.4; color: var(--muted); text-align: center; }
   .qgroups { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -29,7 +30,7 @@
 {% block content %}
 {% from "_pager.html" import pager %}
 {% set qs = 'channel=' ~ channel ~ '&reason=' ~ reason ~ '&tab=' ~ tab ~ ('&from=research' if src else '') %}
-{% set SRC = {'spec': '规格', 'rule': '标题', 'vision': '看图', 'manual': '人工'} %}
+{% set SRC = {'spec': '规格', 'rule': '标题', 'rule_r10': '标题', 'vision': '看图', 'manual': '人工'} %}
 {% set back = '/tagging?' ~ qs ~ '&page=' ~ page %}
 <div class="page-head enter" style="--i:0">
   <div>
@@ -96,6 +97,9 @@
   {% endfor %}
 </section>
 
+{% if retag.result %}{% set rr = retag.result.values()|list %}
+<div class="banner banner--ok enter" style="--i:2; margin-bottom: var(--space-3)" data-retag-banner><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><div class="banner__body"><div class="banner__title">已按新分框规则重打标（28″ 单独成档、开放式单独成形态，{{ retag.at }}）</div><div>尺寸段改 {{ rr|sum(attribute='size')|num }} 条、形态改 {{ rr|sum(attribute='form')|num }} 条，其中 {{ rr|sum(attribute='queued')|num }} 条把握不够、在下面待确认；已人工确认的标签没改。</div></div></div>
+{% endif %}
 <section class="section enter" style="--i:2" aria-labelledby="sec-queue">
   <div class="section__head"><h2 class="section__title" id="sec-queue">确认队列</h2><span class="section__note">主图相同的商品分在一组，选一次即应用到整组；组内某个商品不一样时，在该行单独改。每个标签注明来源：规格 / 标题 / 看图 / 人工</span></div>
   {% if src and tab == 'pending' %}
@@ -133,7 +137,7 @@
     <article class="qgroup" data-channel="{{ e.channel }}" data-reason="frame" aria-labelledby="g{{ gi }}-title">
       <form method="post" action="/tagging/research/confirm" class="qgroup__head">
         <input type="hidden" name="channel" value="{{ e.channel }}"><input type="hidden" name="pid" value="{{ e.pid }}"><input type="hidden" name="tag" value="{{ e.tag }}"><input type="hidden" name="back" value="{{ back }}">
-        {% if e.image %}<div class="thumb-box"><img class="thumb" src="{{ e.image }}" alt="主图：{{ e.title[:40] }}（点开放大）" loading="lazy" referrerpolicy="no-referrer" data-zoom="{{ e.image }}">{% if e.link %}<a class="tlink small" href="{{ e.link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>
+        {% if e.image %}<div class="thumb-box"><img class="thumb" src="{{ e.image }}" alt="主图：{{ (e.title|unescape)[:60] }}（点开放大）" loading="lazy" referrerpolicy="no-referrer" data-zoom="{{ e.image }}">{% if e.link %}<a class="tlink small" href="{{ e.link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>
         {% else %}<div class="thumb thumb--noimg" data-noimg><span>没有主图，点商品链接去商品页看</span>{% if e.link %}<a class="tlink" href="{{ e.link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% endif %}
         <div class="qgroup__meta">
           <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>分框未知（渠道调研）</span>
@@ -153,8 +157,8 @@
         <table class="table">
           <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>原值</th><th>本条{{ e.tag }}</th><th>状态</th></tr></thead>
           <tbody>
-            <tr><td>{{ channel_names[e.channel] }}</td><td class="mono">{% if e.link %}<a class="tlink" href="{{ e.link }}" target="_blank" rel="noopener">{{ e.pid }}</a>{% else %}{{ e.pid }}{% endif %}</td>
-              <td><div class="cell-title">{{ e.title[:90] }}</div>{% if e.brand %}<div class="cell-sub">{{ e.brand }}</div>{% endif %}</td>
+            <tr><td>{{ channel_names[e.channel] }}</td><td class="mono">{% if e.link %}<a class="tlink" href="{{ e.link }}" target="_blank" rel="noopener">{{ e.pid|short_id }}</a>{% else %}{{ e.pid }}{% endif %}</td>
+              <td><div class="cell-title clip2" title="{{ e.title|unescape }}">{{ e.title|unescape }}</div>{% if e.brand %}<div class="cell-sub">{{ e.brand }}</div>{% endif %}</td>
               <td class="small">{% set rw = e.raw %}{% if rw.get('宽') %}宽 {{ rw.get('宽') }}{% endif %}{% if rw.get('选项段') %} · 选项段 {{ rw.get('选项段')|replace('、', ' / ') }}{% endif %}{% if e.asm and e.tag != '装' %} · 装 {{ e.asm }}{% endif %}{% if e.form and e.tag != '形态' %} · 形态 {{ e.form }}{% endif %}{% if rw.get('颜色原值') %} · 颜色 {{ rw.get('颜色原值') }}{% endif %}{% if rw.get('台面原值') %} · 台面 {{ rw.get('台面原值') }}{% endif %}{% if rw.get('柜体原值') %} · 柜体 {{ rw.get('柜体原值') }}{% endif %}</td>
               <td>{{ '多尺寸未拆' if e.reason == '多尺寸未拆' else '未知' }}</td>
               <td><span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认</span></td></tr>
@@ -167,16 +171,16 @@
     <article class="qgroup" data-channel="{{ g.channels|join(' ') }}" data-reason="{{ 'element' if g.tag == '元素' else ('assembly' if asm else 'low') }}" aria-labelledby="g{{ gi }}-title">
       <form method="post" action="/tagging/groups/confirm" class="qgroup__head">
         <input type="hidden" name="img_group" value="{{ g.img_group }}"><input type="hidden" name="tag" value="{{ g.tag }}"><input type="hidden" name="back" value="{{ back }}">
-        {% if g.image %}<div class="thumb-box"><img class="thumb" src="{{ g.image }}" alt="主图：{{ g['items'][0].title[:40] }}（点开放大）" loading="lazy" referrerpolicy="no-referrer" data-zoom="{{ g.image }}">{% if g['items'][0].link %}<a class="tlink small" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% else %}<div class="thumb thumb--noimg" data-noimg><span>没有主图，点商品链接去商品页看</span>{% if g['items'][0].link %}<a class="tlink" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% endif %}
+        {% if g.image %}<div class="thumb-box"><img class="thumb" src="{{ g.image }}" alt="主图：{{ (g['items'][0].title|unescape)[:60] }}（点开放大）" loading="lazy" referrerpolicy="no-referrer" data-zoom="{{ g.image }}">{% if g['items'][0].link %}<a class="tlink small" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% else %}<div class="thumb thumb--noimg" data-noimg><span>没有主图，点商品链接去商品页看</span>{% if g['items'][0].link %}<a class="tlink" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% endif %}
         <div class="qgroup__meta">
           <div class="row">{% if g.tag == '元素' %}<span class="badge badge--accent">元素</span>{% elif asm %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>装：未知</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span>{% endif %}
             <span class="badge">{% if asm and tab == 'pending' %}装 · 无依据{% else %}{{ g.tag }} · 来源：{{ SRC.get(g.source, g.source) }}{% endif %}</span>
-            <span class="small muted">{% if g.by == 'image' %}同图 {{ g['items']|length }} 个商品 · 图指纹 <span class="fp">{{ g.img_group[:4] }}…{{ g.img_group[-4:] }}</span>{% elif g.by == 'series' %}无主图 · 同系列 {{ g['items']|length }} 个商品{% elif g.by == 'title' %}无主图 · 同品牌同标题 {{ g['items']|length }} 个商品{% else %}无主图 · 单个商品{% endif %}</span></div>
+            <span class="small muted">{% if g.by == 'image' %}同图 {{ g['items']|length }} 个商品 · 同图分组{% elif g.by == 'series' %}无主图 · 同系列 {{ g['items']|length }} 个商品{% elif g.by == 'title' %}无主图 · 同品牌同标题 {{ g['items']|length }} 个商品{% else %}无主图 · 单个商品{% endif %}</span></div>
           {% if asm and tab == 'pending' %}<p class="small muted" style="margin:4px 0 0">规格没有 Assembled / Assembly Required 字段，标题也没写；不默认拆装</p>{% endif %}
           <h3 class="qgroup__title" id="g{{ gi }}-title">{% if asm and tab == 'pending' %}这组是整装还是拆装？{% else %}这组的"{{ g.tag }}"是什么？{% endif %}</h3>
           {% if tab == 'pending' %}
           <div class="choice-group" role="radiogroup" aria-label="候选值">
-            {% for c in g.candidates[:6] %}<label class="choice"><input type="radio" name="value" value="{{ c.value }}" {% if loop.first and c.confidence %}checked{% endif %}>{{ c.value|vname }}{% if c.confidence %} <span class="conf">{{ '%.2f'|format(c.confidence) }}</span>{% endif %}</label>{% endfor %}
+            {% for c in g.candidates[:6] %}<label class="choice"><input type="radio" name="value" value="{{ c.value }}" {% if loop.first and c.confidence %}checked{% endif %}>{{ c.value|vname }}{% if c.confidence %} <span class="conf">把握 {{ (c.confidence * 100)|round|int }}%</span>{% endif %}</label>{% endfor %}
             {% if asm %}<label class="choice"><input type="radio" name="value" value="未知">仍不确定（保持未知，不进框）</label>
             {% else %}<label class="choice"><input type="radio" name="value" value="other">其他…<input class="input other-input" name="other" placeholder="填写" aria-label="其他值"></label>{% endif %}
           </div>
@@ -194,12 +198,12 @@
           <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>其他标签（自动）</th><th>本条{{ g.tag }}</th><th>状态</th><th></th></tr></thead>
           <tbody>
           {% for it in g['items'] %}
-            <tr><td>{{ channel_names[it.channel] }}</td><td class="mono">{% if it.link %}<a class="tlink" href="{{ it.link }}" target="_blank" rel="noopener">{{ it.item_id }}</a>{% else %}{{ it.item_id }}{% endif %}</td>
-              <td><div class="cell-title">{{ it.title[:90] }}</div></td><td class="tag-line">{% for v, sl in it.others_tags %}{% if loop.first %}<b>{{ v|vname }}</b>{% else %}{{ v|vname }}{% endif %}{% if sl %}<span class="etag">{{ sl }}</span>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+            <tr><td>{{ channel_names[it.channel] }}</td><td class="mono">{% if it.link %}<a class="tlink" href="{{ it.link }}" target="_blank" rel="noopener">{{ it.item_id|short_id }}</a>{% else %}{{ it.item_id }}{% endif %}</td>
+              <td><div class="cell-title clip2" title="{{ it.title|unescape }}">{{ it.title|unescape }}</div></td><td class="tag-line">{% for v, sl in it.others_tags %}{% if loop.first %}<b>{{ v|vname }}</b>{% else %}{{ v|vname }}{% endif %}{% if sl %}<span class="etag">{{ sl }}</span>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</td>
               <td><form method="post" action="/tagging/items/{{ it.tag_id }}" class="inline"><input type="hidden" name="back" value="{{ back }}">
                 <select class="select" name="value" aria-label="本条{{ g.tag }}">{% if not it.value %}<option value="" selected>{{ '未知' if asm else '（未判断）' }}</option>{% endif %}{% for c in g.candidates %}<option value="{{ c.value }}" {% if c.value == it.value %}selected{% endif %}>{{ c.value|vname }}</option>{% endfor %}</select>
                 <button class="btn btn--ghost btn--sm" type="submit">单改</button></form></td>
-              <td>{% if it.status == 'confirmed' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已确认{% if it.confirm_mode == 'single' %} · 单改{% endif %}</span><span class="etag">{{ it.source }}</span>{% else %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认{% if it.confidence %} · {{ '%.2f'|format(it.confidence) }}{% endif %}</span>{% endif %}</td>
+              <td>{% if it.status == 'confirmed' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>已确认{% if it.confirm_mode == 'single' %} · 单改{% endif %}</span><span class="etag">{{ it.source }}</span>{% else %}<span class="badge badge--watch"><svg class="icon"><use href="#ph-hourglass"/></svg>待确认{% if it.confidence %} · 把握 {{ (it.confidence * 100)|round|int }}%{% endif %}</span>{% endif %}</td>
               <td><button class="btn btn--ghost btn--sm" type="button" data-notcat data-action="/tagging/items/{{ it.tag_id }}" data-channel="{{ it.channel }}" data-item-id="{{ it.item_id }}" data-sub="只标这一个商品：{{ it.item_id }}">不是本品类</button></td></tr>
           {% endfor %}
           </tbody>
@@ -218,7 +222,7 @@
       <thead><tr><th>渠道</th><th>商品</th><th>标题</th><th>标记时间</th><th></th></tr></thead>
       <tbody>
       {% for p in excluded %}
-        <tr><td>{{ channel_names[p.channel] }}</td><td class="mono">{{ p.item_id }}</td><td><div class="cell-title">{{ (p.title or '')[:90] }}</div></td><td class="num small">{{ p.at|dt }}</td>
+        <tr><td>{{ channel_names[p.channel] }}</td><td class="mono">{{ p.item_id }}</td><td><div class="cell-title">{{ (p.title or '')|unescape }}</div></td><td class="num small">{{ p.at|dt }}</td>
           <td><form method="post" action="/tagging/items/0" class="inline"><input type="hidden" name="action" value="restore"><input type="hidden" name="channel" value="{{ p.channel }}"><input type="hidden" name="item_id" value="{{ p.item_id }}"><input type="hidden" name="back" value="/tagging?tab=out"><button class="btn btn--sm" type="submit">恢复</button></form></td></tr>
       {% else %}<tr><td colspan="5" class="muted">没有被标为“不是本品类”的商品。</td></tr>{% endfor %}
       </tbody>

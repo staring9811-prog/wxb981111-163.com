@@ -366,7 +366,7 @@ def test_flow36_hd_frames_units_match_trial(v2):
     # 页面
     html = v2.get('/research/homedepot/frame/30-整装-落地式').text
     row = html.split('data-value="卡拉拉大理石"')[1].split('</tr>')[0]
-    assert '>266<' in row and '7.6%' in row and '-6.3 pp' in row and 'badge--miss">丢份额' in row  # revision 10 新口径
+    assert '>266<' in row and '7.6%' in row and '-6.3 个百分点 ↓' in row and 'badge--block">丢份额' in row  # revision 10 新口径
     assert 'Amazon 无' in html or all(u['amazon'] for us in d['units'].values() for u in us)
     assert '新款按页面累计评论数 ≤ 窗口内评论数（商品表没有首评月）判定' in html or '新家族按页面累计评论数 ≤ 窗口内评论数（商品表没有首评月）判定' in html
     assert '把握' not in html and '上 / 不上' not in html.replace('"上 / 不上"', '')

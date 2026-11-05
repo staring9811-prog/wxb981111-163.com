@@ -50,7 +50,7 @@ FORMS = ['落地式', '悬浮式', '开放式', '转角式']
 ASMS = ['拆装', '整装']
 PRICE_ABS = [0, 200, 300, 450, 650, 900, 1300, np.inf]  # 与 F29 相同的 7 段绝对价位
 REASONS = ['尺寸段未知', MULTI, '装未知', '形态未知']
-FAMILY_NOTE = {'homedepot': '一款 = 一个 Home Depot 评论家族（共享评论的商品页）', 'lowes': "一款 = 一个 Lowe's 父体", 'wayfair': '一款 = 一个 Wayfair listing'}
+FAMILY_NOTE = {'homedepot': '一款 = Home Depot 上共用同一批评论的一组商品页（同一款的不同尺寸、颜色）', 'lowes': "一款 = 一个 Lowe's 父体", 'wayfair': '一款 = 一个 Wayfair listing'}
 
 
 def today() -> date:

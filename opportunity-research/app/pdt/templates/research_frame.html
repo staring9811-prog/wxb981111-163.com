@@ -20,6 +20,7 @@
   @media (max-width: 767px) { .fhead { grid-template-columns: minmax(0, 1fr); } }
 </style>
 {% endblock %}
+{% macro q(tip) %}<span class="th-q" tabindex="0" data-tip="{{ tip }}">?</span>{% endmacro %}
 {% block content %}
 {% set chn = st[ch].name %}
 {% macro pct(v, nd=0) %}{% if v is none %}—{% else %}{{ ('%.' ~ nd ~ 'f%%')|format(v * 100) }}{% endif %}{% endmacro %}
@@ -80,7 +81,7 @@
         <tr><th class="t-num">月均</th><th class="t-num">框内份额</th></tr>
         {% else %}
         <tr class="grp"><th class="u-col" rowspan="2" scope="col">单元（属性：取值）</th><th colspan="2" scope="colgroup">体量份额</th><th colspan="5" scope="colgroup">趋势（只用有月度销量）</th><th colspan="2" scope="colgroup">新品</th><th colspan="3" scope="colgroup">供给</th><th colspan="2" scope="colgroup">价格</th><th scope="colgroup">评分</th><th scope="colgroup">Amazon 同框对照</th><th scope="colgroup">回测</th></tr>
-        <tr><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">框内份额</th><th>逐月份额</th><th class="t-num">近 3 − 前 3</th><th>走势（单元 ÷ 框）</th><th class="t-num">斜率 pp/月</th><th class="t-num">波动 CV</th><th class="t-num">新款（卖起来）</th><th class="t-num">新款占比（同框）</th><th class="t-num">款</th><th class="t-num">价位段</th><th class="t-num">单款 ÷ 同框</th><th class="t-num">P25–P75</th><th class="t-num">溢价</th><th class="t-num">评分（同框差）</th><th>款 · 价位段 · 份额前 3 → 近 3 月</th><th>证据等级 · 分级</th></tr>
+        <tr><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">框内份额</th><th>逐月份额</th><th class="t-num">最近 3 个月比之前 3 个月{{ q('近 3 − 前 3|窗口最后 3 个月的框内份额减去最前 3 个月的框内份额，单位是百分点') }}</th><th>走势（单元 ÷ 框）{{ q('走势|单元近 3 个月 ÷ 前 3 个月，跟整框的同一比值比：抢份额 / 丢份额 / 随框 / 新出现') }}</th><th class="t-num">每月平均涨跌{{ q('斜率|逐月份额拉一条直线，平均每月涨或跌多少个百分点') }}</th><th class="t-num">起伏大小{{ q('波动（变异系数 CV）|每月卖的件数忽高忽低的程度：0 = 很稳，越大越不稳') }}</th><th class="t-num">新款（卖起来）</th><th class="t-num">新款占比（同框）</th><th class="t-num">款</th><th class="t-num">价位段</th><th class="t-num">单款 ÷ 同框</th><th class="t-num">P25–P75</th><th class="t-num">溢价</th><th class="t-num">评分（同框差）</th><th>款 · 价位段 · 份额前 3 → 近 3 月</th><th>证据等级 · 分级</th></tr>
         {% endif %}
       </thead>
       <tbody>
@@ -94,9 +95,9 @@
           {% if nt %}{% for i in range(7) %}<td class="t-num"><span class="muted">—{% if loop.first %}（{{ '月份不足' if not data.trend_ok else '有月度 ' ~ pct(f.monthly_share) }}）{% endif %}</span></td>{% endfor %}
           {% else %}
           <td>{{ spark(u.series, '逐月份额 ' ~ data.summary.window[0] ~ ' 至 ' ~ data.summary.window[-1]) }}</td>
-          <td class="t-num">{{ sg(u.diff_pp, 1) }} pp</td>
-          <td><span class="badge badge--{{ TREND.get(u.trend, 'watch') }}">{{ u.trend }}</span><div class="cell-sub">{{ '新出现' if u.unit_ratio is none else '%.2f'|format(u.unit_ratio) }} ÷ {{ '%.2f'|format(u.frame_ratio) }}</div></td>
-          <td class="t-num">{{ sg(u.slope_pp) }}</td>
+          <td class="t-num">{% if u.diff_pp is not none and u.diff_pp > 0.05 %}<span class="good">{{ sg(u.diff_pp, 1) }} 个百分点 ↑</span>{% elif u.diff_pp is not none and u.diff_pp < -0.05 %}<span class="bad">{{ sg(u.diff_pp, 1) }} 个百分点 ↓</span>{% else %}{{ sg(u.diff_pp, 1) }} 个百分点{% endif %}</td>
+          <td>{% if f.read == 'small' %}<span class="small muted">样本少，不写走势</span>{% else %}<span class="badge badge--{{ TREND.get(u.trend, 'watch') }}">{{ u.trend }}</span>{% endif %}<div class="cell-sub">{{ '新出现' if u.unit_ratio is none else '%.2f'|format(u.unit_ratio) }} ÷ {{ '%.2f'|format(u.frame_ratio) }}</div></td>
+          <td class="t-num">{% if u.slope_pp is not none and u.slope_pp > 0.005 %}<span class="good">{{ sg(u.slope_pp) }} ↑</span>{% elif u.slope_pp is not none and u.slope_pp < -0.005 %}<span class="bad">{{ sg(u.slope_pp) }} ↓</span>{% else %}{{ sg(u.slope_pp) }}{% endif %}</td>
           <td class="t-num">{{ '—' if u.cv is none else '%.2f'|format(u.cv) }}</td>
           <td class="t-num">{{ u.new_fams }}（{{ u.new_up }}）</td>
           <td class="t-num">{{ pct(u.new_share) }}（{{ pct(u.frame_new_share) }}）<div class="cell-sub">{% if u.entries %}进入 {{ u.entries|join('、') }}{% endif %}</div></td>
@@ -116,7 +117,7 @@
     </table>
   </div>
   {% endif %}
-  <p class="table-note">新款按{{ data.summary.estimate.new_rule }}判定；"卖起来" = 进入月至 {{ data.summary.window[-1] }} 在本单元的月均 ≥ 同框每款月均。份额分母含该属性未知。价位段 = 7 段绝对价位（与机会扫描的 Amazon 侧丰富度相同）。Amazon 同框对照 = Amazon 同尺寸段 × 形态 × 取值（不分拆装，元素按 6 类对齐）{{ data.summary.amazon_months or '最近 6 个完整月' }}，箭头按 ln 变化 ±0.2。回测列只引用{{ chn }}机会扫描的分级（该渠道最近一次回测为"经回测（打折）"时才有），和"历史观察"分开看。价格是采集日价，评分是页面评分按评论数加权，只在{{ chn }}同框内比较。{% if f.estimated %}含估算销量：体量、份额、款、价格、评分用中估计，趋势与新品只用有月度的销量。{% endif %}</p>
+  <p class="table-note">新款按{{ data.summary.estimate.new_rule }}判定；"卖起来" = 进入月至 {{ data.summary.window[-1] }} 在本单元的月均 ≥ 同框每款月均。份额分母含该属性未知。价位段 = 7 段绝对价位（与机会扫描的 Amazon 侧丰富度相同）。Amazon 同框对照 = Amazon 同尺寸段 × 形态 × 取值（不分拆装，元素按 6 类对齐）{{ data.summary.amazon_months or '最近 6 个完整月' }}，箭头：近 3 个月份额比前 3 个月涨或跌约两成以上才画 ↑ / ↓。回测列只引用{{ chn }}机会扫描的分级（该渠道最近一次回测为"经回测（打折）"时才有），和"历史观察"分开看。价格是采集日价，评分是页面评分按评论数加权，只在{{ chn }}同框内比较。{% if f.estimated %}含估算销量：体量、份额、款、价格、评分用中估计，趋势与新品只用有月度的销量。{% endif %}</p>
 </section>
 {% endif %}
 {% endblock %}

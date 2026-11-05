@@ -144,7 +144,7 @@ def rule_tag(text: dict, rules: dict | None = None) -> dict:
     return out
 
 
-SRC_LABEL = {'spec': '规格', 'rule': '标题', 'vision': '看图', 'manual': '人工'}  # 标签来源（页面显示）
+SRC_LABEL = {'spec': '规格', 'rule': '标题', 'rule_r10': '标题', 'vision': '看图', 'manual': '人工'}  # rule_r10 = 分框规则变更后按标题 / 规格重打  # 标签来源（页面显示）
 SPEC_KEYS = {  # 商品页规格字段（三个渠道的写法，按键名正则匹配）
     'width': r'^(product|overall|cabinet|vanity|assembled)?\s*width',
     'assembled': r'^assembled$|assembly level|level of assembly',

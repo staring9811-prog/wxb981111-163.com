@@ -72,7 +72,7 @@ def page(request: Request, channel: str = '', reason: str = '', tab: str = 'pend
                   n_items=sum(len(g['items']) for g in groups), page=page, pages=pages, per_page=PER_PAGE, cnt=cnt, fc=fc, prog=_progress(), channel=ch or 'all',
                   reason=rs or 'all', tab=tab, excluded=excluded, thr=thr, ver=ver, rule_version=rules.get('rule_version', ''),
                   llm=services.connected('llm'), vision_todo=len(tagging.vision_targets()), untagged=sum(len(v) for v in tagging.untagged_items().values()),
-                  tag_src=_tag_sources(), src=src if src == 'research' else '')
+                  tag_src=_tag_sources(), src=src if src == 'research' else '', retag=services.get_setting('frame_retag', None) or {})
 
 
 def _tag_sources():

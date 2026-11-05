@@ -217,12 +217,12 @@ def _channel_evidence(ch, frame, attr, value) -> dict:
     dbins = (run.discounted or {}).get("bins") or bins
     lab = None if g is None else ("≤30%" if g <= 0.3 else "30–50%" if g <= 0.5 else "50–70%" if g <= 0.7 else "≥70%")
     hit = next((b for b in dbins if b["bin"] == lab), None)
-    note = f"只看排序与坑（框内第 {rank} / {len(same)}）；把握不当概率用"
+    note = f"只用来排先后、认出坑（框内第 {rank} / {len(same)}）；把握不能当成功率看"
     if hit and hit.get("up") is not None:
-        note += f"，渠道回测同档之后变大 {hit['up']:.0%}" + ("（已打折）" if lab == "≥70%" else "")
+        note += f"；过去同档之后真变大的有 {hit['up']:.0%}" + ("（已打折）" if lab == "≥70%" else "")
     rhob = (run.discounted or {}).get("rhob")
     if rhob is not None:
-        note += f"，大单元秩相关打折后 {rhob:+.2f}"
+        note += f"；大单元排序和实际结果一致程度 {rhob:+.2f}（打折后，0 = 无关、1 = 完全一致）"
     return dict(evidence=run.evidence, note=note, hide=False, score=dict(grasp=g, grade=u.get("grade"), share_now=u.get("share6"),
                                                                              sources=dict(frame=frame, months=f"渠道回测 {run.month}", n=None)))
 
@@ -422,7 +422,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
                 has = bool(ts) or opp is not None
                 sample_ok = has and (fu or 0) >= min_fu and (units or 0) >= min_vu
             sd = (sc.data or {}) if sc else {}
-            ev = (dict(evidence="历史观察", note=f"渠道调研 {rsv.get('window') or '—'}；只是过去看到的现象，不给把握、分级与上 / 不上",
+            ev = (dict(evidence="历史观察", note=f"渠道调研 {rsv.get('window') or '—'}，只是过去的现象",
                        hide=True, score=None) if rsv is not None else _channel_evidence(ch, frame, attr, value))
             if ch != "amazon":  # 其他渠道：只有“经回测（打折）”的渠道显示把握与分级（AC-F19-06）
                 sd = dict(ev["score"]) if ev["score"] else {}
@@ -557,7 +557,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
     tracking = [dict(when="前 3 个月", what="评分、整款月销、小类排名",
                      target=f"评分 ≥ {round((frame_rating or 4.25) + 0.05, 1)}，月销 ≥ {int(round((money['general'] or 25) * 2.4 / 10) * 10)} 件，进小类前 100")]
     am = cfg_ch.get("amazon", {}).get("success", {})
-    tracking.append(dict(when="6 个月（Amazon）", what="做到判定", target=f"任一月小类 BSR ≤ {am.get('bsr_top', 50)} 或 SPU 月销售额 ≥ ${am.get('spu_revenue', 100000):,.0f}"))
+    tracking.append(dict(when="6 个月（Amazon）", what="做到判定", target=f"任一月小类排名进前 {am.get('bsr_top', 50)}，或同一款月销售额 ≥ ${am.get('spu_revenue', 100000):,.0f}"))
     for c in chans:
         if c["channel"] != "amazon" and c["verdict"] in ("上", "观察"):
             sc_ = cfg_ch.get(c["channel"], {}).get("success", {})
@@ -570,7 +570,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
         limits.append(f"{'、'.join(star_months)} 为带 * 并入的月份（核对异常），这几个月的变化要打折看。")
     evs = "；".join(f"{c['name']} {c['evidence']}" for c in chans if c["channel"] != "amazon")
     limits.append(f"Home Depot / Lowe's / Wayfair 月销是评论换算估算（品类配置参数 v{cfg_v}），只在渠道内比较；Lowe's、Wayfair 取自渠道调研（历史观察）；证据等级：{evs}。"
-                  "经回测（打折）的渠道历史由评论重建、只含今天仍在前 N 的商品（幸存者偏差），把握不当概率用。")
+                  "经回测（打折）的渠道历史由评论重建，只抓到现在还在榜的商品，早期下架的看不到，所以结论偏乐观、把握不能当成功率看。")
     for c in chans:
         if c["has_data"] and not c["sample_ok"]:
             limits.append(f"{c['name']} 这个框样本不足（框月销 {c['frame_units'] or 0:,.0f} 件）。")
@@ -599,7 +599,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
                            reading=made_reading(value, attr, nf, nm, other_n, other_m, made_p),
                            src=pop(框=frame, 月份=f"{p['quarters'][0]['months'][0] if p['quarters'] else ''} 至 {p['recent'][-1] if p['recent'] else ''}，已走完 6 个月观察期的新款",
                                    样本数=f"{nf} + {other_n} = {(nf or 0) + (other_n or 0)} 个新款" if nf is not None and other_n is not None else "",
-                                   做到="6 个月内任一月小类 BSR ≤ 50 或 SPU 月销售额 ≥ $10 万", 检验="Fisher 精确检验")) if nf is not None else None,
+                                   做到="6 个月内任一月小类排名进前 50，或同一款月销售额 ≥ $10 万", 检验="Fisher 精确检验")) if nf is not None else None,
                  bands=[dict(b, reading=band_reading(b), src=pop(框=frame, 取值=unit_label, 价格带=b["band"], 月份=f"{p['quarters'][0]['months'][0] if p['quarters'] else ''} 至 {p['recent'][-1] if p['recent'] else ''}",
                                         样本数=f"{b.get('skus')} 个子体、{b.get('obs')} 个子体 × 月")) for b in top_bands],
                  rating=rating, frame_rating=frame_rating,

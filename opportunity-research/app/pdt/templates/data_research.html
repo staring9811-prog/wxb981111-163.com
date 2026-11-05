@@ -25,7 +25,7 @@
   <div>
     <nav class="crumbs" aria-label="面包屑"><a href="/">工作台</a><svg class="icon"><use href="#ph-caret-right"/></svg><span>数据</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>渠道调研导入</span></nav>
     <h1>渠道调研导入</h1>
-    <p class="page-head__sub">导入 wen 本机抓好的小平台商品表与月销表（<span class="mono">大词抓取_三平台整理.py</span> 产出）· 只用于 <a href="/research">渠道调研</a>，不写入其他渠道分析库，机会扫描、模型、决策卡、台账不变</p>
+    <p class="page-head__sub">导入 wen 本机抓好的小平台商品表与月销表· 只用于 <a href="/research">渠道调研</a>，不写入其他渠道分析库，机会扫描、模型、决策卡、台账不变</p>
   </div>
   <div class="page-head__actions"><a class="btn" href="/research"><svg class="icon"><use href="#ph-list-magnifying-glass"/></svg><span>去渠道调研</span></a></div>
 </div>
@@ -47,15 +47,14 @@
     <div class="row" style="margin-top: var(--space-3)">
       <details class="cols">
         <summary>必需列</summary>
-        <p>商品表：渠道、fam、pid、title、来源、尺寸段、装、形态、台面材质、主色、柜体材质、元素、价格、评分、页面评论数（可选：首评月、月度来源、选项段、多尺寸段、浴室柜）。月销表：渠道、fam、pid、尺寸段、装、形态、月、VP、非VP、销量。渠道只认 Home Depot、Lowe's、Wayfair；"月"写 YYYY-MM；VP / 非VP / 销量为非负数。</p>
+        <p>商品表：渠道、fam、pid、title、来源、尺寸段、装、形态、台面材质、主色、柜体材质、元素、价格、评分、页面评论数（可选：首评月、月度来源、选项段、多尺寸段、浴室柜、主图——主图是图片网址，没有这一列或某行为空照常导入）。月销表：渠道、fam、pid、尺寸段、装、形态、月、VP、非VP、销量。渠道只认 Home Depot、Lowe's、Wayfair；"月"写 YYYY-MM；VP / 非VP / 销量为非负数。</p>
       </details>
       <span class="spacer"></span>
       <button class="btn btn--primary" type="submit" data-start disabled><svg class="icon"><use href="#ph-play"/></svg><span>开始检查</span></button>
     </div>
   </form>
-  <form method="post" action="/data/research/images" enctype="multipart/form-data" class="row small" style="margin-top: var(--space-3); gap: var(--space-2)" id="imgform">
-    <span class="muted">主图索引（可选，一次性）：渠道、商品编号、主图URL 三列；给"其他渠道数据"里没有图的商品补主图，打标确认卡片用它</span>
-    <input type="file" name="index" accept=".csv" required>
+  <form method="post" action="/data/research/images" enctype="multipart/form-data" class="row small" style="margin-top: var(--space-3); gap: var(--space-3)" id="imgform">
+    <label class="dropzone" for="f-img" style="flex: 1"><svg class="icon"><use href="#ph-file-xls"/></svg><span><span class="strong">主图索引</span>（可选，一次性；主图索引.csv：渠道、商品编号、主图URL 三列）<br><span class="small muted" data-fname="index">点击选择文件 · 给"其他渠道数据"里还没有图的商品补主图，打标确认卡片用它</span><input class="visually-hidden" id="f-img" name="index" type="file" accept=".csv" required onchange="this.form.querySelector('[data-fname=index]').textContent = this.files[0] ? this.files[0].name : '点击选择文件'"></span></label>
     <button class="btn btn--sm" type="submit">导入主图索引</button>
   </form>
   {% if problems %}
@@ -89,16 +88,16 @@
         <dt>已落框销量</dt><dd data-framed>{{ pct(sm.framed_share, 1) }}</dd>
         <dt>分框待确认</dt><dd data-pending>{{ sm.pending_products }} 个{% if sm.pending_reasons %}（{% for k, n in sm.pending_reasons.items() %}{{ k }} {{ n }}{% if not loop.last %}、{% endif %}{% endfor %}）{% endif %}</dd>
         <dt>只作参考</dt><dd data-reference>{% if sm.reference %}{% for m, n in sm.reference.items() %}{{ m }}：{{ n|num }} 行（未完整月），不计入{% if not loop.last %}；{% endif %}{% endfor %}{% else %}无{% endif %}</dd>
-        <dt>与已有评论 VP 数据</dt><dd>{% if not c.conflicts %}没有已并入的同月数据{% elif not c.conflict %}类目节点商品逐月差异均 ≤ 5%{% else %}见下表{% endif %}</dd>
+        <dt>与已并入的评论数据</dt><dd>{% if not c.conflicts %}没有已并入的同月数据{% elif not c.conflict %}类目节点商品逐月差异均 ≤ 5%{% else %}见下表{% endif %}</dd>
         <dt>替换</dt><dd>{% if c.current %}当前版本 v{{ c.current.no }}（{{ c.current.at }} 导入）→ 本次 v{{ c.current.no + 1 }}；v{{ c.current.no }} 保留在导入记录{% else %}首次导入 → v1{% endif %}</dd>
       </dl>
       {% if c.conflict %}
       <div class="conflict" data-conflict>
-        <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>与已有数据不一致</span><span class="small muted">类目节点 / 两者商品当月 VP + 非VP 评论数 对比 已并入评论 VP 数据（按评论 ID 去重）</span></div>
+        <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>与已有数据不一致</span><span class="small muted">类目节点 / 两者商品当月的评论条数（已购评论 + 其他评论）对比已并入的评论数据（同一条评论只算一次）</span></div>
         <div class="table-wrap"><table class="table"><thead><tr><th>月份</th><th class="t-num">本次导入</th><th class="t-num">已并入</th><th class="t-num">差异</th></tr></thead><tbody>
           {% for x in c.conflicts %}<tr{% if x.bad %} class="is-selected"{% endif %}><td class="num t-nowrap">{{ x.month }}</td><td class="t-num">{{ x.imported|num }}</td><td class="t-num">{{ x.merged|num }}</td><td class="t-num t-nowrap{% if x.bad %} strong{% endif %}">{% if x.diff is none %}已并入为 0{% else %}{{ '%+.1f%%'|format(x.diff * 100) }}{% endif %}{% if x.bad %} <span class="badge badge--unverified">&gt; 5%</span>{% endif %}</td></tr>{% endfor %}
         </tbody></table></div>
-        <p class="field__hint">差异 = |本次 − 已并入| ÷ 已并入。同系列 listing 部分共享评论，按 listing 合计会比按评论 ID 去重略多；勾选后才导入 {{ c.name }}，不勾选则本次不导入 {{ c.name }}。</p>
+        <p class="field__hint">差异 = 两边差多少占已并入的几成（超过 5% 标出）。同一系列的商品页有一部分评论是共用的，按商品页加起来会比"同一条评论只算一次"略多；勾选后才导入 {{ c.name }}，不勾选则本次不导入 {{ c.name }}。</p>
       </div>
       {% endif %}
       </div>

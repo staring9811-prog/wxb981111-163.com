@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block head %}
+<style>#t-rules td:nth-child(-n+2), #t-rules td:nth-child(4), #t-attrs td:nth-child(2), #t-attrs td:nth-child(4) { white-space: nowrap; }</style>
 <style>
   .vals { display: flex; flex-wrap: wrap; gap: var(--space-1); }
   .val { display: inline-flex; align-items: center; height: 22px; padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-warm); font-size: var(--text-xs); color: var(--fg-2); white-space: nowrap; }
@@ -89,7 +90,7 @@
     <section class="panel">
       <div class="panel__head"><h2 class="panel__title">打标规则</h2><span class="section__note">四个渠道用同一套规则，确认队列标明渠道</span><button class="btn btn--sm" type="button" data-open="#dwRules">编辑 JSON</button></div>
       <div class="table-wrap table-wrap--flush">
-        <table class="table">
+        <table class="table" id="t-rules">
           <thead><tr><th>标签</th><th>方式</th><th>规则摘要</th><th class="t-num">规则数</th><th><span class="visually-hidden">操作</span></th></tr></thead>
           <tbody>
             {% for r in tag_rows %}
@@ -97,6 +98,10 @@
             {% endfor %}
           </tbody>
         </table>
+      </div>
+      <div class="row small" style="padding: var(--space-3) var(--space-4); gap: var(--space-3); border-top: 1px solid var(--border-soft)" data-retag>
+        <form method="post" action="/settings/category/retag-frames" onsubmit="return confirm('按当前规则重打尺寸段、形态？只改没人工确认过的标签；完成后机会扫描自动重算，模型与回测需另点重算。')"><button class="btn btn--sm" type="submit">按当前规则重打分框标签</button></form>
+        <span class="muted">{% if retag.at %}上次 {{ retag.at }}：尺寸段改 {{ retag.size|num }} 条、形态改 {{ retag.form|num }} 条，其中 {{ retag.queued|num }} 条进确认队列；已人工确认的标签不改{% else %}还没有执行过{% endif %}</span>
       </div>
       <div class="panel__foot">置信度按证据状态取值：{{ conf_text }}{% if vision_usd %} · 看图每次约 ${{ '%.3f'|format(vision_usd[0]) }}–{{ '%.3f'|format(vision_usd[1]) }}{% endif %}{% if rule_version %} · 规则版本 {{ rule_version }}{% endif %}</div>
     </section>
