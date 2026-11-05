@@ -207,7 +207,7 @@
     "check_evidence": "pass",
     "check_format": "pass",
     "check_consistency": "pass (未识别 User Goals 章节提示，与 v9 同)",
-    "check_requirements_contract": "pass (218 stable objects, revision 10)"
+    "check_requirements_contract": "pass (221 stable objects, revision 10)"
   },
   "design": {
     "round": 2,

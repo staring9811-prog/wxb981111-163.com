@@ -179,7 +179,8 @@
             <span class="small muted">显示 <b class="num" data-shown>7</b> 组（共 246 组 268 条，按组内商品数排序；"分框未知"按窗口销量排序）</span>
           </div>
 
-          <div class="qgroups" id="queue">
+          <div class="banner banner--ok" style="margin-bottom: var(--space-3)"><div class="banner__body"><div class="banner__title">已按新分框规则重打标（28″ 单独成档、开放式单独成形态）</div><div>尺寸段改 812 条、形态改 436 条，其中 37 条"开放式（只有泛指词）"待确认；已人工确认的标签未改。</div></div></div>
+<div class="qgroups" id="queue">
             <!-- 组 1：Amazon 元素，同图 3 个 -->
             <article class="qgroup" data-channel="amazon" data-reason="element" aria-labelledby="g1-title">
               <div class="qgroup__head">
@@ -386,12 +387,13 @@
             <!-- 组 8（v9）：Wayfair 渠道调研 · 多尺寸未拆（单个商品；调研商品没有主图） -->
             <article class="qgroup" data-channel="wayfair" data-reason="frame" aria-labelledby="g8-title">
               <div class="qgroup__head">
-                <svg class="thumb" role="img" aria-label="无主图（渠道调研导入）"><use href="#img-vanity"/></svg>
+                <div><img class="thumb" data-zoom="" src="data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2296%22 height=%2296%22%3E%3Crect width=%2296%22 height=%2296%22 fill=%22%23d9d4c7%22/%3E%3Crect x=%2218%22 y=%2230%22 width=%2260%22 height=%2244%22 fill=%22%23a89f8c%22/%3E%3C/svg%3E" alt="主图（点开放大）"><a class="tlink small" href="#" target="_blank" rel="noopener">商品链接</a></div>
                 <div class="qgroup__meta">
                   <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>分框未知（渠道调研）</span><span class="badge">尺寸段 · 多尺寸未拆</span><span class="etag">调研导入</span><span class="small muted">窗口销量 6,240 件（1–10 月）· 选项段 24″ / 30″ / 36″ · 评论里能对上尺寸的不足 5 条</span></div>
                   <h3 class="qgroup__title" id="g8-title">这个 listing 的销量算哪个尺寸段？</h3>
                   <div class="choice-group" role="radiogroup" aria-label="候选值">
                     <label class="choice"><input type="radio" name="g8" value="24″">24″（全部销量计入）</label>
+                    <label class="choice"><input type="radio" name="g8" value="28″">28″（全部销量计入）</label>
                     <label class="choice"><input type="radio" name="g8" value="30″">30″（全部销量计入）</label>
                     <label class="choice"><input type="radio" name="g8" value="36″">36″（全部销量计入）</label>
                     <label class="choice"><input type="radio" name="g8" value="不进框">不进框（不再进队列）</label>
@@ -415,13 +417,14 @@
             <!-- 组 9（v9）：Wayfair 渠道调研 · 形态未知 -->
             <article class="qgroup" data-channel="wayfair" data-reason="frame" aria-labelledby="g9-title">
               <div class="qgroup__head">
-                <svg class="thumb" role="img" aria-label="无主图（渠道调研导入）"><use href="#img-vanity"/></svg>
+                <div class="thumb thumb--noimg" data-noimg><span>没有主图，点商品链接去商品页看</span><a class="tlink" href="#" target="_blank" rel="noopener">商品链接</a></div>
                 <div class="qgroup__meta">
                   <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>分框未知（渠道调研）</span><span class="badge">形态 · 无依据</span><span class="etag">调研导入</span><span class="small muted">窗口销量 3,120 件 · 规格没有 Mounting / Installation，标题也没写</span></div>
-                  <h3 class="qgroup__title" id="g9-title">这个商品是落地式还是悬浮式？</h3>
+                  <h3 class="qgroup__title" id="g9-title">这个商品是落地式、悬浮式还是开放式？</h3>
                   <div class="choice-group" role="radiogroup" aria-label="候选值">
                     <label class="choice"><input type="radio" name="g9" value="落地式">落地式</label>
                     <label class="choice"><input type="radio" name="g9" value="悬浮式">悬浮式</label>
+                    <label class="choice"><input type="radio" name="g9" value="开放式">开放式（不带门的开放层板）</label>
                     <label class="choice"><input type="radio" name="g9" value="转角式">转角式</label>
                     <label class="choice"><input type="radio" name="g9" value="未知">仍不确定（保持未知，不进框）</label>
                   </div>
