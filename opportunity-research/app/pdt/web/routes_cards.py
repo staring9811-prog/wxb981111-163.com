@@ -204,7 +204,7 @@ def _view(s, c: Card, user):
     fc = s.scalar(select(Forecast).where(Forecast.card_id == c.id))
     run = cardcore.latest_run(s)
     stop_defs = {x["kind"]: x for x in numbers.get("stop", [])}
-    stops = [dict(st, text=stop_defs.get(st["kind"], {}).get("text", "").replace("{v}", f"{st['value']:g}"), i=i)
+    stops = [dict(st, text=stop_defs.get(st["kind"], {}).get("text", "").replace("{v}", f"{st['value']:g}"), basis=stop_defs.get(st["kind"], {}).get("basis", ""), i=i)
              for i, st in enumerate(narr.get("stop", []))]
     sub_by = s.get(User, pend.submitted_by) if pend and pend.submitted_by else None
     approver = s.get(User, last_ok.decided_by) if last_ok and last_ok.decided_by else None

@@ -474,18 +474,30 @@ def queue(channel: str | None = None, reason: str | None = None, status: str = '
                 osrc.setdefault((t.channel, t.item_id), {})[t.tag] = 'manual' if t.status == 'confirmed' and t.confirmed_by else t.source
         from .channels import item_link  # 没有商品链接时（追踪导出不带链接）按渠道商品 ID 拼链接
         groups = {}
+        imaps = {}
+
+        def image_of(t, p):
+            """主图：商品自带（Amazon、带图片列的其他渠道上传）；没有时按渠道 + 商品编号取渠道调研导入的"主图"列（AC-F18-12）。"""
+            if p.image_url or t.channel == 'amazon':
+                return p.image_url or ''
+            if t.channel not in imaps:
+                from . import research
+                imaps[t.channel] = research.image_map(t.channel)
+            m = imaps[t.channel]
+            return m.get(t.item_id) or m.get(str(t.item_id).split(' ')[0]) or ''
         for t, p in rows:
+            img = image_of(t, p)
             asm = t.tag == '装' and not t.value and t.channel != 'amazon'
             gk = (t.img_group or f'{t.channel}:{t.item_id}', t.tag)
-            g = groups.setdefault(gk, dict(key=f'{gk[0]}|{gk[1]}', img_group=gk[0], tag=t.tag, image=p.image_url, items=[], candidates=[], channels=set(),
+            g = groups.setdefault(gk, dict(key=f'{gk[0]}|{gk[1]}', img_group=gk[0], tag=t.tag, image=img, items=[], candidates=[], channels=set(),
                                            source='manual' if status != 'queued' else t.source,
                                            reason='元素' if t.tag == '元素' else ('装：未知' if asm else '低置信度'),
-                                           by=('image' if p.image_url else ('series' if (t.img_group or '').startswith('s') else
+                                           by=('image' if img else ('series' if (t.img_group or '').startswith('s') else
                                                                          ('title' if (t.img_group or '').startswith('t') else 'item')))))
             o = other.get((t.channel, t.item_id), {})
             os_ = osrc.get((t.channel, t.item_id), {})
             g['items'].append(dict(tag_id=t.id, channel=t.channel, item_id=t.item_id, title=p.title, value=t.value, confidence=t.confidence,
-                                   status=t.status, link=p.link or item_link(t.channel, t.item_id), image=p.image_url, confirm_mode=t.confirm_mode,
+                                   status=t.status, link=p.link or item_link(t.channel, t.item_id), image=img, confirm_mode=t.confirm_mode,
                                    source=SRC_LABEL.get('manual' if t.status == 'confirmed' and t.confirmed_by else t.source, t.source),
                                    others_tags=[(o.get(k), SRC_LABEL.get(os_.get(k), '')) for k in ('尺寸段', '装', '形态', '台面材质', '主色', '柜体材质')
                                                 if k != t.tag and o.get(k) and o.get(k) != '未知'],

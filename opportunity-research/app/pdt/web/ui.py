@@ -96,3 +96,11 @@ def fmt_value(v):
 
 
 templates.env.filters["vname"] = fmt_value
+
+
+def zip_bars(months, series):
+    """代表产品逐月柱：月份 + 数值 → [{m, v}]（v 为 None 的月份留空）。"""
+    return [dict(m=m, v=v) for m, v in zip(months or [], series or [])]
+
+
+templates.env.filters["zip_bars"] = zip_bars

@@ -135,3 +135,42 @@ def evidence_for(channel: str, flags: dict) -> str:
         return evidence(channel)
     grades = [EVIDENCE_AMAZON[k] for k in on]
     return '经回测' if '经回测' in grades else '历史观察'
+
+
+# ---------------------------------------------------------------- 需求范围（AC-F20-06、07，revision 10）
+SCOPE_UP = 0.2  # 份额 ln(近 ÷ 前) ≥ 0.2 算"在涨"（与系统其他"上升"同口径）
+
+
+def _size_key(s):
+    from .families import SIZE_ORDER
+    return SIZE_ORDER.index(s) if s in SIZE_ORDER else 99
+
+
+def demand_scope(rows: list) -> dict:
+    """rows = [(框, 属性, 取值, metrics)]（同一渠道同一月份的全部单元）。返回 {(框, 属性, 取值): {kind, sizes, head, tip}}。
+    同拆装、同形态、同属性取值的其他尺寸段框里，在涨（ln ≥ 0.2）或份额 ≥ 这些尺寸段（含本框）平均份额的计为可拓展；否则细分需求。"""
+    groups = {}
+    for fr, att, val, m in rows:
+        p = fr.split(' · ')
+        if len(p) != 3:
+            continue
+        groups.setdefault((p[1], p[2], att, val), []).append((p[0], m.get('share'), m.get('share_prev'), m.get('dlog_share')))
+    out = {}
+    for (asm, form, att, val), es in groups.items():
+        es.sort(key=lambda e: _size_key(e[0]))
+        shares = [e[1] for e in es if e[1] is not None]
+        avg = sum(shares) / len(shares) if shares else None
+
+        def trend(d):
+            return '在涨' if d is not None and d >= SCOPE_UP else ('在跌' if d is not None and d <= -SCOPE_UP else '持平')
+        tip = [f'同{asm} · {form}各尺寸段的 {att}：{val}'] + [
+            f"{s} 份额 {(pp or 0) * 100:.1f}% → {(sh or 0) * 100:.1f}%，{trend(d)}" for s, sh, pp, d in es]
+        if avg is not None:
+            tip.append(f'这些尺寸段的平均份额 {avg * 100:.1f}%；在涨或不低于平均的尺寸段算"可拓展"')
+        for s, sh, pp, d in es:
+            ok = [x for x, xsh, _, xd in es if x != s and ((xd is not None and xd >= SCOPE_UP) or (xsh is not None and avg is not None and xsh >= avg))]
+            out[(f'{s} · {asm} · {form}', att, val)] = dict(
+                kind='可拓展' if ok else '细分需求', sizes=ok, head=f'{s} · {asm} · {form} · {att}：{val}',
+                text=('可拓展到 ' + '、'.join(ok)) if ok else '细分需求',
+                tip='|'.join(tip if len(es) > 1 else tip[:1] + [f'其他尺寸段（同{asm} · {form}）都没有这个取值'] + tip[1:]))
+    return out

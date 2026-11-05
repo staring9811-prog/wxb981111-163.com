@@ -58,10 +58,10 @@
       {% set rbs = chst.rebuild %}
       <ul class="checklist">
         <li><svg class="icon {{ 'ok' if chst.n_months >= min_months else 'wait' }}"><use href="#ph-{{ 'check-circle' if chst.n_months >= min_months else 'warning' }}"/></svg>重建历史 {{ chst.start }} 至 {{ chst.end }}，共 {{ chst.n_months }} 个月（{{ '≥' if chst.n_months >= min_months else '<' }} {{ min_months }} 个月）<a href="/data/channels?ch={{ channel }}#rebuild">看重建</a></li>
-        <li><svg class="icon ok"><use href="#ph-check-circle"/></svg>历史回补：{{ rbs.pages_listed|num }} 个商品页、{{ rbs.families|num }} 个评论家族、{{ rbs.truncated_families or 0 }} 截断（{{ rbs.collected_on }}）</li>
+        <li><svg class="icon ok"><use href="#ph-check-circle"/></svg>历史回补：{{ rbs.pages_listed|num }} 个商品页、{{ rbs.families|num }} 个款（评论家族）、{{ rbs.truncated_families or 0 }} 截断（{{ rbs.collected_on }}）</li>
         {% if ch_pending %}<li><svg class="icon wait"><use href="#ph-warning"/></svg>打标确认：{{ chname }} {{ chst.end }} 还有 {{ ch_pending }} 条待确认 <a href="/tagging">去确认</a></li>{% else %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>打标确认：{{ chname }} {{ chst.end }} 无待确认</li>{% endif %}
       </ul>
-      <div class="section__note" style="margin-top: var(--space-3)">只用 {{ chname }} 数据，按"尺寸 × 装 × 形态"框 × 属性取值重算评分，信号：份额斜率 b6、新品占比 x5（另含新进家族 x2、体量 x4 作控制），Amazon 侧丰富度（同尺寸段 × 形态 × 属性取值、不分拆装的 Amazon 家族数）作排序加分信号单独检验；滚动回测后按打折规则同时给出打折后的读法。不调用外部服务，不花钱。</div>
+      <div class="section__note" style="margin-top: var(--space-3)">只用 {{ chname }} 数据，按"尺寸 × 装 × 形态"框 × 属性取值重算评分，信号：份额斜率 b6、新品占比 x5（另含新进款 x2、体量 x4 作控制），Amazon 侧丰富度（同尺寸段 × 形态 × 属性取值、不分拆装的 Amazon 款数）作排序加分信号单独检验；滚动回测后按打折规则同时给出打折后的读法。不调用外部服务，不花钱。</div>
     </div>
   </section>
   <section class="panel" aria-labelledby="ch-rule">
@@ -123,8 +123,8 @@
         <tr><td class="mono">x5</td><td>{{ sig_names.x5 }}</td><td class="t-num">{{ sg(raw.rx5) }} / {{ sg(raw.rx5b) }}</td><td class="small">新品 = 首条评论后 ≤ 6 个月；k = 6 合计系数 {{ sg(raw.coef_x5_k6) }}</td></tr>
         <tr><td class="mono">Amazon 侧丰富度</td><td>{{ sig_names.az }}</td>
           {% if sig.available %}
-          <td class="t-num">{{ sg(sig.base.rho) }} / {{ sg(sig.base.rhob) }} → {{ sg(sig.g.rho) }} / {{ sg(sig.g.rhob) }}<button class="etag" type="button" data-pop-title="加入 Amazon 侧丰富度前后" data-pop="检验=按单元分组 5 折交叉验证，{{ sig.t0|length }} 个时点平均秩相关;基础=b6、x5、x2、x4：{{ sg(sig.base.rho) }} / {{ sg(sig.base.rhob) }};加差距 G家族={{ sg(sig.g.rho) }} / {{ sg(sig.g.rhob) }};只加 Amazon 家族数={{ sg(sig.az.rho) }} / {{ sg(sig.az.rhob) }};G家族单独={{ sg(sig.g_single.rho) }} / {{ sg(sig.g_single.rhob) }};对齐=尺寸段 × 形态 × 属性取值（不分拆装），T0 前 6 个月;读法=Amazon 结构领先，不是本渠道少所以会涨">候选</button></td>
-          <td class="small">加入前 → 加入后（基础 → 加差距 G）；只加 Amazon 家族数 {{ sg(sig.az.rho) }} / {{ sg(sig.az.rhob) }}，作用来自 Amazon 侧</td>
+          <td class="t-num">{{ sg(sig.base.rho) }} / {{ sg(sig.base.rhob) }} → {{ sg(sig.g.rho) }} / {{ sg(sig.g.rhob) }}<button class="etag" type="button" data-pop-title="加入 Amazon 侧丰富度前后" data-pop="检验=按单元分组 5 折交叉验证，{{ sig.t0|length }} 个时点平均秩相关;基础=b6、x5、x2、x4：{{ sg(sig.base.rho) }} / {{ sg(sig.base.rhob) }};加差距 G款={{ sg(sig.g.rho) }} / {{ sg(sig.g.rhob) }};只加 Amazon 款数={{ sg(sig.az.rho) }} / {{ sg(sig.az.rhob) }};G款单独={{ sg(sig.g_single.rho) }} / {{ sg(sig.g_single.rhob) }};对齐=尺寸段 × 形态 × 属性取值（不分拆装），T0 前 6 个月;读法=Amazon 结构领先，不是本渠道少所以会涨">候选</button></td>
+          <td class="small">加入前 → 加入后（基础 → 加差距 G）；只加 Amazon 款数 {{ sg(sig.az.rho) }} / {{ sg(sig.az.rhob) }}，作用来自 Amazon 侧</td>
           {% else %}<td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="small">{{ sig.reason }}</td>{% endif %}
         </tr>
       </tbody>

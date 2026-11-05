@@ -14,7 +14,7 @@ from ..db import session
 from ..models import Batch, Card, Opportunity, Product, Tag
 from ..models_data import ScanMeta
 from ..core import channel_model, pipeline, richness
-from ..core.scan import KINDS
+from ..core.scan import KINDS, demand_scope
 from .ui import render
 
 router = APIRouter()
@@ -59,6 +59,7 @@ def _results(channel, month, frame, vars, type, grade):
             for c in s.scalars(select(Card).where(Card.channel == channel)):
                 cards.setdefault((c.frame, c.attr, c.value), c.id)
                 cards.setdefault(('*', c.attr, c.value), c.id)
+        scope = demand_scope([(o.frame, o.attr, o.value, o.metrics or {}) for o in ops])  # 需求范围（AC-F20-06、07）
         fu = {f['frame']: f['units'] for f in meta.meta.get('frames', [])}
         frames_all = [f['frame'] for f in meta.meta.get('frames', [])]
         # 按框汇总（全部单元）
@@ -82,6 +83,7 @@ def _results(channel, month, frame, vars, type, grade):
                 continue
             rows.append(dict(id=o.id, frame=o.frame, attr=o.attr, value=o.value, flags=flags, evidence=ev, m=m, frame_units=fu.get(o.frame, 0),
                              card=cards.get((o.frame, o.attr, o.value)), related=cards.get(('*', o.attr, o.value)), oos=False,
+                             scope=scope.get((o.frame, o.attr, o.value)),
                              rich=richness.for_unit(channel, o.frame, o.attr, o.value, rt) if rt else None))
         if channel != 'amazon' and not types and not grades:
             # 样本外（AC-F29-06）：本渠道前 N 里没有家族、Amazon 需求已证明的单元，挂在同尺寸段 · 形态里月销最大的已扫描框下
@@ -90,7 +92,7 @@ def _results(channel, month, frame, vars, type, grade):
                 if not tgt or u['attr'] not in vars_ or (frame and tgt[0] != frame):
                     continue
                 rows.append(dict(id=None, frame=tgt[0], attr=u['attr'], value=u['value'], flags=[], evidence='样本外', m={}, frame_units=fu.get(tgt[0], 0),
-                                 card=None, related=None, oos=True, rich=richness.for_unit(channel, tgt[0], u['attr'], u['value'], rt)))
+                                 card=None, related=None, oos=True, scope=None, rich=richness.for_unit(channel, tgt[0], u['attr'], u['value'], rt)))
         order = {f: i for i, f in enumerate(frames_all)}
         rows.sort(key=lambda r: (order.get(r['frame'], 999), 9 if r['oos'] else (min(KINDS.index(k) for k in r['flags']) if r['flags'] else 5),
                                  -(r['m'].get('units') or 0)))
@@ -140,12 +142,12 @@ def scan_export(channel: str = 'amazon', month: str = '', frame: str = '', vars:
     wb = Workbook()
     ws = wb.active
     ws.title = '扫描结果'
-    ws.append(['框', f'框{est}月销', '机会类型', '属性', '取值', f'{est}月销', '份额（前期）', '份额（近期）', '家族', '单款 ÷ 同框', '评分', '同框评分',
+    ws.append(['框', f'框{est}月销', '机会类型', '属性', '取值', '需求范围', f'{est}月销', '份额（前期）', '份额（近期）', '在卖的款数', '单款 ÷ 同框', '评分', '同框评分',
                '溢价', '中位价', '新品占比', '同框新品占比', '新家族做到', '新家族数', '同框新家族做到', '同框新家族数', '证据等级'])
     for r in rows:
         m = r['m']
         am = channel == 'amazon'
-        ws.append([r['frame'], r['frame_units'], '、'.join(r['flags']), r['attr'], r['value'], m.get('units'), m.get('share_prev'), m.get('share'),
+        ws.append([r['frame'], r['frame_units'], '、'.join(r['flags']), r['attr'], r['value'], (r.get('scope') or {}).get('text', ''), m.get('units'), m.get('share_prev'), m.get('share'),
                    m.get('families'), m.get('per_family_ratio'), m.get('rating'), m.get('frame_rating'), m.get('premium'), m.get('median_price'),
                    m.get('newshare'), m.get('frame_newshare'), m.get('newmade') if am else None, m.get('newfam') if am else None,
                    m.get('frame_newmade') if am else None, m.get('frame_newfam') if am else None, r['evidence']])

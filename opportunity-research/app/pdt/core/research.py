@@ -49,7 +49,7 @@ FORMS = ['落地式', '悬浮式', '开放式', '转角式']
 ASMS = ['拆装', '整装']
 PRICE_ABS = [0, 200, 300, 450, 650, 900, 1300, np.inf]  # 与 F29 相同的 7 段绝对价位
 REASONS = ['尺寸段未知', MULTI, '装未知', '形态未知']
-FAMILY_NOTE = {'homedepot': 'Home Depot 评论家族', 'lowes': "Lowe's 父体", 'wayfair': 'Wayfair listing（一个 listing 算一个家族）'}
+FAMILY_NOTE = {'homedepot': '一款 = 一个 Home Depot 评论家族（共享评论的商品页）', 'lowes': "一款 = 一个 Lowe's 父体", 'wayfair': '一款 = 一个 Wayfair listing'}
 
 
 def today() -> date:
@@ -468,7 +468,7 @@ def pending_list(A: pd.DataFrame, P: pd.DataFrame, channel: str) -> list[dict]:
         raw = {k: _clean(r.get(k)) for k in RAW_KEYS if hasattr(r, 'get')}
         opts = [s for s in raw.get('选项段', '').split('、') if s in SIZES]
         base = dict(pid=pid, fam=str(g['fam'].iloc[0]), title=_clean(r.get('title')), brand=_clean(r.get('品牌')) if hasattr(r, 'get') else '',
-                    sales=_f(tot.get(pid, 0)), link=item_link(channel, pid), raw=raw,
+                    sales=_f(tot.get(pid, 0)), link=item_link(channel, pid), raw=raw, image=raw.get('主图', ''),
                     top_raw=_clean(r.get('台面材质')), color=_clean(r.get('主色')), cab=_clean(r.get('柜体材质')),
                     size=_clean(r.get('尺寸段')), asm=_clean(r.get('装')), form=_clean(r.get('形态')))
         if g['多尺寸未拆'].any():

@@ -62,8 +62,8 @@
           <li>商品范围：每个渠道 = "bathroom vanity" 与 "bathroom vanity with sink" 自然位前 300 并集 + 类目节点商品，合并去重；与机会扫描用的评论 VP 数据不是同一范围。</li>
           <li>销量：逐月评论 VP × 50 + 非 VP × 20；没有逐月评论的商品按同来源、同评论数档换算，标"估算"并给低估计；趋势与新品只用有月度的销量。</li>
           <li>价格是采集日价；评分是页面评分（按评论数加权）。各渠道口径不同，只在同渠道、同框内比较，不比跨渠道绝对销量。</li>
-          <li>家族：Home Depot 评论家族 / Lowe's 父体 / Wayfair listing。</li>
-          <li>幸存者偏差：只含今天仍在榜的商品，早月份偏低，"份额在涨""新家族卖起来"偏乐观。</li>
+          <li>款：Home Depot 款（评论家族） / Lowe's 父体 / Wayfair listing。</li>
+          <li>幸存者偏差：只含今天仍在榜的商品，早月份偏低，"份额在涨""新款卖起来"偏乐观。</li>
         </ul>
       </details>
     </div>
@@ -101,7 +101,7 @@
   {% else %}
   <div class="stats rs-stats">
     <div class="stat"><div class="stat__label">窗口</div><div class="stat__value num">{{ sm.n_months }}<span class="stat__unit">个完整月</span></div><div class="stat__meta">{{ sm.window[0] }} 至 {{ sm.window[-1] }}{% for m, n in sm.reference.items() %} · {{ m }} 只作参考{% endfor %}</div></div>
-    <div class="stat"><div class="stat__label">商品 / 家族</div><div class="stat__value num">{{ sm.n_products|num }}<span class="stat__unit">个商品</span></div><div class="stat__meta">{{ sm.n_families|num }} 个家族（{{ sm.family_note }}），有销量 {{ sm.n_families_sold|num }} 个</div></div>
+    <div class="stat"><div class="stat__label">商品 / 款</div><div class="stat__value num">{{ sm.n_products|num }}<span class="stat__unit">个商品</span></div><div class="stat__meta">{{ sm.n_families|num }} 款（{{ sm.family_note }}），有销量 {{ sm.n_families_sold|num }} 个</div></div>
     <div class="stat"><div class="stat__label">有月度销量</div><div class="stat__value num">{{ pct(sm.monthly_share) }}</div><div class="stat__meta">{% if sm.n_static %}{{ sm.n_static }} 个商品只有评论总数，按评论数档估算{% else %}全部来自逐月评论{% endif %}</div></div>
     <div class="stat"><div class="stat__label">已落框销量</div><div class="stat__value num">{{ pct(sm.framed_share, 1) }}</div><div class="stat__meta">{% for k in ['多尺寸未拆', '形态未知', '装未知', '尺寸段未知'] %}{% if sm.reasons.get(k) %}{{ k }} {{ pct(sm.reasons.get(k), 1) }} {% endif %}{% endfor %}{% if sm.noframe_share %}· 不进框 {{ pct(sm.noframe_share, 1) }}{% endif %}</div></div>
     <div class="stat"><div class="stat__label">渠道月均{% if sm.estimated %}（估算）{% endif %}</div><div class="stat__value num">{{ sm.monthly_avg|num }}<span class="stat__unit">件</span></div><div class="stat__meta">{% if sm.estimated %}低估计 {{ sm.monthly_avg_low|num }} · {% endif %}达门槛 {{ sm.frames_big }} / {{ sm.frames_all }} 框</div></div>
@@ -122,7 +122,7 @@
   {% if frames %}
   <div class="table-wrap">
     <table class="table rs-table" aria-label="{{ st[ch].name }} 达门槛的框">
-      <thead><tr><th>框</th><th>可读性 · 历史观察</th><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">渠道内份额</th><th class="t-num">近 3 ÷ 前 3</th><th class="t-num">家族</th><th class="t-num">单款月均</th><th class="t-num">新家族（销量占比）</th><th class="t-num">中位价</th><th class="t-num">评分</th><th>台面 / 主色 / 柜体 / 元素 已知</th><th class="t-num">分框覆盖（期望）</th><th class="t-num">有月度占比</th></tr></thead>
+      <thead><tr><th>框</th><th>可读性 · 历史观察</th><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">渠道内份额</th><th class="t-num">近 3 ÷ 前 3</th><th class="t-num">款</th><th class="t-num">单款月均</th><th class="t-num">新款（销量占比）</th><th class="t-num">中位价</th><th class="t-num">评分</th><th>台面 / 主色 / 柜体 / 元素 已知</th><th class="t-num">分框覆盖（期望）</th><th class="t-num">有月度占比</th></tr></thead>
       <tbody>
       {% for f in frames %}{% set nc = f.read == 'noconc' %}{% set nt = f.read == 'notrend' %}{% set href = '/research/' ~ ch ~ '/frame/' ~ f.slug %}
         <tr class="rd-{{ f.read }}" data-read="{{ f.read }}" data-href="{{ href }}" data-frame="{{ f.frame }}" tabindex="0">

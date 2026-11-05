@@ -50,7 +50,7 @@
     <div><div class="stat__label">月均</div><div class="v">{{ f.units|num }} 件{% if f.estimated %} <span class="etag etag--n">估算</span>{% endif %}</div>{% if f.estimated %}<div class="cell-sub">低估计 {{ f.units_low|num }}{% if f.low_below %} · 低估计未达门槛{% endif %}</div>{% endif %}</div>
     <div><div class="stat__label">渠道内份额</div><div class="v">{{ psh(f.channel_share) }}</div></div>
     <div><div class="stat__label">近 3 ÷ 前 3</div><div class="v">{% if nc or nt or f.ratio is none %}—{% else %}{{ '%.2f'|format(f.ratio) }} <span class="cell-sub">{{ f.ratio_label }}</span>{% endif %}</div></div>
-    <div><div class="stat__label">家族</div><div class="v">{{ '—' if nc else f.families }}</div></div>
+    <div><div class="stat__label">款</div><div class="v">{{ '—' if nc else f.families }}</div></div>
     <div><div class="stat__label">分框覆盖（期望）</div><div class="v">{{ pct(f.cover, 1) }}</div></div>
     <div><div class="stat__label">有月度占比</div><div class="v">{{ pct(f.monthly_share) }}</div></div>
     <div><div class="stat__label">可读性</div><div data-read="{{ f.read }}">{% set rd = READ[f.read] %}<span class="badge badge--{{ rd[1] }}"><svg class="icon"><use href="#ph-{{ rd[2] }}"/></svg>{{ rd[0] }}{% if f.read == 'noconc' %}（分框覆盖 {{ pct(f.cover, 1) }}）{% elif f.read == 'notrend' %}（有月度 {{ pct(f.monthly_share) }}）{% endif %}</span> <span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span></div></div>
@@ -80,7 +80,7 @@
         <tr><th class="t-num">月均</th><th class="t-num">框内份额</th></tr>
         {% else %}
         <tr class="grp"><th class="u-col" rowspan="2" scope="col">单元（属性：取值）</th><th colspan="2" scope="colgroup">体量份额</th><th colspan="5" scope="colgroup">趋势（只用有月度销量）</th><th colspan="2" scope="colgroup">新品</th><th colspan="3" scope="colgroup">供给</th><th colspan="2" scope="colgroup">价格</th><th scope="colgroup">评分</th><th scope="colgroup">Amazon 同框对照</th><th scope="colgroup">回测</th></tr>
-        <tr><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">框内份额</th><th>逐月份额</th><th class="t-num">近 3 − 前 3</th><th>走势（单元 ÷ 框）</th><th class="t-num">斜率 pp/月</th><th class="t-num">波动 CV</th><th class="t-num">新家族（卖起来）</th><th class="t-num">新家族占比（同框）</th><th class="t-num">家族</th><th class="t-num">价位段</th><th class="t-num">单款 ÷ 同框</th><th class="t-num">P25–P75</th><th class="t-num">溢价</th><th class="t-num">评分（同框差）</th><th>家族 · 价位段 · 份额前 3 → 近 3 月</th><th>证据等级 · 分级</th></tr>
+        <tr><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">框内份额</th><th>逐月份额</th><th class="t-num">近 3 − 前 3</th><th>走势（单元 ÷ 框）</th><th class="t-num">斜率 pp/月</th><th class="t-num">波动 CV</th><th class="t-num">新款（卖起来）</th><th class="t-num">新款占比（同框）</th><th class="t-num">款</th><th class="t-num">价位段</th><th class="t-num">单款 ÷ 同框</th><th class="t-num">P25–P75</th><th class="t-num">溢价</th><th class="t-num">评分（同框差）</th><th>款 · 价位段 · 份额前 3 → 近 3 月</th><th>证据等级 · 分级</th></tr>
         {% endif %}
       </thead>
       <tbody>
@@ -116,7 +116,7 @@
     </table>
   </div>
   {% endif %}
-  <p class="table-note">新家族按{{ data.summary.estimate.new_rule }}判定；"卖起来" = 进入月至 {{ data.summary.window[-1] }} 在本单元的月均 ≥ 同框每家族月均。份额分母含该属性未知。价位段 = 7 段绝对价位（与机会扫描的 Amazon 侧丰富度相同）。Amazon 同框对照 = Amazon 同尺寸段 × 形态 × 取值（不分拆装，元素按 6 类对齐）{{ data.summary.amazon_months or '最近 6 个完整月' }}，箭头按 ln 变化 ±0.2。回测列只引用{{ chn }}机会扫描的分级（该渠道最近一次回测为"经回测（打折）"时才有），和"历史观察"分开看。价格是采集日价，评分是页面评分按评论数加权，只在{{ chn }}同框内比较。{% if f.estimated %}含估算销量：体量、份额、家族、价格、评分用中估计，趋势与新品只用有月度的销量。{% endif %}</p>
+  <p class="table-note">新款按{{ data.summary.estimate.new_rule }}判定；"卖起来" = 进入月至 {{ data.summary.window[-1] }} 在本单元的月均 ≥ 同框每款月均。份额分母含该属性未知。价位段 = 7 段绝对价位（与机会扫描的 Amazon 侧丰富度相同）。Amazon 同框对照 = Amazon 同尺寸段 × 形态 × 取值（不分拆装，元素按 6 类对齐）{{ data.summary.amazon_months or '最近 6 个完整月' }}，箭头按 ln 变化 ±0.2。回测列只引用{{ chn }}机会扫描的分级（该渠道最近一次回测为"经回测（打折）"时才有），和"历史观察"分开看。价格是采集日价，评分是页面评分按评论数加权，只在{{ chn }}同框内比较。{% if f.estimated %}含估算销量：体量、份额、款、价格、评分用中估计，趋势与新品只用有月度的销量。{% endif %}</p>
 </section>
 {% endif %}
 {% endblock %}

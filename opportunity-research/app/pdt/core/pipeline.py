@@ -113,6 +113,8 @@ def rescore(user_id: int | None = None, month: str | None = None) -> int:
         s.bulk_insert_mappings(UnitScore, [dict(run_id=rid, channel='amazon', frame='全品类', attr=r['attr'], value=r['value'], data=r['data'])
                                            for r in mkm.unit_score_rows(D, T0, mk.BASE)])
     frame_unit_scores(rid, fm.ms(END))
+    from .. import services
+    services.put_setting('models_stale_frames', False)  # 已按当前分框规则重算（AC-F18-11）
     return rid
 
 

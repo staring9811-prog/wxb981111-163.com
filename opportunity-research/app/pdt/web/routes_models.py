@@ -15,8 +15,28 @@ from ..core import channel_model, pipeline, tagging
 from .ui import redirect, render
 
 router = APIRouter()
-NAMES = {'b6': '份额斜率（近 6 个月每月对数变化）', 'x5': '新品占比（近 6 个月新上架家族的销量占比 − 品类整体）', 'x3': '搜索同比',
-         'x4': '体量（ln 月均销，中心化）', 'x2': '新进家族（相对增长）'}
+NAMES = {'b6': '份额斜率（近 6 个月每月对数变化）', 'x5': '新品占比（近 6 个月新上架款的销量占比 − 品类整体）', 'x3': '搜索同比',
+         'x4': '体量（ln 月均销，中心化）', 'x2': '新进款（相对增长）'}
+WHO = {'b6': '份额最近半年在涨的单元', 'x5': '新品卖得比同框多的单元', 'x3': '搜索比去年多的单元', 'x4': '体量大的单元', 'x2': '新进来的款越多的单元'}
+
+
+def plain_coef(coef: dict) -> dict:
+    """信号系数表的白话列（AC-F19-07）：按 k = 6 合计（没有时用 b）的正负和大小写方向；绝对值最大的一项标"影响最大"。"""
+    val = {k: (c.get('k6') if c.get('k6') is not None else c.get('b')) for k, c in (coef or {}).items() if k in WHO and c}
+    top = max(val, key=lambda k: abs(val[k] or 0)) if val else None
+    out = {}
+    for k, v in val.items():
+        if v is None:
+            continue
+        if abs(v) < 0.05:
+            s = f'{WHO[k]}，之后变不变大几乎不受影响；作用很小'
+        elif v > 0:
+            s = f'{WHO[k]}，之后更可能继续变大'
+        else:
+            s = f'{WHO[k]}，之后反而更不容易变大'
+        out[k] = s + ('；这一项影响最大' if k == top else '')
+    out['截距'] = '所有单元共同的起点，不用单独看'
+    return out
 
 
 # 未并入批次状态 → 前置清单里的说明
@@ -82,7 +102,9 @@ def page(request: Request, channel: str = 'amazon', user=roles('operator', 'appr
     for r in bt.get('side', []):
         if r['k'] == 6:
             side.setdefault(r['T0'], {})[r['ver']] = r
+    from .. import services
     return render(request, 'models.html', 'PAGE-F19-01', '模型与回测', channel='amazon', run=run, bt=bt, pre=pre, state=st, reason=reason, names=NAMES, side=side,
+                  plain=plain_coef(bt.get('coef') or {}), frames_stale=bool(services.get_setting('models_stale_frames', False)),
                   newlayer=(run.newlayer or {}) if run else {}, market=(run.market or {}) if run else {})
 
 

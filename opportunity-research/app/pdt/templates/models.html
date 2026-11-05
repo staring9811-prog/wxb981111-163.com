@@ -31,6 +31,7 @@
   {% for c, n in channel_names.items() %}<a class="seg__opt" href="/models?channel={{ c }}" aria-pressed="{{ 'true' if c == channel else 'false' }}">{{ n }}</a>{% endfor %}
 </div>
 {% endblock %}
+{% macro q(tip) %}<span class="th-q" tabindex="0" data-tip="{{ tip }}">?</span>{% endmacro %}
 {% macro pc(x) %}{{ '—' if x is none or x is undefined else ('%d%%'|format((x * 100)|round)) }}{% endmacro %}
 {% macro sn(x) %}{{ '—' if x is none or x is undefined else (('+' if x >= 0 else '−') ~ (x|abs|num)) }}{% endmacro %}
 {% macro sg(x, nd=3) %}{{ '—' if x is none or x is undefined else (('%+.' ~ nd ~ 'f')|format(x)).replace('-', '−') }}{% endmacro %}
@@ -56,6 +57,7 @@
   </div>
 </div>
 {% if reason and user.role == 'operator' and not state.running %}<p class="small muted enter" style="margin-top: calc(-1 * var(--space-4)); text-align: right;">重算不可用：{{ reason }}</p>{% endif %}
+{% if frames_stale %}<div class="banner banner--stale enter" data-frames-stale><svg class="icon"><use href="#ph-arrows-clockwise"/></svg><div class="banner__body"><div class="banner__title">分框规则已变更，需重算</div><div>28″ 单独成档、开放式单独成形态（revision 10），标签已按新规则重打、机会扫描已按新框重算；本页结果还是旧框，点"重算"后按新框显示。</div></div></div>{% endif %}
 {% if state.error %}<div class="banner banner--block"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body">上次重算失败：{{ state.error }}</div></div>{% endif %}
 
 {% if run %}
@@ -108,61 +110,66 @@
   </div>
   <div class="table-wrap" style="margin-top: var(--space-4)">
     <table class="table">
-      <thead><tr><th>特征</th><th>意思</th><th class="t-num">b（k = 0）</th><th class="t-num">c（每多 3 个月）</th><th class="t-num">k = 6 合计</th><th class="t-num">k = 8 合计</th></tr></thead>
+      <thead><tr><th>信号</th><th>意思</th><th>白话{{ q('白话|这个信号代表什么、对"之后份额变大"是加分还是减分') }}</th><th class="t-num">b（k = 0）{{ q('b|k = 立项后第几个月。b = 立项当月这个信号每多一点，之后份额变大的倾向变多少；正数 = 越高越容易变大') }}</th><th class="t-num">c（每多 3 个月）{{ q('c|往后每多看 3 个月，这个信号的作用再变多少') }}</th><th class="t-num">k = 6 合计{{ q('k = 6 合计|看立项后第 6 个月时这个信号的总作用（b + c × 2）') }}</th><th class="t-num">k = 8 合计{{ q('k = 8 合计|看立项后第 8 个月时这个信号的总作用') }}</th></tr></thead>
       <tbody>
       {% for x in ['b6', 'x5', 'x3', 'x4', 'x2'] %}{% set cf = (bt.coef or {}).get(x) %}{% if cf %}
-        <tr><td class="mono">{{ x }}</td><td>{{ names[x] }}</td><td class="t-num">{{ sg(cf.b) }}</td><td class="t-num">{{ sg(cf.c) }}</td><td class="t-num">{{ sg(cf.k6) }}</td><td class="t-num">{{ sg(cf.k8) }}</td></tr>
+        <tr><td class="mono">{{ x }}</td><td>{{ names[x] }}</td><td class="plain" data-plain="{{ x }}">{{ plain.get(x, '') }}</td><td class="t-num">{{ sg(cf.b) }}</td><td class="t-num">{{ sg(cf.c) }}</td><td class="t-num">{{ sg(cf.k6) }}</td><td class="t-num">{{ sg(cf.k8) }}</td></tr>
       {% endif %}{% endfor %}
       {% set ic = (bt.coef or {}).get('截距') %}
-      {% if ic %}<tr><td class="mono">截距</td><td>a / θ；另按（体量档, k）纠偏</td><td class="t-num">{{ sg(ic.b) }}</td><td class="t-num">{{ sg(ic.c) }}</td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td></tr>{% endif %}
+      {% if ic %}<tr><td class="mono">截距</td><td>a / θ；另按（体量档, k）纠偏</td><td class="plain" data-plain="截距">{{ plain.get('截距') }}</td><td class="t-num">{{ sg(ic.b) }}</td><td class="t-num">{{ sg(ic.c) }}</td><td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td></tr>{% endif %}
       </tbody>
     </table>
   </div>
+  <p class="table-note">系数越大，这个信号对"立项后份额变大"的作用越强；正数加分、负数减分。b6、x5 等是信号代号，意思和白话见前两列。</p>
 </section>
 
 {% set b = newlayer.bias or {} %}
 <section class="section enter" style="--i:4" aria-labelledby="sec-new">
-  <div class="section__head"><h2 class="section__title" id="sec-new">新品层：做到概率与模型偏差</h2><span class="section__note">只用开发能定的属性；校准方式按预登记规则在选择段上选出 ({{ b.chosen or 'a' }}){% if b.mae and b.mae.a is not none %}，平均绝对误差每 10 个 {{ '%.1f'|format(b.mae.a * 10) }}{% endif %}</span></div>
+  <div class="section__head"><h2 class="section__title" id="sec-new">新品层：做到概率与模型偏差</h2><span class="section__note">只用开发能定的属性（尺寸、颜色、材质、元素等）给新品打分</span></div>
   <div class="grid-main-side">
     <div class="panel">
-      <div class="panel__head"><h3 class="panel__title">本月模型偏差</h3>{% if b.bias is not none %}<span class="badge {{ 'badge--warn' if b.bias > 0.05 else 'badge--ok' }}"><svg class="icon"><use href="#ph-warning"/></svg>{{ '偏高' if b.bias > 0.05 else ('偏低' if b.bias < -0.05 else '基本持平') }}</span>{% endif %}</div>
+      <div class="panel__head"><h3 class="panel__title">本月模型偏差{{ q('每 10 个|照这类条件做 10 个新品，有几个能做到成功线（6 个月内小类前 50 或月销售额 ≥ $10 万）') }}</h3>{% if b.bias is not none %}<span class="badge {{ 'badge--warn' if b.bias > 0.05 else 'badge--ok' }}"><svg class="icon"><use href="#ph-warning"/></svg>{{ '偏高' if b.bias > 0.05 else ('偏低' if b.bias < -0.05 else '基本持平') }}</span>{% endif %}</div>
       <div class="panel__body">
         <div class="bias">
           <div class="bias__item"><div class="stat__label">近批模型预测（每 10 个）</div><div class="stat__value num">{{ '%.1f'|format((b.pred or 0) * 10) }}</div></div>
           <div class="bias__item"><div class="stat__label">实际做到（每 10 个）</div><div class="stat__value num">{{ '%.1f'|format((b.actual or 0) * 10) }}</div></div>
           <div class="bias__item"><div class="stat__label">模型偏差（预测 − 实际）</div><div class="stat__value num">{{ sg((b.bias or 0) * 10, 1) }}</div></div>
         </div>
-        <p class="small muted" style="margin-top: var(--space-2)">近批 = 立项时点 {% for p in b.parts or [] %}{{ p[3] }}{% if not loop.last %}、{% endif %}{% endfor %} 的新家族 <button class="etag etag--n" type="button" data-pop-title="模型偏差来源" data-pop="时点={% for p in b.parts or [] %}{{ p[3] }}{% if not loop.last %}、{% endif %}{% endfor %};检验新家族={{ b.n }};预测={% for p in b.parts or [] %}{{ '%.1f'|format(p[0]*10) }}{% if not loop.last %} / {% endif %}{% endfor %};实际={% for p in b.parts or [] %}{{ '%.1f'|format(p[1]*10) }}{% if not loop.last %} / {% endif %}{% endfor %};校准=(a) 最近半年">n={{ b.n }}</button>。决策卡上的新品做到概率同时显示模型原值和扣掉偏差后的值。</p>
+        <p class="small muted" style="margin-top: var(--space-2)">近批 = 立项时点 {% for p in b.parts or [] %}{{ p[3] }}{% if not loop.last %}、{% endif %}{% endfor %} 的新款 <button class="etag etag--n" type="button" data-pop-title="模型偏差来源" data-pop="时点={% for p in b.parts or [] %}{{ p[3] }}{% if not loop.last %}、{% endif %}{% endfor %};检验新款={{ b.n }};预测={% for p in b.parts or [] %}{{ '%.1f'|format(p[0]*10) }}{% if not loop.last %} / {% endif %}{% endfor %};实际={% for p in b.parts or [] %}{{ '%.1f'|format(p[1]*10) }}{% if not loop.last %} / {% endif %}{% endfor %};校准=(a) 最近半年">n={{ b.n }}</button>。决策卡上的新品做到概率同时显示模型原值和扣掉偏差后的值。</p>
+        {% if b.bias is not none %}<p class="plain" data-bias-reading style="margin-top: var(--space-2)">"每 10 个" = 照这类条件做 10 个新品，有几个能做到成功线。最近一批新品，模型估计每 10 个能成 {{ '%.1f'|format((b.pred or 0) * 10) }} 个，实际{{ '只' if b.bias > 0 else '' }}成了 {{ '%.1f'|format((b.actual or 0) * 10) }} 个，{% if b.bias > 0.005 %}模型偏乐观，所以决策卡上把模型估计往下调 {{ '%.1f'|format(b.bias * 10) }}{% elif b.bias < -0.005 %}模型偏保守，所以决策卡上把模型估计往上调 {{ '%.1f'|format(-b.bias * 10) }}{% else %}模型估得基本准，决策卡上不用调{% endif %}。</p>{% endif %}
       </div>
     </div>
     <div class="panel">
       <div class="panel__head"><h3 class="panel__title">校准方式选择</h3></div>
-      <div class="panel__body"><dl class="kv">
-        {% for h, nm in [('a', '(a) 最近半年'), ('b', '(b) 全部'), ('c', '(c) 趋势外推')] %}{% set e = (b.mae or {}).get(h) %}
-        <dt>{{ nm }}</dt><dd class="num">平均绝对误差 {{ '%.1f'|format(e * 10) if e is not none else '—' }}{% if b.chosen == h %} <span class="badge badge--ok"><svg class="icon"><use href="#ph-check"/></svg>选用</span>{% endif %}</dd>
+      <div class="panel__body"><p class="plain" style="margin-bottom: var(--space-2)">三种办法估模型平时多估了多少：只看最近半年 / 看全部历史 / 按趋势往后推；平均差得最少的被选中，用来调整决策卡上的估计。</p><dl class="kv">
+        {% for h, nm in [('a', '(a) 只看最近半年'), ('b', '(b) 看全部历史'), ('c', '(c) 按趋势往后推')] %}{% set e = (b.mae or {}).get(h) %}
+        <dt>{{ nm }}</dt><dd class="num">平均每 10 个差 {{ '%.1f'|format(e * 10) if e is not none else '—' }} 个{% if b.chosen == h %} <span class="badge badge--ok"><svg class="icon"><use href="#ph-check"/></svg>选用</span>{% endif %}</dd>
         {% endfor %}
       </dl></div>
     </div>
   </div>
   <div class="table-wrap" style="margin-top: var(--space-4)">
     <table class="table">
-      <thead><tr><th>立项时点 T0</th><th class="t-num">训练新家族</th><th class="t-num">检验新家族</th><th class="t-num">实际每 10 个做到</th><th class="t-num">AUC</th><th class="t-num">打分前 30% / 后 30%</th><th class="t-num">模型平均 (a) / (b) / (c)</th><th>用途</th></tr></thead>
+      <thead><tr><th>立项时点{{ q('立项时点（T0）|假装站在这个月份立项，只用当时能看到的数据打分，再看之后的实际') }}</th><th class="t-num">训练新款{{ q('训练新款|模型用来学习的新品款数') }}</th><th class="t-num">检验新款{{ q('检验新款|用来考模型、模型没见过的新品款数') }}</th><th class="t-num">实际每 10 个做到{{ q('实际每 10 个做到|这批检验新品实际每 10 个有几个做到成功线') }}</th><th class="t-num">能不能分出好坏<div class="cell-sub">0.5 = 瞎猜，越近 1 越准</div>{{ q('能不能分出好坏（AUC）|随便挑一个做到的和一个没做到的，模型给前者打分更高的可能；0.5 = 瞎猜，越近 1 越准，低于 0.5 比瞎猜还差') }}</th><th class="t-num">打分前 30% / 后 30%{{ q('前 30% / 后 30%|模型打分最高三成 / 最低三成的新品，实际每 10 个各做成几个；前面应该比后面多') }}</th><th class="t-num">模型平均 (a) / (b) / (c){{ q('模型平均|三种校准办法各自估的每 10 个能成几个') }}</th><th>用途{{ q('用途|选择 = 用来挑校准办法；检验 = 用来考模型') }}</th></tr></thead>
       <tbody>
       {% for r in newlayer.rows or [] %}
-        <tr><td class="num">{{ r.T0 }}</td><td class="t-num">{{ r.n_train }}</td><td class="t-num">{{ r.n_test }}</td><td class="t-num">{{ r.actual }}</td><td class="t-num">{{ '%.2f'|format(r.auc) if r.auc is not none else '—' }}</td>
-          <td class="t-num">{{ r.top30 }} / {{ r.bottom30 }}</td><td class="t-num">{{ r.mean_a }} / {{ r.mean_b }} / {{ r.mean_c }}</td><td>{{ r.use }}{% if r.small %} <span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本不足</span>{% endif %}</td></tr>
+        <tr><td class="num">{{ r.T0 }}</td><td class="t-num">{{ r.n_train }}</td><td class="t-num">{{ r.n_test }}</td><td class="t-num">{{ r.actual }}</td><td class="t-num">{% if r.auc is none %}—{% elif r.auc < 0.5 %}<span class="bad">{{ '%.2f'|format(r.auc) }} 比瞎猜还差</span>{% else %}{{ '%.2f'|format(r.auc) }}{% endif %}</td>
+          <td class="t-num">{% if r.top30 is not none and r.bottom30 is not none and r.top30 <= r.bottom30 %}<span class="bad">{{ r.top30 }} / {{ r.bottom30 }} 高分组没比低分组好</span>{% else %}{{ r.top30 }} / {{ r.bottom30 }}{% endif %}</td><td class="t-num">{{ r.mean_a }} / {{ r.mean_b }} / {{ r.mean_c }}</td><td>{{ r.use }}{% if r.small %} <span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本不足</span>{% endif %}</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
+  <p class="table-note">每一行 = 假装站在那个月份立项，用当时的数据训练模型、再用模型没见过的新品考它。红色 = 这一时点模型比瞎猜还差，或高分组没比低分组好，要小心用；"样本不足" = 检验新品太少，结果不稳。</p>
 </section>
 
 <section class="section enter" style="--i:5" aria-labelledby="sec-bt">
   <div class="section__head"><h2 class="section__title" id="sec-bt">滚动回测：结果已知的时点重跑</h2><span class="section__note">站在 {{ bt.T0 }}，看立项后第 6–8 个月（{{ bt.window }}）的实际</span></div>
   <div class="grid-2">
     <div class="panel">
+      {% set gb = (bt.grasp_bins or []) %}{% set top_bin = gb[-1] if gb else none %}
       <div class="panel__head"><h3 class="panel__title">把握分档：之后实际份额变大的比例</h3><span class="badge {{ 'badge--pass' if vd.mono else 'badge--fail' }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if vd.mono else 'x-circle' }}"/></svg>{{ '逐档上升' if vd.mono else '未逐档上升' }}</span></div>
       <div class="panel__body">
+        <p class="plain" data-grasp-reading style="margin-bottom: var(--space-3)">系统给每个机会打了"把握"。这里回头检验：{% if top_bin %}把握 {{ top_bin.bin }} 的那批之后真有 {{ pc(top_bin.up) }} 份额变大{% endif %}{{ '——把握越高越靠谱，可以按把握排序挑机会' if vd.mono else '——但各档没有逐档变高，按把握排序要小心' }}。</p>
         {% set mx = (bt.grasp_bins or [])|map(attribute='up')|max %}
         <div class="hbars" role="list">
           {% for g in bt.grasp_bins or [] %}
@@ -170,16 +177,20 @@
           {% endfor %}
         </div>
       </div>
-      <div class="panel__foot">相关性：把握 vs 实际份额变化 {{ sg(bt.rho.grasp, 2) }}（≥ 300 件 {{ sg(bt.rho.grasp300, 2) }}）；预计多卖 vs 实际多卖 {{ sg(bt.rho.extra, 2) }}（≥ 300 件 {{ sg(bt.rho.extra300, 2) }}）</div>
+      {% set rg, rg3 = bt.rho.grasp, bt.rho.grasp300 %}
+      <div class="panel__foot" data-rho-reading>{% if rg is none %}没有相关性数据{% else %}把握和实际变化方向{{ '基本一致' if rg >= 0.2 else ('有一点一致' if rg > 0 else '不一致') }}{% if rg3 is not none %}，月销 ≥ 300 件的大单元{{ '更一致' if rg3 > rg else '没有更一致' }}{% endif %}{% endif %}<span class="th-q" tabindex="0" data-tip="相关性|把握 vs 实际份额变化 {{ sg(bt.rho.grasp, 2) }}（≥ 300 件 {{ sg(bt.rho.grasp300, 2) }}）；预计多卖 vs 实际多卖 {{ sg(bt.rho.extra, 2) }}（≥ 300 件 {{ sg(bt.rho.extra300, 2) }}）；0 = 无关，1 = 完全一致">?</span></div>
     </div>
     <div class="panel">
       <div class="panel__head"><h3 class="panel__title">分级：之后实际份额变大的比例</h3><span class="badge {{ 'badge--pass' if vd.d_ok else 'badge--fail' }}"><svg class="icon"><use href="#ph-{{ 'seal-check' if vd.d_ok else 'x-circle' }}"/></svg>D 档 {{ '≤' if vd.d_ok else '>' }} 30%</span></div>
+      {% set ga = (bt.grades or [])|selectattr('grade', 'equalto', 'A')|first %}
+      <p class="plain" data-grade-reading style="padding: var(--space-3) var(--space-4) 0">{% if ga and dgrade %}A 档之后真有 {{ pc(ga.up) }} 份额变大，D 档只有 {{ pc(dgrade.up) }}：{{ '分级能把好坏分开，D 档的机会别做' if ga.up > dgrade.up else '分级没能把好坏分开，要小心用' }}。{% endif %}</p>
       <div class="table-wrap table-wrap--flush">
         <table class="table">
-          <thead><tr><th>分级</th><th class="t-num">单元数</th><th class="t-num">实际变大比例</th><th class="t-num">实际多卖合计</th><th class="t-num">实际多卖中位</th></tr></thead>
+          <thead><tr><th>分级{{ q('分级|按把握从高到低分四档：A 最好、D 最差（D = 系统认为会变小）') }}</th><th class="t-num">单元数{{ q('单元数|这一档有几个"框 × 属性取值"') }}</th><th class="t-num">实际变大比例{{ q('实际变大比例|这一档里立项后份额真的变大的单元占比') }}</th><th class="t-num">实际多卖合计{{ q('实际多卖合计|立项后这些单元每月实际比之前多卖多少件（全部加起来）') }}</th><th class="t-num">实际多卖中位{{ q('实际多卖中位|一般的单元每月多卖多少件') }}</th></tr></thead>
           <tbody>{% for g in bt.grades or [] %}<tr><td class="cell-title">{{ g.grade }}</td><td class="t-num">{{ g.n }}</td><td class="t-num {{ 'strong' if g.grade == 'D' else '' }}">{{ pc(g.up) }}</td><td class="t-num">{{ sn(g.extra) }}</td><td class="t-num">{{ sn(g.median) }}</td></tr>{% endfor %}</tbody>
         </table>
       </div>
+      <p class="table-note" style="padding: 0 var(--space-4) var(--space-3)">A / B / C / D = 把握从高到低四档；"实际多卖" = 立项后这些单元每月实际比之前多卖多少件（负数 = 少卖）。</p>
     </div>
   </div>
 

@@ -252,7 +252,7 @@ def made_reading(value, attr, n, made, other_n, other_made, p) -> str:
         s += f"，同框其他{attr} {r2:.0%}"
     else:
         r2 = None
-    if n + (other_n or 0) < 20 or n < 5 or r2 is None:
+    if n + (other_n or 0) < 20 or n < 10 or r2 is None:
         return s + f"；样本太少，看不出{value}占优势"
     if p is not None and p < 0.05:
         return s + (f"；差别明显，{value}更容易做到" if r1 > r2 else f"；差别明显，{value}更难做到")
@@ -396,10 +396,12 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
                         at=run.created_at.strftime("%Y-%m-%d")) if run else None
         chans, prim = [], None
         for ch in CHANNELS:
-            opp = _opp(s, ch, frame, attr, value)
-            sc = _score(s, run, ch, frame, attr, value)
+            # Lowe's / Wayfair 用渠道调研（AC-F21-15、16），不用 F28 分析库
+            rsv = research.unit_view(ch, frame, attr, value) if ch in RESEARCH_CHANNELS else None
+            opp = _opp(s, ch, frame, attr, value) if rsv is None else None
+            sc = _score(s, run, ch, frame, attr, value) if rsv is None else None
             om = (opp.metrics or {}) if opp else {}
-            ts = pa.unit_timeseries(ch, frame, attr, value)
+            ts = pa.unit_timeseries(ch, frame, attr, value) if rsv is None else []
             months = [r["month"] for r in ts]
             recent, prev = months[-6:], months[-12:-6]
             pr, pp = _period(ts, recent), _period(ts, prev)
@@ -409,20 +411,18 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
             units = om.get("units", pr.get("units"))
             fam = om.get("families", pr.get("families"))
             fu = om.get("frame_units", pr.get("frame_units"))
-            has = bool(ts) or opp is not None
-            sample_ok = has and (fu or 0) >= min_fu and (units or 0) >= min_vu
             if rsv is not None:
-                has = rsv["state"] == "ok"
-                sample_ok = has and rsv.get("read") in ("ok", "small") and share_prev is not None
-            sd = (sc.data or {}) if sc else {}
-            rsv = research.unit_view(ch, frame, attr, value) if ch in RESEARCH_CHANNELS else None
-            ev = (dict(evidence="历史观察", note=f"渠道调研 {rsv.get('window') or ''}；只是过去看到的现象，不给把握、分级与上 / 不上".replace("渠道调研 ；", "渠道调研；"),
-                       hide=True, score=None) if rsv is not None else _channel_evidence(ch, frame, attr, value))
-            if rsv is not None:  # Lowe's / Wayfair 用渠道调研（AC-F21-15、16），不用 F28 分析库
-                ts, opp, om, sc = [], None, {}, None
                 ok_ = rsv["state"] == "ok"
                 share_prev, share_now = (rsv.get("share_pre"), rsv.get("share_rec")) if ok_ else (None, None)
                 units, fam, fu = (rsv.get("units"), rsv.get("families"), rsv.get("frame_units")) if ok_ else (None, None, None)
+                has = ok_
+                sample_ok = has and rsv.get("read") in ("ok", "small") and share_prev is not None
+            else:
+                has = bool(ts) or opp is not None
+                sample_ok = has and (fu or 0) >= min_fu and (units or 0) >= min_vu
+            sd = (sc.data or {}) if sc else {}
+            ev = (dict(evidence="历史观察", note=f"渠道调研 {rsv.get('window') or '—'}；只是过去看到的现象，不给把握、分级与上 / 不上",
+                       hide=True, score=None) if rsv is not None else _channel_evidence(ch, frame, attr, value))
             if ch != "amazon":  # 其他渠道：只有“经回测（打折）”的渠道显示把握与分级（AC-F19-06）
                 sd = dict(ev["score"]) if ev["score"] else {}
             d = _direction(share_prev, share_now) if sample_ok else None
@@ -441,7 +441,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
             per0 = f"{prev[0]} 至 {prev[-1]}" if prev else ""
             est = ch != "amazon"
             src = pop(框=frame, 取值=unit_label, 月份=(f"{prev[0] if prev else recent[0]} 至 {recent[-1]}" if recent else "本月无数据"), 前期=per0, 近期=per,
-                      样本数=f"{fam or 0} 个家族，近期月均 {units or 0:,.0f} 件",
+                      样本数=f"{fam or 0} 款，近期月均 {units or 0:,.0f} 件",
                       口径=(f"VP × 系数 + 非 VP × 系数（参数 v{cfg_v}），按评论 ID 去重，只在 {CHANNEL_NAMES[ch]} 内比较" if est else "卖家精灵子体月销"),
                       来源=(f"机会扫描 {opp.month}" if opp else "月度快照"),
                       说明=("" if sample_ok or not has else f"框月销 {fu or 0:,.0f} 件，不到 {min_fu} 件，不扫描"))
@@ -536,7 +536,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
     for o in other_frames[:4]:
         grow = (o["share"] or 0) > (o["share_prev"] or 0)
         abandoned.append(dict(option=f"同取值做 {o['frame']}", action="观察" if grow else "放弃",
-                              why=f"份额 {_pct(o['share_prev'])} → {_pct(o['share'])}" + (f"，新家族 {o['newfam']} 个做到 {o['newmade']} 个" if o.get("newfam") else "")))
+                              why=f"份额 {_pct(o['share_prev'])} → {_pct(o['share'])}" + (f"，新款 {o['newfam']} 个做到 {o['newmade']} 个" if o.get("newfam") else "")))
     if bands:
         best = max((b.get("median_units") or 0) for b in bands)
         for b in bands:
@@ -547,13 +547,13 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
     dom = [fv for fv in frame_values if not fv["me"] and (fv["share"] or 0) >= 0.5]
     if dom:
         abandoned.append(dict(option=f"{dom[0]['value']}（同框主流）", action="放弃",
-                              why=f"占 {_pct(dom[0]['share'])}、{dom[0]['families']} 个家族，款式同质、靠价格竞争"))
+                              why=f"占 {_pct(dom[0]['share'])}、{dom[0]['families']} 款，款式同质、靠价格竞争"))
     for c in chans:
         if c["channel"] != channel and c["verdict"] == "不上":
             why = "样本不足" if not c["sample_ok"] else f"份额在跌（{_pct(c['share_prev'])} → {_pct(c['share_now'])}）"
             abandoned.append(dict(option=f"{c['name']} 同步上", action="放弃", why=why if c["has_data"] else "该渠道本月无数据"))
     cfg_ch = cfg.get("channels", {})
-    tracking = [dict(when="前 3 个月", what="评分、家族月销、小类排名",
+    tracking = [dict(when="前 3 个月", what="评分、整款月销、小类排名",
                      target=f"评分 ≥ {round((frame_rating or 4.25) + 0.05, 1)}，月销 ≥ {int(round((money['general'] or 25) * 2.4 / 10) * 10)} 件，进小类前 100")]
     am = cfg_ch.get("amazon", {}).get("success", {})
     tracking.append(dict(when="6 个月（Amazon）", what="做到判定", target=f"任一月小类 BSR ≤ {am.get('bsr_top', 50)} 或 SPU 月销售额 ≥ ${am.get('spu_revenue', 100000):,.0f}"))
@@ -585,7 +585,7 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
                  share_prev=p["share_prev"], share_now=p["share_now"], newshare=om.get("newshare", pr.get("newshare")),
                  frame_newshare=om.get("frame_newshare", pr.get("frame_newshare")),
                  src_share=pop(框=frame, 取值=unit_label, 月份=span, 前期=f"{p['prev'][0]} 至 {p['prev'][-1]}" if p["prev"] else "", 近期=per,
-                               样本数=f"{p['families'] or 0} 个在榜家族", 新品="上架 ≤ 6 个月"),
+                               样本数=f"{p['families'] or 0} 款在卖", 新品="上架 ≤ 6 个月"),
                  score=dict(grasp=sd.get("grasp"), grade=sd.get("grade"), pred=sd.get("pred_share"), lo=sd.get("pred_lo"), hi=sd.get("pred_hi"),
                             now=sd.get("share_now", p["share_now"]), k=sd.get("k_months"),
                             src=pop(框=(sd.get("sources") or {}).get("frame", frame), 单元=unit_label, 月份=(sd.get("sources") or {}).get("months", per),
@@ -596,13 +596,13 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
                                    单元=unit_label, 样本数=sd.get("n_families"))) if raws else None,
                  made=dict(n=nf, made=nm, other_n=other_n, other_made=other_m, p=made_p, p_tip=p_tip(made_p),
                            reading=made_reading(value, attr, nf, nm, other_n, other_m, made_p),
-                           src=pop(框=frame, 月份=f"{p['quarters'][0]['months'][0] if p['quarters'] else ''} 至 {p['recent'][-1] if p['recent'] else ''}，已走完 6 个月观察期的新家族",
-                                   样本数=f"{nf} + {other_n} = {(nf or 0) + (other_n or 0)} 个新家族" if nf is not None and other_n is not None else "",
+                           src=pop(框=frame, 月份=f"{p['quarters'][0]['months'][0] if p['quarters'] else ''} 至 {p['recent'][-1] if p['recent'] else ''}，已走完 6 个月观察期的新款",
+                                   样本数=f"{nf} + {other_n} = {(nf or 0) + (other_n or 0)} 个新款" if nf is not None and other_n is not None else "",
                                    做到="6 个月内任一月小类 BSR ≤ 50 或 SPU 月销售额 ≥ $10 万", 检验="Fisher 精确检验")) if nf is not None else None,
                  bands=[dict(b, reading=band_reading(b), src=pop(框=frame, 取值=unit_label, 价格带=b["band"], 月份=f"{p['quarters'][0]['months'][0] if p['quarters'] else ''} 至 {p['recent'][-1] if p['recent'] else ''}",
                                         样本数=f"{b.get('skus')} 个子体、{b.get('obs')} 个子体 × 月")) for b in top_bands],
                  rating=rating, frame_rating=frame_rating,
-                 src_rating=pop(框=frame, 月份=per, 样本数=f"{p['families'] or 0} 个家族（按销量加权）")),
+                 src_rating=pop(框=frame, 月份=per, 样本数=f"{p['families'] or 0} 款（按销量加权）")),
         price=price, money=money, stop=stop, abandoned=abandoned, frame_values=frame_values, other_frames=other_frames,
         tracking=tracking, limits=limits, gen_seconds=round(time.time() - t0, 2), generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"))
 
@@ -631,7 +631,7 @@ def _money(channel, frame, attr, value, bands, price):
             v = fm[fm["family_key"].isin(okfam) & fm["age"].between(4, 6)]["units"]
             made = float(v.median()) if len(v) else None
             top = fm.sort_values("units", ascending=False).iloc[0]
-            good, good_txt = float(top["units"]), f"{top['brand']} {top['month']}：家族合计"
+            good, good_txt = float(top["units"]), f"{top['brand']} {top['month']}：整款合计"
     return dict(price=price, general=general, general_band=band["band"] if band else None, general_obs=band.get("obs") if band else None,
                 made=made, made_n=n_made, good=good, good_txt=good_txt)
 

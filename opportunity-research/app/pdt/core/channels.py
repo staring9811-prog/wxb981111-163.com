@@ -193,7 +193,7 @@ def import_excel(path: Path, source: str = 'upload') -> dict:
     items = pd.DataFrame(dict(channel=det['渠道'].map(ch_key), item_id=det['商品ID'].astype(str), brand=det.get('品牌', ''), title=det.get('标题', ''),
                               rank=pd.to_numeric(det['排名'], errors='coerce'), entry=det.get('入口', ''),
                               # 追踪器“商品”表才有主图与链接；渠道 VP 汇总导出没有这两列时留空（页面显示“该渠道数据未提供主图”）
-                              image_url=det['主图URL'].fillna('').astype(str) if '主图URL' in det.columns else '',
+                              image_url=det['主图URL' if '主图URL' in det.columns else '主图'].fillna('').astype(str) if ('主图URL' in det.columns or '主图' in det.columns) else '',
                               link=det['商品链接'].fillna('').astype(str) if '商品链接' in det.columns else ''))
     items = items[items['channel'].notna()]
     L = _alloc_excel(det[det['渠道'].map(ch_key).notna()], d['months'], d['totals'])
@@ -236,7 +236,7 @@ def ingest_tracker_month(project_dir_or_rows, months: list[str] | None = None, c
         det = r.get('details') or {}
         items.append(dict(channel=ch, item_id=iid, brand=r.get('品牌') or r.get('brand') or det.get('品牌', ''), title=r.get('标题') or r.get('title') or det.get('标题', ''),
                           rank=pd.to_numeric(r.get('排名') or r.get('rank'), errors='coerce'), price=pd.to_numeric(r.get('价格') or r.get('price'), errors='coerce'),
-                          rating=pd.to_numeric(r.get('页面评分') or r.get('rating'), errors='coerce'), image_url=r.get('主图URL') or r.get('image_url') or det.get('主图URL') or '',
+                          rating=pd.to_numeric(r.get('页面评分') or r.get('rating'), errors='coerce'), image_url=r.get('主图URL') or r.get('主图') or r.get('image_url') or det.get('主图URL') or det.get('主图') or '',
                           link=r.get('商品链接') or r.get('url') or '', entry=r.get('入口', ''), series=r.get('系列') or ''))
         for x in r.get('reviews') or []:
             dt = str(x.get('评论日期') or x.get('date') or '')[:10]
