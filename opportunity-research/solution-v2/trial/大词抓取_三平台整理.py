@@ -532,43 +532,47 @@ _IMG = {}
 
 
 def image_index():
-    """主图索引（只读已抓缓存，不发请求）：{平台: {商品 ID: 图片 URL}}。优先级从低到高：列表页卡片 < Lowe's 评论页 og:image < Wayfair Apify imageUrl < 商品页 og:image。
-    解析结果存 主图索引.json，缓存有变化时删掉它重建。"""
+    """主图索引（只读已抓缓存，不发请求）：{平台: {商品 ID: [图片 URL, 来源]}}。优先级从低到高：列表页卡片 < Lowe's 评论页 og:image < Wayfair Apify imageUrl < 商品页 og:image；
+    大词与 reeded 两套缓存都读。解析结果存 主图索引.json（v2），缓存有变化时删掉它重建。HD 读 hd_images/（直连商品页）。"""
     if _IMG: return _IMG
     f = raw_path('主图索引.json'); got = load_json(f)
-    if got: _IMG.update(got); _IMG['homedepot'] = hd_image_index(); return _IMG
+    if got and got.get('_v') == 2: _IMG.update(got); _IMG['homedepot'] = hd_image_index(); return _IMG
     import glob, html as H
-    idx = {'lowes': {}, 'wayfair': {}}
+    idx = {'_v': 2, 'lowes': {}, 'wayfair': {}}
+    roots = [raw_path('raw'), os.path.join(os.path.dirname(K.CACHE), 'reeded', 'raw')]
     og = re.compile(r'property="og:image"\s+content="([^"]+)"|content="([^"]+)"\s+property="og:image"')
     def ogimg(fn):
         m = og.search(open(fn, encoding='utf-8', errors='ignore').read())
         u = m and (m.group(1) or m.group(2))
         return ('https:' + u if u and u.startswith('//') else u) or None
-    for fn in glob.glob(raw_path('raw', 'lowes', '*.html')):             # Lowe's 列表页：__PRELOADED_STATE__.itemList[].product.imageUrl
-        st = K.lowes_state(open(fn, 'rb').read()) or {}
-        for it in st.get('itemList') or []:
-            p = it.get('product') or {}; u = p.get('imageUrl') or p.get('alternateImageUrl')
-            if p.get('omniItemId') and u: idx['lowes'][str(p['omniItemId'])] = u if u.startswith('http') else 'https://mobileimages.lowes.com' + u
-    for fn in glob.glob(raw_path('raw', 'wayfair', '*.html')):           # Wayfair 列表页：卡片里第一张 assets.wfcdn.com 图
-        s_ = open(fn, encoding='utf-8', errors='ignore').read(); starts = [m.start() for m in re.finditer(r'data-clio-id="ListingCardContents::', s_)] + [len(s_)]
-        for a, b in zip(starts, starts[1:]):
-            ts = s_.rfind('<', 0, a); tag = s_[ts:s_.find('>', a)]
-            mm = re.search(r'data-tracking-metadata="([^"]*)"', tag)
-            try: lid = json.loads(H.unescape(mm.group(1))).get('metadata', {}).get('displayListingId') if mm else None
-            except ValueError: lid = None
-            im = re.search(r'(https://assets\.wfcdn\.com/im/[^"\s]+)', s_[a:b])
-            if lid and im: idx['wayfair'][str(lid)] = H.unescape(im.group(1))
-    for fn in glob.glob(raw_path('raw', 'lowes_rnr', '*_0.html')):       # Lowe's 评论页 og:image
-        u = ogimg(fn)
-        if u: idx['lowes'][os.path.basename(fn)[:-7]] = u
+    def put(plat, i, u, src):
+        if i and u: idx[plat][str(i)] = [u, src]
+    for r in roots:
+        for fn in glob.glob(os.path.join(r, 'lowes', '*.html')):          # Lowe's 列表页：__PRELOADED_STATE__.itemList[].product.imageUrl
+            st = K.lowes_state(open(fn, 'rb').read()) or {}
+            for it in st.get('itemList') or []:
+                p = it.get('product') or {}; u = p.get('imageUrl') or p.get('alternateImageUrl')
+                put('lowes', p.get('omniItemId'), u if not u or u.startswith('http') else 'https://mobileimages.lowes.com' + u, '列表页')
+        for fn in glob.glob(os.path.join(r, 'wayfair', '*.html')):        # Wayfair 列表页：卡片里第一张 assets.wfcdn.com 图
+            s_ = open(fn, encoding='utf-8', errors='ignore').read(); starts = [m.start() for m in re.finditer(r'data-clio-id="ListingCardContents::', s_)] + [len(s_)]
+            for a, b in zip(starts, starts[1:]):
+                ts = s_.rfind('<', 0, a); tag = s_[ts:s_.find('>', a)]
+                mm = re.search(r'data-tracking-metadata="([^"]*)"', tag)
+                try: lid = json.loads(H.unescape(mm.group(1))).get('metadata', {}).get('displayListingId') if mm else None
+                except ValueError: lid = None
+                im = re.search(r'(https://assets\.wfcdn\.com/im/[^"\s]+)', s_[a:b])
+                put('wayfair', lid, H.unescape(im.group(1)) if im else None, '列表页')
+    for r in roots:
+        for fn in glob.glob(os.path.join(r, 'lowes_rnr', '*_0.html')):   # Lowe's 评论页 og:image
+            put('lowes', os.path.basename(fn)[:-7], ogimg(fn), '评论页')
     for fn in glob.glob(raw_path('wayfair_apify', 'wayfair', 'apify', '*.json')):   # Wayfair Apify 原始返回
         it = (load_json(fn) or {}).get('item') or {}
         u = it.get('imageUrl') or next((x if isinstance(x, str) else (x or {}).get('url') for x in it.get('images') or []), None)
-        if u: idx['wayfair'][os.path.basename(fn)[:-5]] = u
-    for plat in ('lowes', 'wayfair'):                                     # 商品页 og:image（最高优先）
-        for fn in glob.glob(raw_path('raw', f'{plat}_pdp', '*.html')):
-            u = ogimg(fn)
-            if u: idx[plat][os.path.basename(fn)[:-5]] = u
+        put('wayfair', os.path.basename(fn)[:-5], u, 'Apify')
+    for r in roots:
+        for plat in ('lowes', 'wayfair'):                                 # 商品页 og:image（最高优先）
+            for fn in glob.glob(os.path.join(r, f'{plat}_pdp', '*.html')):
+                put(plat, os.path.basename(fn)[:-5], ogimg(fn), '商品页')
     save_json(f, idx); _IMG.update(idx)
     _IMG['homedepot'] = hd_image_index()
     return _IMG
@@ -580,7 +584,7 @@ def hd_image_index():
     out = {}
     for fn in glob.glob(raw_path('hd_images', '*.json')):
         g = load_json(fn) or {}
-        if g.get('image'): out[os.path.basename(fn)[:-5]] = g['image']
+        if g.get('image'): out[os.path.basename(fn)[:-5]] = [g['image'], '商品页（直连）']
     return out
 
 
@@ -608,9 +612,38 @@ def hd_images(order):
     return bool(stop)
 
 
-def main_image(plat, ids):
+def main_image(plat, ids, with_src=False):
+    """ids 按优先级：商品自己的 ID 在前，同实体（同父体 / 同家族）其他 ID 在后；用到后者时来源加"（同父体其他变体）"。"""
     d = image_index().get(plat) or {}
-    return next((d[str(i)] for i in ids if i and str(i) in d), None)
+    for k, i in enumerate(ids):
+        if i and str(i) in d:
+            u, src = d[str(i)]
+            return (u, src + ('（同父体其他变体）' if k and str(i) != str(ids[0]) else '')) if with_src else u
+    return (None, '') if with_src else None
+
+
+def image_csv():
+    """主图索引.csv（渠道, 商品编号, 主图URL, 来源）：三平台_商品表 的全部商品 + wen 渠道VP 表「商品月度明细」的全部商品编号（Wayfair 另给带 piid 的原编号一行）。
+    只读缓存；HD 读 hd_images/。VP 表商品取不到自己的图时，用三平台_商品表里同实体（Lowe's 父体 / Wayfair listing / HD 家族）的主图。"""
+    import pandas as pd
+    P = pd.read_csv(raw_path('三平台_商品表.csv'), dtype={'pid': str, 'fam': str})
+    plat = {'Home Depot': 'homedepot', "Lowe's": 'lowes', 'Wayfair': 'wayfair'}
+    rows = {}
+    ent = P.groupby(['渠道', 'fam'])['pid'].apply(list).to_dict()
+    for r in P.itertuples():
+        u, src = main_image(plat[r.渠道], [r.pid] + [x for x in ent[(r.渠道, r.fam)] if x != r.pid], with_src=True)
+        rows[(r.渠道, r.pid)] = (u, src, '三平台_商品表')
+    V = vp_table(); fam_of = {(r.渠道, r.pid): r.fam for r in P.itertuples()}
+    for r in V.itertuples():
+        ch, i = r.渠道, r.id
+        sib = ent.get((ch, fam_of.get((ch, i))), []) if (ch, i) in fam_of else               next((L for (c, fk), L in ent.items() if c == ch and i in L), [])
+        if (ch, i) not in rows:
+            u, src = main_image(plat[ch], [i] + [x for x in sib if x != i], with_src=True)
+            rows[(ch, i)] = (u, src, '渠道VP表')
+        if r.商品ID != i: rows[(ch, r.商品ID)] = rows[(ch, i)][:2] + ('渠道VP表（原编号）',)
+    out = pd.DataFrame([dict(渠道=c, 商品编号=i, 主图URL=u, 来源=s_ or '取不到', 编号来自=w) for (c, i), (u, s_, w) in rows.items()])
+    out.to_csv(raw_path('主图索引.csv'), index=False, encoding='utf-8-sig')
+    return out
 
 
 def apify_status():
@@ -762,6 +795,7 @@ if __name__ == '__main__':
     elif cmd == '补规格Wayfair': fill_specs(('wayfair',))
     elif cmd == '补规格Lowes': fill_specs(('lowes',))
     elif cmd == '整理': build()
+    elif cmd == '主图索引': image_csv()
     elif cmd == '补主图HD':   # 顺序文件：每行一个 HD 商品页 ID（待确认优先、各框前 5 次之、其余按销量）
         print('停' if hd_images([x.strip() for x in open(sys.argv[2]) if x.strip()]) else '完成')
     elif cmd == '分析': analyze()
