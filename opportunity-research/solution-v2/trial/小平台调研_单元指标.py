@@ -22,7 +22,8 @@ MON = [mi(f'2026-{i:02d}') for i in range(1, 11)]
 Q = {'1–3': MON[0:3], '4–6': MON[3:6], '7–9': MON[6:9], '10': MON[9:10]}
 PRE, REC = MON[0:3], MON[7:10]                 # 前 3 月、近 3 月
 AZM = [mi(f'2026-{i:02d}') for i in range(4, 10)]; AZ_PRE, AZ_REC = AZM[:3], AZM[3:]
-FR_MIN, U_MIN = 200, 20                        # 框月均 ≥ 200 件、单元月均 ≥ 20 件
+FR_MIN, U_MIN = 200, 20                        # 框月均 ≥ 200 件、单元月均 ≥ 20 件（下结论的门槛）
+FR_SHOW = 100                                  # 按框正式视图展示门槛（wen 2026-11-05）：100–200 的框照样输出单元数据，可读性标"样本少，只作参考"、不写结论
 ATTRS = ('台面材质', '元素', '主色', '柜体材质')
 UNK = set(HD.UNKS) | {'未知'}
 PRICE_ABS = XC.PRICE_ABS
@@ -419,8 +420,12 @@ def frame_table(F, cover=False, tot=None):
     return out
 
 
+SMALL = '样本少，只作参考'
+
+
 def readability(r):
     """框的可读性：分框覆盖（期望）≥ 95% 才在框内下结论；趋势还要求有月度的销量 ≥ 60%。"""
+    if r['框月均'] < FR_MIN: return SMALL
     if not r['分框覆盖_期望'] >= 0.95: return '不下结论（分框覆盖 < 95%）'
     if not r['有月度占比'] >= 0.6: return '体量 / 份额可看，趋势不下结论（有月度 < 60%）'
     return '可读'
@@ -751,10 +756,10 @@ def wf_apify_check(D):
 def est_section(D, ch, no):
     """Wayfair / Lowe's 的按框章节（两者都有无月度实体的估算）。Lowe's 另给"只算有月度"的覆盖与可读性。"""
     F, U = D['RES'][ch]; Fl, Fm, Um, Am = D['SENS'][ch]
-    F2 = F[F['框月均'] >= FR_MIN]; U2 = U[U['框'].isin(F2['框']) & (U['月均'] >= U_MIN)]
+    F2 = F[F['框月均'] >= FR_SHOW]; U2 = U[U['框'].isin(F2['框']) & (U['月均'] >= U_MIN)]
     rd = F2['可读性'].value_counts()
     P(f'## {no}、{ch}（按框）', '',
-      f'框月均 ≥ {FR_MIN} 的框 **{len(F2)} 个**（全部框 {len(F)} 个，合计月均 {num(F["框月均"].sum())}；达标框占 {pc(F2["框月均"].sum() / F["框月均"].sum())}），达标单元 **{len(U2)} 个**。'
+      f'框月均 ≥ {FR_SHOW} 的框 **{len(F2)} 个**（其中 ≥ {FR_MIN} 的 {int((F2["框月均"] >= FR_MIN).sum())} 个；全部框 {len(F)} 个，合计月均 {num(F["框月均"].sum())}；展示框占 {pc(F2["框月均"].sum() / F["框月均"].sum())}），单元（月均 ≥ {U_MIN}）**{len(U2)} 个**。'
       f'可读性：' + '、'.join(f'{k} {v} 个' for k, v in rd.items()) + '。', '',
       '"分框覆盖"把没进框的销量（多尺寸未拆、形态 / 装未知）按"已知维度一致"可能落到的框分摊（多尺寸实体只分到它选项里有的尺寸段）：**期望** = 按这些框已落框销量的比例分摊，**最坏** = 全部算给本框。期望 < 95% 的框，体量和份额都可能明显变化，只给方向参考。', '')
     if ch == LW:
@@ -791,22 +796,29 @@ def _est_sens(D, ch, no, F, F2, Fl, Fm):
 def _est_units(D, ch, no, F, U, F2, U2, Fm, Um):
     P(f'### {no}.3 单元', '')
     if ch == LW:
-        Fm2 = Fm[Fm['框月均'] >= FR_MIN]; okm = Fm2.loc[Fm2['可读性'] == '可读', '框']
+        Fm2 = Fm[Fm['框月均'] >= FR_SHOW]; okm = Fm2.loc[Fm2['可读性'] == '可读', '框']
         Um2 = Um[Um['框'].isin(Fm2['框']) & (Um['月均'] >= U_MIN)]
-        P(f'只算有月度时达标框 {len(Fm2)} 个、达标单元 {len(Um2)} 个，其中可读框 {len(okm)} 个。下面列可读框里体量最大的 6 个（单元数字只用有月度的销量）。', '')
+        P(f'只算有月度时展示框（≥ {FR_SHOW}）{len(Fm2)} 个、单元 {len(Um2)} 个，其中可读框 {len(okm)} 个、样本少 {int((Fm2["可读性"] == SMALL).sum())} 个。下面列可读框里体量最大的 6 个（单元数字只用有月度的销量）。', '')
         for fr in Fm2[Fm2['框'].isin(okm)].sort_values('框月均', ascending=False)['框'].head(6):
             P(f'**{fr}**（只算有月度的框月均 {num(Fm2.set_index("框").at[fr, "框月均"])}）', '', *unit_table(units_of(Um, Fm2, fr), True, True), '')
         P(f'**模式观察（Lowe\'s，只算有月度、可读框：{"、".join(okm)}）**：条件同 HD（评分用页面总评分，"评论 ≥ 20"指页面评论数）。', '',
           *patterns(Um2[Um2['框'].isin(okm)], LW, True, True))
-        D['ULm2'] = Um2; D['FLm2'] = Fm2
+        sm = Fm2[Fm2['可读性'] == SMALL].sort_values('框月均', ascending=False)
+        if len(sm):
+            P(f'**样本少的框（月均 {FR_SHOW}–{FR_MIN}，只作参考、不下结论）**', '')
+            for fr in sm['框']:
+                P(f'**{fr}**（只算有月度的框月均 {num(Fm2.set_index("框").at[fr, "框月均"])}；样本少，只作参考）', '', *unit_table(units_of(Um, Fm2, fr), True, True), '')
         return
-    shown = [fr for fr in F2.sort_values('框月均', ascending=False)['框'] if F2.set_index('框').at[fr, '可读性'] != '不下结论（分框覆盖 < 95%）']
-    rest = [fr for fr in F2.sort_values('框月均', ascending=False)['框'] if fr not in shown][:4]
+    shown = [fr for fr in F2.sort_values('框月均', ascending=False)['框'] if F2.set_index('框').at[fr, '可读性'] not in ('不下结论（分框覆盖 < 95%）', SMALL)]
+    rest = [fr for fr in F2.sort_values('框月均', ascending=False)['框'] if fr not in shown and F2.set_index('框').at[fr, '可读性'] != SMALL][:4]
+    small = [fr for fr in F2.sort_values('框月均', ascending=False)['框'] if F2.set_index('框').at[fr, '可读性'] == SMALL]
     for fr in shown + rest:
         r = F2.set_index('框').loc[fr]
         P(f'**{fr}**（框月均 {num(r["框月均"])}；{r["可读性"]}）', '', *unit_table(units_of(U, F2, fr), True, True, has_static=bool((D['AW']['m'] < 0).any())), '')
-    P(f'上面列分框覆盖 ≥ 95% 的框和体量最大的 {len(rest)} 个"不下结论"框；其余见全量 CSV。', '')
-    okW = F2.loc[F2['可读性'] == '可读', '框']; okS = F2.loc[F2['可读性'] != '不下结论（分框覆盖 < 95%）', '框']
+    for fr in small:
+        P(f'**{fr}**（框月均 {num(F2.set_index("框").at[fr, "框月均"])}；样本少，只作参考）', '', *unit_table(units_of(U, F2, fr), True, True, has_static=bool((D['AW']['m'] < 0).any())), '')
+    P(f'上面列分框覆盖 ≥ 95% 的框、体量最大的 {len(rest)} 个"不下结论"框和全部 {len(small)} 个样本少的框（月均 {FR_SHOW}–{FR_MIN}）；其余见全量 CSV。', '')
+    okW = F2.loc[F2['可读性'] == '可读', '框']; okS = F2.loc[~F2['可读性'].isin(['不下结论（分框覆盖 < 95%）', SMALL]), '框']
     P(f'**模式观察（{ch}）**：条件同 HD（评分用页面总评分，"评论 ≥ 20"指页面评论数）。份额趋势类只在可读框（{"、".join(okW)}），只用有月度的销量；评分、溢价类在分框覆盖 ≥ 95% 的框（{"、".join(okS)}）。', '',
       *patterns(U2[U2['框'].isin(okW)], ch, False, False), *patterns(U2[U2['框'].isin(okS)], ch, True, True, trend=False))
 
@@ -815,7 +827,7 @@ def report(D, CHKD):
     AH, AW, PH, PW, KW = D['AH'], D['AW'], D['PH'], D['PW'], D['KW']
     RES, REC, SMP, DIFF, PEND = D['RES'], D['REC'], D['SMP'], D['DIFF'], D['PEND']
     FH, UH = RES['Home Depot']; FW, UW = RES['Wayfair']
-    FH2, FW2 = FH[FH['框月均'] >= FR_MIN], FW[FW['框月均'] >= FR_MIN]
+    FH2, FW2 = FH[FH['框月均'] >= FR_MIN], FW[FW['框月均'] >= FR_MIN]; FHs = FH[FH['框月均'] >= FR_SHOW]
     UH2 = UH[UH['框'].isin(FH2['框']) & (UH['月均'] >= U_MIN)]; UW2 = UW[UW['框'].isin(FW2['框']) & (UW['月均'] >= U_MIN)]
     D.update(FH2=FH2, FW2=FW2, UH2=UH2, UW2=UW2)
     totH, totW = AH['c'].sum() / 10, AW['c'].sum() / 10
@@ -880,7 +892,7 @@ def report(D, CHKD):
       '- 新家族：HD = 家族首条评论在 2026 年；Wayfair / Lowe\'s = 页面累计评论数 ≤ 2026 年 1–10 月评论数（所有评论都在窗口内，无月度 listing 判断不了、记非新）；"卖起来" = 进入月到 10 月在该单元的月均 ≥ 同框单款月均；占比 = 新家族在单元销量里的占比，括号是同框。',
       '- 供给：家族 = 单元里有销量的家族数（Wayfair 一个 listing 算一个家族）；单款 ÷ 同框 = 单元每家族月均 ÷ 同框每家族月均。价格带 = 按销量加权 P25–P75；溢价 = 单元加权中位价 ÷ 同框加权中位价。评分：单元评分与同框评分的差。',
       '- Amazon 对照（同上一版）：Amazon 第二轮统一打标表 2026-04 至 09，同尺寸段 × 形态 × 取值（**不分拆装**）的家族数 · 价位段数 · 框内份额 4–6 → 7–9 月，箭头按 ln 变化 ±0.2。', '',
-      f'**门槛**（同上一版）：框月均 ≥ {FR_MIN} 件、单元月均 ≥ {U_MIN} 件才列。1 条 VP 评论 = 50 件，月均 20 件的单元 10 个月只有约 4 条 VP 评论，小单元的趋势和 CV 噪声很大，家族数 1–2 的单元基本是单个产品的走势。'
+      f'**门槛**：框月均 ≥ {FR_SHOW} 件的框都列出（wen 2026-11-05 从 200 降到 100），其中 {FR_SHOW}–{FR_MIN} 件的框可读性标"样本少，只作参考"、只给单元数据不写结论（不进模式观察、关键发现和三渠道对照）；≥ {FR_MIN} 件沿用下面的可读性规则；单元月均 ≥ {U_MIN} 件才列。1 条 VP 评论 = 50 件，月均 20 件的单元 10 个月只有约 4 条 VP 评论，小单元的趋势和 CV 噪声很大，家族数 1–2 的单元基本是单个产品的走势。'
       '**可读性**（这一版新加）：框的分框覆盖（期望）≥ 95% 才在框内下结论，趋势类指标还要求有月度的销量 ≥ 60%（见 §四、§六）。', '',
       '**幸存者偏差**（同上一版）：都是"今天在榜 / 在搜索前 300"的商品往回看，早月份框销量偏低，"框在涨""份额在涨"偏乐观、"份额在跌"偏少；新家族"卖起来"的比例偏高。', '')
     # 核对
@@ -912,11 +924,13 @@ def report(D, CHKD):
     P('## 二、关键发现', '', *findings(D), '')
     # ---------------- 三、HD
     P('## 三、Home Depot（按框）', '',
-      f'框月均 ≥ {FR_MIN} 的框 **{len(FH2)} 个**（全部框 {len(FH)} 个，合计月均 {num(FH["框月均"].sum())}；达标框占 {pc(FH2["框月均"].sum() / FH["框月均"].sum())}），达标单元 **{len(UH2)} 个**。'
-      '渠道内份额的分母 = 全部能落框的销量。', '', *frame_table(FH2, cover=True, tot=FH['框月均'].sum()), '')
+      f'框月均 ≥ {FR_SHOW} 的框 **{len(FHs)} 个**（其中样本少、月均 {FR_SHOW}–{FR_MIN} 的 {len(FHs) - len(FH2)} 个），框月均 ≥ {FR_MIN} 的框 **{len(FH2)} 个**（全部框 {len(FH)} 个，合计月均 {num(FH["框月均"].sum())}；达标框占 {pc(FH2["框月均"].sum() / FH["框月均"].sum())}），达标单元 **{len(UH2)} 个**。'
+      '渠道内份额的分母 = 全部能落框的销量。', '', *frame_table(FHs, cover=True, tot=FH['框月均'].sum()), '')
     for fr in FH2.sort_values('框月均', ascending=False)['框'].head(6):
         P(f'**{fr}**（框月均 {num(FH2.set_index("框").at[fr, "框月均"])}）', '', *unit_table(units_of(UH, FH2, fr), True, True), '')
-    P(f'其余 {len(FH2) - 6} 个达标框的单元见全量 CSV。', '')
+    for fr in FHs[FHs['框月均'] < FR_MIN].sort_values('框月均', ascending=False)['框']:
+        P(f'**{fr}**（框月均 {num(FHs.set_index("框").at[fr, "框月均"])}；样本少，只作参考）', '', *unit_table(units_of(UH, FHs, fr), True, True), '')
+    P(f'其余 {len(FH2) - 6} 个达标框的单元见全量 CSV。样本少的框不进下面的模式观察。', '')
     P(f'**模式观察（HD，所有达标框）**：条件 —— 份额在涨 / 跌：ln(近 3 ÷ 前 3 份额) ≥ {LN} / ≤ −{LN}；新家族进入：有新家族且新家族销量占比高于同框；评分低于同框：差 ≤ −0.15、单款 ÷ 同框 ≥ 1、窗口评论 ≥ 20 条；高溢价：溢价 ≥ 1.3。只陈述事实，排序按 月均 × |份额 ln 变化|。', '',
       *patterns(UH2, 'Home Depot', True, True))
     # ---------------- 四、Wayfair / 五、对照 / 六、Lowe's

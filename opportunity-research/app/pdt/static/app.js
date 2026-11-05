@@ -365,3 +365,29 @@
     if (top) closeOverlay(top.panel);
   });
 })();
+
+/* revision 10：主图点开放大（AC-F18-12） */
+(function () {
+  var doc = document;
+  var scrim = null;
+  function close() { if (scrim) scrim.classList.remove('is-on'); }
+  doc.addEventListener('click', function (e) {
+    var img = e.target.closest ? e.target.closest('img[data-zoom]') : null;
+    if (!img) return;
+    e.preventDefault();
+    if (!scrim) {
+      scrim = doc.createElement('div');
+      scrim.className = 'zoom-scrim';
+      scrim.setAttribute('role', 'dialog');
+      scrim.setAttribute('aria-label', '主图放大');
+      scrim.appendChild(doc.createElement('img'));
+      scrim.addEventListener('click', close);
+      doc.body.appendChild(scrim);
+    }
+    var big = scrim.querySelector('img');
+    big.src = img.getAttribute('data-zoom') || img.src;
+    big.alt = img.alt;
+    scrim.classList.add('is-on');
+  });
+  doc.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();

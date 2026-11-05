@@ -1028,6 +1028,13 @@ button.tab { border: 0; background: transparent; font: inherit; cursor: pointer;
 .skeleton { display: block; height: 12px; border-radius: var(--radius-sm); background: var(--surface-raised); animation: pulse calc(var(--motion-base) * 7) var(--ease-standard) infinite alternate; }
 ```
 
+### 表头说明、好坏着色与按月柱状图（revision 10）
+
+- **CMP-F21-01 表头说明**：列头文字后接 `<span class="th-q" data-tip="标题|白话说明">?</span>`（12px 圆形描边问号，`--muted` 色，可聚焦），悬停 / 聚焦弹出现有 `.tip` 浮层；表下一行 `.table-note`（`--text-xs`、`--muted`）写缩写列的白话。
+- **CMP-F21-02 好坏着色**：`.good`（`--success`）与 `.bad`（`--danger`），只用于重点数字；着色数字后必须跟箭头（↑ / ↓）或文字（"比同框高""比瞎猜还差"），色弱也能读；持平不着色。
+- **CMP-F21-03 按月柱状图**：内联 SVG，每月一根柱（`--viz-series-1`，主渠道之外 `--viz-deemph`），柱顶标数值（`.spark__value` 字号），柱底标月份"25-11"；没有数据的月份只标月份、不画柱、不写 0。小图（代表产品）高 64px，渠道行高 90px。
+- **样本少徽章**："样本少，只作参考"用 `.badge--insufficient`（灰色虚线描边），与"可读 / 不下结论"同位置。
+
 ## 动效与交互物理
 
 - **动效用途**：
