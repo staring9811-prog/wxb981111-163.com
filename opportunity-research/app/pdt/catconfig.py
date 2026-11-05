@@ -10,9 +10,9 @@ from .models import CategoryConfig
 DEFAULT = {
     "category": "浴室柜",
     "frame_dims": [  # 分框维度（AC-F27-01 默认：尺寸段 × 拆装 × 形态）
-        {"dim": "尺寸段", "tag": "尺寸段", "values": ["24″", "30″", "36″", "48″", "60″", "72″"]},
+        {"dim": "尺寸段", "tag": "尺寸段", "values": ["18″", "24″", "28″", "30″", "36″", "42″", "48″", "60″", "72″+"]},  # 与打标取值一致（AC-F27-01 r2）
         {"dim": "拆装", "tag": "装", "values": ["拆装", "整装"]},
-        {"dim": "形态", "tag": "形态", "values": ["落地式", "悬浮式"]},
+        {"dim": "形态", "tag": "形态", "values": ["落地式", "悬浮式", "开放式"]},  # 开放式单独成框（AC-F18-10）
     ],
     "scan_attrs": [  # 扫描属性（AC-F20-01）
         {"attr": "台面材质", "tag": "台面材质", "scan": True, "method": "规则 + 看图"},
@@ -37,6 +37,7 @@ DEFAULT = {
         "total_change_pct": 30, "family_consistency_min": 90, "tag_coverage_min": 95, "attr_coverage_drop_max": 10, "rank_same_max_pct": 10},
     # tag_coverage_min 只管分框标签（尺寸 / 拆装 / 形态）；属性标签按较上月下降不超过 attr_coverage_drop_max 个百分点（wen 2026-11-03 调整）
     "budget_warn_pct": 80,  # DEC-104
+    "research": {"frame_min": {"homedepot": 100, "lowes": 100, "wayfair": 100}},  # 渠道调研框门槛（AC-F30-35，wen 2026-11-05）
 }
 
 
@@ -75,6 +76,21 @@ def save(new: dict, user_id: int | None) -> int:
     return nv
 
 
+FRAME_RULES = "r10"  # 分框规则版本：尺寸段九档（28″）、形态三种（开放式），见 AC-F18-09～11
+
+
+def upgrade_frames(user_id: int | None = None) -> int | None:
+    """把当前品类配置的分框维度、尺寸段边界、调研框门槛升级到 revision 10 默认值（已是则不动）。返回新版本号或 None。"""
+    v, cur = current()
+    new = copy.deepcopy(cur)
+    new["frame_dims"] = copy.deepcopy(DEFAULT["frame_dims"])
+    new.setdefault("tag_rules", {})["size_bands"] = copy.deepcopy(DEFAULT["tag_rules"]["size_bands"])
+    new.setdefault("research", copy.deepcopy(DEFAULT["research"]))
+    if not _diff(cur, new):
+        return None
+    return save(new, user_id)
+
+
 def history():
     with session() as s:
         return [dict(version=r.version, diff=r.diff, at=r.created_at, by=r.created_by)
@@ -89,7 +105,7 @@ DEFAULT["tag_rules"] = {
         "text_supported": 0.95, "derived": 0.9, "business_mapping": 0.85, "business_inference": 0.8, "order_inference": 0.8,
         "parent_fill": 0.8, "family_fill": 0.8, "business_default": 0.8, "business_assumption": 0.75,
         "parent_candidate": 0.6, "conflict": 0.5, "missing": 0.0},
-    "size_bands": [[18, 15, 21], [24, 21, 27], [30, 27, 33], [36, 33, 39], [42, 39, 45], [48, 45, 54], [60, 54, 66]],  # 中心, 下限, 上限（英寸）；≥ 66 为 72″+
+    "size_bands": [[18, 15, 21], [24, 21, 26], [28, 26, 29], [30, 29, 33], [36, 33, 39], [42, 39, 45], [48, 45, 54], [60, 54, 66]],  # 中心, 下限（含）, 上限（不含），英寸；≥ 66 为 72″+（AC-F18-09）
     "color_map": {"白色": "白", "黑色": "黑", "灰色": "灰", "原木色": "原木", "胡桃木色": "深木", "深咖啡色": "深木", "棕色": "深木",
                   "蓝色": "蓝", "藏青色": "蓝", "灰蓝色": "蓝", "绿色": "绿", "灰绿色": "绿"},  # 柜体颜色 → 主色；未列出的为“其他”
     "element_map": {"Shaker": "夏克式", "Fluted": "竖棱", "Reeded": "竖棱", "Farmhouse": "农场风装饰饰条", "Barn Door": "农场风装饰饰条",

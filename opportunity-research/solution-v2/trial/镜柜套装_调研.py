@@ -30,7 +30,7 @@ A['c'] = np.where(A['m'] >= mi('2026-01'), pd.to_numeric(A['子体月销（2026 
 A['c'] = pd.Series(A['c']).fillna(pd.to_numeric(A['子体月销（家族均分）'], errors='coerce')).fillna(0).clip(lower=0).values
 A['价格'] = pd.to_numeric(A['价格'], errors='coerce'); A['评分'] = pd.to_numeric(A['评分'], errors='coerce').where(lambda s: s.between(1, 5))
 
-NEG = re.compile(r"without[^|;()]{0,45}mirror|w/o mirror|no mirror|mirror not included|excluding mirror|mirror (?:is )?sold separately|"
+NEG = re.compile(r"without[^|;()]{0,45}mirror|w/o mirror|no mirror|mirror (?:is )?not included|excluding mirror|mirror (?:is )?sold separately|"
                  r"vanity only|cabinet only|cabint only|single cabinet only|sink cabinet only|not include[^|;()]{0,30}mirror", re.I)
 CAB = re.compile(r"medicine cabinet|mirror cabinet|mirrored cabinet|cabinet mirror|mirror medicine", re.I)
 MIR = re.compile(r"mirror", re.I)
@@ -77,6 +77,13 @@ F['单款比'] = F['套装单款月销'] / F['不带单款月销']
 F = F.sort_values('框月销', ascending=False)
 print('\n== 同框：套装 vs 不带镜（2026-01 至 10） =='); print(F.round(2).to_string(index=False))
 F.to_csv(os.path.join(OUT, '套装_同框比较.csv'), index=False, encoding='utf-8-sig')
+# 整链接口径：含套装子体的链接（款）整条链接月销 vs 同框完全不带镜的款
+fl = W[W['尺寸段'].notna()].groupby(['家族键', 'm']).agg(c=('c', 'sum'), 套=('套装', 'max'), 框=('框', 'first'), p=('价格', 'median')).reset_index()
+fk = fl.groupby('家族键').agg(c=('c', 'mean'), 套=('套', 'max'), 框=('框', lambda s: s.value_counts().index[0]), p=('p', 'median')).reset_index()
+FL = fk.groupby(['框', '套']).agg(款=('家族键', 'size'), 单款月销中位=('c', 'median'), 单款月销平均=('c', 'mean'), 中位价=('p', 'median')).unstack()
+FL = FL[FL[('款', True)].fillna(0) >= 1]
+print('\n== 整链接口径：带套装子体的款整条链接月均销 vs 同框其他款 =='); print(FL.round(1).to_string())
+FL.to_csv(os.path.join(OUT, '套装_同框比较_整链接.csv'), encoding='utf-8-sig')
 big = F[F['套装款'] >= 3]
 print('\n套装款 ≥ 3 的框：', len(big), '；其中套装单款月销高于不带镜的框', int((big['单款比'] > 1).sum()),
       '；套装溢价中位', round(big['溢价'].median(), 2))
@@ -107,15 +114,21 @@ for (fam, m), d in A[A['SKU'].str.len() > 0].groupby(['家族键', 'm']):
             P.append(dict(家族键=fam, 月份=e['月份'].iloc[0], 品牌=e['品牌'].iloc[0], 框=e['框'].iloc[0], 变体=k[:40], 镜=a['镜'].iloc[0],
                           带镜价=a['价格'].median(), 不带价=b['价格'].median(), 带镜子体销=a['c'].sum(), 不带子体销=b['c'].sum(),
                           带镜BSR=a['小类BSR'].min(), 不带BSR=b['小类BSR'].min(), 标题=e['标题'].iloc[0][:90]))
-P = pd.DataFrame(P); P['加价'] = P['带镜价'] - P['不带价']; P['加价比'] = P['加价'] / P['不带价']
+P = pd.DataFrame(P); P['_m'] = P['月份'].map(mi)
+P.loc[P['_m'] < mi('2026-01'), ['带镜子体销', '不带子体销']] = np.nan   # 2026 前只有家族均分，不能比子体
+P['加价'] = P['带镜价'] - P['不带价']; P['加价比'] = P['加价'] / P['不带价']
 P.to_csv(os.path.join(OUT, '套装_同链接带镜不带镜配对.csv'), index=False, encoding='utf-8-sig')
 pf = P.groupby(['家族键', '品牌', '镜']).agg(月=('月份', 'nunique'), 框=('框', 'first'), 不带价=('不带价', 'median'), 带镜价=('带镜价', 'median'), 加价=('加价', 'median'), 加价比=('加价比', 'median'),
-                                       带镜销=('带镜子体销', 'sum'), 不带销=('不带子体销', 'sum'), 标题=('标题', 'first')).reset_index()
+                                       带镜销=('带镜子体销', lambda s: s.sum(min_count=1)), 不带销=('不带子体销', lambda s: s.sum(min_count=1)), 标题=('标题', 'first')).reset_index()
 pf['带镜销占'] = pf['带镜销'] / (pf['带镜销'] + pf['不带销'])
 print('\n== 同链接配对（同色同尺寸，带镜 vs 不带镜） =='); print(pf.round(2).to_string(index=False))
 print('加价中位 $', round(pf['加价'].median()), '加价比中位', round(pf['加价比'].median(), 2), '；2026 有子体销量的配对：带镜子体销占比中位',
       round(pf.loc[pf['带镜销'] + pf['不带销'] > 0, '带镜销占'].median(), 2))
 
+# Merax 36″ 一条链接里三种子体：只要柜子 / 柜子 + 镜柜 / 只要镜柜
+mx = A[A['家族键'] == 'B0CS5B7GKB'].assign(样式=lambda d: d['SKU'].str.extract(r'Style: ([^|]+)')[0].str.strip().fillna(d['SKU']))
+print('\n== Merax B0CS5B7GKB：各样式逐月（2026 起为子体月销估算） ==')
+print(mx.groupby(['月份', '样式']).agg(价=('价格', 'median'), 销=('c', 'sum'), BSR=('小类BSR', 'min'), 子体=('子ASIN', 'nunique')).round(1).to_string())
 # 单独镜柜 / 镜子（被剔除的行）
 X = A[A['非浴室柜类别'].isin(['独立镜柜/药柜', '镜子'])]
 xs = X.groupby('家族键').agg(品牌=('品牌', 'first'), 标题=('标题', 'first'), 月=('月份', lambda s: f'{s.min()}~{s.max()}'), 月数=('月份', 'nunique'),
@@ -180,6 +193,7 @@ for f in glob.glob(os.path.join(D, 'keywords_20261028/数据/02_Amazon历史趋�
 tr = pd.DataFrame(TR); tr.index = [f"{t[:4]}-{t[5:7]}" for t in tr.index]; tr = tr.sort_index().loc['2024-10':]
 print('\n== 搜索量走势 =='); print(tr.to_string())
 tr.to_csv(os.path.join(OUT, '套装_搜索词走势.csv'), encoding='utf-8-sig')
+print('1–9 月平均：2025', tr.loc['2025-01':'2025-09'].mean().round(0).to_dict(), '；2026', tr.loc['2026-01':'2026-09'].mean().round(0).to_dict())
 
 # ---------- 8. 小平台：带镜子的套装和单独的同系列镜子 ----------
 T = pd.read_csv(os.path.join(D, '渠道关键词/大词/三平台_商品表.csv')); MS = pd.read_csv(os.path.join(D, '渠道关键词/大词/三平台_月销表.csv'))
@@ -203,3 +217,11 @@ H = T[(T['渠道'] == 'Home Depot') & T['尺寸段'].notna() & T['装'].isin(['�
 H['框'] = H['尺寸段'] + ' · ' + H['装'] + ' · ' + H['形态']
 hc = H[H['镜'].isin(['带镜子', '带镜柜', '不带'])].assign(套=lambda d: d['镜'] != '不带').groupby(['框', '套']).agg(n=('pid', 'size'), 销=('月均销', 'median'), 价=('价格', 'median')).unstack()
 print('\n== HD 同框：带镜套装 vs 不带（单品月均销中位、中位价） =='); print(hc[hc[('n', True)].fillna(0) > 0].round(1).to_string())
+
+# ---------- 9. 明细：价位档里的款、配套镜柜的款 ----------
+fa2 = fa.merge(W[['家族键', '品牌']].drop_duplicates('家族键'), on='家族键').groupby(['价位', '家族键', '品牌'], observed=True).agg(
+    框=('框', 'first'), 价=('p', 'median'), 价比=('价比', 'median'), 月数=('m', 'size'), 套装子体月均销=('c', 'mean')).reset_index()
+print('\n== 套装价位档明细 =='); print(fa2.round(2).to_string(index=False))
+fa2.to_csv(os.path.join(OUT, '套装_价位档明细.csv'), index=False, encoding='utf-8-sig')
+mt = W2.groupby(['配套', '家族键']).agg(品牌=('品牌', 'first'), 框=('框', 'first'), 镜=('镜', 'first'), 价=('价格', 'median'), 月销=('c', 'sum'), 元素=('元素（看图）', 'first'), 颜色=('D6柜体颜色', 'first'))
+mt['月销'] /= NM; print('\n== 配套 / 非配套明细 =='); print(mt.round(1).to_string())
