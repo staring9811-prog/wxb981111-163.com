@@ -85,6 +85,22 @@
 {%- else %}<span class="badge badge--miss"><svg class="icon"><use href="#ph-prohibit"/></svg>{{ v }}</span>{% endif -%}
 {%- endmacro %}
 {% macro pc(v) %}{{ v|pct }}{% endmacro %}
+{% macro q(tip) %}<span class="th-q" tabindex="0" data-tip="{{ tip }}">?</span>{% endmacro %}
+{% macro updown(a, b, fmt='pct') -%}
+{%- set t = (b|pct) if fmt == 'pct' else ('%.2f'|format(b) if b is not none else '—') -%}
+{%- if a is none or b is none or a == b %}{{ t }}{% elif b > a %}<span class="good">{{ t }} ↑</span>{% else %}<span class="bad">{{ t }} ↓</span>{% endif -%}
+{%- endmacro %}
+{% macro vsframe(a, f, fmt='%.2f') -%}
+{%- if a is none %}—{% elif f is none or (a - f)|abs < 0.005 %}{{ fmt|format(a) }}{% elif a > f %}<span class="good">{{ fmt|format(a) }} 比同框高</span>{% else %}<span class="bad">{{ fmt|format(a) }} 比同框低</span>{% endif -%}
+{%- endmacro %}
+{% macro mbars(bars, w=264, h=74, muted=false, pct=true) -%}
+{%- set vals = bars|map(attribute='v')|select('number')|list -%}
+{%- if vals -%}{%- set mx = vals|max or 1 -%}{%- set n = bars|length -%}{%- set bw = w / n -%}
+<svg class="mbars{{ ' is-muted' if muted }}" width="{{ w }}" height="{{ h }}" viewBox="0 0 {{ w }} {{ h }}" role="img" aria-label="按月柱状图">
+{%- for b in bars %}{% set x = loop.index0 * bw + 1 %}<text x="{{ '%.1f'|format(x + bw / 2 - 1) }}" y="{{ h - 1 }}" text-anchor="middle">{{ b.m[3:] if n > 8 else b.m }}</text>
+{%- if b.v is not none %}{% set bh = (h - 24) * b.v / mx %}<rect x="{{ '%.1f'|format(x) }}" y="{{ '%.1f'|format(h - 11 - bh) }}" width="{{ '%.1f'|format(bw - 3) }}" height="{{ '%.1f'|format(bh) }}" rx="1" data-tip="{{ b.m }}|{{ ('%.1f%%'|format(b.v * 100)) if pct else ('%.0f 件'|format(b.v)) }}"/><text class="v" x="{{ '%.1f'|format(x + bw / 2 - 1) }}" y="{{ '%.1f'|format(h - 13 - bh) }}" text-anchor="middle">{{ ('%.0f'|format(b.v * 100)) if pct else ('%.0f'|format(b.v)) }}</text>{% endif %}
+{%- endfor %}</svg>{%- else %}<span class="small muted">没有逐月数据</span>{%- endif -%}
+{%- endmacro %}
 {% macro pc0(v) %}{{ v|pct(0) }}{% endmacro %}
 
 {% block topbar %}
@@ -164,22 +180,28 @@
         {% if locked %}<p class="small muted" style="margin-bottom: var(--space-2)"><span class="etag etag--snap">快照</span> 本表数字均为批准时快照</p>{% endif %}
         <div class="table-wrap">
           <table class="table" id="chan-table">
-            <thead><tr><th>渠道</th><th class="t-num">框内份额 前 → 近</th><th>趋势（近 4 季）</th><th>分级 / 把握</th><th>证据等级 · 打折后读法</th><th class="t-num">样本量</th><th>这个渠道</th></tr></thead>
+            <thead><tr><th>渠道</th><th class="t-num">框内份额 前 → 近{{ q('框内份额|该取值卖的件数 ÷ 同框（同尺寸段 × 拆装 × 形态）卖的件数；前 = 前 6 个月、近 = 近 6 个月（Lowe’s、Wayfair 取调研窗口前 3 个月、近 3 个月）') }}</th><th>按月份额{{ q('按月柱状图|每月一根柱，柱顶数字是这个月的框内份额（%）；没有数据的月份留空，不画 0') }}</th><th>分级 / 把握{{ q('分级 / 把握|把握 = 照过去规律，立项后份额继续变大的可能；A 最好、D 最差。只作观察的渠道不给') }}</th><th>证据等级 · 读法{{ q('证据等级|经回测 = 用历史数据检验过；经回测（打折）= 小平台检验过但要打折看；历史观察 = 只是过去看到的现象，没检验；未验证 = 还没检验') }}</th><th class="t-num">样本量{{ q('样本量|在卖的款数（同一款不同颜色尺寸算一个）· 每月卖多少件') }}</th><th>这个渠道</th></tr></thead>
             <tbody>
               {% for ch in n.channels %}
               <tr data-channel="{{ ch.channel }}">
                 <td class="cell-title ch-col">{{ ch.name }}</td>
-                {% if not ch.has_data %}
+                {% set rs = ch.research %}
+                {% if rs and rs.state != 'ok' %}
+                <td class="t-num" colspan="2"><span class="etag etag--nodata">{{ rs.reason }}</span><div class="cell-sub">渠道调研{{ ' ' ~ rs.window if rs.window }}；不显示数字</div></td>
+                {% elif rs and rs.reason and rs.read != 'small' %}
+                <td class="t-num">{{ pc(rs.share) }}<div class="cell-sub">{{ rs.reason }}：只看份额</div></td>
+                <td><span class="small muted">{{ rs.reason }}</span></td>
+                {% elif not ch.has_data %}
                 <td class="t-num"><span class="etag etag--nodata">无数据</span><div class="cell-sub">该渠道本月无数据</div></td>
                 <td><span class="small muted">无数据</span></td>
                 {% else %}
-                <td class="t-num">{{ pc(ch.share_prev) }} → {{ pc(ch.share_now) }}{{ src(ch.name ~ ' 框内份额', ch.src, ('估算' if ch.estimated else 'n=' ~ (ch.families or 0))) }}</td>
-                <td>{% if ch.spark %}<svg class="spark mini {{ '' if ch.sample_ok else 'is-muted' }}" width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="{{ ch.spark }}"/></svg>{% endif %} <span class="small {{ '' if ch.sample_ok else 'muted' }}">{{ ch.direction if ch.sample_ok else '样本不足' }}</span></td>
+                <td class="t-num">{{ pc(ch.share_prev) }} → {{ updown(ch.share_prev, ch.share_now) }}{{ src(ch.name ~ ' 框内份额', ch.src, ('估算' if ch.estimated else 'n=' ~ (ch.families or 0))) }}</td>
+                <td>{% if ch.bars is defined %}{{ mbars(ch.bars, muted=ch.channel != card.channel) }}{% elif ch.spark %}<svg class="spark mini {{ '' if ch.sample_ok else 'is-muted' }}" width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="{{ ch.spark }}"/></svg>{% endif %}{% if not ch.sample_ok and not rs %} <span class="small muted">样本不足</span>{% endif %}</td>
                 {% endif %}
-                <td>{% if ch.hide_scores %}<span class="etag etag--nodata">不显示</span>{% elif ch.grade %}{{ ch.grade }}{% if ch.grasp is not none %} · 把握 {{ pc0(ch.grasp) }}{% endif %}{% if ch.evidence is not defined and not ch.verified %} <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
-                <td>{% if ch.evidence == '经回测' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测</span>{% elif ch.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% elif ch.evidence %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}{% if ch.evidence_note %}<div class="cell-sub">{{ ch.evidence_note }}</div>{% endif %}</td>
-                <td class="t-num">{{ ch.families or 0 }} 家族 · {{ (ch.units or 0)|num }} 件/月</td>
-                <td>{{ verdict_badge(ch.verdict) }}</td>
+                <td>{% if rs %}<span class="etag etag--nodata">只作观察</span>{% elif ch.hide_scores %}<span class="etag etag--nodata">不显示</span>{% elif ch.grade %}{{ ch.grade }}{% if ch.grasp is not none %} · 把握 {{ pc0(ch.grasp) }}{% endif %}{% if ch.evidence is not defined and not ch.verified %} <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
+                <td>{% if ch.evidence == '历史观察' %}<span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% if rs and rs.read == 'small' %}<div><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本少，只作参考</span></div>{% endif %}{% elif ch.evidence == '经回测' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测</span>{% elif ch.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% elif ch.evidence %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}{% if ch.evidence_note %}<div class="cell-sub">{{ ch.evidence_note }}</div>{% endif %}</td>
+                <td class="t-num">{% if rs and rs.state != 'ok' %}—{% else %}{{ ch.families or 0 }} 款 · {{ (ch.units or 0)|num }} 件/月{% endif %}</td>
+                <td>{% if ch.verdict == '只作观察' %}<span class="etag etag--nodata">只作观察</span>{% else %}{{ verdict_badge(ch.verdict) }}{% endif %}</td>
               </tr>
               {% endfor %}
             </tbody>

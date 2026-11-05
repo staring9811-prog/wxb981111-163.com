@@ -173,9 +173,12 @@ def _stops(f: Forecast, am_by_m: dict, start: str) -> list:
                 avg = sum(rs) / len(rs)
                 hit, why = avg < st["value"], f"前 3 个月评分 {avg:.2f}"
         elif st["kind"] == "units_below":
+            # 整款口径（AC-F26-02 r2）：am_by_m 的月销已是自家商品所在款（同父体 / 家族全部尺寸、颜色）合计，取第 2–3 个月两月平均，
+            # 与决策卡停止线（同框做成新品第 2–3 个月整款月销两月平均的第 10 百分位，card.stop_line）同一口径
             us = [am_by_m[m]["units"] for m in m3[1:] if m in am_by_m]
             if us:
-                hit, why = min(us) < st["value"], f"第 2–3 个月月销最低 {min(us):,.0f} 件"
+                avg = sum(us) / len(us)
+                hit, why = avg < st["value"], f"第 2–3 个月整个父体（所有尺寸、颜色加起来）月销平均 {avg:,.0f} 件"
         else:
             why = "需人工核对竞品价格"
         out.append(dict(text=st.get("text", ""), triggered=hit, why=why))
