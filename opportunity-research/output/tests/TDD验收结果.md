@@ -55,10 +55,10 @@
 | `DESIGN-06` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-06_PAGE-F17-01_Amazon月度数据_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-07` | pass | 独立视觉验收官（revision 8 第二轮，DESIGN-12 第三轮）用 Read 实际查看真实运行成品截图，逐项核对原有与 v8 六类锚点并与原型比对；弹窗、页签、抽屉、审批者与已批准状态另行只读补拍（app/tests/visual/accept8/复核*） | actual=tests/visual/v8_DESIGN-07_PAGE-F28-01_其他渠道_历史重建_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-08` | pending | revision 10 第三轮修复后重截（output/tests/visual/v10_DESIGN-08_*.png），复核方式改为 wen 人工复核（待看），wen 看完再记结果 | — |
-| `DESIGN-09` | pending | revision 10 第三轮修复后重截（output/tests/visual/v10_DESIGN-09_*.png），复核方式改为 wen 人工复核（待看），wen 看完再记结果 | — |
+| `DESIGN-09` | pending | revision 10 第三轮修复后重截；2026-11-06 系数表改影响大小 / 起效时间、档位白话、成功线定义、新品层模拟考试结论后再重截（output/tests/visual/v10_DESIGN-09_*.png，含 v10_DESIGN-09_PAGE-F19-01_新品层模拟考试.png），复核方式改为 wen 人工复核（待看），wen 看完再记结果 | — |
 | `DESIGN-10` | pending | revision 10 第三轮修复后重截（output/tests/visual/v10_DESIGN-10_*.png），复核方式改为 wen 人工复核（待看），wen 看完再记结果 | — |
 | `DESIGN-11` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-11_PAGE-F21-01_决策卡列表_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
-| `DESIGN-12` | pending | revision 10 第三轮修复后重截（output/tests/visual/v10_DESIGN-12_*.png），复核方式改为 wen 人工复核（待看），wen 看完再记结果 | — |
+| `DESIGN-12` | pending | revision 10 第三轮修复后重截；2026-11-06 加成功线定义与新品模型未通过提示后重截（output/tests/visual/v10_DESIGN-12_*.png，含 v10_DESIGN-12_PAGE-F21-02_做到概率与成功线.png），复核方式改为 wen 人工复核（待看），wen 看完再记结果 | — |
 | `DESIGN-13` | pass | 独立视觉验收官（revision 8 第二轮，DESIGN-12 第三轮）用 Read 实际查看真实运行成品截图，逐项核对原有与 v8 六类锚点并与原型比对；弹窗、页签、抽屉、审批者与已批准状态另行只读补拍（app/tests/visual/accept8/复核*） | actual=tests/visual/v8_DESIGN-13_PAGE-F23-01_评论VP追踪_历史回补_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-14` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-14_PAGE-F24-01_利润测算_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
 | `DESIGN-15` | pass | 独立视觉验收官（第 4 轮）用 Read 实际查看真实运行成品截图，逐项核对契约六类锚点并与原型比对，弹窗/页签/抽屉另行只读补拍 | actual=tests/visual/DESIGN-15_PAGE-F25-01_审批_审批者_视口.png; reviewer=independent-visual; review=pass; blocking=0 |
