@@ -155,3 +155,18 @@ def gap_times(g):
 
 templates.env.filters["star_note"] = star_note
 templates.env.filters["gap_times"] = gap_times
+
+
+def success_def() -> str:
+    """成功线白话定义（wen 2026-11-06）：数值读品类配置里的 Amazon 成功线。"""
+    from .. import catconfig
+    from ..core.families import ENTRY_UNITS, WIN
+    sc = catconfig.current()[1].get("channels", {}).get("amazon", {}).get("success", {})
+    rev = sc.get("spu_revenue", 0)
+    rev_t = f"{rev / 10000:g} 万" if rev >= 10000 else f"{rev:,}"
+    return (f"成功线 = 上架 {WIN} 个月内，Amazon 浴室柜小类排名进过前 {sc.get('bsr_top', '—')}，"
+            f"或整款（所有尺寸、颜色加起来）某个月销售额到过 {rev_t}美元，满足一条就算做到；"
+            f"只统计至少有一个月整款卖到 {ENTRY_UNITS} 件以上的新品")
+
+
+templates.env.globals["success_def"] = success_def

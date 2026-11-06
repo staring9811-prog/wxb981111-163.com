@@ -14,6 +14,7 @@ from ..models import Approval, Card, Forecast, User
 from ..models_decision import CardEvent
 from ..core import approval as apcore
 from ..core import card as cardcore
+from ..core import newlayer as nlcore
 from ..core import reviews as rvcore
 from .ui import redirect, render
 
@@ -217,7 +218,7 @@ def _view(s, c: Card, user):
                 can_approve=user.role == "approver" and c.status == "pending" and pend is not None,
                 is_op=user.role == "operator", status_name=cardcore.STATUS_NAMES.get(c.status, c.status),
                 cats=cardcore.REVIEW_CATS, llm_on=services.connected("llm"), missing=cardcore.missing_items(c),
-                rv_estimate=rvcore.card_items(c))
+                rv_estimate=rvcore.card_items(c), nl_verdict=nlcore.verdict((run.newlayer or {}).get('rows')) if run else None)
 
 
 @router.get("/cards/{card_id}")

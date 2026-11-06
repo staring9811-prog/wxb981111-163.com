@@ -11,7 +11,7 @@ from ..config import CHANNEL_NAMES
 from ..db import session
 from ..models import Batch, ModelRun, UnitScore
 from .. import catconfig
-from ..core import channel_model, pipeline, tagging
+from ..core import channel_model, newlayer as nlcore, pipeline, tagging
 from .ui import redirect, render
 
 router = APIRouter()
@@ -19,6 +19,31 @@ NAMES = {'b6': '近 6 个月份额每月平均变化多快', 'x5': '近 6 个月
          'x4': '每月卖多少件，跟一般单元比', 'x2': '最近新出现的款多不多（跟之前比）'}
 LABEL = {'b6': '份额最近半年走势', 'x5': '新品卖得好不好', 'x3': '搜索比去年多还是少', 'x4': '单元体量大小', 'x2': '新进来的款多不多'}
 WHO = {'b6': '份额最近半年在涨的单元', 'x5': '新品卖得比同框多的单元', 'x3': '搜索比去年多的单元', 'x4': '体量大的单元', 'x2': '新进来的款越多的单元'}
+
+
+STRENGTH = [(0.8, '强'), (0.3, '中'), (0.1, '弱')]  # 按立项后 6 个月影响的绝对值分档（悬停里写明）
+
+
+def strength(cf: dict) -> dict:
+    """信号影响的白话等级与起效时间（计算不变，只换展示）：等级按立项后 6 个月的影响（k = 6 合计）绝对值；
+    当月（b）≥ 0.1 → 马上；当月 < 0.1 而半年后 ≥ 0.3 → 半年后更明显；都小 → —。"""
+    k6, b = cf.get('k6'), cf.get('b')
+    v = k6 if k6 is not None else b
+    if v is None:
+        return dict(level='—', width=0, neg=False, when='—')
+    lv = next((t for th, t in STRENGTH if abs(v) >= th), '几乎没有')
+    if v < 0 and lv != '几乎没有':
+        lv = '反向 · ' + lv
+    when = '马上' if b is not None and abs(b) >= 0.1 else ('半年后更明显' if abs(v) >= 0.3 else '—')
+    return dict(level=lv, width=min(abs(v) / 1.5, 1) * 100, neg=v < 0, when=when)
+
+
+def grade_line(grades: dict) -> str:
+    """A/B/C/D 四格上方的一句白话（按实际个数生成）。"""
+    g = {k: int(grades.get(k, 0) or 0) for k in 'ABCD'}
+    first = next((k for k in 'AB' if g[k]), None)
+    s = f"A 档 = 系统最有把握会涨的，D 档 = 系统认为会变小的；这次 A 档 {g['A']} 个、B 档 {g['B']} 个"
+    return s + (f"，挑机会先看 {first} 档" if first else "，A、B 档都没有，挑机会先看 C 档里同框比较占优的") + "。"
 
 
 def plain_coef(coef: dict) -> dict:
@@ -105,8 +130,9 @@ def page(request: Request, channel: str = 'amazon', user=roles('operator', 'appr
             side.setdefault(r['T0'], {})[r['ver']] = r
     from .. import services
     return render(request, 'models.html', 'PAGE-F19-01', '模型与回测', channel='amazon', run=run, bt=bt, pre=pre, state=st, reason=reason, names=NAMES, side=side,
-                  plain=plain_coef(bt.get('coef') or {}), labels=LABEL, frames_stale=bool(services.get_setting('models_stale_frames', False)),
-                  newlayer=(run.newlayer or {}) if run else {}, market=(run.market or {}) if run else {})
+                  plain=plain_coef(bt.get('coef') or {}), labels=LABEL, strength=strength, grade_line=grade_line, frames_stale=bool(services.get_setting('models_stale_frames', False)),
+                  newlayer=(run.newlayer or {}) if run else {}, market=(run.market or {}) if run else {},
+                  nl_verdict=nlcore.verdict(((run.newlayer or {}) if run else {}).get('rows')))
 
 
 @router.post('/models/rescore')

@@ -291,6 +291,26 @@ def test_flow48_models_page_plain_language(wen):
     foot = h.split('data-rho-reading>')[1].split('</div>')[0]
     assert foot.startswith('把握和实际变化方向基本一致，月销 ≥ 300 件的大单元更一致') and '+0.28' in foot.split('data-tip=')[1]
     assert 'A 档之后真有 78% 份额变大，D 档只有 19%' in h
+    # wen 2026-11-06：影响大小 / 什么时候起作用、档位白话句、成功线定义（读配置）、新品层模拟考试结论
+    assert 'data-strength="b6"><span class="strong">强</span>' in h and 'data-when="b6">马上' in h
+    assert 'data-strength="x2"><span class="bad">反向 · 弱</span>' in h and '展开看原始数字' in h and '计算用的底数，不用看' in h
+    assert '这次 A 档 1 个、B 档 0 个，挑机会先看 A 档' in h and '过去这一档里，78% 后来真的变大了' in h
+    assert ('成功线 = 上架 6 个月内，Amazon 浴室柜小类排名进过前 50，或整款（所有尺寸、颜色加起来）某个月销售额到过 10 万美元，'
+            '满足一条就算做到；只统计至少有一个月整款卖到 60 件以上的新品') in h
+    v = h.split('data-nl-verdict="')[1]
+    assert v.startswith('weak') and '模拟考试' in v and '新品做到概率目前只作参考，不要靠它决定做不做' in v
+    assert '教模型用的新品款数' in h and 'a 只看最近半年、b 看全部历史、c 按趋势往后推' in h
+
+
+def test_newlayer_verdict_rule():
+    from pdt.core.newlayer import verdict
+    ok = [{'T0': '2025-10', 'auc': 0.62, 'top30': 4.0, 'bottom30': 2.0, 'use': '检验'}, {'T0': '2025-11', 'auc': 0.58, 'top30': 5.0, 'bottom30': 3.0, 'use': '检验'}]
+    assert verdict(ok)['weak'] is False and '可以参考' in verdict(ok)['text']
+    low = [dict(ok[0], auc=0.52), dict(ok[1], auc=0.50)]
+    assert verdict(low)['weak'] is True
+    inv = [ok[0], dict(ok[1], top30=2.0, bottom30=3.0)]
+    assert verdict(inv)['weak'] is True and '2025-11 打高分的反而成得不比低分的多' in verdict(inv)['text']
+    assert verdict([]) is None
 
 
 def test_flow46_image_index_import(wen):

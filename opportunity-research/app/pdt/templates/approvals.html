@@ -70,7 +70,7 @@
         <div class="sum">
           <div class="sum__item"><div class="sum__label">分渠道结论</div><div class="sum__value">{{ d.sum.verdicts }}</div></div>
           <div class="sum__item"><div class="sum__label">市场把握 · 份额区间</div><div class="sum__value">{{ d.sum.grade or '—' }} · {{ d.sum.lo|pct }}–{{ d.sum.hi|pct }}</div></div>
-          <div class="sum__item"><div class="sum__label">做到概率 原值 / 扣偏差</div><div class="sum__value">{{ d.sum.raw|pct(0) }} / {{ d.sum.adj|pct(0) }}</div></div>
+          <div class="sum__item"><div class="sum__label">做到概率 原值 / 扣偏差<span class="th-q" tabindex="0" data-tip="成功线|{{ success_def() }}">?</span></div><div class="sum__value">{{ d.sum.raw|pct(0) }} / {{ d.sum.adj|pct(0) }}</div></div>
           <div class="sum__item"><div class="sum__label">Amazon 单件利润</div><div class="sum__value">{% if d.am_profit %}{{ d.am_profit.channel }} ${{ '%.2f'|format(d.am_profit.profit) }} · {{ d.am_profit.margin|pct }}{% else %}还没有关联利润方案{% endif %}</div></div>
         </div>
         <div><div class="small muted">看到这些就停</div>

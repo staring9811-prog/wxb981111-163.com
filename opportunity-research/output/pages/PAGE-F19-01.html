@@ -127,13 +127,28 @@
       </div>
 
       <section class="section enter" style="--i:3" aria-labelledby="sec-market">
-        <div class="section__head"><h2 class="section__title" id="sec-market">市场层：本次评分</h2><span class="section__note">579 个分框单元 · 站在 2026-01 估系数，训练样本 4,965 个（单元 × 时点 × 窗口）</span></div>
+        <div class="section__head"><h2 class="section__title" id="sec-market">市场层：本次评分</h2><span class="section__note">这次给 579 个单元打了分；系统是拿 2026 年 1 月之前的 4,965 条历史记录学出来的规律</span></div>
+        <p class="plain">A 档 = 系统最有把握会涨的，D 档 = 系统认为会变小的；这次 A 档 9 个、B 档 117 个，挑机会先看 A 档。</p>
         <div class="stats">
-          <div class="stat"><div class="stat__label">A 档</div><div class="stat__value num">9</div><div class="stat__meta">回测之后变大 78% <button class="etag etag--n" type="button" data-pop-title="A 档回测" data-pop="时点=2026-01;结果月份=2026-07 至 2026-09;样本数=9 个单元;实际多卖合计=+2,043 件/月">n=9</button></div></div>
-          <div class="stat"><div class="stat__label">B 档</div><div class="stat__value num">117</div><div class="stat__meta">回测之后变大 60% <button class="etag etag--n" type="button" data-pop-title="B 档回测" data-pop="时点=2026-01;结果月份=2026-07 至 2026-09;样本数=117 个单元;实际多卖合计=+10,043 件/月">n=117</button></div></div>
-          <div class="stat"><div class="stat__label">C 档</div><div class="stat__value num">364</div><div class="stat__meta">回测之后变大 42% <button class="etag etag--n" type="button" data-pop-title="C 档回测" data-pop="时点=2026-01;结果月份=2026-07 至 2026-09;样本数=364 个单元;实际多卖合计=+12,366 件/月">n=364</button></div></div>
-          <div class="stat"><div class="stat__label">D 档</div><div class="stat__value num">89</div><div class="stat__meta">回测之后变大 19% <button class="etag etag--n" type="button" data-pop-title="D 档回测" data-pop="时点=2026-01;结果月份=2026-07 至 2026-09;样本数=89 个单元;实际多卖合计=-26,682 件/月">n=89</button></div></div>
+          <div class="stat"><div class="stat__label">A 档</div><div class="stat__value num">9</div><div class="stat__meta">过去这一档里，78% 后来真的变大了 <button class="etag etag--n" type="button" data-pop-title="A 档回测" data-pop="时点=2026-01;结果月份=2026-07 至 2026-09;样本数=9 个单元;实际多卖合计=+2,043 件/月">n=9</button></div></div>
+          <div class="stat"><div class="stat__label">B 档</div><div class="stat__value num">117</div><div class="stat__meta">过去这一档里，60% 后来真的变大了 <button class="etag etag--n" type="button" data-pop-title="B 档回测" data-pop="时点=2026-01;结果月份=2026-07 至 2026-09;样本数=117 个单元;实际多卖合计=+10,043 件/月">n=117</button></div></div>
+          <div class="stat"><div class="stat__label">C 档</div><div class="stat__value num">364</div><div class="stat__meta">过去这一档里，42% 后来真的变大了 <button class="etag etag--n" type="button" data-pop-title="C 档回测" data-pop="时点=2026-01;结果月份=2026-07 至 2026-09;样本数=364 个单元;实际多卖合计=+12,366 件/月">n=364</button></div></div>
+          <div class="stat"><div class="stat__label">D 档</div><div class="stat__value num">89</div><div class="stat__meta">过去这一档里，19% 后来真的变大了 <button class="etag etag--n" type="button" data-pop-title="D 档回测" data-pop="时点=2026-01;结果月份=2026-07 至 2026-09;样本数=89 个单元;实际多卖合计=-26,682 件/月">n=89</button></div></div>
         </div>
+        <div class="table-wrap" style="margin-top: var(--space-4)">
+          <table class="table">
+            <thead><tr><th>信号</th><th>意思</th><th>白话</th><th>影响大小<span class="th-q" tabindex="0" data-tip="影响大小|按立项后第 6 个月的总作用分级：≥ 0.8 强、0.3–0.8 中、0.1–0.3 弱、低于 0.1 几乎没有；负数 = 反向（越高越不容易变大）">?</span></th><th>什么时候起作用<span class="th-q" tabindex="0" data-tip="什么时候起作用|立项当月就有作用 = 马上；当月小、半年后大 = 半年后更明显">?</span></th></tr></thead>
+            <tbody>
+              <tr><td class="mono">b6</td><td>份额斜率（近 6 个月每月对数变化）</td><td class="plain">份额最近半年在涨的单元，之后更可能继续涨；这一项影响最大</td><td><span class="hbar"><span style="width:93%"></span></span> 强</td><td>马上</td></tr>
+              <tr><td class="mono">x5</td><td>新品占比（近 6 个月新上架家族的销量占比 − 品类整体）</td><td class="plain">新品卖得比同框多的单元，之后更可能变大；越往后作用越明显</td><td><span class="hbar"><span style="width:43%"></span></span> 中</td><td>半年后更明显</td></tr>
+              <tr><td class="mono">x3</td><td>搜索同比</td><td class="plain">搜索比去年多的，之后略更可能变大；作用小</td><td><span class="hbar"><span style="width:12%"></span></span> 弱</td><td>—</td></tr>
+              <tr><td class="mono">x4</td><td>体量（ln 月均销，中心化）</td><td class="plain">体量大小几乎不影响之后变不变大</td><td><span class="hbar"><span style="width:0%"></span></span> 几乎没有</td><td>—</td></tr>
+              <tr><td class="mono">x2</td><td>新进家族（相对增长）</td><td class="plain">新进来的款越多，之后反而略不容易变大（竞争变多）</td><td><span class="hbar"><span style="width:17%"></span></span> 反向 · 弱</td><td>马上</td></tr>
+              <tr><td class="mono">截距</td><td>a / θ；另按（体量档, k）纠偏</td><td class="plain">计算用的底数，不用看</td><td>—</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <details style="margin-top: var(--space-3)"><summary>展开看原始数字（给技术人员核对）</summary>
         <div class="table-wrap" style="margin-top: var(--space-4)">
           <table class="table">
             <thead><tr><th>信号</th><th>意思</th><th>白话</th><th class="t-num">b（k = 0）<span class="th-q" tabindex="0" data-tip="b|立项当月（k = 0）这个信号每多一个单位，之后份额变大的倾向变多少；正数 = 越高越容易变大">?</span></th><th class="t-num">c（每多 3 个月）<span class="th-q" tabindex="0" data-tip="c|往后每多看 3 个月，这个信号的作用再变多少">?</span></th><th class="t-num">k = 6 合计<span class="th-q" tabindex="0" data-tip="k = 6|k = 立项后第几个月；这一列 = 看立项后第 6 个月时这个信号的总作用">?</span></th><th class="t-num">k = 8 合计<span class="th-q" tabindex="0" data-tip="k = 8|看立项后第 8 个月时这个信号的总作用">?</span></th></tr></thead>
@@ -147,10 +162,12 @@
             </tbody>
           </table>
         </div>
+        </details>
       </section>
 
       <section class="section enter" style="--i:4" aria-labelledby="sec-new">
         <div class="section__head"><h2 class="section__title" id="sec-new">新品层：做到概率与模型偏差</h2><span class="section__note">只用开发能定的属性；校准方式按预登记规则在 2025-06 至 08 上选出 (a) 最近半年，平均每 10 个差每 10 个 1.2</span></div>
+      <p class="small muted" style="margin-bottom: var(--space-3)">成功线 = 上架 6 个月内，Amazon 浴室柜小类排名进过前 50，或整款（所有尺寸、颜色加起来）某个月销售额到过 10 万美元，满足一条就算做到；只统计至少有一个月整款卖到 60 件以上的新品</p>
         <div class="grid-main-side">
           <div class="panel">
             <div class="panel__head"><h3 class="panel__title">本月模型偏差<span class="th-q" tabindex="0" data-tip="每 10 个|照这类条件做 10 个新品，有几个能做到成功线">?</span></h3><span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>偏高</span></div>
@@ -174,9 +191,10 @@
             </div>
           </div>
         </div>
-        <div class="table-wrap" style="margin-top: var(--space-4)">
+        <div class="banner banner--warn" style="margin-top: var(--space-4)"><svg class="icon"><use href="#ph-warning"/></svg><div class="banner__body">这张表是新品模型的模拟考试：每行假装站在那个月，用之前的新品教模型、再让它猜之后上架的新品。结论：最近 2 次考试模型基本等于瞎猜（能不能分出好坏 0.36 / 0.21，0.5 = 瞎猜），2025-10、2025-11 打高分的反而成得不比低分的多——新品做到概率目前只作参考，不要靠它决定做不做。</div></div>
+      <div class="table-wrap" style="margin-top: var(--space-4)">
           <table class="table">
-            <thead><tr><th>立项时点<span class="th-q" tabindex="0" data-tip="立项时点|假装站在这个月份立项，用当时能看到的数据打分">?</span></th><th class="t-num">训练新款<span class="th-q" tabindex="0" data-tip="训练新款|模型用来学习的新品款数">?</span></th><th class="t-num">检验新款<span class="th-q" tabindex="0" data-tip="检验新款|用来考模型、模型没见过的新品款数">?</span></th><th class="t-num">实际每 10 个做到<span class="th-q" tabindex="0" data-tip="实际|这批检验新品实际每 10 个有几个做到成功线">?</span></th><th class="t-num">能不能分出好坏<span class="th-q" tabindex="0" data-tip="能不能分出好坏（AUC）|0.5 = 瞎猜，越近 1 越准；低于 0.5 比瞎猜还差">?</span></th><th class="t-num">打分前 30% / 后 30%<span class="th-q" tabindex="0" data-tip="前 30% / 后 30%|模型打分最高三成 / 最低三成的新品，实际每 10 个各做成几个；前面应该比后面多">?</span></th><th class="t-num">模型平均 (a) / (b) / (c)</th><th>用途</th></tr></thead>
+            <thead><tr><th>立项时点<span class="th-q" tabindex="0" data-tip="立项时点|假装站在这个月份立项，用当时能看到的数据打分">?</span></th><th class="t-num">训练新款<span class="th-q" tabindex="0" data-tip="训练新款|教模型用的新品款数">?</span></th><th class="t-num">检验新款<span class="th-q" tabindex="0" data-tip="检验新款|考模型用的新品款数（模型没见过）">?</span></th><th class="t-num">实际每 10 个做到<span class="th-q" tabindex="0" data-tip="实际|这批检验新品实际每 10 个有几个做到成功线">?</span></th><th class="t-num">能不能分出好坏<span class="th-q" tabindex="0" data-tip="能不能分出好坏（AUC）|0.5 = 瞎猜，越近 1 越准；低于 0.5 比瞎猜还差">?</span></th><th class="t-num">打分前 30% / 后 30%<span class="th-q" tabindex="0" data-tip="前 30% / 后 30%|模型打分最高三成 / 最低三成的新品，实际每 10 个各做成几个；前面应该比后面多">?</span></th><th class="t-num">模型平均 (a) / (b) / (c)<span class="th-q" tabindex="0" data-tip="模型平均 (a) / (b) / (c)|三种校准办法各自估的每 10 个成几个：a 只看最近半年、b 看全部历史、c 按趋势往后推">?</span></th><th>用途<span class="th-q" tabindex="0" data-tip="用途|选择 = 用来挑校准办法；检验 = 用来考">?</span></th></tr></thead>
             <tbody>
               <tr><td class="num">2025-06</td><td class="t-num">52</td><td class="t-num">85</td><td class="t-num">3.5</td><td class="t-num">0.60</td><td class="t-num">3.8 / 2.3</td><td class="t-num">4.7 / 4.7 / 2.3</td><td>选择</td></tr>
               <tr><td class="num">2025-07</td><td class="t-num">61</td><td class="t-num">71</td><td class="t-num">3.5</td><td class="t-num">0.59</td><td class="t-num">3.6 / 2.3</td><td class="t-num">4.5 / 4.5 / 0.4</td><td>选择</td></tr>

@@ -56,12 +56,13 @@
 
 <section class="section enter" style="--i:3">
   <div class="section__head"><h2 class="section__title">准确率汇总</h2><span class="section__note">只计已对账条目；判定用 Amazon 成功线，其他渠道单列</span></div>
+  <p class="small muted" data-success-def style="margin-bottom: var(--space-3)">{{ success_def() }}</p>
   {% if not summ.n %}<p class="small muted">还没有已对账的条目，有效标准标“无数据”。</p>{% endif %}
   <div class="grid-2">
     <section class="panel">
       <div class="panel__head"><h3 class="panel__title">市场层 · 按分级</h3>{% if summ.d_ok is none or summ.mono is none %}<span class="badge badge--incomplete"><svg class="icon"><use href="#ph-warning"/></svg>数据不全</span>{% elif summ.d_ok and summ.mono %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>达标</span>{% else %}<span class="badge badge--fail"><svg class="icon"><use href="#ph-x-circle"/></svg>未达标</span>{% endif %}</div>
       <div class="table-wrap table-wrap--flush"><table class="table">
-        <thead><tr><th>分级</th><th class="t-num">已对账</th><th class="t-num">份额实际变大</th><th class="t-num">实际做到</th></tr></thead>
+        <thead><tr><th>分级</th><th class="t-num">已对账</th><th class="t-num">份额实际变大</th><th class="t-num">实际做到<span class="th-q" tabindex="0" data-tip="成功线|{{ success_def() }}">?</span></th></tr></thead>
         <tbody>{% for g in summ.grades %}<tr><td>{{ g.grade }}</td><td class="t-num">{{ g.n }}</td><td class="t-num">{{ ratio(g.grew, g.grew_n) }}</td><td class="t-num">{{ ratio(g.made, g.made_n) }}</td></tr>{% endfor %}</tbody>
       </table></div>
       <div class="panel__body"><div class="crit">
@@ -73,7 +74,7 @@
     <section class="panel">
       <div class="panel__head"><h3 class="panel__title">新品层 · 按做到概率分档（扣偏差后）</h3>{{ crit(summ.top_ok, '') }}</div>
       <div class="table-wrap table-wrap--flush"><table class="table">
-        <thead><tr><th>做到概率</th><th class="t-num">已对账</th><th class="t-num">实际做到</th></tr></thead>
+        <thead><tr><th>做到概率<span class="th-q" tabindex="0" data-tip="成功线|{{ success_def() }}">?</span></th><th class="t-num">已对账</th><th class="t-num">实际做到<span class="th-q" tabindex="0" data-tip="成功线|{{ success_def() }}">?</span></th></tr></thead>
         <tbody>{% for b in summ.bins %}<tr><td>{{ b.label }}</td><td class="t-num">{{ b.n }}</td><td class="t-num">{{ ratio(b.made, b.n) }}</td></tr>{% endfor %}</tbody>
       </table></div>
       <div class="panel__body"><div class="crit"><span>打分前 20% 做到率 ≥ 平均的 2 倍</span>{{ crit(summ.top_ok, (' · ' ~ '%.1f'|format(summ.top_ratio) ~ ' 倍') if summ.top_ratio is not none else ' · 已对账不足 5 条') }}</div>
@@ -144,7 +145,7 @@
         <dt>版本</dt><dd>决策卡 v{{ f.card_version }} <span class="lock"><svg class="icon"><use href="#ph-lock-simple"/></svg>批准快照</span></dd>
         <dt>分框</dt><dd>{{ f.frame }}；{{ f.attr }}：{{ f.value }}</dd>
         <dt>市场把握与份额区间</dt><dd class="num">{{ f.grade or '—' }}{% if f.grasp is not none %}（把握 {{ f.grasp|pct(0) }}）{% endif %} · 立项后 6–10 个月份额 {{ f.share_lo|pct }}–{{ f.share_hi|pct }}<span class="etag">80% 区间</span></dd>
-        <dt>做到概率</dt><dd class="num">原值 {{ f.prob_raw|pct(0) }} · 扣偏差 {{ f.prob_adj|pct(0) }}</dd>
+        <dt>做到概率<span class="th-q" tabindex="0" data-tip="成功线|{{ success_def() }}">?</span></dt><dd class="num">原值 {{ f.prob_raw|pct(0) }} · 扣偏差 {{ f.prob_adj|pct(0) }}</dd>
         <dt>停止条件</dt><dd><ul class="stoplist">{% for st in f.stop_conditions %}<li>{{ st.text }}</li>{% endfor %}</ul></dd>
         <dt>预计上架</dt><dd class="num">{{ f.launch_month }}{% if f.own_items._actual_month %} · 实际 {{ f.own_items._actual_month }}{% endif %}</dd>
         <dt>上架渠道</dt><dd>{% for ch in f.channels %}{{ channel_names[ch] }}{% if not loop.last %}、{% endif %}{% endfor %}</dd>
@@ -154,7 +155,7 @@
     <section>
       <h3 style="margin-bottom:var(--space-3)">分渠道对账{% if r.judge and r.judge[0].r.window %}（{{ r.judge[0].r.window }}）{% endif %}</h3>
       <div class="table-wrap"><table class="table">
-        <thead><tr><th>渠道</th><th>成功线</th><th>6 个月内最好表现</th><th>判定</th></tr></thead>
+        <thead><tr><th>渠道</th><th>成功线<span class="th-q" tabindex="0" data-tip="成功线|{{ success_def() }}">?</span></th><th>6 个月内最好表现</th><th>判定</th></tr></thead>
         <tbody>{% for j in r.judge %}<tr><td>{{ j.name }}</td><td class="small">{{ j.r.line or '—' }}</td><td class="small num">{{ j.r.basis or j.reason or '—' }}{% if j.r.nature %}<span class="etag">{{ j.r.nature }}</span>{% endif %}</td><td>{{ jbadge(j.status) }}</td></tr>{% endfor %}</tbody>
       </table></div>
       {% if f.params_version %}<p class="small muted" style="margin-top:var(--space-2)">同系列商品合并计算，评论按评论 ID 去重。判定参数：品类配置 v{{ f.params_version }}。</p>{% endif %}

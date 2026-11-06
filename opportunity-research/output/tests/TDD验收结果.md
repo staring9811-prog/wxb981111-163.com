@@ -1,6 +1,6 @@
 # TDD 验收结果 · 品类机会判定台
 
-- contract_sha256: sha256:3da0337f5e946f10a8fba90beceea4f2c1000a256c19d2c06741b98083f6817a
+- contract_sha256: sha256:3d1c23ffac2916c3923b15901b5f4bc8433fdd27d77f84b816a8a59bcbbcb370
 - run_started_at: 2026-11-05T04:00:00Z
 
 | TDD ID | 状态 | 实际验证动作 | 证据 |

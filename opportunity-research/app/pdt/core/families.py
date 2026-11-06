@@ -17,6 +17,7 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
 WIN, EARLY, BSR_LINE, REV_LINE = 6, 3, 50, 100000
+ENTRY_UNITS = 60  # 进分母：至少一个月整款卖到 60 件
 SIZE = [(18, 15, 21), (24, 21, 26), (28, 26, 29), (30, 29, 33), (36, 33, 39), (42, 39, 45), (48, 45, 54), (60, 54, 66)]  # 下限含、上限不含；28″ 单独成档（AC-F18-09，wen 2026-11-05）
 SIZE_ORDER = [f'{c}″' for c, _, _ in SIZE] + ['72″+']
 COLOR = {'白色': '白', '黑色': '黑', '灰色': '灰', '原木色': '原木', '胡桃木色': '深木', '深咖啡色': '深木', '棕色': '深木',
@@ -191,7 +192,7 @@ def build(raw: pd.DataFrame):
                                                p90=('价格', lambda s: bool((s >= 90).any())))
     km['rev'] = km['fu'] * km['price']
     um = km.groupby(level=[0, 1]).agg(fu=('fu', 'sum'), rev=('rev', 'sum'), bsr=('bsr', 'min'), p90=('p90', 'any'))
-    um['ok'] = (um['fu'] >= 60) & um['p90']
+    um['ok'] = (um['fu'] >= ENTRY_UNITS) & um['p90']
     um['hit'] = (um['bsr'] <= BSR_LINE) | (um['rev'] >= REV_LINE)
     U = A.groupby('单位').agg(up=('up', 'min'), 品牌键=('品牌键', lambda s: s[s != ''].mode().iloc[0] if (s != '').any() else ''),
                              品牌=('品牌', lambda s: s.dropna().iloc[0] if s.notna().any() else ''))

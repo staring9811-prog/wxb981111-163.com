@@ -93,3 +93,24 @@ def prob_for_tokens(params: dict, tokens: list[str]) -> float | None:
     z = float(x @ np.array(params['coef']) + params['intercept'])
     p = 1 / (1 + np.exp(-z))
     return float(1 / (1 + np.exp(-(lg(p) + params['shift']))))
+
+
+WEAK_AUC = 0.55  # 新品层"分不出好坏"判定（wen 2026-11-06）
+
+
+def verdict(rows: list) -> dict | None:
+    """回测时点表上方白话结论：最近两个检验时点 AUC 都 < 0.55，或其中有"高分组没比低分组好"时判为 weak。"""
+    test = [r for r in rows or [] if r.get("use") == "检验"][-2:] or (rows or [])[-2:]
+    if not test:
+        return None
+    lo = all(r.get("auc") is not None and r["auc"] < WEAK_AUC for r in test)
+    inv = [r for r in test if r.get("top30") is not None and r.get("bottom30") is not None and r["top30"] <= r["bottom30"]]
+    head = "这张表是新品模型的模拟考试：每行假装站在那个月，用之前的新品教模型、再让它猜之后上架的新品。"
+    if lo or inv:
+        why = []
+        if lo:
+            why.append(f"最近 {len(test)} 次考试模型基本等于瞎猜（能不能分出好坏 {' / '.join('%.2f' % r['auc'] for r in test)}，0.5 = 瞎猜）")
+        if inv:
+            why.append(f"{'、'.join(r['T0'] for r in inv)} 打高分的反而成得不比低分的多")
+        return dict(weak=True, text=head + "结论：" + "，".join(why) + "——新品做到概率目前只作参考，不要靠它决定做不做。")
+    return dict(weak=False, text=head + f"结论：最近 {len(test)} 次考试模型能分出好坏（{' / '.join('%.2f' % r['auc'] for r in test)}），打高分的新品确实成得更多，新品做到概率可以参考。")
