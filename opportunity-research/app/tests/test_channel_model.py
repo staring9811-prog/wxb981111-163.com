@@ -402,7 +402,7 @@ def test_design12_card_unverified_channel_rows_and_richness(hd_run):
         assert '未验证' in rt and '样本外' in rt and '该渠道样本外，仅参考' in rt and 'Amazon 是本渠道的约 103 倍' in rt, rt
     hd = _row(html, 'rich-table', 'homedepot')
     assert '经回测（打折）' in hd and '样本外' not in hd and '102 / 6' in hd
-    assert '<th class="t-num">Amazon<br>款数 / 价位段' in html and '#rich-table td:last-child { min-width: 13em; }' in html
+    assert '<th class="t-num">Amazon<br>款数 / 价位段' in html and '#rich-table td:last-child { min-width: 13em;' in html
     assert '<td class="cell-title ch-col">Home Depot</td>' in html.split('id="rich-table"')[1]
 
 

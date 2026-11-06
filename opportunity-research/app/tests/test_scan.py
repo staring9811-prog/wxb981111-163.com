@@ -86,7 +86,7 @@ def test_channel_scan_uses_own_data(v2):
     panel.clear_cache()
     pipeline.rescan('wayfair')
     html = v2.get('/scan', params={'channel': 'wayfair'}).text
-    assert '机会扫描 · <span>Wayfair</span>' in html and '估算月销，只在本渠道内比较' in html and 'Verified Purchase' in html
+    assert '机会扫描 · <span>Wayfair</span>' in html and '估算月销，只在本渠道内比较' in html and '认证购买' in html  # r10 白话：原 Verified Purchase
     with session() as s:
         ops = list(s.scalars(select(Opportunity).where(Opportunity.channel == 'wayfair')))
     assert ops and all(o.evidence in ('未验证', '—') for o in ops)

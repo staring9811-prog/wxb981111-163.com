@@ -464,4 +464,4 @@ def test_flow29_trial_cache_assembly_and_frame_share(hd_cache):
         assert all(t.status == 'queued' for t in unk)
     assert src['spec'] > 10 * src['rule']
     html = wen.get('/tagging').text
-    assert '标签来源构成 · Home Depot 历史回补' in html and '同家族规格补' in html
+    assert '标签来源构成 · Home Depot 历史回补' in html and '同家族规格补' not in html and '按同款已知商品页的规格补，也记为规格' in html  # r10：来源只用白话四类
