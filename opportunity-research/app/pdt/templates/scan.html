@@ -27,6 +27,8 @@
   /* 属性：取值列给足宽度，取值整词不被拆开（如“农场风装饰饰条”） */
   .scan-table .col-val { min-width: 11em; }
   .scan-table .col-scope { min-width: 12em; }
+  .scan-table .div-sticky { position: sticky; left: var(--space-4); display: inline-block; }
+  .scan-table .table .col-op { min-width: 8.5em; }
   .scan-table td.col-val .cell-title { word-break: keep-all; }
   @media (max-width: 1279px) { .rules { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
@@ -65,19 +67,20 @@
 </div>
 
 <div class="enter" style="--i:1">
+  {% if channel == 'amazon' and run_invalid %}<div class="banner banner--block" style="margin-bottom: var(--space-2)" data-invalid-note><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body"><div class="banner__title">市场评分本月未通过有效性检验</div><div>最有把握那档只有十几个机会，差几个百分点可能是样本少的波动；挑机会以前三档和同框比较为主，下月再检验。 <a href="/models">看模型与回测</a></div></div></div>{% endif %}
   {% if channel == 'amazon' %}
     {% if mm.star_months %}
     <div class="banner banner--stale"><svg class="icon"><use href="#ph-warning"/></svg>
-      <div class="banner__body"><div class="banner__title">{{ mm.star_months.keys()|list|sort|first }} 至 {{ mm.star_months.keys()|list|sort|last }} 月份带 * 标记</div><div>{{ mm.star_months.values()|list|unique|join('；')|replace('家族键月间一致率', '同一款在相邻两月能对上的比例')|replace('数据来源切换（v11 表）', '数据来源换过一版') }}。近期份额变化要打折看。</div></div></div>
+      <div class="banner__body"><div class="banner__title">{{ mm.star_months.keys()|list|sort|first }} 至 {{ mm.star_months.keys()|list|sort|last }} 月份带 * 标记</div><div>{{ mm.star_months|star_note }}。近期份额变化要打折看。</div></div></div>
     {% endif %}
   {% else %}
     {% set crun = chst.run %}
     <div class="banner banner--cross"><svg class="icon"><use href="#ph-info"/></svg>
-      <div class="banner__body"><div class="banner__title">估算月销，只在本渠道内比较</div><div>月销 = VP 条数 × {{ cfg.vp_coef|num }} + 非 VP 条数 × {{ cfg.nonvp_coef|num }}（品类配置当前版本{{ '；配置为排名平滑' if cfg.method == 'rank' else '' }}），同系列按评论 ID 去重。不和其他渠道比较绝对销量{% if channel == 'wayfair' %}；Wayfair 只有 "Verified Purchase" 计 VP，口径和其他渠道不同{% endif %}。</div></div></div>
+      <div class="banner__body"><div class="banner__title">估算月销，只在本渠道内比较</div><div>月销按评论估：认证购买的评论每条按 {{ cfg.vp_coef|num }} 件、其他评论每条按 {{ cfg.nonvp_coef|num }} 件（品类配置当前版本{{ '；配置为按榜单名次估' if cfg.method == 'rank' else '' }}），同一条评论只算一次。不和其他渠道比较绝对销量{% if channel == 'wayfair' %}；Wayfair 只把网站标了"认证购买"的评论算作认证购买，口径和其他渠道不同{% endif %}。</div></div></div>
     {% if chst.evidence == '经回测（打折）' %}
     <div class="banner banner--ok" role="status" style="margin-top: var(--space-2)"><svg class="icon"><use href="#ph-seal-check"/></svg>
       <div class="banner__body"><div class="banner__title">{{ chname }} 渠道回测达标 · 证据等级 <span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span></div>
-        <div>评论重建 {{ chst.start }} 至 {{ chst.end }}（{{ chst.n_months }} 个月），{{ crun.created_at|dt }} 回测：把握四档之后变大 {% for b in crun.raw.bins %}{{ '%d%%'|format((b.up * 100)|round) if b.up is not none else '—' }}{% if not loop.last %} → {% endif %}{% endfor %}，D 档 {{ '%d%%'|format((crun.raw.d.up * 100)|round) }}<button class="etag etag--n" type="button" data-pop-title="{{ chname }} D 档" data-pop="粒度=框 × 属性取值;时点={{ crun.raw.t0s[0] }} 至 {{ crun.raw.t0s[-1] }} 共 {{ crun.raw.fitted_t0 }} 个;结果=立项后第 6–8 个月;D 档=把握 ≤ 30% 的大单元（近 3 个月月均 ≥ {{ crun.raw.big|num }} 件）;样本数={{ crun.raw.d.n }} 个单元 × 时点">n={{ crun.raw.d.n }}</button>。只看排序和坑，把握不当概率用；扫描规则本身经 Amazon 回测。<a href="/models?channel={{ channel }}">看渠道回测</a></div></div></div>
+        <div>评论重建 {{ chst.start }} 至 {{ chst.end }}（{{ chst.n_months }} 个月），{{ crun.created_at|dt }} 回测：把握四档之后变大 {% for b in crun.raw.bins %}{{ '%d%%'|format((b.up * 100)|round) if b.up is not none else '—' }}{% if not loop.last %} → {% endif %}{% endfor %}，D 档（系统认为会变小的那一档）之后真变大的只有 {{ '%d%%'|format((crun.raw.d.up * 100)|round) }}<button class="etag etag--n" type="button" data-pop-title="{{ chname }} D 档" data-pop="粒度=框 × 属性取值;时点={{ crun.raw.t0s[0] }} 至 {{ crun.raw.t0s[-1] }} 共 {{ crun.raw.fitted_t0 }} 个;结果=立项后第 6–8 个月;D 档=把握 ≤ 30% 的大单元（近 3 个月月均 ≥ {{ crun.raw.big|num }} 件）;样本数={{ crun.raw.d.n }} 个单元 × 时点">共 {{ crun.raw.d.n }} 个</button>。只用来排先后、认出坑，把握不能当成功率看；扫描规则本身经 Amazon 回测。<a href="/models?channel={{ channel }}">看渠道回测</a></div></div></div>
     {% else %}
     <div class="banner banner--unverified" role="status" style="margin-top: var(--space-2)"><svg class="icon"><use href="#ph-seal-question"/></svg>
       <div class="banner__body"><div class="banner__title">{{ chname }} 渠道未验证{{ ' · 未回补' if chst.state == 'none' else '' }}</div><div>{{ chst.reason }}。本渠道机会证据等级为"未验证"，不显示把握与分级。<a href="/models?channel={{ channel }}">看模型与回测</a></div></div></div>
@@ -129,31 +132,31 @@
     <div class="table-wrap">
       <table class="table">
         {% set oc = channel != 'amazon' %}{% set ncol = 15 if oc else 13 %}{% set c2 = ' col-2' if oc else '' %}
-        <thead><tr><th>机会类型{{ q('机会类型|增长型 = 份额在涨、新品卖得比同框多；评分缺口型 = 评分比同框低但卖得不差；价格缺口型 = 卖得比同框贵 1.3 倍以上；坑 = 份额在跌') }}</th><th class="col-val">属性：取值</th><th class="col-scope">需求范围{{ q('需求范围|看同一取值在同拆装 × 同形态的其他尺寸段：也在涨（份额 ln(近 ÷ 前) ≥ 0.2）或份额不低于这些尺寸段的平均 → 可拓展到这些尺寸段；否则是细分需求') }}</th><th class="t-num">{{ '估算月销' if oc else '月销' }}{{ q('月销|近 6 个月平均每月卖多少件') }}</th><th class="t-num">份额 前 → 近{{ q('份额|该取值在框里卖的件数占比；前 = 前 6 个月，近 = 近 6 个月；涨标绿 ↑、跌标红 ↓') }}</th><th class="t-num col-2">在卖的款数{{ q('在卖的款数|这几个月里，这个框里带该属性、进入销量榜的不同款数（同一款不同颜色尺寸算一个）') }}</th><th class="t-num col-2">单款 ÷ 同框{{ q('单款 ÷ 同框|平均每款卖的件数 ÷ 同框平均每款卖的件数；大于 1 = 单款更好卖') }}</th><th class="t-num{{ c2 }}">评分（同框）{{ q('评分|带该属性产品的平均评分；括号里是整框平均') }}</th><th class="t-num{{ c2 }}">溢价 / 中位价{{ q('溢价|一般价格是同框一般价格的几倍；中位价 = 一般卖多少钱') }}</th><th class="t-num">新品占比（同框）{{ q('新品占比|上架不到 6 个月的款卖的件数占比；括号里是整框') }}</th><th class="t-num col-2">新款做到（同框）{{ q('新款做到|走完 6 个月观察期的新款里，做到成功线的个数 / 新款总数；括号里是整框') }}</th>{% if oc %}<th class="t-num">Amazon 款数 / 价位段<div class="cell-sub">框内份额 前 → 近</div></th><th class="t-num">款数差距{{ q('款数差距（G）|Amazon 款数比本渠道多多少，越大 = Amazon 那边款越多；公式 ln((Amazon 款数 + 1) ÷ (本渠道款数 + 1))') }}<div class="cell-sub">本渠道款数 / 价位段</div></th>{% endif %}<th>证据等级{{ q('证据等级|经回测 = 用历史数据检验过；历史观察 = 只是过去看到的现象；未验证 = 还没检验') }}</th><th class="col-op"><span class="visually-hidden">操作</span></th></tr></thead>
+        <thead><tr><th>机会类型{{ q('机会类型|增长型 = 份额在涨、新品卖得比同框多；评分缺口型 = 评分比同框低但卖得不差；价格缺口型 = 卖得比同框贵 1.3 倍以上；坑 = 份额在跌') }}</th><th class="col-val">属性：取值</th><th class="col-scope">需求范围{{ q('需求范围|看同一取值在同拆装 × 同形态的其他尺寸段：在涨（份额涨两成以上），或份额不低于这些尺寸段的平均且没在跌 → 可拓展到这些尺寸段；否则是细分需求') }}</th><th class="t-num">{{ '估算月销' if oc else '月销' }}{{ q('月销|近 6 个月平均每月卖多少件') }}</th><th class="t-num">份额 前 → 近{{ q('份额|该取值在框里卖的件数占比；前 = 前 6 个月，近 = 近 6 个月；涨标绿 ↑、跌标红 ↓') }}</th><th class="t-num col-2">在卖的款数{{ q('在卖的款数|这几个月里，这个框里带该属性、进入销量榜的不同款数（同一款不同颜色尺寸算一个）') }}</th><th class="t-num col-2">单款 ÷ 同框{{ q('单款 ÷ 同框|平均每款卖的件数 ÷ 同框平均每款卖的件数；大于 1 = 单款更好卖') }}</th><th class="t-num{{ c2 }}">评分（同框）{{ q('评分|带该属性产品的平均评分；括号里是整框平均') }}</th><th class="t-num{{ c2 }}">溢价 / 中位价{{ q('溢价|一般价格是同框一般价格的几倍；中位价 = 一般卖多少钱') }}</th><th class="t-num">新品占比（同框）{{ q('新品占比|上架不到 6 个月的款卖的件数占比；括号里是整框') }}</th><th class="t-num col-2">新款做到（同框）{{ q('新款做到|走完 6 个月观察期的新款里，做到成功线的个数 / 新款总数；括号里是整框') }}</th>{% if oc %}<th class="t-num">Amazon 款数 / 价位段<div class="cell-sub">框内份额 前 → 近</div></th><th class="t-num">款数差距{{ q('款数差距（G）|Amazon 款数比本渠道多多少，越大 = Amazon 那边款越多；公式 ln((Amazon 款数 + 1) ÷ (本渠道款数 + 1))') }}<div class="cell-sub">本渠道款数 / 价位段</div></th>{% endif %}<th>证据等级{{ q('证据等级|经回测 = 用历史数据检验过；历史观察 = 只是过去看到的现象；未验证 = 还没检验') }}</th><th class="col-op"><span class="visually-hidden">操作</span></th></tr></thead>
         <tbody>
         {% set ns = namespace(fr='') %}
         {% for r in rows %}
           {% if r.frame != ns.fr %}{% set ns.fr = r.frame %}
-          <tr class="table__divider" data-frame="{{ r.frame }}"><td colspan="{{ ncol }}"><span class="strong">{{ r.frame }}</span> · 框{{ '估算' if oc else '' }}月销 <span class="num">{{ r.frame_units|num }}</span> 件</td></tr>
+          <tr class="table__divider" data-frame="{{ r.frame }}"><td colspan="{{ ncol }}"><div class="div-sticky"><span class="strong">{{ r.frame }}</span> · 框{{ '估算' if oc else '' }}月销 <span class="num">{{ r.frame_units|num }}</span> 件</div></td></tr>
           {% endif %}
           {% set m = r.m %}{% set rc = r.rich %}
           {% if r.oos %}
           <tr class="is-oos" data-frame="{{ r.frame }}" data-attr="{{ r.attr }}" data-type="样本外" data-grade="样本外">
             <td><span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>样本外</span></td>
-            <td class="col-val"><span class="muted small">{{ r.attr }}：</span><span class="cell-title">{{ r.value }}</span></td>
+            <td class="col-val"><span class="muted small">{{ r.attr }}：</span><span class="cell-title">{{ r.value|vname }}</span></td>
             <td class="col-scope"><span class="small muted">样本外，不判断</span></td>
             <td class="t-num"><span class="etag etag--nodata">本渠道没抓到这类款</span></td><td class="t-num"><span class="etag etag--nodata">无数据</span></td>
             <td class="t-num col-2">0</td><td class="t-num col-2"><span class="etag etag--nodata">无数据</span></td><td class="t-num col-2"><span class="etag etag--nodata">无数据</span></td><td class="t-num col-2"><span class="etag etag--nodata">无数据</span></td>
             <td class="t-num"><span class="etag etag--nodata">无数据</span></td><td class="t-num col-2"><span class="etag etag--nodata">无数据</span></td>
             <td class="t-num">{{ rc.az_fam }} / {{ rc.az_pb }}<div class="cell-sub">{{ pct0((rc.az_trend[1] or {}).share if rc.az_trend|length > 1 else none) }} → {{ pct0((rc.az_trend[-1] or {}).share if rc.az_trend else none) }}</div></td>
-            <td class="t-num"><span class="strong">{{ '%+.2f'|format(rc.G) }}<button class="etag" type="button" data-pop-title="款数差距的来源" data-pop="{{ rc.src }}">来源</button></span><div class="cell-sub">本渠道 0 / 0</div></td>
+            <td class="t-num"><span class="strong"><span tabindex="0" data-tip="款数差距 G = {{ '%+.2f'|format(rc.G) }}|G = ln((Amazon 款数 + 1) ÷ (本渠道款数 + 1))，这里换算成倍数显示">Amazon 是本渠道的{{ rc.G|gap_times }}</span><button class="etag" type="button" data-pop-title="款数差距的来源" data-pop="{{ rc.src }}">来源</button></span><div class="cell-sub">本渠道 0 / 0</div></td>
             <td><span class="small muted">该渠道样本外，仅参考；不给把握与分级</span></td>
             <td class="col-op"></td>
           </tr>
           {% else %}
           <tr data-frame="{{ r.frame }}" data-attr="{{ r.attr }}" data-type="{{ r.flags|join(' ') or '未入四类' }}" data-grade="{{ r.evidence }}">
             <td>{% for k in r.flags %}<span class="badge"><svg class="icon"><use href="#ph-{{ icon[k] }}"/></svg>{{ k }}</span>{% if not loop.last %}<br>{% endif %}{% else %}<span class="small muted">未入四类</span>{% endfor %}</td>
-            <td class="col-val"><span class="muted small">{{ r.attr }}：</span><span class="cell-title">{{ r.value }}</span></td>
+            <td class="col-val"><span class="muted small">{{ r.attr }}：</span><span class="cell-title">{{ r.value|vname }}</span></td>
             <td class="col-scope">{{ scopecell(r.scope) }}</td>
             <td class="t-num">{{ m.units|num }}<button class="etag etag--n" type="button" data-pop-title="{{ r.attr }}：{{ r.value }} 月销" data-pop="框={{ r.frame }};渠道={{ channel_names[channel] }};近期={{ (m.recent or mm.recent)[0] }} 至 {{ (m.recent or mm.recent)[1] }};前期={{ (m.prev or mm.prev)[0] }} 至 {{ (m.prev or mm.prev)[1] }};在卖的款数={{ m.families }}（这几个月里，这个框里带该属性、进入销量榜的不同款数，同一款不同颜色尺寸算一个）{% if oc %};月销口径=VP × {{ cfg.vp_coef|num }} + 非 VP × {{ cfg.nonvp_coef|num }}（品类配置）{% endif %}">{{ '估算' if oc else ('共 ' ~ m.families ~ ' 款') }}</button></td>
             <td class="t-num">{{ pct1(m.share_prev) }} → {% if m.share is not none and m.share_prev is not none and m.share > m.share_prev %}<span class="good">{{ pct1(m.share) }} ↑</span>{% elif m.share is not none and m.share_prev is not none and m.share < m.share_prev %}<span class="bad">{{ pct1(m.share) }} ↓</span>{% else %}{{ pct1(m.share) }}{% endif %}</td>
@@ -165,7 +168,7 @@
             <td class="t-num col-2">{% if not oc %}{{ m.newmade }}/{{ m.newfam }}（{{ m.frame_newmade }}/{{ m.frame_newfam }}）{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}</td>
             {% if oc %}
             {% if rc and rc.az_fam %}<td class="t-num">{{ rc.az_fam }} / {{ rc.az_pb }}<div class="cell-sub">{{ pct0((rc.az_trend[1] or {}).share if rc.az_trend|length > 1 else none) }} → {{ pct0((rc.az_trend[-1] or {}).share if rc.az_trend else none) }}</div></td>{% else %}<td class="t-num"><span class="etag etag--nodata">Amazon 无</span></td>{% endif %}
-            {% if rc %}<td class="t-num"><span class="strong">{{ '%+.2f'|format(rc.G) }}<button class="etag" type="button" data-pop-title="款数差距的来源" data-pop="{{ rc.src }}">来源</button></span><div class="cell-sub">本渠道 {{ rc.ch_fam }} / {{ rc.ch_pb }}</div></td>{% else %}<td class="t-num"><span class="etag etag--nodata">无数据</span></td>{% endif %}
+            {% if rc %}<td class="t-num"><span class="strong"><span tabindex="0" data-tip="款数差距 G = {{ '%+.2f'|format(rc.G) }}|G = ln((Amazon 款数 + 1) ÷ (本渠道款数 + 1))，这里换算成倍数显示">Amazon 是本渠道的{{ rc.G|gap_times }}</span><button class="etag" type="button" data-pop-title="款数差距的来源" data-pop="{{ rc.src }}">来源</button></span><div class="cell-sub">本渠道 {{ rc.ch_fam }} / {{ rc.ch_pb }}</div></td>{% else %}<td class="t-num"><span class="etag etag--nodata">无数据</span></td>{% endif %}
             {% endif %}
             <td>{% if r.evidence == '经回测' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测</span>{% elif r.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% elif r.evidence == '历史观察' %}<span class="badge"><svg class="icon"><use href="#ph-clock-counter-clockwise"/></svg>历史观察</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}</td>
             <td class="t-nowrap col-op"><div class="cell-actions">{% if r.card %}<a class="btn btn--sm" href="/cards/{{ r.card }}"><svg class="icon"><use href="#ph-cards"/></svg><span>查看决策卡</span></a>

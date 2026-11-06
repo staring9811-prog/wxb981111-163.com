@@ -123,7 +123,8 @@ def scan_page(request: Request, channel: str = 'amazon', month: str = '', frame:
     rich = richness.saved(channel) if channel != 'amazon' and meta is not None else None
     asm_unknown = _asm_unknown(channel) if meta is not None and not frames_all else 0
     min_fu = (catconfig.current()[1].get('scan') or {}).get('min_frame_units', 200)
-    return render(request, 'scan.html', 'PAGE-F20-01', '机会扫描', channel=channel, meta=meta, rows=rows, summary=summary, frames=frames_all, frame=frame,
+    run = pipeline.latest_run()
+    return render(request, 'scan.html', 'PAGE-F20-01', '机会扫描', run_invalid=bool(run is not None and not run.valid), channel=channel, meta=meta, rows=rows, summary=summary, frames=frames_all, frame=frame,
                   chst=chst, rich_window=(rich or {}).get('window'), none_key=NONE_KEY, asm_unknown=asm_unknown, min_fu=min_fu,
                   vars=[k for k, v in ATTR_KEYS.items() if v in vars_], types=type, grades=grade, months=sorted(set(months) | set(merged), reverse=True),
                   month=meta.month if meta else month, cfg=cfg, icon=ICON, type_keys=TYPE_KEYS, grade_keys=GRADE_KEYS, attr_keys=ATTR_KEYS,

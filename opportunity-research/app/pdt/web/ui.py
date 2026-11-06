@@ -119,3 +119,39 @@ def short_id(v):
 
 templates.env.filters["unescape"] = unescape
 templates.env.filters["short_id"] = short_id
+
+
+def star_note(star_months: dict) -> str:
+    """带 * 月份的异常原因合成一句白话：同类原因只说一次，数字按月份列出。"""
+    import re
+    srcs, rates = False, []
+    for m in sorted(star_months or {}):
+        r = star_months[m] or ""
+        if "数据来源切换" in r:
+            srcs = True
+        k = re.search(r"家族键月间一致率\s*([\d.]+%)", r)
+        if k:
+            rates.append(f"{m} {k.group(1)}")
+    if not srcs and not rates:
+        return "；".join(sorted(set(v for v in (star_months or {}).values() if v)))
+    s = "这几个月数据来源换过一版" if srcs else ""
+    if rates:
+        s += ("；" if s else "") + "同一款在相邻两月能对上的比例：" + "、".join(rates)
+    return s
+
+
+def gap_times(g):
+    """款数差距 G = ln((Amazon 款数 + 1) ÷ (本渠道款数 + 1)) → 白话倍数。"""
+    import math
+    if g is None:
+        return "—"
+    x = math.exp(g)
+    if 0.9 <= x <= 1.1:
+        return "差不多"
+    if x > 1:
+        return f"约 {x:.0f} 倍" if x >= 2 else f"约 {x:.1f} 倍"
+    return f"约 {x:.1f} 倍（本渠道更多）"
+
+
+templates.env.filters["star_note"] = star_note
+templates.env.filters["gap_times"] = gap_times

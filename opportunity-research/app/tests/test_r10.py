@@ -210,7 +210,7 @@ def test_flow46_tagging_card_image_from_research(wen, monkeypatch):
                       img_group='s' + iid[:6]))
     h = wen.get('/tagging?channel=wayfair').text
     assert 'src="https://images.example.com/w1.jpg"' in h and 'data-zoom="https://images.example.com/w1.jpg"' in h
-    assert '没有主图，点商品链接去商品页看' in h and 'keyword=W222' in h and 'target="_blank"' in h
+    assert '没有主图，<br>点商品链接<br>去商品页看' in h and 'keyword=W222' in h and 'target="_blank"' in h
 
 
 # ---------------------------------------------------------------- FLOW-43 四个渠道段（调研行、按月柱、代表产品）

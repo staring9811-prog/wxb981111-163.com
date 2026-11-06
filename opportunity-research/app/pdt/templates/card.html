@@ -61,8 +61,8 @@
   .approve-box .btn { width: 100%; }
   .approve-box .btn + .btn { margin-top: var(--space-2); }
   .ch-col { white-space: nowrap; }
-  .sku-table td { white-space: nowrap; }
-  .sku-table td:nth-child(3) { white-space: normal; min-width: 10em; }
+  .sku-table th { white-space: normal; }
+  .sku-table td.t-num, .sku-table td.mono, .sku-table td.num { white-space: nowrap; }
   .sku-table tbody tr[data-sku] { cursor: pointer; }
   .drawer__body .table-wrap { margin-top: var(--space-3); }
   a.seg__opt { text-decoration: none; }
@@ -82,7 +82,7 @@
   #rich-table td.rich-ev { white-space: nowrap; }
   #rich-table td.rich-ev .badge { display: flex; width: max-content; }
   #rich-table td.rich-ev .badge + .badge { margin-top: var(--space-1); }
-  #rich-table td:last-child { min-width: 13em; }
+  #rich-table td:last-child { min-width: 13em; padding-right: var(--space-4); }
 </style>
 {% endblock %}
 
@@ -210,7 +210,7 @@
                 <td class="t-num"><span class="etag etag--nodata">无数据</span><div class="cell-sub">该渠道本月无数据</div></td>
                 <td><span class="small muted">无数据</span></td>
                 {% else %}
-                <td class="t-num">{{ pc(ch.share_prev) }} → {{ updown(ch.share_prev, ch.share_now) }}<div class="cell-sub">{{ src(ch.name ~ ' 框内份额', ch.src, ('估算' if ch.estimated else 'n=' ~ (ch.families or 0))) }}</div></td>
+                <td class="t-num">{% if rs and rs.read == 'small' %}{{ pc(ch.share_prev) }} → {{ pc(ch.share_now) }}<div class="cell-sub">样本少，不看涨跌</div>{% else %}{{ pc(ch.share_prev) }} → {{ updown(ch.share_prev, ch.share_now) }}{% endif %}<div class="cell-sub">{{ src(ch.name ~ ' 框内份额', ch.src, ('估算' if ch.estimated else 'n=' ~ (ch.families or 0))) }}</div></td>
                 <td>{% if ch.bars is defined %}{{ mbars(ch.bars, w=138, h=64, muted=ch.channel != card.channel) }}{% elif ch.spark %}<svg class="spark mini {{ '' if ch.sample_ok else 'is-muted' }}" width="96" height="26" viewBox="0 0 96 26" aria-hidden="true"><polyline class="spark__line" points="{{ ch.spark }}"/></svg>{% endif %}{% if not ch.sample_ok and not rs %} <span class="small muted">样本不足</span>{% endif %}</td>
                 {% endif %}
                 <td>{% if rs %}<span class="etag etag--nodata">只作观察</span>{% elif ch.hide_scores %}<span class="etag etag--nodata">不显示</span>{% elif ch.grade %}{{ ch.grade }}{% if ch.grasp is not none %} · 把握 {{ pc0(ch.grasp) }}{% endif %}{% if ch.evidence is not defined and not ch.verified %} <span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% else %}<span class="etag etag--nodata">无数据</span>{% endif %}{% if not rs %}<div style="margin-top: var(--space-1)">{{ verdict_badge(ch.verdict) }}</div>{% endif %}</td>
@@ -252,9 +252,9 @@
                 <td class="t-num">{{ rc.az_fam }} / {{ rc.az_pb }}</td>
                 <td class="t-num">{{ pc((rc.az_trend[1] or {}).share if rc.az_trend|length > 1 else none) }} → {{ pc((rc.az_trend[-1] or {}).share if rc.az_trend else none) }}</td>
                 <td class="t-num">{% if rc.oos %}<span class="etag etag--nodata">0 / 0</span>{% else %}{{ rc.ch_fam }} / {{ rc.ch_pb }}{% endif %}</td>
-                <td class="t-num strong">{{ '%+.2f'|format(rc.G) }}<button class="etag" type="button" data-pop-title="款数差距" data-pop="{{ rc.src }}">来源</button></td>
+                <td class="t-num strong"><span tabindex="0" data-tip="款数差距 G = {{ '%+.2f'|format(rc.G) }}|G = ln((Amazon 款数 + 1) ÷ (本渠道款数 + 1))，这里换算成倍数显示">Amazon 是本渠道的{{ rc.G|gap_times }}</span><button class="etag" type="button" data-pop-title="款数差距" data-pop="{{ rc.src }}">来源</button></td>
                 <td class="rich-ev">{% if ch.evidence == '经回测（打折）' %}<span class="badge badge--pass"><svg class="icon"><use href="#ph-seal-check"/></svg>经回测（打折）</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-seal-question"/></svg>未验证</span>{% endif %}{% if rc.oos %}<span class="badge badge--insufficient"><svg class="icon"><use href="#ph-info"/></svg>本渠道没抓到这类款</span>{% endif %}</td>
-                <td class="small">{% if rc.oos %}该渠道样本外，仅参考：本渠道抓到的商品里没有这类款，只看 Amazon 那边的情况，不给本渠道把握与分级{% elif ch.evidence == '经回测（打折）' %}Amazon 结构领先：作加分信号，不作独立立项理由{% else %}只作事实对照（{{ '未回补，' if ch.evidence_note and '未回补' in ch.evidence_note else '' }}未检验）{% endif %}</td></tr>
+                <td class="small">{% if ch.research is defined and ch.research %}<div class="muted" style="margin-bottom: 2px">本渠道款数来自"其他渠道数据"（评论追踪），和上面四渠道表的渠道调研口径不同。</div>{% endif %}{% if rc.oos %}该渠道样本外，仅参考：本渠道抓到的商品里没有这类款，只看 Amazon 那边的情况，不给本渠道把握与分级{% elif ch.evidence == '经回测（打折）' %}Amazon 结构领先：作加分信号，不作独立立项理由{% else %}只作事实对照（{{ '未回补，' if ch.evidence_note and '未回补' in ch.evidence_note else '' }}未检验）{% endif %}</td></tr>
             {% endfor %}
             </tbody>
           </table>
@@ -384,7 +384,7 @@
               <h3 style="margin-bottom: var(--space-2)">近期框内各{{ card.attr }}（{{ ch.recent[0] if ch.recent else '' }} 至 {{ ch.recent[-1] if ch.recent else '' }}）</h3>
               <div class="table-wrap"><table class="table">
                 <thead><tr><th>{{ card.attr }}</th><th class="t-num">月销{{ q('月销|近 6 个月平均每月卖多少件') }}</th><th class="t-num">份额{{ q('份额|在这个框里卖的件数占比') }}</th><th class="t-num">在卖的款数{{ q('在卖的款数|进入销量榜的不同款数（同一款不同颜色尺寸算一个）') }}</th><th class="t-num">溢价{{ q('溢价|比同框一般价格贵多少倍，1.00 = 一样') }}</th><th class="t-num">评分{{ q('评分|平均评分（按销量加权）') }}</th></tr></thead>
-                <tbody>{% for fv in n.frame_values[:8] %}<tr {% if fv.me %}class="is-selected"{% endif %}><td {% if fv.me %}class="cell-title"{% endif %}>{{ fv.value }}</td><td class="t-num">{{ fv.units|num }}</td><td class="t-num">{{ pc(fv.share) }}</td><td class="t-num">{{ fv.families or '—' }}</td><td class="t-num">{{ '%.2f'|format(fv.premium) if fv.premium is not none else '—' }}</td><td class="t-num">{{ '%.2f'|format(fv.rating) if fv.rating is not none else '—' }}</td></tr>{% endfor %}</tbody>
+                <tbody>{% for fv in n.frame_values[:8] %}<tr {% if fv.me %}class="is-selected"{% endif %}><td {% if fv.me %}class="cell-title"{% endif %}>{{ fv.value|vname }}</td><td class="t-num">{{ fv.units|num }}</td><td class="t-num">{{ pc(fv.share) }}</td><td class="t-num">{{ fv.families or '—' }}</td><td class="t-num">{{ '%.2f'|format(fv.premium) if fv.premium is not none else '—' }}</td><td class="t-num">{{ '%.2f'|format(fv.rating) if fv.rating is not none else '—' }}</td></tr>{% endfor %}</tbody>
               </table></div>
               {% endif %}
             </div>

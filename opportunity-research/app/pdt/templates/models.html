@@ -15,6 +15,13 @@
   .fold .fold__close, .fold[open] .fold__open { display: none; }
   .fold[open] .fold__close { display: inline; }
   .ver-head { text-align: center; }
+  #side-table { font-size: var(--text-xs); }
+  #side-table th, #side-table td { padding: 6px 6px; }
+  #side-table th { white-space: normal; }
+  #side-table td { white-space: nowrap; }
+  #side-table .etag { padding: 0 3px; }
+  .th-q { vertical-align: 0; }
+  .ver-head .th-q, th .th-q { display: inline-flex; }
   .table td.is-v9, .table th.is-v9 { background: var(--surface-warm); }
   .bias { display: flex; align-items: baseline; gap: var(--space-4); flex-wrap: wrap; }
   .bias__item .stat__value { font-size: var(--text-2xl); }
@@ -68,7 +75,7 @@
 {% else %}
 <div class="banner banner--block enter" style="--i:1" role="alert"><svg class="icon"><use href="#ph-warning-octagon"/></svg>
   <div class="banner__body"><div class="banner__title">{{ run.valid_msg or '市场评分本月未通过有效性检验' }}</div>
-    <div>站在 {{ bt.T0 }} 回测：D 档之后变大 {{ pc(vd.d_up) }}（{{ '≤' if vd.d_ok else '>' }} 30%，共 {{ vd.d_n }} 个单元）；把握四档 {% for b in vd.bins or [] %}{{ pc(b) }}{% if not loop.last %} → {% endif %}{% endfor %}{{ '' if vd.mono else '，不再逐档上升' }}。把握和分级仅供参考，立项依据以新品层和框内历史为主。</div></div></div>
+    <div>站在 {{ bt.T0 }} 回测：D 档之后变大 {{ pc(vd.d_up) }}（{{ '≤' if vd.d_ok else '>' }} 30%，共 {{ vd.d_n }} 个单元）；把握四档 {% for b in vd.bins or [] %}{{ pc(b) }}{% if not loop.last %} → {% endif %}{% endfor %}{{ '' if vd.mono else '，不再逐档上升' }}。把握和分级仅供参考，立项依据以新品层和框内历史为主。<div class="plain" style="margin-top: var(--space-1)" data-invalid-note>最有把握那档只有十几个机会，差几个百分点可能是样本少的波动；挑机会以前三档和同框比较为主，下月再检验。</div></div></div></div>
 {% endif %}
 {% endif %}
 
@@ -84,7 +91,7 @@
         {% if pre.pending %}<li><svg class="icon wait"><use href="#ph-warning"/></svg>打标确认：还有 {{ pre.pending }} 条待确认 <a href="/tagging">去确认</a></li>{% else %}<li><svg class="icon ok"><use href="#ph-check-circle"/></svg>打标确认：Amazon {{ pre.last.amazon or '当月' }} 无待确认</li>{% endif %}
         {% if pre.other_pending %}<li><svg class="icon wait"><use href="#ph-info"/></svg>其他标签还有 {{ '{:,}'.format(pre.other_pending) }} 条待确认（其他渠道或其他月份；不影响本次 Amazon 重算，影响对应渠道的机会扫描） <a href="/tagging">去确认</a></li>{% endif %}
       </ul>
-      <div class="section__note" style="margin-top: var(--space-3)">重算内容：市场层按第九版规则（份额斜率、新品占比、搜索同比、体量；按体量档 × 预测窗口校准）为所有单元重算把握、A / B / C / D 分级、立项后 6–10 个月份额预测与 80% 区间；新品层重训做到概率模型，按最近半年做到率校准；然后滚动回测。不调用外部服务，不花钱。</div>
+      <div class="section__note" style="margin-top: var(--space-3)">重算内容：市场层按第九版规则（份额最近半年走势、新品卖得好不好、搜索比去年多还是少、体量大小；再按单元大小和看几个月后分别校正）为所有单元重算把握、A / B / C / D 分级、立项后 6–10 个月份额预测和"十次有八次落在"的范围；新品层重训做到概率模型，按最近半年做到率校准；然后滚动回测。不调用外部服务，不花钱。</div>
     </div>
   </section>
   <section class="panel" aria-labelledby="sec-rule">
@@ -102,7 +109,7 @@
 
 {% if run %}
 <section class="section enter" style="--i:3" aria-labelledby="sec-market">
-  <div class="section__head"><h2 class="section__title" id="sec-market">市场层：本次评分</h2><span class="section__note">{{ market.n_units|num }} 个单元（大属性取值与两两格子）· 回测站在 {{ bt.T0 }} 估系数，训练样本 {{ bt.n_train|num }} 个（单元 × 时点 × 窗口）</span></div>
+  <div class="section__head"><h2 class="section__title" id="sec-market">市场层：本次评分</h2><span class="section__note">{{ market.n_units|num }} 个单元（大属性取值与两两格子）· 回测假装站在 {{ bt.T0 }} 立项算系数，用了 {{ bt.n_train|num }} 条过去的记录学习<span class="th-q" tabindex="0" data-tip="学习记录|一条 = 一个单元在一个立项时点、看一种往后月份时的结果（单元 × 时点 × 窗口）">?</span></span></div>
   <div class="stats">
     {% for g in bt.grades or [] %}
     <div class="stat"><div class="stat__label">{{ g.grade }} 档</div><div class="stat__value num">{{ (market.grades or {}).get(g.grade, 0)|num }}</div><div class="stat__meta">回测之后变大 {{ pc(g.up) }} <button class="etag etag--n" type="button" data-pop-title="{{ g.grade }} 档回测" data-pop="时点={{ bt.T0 }};结果月份={{ bt.window }};样本数={{ g.n }} 个单元;实际多卖合计={{ '%+.0f'|format(g.extra) }} 件/月">共 {{ g.n }} 个</button></div></div>
@@ -195,15 +202,16 @@
   </div>
 
   <div class="section__head" style="margin-top: var(--space-6)"><h3 class="section__title">和上一版（第八版）并排</h3><span class="section__note">立项后第 6–8 个月窗口；第八版没有第 8–10 个月窗口</span></div>
-  <div class="table-wrap">
-    <table class="table">
+  <p class="small muted" style="margin-bottom: var(--space-2)" data-scroll-hint>每项两列一组：左边第八版、右边第九版（灰底）；窗口变窄时表格可左右滑动</p>
+  <div class="table-wrap" style="overflow-x: auto">
+    <table class="table" id="side-table">
       <thead>
-        <tr><th rowspan="2">时点</th><th rowspan="2">结果月份</th><th colspan="2" class="ver-head">排序和实际结果一致程度（全部 / ≥ 300 件）{{ q('排序准不准（秩相关）|按把握排的顺序和实际变化顺序有多一致：0 = 无关，1 = 完全一致') }}</th><th colspan="2" class="ver-head">方向猜对（≥ 300 件）{{ q('方向猜对|月销 ≥ 300 件的单元里，涨跌方向猜对的比例；50% = 瞎猜') }}</th><th colspan="2" class="ver-head">区间命中{{ q('区间命中（80% 区间覆盖）|预测时给的"十次有八次落在这里"的范围，实际真落进去的比例；越接近 80% 越可信') }}</th><th colspan="2" class="ver-head">把握 ≥ 70% 之后变大</th><th colspan="2" class="ver-head">把握 ≤ 30% 之后变大</th></tr>
+        <tr><th rowspan="2">时点</th><th rowspan="2">结果月份</th><th colspan="2" class="ver-head">排序和实际结果一致程度（全部 / ≥ 300 件）{{ q('排序准不准（秩相关）|按把握排的顺序和实际变化顺序有多一致：0 = 无关，1 = 完全一致') }}</th><th colspan="2" class="ver-head">方向猜对（≥ 300 件）{{ q('方向猜对|月销 ≥ 300 件的单元里，涨跌方向猜对的比例；50% = 瞎猜') }}</th><th colspan="2" class="ver-head">"十次有八次"范围真落进去的比例{{ q('区间命中（80% 区间覆盖）|预测时给的"十次有八次落在这里"的范围，实际真落进去的比例；越接近 80% 越可信') }}</th><th colspan="2" class="ver-head">把握 ≥ 70% 之后变大</th><th colspan="2" class="ver-head">把握 ≤ 30% 之后变大</th></tr>
         <tr><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th><th class="t-num">第八版</th><th class="t-num is-v9">第九版</th></tr>
       </thead>
       <tbody>
       {% for t, vv in side.items()|sort %}{% set a = vv.get(8, {}) %}{% set c9 = vv.get(9, {}) %}
-        <tr><td class="num">{{ t }}</td><td class="num small">{{ c9.window or a.window }}</td>
+        <tr><td class="num">{{ t }}</td><td class="num small t-nowrap">{{ c9.window or a.window }}</td>
           <td class="t-num">{{ sg(a.rho, 2) }} / {{ sg(a.rho300, 2) }}</td><td class="t-num is-v9">{{ sg(c9.rho, 2) }} / {{ sg(c9.rho300, 2) }}</td>
           <td class="t-num">{{ pc(a.dirn) }}</td><td class="t-num is-v9">{{ pc(c9.dirn) }}</td>
           <td class="t-num">{{ pc(a.cov) }}</td><td class="t-num is-v9">{{ pc(c9.cov) }}</td>

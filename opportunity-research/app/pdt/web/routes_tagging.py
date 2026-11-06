@@ -82,7 +82,18 @@ def _tag_sources():
     for ch in ('homedepot', 'lowes', 'wayfair'):
         rb = backfill.last_rebuild(ch)
         if rb and rb['stats'].get('tags'):
-            out.append(dict(channel=ch, name=CHANNEL_NAMES[ch], stats=rb['stats']))
+            st = dict(rb['stats'])
+            # 来源只用白话四类：同款规格补算"规格"；没有依据时的默认值单列"系统默认（无依据）"
+            MAP = {'同家族规格补': '规格', '默认': '系统默认（无依据）'}
+            tags = []
+            for r in st['tags']:
+                agg = {}
+                for k, v in r.get('sources') or []:
+                    k = MAP.get(k, k)
+                    agg[k] = agg.get(k, 0) + v
+                tags.append(dict(r, sources=sorted(agg.items(), key=lambda kv: -kv[1])))
+            st['tags'] = tags
+            out.append(dict(channel=ch, name=CHANNEL_NAMES[ch], stats=st))
     return out
 
 

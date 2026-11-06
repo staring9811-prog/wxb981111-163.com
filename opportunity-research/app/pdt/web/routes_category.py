@@ -109,8 +109,8 @@ def _pos(v) -> bool:
 
 
 CONF_NAMES = {"text_supported": "文字直接写明", "derived": "推导", "business_mapping": "业务映射", "business_inference": "业务推断",
-              "order_inference": "顺序推断", "parent_fill": "父体补齐", "family_fill": "家族补齐", "business_default": "业务默认",
-              "business_assumption": "业务假设", "parent_candidate": "父体候选", "conflict": "证据冲突", "missing": "缺失"}
+              "order_inference": "顺序推断", "parent_fill": "同一父体补齐", "family_fill": "同款补齐", "business_default": "业务默认",
+              "business_assumption": "业务假设", "parent_candidate": "同一父体候选", "conflict": "证据冲突", "missing": "缺失"}
 
 
 def _arrow_items(m: dict, n: int = 6) -> str:
@@ -217,7 +217,7 @@ def category_page(request: Request, tab: str = "frame", user=operator_only):
     return render(request, "settings_category.html", "PAGE-F27-01", "品类配置", version=v, cfg=cfg, channels=channels, bf_params=bf_params, bf_state=bf_state, bf_ev=bf_ev,
                   history=hist, current=hist[0] if hist else None, methods=METHODS, min_fit=chm.MIN_RANK_POINTS,
                   retag=_retag_info(), tag_values=_tag_values(), queue_n=queued_count(), thr=thr, tag_rows=tag_rule_rows(rules), rule_version=rules.get("rule_version", ""),
-                  conf_text="、".join(f"{CONF_NAMES.get(k, k)} {float(v):.2f}" for k, v in conf.items()), vision_usd=rules.get("vision_usd_per_call") or [],
+                  conf_text="、".join(f"{CONF_NAMES.get(k, k)} {float(v) * 100:.0f}%" for k, v in conf.items()), vision_usd=rules.get("vision_usd_per_call") or [],
                   rules_json=json.dumps(cfg.get("tag_rules") or {}, ensure_ascii=False, indent=2),
                   tab=tab if tab in ("frame", "tag", "ch", "ver") else "frame")
 

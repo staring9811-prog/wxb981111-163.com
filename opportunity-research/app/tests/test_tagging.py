@@ -285,7 +285,7 @@ def test_other_channel_image_sources_and_noimage_placeholder(wen):
     assert sorted(len(x['items']) for x in g) == [1, 2]  # 同品牌同标题两个商品一组
     assert tagging.queued_groups() == len(tagging.queue())
     html = wen.get('/tagging', params={'channel': 'wayfair'}).text
-    assert '没有主图，点商品链接去商品页看' in html and 'href="https://www.wayfair.com/keyword.php?keyword=W115187693"' in html
+    assert '没有主图，<br>点商品链接<br>去商品页看' in html and 'href="https://www.wayfair.com/keyword.php?keyword=W115187693"' in html
     assert '无主图 · 同品牌同标题 2 个商品' in html
     queue_html = html.split('id="queue"')[1]
     assert '图指纹' not in queue_html and 'wayf…' not in queue_html and '765)' not in queue_html

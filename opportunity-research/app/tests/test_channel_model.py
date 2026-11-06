@@ -317,7 +317,7 @@ def test_flow31_richness_30_floor_black(hd_run):
     h = c.get('/scan', params={'channel': 'homedepot', 'frame': '30″ · 整装 · 落地式', 'type': 'none', 'vars': 'color'}).text
     assert 'Amazon 款数 / 价位段' in h and '款数差距' in h
     row = _text(h)[_text(h).find('主色： 黑'):][:400]
-    assert '102 / 6' in row and '12% → 18%' in row and '+3.25' in row and '本渠道 3 / 1' in row and '经回测（打折）' in row
+    assert '102 / 6' in row and '12% → 18%' in row and 'Amazon 是本渠道的约 26 倍' in row and '款数差距 G = +3.25' in h and '本渠道 3 / 1' in row and '经回测（打折）' in row
     assert 'G=ln((102 + 1) ÷ (3 + 1)) = +3.25' in h
     # 决策卡（关联 HD）：分渠道并排表的“证据等级 · 打折后读法”与“Amazon 侧丰富度对照”表
     r = c.post('/cards', data=dict(channel='homedepot', frame='30″ · 整装 · 落地式', attr='主色', value='黑'), headers={'accept': 'application/json'})
@@ -325,7 +325,7 @@ def test_flow31_richness_30_floor_black(hd_run):
     t = _text(c.get(f'/cards/{cid}').text)
     assert '证据等级 · 读法' in t and 'Amazon 侧丰富度对照' in t
     i = t.find('Amazon 侧丰富度对照')
-    assert re.search(r'Home Depot 102 / 6 1[12]\.\d% → 1[78]\.\d% 3 / 1 \+3\.25 来源 经回测（打折） Amazon 结构领先', t[i:])
+    assert re.search(r'Home Depot 102 / 6 1[12]\.\d% → 1[78]\.\d% 3 / 1 Amazon 是本渠道的约 26 倍 来源 经回测（打折） Amazon 结构领先', t[i:])
     assert re.search(r'Home Depot [\d.]+% → [\d.]+% ?[↑↓]? ?估算 [\d ]+ [ABCD] · 把握 \d+% .{0,12}?经回测（打折） 只用来排先后、认出坑（框内第 \d+ / \d+）', t)
     assert re.search(r"Lowe&#39;s 尚未导入渠道调研", t)
     j = c.get(f'/cards/{cid}/channels').json()['channels']
@@ -350,7 +350,7 @@ def test_flow31_out_of_sample_units(hd_run):
     m = re.search(r'<tr class="is-oos"[^>]*data-attr="台面材质"[^>]*>(.*?)</tr>', h, re.S)
     assert m, '36″ 整装落地式框下应有陶瓷样本外行'
     row = m.group(1)
-    assert '陶瓷' in row and '样本外' in row and '该渠道样本外，仅参考；不给把握与分级' in row and re.search(r'9[23] / 4', row) and re.search(r'\+4\.5[34]', row)
+    assert '陶瓷' in row and '样本外' in row and '该渠道样本外，仅参考；不给把握与分级' in row and re.search(r'9[23] / 4', row) and re.search(r'Amazon 是本渠道的约 9[34] 倍', row)
     assert '做决策卡' not in row and '把握' not in row.replace('不给把握与分级', '')
     r = c.post('/cards', data=dict(channel='homedepot', frame='36″ · 整装 · 落地式', attr='台面材质', value='陶瓷'), follow_redirects=False)
     assert r.status_code == 303 and 'kind=error' in r.headers['location']
@@ -399,7 +399,7 @@ def test_design12_card_unverified_channel_rows_and_richness(hd_run):
         # revision 10：Lowe's / Wayfair 行改用渠道调研（AC-F21-15、16）：没有导入时写原因、标历史观察、只作观察，不再显示 F28 的"未验证 / 未回补"
         assert '尚未导入渠道调研' in t and '历史观察' in t and '只作观察' in t and '未验证' not in t, t
         rt = _row(html, 'rich-table', ch)
-        assert '未验证' in rt and '样本外' in rt and '该渠道样本外，仅参考' in rt and '+4.63' in rt, rt
+        assert '未验证' in rt and '样本外' in rt and '该渠道样本外，仅参考' in rt and 'Amazon 是本渠道的约 103 倍' in rt, rt
     hd = _row(html, 'rich-table', 'homedepot')
     assert '经回测（打折）' in hd and '样本外' not in hd and '102 / 6' in hd
     assert '<th class="t-num">Amazon<br>款数 / 价位段' in html and '#rich-table td:last-child { min-width: 13em; }' in html

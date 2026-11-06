@@ -57,7 +57,7 @@ def card_name(c) -> str:
     """卡名：取值 · 框（尺寸 拆装 · 形态），例：树脂一体 · 30″ 拆装 · 落地式。"""
     f = c.frame.split(" · ")
     fr = f"{f[0]} {f[1]} · {f[2]}" if len(f) == 3 else c.frame
-    return f"{c.value} · {fr}"
+    return f"{catconfig.value_name(c.value)} · {fr}"
 
 
 # ---------------------------------------------------------------- 模型与偏差
@@ -572,8 +572,13 @@ def build_numbers(channel: str, frame: str, attr: str, value: str) -> dict:
     limits.append(f"Home Depot / Lowe's / Wayfair 月销是评论换算估算（品类配置参数 v{cfg_v}），只在渠道内比较；Lowe's、Wayfair 取自渠道调研（历史观察）；证据等级：{evs}。"
                   "经回测（打折）的渠道历史由评论重建，只抓到现在还在榜的商品，早期下架的看不到，所以结论偏乐观、把握不能当成功率看。")
     for c in chans:
+        rs = c.get("research")
+        if rs is not None:  # Lowe's / Wayfair：渠道调研的真实原因（AC-F21-16）
+            if rs.get("reason"):
+                limits.append(f"{c['name']}（渠道调研）：{rs['reason']}。")
+            continue
         if c["has_data"] and not c["sample_ok"]:
-            limits.append(f"{c['name']} 这个框样本不足（框月销 {c['frame_units'] or 0:,.0f} 件）。")
+            limits.append(f"{c['name']} 这个框样本不足（框月销 {c['frame_units'] or 0:,.0f} 件，不到 {min_fu} 件）。")
         if not c["has_data"]:
             limits.append(f"{c['name']} 本月无该单元数据。")
     limits.append("“为消费者解决了什么问题”是推测，待问答验证。")

@@ -122,7 +122,7 @@
   {% if frames %}
   <div class="table-wrap">
     <table class="table rs-table" aria-label="{{ st[ch].name }} 达门槛的框">
-      <thead><tr><th>框</th><th>可读性 · 历史观察</th><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">渠道内份额</th><th class="t-num">近 3 ÷ 前 3</th><th class="t-num">款</th><th class="t-num">单款月均</th><th class="t-num">新款（销量占比）</th><th class="t-num">中位价</th><th class="t-num">评分</th><th>台面 / 主色 / 柜体 / 元素 已知</th><th class="t-num">分框覆盖（期望）</th><th class="t-num">有月度占比</th></tr></thead>
+      <thead><tr><th>框</th><th>可读性 · 历史观察</th><th class="t-num">月均 <svg class="icon"><use href="#ph-caret-down"/></svg></th><th class="t-num">渠道内份额</th><th class="t-num">最近 3 个月 ÷ 之前 3 个月<span class="th-q" tabindex="0" data-tip="近 3 ÷ 前 3|整框最近 3 个月销量 ÷ 最前 3 个月销量；≥ 1.15 框涨、≤ 0.87 框跌（样本少的框不写涨跌）">?</span></th><th class="t-num">款</th><th class="t-num">单款月均</th><th class="t-num">新款（销量占比）</th><th class="t-num">中位价</th><th class="t-num">评分</th><th>台面 / 主色 / 柜体 / 元素 已知</th><th class="t-num">分框覆盖（期望）</th><th class="t-num">有月度占比</th></tr></thead>
       <tbody>
       {% for f in frames %}{% set nc = f.read == 'noconc' %}{% set nt = f.read == 'notrend' %}{% set href = '/research/' ~ ch ~ '/frame/' ~ f.slug %}
         <tr class="rd-{{ f.read }}" data-read="{{ f.read }}" data-href="{{ href }}" data-frame="{{ f.frame }}" tabindex="0">
@@ -132,7 +132,7 @@
           <td class="t-num">{{ psh(f.channel_share) }}</td>
           {% if nc %}{% for i in range(7) %}<td class="t-num"><span class="muted">—</span></td>{% endfor %}<td class="small t-nowrap"><span class="muted">—</span></td>
           {% else %}
-          <td class="t-num">{% if nt or f.ratio is none %}<span class="muted">—{% if not data.trend_ok %}（月份不足）{% endif %}</span>{% else %}<span class="num">{{ '%.2f'|format(f.ratio) }}</span> <span class="cell-sub">{{ f.ratio_label }}</span>{% endif %}</td>
+          <td class="t-num">{% if nt or f.ratio is none %}<span class="muted">—{% if not data.trend_ok %}（月份不足）{% endif %}</span>{% else %}<span class="num">{{ '%.2f'|format(f.ratio) }}</span> {% if f.read != 'small' %}<span class="cell-sub">{{ f.ratio_label }}</span>{% endif %}{% endif %}</td>
           <td class="t-num">{{ f.families }}</td>
           <td class="t-num">{{ f.per_family|num }}</td>
           <td class="t-num">{% if nt %}<span class="muted">—</span>{% else %}{{ f.new_fams }}（{{ pct(f.new_share) }}）{% endif %}</td>

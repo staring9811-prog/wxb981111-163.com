@@ -140,7 +140,7 @@ def channel_params(channel: str) -> tuple[int, dict]:
 
 
 # ---------- 显示用词表（v8 复核）：标签取值的英文原值在页面上显示为中文；存储值不变 ----------
-VALUE_NAMES = {"rattan": "藤编", "rustic": "乡村风"}
+VALUE_NAMES = {"rattan": "藤编", "rustic": "乡村风", "农场风装饰饰条": "农场风装饰条"}  # 最后一项：打标技能词表原词有重复字，只改显示
 _VALUE_RE = re.compile(r"(?<![A-Za-z])(" + "|".join(VALUE_NAMES) + r")(?![A-Za-z])", re.I)
 
 

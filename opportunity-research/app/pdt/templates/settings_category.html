@@ -20,7 +20,7 @@
   <div>
     <div class="crumbs"><span>设置</span><svg class="icon"><use href="#ph-caret-right"/></svg><span>品类配置</span></div>
     <h1>品类配置 · 浴室柜</h1>
-    <p class="page-head__sub">分框维度、扫描属性、打标规则、低置信度阈值，以及各渠道的评论换算系数、估算方法和成功线。保存后生成新参数版本，之后的销量估算、机会扫描和台账判定使用新值。</p>
+    <p class="page-head__sub">分框维度、扫描属性、打标规则、把握门槛，以及各渠道的评论换算系数、估算方法和成功线。保存后生成新参数版本，之后的销量估算、机会扫描和台账判定使用新值。</p>
   </div>
   <div class="page-head__actions">
     <span class="small muted" data-dirty-hint hidden>有未保存的修改</span>
@@ -77,18 +77,18 @@
   <!-- 打标规则 -->
   <section id="tTag" role="tabpanel" class="stack-lg"{% if tab != 'tag' %} hidden{% endif %}>
     <section class="panel">
-      <div class="panel__head"><h2 class="panel__title">低置信度阈值</h2></div>
+      <div class="panel__head"><h2 class="panel__title">把握门槛<span class="th-q" tabindex="0" data-tip="把握门槛（低置信度阈值）|系统给每个标签一个把握（置信度），低于这个门槛的标签要人工确认">?</span></h2></div>
       <div class="panel__body stack">
         <div class="thr">
-          <input type="range" min="0.5" max="0.95" step="0.05" value="{{ thr }}" id="thr" data-path="low_conf_threshold" data-type="num" aria-label="低置信度阈值">
+          <input type="range" min="0.5" max="0.95" step="0.05" value="{{ thr }}" id="thr" data-path="low_conf_threshold" data-type="num" aria-label="把握门槛">
           <span class="strong num" id="thrVal">{{ '%.2f'|format(thr) }}</span>
-          <span class="small muted">置信度低于阈值的标签进入 <a href="/tagging">打标确认</a> 队列；元素始终进入确认队列</span>
+          <span class="small muted">把握低于门槛的标签进入 <a href="/tagging">打标确认</a> 队列；元素始终进入确认队列</span>
         </div>
-        <p class="small muted">当前确认队列 <span class="strong num" data-queue-n>{{ queue_n|num }}</span> 条（四个渠道合计，与 <a href="/tagging">打标确认</a> 页同一口径，按阈值 {{ '%.2f'|format(thr) }} 分流）。改阈值后保存，下一次打标按新阈值分流，已在队列里的不变。</p>
+        <p class="small muted">当前确认队列 <span class="strong num" data-queue-n>{{ queue_n|num }}</span> 条（四个渠道合计，与 <a href="/tagging">打标确认</a> 页同一口径，按阈值 {{ (thr * 100)|round|int }}% 分流）。改阈值后保存，下一次打标按新阈值分流，已在队列里的不变。</p>
       </div>
     </section>
     <section class="panel">
-      <div class="panel__head"><h2 class="panel__title">打标规则</h2><span class="section__note">四个渠道用同一套规则，确认队列标明渠道</span><button class="btn btn--sm" type="button" data-open="#dwRules">编辑 JSON</button></div>
+      <div class="panel__head"><h2 class="panel__title">打标规则</h2><span class="section__note">四个渠道用同一套规则，确认队列标明渠道</span><button class="btn btn--sm" type="button" data-open="#dwRules">编辑规则原文<span class="th-q" tabindex="0" data-tip="规则原文|以 JSON 格式保存的打标规则，给技术人员改">?</span></button></div>
       <div class="table-wrap table-wrap--flush">
         <table class="table" id="t-rules">
           <thead><tr><th>标签</th><th>方式</th><th>规则摘要</th><th class="t-num">规则数</th><th><span class="visually-hidden">操作</span></th></tr></thead>
@@ -103,7 +103,7 @@
         <form method="post" action="/settings/category/retag-frames" onsubmit="return confirm('按当前规则重打尺寸段、形态？只改没人工确认过的标签；完成后机会扫描自动重算，模型与回测需另点重算。')"><button class="btn btn--sm" type="submit">按当前规则重打分框标签</button></form>
         <span class="muted">{% if retag.at %}上次 {{ retag.at }}：尺寸段改 {{ retag.size|num }} 条、形态改 {{ retag.form|num }} 条，其中 {{ retag.queued|num }} 条进确认队列；已人工确认的标签不改{% else %}还没有执行过{% endif %}</span>
       </div>
-      <div class="panel__foot">置信度按证据状态取值：{{ conf_text }}{% if vision_usd %} · 看图每次约 ${{ '%.3f'|format(vision_usd[0]) }}–{{ '%.3f'|format(vision_usd[1]) }}{% endif %}{% if rule_version %} · 规则版本 {{ rule_version }}{% endif %}</div>
+      <div class="panel__foot">每种依据给的把握：{{ conf_text }}{% if vision_usd %} · 看图每次约 ${{ '%.3f'|format(vision_usd[0]) }}–{{ '%.3f'|format(vision_usd[1]) }}{% endif %}{% if rule_version %} · 规则版本 {{ rule_version }}{% endif %}</div>
     </section>
   </section>
 
@@ -216,17 +216,17 @@
   <div class="drawer__head"><div><h2 class="drawer__title" id="dimTitle{{ loop.index0 }}">{{ d.dim }}</h2><p class="drawer__sub">分框维度 · 来源标签“{{ d.tag }}”</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
   <div class="drawer__body">
     <label class="field"><span class="field__label">取值（用顿号或逗号分隔）</span><input class="input" form="f-cfg" data-path="frame_dims.{{ loop.index0 }}.values" data-type="list" value="{{ d['values']|join('、') }}"></label>
-    <p class="small muted" style="margin-top:var(--space-3)">取值要与打标结果一致；不在任何取值内的商品标为低置信度，进入打标确认。修改分框维度从下一次扫描起生效，已批准决策卡的快照不变。</p>
+    <p class="small muted" style="margin-top:var(--space-3)">取值要与打标结果一致；不在任何取值内的商品标为把握低，进入打标确认。修改分框维度从下一次扫描起生效，已批准决策卡的快照不变。</p>
   </div>
   <div class="drawer__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-close data-done>完成</button></div>
 </aside>
 {% endfor %}
 
 <aside class="drawer" id="dwRules" role="dialog" aria-modal="true" aria-labelledby="rulesTitle" aria-hidden="true">
-  <div class="drawer__head"><div><h2 class="drawer__title" id="rulesTitle">打标规则</h2><p class="drawer__sub">JSON：标签 → 规则（关键词、区间、看图）</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
+  <div class="drawer__head"><div><h2 class="drawer__title" id="rulesTitle">打标规则</h2><p class="drawer__sub">规则原文（标签 → 关键词、区间、看图），给技术人员改；改错会提示</p></div><button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button></div>
   <div class="drawer__body">
     <textarea class="input rules-json" form="f-cfg" data-path="tag_rules" data-type="json" spellcheck="false" aria-label="打标规则 JSON">{{ rules_json }}</textarea>
-    <div class="field__error" id="rulesErr" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>不是有效的 JSON 对象</div>
+    <div class="field__error" id="rulesErr" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>格式不对，没法保存（请检查括号和引号）</div>
   </div>
   <div class="drawer__foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn--primary" type="button" data-close data-done>完成</button></div>
 </aside>

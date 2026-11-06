@@ -50,7 +50,7 @@
   <div class="fhead">
     <div><div class="stat__label">月均</div><div class="v">{{ f.units|num }} 件{% if f.estimated %} <span class="etag etag--n">估算</span>{% endif %}</div>{% if f.estimated %}<div class="cell-sub">低估计 {{ f.units_low|num }}{% if f.low_below %} · 低估计未达门槛{% endif %}</div>{% endif %}</div>
     <div><div class="stat__label">渠道内份额</div><div class="v">{{ psh(f.channel_share) }}</div></div>
-    <div><div class="stat__label">近 3 ÷ 前 3</div><div class="v">{% if nc or nt or f.ratio is none %}—{% else %}{{ '%.2f'|format(f.ratio) }} <span class="cell-sub">{{ f.ratio_label }}</span>{% endif %}</div></div>
+    <div><div class="stat__label">最近 3 个月 ÷ 之前 3 个月</div><div class="v">{% if nc or nt or f.ratio is none %}—{% else %}{{ '%.2f'|format(f.ratio) }} {% if f.read != 'small' %}<span class="cell-sub">{{ f.ratio_label }}</span>{% endif %}{% endif %}</div></div>
     <div><div class="stat__label">款</div><div class="v">{{ '—' if nc else f.families }}</div></div>
     <div><div class="stat__label">分框覆盖（期望）</div><div class="v">{{ pct(f.cover, 1) }}</div></div>
     <div><div class="stat__label">有月度占比</div><div class="v">{{ pct(f.monthly_share) }}</div></div>

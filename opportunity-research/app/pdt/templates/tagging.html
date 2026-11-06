@@ -85,14 +85,14 @@
         <tbody>
         {% for r in st.tags %}
           <tr><td class="cell-title">{{ r.tag }}</td><td class="t-num">{{ '%.0f%%'|format(r.cover * 100) }}</td>
-            <td class="small">{% for k, v in r.sources %}{% if k in ('规格', '标题', '看图', '人工') %}<span class="etag">{{ k }}</span>{% else %}{{ k }}{% endif %} {{ '%.0f%%'|format(v * 100) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+            <td class="small">{% for k, v in r.sources %}{% if k in ('规格', '标题', '看图', '人工') %}<span class="etag">{{ k }}</span>{% else %}<span class="etag" data-tip="系统默认（无依据）|什么依据都没有时按默认值打上，把握低，会进确认队列" tabindex="0">{{ k }}</span>{% endif %} {{ '%.0f%%'|format(v * 100) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
             <td class="small">{% for k, v in r.top[:3] %}{{ k|vname }} {{ '%.0f%%'|format(v * 100) }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
             <td class="small">{{ {'装': '记"未知"，进确认队列，不默认拆装', '形态': '按落地式（与 Amazon 同口径），标低置信度', '元素': '进确认队列（看图打元素后）'}.get(r.tag, '低置信度进队列') }}</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
-    <div class="panel__foot">标签来源只有四种：<span class="etag">规格</span> 商品页规格字段、<span class="etag">标题</span> 标题规则、<span class="etag">看图</span> 大模型看主图、<span class="etag">人工</span> 你确认或修改过。同系列没有自己规格的商品页，按同款已知商品页的规格补，记为规格。</div>
+    <div class="panel__foot">标签来源只有四种：<span class="etag">规格</span> 商品页规格字段、<span class="etag">标题</span> 标题规则、<span class="etag">看图</span> 大模型看主图、<span class="etag">人工</span> 你确认或修改过。同系列没有自己规格的商品页，按同款已知商品页的规格补，也记为规格。另有"系统默认（无依据）"：什么依据都没有时按默认值（形态按落地式）打上，把握低，会进确认队列。</div>
   </div>
   {% endfor %}
 </section>
@@ -138,7 +138,7 @@
       <form method="post" action="/tagging/research/confirm" class="qgroup__head">
         <input type="hidden" name="channel" value="{{ e.channel }}"><input type="hidden" name="pid" value="{{ e.pid }}"><input type="hidden" name="tag" value="{{ e.tag }}"><input type="hidden" name="back" value="{{ back }}">
         {% if e.image %}<div class="thumb-box"><img class="thumb" src="{{ e.image }}" alt="主图：{{ (e.title|unescape)[:60] }}（点开放大）" loading="lazy" referrerpolicy="no-referrer" data-zoom="{{ e.image }}">{% if e.link %}<a class="tlink small" href="{{ e.link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>
-        {% else %}<div class="thumb thumb--noimg" data-noimg><span>没有主图，点商品链接去商品页看</span>{% if e.link %}<a class="tlink" href="{{ e.link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% endif %}
+        {% else %}<div class="thumb thumb--noimg" data-noimg><span>没有主图，<br>点商品链接<br>去商品页看</span>{% if e.link %}<a class="tlink" href="{{ e.link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% endif %}
         <div class="qgroup__meta">
           <div class="row"><span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>分框未知（渠道调研）</span>
             <span class="badge">{{ e.tag }} · {{ '多尺寸未拆' if e.reason == '多尺寸未拆' else '无依据' }}</span><span class="etag">调研导入</span>
@@ -171,7 +171,7 @@
     <article class="qgroup" data-channel="{{ g.channels|join(' ') }}" data-reason="{{ 'element' if g.tag == '元素' else ('assembly' if asm else 'low') }}" aria-labelledby="g{{ gi }}-title">
       <form method="post" action="/tagging/groups/confirm" class="qgroup__head">
         <input type="hidden" name="img_group" value="{{ g.img_group }}"><input type="hidden" name="tag" value="{{ g.tag }}"><input type="hidden" name="back" value="{{ back }}">
-        {% if g.image %}<div class="thumb-box"><img class="thumb" src="{{ g.image }}" alt="主图：{{ (g['items'][0].title|unescape)[:60] }}（点开放大）" loading="lazy" referrerpolicy="no-referrer" data-zoom="{{ g.image }}">{% if g['items'][0].link %}<a class="tlink small" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% else %}<div class="thumb thumb--noimg" data-noimg><span>没有主图，点商品链接去商品页看</span>{% if g['items'][0].link %}<a class="tlink" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% endif %}
+        {% if g.image %}<div class="thumb-box"><img class="thumb" src="{{ g.image }}" alt="主图：{{ (g['items'][0].title|unescape)[:60] }}（点开放大）" loading="lazy" referrerpolicy="no-referrer" data-zoom="{{ g.image }}">{% if g['items'][0].link %}<a class="tlink small" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% else %}<div class="thumb thumb--noimg" data-noimg><span>没有主图，<br>点商品链接<br>去商品页看</span>{% if g['items'][0].link %}<a class="tlink" href="{{ g['items'][0].link }}" target="_blank" rel="noopener">商品链接</a>{% endif %}</div>{% endif %}
         <div class="qgroup__meta">
           <div class="row">{% if g.tag == '元素' %}<span class="badge badge--accent">元素</span>{% elif asm %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>装：未知</span>{% else %}<span class="badge badge--unverified"><svg class="icon"><use href="#ph-warning"/></svg>低置信度</span>{% endif %}
             <span class="badge">{% if asm and tab == 'pending' %}装 · 无依据{% else %}{{ g.tag }} · 来源：{{ SRC.get(g.source, g.source) }}{% endif %}</span>
