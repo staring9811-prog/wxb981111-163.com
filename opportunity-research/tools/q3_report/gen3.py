@@ -430,6 +430,16 @@ out=tpl.replace('/*XJSON*/',XJS).replace('<!--CONC-->',CONC).replace('<!--TOPCH-
 out=re.sub(r'<!--ED:(.*?)-->',lambda m:ED(m.group(1),'say'),out,flags=re.S)
 out=re.sub(r'<!--EDB:(.*?)-->',lambda m:ED(m.group(1),'say big'),out,flags=re.S)
 import hashlib
-out=out.replace('__VER__',hashlib.md5(out.encode()).hexdigest()[:8])
-open('Q3浴室柜_市场与渠道数据报告.html','w').write(out)
+from pathlib import Path
+report=Path('Q3浴室柜_市场与渠道数据报告.html')
+version=hashlib.md5(out.encode()).hexdigest()[:8]
+previous=''
+if report.exists():
+    prior=report.read_text(encoding='utf-8')
+    old_key=re.search(r"var KEY='q3vanity-report-([0-9a-f]{8})';",prior)
+    old_previous=re.search(r"var previousVersion='([0-9a-f]{8})';",prior)
+    if old_key:
+        previous=old_key[1] if old_key[1]!=version else (old_previous[1] if old_previous else '')
+out=out.replace('__VER__',version).replace('__PREV_VER__',previous)
+report.write_text(out,encoding='utf-8')
 print('ok',eid[0])
