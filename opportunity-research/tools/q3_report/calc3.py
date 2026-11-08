@@ -88,6 +88,17 @@ for _r in recs['amazon']+LALL:
     if _ln and _p and _p<_ln and _r['at'].get('拆装')!='拆装':
         _fl.append(('amazon',_r['pid'],_r['brand'],_r['at']['尺寸'],_p,_r['at'].get('拆装')+' → 拆装',round(sum(_r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10'))/3,1)))
         _r['at']['拆装']='拆装'
+# 大尺寸树脂盆规则（wen 2026-11-08）：拆装、48″ 及以上、售价低于线价，台面标的是陶瓷或没标 → 树脂盆。
+# 高于线价的多是石材台面；木板台面、不含台面不动。
+RESIN_LINE={'48″':700,'60″':1000,'72″+':900}
+_seen=set()
+for _r in recs['amazon']+LALL:
+    if id(_r) in _seen: continue
+    _seen.add(id(_r))
+    _ln=RESIN_LINE.get(_r['at'].get('尺寸')); _p=_r.get('price')
+    if _ln and _p and _p<_ln and _r['at'].get('拆装')=='拆装' and _r['at'].get('台面') in ('陶瓷','未标'):
+        _fl.append(('amazon',_r['pid'],_r['brand'],_r['at']['尺寸'],_p,str(_r['at'].get('台面'))+' → 树脂（大尺寸价格线）',round(sum(_r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10'))/3,1)))
+        _r['at']['台面']='树脂'
 # 人工改标（最高优先级，覆盖打标和价格线）：tag_override.csv 每行 渠道,商品ID,属性,改成
 import csv as _csv0
 _OV=[r for r in _csv0.DictReader(open('tag_override.csv',encoding='utf-8'))]
