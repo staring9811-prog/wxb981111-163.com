@@ -23,7 +23,11 @@ def th(h): t=TIPS.get(h); return f'<th title="{E_(t)}">{h}<sup>?</sup></th>' if 
 def table(ch,rows,kind='std',dim=None):
     hs=HEAD['品牌' if kind=='品牌' else 'std']; nos=False; szt=kind=='尺寸'
     hs=hs[:1]+['每月走势（2026-01 至 10）']+hs[1:]
-    out=['<div class="tw"><table class="dt"><tr>'+''.join(th(h) for h in hs)+'</tr>']
+    _dk=dim or kind
+    _f=''
+    if _dk!='拆装': _f+='<span class="tfl">拆装</span>'+''.join(f'<button type="button" class="tfb{" on" if v=="全部" else ""}" data-f="拆装" data-v="{v}">{v}</button>' for v in ('全部','拆装','整装'))
+    if _dk!='形态': _f+='<span class="tfl">形态</span>'+''.join(f'<button type="button" class="tfb{" on" if v=="全部" else ""}" data-f="形态" data-v="{v}">{v}</button>' for v in ('全部','落地式','悬浮式','开放式'))
+    out=[f'<div class="tfil" contenteditable="false" data-c="{ch}" data-d="{E_(_dk)}" data-k="{kind}">{_f}<span class="tfn"></span></div><div class="tw"><table class="dt"><tr>'+''.join(th(h) for h in hs)+'</tr>']
     for x in rows:
         if x['u']<1 and x['sku']<3: continue
         gray=' class="mute"' if x['k']=='未知品牌' or '未标' in x['k'] else ''
@@ -466,12 +470,23 @@ for c,_n,_ in CH:
             row.append([prices.get(m) for m in M10x])
         L.append(row)
     XD[c]=L
+_TDD={}
+for c,_n,_ in CH:
+    L=[]
+    for r in _RC[c]:
+        a=r['at'];rr=r.get('r') or {}
+        wn=sum(r['u'].get(m,0)*rr[m] for m in ('2026-08','2026-09','2026-10') if m in rr and r['u'].get(m));wd=sum(r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10') if m in rr and r['u'].get(m))
+        pn=sum(r['u'].get(m,0)*rr[m] for m in ('2026-05','2026-06','2026-07') if m in rr and r['u'].get(m));pd=sum(r['u'].get(m,0) for m in ('2026-05','2026-06','2026-07') if m in rr and r['u'].get(m))
+        L.append([r['pid'],r['brand'],r['fam'],round(r['price'],2) if r['price'] else None,round(r['rating'],2) if r['rating'] else None,
+                  {k:a.get(k) or '未标' for k in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')},[round(r['u'].get(m,0),1) for m in M10x],[round(wn,1),round(wd,1),round(pn,1),round(pd,1)]])
+    _TDD[c]=L
+TDJS=json.dumps(_TDD,ensure_ascii=False,separators=(',',':'))
 XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
 import html as _hh, os
 _N=json.load(open('notes.json',encoding='utf-8')) if os.path.exists('notes.json') else None
 tpl=tpl.replace('<!--SIDENOTES-->',_N['side'] if _N and _N.get('side') else open(q3paths.CODE+'/default_notes.html',encoding='utf-8').read())
 tpl=tpl.replace('<!--CELLNOTES-->',_hh.escape(_N['cells']) if _N else '').replace('__NOTES_TS__',str(_N['ts'] if _N else 0))
-out=tpl.replace('<!--DTAB-->',DTAB).replace('/*XJSON*/',XJS).replace('<!--CONC-->','').replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
+out=tpl.replace('/*TDJSON*/',TDJS).replace('<!--DTAB-->',DTAB).replace('/*XJSON*/',XJS).replace('<!--CONC-->','').replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
 out=re.sub(r'<!--ED:(.*?)-->',lambda m:ED(m.group(1),'say'),out,flags=re.S)
 out=re.sub(r'<!--EDB:(.*?)-->',lambda m:ED(m.group(1),'say big'),out,flags=re.S)
 import hashlib
