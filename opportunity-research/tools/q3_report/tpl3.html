@@ -50,7 +50,7 @@ body.note-arrow-picking .wrap :is(section,section *){cursor:crosshair!important}
 .note.pin{position:fixed;top:90px}.note:not(.pin){position:absolute;top:120px}
 .note.nl{left:10px}.note.nr{right:10px}
 .note .nh{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 10px;background:#f6edc4;font-weight:700;font-size:12px;border-radius:10px 10px 0 0;user-select:none}
-.note .nh label{font-weight:400;display:flex;gap:3px;align-items:center}.note .nb{padding:8px 10px;min-height:80%;outline:none;white-space:pre-wrap;word-break:break-word}
+.note .nh label{font-weight:400;display:flex;gap:3px;align-items:center}.note .nb{padding:8px 10px;min-height:80%;outline:none;white-space:pre-wrap;word-break:break-word}.note .nb::after{content:'';display:block;clear:both}.note .nimg{float:left;display:inline-block;resize:horizontal;overflow:hidden;width:140px;max-width:100%;min-width:40px;margin:2px 10px 6px 0;border:1px dashed transparent;border-radius:4px;cursor:zoom-in;line-height:0}.note .nimg:hover{border-color:#c9b77a}.note .nimg img{width:100%;height:auto;display:block;user-select:none}.note .nimgbtn{border:0;background:none;cursor:pointer;font-size:13px;padding:0 3px}#nlb{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;z-index:100;align-items:center;justify-content:center;cursor:zoom-out}#nlb.on{display:flex}#nlb img{max-width:92vw;max-height:92vh;border-radius:6px;background:#fff}
 @media (max-width:1700px){.note{width:180px}}
 .tw2{overflow:visible}
 table.heat2 tr.hd th{position:sticky;top:44px;z-index:5;background:var(--bg);font-size:17px;font-weight:800;padding:10px 6px;border-bottom:2px solid #cfcdc6}
@@ -114,8 +114,8 @@ details.card summary{cursor:pointer;font-weight:700}
 ol.f li{margin:4px 0}code{background:#f1f0eb;padding:1px 5px;border-radius:4px;font-size:13px}
 @media print{.bar,.tabs{display:none}.panel{display:grid!important;break-before:page}}
 </style></head><body><div class="wrap">
-<aside class="note nl pin" contenteditable="false"><div class="nh" contenteditable="false"><span class="nt" contenteditable="true">备注（左）</span><span class="nc"><label><input type="checkbox" class="pinbox" checked>固定</label><button class="ndel" title="删除这个备注">✕</button></span></div><div class="nb" contenteditable="plaintext-only">在这里写备注……（拖标题栏移动，拖右下角调大小）</div></aside>
-<aside class="note nr pin" contenteditable="false"><div class="nh" contenteditable="false"><span class="nt" contenteditable="true">备注（右）</span><span class="nc"><label><input type="checkbox" class="pinbox" checked>固定</label><button class="ndel" title="删除这个备注">✕</button></span></div><div class="nb" contenteditable="plaintext-only">在这里写备注……（拖标题栏移动，拖右下角调大小）</div></aside>
+<aside class="note nl pin" contenteditable="false"><div class="nh" contenteditable="false"><span class="nt" contenteditable="true">备注（左）</span><span class="nc"><label><input type="checkbox" class="pinbox" checked>固定</label><button class="ndel" title="删除这个备注">✕</button></span></div><div class="nb" contenteditable="true">在这里写备注……（拖标题栏移动，拖右下角调大小）</div></aside>
+<aside class="note nr pin" contenteditable="false"><div class="nh" contenteditable="false"><span class="nt" contenteditable="true">备注（右）</span><span class="nc"><label><input type="checkbox" class="pinbox" checked>固定</label><button class="ndel" title="删除这个备注">✕</button></span></div><div class="nb" contenteditable="true">在这里写备注……（拖标题栏移动，拖右下角调大小）</div></aside>
 <header><h1>美国浴室柜：市场与渠道数据报告</h1>
 <p>Q3 品类规划 · 数据篇 ｜ 月销量取 2026-08 至 10 月均，3M 趋势对比 2026-05 至 07 ｜ 锚定尺寸 36″（33–39 in）｜ 渠道：Amazon、Home Depot、Lowe's、Wayfair</p></header>
 <section id="s0" style="margin-top:18px"><h2>取数与销量预估逻辑</h2><p class="sub">先讲清楚每个渠道的数据从哪来、销量怎么估，后面所有数字都按这套口径。</p>
@@ -274,7 +274,9 @@ if(carry&&put(KEY,wrap.innerHTML)){
 function lock(){
   wrap.contentEditable='true'; wrap.spellcheck=false;
   wrap.querySelectorAll('nav,.tabs,svg,button,.tgl,#sT .grid3,.note,.note .nh').forEach(function(x){x.contentEditable='false'});
-  wrap.querySelectorAll('.note .nb,.note .nt').forEach(function(x){try{x.contentEditable='plaintext-only'}catch(e){x.contentEditable='true'}});
+  wrap.querySelectorAll('.note .nt').forEach(function(x){try{x.contentEditable='plaintext-only'}catch(e){x.contentEditable='true'}});
+  wrap.querySelectorAll('.note .nb').forEach(function(x){x.contentEditable='true'});
+  wrap.querySelectorAll('.note .nimg').forEach(function(x){x.contentEditable='false'});
 }
 lock();
 function sw(id,cls){var el=document.getElementById(id);if(!el)return;var k=KEY+'-'+id;try{var v=localStorage.getItem(k);if(v!==null)el.checked=v==='1'}catch(e){}
@@ -408,7 +410,8 @@ function addFormatButton(note){
  arrowResize.observe(note);
  var actions=note.querySelector('.nc');
  var existing=actions.querySelector('.nformat');
- if(existing){existing.setAttribute('aria-expanded','false');return}
+ if(existing){existing.setAttribute('aria-expanded','false');if(!actions.querySelector('.nimgbtn'))actions.insertAdjacentHTML('afterbegin','<button type="button" class="nimgbtn" title="插入图片（也可以直接粘贴截图）">🖼</button>');return}
+ if(!actions.querySelector('.nimgbtn'))actions.insertAdjacentHTML('afterbegin','<button type="button" class="nimgbtn" title="插入图片（也可以直接粘贴截图）">🖼</button>');
  actions.insertAdjacentHTML('afterbegin','<button type="button" class="nformat" title="调整备注文字格式" aria-label="调整备注文字格式" aria-controls="note-format" aria-expanded="false">Aa</button>');
 }
 wrap.querySelectorAll('aside.note').forEach(addFormatButton);
@@ -456,7 +459,7 @@ document.addEventListener('click',function(e){var d=e.target.closest('.ndel');if
 document.getElementById('addnote').addEventListener('click',function(){
   var n=document.querySelectorAll('.note').length+1,a=document.createElement('aside');
   a.className='note pin';a.contentEditable='false';a.style.left=(60+n*24)+'px';a.style.top=(120+n*24)+'px';
-  a.innerHTML='<div class="nh" contenteditable="false"><span class="nt" contenteditable="plaintext-only">备注 '+n+'</span><span class="nc"><label><input type="checkbox" class="pinbox" checked>固定</label><button class="ndel" title="删除这个备注">✕</button></span></div><div class="nb" contenteditable="plaintext-only">在这里写备注……</div>';
+  a.innerHTML='<div class="nh" contenteditable="false"><span class="nt" contenteditable="plaintext-only">备注 '+n+'</span><span class="nc"><label><input type="checkbox" class="pinbox" checked>固定</label><button class="ndel" title="删除这个备注">✕</button></span></div><div class="nb" contenteditable="true">在这里写备注……</div>';
   addFormatButton(a);wrap.insertBefore(a,wrap.firstChild);save();});
 var drag=null;
 document.addEventListener('mousedown',function(e){var h=e.target.closest('.note .nh');if(!h||e.target.closest('.nt,input,button,label'))return;var n=h.closest('.note'),r=n.getBoundingClientRect();
@@ -777,5 +780,27 @@ document.addEventListener('click',function(e){if(e.target.id!=='rtsave'||saving)
 document.addEventListener('click',function(e){var b=e.target.closest('.dtab');if(!b)return;var d=b.dataset.d;
  document.querySelectorAll('.dtab').forEach(function(x){x.classList.toggle('on',x===b)});
  document.querySelectorAll('.dpanel').forEach(function(p){p.classList.toggle('on',p.dataset.d===d)});});
+</script>
+<div id="nlb"><img alt=""></div><input type="file" id="nimgfile" accept="image/*" hidden>
+<script>
+(function(){
+var wrap=document.querySelector('.wrap'),lb=document.getElementById('nlb'),fi=document.getElementById('nimgfile'),target=null,range=null;
+function save(){wrap.dispatchEvent(new Event('q3-side-notes'))}
+document.addEventListener('selectionchange',function(){var s=getSelection();if(s.rangeCount){var r=s.getRangeAt(0),nb=r.startContainer.parentElement&&r.startContainer.parentElement.closest?(r.startContainer.nodeType===1?r.startContainer:r.startContainer.parentElement).closest('.note .nb'):null;if(nb){range=r.cloneRange();target=nb}}});
+function shrink(file,cb){var fr=new FileReader();fr.onload=function(){var im=new Image();im.onload=function(){var k=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',0.82))};im.src=fr.result};fr.readAsDataURL(file)}
+function insert(nb,url){var sp=document.createElement('span');sp.className='nimg';sp.contentEditable='false';sp.title='双击放大；拖右下角调大小';sp.innerHTML='<img alt="">';sp.firstChild.src=url;
+ if(range&&target===nb&&nb.contains(range.startContainer)){range.insertNode(sp);range.setStartAfter(sp);range.collapse(true)}else nb.insertBefore(sp,nb.firstChild);
+ watch(sp);save()}
+var ro=new ResizeObserver(function(){clearTimeout(window._nimgT);window._nimgT=setTimeout(save,400)});
+function watch(sp){ro.observe(sp)}
+wrap.querySelectorAll('.note .nimg').forEach(watch);
+document.addEventListener('click',function(e){var b=e.target.closest('.nimgbtn');if(!b)return;e.preventDefault();var nb=b.closest('.note').querySelector('.nb');if(target!==nb){target=nb;range=null}fi.value='';fi.click()});
+fi.addEventListener('change',function(){var f=fi.files[0];if(f&&target)shrink(f,function(u){insert(target,u)})});
+document.addEventListener('paste',function(e){var nb=e.target.closest&&e.target.closest('.note .nb');if(!nb)return;var items=[].slice.call(e.clipboardData.items||[]),im=items.find(function(i){return i.type.indexOf('image')===0});
+ e.preventDefault();if(im){target=nb;shrink(im.getAsFile(),function(u){insert(nb,u)})}else document.execCommand('insertText',false,e.clipboardData.getData('text/plain'))});
+document.addEventListener('dblclick',function(e){var sp=e.target.closest('.note .nimg');if(!sp)return;e.preventDefault();lb.querySelector('img').src=sp.querySelector('img').src;lb.classList.add('on')});
+lb.addEventListener('click',function(){lb.classList.remove('on')});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')lb.classList.remove('on')});
+})();
 </script>
 </body></html>
