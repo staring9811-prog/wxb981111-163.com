@@ -16,10 +16,19 @@ def rcf(ch,r):
     return s+(f'<small>（{r["na"]}→{r["nb"]}评）</small>' if r.get('na') is not None else '')
 def rating_cell(x): return '—' if not x else (f'<b class="dn">{x:.2f}</b>' if x<4.0 else f'{x:.2f}')
 def qo(x): return f'<b class="dn">{x:.1f}</b>' if x>=5 else f'{x:.1f}'
-HEAD={'品牌':['品牌','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','3M评分变化','质量机会值','属性锚定溢价（36″）'],
- 'std':['标签','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','3M评分变化','供需指数','质量机会值','锚定溢价']}
-TIPS={'质量机会值':'只算评分低于 4.5 的商品：销量占比 ×（4.5 − 评分）× 100。越大 = 卖得多但评价差，越值得做“更好的同款”。','供需指数':'销量占比 ÷ SKU 数占比。大于 1：一个 SKU 能分到的销量比平均多，竞争相对松。','锚定溢价':'只看 36″ 的真实商品：本行 36″ 均价 ÷ 本表各行 36″ 均价的中位数 − 1。正数 = 同尺寸下卖得更贵。','属性锚定溢价（36″）':'只看 36″ 的真实商品：本品牌 36″ 均价 ÷ 本表各品牌 36″ 均价的中位数 − 1。','36″ 锚定价':'只用 36″（33–39 in）商品的销量加权均价，不跨尺寸推算。','3M销量趋势':'2026-08 至 10 合计，对比 2026-05 至 07 合计。前 3 个月月均不足 50 件写“样本不足”。','3M评分变化':'近 3 个月新评论平均星级 − 前 3 个月的；括号里是前后评论条数。任一段不足 10 条写“样本不足”。Amazon 用每月页面评分的变化。','月销/SKU':'月销量 ÷ SKU 数。','加权评分':'按销量加权的页面评分；评分低于 4.0 标红。','月销量':'2026-08 至 10 的月均（件）。'}
+HEAD={'品牌':['品牌','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','CAGR','3M评分变化','质量机会值','属性锚定溢价（36″）'],
+ 'std':['标签','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','CAGR','3M评分变化','供需指数','质量机会值','锚定溢价']}
+TIPS={'CAGR':'复合增长率：(2026-08 至 10 月均 ÷ 2026-01 至 03 月均)^(12 ÷ 7) − 1，即把这 7 个月的变化折算成一年。前 3 个月月均不足 30 件写“样本不足”；Lowe’s 只有当下一个时间点，没有。','质量机会值':'只算评分低于 4.5 的商品：销量占比 ×（4.5 − 评分）× 100。越大 = 卖得多但评价差，越值得做“更好的同款”。','供需指数':'销量占比 ÷ SKU 数占比。大于 1：一个 SKU 能分到的销量比平均多，竞争相对松。','锚定溢价':'只看 36″ 的真实商品：本行 36″ 均价 ÷ 本表各行 36″ 均价的中位数 − 1。正数 = 同尺寸下卖得更贵。','属性锚定溢价（36″）':'只看 36″ 的真实商品：本品牌 36″ 均价 ÷ 本表各品牌 36″ 均价的中位数 − 1。','36″ 锚定价':'只用 36″（33–39 in）商品的销量加权均价，不跨尺寸推算。','3M销量趋势':'2026-08 至 10 合计，对比 2026-05 至 07 合计。前 3 个月月均不足 50 件写“样本不足”。','3M评分变化':'近 3 个月新评论平均星级 − 前 3 个月的；括号里是前后评论条数。任一段不足 10 条写“样本不足”。Amazon 用每月页面评分的变化。','月销/SKU':'月销量 ÷ SKU 数。','加权评分':'按销量加权的页面评分；评分低于 4.0 标红。','月销量':'2026-08 至 10 的月均（件）。'}
 def th(h): t=TIPS.get(h); return f'<th title="{E_(t)}">{h}<sup>?</sup></th>' if t else f'<th>{h}</th>'
+import pickle as _pk0,collections as _C0
+_LALL=_pk0.load(open('recs_amz_all.pkl','rb'))
+_M10=[f'2026-{i:02d}' for i in range(1,11)]
+CGM=_C0.defaultdict(lambda:[0.0]*10)
+for _r in _LALL:
+    _a=_r['at']
+    for _d,_k in [('品牌',_r['brand']),('台面 × 柜体',f"{_a['台面']} × {_a['柜体']}")]+[(_d,_a.get(_d)) for _d in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')]:
+        _g=CGM[(_d,_k)]
+        for _i,_m in enumerate(_M10): _g[_i]+=_r['u'].get(_m,0)
 def table(ch,rows,kind='std',dim=None):
     hs=HEAD['品牌' if kind=='品牌' else 'std']; nos=False; szt=kind=='尺寸'
     hs=hs[:1]+['每月走势（2026-01 至 10）']+hs[1:]
@@ -34,8 +43,10 @@ def table(ch,rows,kind='std',dim=None):
         anc_u='无尺寸拆分' if nos else I(x['anc_u']); anc_p='—' if nos else ('<span class="na">样本不足</span>' if x['anc_p'] is None else usd(x['anc_p']))
         prem='—' if nos else ('<span class="na">样本不足</span>' if x['prem'] is None else f'<span class="{"up" if x["prem"]>0.05 else "dn" if x["prem"]<-0.05 else ""}">{"+" if x["prem"]>0 else ""}{x["prem"]*100:.1f}%</span>')
         if szt and x['k']!='36″': anc_u=anc_p=prem='—'
+        _m=CGM.get((dim or kind,x['k'])) if ch=='amazon' else (x.get('mon') or []);_m=_m or []; _f3=sum(_m[:3])/3 if len(_m)>=10 else 0; _l3=sum(_m[7:10])/3 if len(_m)>=10 else 0
+        _cg=((_l3/_f3)**(12/7)-1) if (ch!='lowes' and _f3>=30 and _l3>0) else None
         size='无尺寸拆分' if nos else x['size']
-        cells=[E_(x['k']),trend_cell(ch,dim,x),I(x['sku']),I(x['u']),pct(x['share']),size,usd(x['price']),rating_cell(x['rating']),anc_u,anc_p,f"{x['per']:.1f}",tr(x['trend']),rcf(ch,x['rc'])]
+        cells=[E_(x['k']),trend_cell(ch,dim,x),I(x['sku']),I(x['u']),pct(x['share']),size,usd(x['price']),rating_cell(x['rating']),anc_u,anc_p,f"{x['per']:.1f}",tr(x['trend']),tr(_cg),rcf(ch,x['rc'])]
         if kind!='品牌': cells.append('—' if x['sdi'] is None else f"{x['sdi']:.2f}")
         cells+= [qo(x['qo']),prem]
         # 明显好 / 坏的格子整格上色并加粗：cg 好、cb 坏、cw 值得注意
@@ -46,10 +57,11 @@ def table(ch,rows,kind='std',dim=None):
         cls=['']*len(cells)
         cls[7]=_c(x['rating'],lambda v:v>=4.5,lambda v:v<4.0)
         cls[11]=_c(x['trend'],lambda v:v>=0.2,lambda v:v<=-0.2)
-        cls[12]=_c(rcd,lambda v:v>=0.1,lambda v:v<=-0.1)
-        k0=13
+        cls[12]=_c(_cg,lambda v:v>=0.2,lambda v:v<=-0.2)
+        cls[13]=_c(rcd,lambda v:v>=0.1,lambda v:v<=-0.1)
+        k0=14
         if kind!='品牌':
-            cls[13]=_c(x['sdi'],lambda v:v>=1.5,lambda v:v<=0.6); k0=14
+            cls[14]=_c(x['sdi'],lambda v:v>=1.5,lambda v:v<=0.6); k0=15
         cls[k0]=' class="cw"' if x['qo']>=5 else ''
         if not (szt and x['k']!='36″'): cls[k0+1]=_c(x['prem'],lambda v:v>=0.2,lambda v:v<=-0.2)
         _rc='mute clkrow' if gray else 'clkrow'
@@ -187,7 +199,7 @@ def trend_cell(ch,dim,x):
     if ch=='amazon' and dim in HD2AMZ and x['k'] in AMZ[HD2AMZ[dim]].get('2026-10',{}):
         _a,_b,_c=gstats([AMZ[HD2AMZ[dim]].get(m,{}).get(x['k']) for m in M24]); yb=pc(_b)
     else:
-        _a,_b,_c=gstats(x['mon']); yb='<span class="na">无去年</span>' if ch!='amazon' else '<span class="na">按品牌无两年数据</span>'
+        _a,_b,_c=gstats((CGM.get((dim,x['k'])) if ch=='amazon' and CGM.get((dim,x['k'])) else x['mon'])); yb='<span class="na">无去年</span>' if ch!='amazon' else '<span class="na">按品牌无两年数据</span>'
     s+=f'<small class="kv">销量 环比 {pc(_a)} · 同比 {yb} · CAGR {pc(_c)}</small>'
     return '<div class="tc">'+s+sku_part(ch,x,w=110)+tags(ch,dim,x['k'],x['trend'])+'</div>'
 # ---------- 弹窗产品数据 + 顶部趋势数据
@@ -479,6 +491,12 @@ for c,_n,_ in CH:
         pn=sum(r['u'].get(m,0)*rr[m] for m in ('2026-05','2026-06','2026-07') if m in rr and r['u'].get(m));pd=sum(r['u'].get(m,0) for m in ('2026-05','2026-06','2026-07') if m in rr and r['u'].get(m))
         L.append([r['pid'],r['brand'],r['fam'],round(r['price'],2) if r['price'] else None,round(r['rating'],2) if r['rating'] else None,
                   {k:a.get(k) or '未标' for k in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')},[round(r['u'].get(m,0),1) for m in M10x],[round(wn,1),round(wd,1),round(pn,1),round(pd,1)]])
+    if c=='amazon':
+        _in={r['pid'] for r in _RC[c]}
+        for r in _LALL:
+            if r['pid'] in _in: continue
+            a=r['at']
+            L.append([r['pid'],r['brand'],r['fam'],None,None,{k:a.get(k) or '未标' for k in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')},[round(r['u'].get(m,0),1) for m in M10x],[0,0,0,0],1])
     _TDD[c]=L
 TDJS=json.dumps(_TDD,ensure_ascii=False,separators=(',',':'))
 XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))

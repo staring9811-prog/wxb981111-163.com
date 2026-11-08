@@ -825,7 +825,7 @@ function usd(x){return x?'$'+Math.round(x).toLocaleString('en-US'):'—'}
 function sg(x,d){return (x>0?'+':'')+x.toFixed(d)}
 function cls(v,g,b){return v==null?'':(g(v)?' class="cg"':b(v)?' class="cb"':'')}
 function wsum(r,ms){var t=0;ms.forEach(function(i){t+=r[6][i]||0});return t}
-function metrics(c,rows,totU,totSku){
+function metrics(c,rows,totU,totSku,gmon){
   var w=0,p=0,pn=0,pd=0,rn=0,rd=0,sz={},au=0,apn=0,apd=0,qo=0,wn=0,wd=0,ppn=0,ppd=0,mon=[0,0,0,0,0,0,0,0,0,0];
   rows.forEach(function(r){var uw=wsum(r,W);w+=uw;p+=wsum(r,P);
     for(var i=0;i<10;i++)mon[i]+=r[6][i]||0;
@@ -834,11 +834,12 @@ function metrics(c,rows,totU,totSku){
     if(r[5]['尺寸']!=='未标')sz[r[5]['尺寸']]=(sz[r[5]['尺寸']]||0)+uw;
     if(r[5]['尺寸']==='36″'){au+=uw;if(r[3]!=null){apn+=uw*r[3];apd+=uw}}
     wn+=r[7][0];wd+=r[7][1];ppn+=r[7][2];ppd+=r[7][3]});
-  w=w/3;au=au/3;var size='—',bs=-1;for(var k in sz)if(sz[k]>bs){bs=sz[k];size=k}
+  var mon0=mon;w=w/3;au=au/3;var size='—',bs=-1;for(var k in sz)if(sz[k]>bs){bs=sz[k];size=k}
   var a=wd?wn/wd:null,b=ppd?ppn/ppd:null,n=rows.length;
   return {u:w,sku:n,share:totU?w/totU:0,size:size,price:pd?pn/pd:null,rating:rd?rn/rd:null,anc_u:au,anc_p:(au>=20&&apd)?apn/apd:null,
     per:n?w/n:0,trend:p>=150?w*3/p-1:null,rc:(c==='amazon'&&a&&b)?a-b:null,sdi:(totU&&n)?(w/totU)/(n/totSku):null,qo:qo,mon:mon,
-    act:rows.filter(function(r){return wsum(r,W)>0}).length}}
+    act:rows.filter(function(r){return wsum(r,W)>0}).length,
+    cagr:(function(){var mon=gmon||mon0;var f3=(mon[0]+mon[1]+mon[2])/3,l3=(mon[7]+mon[8]+mon[9])/3;return (c!=='lowes'&&f3>=30&&l3>0)?Math.pow(l3/f3,12/7)-1:null})()}}
 function key(d,r){return d==='品牌'?r[1]:d==='台面 × 柜体'?r[5]['台面']+' × '+r[5]['柜体']:r[5][d]}
 function bars(m){var mx=Math.max.apply(null,m)||1,s='<svg viewBox="0 0 110 22" width="110" height="22">';m.forEach(function(v,i){var h=Math.max(v>0?1:0,20*v/mx);s+='<rect x="'+(i*11)+'" y="'+(21-h)+'" width="9" height="'+h+'" fill="#8a8a8a" rx="1"></rect>'});return s+'</svg>'}
 function render(box){
@@ -848,10 +849,12 @@ function render(box){
   if(!tb.dataset.orig)tb.dataset.orig=tb.innerHTML;
   var all=(!f['拆装']||f['拆装']==='全部')&&(!f['形态']||f['形态']==='全部');
   if(all){tb.innerHTML=tb.dataset.orig;box.querySelector('.tfn').textContent='';return}
-  var rows=(TD[c]||[]).filter(function(r){return (!f['拆装']||f['拆装']==='全部'||r[5]['拆装']===f['拆装'])&&(!f['形态']||f['形态']==='全部'||r[5]['形态']===f['形态'])});
+  var rowsAll=(TD[c]||[]).filter(function(r){return (!f['拆装']||f['拆装']==='全部'||r[5]['拆装']===f['拆装'])&&(!f['形态']||f['形态']==='全部'||r[5]['形态']===f['形态'])});
+  var rows=rowsAll.filter(function(r){return !r[8]});
   var totU=rows.reduce(function(s,r){return s+wsum(r,W)},0)/3,totSku=rows.length,g={};
   rows.forEach(function(r){var k=key(d,r)||'未标';(g[k]=g[k]||[]).push(r)});
-  var out=Object.keys(g).map(function(k){var m=metrics(c,g[k],totU,totSku);m.k=k;return m});
+  var gm={};rowsAll.forEach(function(r){var k=key(d,r)||'未标';var a=gm[k]=gm[k]||[0,0,0,0,0,0,0,0,0,0];for(var i=0;i<10;i++)a[i]+=r[6][i]||0});
+  var out=Object.keys(g).map(function(k){var m=metrics(c,g[k],totU,totSku,gm[k]);m.k=k;return m});
   out.sort(function(a,b){var ua=(a.k==='未知品牌'||a.k.indexOf('未标')>=0),ub=(b.k==='未知品牌'||b.k.indexOf('未标')>=0);return ua!==ub?(ua?1:-1):b.u-a.u});
   if(d==='品牌')out=out.slice(0,20);if(d==='台面 × 柜体')out=out.slice(0,15);
   var ap=out.filter(function(x){return x.anc_p&&x.k!=='未标'&&x.k!=='未知品牌'}).map(function(x){return x.anc_p}).sort(function(a,b){return a-b});
@@ -865,6 +868,7 @@ function render(box){
       [x.rating?(x.rating<4?'<b class="dn">'+x.rating.toFixed(2)+'</b>':x.rating.toFixed(2)):'—',cls(x.rating,function(v){return v>=4.5},function(v){return v<4.0})],
       [hide?'—':I(x.anc_u),''],[hide?'—':(x.anc_p?usd(x.anc_p):'<span class="na">样本不足</span>'),''],[x.per.toFixed(1),''],
       [x.trend==null?'<span class="na">样本不足</span>':sg(x.trend*100,1)+'%',cls(x.trend,function(v){return v>=0.2},function(v){return v<=-0.2})],
+      [x.cagr==null?'<span class="na">样本不足</span>':sg(x.cagr*100,1)+'%',cls(x.cagr,function(v){return v>=0.2},function(v){return v<=-0.2})],
       [x.rc==null?'<span class="na">样本不足</span>':sg(x.rc,2),cls(x.rc,function(v){return v>=0.1},function(v){return v<=-0.1})]];
     if(kind!=='品牌')cells.push([x.sdi==null?'—':x.sdi.toFixed(2),cls(x.sdi,function(v){return v>=1.5},function(v){return v<=0.6})]);
     cells.push([x.qo>=5?'<b class="dn">'+x.qo.toFixed(1)+'</b>':x.qo.toFixed(1),x.qo>=5?' class="cw"':'']);
