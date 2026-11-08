@@ -30,6 +30,13 @@ class H(BaseHTTPRequestHandler):
             old=json.load(open(f,encoding='utf-8')) if os.path.exists(f) else {'ts':0}
             if int(d.get('ts',0))>=int(old.get('ts',0)):
                 json.dump({'ts':int(d['ts']),'side':d.get('side',''),'cells':d.get('cells','{}'),'from':'浏览器自动保存'},open(f,'w',encoding='utf-8'),ensure_ascii=False)
+                # 同步写进报告文件里的同步数据，发 HTML 给别人时备注也是最新的
+                try:
+                    import sync,re as _re
+                    h=open(OUT,encoding='utf-8').read()
+                    h=_re.sub(r'(<script type="application/json" id="q3sync">).*?(</script>)',lambda m:m.group(1)+sync.build_block()+m.group(2),h,count=1,flags=_re.S)
+                    open(OUT,'w',encoding='utf-8').write(h)
+                except Exception as e: print('回写报告同步数据失败：',e,file=sys.stderr)
             return self._send(200,'{"ok":true}')
         if self.path!='/api/retag': return self._send(404,'{}')
         try:

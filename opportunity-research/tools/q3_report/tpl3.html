@@ -306,7 +306,10 @@ document.addEventListener('click',function(e){
   put(KEY,wrap.innerHTML);
 });
 document.getElementById('reset').addEventListener('click',function(){if(confirm('清除这台电脑上保存的修改和备注，恢复原文？')){put(KEY,'');put(SIDE_KEY,originalSide);put(CELL_KEY,'');location.reload()}});
+function syncNotes(){try{var el=document.getElementById('q3sync'),b=JSON.parse(el.textContent);var ts=+(get(NTS_KEY)||0);
+  if(ts>=((b.notes||{}).ts||0)){b.notes={ts:ts,side:get(SIDE_KEY)||'',cells:get(CELL_KEY)||'{}',from:'浏览器导出'};el.textContent=JSON.stringify(b).replace(/<\//g,'<\\/')}}catch(e){}}
 document.getElementById('export').addEventListener('click',function(){
+  syncNotes();
   var html='<!doctype html>\n'+document.documentElement.outerHTML;
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
   var d=new Date();a.download='Q3浴室柜_市场与渠道数据报告_'+(d.getMonth()+1)+'月'+d.getDate()+'日.html';a.click();
@@ -879,4 +882,5 @@ document.addEventListener('click',function(e){var b=e.target.closest('.tfil .tfb
   box.querySelectorAll('.tfb[data-f="'+b.dataset.f+'"]').forEach(function(x){x.classList.toggle('on',x===b)});render(box)});
 })();
 </script>
+<script type="application/json" id="q3sync">/*Q3SYNC*/</script>
 </body></html>
