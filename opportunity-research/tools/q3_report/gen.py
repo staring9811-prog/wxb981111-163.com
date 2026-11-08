@@ -26,7 +26,7 @@ def pairbars(rows,w=430):
 def chbars(dim,order,w=430,skip=()):
     sh={}
     for c,_,_ in CH:
-        s=D['ch'][c]['share'].get(dim,{}); t=sum(v for k,v in s.items() if k not in('未标','未知','多尺寸未拆')) 
+        s=D['ch'][c]['share'].get(dim,{}); t=sum(v for k,v in s.items() if k not in('未标','未知','多尺寸未拆'))
         sh[c]={k:100*v/t for k,v in s.items()} if t and c not in skip else None
     mx=max(v.get(k,0) for v in sh.values() if v for k in order) or 1
     h=len(order)*(4*8+16)+6; s=[]

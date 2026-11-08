@@ -7,7 +7,11 @@ import q3paths,retag
 OUT=os.path.join(q3paths.DATA,'Q3浴室柜_市场与渠道数据报告.html')
 LOCK=threading.Lock()
 def rebuild():
-    r=subprocess.run([sys.executable,os.path.join(q3paths.CODE,'run.py')],capture_output=True,text=True,env=dict(os.environ,Q3_DATA=q3paths.DATA))
+    r=subprocess.run(
+        [sys.executable,'-X','utf8',os.path.join(q3paths.CODE,'run.py')],
+        capture_output=True,encoding='utf-8',errors='replace',
+        env=dict(os.environ,Q3_DATA=q3paths.DATA),
+    )
     if r.returncode: raise RuntimeError(r.stderr[-2000:])
 class H(BaseHTTPRequestHandler):
     def _send(self,code,body,ctype='application/json; charset=utf-8'):
@@ -23,7 +27,15 @@ class H(BaseHTTPRequestHandler):
         try:
             d=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode('utf-8'))
             with LOCK:
-                st=retag.apply(d.get('edits',[])); rebuild()
+                st=retag.apply(d.get('edits',[]))
+                try:
+                    rebuild()
+                except RuntimeError as error:
+                    print(error,file=sys.stderr,flush=True)
+                    return self._send(500,json.dumps({
+                        'ok':False,'saved':True,
+                        'err':'改标已写入数据源，报告重算失败。改标记录已保留，可再次点击保存重试。',
+                    },ensure_ascii=False))
             self._send(200,json.dumps({'ok':True,**st},ensure_ascii=False))
         except Exception as e:
             self._send(500,json.dumps({'ok':False,'err':str(e)},ensure_ascii=False))
@@ -31,7 +43,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=='__main__':
     if not os.path.exists(OUT): print('先生成报告…'); rebuild()
     port=int(os.environ.get('Q3_PORT','8765')); url=f'http://127.0.0.1:{port}/'
-    print('报告已打开：',url,'（关掉这个窗口就停止）'); 
+    print('报告已打开：',url,'（关掉这个窗口就停止）');
     try: webbrowser.open(url)
     except Exception: pass
     ThreadingHTTPServer(('127.0.0.1',port),H).serve_forever()

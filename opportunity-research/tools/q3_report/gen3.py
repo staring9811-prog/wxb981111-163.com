@@ -174,17 +174,19 @@ def trend_cell(ch,dim,x):
 # ---------- 弹窗产品数据 + 顶部趋势数据
 import pickle as _pk, sqlite3 as _sq3, csv as _csv
 _RC=_pk.load(open('recs.pkl','rb'))
+_CROSS_RECS={**_RC,'amazon':_pk.load(open('recs_amz_all.pkl','rb'))}
 _db=_sq3.connect('pdt.sqlite3')
 _AP={i:(t,im,l) for i,t,im,l in _db.execute("select item_id,title,image_url,link from product where channel='amazon'")}
 _TR={(r['渠道'],r['pid'].split(' ')[0]):r for r in _csv.DictReader(open(q3paths.INPUT+'/渠道关键词/大词/三平台_商品表.csv',encoding='utf-8-sig'))}
 _LWU={r['pid']:r['url'] for r in _pk.load(open(q3paths.CLEAN+'/lw.pkl','rb'))['rows']}
 import html as _h
+M10x=[f'2026-{i:02d}' for i in range(1,11)]
 PROD={}
 for c,_n,_ in CH:
     L=[]
-    for r in _RC[c]:
+    for r in _CROSS_RECS[c]:
         sep=r['u'].get('2026-09',0); octo=r['u'].get('2026-10',0)
-        if sep<=0 and octo<=0: continue
+        if not any(r['u'].get(m,0)>0 for m in M10x): continue
         if c=='amazon':
             t,im,l=_AP.get(r['pid'],('','',''))
         else:
@@ -192,9 +194,8 @@ for c,_n,_ in CH:
             t=r.get('title') or _tr.get('title',''); im=_tr.get('主图','')
             l={'homedepot':f'https://www.homedepot.com/p/{rep}','wayfair':f'https://www.wayfair.com/keyword.php?keyword={rep}','lowes':_LWU.get(rep,f'https://www.lowes.com/search?searchTerm={rep}')}[c]
         at=r['at']; at2=dict(at)
-        L.append([r['pid'],r['brand'],_h.unescape(t or '')[:140],im or '',l or '',round(r['price']) if r['price'] else None,round(r['rating'],2) if r['rating'] else None,round(sep),round(octo),{'拆装':at['拆装'],'形态':at['形态'],'尺寸':at['尺寸'],'价格带':at['价格带'],'台面':at['台面'],'柜体':at['柜体'],'主色':at['主色'],'元素':at['元素']}])
+        L.append([r['pid'],r['brand'],_h.unescape(t or '')[:140],im or '',l or '',round(r['price']) if r['price'] else None,round(r['rating'],2) if r['rating'] else None,round(sep),round(octo),{'拆装':at['拆装'],'形态':at['形态'],'尺寸':at['尺寸'],'价格带':at['价格带'],'台面':at['台面'],'柜体':at['柜体'],'主色':at['主色'],'元素':at['元素']},sep>0 or octo>0])
     PROD[c]=L
-M10x=[f'2026-{i:02d}' for i in range(1,11)]
 M24=[f'2024-{i:02d}' for i in range(11,13)]+[f'2025-{i:02d}' for i in range(1,13)]+M10x          # 2024-11 至 2026-10
 K24=[f'2024-{i:02d}' for i in range(10,13)]+[f'2025-{i:02d}' for i in range(1,13)]+[f'2026-{i:02d}' for i in range(1,10)]  # 搜索 2024-10 至 2026-09
 def gstats(arr):
@@ -416,20 +417,41 @@ CONC='<h3 class="rowt">各板块结论</h3><div class="conc">'+''.join(f'<div cl
 D8=[d for d,_ in DIMS]
 XO={d:list(v) for d,v in DIMS}
 XD={}
+_amz_monthly_price={}
+for pid,month,price in _db.execute(
+    "select item_id,month,price from snapshot where channel='amazon' and month between ? and ?",
+    (M10x[0],M10x[-1]),
+):
+    _amz_monthly_price.setdefault(pid,{})[month]=price
 for c,_n,_ in CH:
     L=[]
-    for r in (_pk.load(open('recs_amz_all.pkl','rb')) if c=='amazon' else _RC[c]):
+    for r in _CROSS_RECS[c]:
         at=r['at']
         for d in D8:
             v=at.get(d) or '未标'
             if v not in XO[d]: XO[d].append(v)
-        L.append([r['pid'],round(r['price'],2) if r['price'] else None,round(r['rating'],2) if r['rating'] else None,[XO[d].index(at.get(d) or '未标') for d in D8],[round(r['u'].get(m,0),1) for m in M10x]])
+        row=[r['pid'],round(r['price'],2) if r['price'] else None,round(r['rating'],2) if r['rating'] else None,
+             [XO[d].index(at.get(d) or '未标') for d in D8],[round(r['u'].get(m,0),1) for m in M10x]]
+        if c=='amazon':
+            prices=_amz_monthly_price.get(r['pid'],{})
+            row.append([prices.get(m) for m in M10x])
+        L.append(row)
     XD[c]=L
 XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
 out=tpl.replace('/*XJSON*/',XJS).replace('<!--CONC-->',CONC).replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
 out=re.sub(r'<!--ED:(.*?)-->',lambda m:ED(m.group(1),'say'),out,flags=re.S)
 out=re.sub(r'<!--EDB:(.*?)-->',lambda m:ED(m.group(1),'say big'),out,flags=re.S)
 import hashlib
-out=out.replace('__VER__',hashlib.md5(out.encode()).hexdigest()[:8])
-open('Q3浴室柜_市场与渠道数据报告.html','w').write(out)
+from pathlib import Path
+report=Path('Q3浴室柜_市场与渠道数据报告.html')
+version=hashlib.md5(out.encode()).hexdigest()[:8]
+previous=''
+if report.exists():
+    prior=report.read_text(encoding='utf-8')
+    old_key=re.search(r"var KEY='q3vanity-report-([0-9a-f]{8})';",prior)
+    old_previous=re.search(r"var previousVersion='([0-9a-f]{8})';",prior)
+    if old_key:
+        previous=old_key[1] if old_key[1]!=version else (old_previous[1] if old_previous else '')
+out=out.replace('__VER__',version).replace('__PREV_VER__',previous)
+report.write_text(out,encoding='utf-8')
 print('ok',eid[0])
