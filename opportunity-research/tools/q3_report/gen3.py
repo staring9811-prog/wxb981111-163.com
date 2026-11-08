@@ -34,7 +34,21 @@ def table(ch,rows,kind='std',dim=None):
         cells=[E_(x['k']),trend_cell(ch,dim,x),I(x['sku']),I(x['u']),pct(x['share']),size,usd(x['price']),rating_cell(x['rating']),anc_u,anc_p,f"{x['per']:.1f}",tr(x['trend']),rcf(ch,x['rc'])]
         if kind!='品牌': cells.append('—' if x['sdi'] is None else f"{x['sdi']:.2f}")
         cells+= [qo(x['qo']),prem]
-        out.append(f'<tr{gray}>'+''.join(f'<td>{c}</td>' for c in cells)+'</tr>')
+        # 明显好 / 坏的格子整格上色并加粗：cg 好、cb 坏、cw 值得注意
+        def _c(v,good,bad):
+            if v is None: return ''
+            return ' class="cg"' if good(v) else ' class="cb"' if bad(v) else ''
+        rcd=(x.get('rc') or {}).get('d') if isinstance(x.get('rc'),dict) else None
+        cls=['']*len(cells)
+        cls[7]=_c(x['rating'],lambda v:v>=4.5,lambda v:v<4.0)
+        cls[11]=_c(x['trend'],lambda v:v>=0.2,lambda v:v<=-0.2)
+        cls[12]=_c(rcd,lambda v:v>=0.1,lambda v:v<=-0.1)
+        k0=13
+        if kind!='品牌':
+            cls[13]=_c(x['sdi'],lambda v:v>=1.5,lambda v:v<=0.6); k0=14
+        cls[k0]=' class="cw"' if x['qo']>=5 else ''
+        if not (szt and x['k']!='36″'): cls[k0+1]=_c(x['prem'],lambda v:v>=0.2,lambda v:v<=-0.2)
+        out.append(f'<tr{gray}>'+''.join(f'<td{k}>{c}</td>' for c,k in zip(cells,cls))+'</tr>')
     return ''.join(out)+'</table></div>'
 def vbars(pairs,color,h=170,w=520,unit='件'):
     n=len(pairs); mx=max(v for _,v in pairs) or 1; bw=(w-30)/n; s=[]
@@ -452,7 +466,7 @@ for c,_n,_ in CH:
         L.append(row)
     XD[c]=L
 XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
-out=tpl.replace('<!--DTAB-->',DTAB).replace('/*XJSON*/',XJS).replace('<!--CONC-->',CONC).replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
+out=tpl.replace('<!--DTAB-->',DTAB).replace('/*XJSON*/',XJS).replace('<!--CONC-->','').replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
 out=re.sub(r'<!--ED:(.*?)-->',lambda m:ED(m.group(1),'say'),out,flags=re.S)
 out=re.sub(r'<!--EDB:(.*?)-->',lambda m:ED(m.group(1),'say big'),out,flags=re.S)
 import hashlib
