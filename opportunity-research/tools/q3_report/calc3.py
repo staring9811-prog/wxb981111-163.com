@@ -111,7 +111,7 @@ for _r in recs['amazon']+LALL:
         _r['at']['台面']=_b; _pdpn+=1
 print('按商品页改台盆',_pdpn,'条（商品页已抓',len(_PDP),'）')
 # 原来没标的属性，用商品页（标题、五点、规格表）补上
-_CABM={'实木':'实木','实木框架':'实木框架','MDF':'MDF','含刨花板':'含刨花板','含胶合板':'含胶合板'}
+_CABM={'实木':'实木框架','实木框架':'实木框架','MDF':'MDF','人造板（未细分）':'MDF','含刨花板':'含刨花板','含胶合板':'含胶合板'}   # wen 2026-11-08：Amazon 实木一律算实木框架，人造板算 MDF
 _fill=C.Counter();_seen=set()
 for _r in recs['amazon']+LALL:
     if id(_r) in _seen: continue
@@ -121,6 +121,8 @@ for _r in recs['amazon']+LALL:
     for k,v in (('台面',_p.get('top')),('柜体',_CABM.get(_p.get('cab'))),('主色',_p.get('color')),('元素',_p.get('elem'))):
         if v and a.get(k) in ('未标',None,''): a[k]=v; _fill[k]+=1
 print('用商品页补未标',dict(_fill))
+for _r in recs['amazon']+LALL:
+    if _r['at'].get('柜体')=='实木': _r['at']['柜体']='实木框架'
 # 大尺寸树脂盆规则（wen 2026-11-08）：拆装、48″ 及以上、售价低于线价，台面标的是陶瓷或没标 → 树脂盆。
 # 高于线价的多是石材台面；木板台面、不含台面不动。
 RESIN_LINE={'48″':700,'60″':1000,'72″+':900}
