@@ -466,6 +466,10 @@ for c,_n,_ in CH:
         L.append(row)
     XD[c]=L
 XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
+import html as _hh, os
+_N=json.load(open('notes.json',encoding='utf-8')) if os.path.exists('notes.json') else None
+tpl=tpl.replace('<!--SIDENOTES-->',_N['side'] if _N and _N.get('side') else open(q3paths.CODE+'/default_notes.html',encoding='utf-8').read())
+tpl=tpl.replace('<!--CELLNOTES-->',_hh.escape(_N['cells']) if _N else '').replace('__NOTES_TS__',str(_N['ts'] if _N else 0))
 out=tpl.replace('<!--DTAB-->',DTAB).replace('/*XJSON*/',XJS).replace('<!--CONC-->','').replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
 out=re.sub(r'<!--ED:(.*?)-->',lambda m:ED(m.group(1),'say'),out,flags=re.S)
 out=re.sub(r'<!--EDB:(.*?)-->',lambda m:ED(m.group(1),'say big'),out,flags=re.S)

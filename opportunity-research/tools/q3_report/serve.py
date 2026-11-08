@@ -23,6 +23,14 @@ class H(BaseHTTPRequestHandler):
             return self._send(200,open(OUT,'rb').read(),'text/html; charset=utf-8')
         self._send(404,'{}')
     def do_POST(self):
+        if self.path=='/api/notes':
+            # 浏览器里的备注自动存到 data/notes.json；只收比现存更新的
+            d=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode('utf-8'))
+            f=os.path.join(q3paths.DATA,'notes.json')
+            old=json.load(open(f,encoding='utf-8')) if os.path.exists(f) else {'ts':0}
+            if int(d.get('ts',0))>=int(old.get('ts',0)):
+                json.dump({'ts':int(d['ts']),'side':d.get('side',''),'cells':d.get('cells','{}'),'from':'浏览器自动保存'},open(f,'w',encoding='utf-8'),ensure_ascii=False)
+            return self._send(200,'{"ok":true}')
         if self.path!='/api/retag': return self._send(404,'{}')
         try:
             d=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode('utf-8'))

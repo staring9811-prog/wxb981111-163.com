@@ -114,8 +114,7 @@ details.card summary{cursor:pointer;font-weight:700}
 ol.f li{margin:4px 0}code{background:#f1f0eb;padding:1px 5px;border-radius:4px;font-size:13px}
 @media print{.bar,.tabs{display:none}.panel{display:grid!important;break-before:page}}
 </style></head><body><div class="wrap">
-<aside class="note nl pin" contenteditable="false"><div class="nh" contenteditable="false"><span class="nt" contenteditable="true">备注（左）</span><span class="nc"><label><input type="checkbox" class="pinbox" checked>固定</label><button class="ndel" title="删除这个备注">✕</button></span></div><div class="nb" contenteditable="true">在这里写备注……（拖标题栏移动，拖右下角调大小）</div></aside>
-<aside class="note nr pin" contenteditable="false"><div class="nh" contenteditable="false"><span class="nt" contenteditable="true">备注（右）</span><span class="nc"><label><input type="checkbox" class="pinbox" checked>固定</label><button class="ndel" title="删除这个备注">✕</button></span></div><div class="nb" contenteditable="true">在这里写备注……（拖标题栏移动，拖右下角调大小）</div></aside>
+<!--SIDENOTES-->
 <header><h1>美国浴室柜：市场与渠道数据报告</h1>
 <p>Q3 品类规划 · 数据篇 ｜ 月销量取 2026-08 至 10 月均，3M 趋势对比 2026-05 至 07 ｜ 锚定尺寸 36″（33–39 in）｜ 渠道：Amazon、Home Depot、Lowe's、Wayfair</p></header>
 <section id="s0" style="margin-top:18px"><h2>取数与销量预估逻辑</h2><p class="sub">先讲清楚每个渠道的数据从哪来、销量怎么估，后面所有数字都按这套口径。</p>
@@ -158,7 +157,7 @@ ol.f li{margin:4px 0}code{background:#f1f0eb;padding:1px 5px;border-radius:4px;f
 <div class="card" id="xf" contenteditable="false"><div class="xchs" id="xchs"></div><div id="xfil"></div>
 <div class="xbar" id="xmonths" role="group" aria-label="销量月份"></div>
 <div class="xbar"><label>行 <select id="xrow"></select></label><label>列 <select id="xcol"></select></label><label>锚定尺寸 <select id="xanchor"><option>24″</option><option>36″</option><option>60″</option></select></label><button id="xclr" type="button">清空筛选</button><span id="xsum" class="hint"></span></div>
-<div class="xbar" id="xmets"></div><div id="xnd" hidden></div>
+<div class="xbar" id="xmets"></div><div id="xnd" hidden><!--CELLNOTES--></div>
 <div class="tw"><table class="dt xt" id="xtot"></table></div><div class="tw xcw" style="margin-top:12px"><table class="dt xt" id="xcross"></table></div>
 <p class="hint">口径：单选看当月，多选用所选月份销量合计 ÷ 所选月数。占渠道 = 格子月销 ÷ 同期渠道全部月销；占筛选 = 格子月销 ÷ 同期筛选后月销；均价、评分用报告中的商品售价和评分，按所选月份销量加权；销售额 = Σ 月销 × 售价。走势指标按固定时间计算：3M 趋势为 08–10 比 05–07，环比为 10 月 ÷ 9 月 − 1，销量 CAGR 按 1–10 月折算年化。价格 CAGR 比较 2026 年 1–3 月与 8–10 月的月度加权均价，按 7 个月间隔折算成年化增长率。价格 CAGR 仅 Amazon 有历史售价。Lowe&#39;s 始终显示当期采集快照。格子底色越深，占筛选内销量越多。Amazon 按子体 SKU，小平台按父体，小平台没有颜色打标。</p><p class="hint">锚定溢价：格内同尺寸加权均价 ÷ 同渠道、同月份、同筛选下该尺寸整体加权均价 − 1；同尺寸月销低于 20 件显示样本不足。单位 ASIN 贡献 = 格子月销量 ÷ 格内全部 SKU 数，小平台按父体，包含零销量商品。</p></div></section>
 
@@ -217,7 +216,7 @@ ol.f li{margin:4px 0}code{background:#f1f0eb;padding:1px 5px;border-radius:4px;f
 var KEY='q3vanity-report-__VER__';
 var previousVersion='__PREV_VER__';
 var wrap=document.querySelector('.wrap');
-var SIDE_KEY='q3vanity-side-notes', CELL_KEY='q3vanity-cell-notes';
+var SIDE_KEY='q3vanity-side-notes', CELL_KEY='q3vanity-cell-notes', NTS_KEY='q3vanity-notes-ts', NOTES_TS=__NOTES_TS__;
 function get(key){try{return localStorage.getItem(key)}catch(e){return null}}
 function put(key,value){try{localStorage.setItem(key,value);return true}catch(e){return false}}
 function sideNotes(root){return Array.from(root.querySelectorAll('aside.note'),function(n){return n.outerHTML}).join('')}
@@ -225,7 +224,7 @@ function restoreSide(notes){
   wrap.querySelectorAll('aside.note').forEach(function(n){n.remove()});
   wrap.insertAdjacentHTML('afterbegin',notes);
 }
-var originalSide=sideNotes(wrap);
+var originalSide=sideNotes(wrap), originalCells=wrap.querySelector('#xnd').textContent;
 var saved=get(KEY), carry=null;
 if(saved)wrap.innerHTML=saved;
 else if(saved===null){try{
@@ -251,7 +250,12 @@ else if(saved===null){try{
   }
 }catch(e){}}
 var cells=wrap.querySelector('#xnd');
-var side=get(SIDE_KEY), cellNotes=get(CELL_KEY);
+var side=get(SIDE_KEY), cellNotes=get(CELL_KEY), localTs=+(get(NTS_KEY)||0);
+// 备注取较新的一份：报告里带的（data/notes.json）比浏览器里存的新，才用报告里的
+if(side!==null&&!localTs){localTs=NOTES_TS;put(NTS_KEY,String(NOTES_TS));}   // 旧版本存的备注没有时间：当作最新，绝不覆盖
+if(NOTES_TS>localTs){
+  if(side!==null)put('q3vanity-notes-backup',JSON.stringify({ts:localTs,side:side,cells:cellNotes}));   // 被替换前先备份
+  side=originalSide;cellNotes=originalCells;put(SIDE_KEY,side);put(CELL_KEY,cellNotes);put(NTS_KEY,String(NOTES_TS));}
 if(side===null){
   side=carry&&typeof carry.notes==='string'?carry.notes:sideNotes(wrap);
   put(SIDE_KEY,side);
@@ -284,14 +288,17 @@ function sw(id,cls){var el=document.getElementById(id);if(!el)return;var k=KEY+'
 sw('sw-t','h-t');sw('sw-k','h-k');sw('sw-g','h-g');
 var t,tip=document.getElementById('saved');
 function showSaved(ok){tip.textContent=ok?'已自动保存':'保存失败：浏览器不允许本地存储，请用“导出”';tip.style.opacity=1;setTimeout(function(){tip.style.opacity=0},1200)}
-function saveSide(){showSaved(put(SIDE_KEY,sideNotes(wrap)))}
+var SRV=/^https?:$/.test(location.protocol),nt0;
+function pushNotes(){if(!SRV)return;clearTimeout(nt0);nt0=setTimeout(function(){fetch('/api/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ts:+(get(NTS_KEY)||Date.now()),side:get(SIDE_KEY)||'',cells:get(CELL_KEY)||'{}'})}).catch(function(){})},800)}
+function stamp(){put(NTS_KEY,String(Date.now()));pushNotes()}
+function saveSide(){showSaved(put(SIDE_KEY,sideNotes(wrap)));stamp()}
 wrap.addEventListener('input',function(e){
   if(e.target.closest('aside.note')){saveSide();return}
   if(e.target.closest('.xnb'))return;
   clearTimeout(t);t=setTimeout(function(){showSaved(put(KEY,wrap.innerHTML))},1200);
 });
 wrap.addEventListener('q3-side-notes',saveSide);
-wrap.addEventListener('q3-cell-notes',function(){showSaved(put(CELL_KEY,cells.textContent))});
+wrap.addEventListener('q3-cell-notes',function(){showSaved(put(CELL_KEY,cells.textContent));stamp()});
 document.addEventListener('click',function(e){
   var b=e.target.closest('.tab'); if(!b) return;
   document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===b)});

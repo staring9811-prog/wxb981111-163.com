@@ -77,3 +77,10 @@ python serve.py          # 浏览器自动打开 http://127.0.0.1:8765
 ## 运行顺序（run.py 已串好）
 
 `calc.py`（Amazon 大盘、份额）→ `calc2.py`（同比、关键词）→ `calc3.py`（各渠道商品记录与指标表）→ `gen.py`（Amazon 旧版板块）→ `gen3.py`（最终报告，模板 `tpl3.html`）。
+
+## 备注不会被新版本覆盖
+
+- 备注的正本是 `data/notes.json`（侧边备注 + 格子备注），每次 `run.py` 都会把它带进报告。
+- 用 `python serve.py` 打开时，你在浏览器里改的备注会自动写回 `data/notes.json`。
+- 直接双击打开 HTML 时，备注存在浏览器里；新旧两份按修改时间取较新的那份，报告里带的只有更新时才会替换，替换前会把浏览器里那份备份到 `q3vanity-notes-backup`。
+- 拿到一份带备注的 HTML（比如别人发来的或“导出”的），运行 `python import_notes.py 那个文件.html`，备注就存进 `data/notes.json`。
