@@ -355,8 +355,8 @@ for d,vals in DIMS:
         for c,_,_ in CH:
             if d=='主色' and c!='amazon': cells.append('<td class="hc0"><div class="hc"><div class="nodata">小平台没有颜色打标</div></div></td>'); continue
             cells.append(hcell(c,d,val,rowsby[c].get(val),sh[c].get(val,0),mx))
-        if j==0: ht.append(f'<tr class="grp" data-g="{E_(d)}" title="点击收起 / 展开"><td colspan="5"><span><i class="car">▾</i>{DN[d]}</span></td></tr>')
-        ht.append(f'<tr class="gr" data-g="{E_(d)}"><td class="val">{E_(val)}</td>'+''.join(cells)+'</tr>')
+        if j==0: ht.append(f'<tr class="grp cl" data-g="{E_(d)}" title="点击收起 / 展开"><td colspan="5"><span><i class="car">▾</i>{DN[d]}</span></td></tr>')
+        ht.append(f'<tr class="gr gh" data-g="{E_(d)}"><td class="val">{E_(val)}</td>'+''.join(cells)+'</tr>')
 ht.append('</table></div>')
 # ---------- channel panels
 def auto(c):
@@ -374,6 +374,20 @@ def auto(c):
     return s+'。'
 SEC=[('品牌','品牌（前 20）'),('尺寸','尺寸档'),('价格带','价格带'),('台面 × 柜体','核心组合：台面 × 柜体（前 15）'),('台面','台面'),('柜体','柜体材质'),('主色','主色'),('元素','门板 / 设计元素'),('形态','安装形态'),('拆装','拆装 / 整装')]
 panels=[]; tabs=[]
+DSEC=[('拆装','拆装 / 整装'),('形态','安装形态'),('尺寸','尺寸档'),('价格带','价格带'),('台面','台面'),('柜体','柜体材质'),('主色','主色'),('元素','门板 / 设计元素'),('台面 × 柜体','台面 × 柜体（前 15）'),('品牌','品牌（前 20）')]
+dt_tabs=[];dt_pan=[]
+for j,(key,title) in enumerate(DSEC):
+    cards=[]
+    for c,n,col in CH:
+        note=''
+        if key=='主色' and c!='amazon':
+            cards.append(f'<div class="card dtc" style="--c:{col}"><h3><i class="dot" style="background:{col}"></i>{n}</h3><p class="na">小平台没有颜色打标。</p></div>'); continue
+        if c!='amazon' and key in ('尺寸','价格带'): note='<p class="hint">小平台按父体代表链接（在榜排名最高的那个）取尺寸和价格，一个父体只落在一个档里，参考意义有限。</p>'
+        if c=='lowes': note+='<p class="hint">Lowe&#39;s 只有当下一个时间点，没有月度走势和 3 个月趋势。</p>'
+        cards.append(f'<div class="card dtc" style="--c:{col}"><h3><i class="dot" style="background:{col}"></i>{n} · {title}</h3>{note}{table(c,R[c]["T"][key],key if key in ("品牌","尺寸") else "std",dim=key)}</div>')
+    dt_tabs.append(f'<button class="dtab{" on" if j==0 else ""}" data-d="{j}">{title.split("（")[0]}</button>')
+    dt_pan.append(f'<div class="dpanel{" on" if j==0 else ""}" data-d="{j}">{"".join(cards)}</div>')
+DTAB='<div class="dtabs">'+''.join(dt_tabs)+'</div>'+''.join(dt_pan)
 for i,(c,n,col) in enumerate(CH):
     v=R[c]; mon=v['mon']
     chart=vbars([(x["m"],x["u"]) for x in mon],col) if c!='lowes' else '<p class="na" style="padding:40px 0;text-align:center">Lowe\'s 用销量标签 + BSR 曲线估算，只有当下一个时间点，没有月度走势。</p>'
@@ -438,7 +452,7 @@ for c,_n,_ in CH:
         L.append(row)
     XD[c]=L
 XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
-out=tpl.replace('/*XJSON*/',XJS).replace('<!--CONC-->',CONC).replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
+out=tpl.replace('<!--DTAB-->',DTAB).replace('/*XJSON*/',XJS).replace('<!--CONC-->',CONC).replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
 out=re.sub(r'<!--ED:(.*?)-->',lambda m:ED(m.group(1),'say'),out,flags=re.S)
 out=re.sub(r'<!--EDB:(.*?)-->',lambda m:ED(m.group(1),'say big'),out,flags=re.S)
 import hashlib

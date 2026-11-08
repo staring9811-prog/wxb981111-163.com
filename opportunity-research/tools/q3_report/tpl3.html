@@ -4,6 +4,13 @@
 table.xt td.xk .xprice{color:#174d72;border-color:#88abc2;background:#edf6fb}
 table.xt td.xk .xrating{color:#6d4316;border-color:#c3a77e;background:#fff5e4}
 table.xt td.xk .xanchor{color:#59406f;border-color:#bda9cc;background:#f5eef9}
+/* 交叉表：表头行、首列冻结（在自身滚动框内） */
+.xcw{max-height:82vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+#xcross{border-collapse:separate;border-spacing:0}
+#xcross tr:first-child th{position:sticky;top:0;z-index:3;background:#f3f2ee}
+#xcross tr.xchannels th{position:sticky;top:var(--xh1,34px);z-index:3;background:#f3f2ee}
+#xcross td:first-child,#xcross tr:first-child th:first-child{position:sticky;left:0;z-index:2;background:#fff;box-shadow:1px 0 0 var(--line)}
+#xcross tr:first-child th:first-child{z-index:5;background:#f3f2ee}
 #xcross{--x-axis-width:clamp(92px,12vw,132px);table-layout:fixed;width:100%}
 #xcross col.xaxis-col{width:var(--x-axis-width)}
 #xcross th{text-align:center;white-space:normal}
@@ -74,7 +81,7 @@ body.h-t .spk,body.h-t .hc dt:nth-of-type(5),body.h-t .hc dd:nth-of-type(5){disp
 .wrap{max-width:1320px}
 table.heat2 tr.grp{cursor:pointer}table.heat2 tr.grp .car{display:inline-block;margin-right:8px;transition:transform .15s}table.heat2 tr.grp.cl .car{transform:rotate(-90deg)}table.heat2 tr.gr.gh{display:none}
 #xfil .xr{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px dashed var(--line)}#xfil .xr b{width:64px;flex:none;font-size:13px;padding-top:4px}#xfil .xr div{display:flex;flex-wrap:wrap;gap:5px}
-.xchs{display:flex;gap:8px;margin-bottom:8px}.xch{border:2px solid var(--cc);background:#fff;color:var(--ink);border-radius:8px;padding:7px 18px;font-size:15px;font-weight:700;cursor:pointer}.xch.on{background:var(--cc);color:#fff}#xmets label{font-size:13px;display:inline-flex;gap:3px;align-items:center}table.xt td.xk b{display:block}table.xt tr.xs td{border-top:2px solid #cfcdc6;font-weight:600}td.xk{position:relative}td.xk .xn{position:absolute;left:3px;top:2px;font-style:normal;font-size:12px;cursor:pointer;opacity:0;padding:0 3px;border-radius:4px;background:#fff8d6}td.xk:hover .xn,td.xk .xn.has{opacity:1}td.xk .xnb{position:relative;margin-top:4px;text-align:left}td.xk .xnb textarea{display:block;width:100%;min-width:0;min-height:60px;font:12px/1.5 inherit;border:1px solid #e8dfb8;background:#fffdf4;border-radius:6px;padding:4px 23px 4px 4px;resize:vertical;box-sizing:border-box}td.xk .xdel{position:absolute;right:4px;top:4px;display:grid;place-items:center;width:18px;height:18px;padding:0;border:0;border-radius:4px;background:#f5e8d3;color:#9a4427;cursor:pointer;font:15px/1 sans-serif}@media (hover:hover){td.xk .xdel{opacity:0;pointer-events:none}td.xk .xnb:hover .xdel,td.xk .xdel:focus-visible{opacity:1;pointer-events:auto}}td.xk .xnt{display:block;text-align:left;font-size:11.5px;color:#7a5b00;background:#fffbe6;border-radius:4px;padding:2px 4px;margin-top:3px;white-space:pre-wrap;max-width:220px}#rtbar{display:flex;gap:10px;align-items:center;padding:8px 12px;margin-bottom:8px;border-radius:8px;background:#fff8d6;font-size:13px}#rtbar button{border:0;background:#2a78d6;color:#fff;border-radius:6px;padding:5px 14px;cursor:pointer}#rtbar button:disabled{background:#9db7d9}select.rt{font-size:12px;max-width:120px}td.rtc{background:#ffe9a8!important}.xc{border:1px solid #cfd6e4;background:#fff;border-radius:14px;padding:3px 10px;font-size:12.5px;cursor:pointer;color:var(--ink)}.xc.on{background:#2a78d6;border-color:#2a78d6;color:#fff}.xc small{opacity:.7;margin-left:3px}
+.xchs{display:flex;gap:8px;margin-bottom:8px}.xch{border:2px solid var(--cc);background:#fff;color:var(--ink);border-radius:8px;padding:7px 18px;font-size:15px;font-weight:700;cursor:pointer}.xch.on{background:var(--cc);color:#fff}#xmets label{font-size:13px;display:inline-flex;gap:3px;align-items:center}table.xt td.xk b{display:block}table.xt tr.xs td{border-top:2px solid #cfcdc6;font-weight:600}td.xk{position:relative}td.xk .xn{position:absolute;left:3px;top:2px;font-style:normal;font-size:12px;cursor:pointer;opacity:0;padding:0 3px;border-radius:4px;background:#fff8d6}td.xk:hover .xn,td.xk .xn.has{opacity:1}td.xk .xnb{position:relative;margin-top:4px;text-align:left}td.xk .xnb textarea{display:block;width:100%;min-width:0;min-height:60px;font:12px/1.5 inherit;border:1px solid #e8dfb8;background:#fffdf4;border-radius:6px;padding:4px 23px 4px 4px;resize:vertical;box-sizing:border-box}td.xk .xdel{position:absolute;right:4px;top:4px;display:grid;place-items:center;width:18px;height:18px;padding:0;border:0;border-radius:4px;background:#f5e8d3;color:#9a4427;cursor:pointer;font:15px/1 sans-serif}@media (hover:hover){td.xk .xdel{opacity:0;pointer-events:none}td.xk .xnb:hover .xdel,td.xk .xdel:focus-visible{opacity:1;pointer-events:auto}}td.xk .xnt{display:block;text-align:left;font-size:11.5px;color:#7a5b00;background:#fffbe6;border-radius:4px;padding:2px 4px;margin-top:3px;white-space:pre-wrap;max-width:220px}#rtbar{display:flex;gap:10px;align-items:center;padding:8px 12px;margin-bottom:8px;border-radius:8px;background:#fff8d6;font-size:13px}#rtbar button{border:0;background:#2a78d6;color:#fff;border-radius:6px;padding:5px 14px;cursor:pointer}#rtbar button:disabled{background:#9db7d9}select.rt{font-size:12px;max-width:120px}td.rtc{background:#ffe9a8!important}.dtabs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px;position:sticky;top:44px;z-index:6;background:var(--bg);padding:6px 0}.dtab{border:1px solid #cfd6e4;background:#fff;border-radius:16px;padding:5px 14px;font-size:13.5px;cursor:pointer;color:var(--ink)}.dtab.on{background:#1f2d4d;border-color:#1f2d4d;color:#fff}.dpanel{display:none}.dpanel.on{display:block}.dtc{border-top:4px solid var(--c);margin-bottom:12px}.dtc h3{display:flex;align-items:center;gap:8px}.xc{border:1px solid #cfd6e4;background:#fff;border-radius:14px;padding:3px 10px;font-size:12.5px;cursor:pointer;color:var(--ink)}.xc.on{background:#2a78d6;border-color:#2a78d6;color:#fff}.xc small{opacity:.7;margin-left:3px}
 .xbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:10px 0}.xbar select{font-size:13px;padding:3px 6px}.xbar button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 12px;cursor:pointer}
 table.xt td,table.xt th{text-align:right}table.xt td:first-child,table.xt th:first-child{text-align:left}table.xt td.xk{cursor:pointer}table.xt td.xk:hover{outline:2px solid #2a78d6}table.xt td small{display:block;color:var(--mute);font-size:11px}
 .conc{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-top:12px}.conc .card h3{margin:0 0 6px;font-size:15px}.chcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:16px}
@@ -135,7 +142,7 @@ ol.f li{margin:4px 0}code{background:#f1f0eb;padding:1px 5px;border-radius:4px;f
 </ul></div>
 <!--CONC-->
 <!--EDB:<b>一句话总结：</b>四个渠道卖的不是一种货。Amazon 是 400 美元以下的拆装陶瓷盆，评分普遍偏低；Home Depot、Lowe's 是整装 + 石材 / 人造大理石台面，质量机会值最高；Wayfair 价格高、评分最好（4.6）。（点击可改）-->
-<nav><a href="#s0">取数逻辑</a><a href="#s1">① 渠道总览</a><a href="#s2">② 多渠道对照</a><a href="#s2x">②+ 交叉筛选</a><a href="#s3">③ 分渠道明细</a><a href="#s4">④ Amazon 大盘</a><a href="#s5">⑤ Amazon 结构变化</a><a href="#s6">⑥ 关键词趋势</a><a href="#s7">⑦ 结论</a><a href="#s8">报告口径</a></nav>
+<nav><a href="#s0">取数逻辑</a><a href="#s1">① 渠道总览</a><a href="#s2">② 多渠道对照</a><a href="#s2t">②· 分平台属性表</a><a href="#s2x">②+ 交叉筛选</a><a href="#s3">③ 分渠道明细</a><a href="#s4">④ Amazon 大盘</a><a href="#s5">⑤ Amazon 结构变化</a><a href="#s6">⑥ 关键词趋势</a><a href="#s7">⑦ 结论</a><a href="#s8">报告口径</a></nav>
 
 <section id="s1"><h2><span class="no">①</span>渠道总览</h2><p class="sub">一个渠道一行。表头带 <b style="color:var(--acc)">?</b> 的，鼠标放上去看算法。评分低于 4.0、质量机会值 ≥ 5 标红。</p>
 <div class="card"><!--OV--><!--ED:<b>这说明什么：</b>Home Depot、Lowe's 的质量机会值最高（评分 4.1 左右且销量集中在少数大牌），是“同价更好质量”的突破口；Wayfair 评分最高，靠质量切入的空间小，更适合靠款式和材质。（点击可改）--></div>
@@ -146,12 +153,13 @@ ol.f li{margin:4px 0}code{background:#f1f0eb;padding:1px 5px;border-radius:4px;f
 <div class="card"><div class="tgl" contenteditable="false"><span style="color:var(--ink2);font-weight:400">显示开关（对照表和下面各渠道明细表同时生效）：</span><label><input type="checkbox" id="sw-t" checked>显示销量 / 搜索趋势</label><label><input type="checkbox" id="sw-k" checked>显示 SKU 趋势</label><label><input type="checkbox" id="sw-g" checked>显示重要标签</label></div><p class="key" style="margin:0 0 8px;line-height:1.8">小平台按<b>父体</b>统计；尺寸、价格带用父体代表链接；小平台没有颜色打标；Lowe&#39;s 只有当下时间点、没有柱子。格子里的小柱子都是 <b>2026 年 1–10 月每月一根</b>：<b>“销量”</b>一行 = 这个取值每月的销量（灰色，所有渠道一样）；<b style="color:#7a5af0">“搜索”</b>一行（紫色，只有 Amazon 有）= 带这个取值的关键词每月搜索量，数据到 9 月。“搜 x/月”= 07–09 月均搜索量及同比。Amazon 格子写“无相关搜索词”的，是卖家精灵里没有能单独统计搜索量的词（比如石英石、夏克式、大理石，买家基本不这么搜）。<br>标签：<b class="tg w">搜多买少</b> 尺寸的搜索占比 ÷ 销量占比 ≥ 1.3；<b class="tg c" style="border:1px solid #c9d9ee">买多搜少</b> ≤ 0.7；<b class="tg g">销量增长快</b> / <b class="tg r">销量下降多</b> = 近 3 个月（08–10）比前 3 个月（05–07）涨 / 跌 ≥ 20%（前 3 个月月均不足 50 件不贴）。形态、颜色、台面的关键词只有 1–3 个，只看搜索走势不贴搜销标签。<br>“单款 / 单父体”= 这一格近 3 个月月销 ÷ 在售 SKU（父体）数，就是平均一款卖多少件。“环比”= 10 月 ÷ 9 月 − 1；“同比”= 2026-10 ÷ 2025-10 − 1（只有 Amazon 有去年数据）；“CAGR”= (最近 3 个月月均 ÷ 最早 3 个月月均)^(12 ÷ 间隔月数) − 1，Amazon 用 2024-11 至 2026-10 两年，小平台用 2026 年 1–10 月折算；搜索那一行是搜索量的环比、同比、CAGR（2024-10 至 2026-09）；Lowe&#39;s 没有月度数据，都写“—”。点任意格子可以看这一格的商品清单（图片、售价、评分、9 月销量）。<b class="tg u">单款贡献高</b> = 单款销量是本渠道平均的 1.5 倍以上（销量多、SKU 少，竞争相对松）；<b class="tg d">单款贡献低</b> = 0.6 倍以下（SKU 多、分到的少）。小平台的“SKU”一行是每月有销量的父体个数。</p><!--HEAT--><!--ED:<b>这说明什么：</b>拆装 / 整装是渠道间最大的分水岭；Amazon 集中在 24″–30″、400 美元以下、陶瓷一体盆，Home Depot 与 Wayfair 的大尺寸、高价位占比明显更高，Lowe's 以白色、人造大理石、刨花板为主。（点击可改）--></div>
 </section>
 
+<section id="s2t"><h2><span class="no">②·</span>分平台属性表</h2><p class="sub">上面热力图的表格版：先点属性，下面四个平台各一张表，表头和算法与《HDP 淋浴房市场数据报告》一致。小平台按父体统计；灰色行是没标出属性的商品。</p><!--DTAB--></section>
 <section id="s2x"><h2><span class="no">②+</span>属性交叉筛选（自己组合）</h2><p class="sub">先选渠道和行、列。行或列可选「渠道」，直接排列已选渠道。行列对应的属性默认全选，点已选取值可排除。其他属性点选要保留的取值，同一属性内是“或”，不同属性之间是“且”。点格子可看商品清单。</p>
 <div class="card" id="xf" contenteditable="false"><div class="xchs" id="xchs"></div><div id="xfil"></div>
 <div class="xbar" id="xmonths" role="group" aria-label="销量月份"></div>
 <div class="xbar"><label>行 <select id="xrow"></select></label><label>列 <select id="xcol"></select></label><label>锚定尺寸 <select id="xanchor"><option>24″</option><option>36″</option><option>60″</option></select></label><button id="xclr" type="button">清空筛选</button><span id="xsum" class="hint"></span></div>
 <div class="xbar" id="xmets"></div><div id="xnd" hidden></div>
-<div class="tw"><table class="dt xt" id="xtot"></table></div><div class="tw" style="margin-top:12px"><table class="dt xt" id="xcross"></table></div>
+<div class="tw"><table class="dt xt" id="xtot"></table></div><div class="tw xcw" style="margin-top:12px"><table class="dt xt" id="xcross"></table></div>
 <p class="hint">口径：单选看当月，多选用所选月份销量合计 ÷ 所选月数。占渠道 = 格子月销 ÷ 同期渠道全部月销；占筛选 = 格子月销 ÷ 同期筛选后月销；均价、评分用报告中的商品售价和评分，按所选月份销量加权；销售额 = Σ 月销 × 售价。走势指标按固定时间计算：3M 趋势为 08–10 比 05–07，环比为 10 月 ÷ 9 月 − 1，销量 CAGR 按 1–10 月折算年化。价格 CAGR 比较 2026 年 1–3 月与 8–10 月的月度加权均价，按 7 个月间隔折算成年化增长率。价格 CAGR 仅 Amazon 有历史售价。Lowe&#39;s 始终显示当期采集快照。格子底色越深，占筛选内销量越多。Amazon 按子体 SKU，小平台按父体，小平台没有颜色打标。</p><p class="hint">锚定溢价：格内同尺寸加权均价 ÷ 同渠道、同月份、同筛选下该尺寸整体加权均价 − 1；同尺寸月销低于 20 件显示样本不足。单位 ASIN 贡献 = 格子月销量 ÷ 格内全部 SKU 数，小平台按父体，包含零销量商品。</p></div></section>
 
 <section id="s3"><h2><span class="no">③</span>分渠道明细</h2><p class="sub">点上面的按钮切换渠道。每张表的“每月走势”列和多渠道对照的格子同一套读法：灰色柱 = 每月销量，紫色柱 = 关键词每月搜索量（仅 Amazon、有对应关键词的取值）；标签规则同上（销量增长快 / 下降多 = 近 3 个月比前 3 个月涨跌 ≥ 20%；搜多买少 / 买多搜少仅 Amazon 尺寸）。表头和算法与《HDP 淋浴房市场数据报告》一致；灰色行是没标出属性的商品。</p>
@@ -587,6 +595,7 @@ function renderMatrix(html,columns){
  var matrix=E('xcross');
  matrix.style.minWidth=columns?'calc(var(--x-axis-width) + '+(columns*184)+'px)':'';
  matrix.innerHTML=(columns?'<colgroup><col class="xaxis-col"><col span="'+columns+'"></colgroup>':'')+html;
+ var h1=matrix.querySelector('tr:first-child');if(h1)matrix.style.setProperty('--xh1',h1.offsetHeight+'px');
 }
 function bars(m,col){var mx=Math.max.apply(null,m)||1,s='<svg viewBox="0 0 110 26" width="110" height="26">';m.forEach(function(v,i){var h=Math.max(v>0?1:0,22*v/mx);s+='<rect x="'+(i*11)+'" y="'+(24-h)+'" width="9" height="'+h+'" fill="'+col+'" rx="1.5"><title>'+M[i]+'：'+I(v)+' 件</title></rect>'});return s+'</svg>'}
 function rows(c){return XD.data[c].filter(match)}
@@ -763,5 +772,10 @@ document.addEventListener('click',function(e){if(e.target.id!=='rtsave'||saving)
   saveDraft();
   setTimeout(function(){location.reload()},600)}).catch(function(){failed('无法确认保存结果，改标已留在本标签页，可以重试。')})});
 })();
+</script>
+<script>
+document.addEventListener('click',function(e){var b=e.target.closest('.dtab');if(!b)return;var d=b.dataset.d;
+ document.querySelectorAll('.dtab').forEach(function(x){x.classList.toggle('on',x===b)});
+ document.querySelectorAll('.dpanel').forEach(function(p){p.classList.toggle('on',p.dataset.d===d)});});
 </script>
 </body></html>
