@@ -48,7 +48,8 @@ def table(ch,rows,kind='std',dim=None):
             cls[13]=_c(x['sdi'],lambda v:v>=1.5,lambda v:v<=0.6); k0=14
         cls[k0]=' class="cw"' if x['qo']>=5 else ''
         if not (szt and x['k']!='36″'): cls[k0+1]=_c(x['prem'],lambda v:v>=0.2,lambda v:v<=-0.2)
-        out.append(f'<tr{gray}>'+''.join(f'<td{k}>{c}</td>' for c,k in zip(cells,cls))+'</tr>')
+        _rc='mute clkrow' if gray else 'clkrow'
+        out.append(f'<tr class="{_rc}" data-c="{ch}" data-d="{E_(dim or kind)}" data-v="{E_(x["k"])}" title="点击看这一行的商品清单">'+''.join(f'<td{k}>{c}</td>' for c,k in zip(cells,cls))+'</tr>')
     return ''.join(out)+'</table></div>'
 def vbars(pairs,color,h=170,w=520,unit='件'):
     n=len(pairs); mx=max(v for _,v in pairs) or 1; bw=(w-30)/n; s=[]

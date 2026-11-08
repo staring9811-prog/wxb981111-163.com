@@ -1,3 +1,4 @@
+import os
 import q3paths
 import sqlite3,json,glob,os,collections as C,statistics as S
 c=sqlite3.connect('pdt.sqlite3'); q=lambda s,*a:c.execute(s,a).fetchall()
@@ -88,6 +89,27 @@ for _r in recs['amazon']+LALL:
     if _ln and _p and _p<_ln and _r['at'].get('拆装')!='拆装':
         _fl.append(('amazon',_r['pid'],_r['brand'],_r['at']['尺寸'],_p,_r['at'].get('拆装')+' → 拆装',round(sum(_r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10'))/3,1)))
         _r['at']['拆装']='拆装'
+# 商品页明确写了台盆材质的，按页面算（wen 2026-11-08：写了是什么就是什么）。只改一体台盆类（陶瓷/树脂/未标），石材、木板台面不动。
+import json as _js
+_PDP=_js.load(open('amz_pdp_tags.json',encoding='utf-8')) if os.path.exists('amz_pdp_tags.json') else {}
+_BM={'陶瓷':'陶瓷','树脂':'树脂','CM':'Cultured Marble'}
+def _pdp_ok(pid,size):
+    p=_PDP.get(pid)
+    if not p or p.get('basin') not in _BM: return None
+    w=p.get('width')
+    if w:
+        b=next((bb for lo,hi,bb in [(15,21,'18″'),(21,26,'24″'),(26,29,'28″'),(29,33,'30″'),(33,39,'36″'),(39,45,'42″'),(45,54,'48″'),(54,66,'60″'),(66,999,'72″+')] if lo<=w<hi),None)
+        if b and b!=size: return None   # 页面已被改成别的尺寸，不采信
+    return _BM[p['basin']]
+_seen=set();_pdpn=0
+for _r in recs['amazon']+LALL:
+    if id(_r) in _seen: continue
+    _seen.add(id(_r))
+    _b=_pdp_ok(_r['pid'],_r['at'].get('尺寸'))
+    _r['_pdp']=bool(_b)
+    if _b and _r['at'].get('台面') in ('陶瓷','树脂','未标') and _r['at']['台面']!=_b:
+        _r['at']['台面']=_b; _pdpn+=1
+print('按商品页改台盆',_pdpn,'条（商品页已抓',len(_PDP),'）')
 # 大尺寸树脂盆规则（wen 2026-11-08）：拆装、48″ 及以上、售价低于线价，台面标的是陶瓷或没标 → 树脂盆。
 # 高于线价的多是石材台面；木板台面、不含台面不动。
 RESIN_LINE={'48″':700,'60″':1000,'72″+':900}
@@ -96,7 +118,7 @@ for _r in recs['amazon']+LALL:
     if id(_r) in _seen: continue
     _seen.add(id(_r))
     _ln=RESIN_LINE.get(_r['at'].get('尺寸')); _p=_r.get('price')
-    if _ln and _p and _p<_ln and _r['at'].get('拆装')=='拆装' and _r['at'].get('台面') in ('陶瓷','未标'):
+    if _ln and _p and _p<_ln and not _r.get('_pdp') and _r['at'].get('拆装')=='拆装' and _r['at'].get('台面') in ('陶瓷','未标'):
         _fl.append(('amazon',_r['pid'],_r['brand'],_r['at']['尺寸'],_p,str(_r['at'].get('台面'))+' → 树脂（大尺寸价格线）',round(sum(_r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10'))/3,1)))
         _r['at']['台面']='树脂'
 # 人工改标（最高优先级，覆盖打标和价格线）：tag_override.csv 每行 渠道,商品ID,属性,改成

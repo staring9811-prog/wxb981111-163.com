@@ -19,6 +19,11 @@ def band(p):
 dims=['尺寸段','形态','装','主色','柜体材质','台面材质','元素','价位']
 import csv as _csv0
 _DM={'拆装':'装','尺寸':'尺寸段','台面':'台面材质','柜体':'柜体材质','价格带':'价位'}
+import os as _os
+_PDP=json.load(open('amz_pdp_tags.json',encoding='utf-8')) if _os.path.exists('amz_pdp_tags.json') else {}
+def _bandw(w):
+    return next((bb for lo,hi,bb in [(15,21,'18″'),(21,26,'24″'),(26,29,'28″'),(29,33,'30″'),(33,39,'36″'),(39,45,'42″'),(45,54,'48″'),(54,66,'60″'),(66,999,'72″+')] if lo<=w<hi),None)
+_PDPB={a:{'陶瓷':'陶瓷','树脂':'树脂','CM':'Cultured Marble'}[p['basin']] for a,p in _PDP.items() if p.get('basin') in ('陶瓷','树脂','CM') and not (p.get('width') and _bandw(p['width']) and AMZW.get(a) and _bandw(p['width'])!=AMZW.get(a))}
 _OVA={(r['商品ID'],_DM.get(r['属性'],r['属性'])):r['改成'] for r in _csv0.DictReader(open('tag_override.csv',encoding='utf-8')) if r['渠道']=='amazon'}
 share=C.defaultdict(lambda:C.defaultdict(C.Counter))  # dim->month->value
 for i,m,u,p in snap:
@@ -29,7 +34,8 @@ for i,m,u,p in snap:
             _sz=AMZW.get(i) or tg.get('尺寸段','')
             if p>={'18″':400,'24″':500,'28″':800,'30″':800,'36″':1000,'42″':1200,'48″':1200,'60″':1500,'72″+':1500}.get(_sz,1e9): v='整装'
             elif p<{'18″':300,'24″':300,'28″':300,'30″':400,'36″':400,'42″':500,'48″':500,'60″':500,'72″+':500}.get(_sz,0): v='拆装'
-        if d=='台面材质' and p and (v or '未标') in ('陶瓷','未标'):   # 大尺寸树脂盆规则（与 calc3 一致）
+        if d=='台面材质' and (v or '未标') in ('陶瓷','树脂','未标') and i in _PDPB: v=_PDPB[i]   # 商品页明确写了的按页面
+        elif d=='台面材质' and p and (v or '未标') in ('陶瓷','未标'):   # 大尺寸树脂盆规则（只对页面没写的；与 calc3 一致）
             _sz=AMZW.get(i) or tg.get('尺寸段','')
             _k=tg.get('装')
             if p>={'18″':400,'24″':500,'28″':800,'30″':800,'36″':1000,'42″':1200,'48″':1200,'60″':1500,'72″+':1500}.get(_sz,1e9): _k='整装'

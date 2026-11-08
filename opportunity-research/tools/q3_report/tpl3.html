@@ -89,7 +89,7 @@ table.xt td,table.xt th{text-align:right}table.xt td:first-child,table.xt th:fir
 .chc h4{margin:0 0 6px;font-size:15px}.chc .n{font-size:26px;font-weight:800}.chc .n small{font-size:13px;color:var(--ink2);font-weight:400}
 .chc dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:6px 0 0;font-size:13px}.chc dt{color:var(--ink2)}.chc dd{margin:0;font-weight:600}
 .tw{overflow-x:auto;margin:4px 0}
-table.dt{font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}table.dt th{background:#f3f2ee;position:sticky;top:0;font-size:13.5px;font-weight:700;padding:8px 8px}table.dt td{padding:7px 8px}table.dt td.cg{background:#d9f0df;font-weight:700;color:#14653a}table.dt td.cb{background:#fbdcd6;font-weight:700;color:#a3261a}table.dt td.cw{background:#ffecc7;font-weight:700;color:#8a5200}table.dt td.cg *,table.dt td.cb *,table.dt td.cw *{color:inherit;font-weight:700}table.dt td:first-child{white-space:normal;min-width:120px;font-weight:600}
+table.dt{font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}table.dt th{background:#f3f2ee;position:sticky;top:0;font-size:13.5px;font-weight:700;padding:8px 8px}table.dt td{padding:7px 8px}table.dt tr.clkrow{cursor:pointer}table.dt tr.clkrow:hover td:not(.cg):not(.cb):not(.cw){background-color:#f4f8ff}table.dt td.cg{background:#d9f0df;font-weight:700;color:#14653a}table.dt td.cb{background:#fbdcd6;font-weight:700;color:#a3261a}table.dt td.cw{background:#ffecc7;font-weight:700;color:#8a5200}table.dt td.cg *,table.dt td.cb *,table.dt td.cw *{color:inherit;font-weight:700}table.dt td:first-child{white-space:normal;min-width:120px;font-weight:600}
 table.dt.logic{white-space:normal}table.dt.logic td{min-width:120px;vertical-align:top;line-height:1.55}table.dt.logic td:first-child{min-width:100px;white-space:nowrap}
 table.dt td small{color:var(--mute);margin-left:2px}tr.mute td{color:var(--mute)}
 th sup{color:var(--acc);margin-left:1px;cursor:help}
@@ -321,8 +321,13 @@ var CN={amazon:'Amazon',homedepot:'Home Depot',lowes:"Lowe's",wayfair:'Wayfair'}
 var DM={'拆装':'拆装','形态':'形态','尺寸':'尺寸','价格带':'价格带','台面':'台面','柜体':'柜体','主色':'主色','元素':'元素'};
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 document.addEventListener('click',function(e){
-  var td=e.target.closest('td.clk'); if(!td) return;
-  var c=td.dataset.c,d=td.dataset.d,v=td.dataset.v,L=(PROD[c]||[]).filter(function(r){return r[10]&&r[9][d]===v});
+  var td=e.target.closest('td.clk')||e.target.closest('tr.clkrow'); if(!td) return;
+  if(getSelection&&String(getSelection()).length) return;   // 正在选文字时不弹
+  var c=td.dataset.c,d=td.dataset.d,v=td.dataset.v,L=(PROD[c]||[]).filter(function(r){
+    if(!r[10]) return false;
+    if(d==='品牌') return r[1]===v;
+    if(d==='台面 × 柜体'){var p=v.split(' × ');return r[9]['台面']===p[0]&&r[9]['柜体']===p[1]}
+    return r[9][d]===v});
   var lw=c==='lowes'; L.sort(function(a,b){return (lw?b[8]-a[8]:b[7]-a[7])});
   var tot=L.reduce(function(s,r){return s+(lw?r[8]:r[7])},0);
   document.getElementById('mt').textContent=CN[c]+' · '+d+' = '+v+'：'+L.length+' 个'+(c==='amazon'?'子体':'父体')+'，'+(lw?'当下月销':'9 月销量')+'合计 '+Math.round(tot).toLocaleString()+' 件';

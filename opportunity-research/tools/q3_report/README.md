@@ -84,3 +84,10 @@ python serve.py          # 浏览器自动打开 http://127.0.0.1:8765
 - 用 `python serve.py` 打开时，你在浏览器里改的备注会自动写回 `data/notes.json`。
 - 直接双击打开 HTML 时，备注存在浏览器里；新旧两份按修改时间取较新的那份，报告里带的只有更新时才会替换，替换前会把浏览器里那份备份到 `q3vanity-notes-backup`。
 - 拿到一份带备注的 HTML（比如别人发来的或“导出”的），运行 `python import_notes.py 那个文件.html`，备注就存进 `data/notes.json`。
+
+## Amazon 台盆材质：商品页优先
+
+- `data/amz_pdp/` 放抓到的 Amazon 商品页文字（每个 ASIN 一个 json），运行 `python amz_pdp_classify.py` 生成 `data/amz_pdp_tags.json`。
+- 优先级：人工改标 > 商品页明确写了的材质（陶瓷 / 树脂（含 SMC、resin、acrylic、solid surface）/ Cultured Marble）> 大尺寸价格线 > 原始打标。
+- 大尺寸价格线只管商品页没写材质的：拆装、48″ / 60″ / 72″+ 低于 $700 / $1,000 / $900、台面标陶瓷或没标 → 树脂。
+- 商品页宽度和记录尺寸对不上（卖家改了链接）的，不采信页面。
