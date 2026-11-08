@@ -27,7 +27,7 @@ def basin(parts,spec):
     t=' '.join(x for _,x in parts)
     if re.search(r'integrated\s+(?:\w+\s+){0,2}(?:sink|basin|top)|one[\s\-]piece\s+(?:\w+\s+){0,2}(?:sink|top)|seamless\s+(?:\w+\s+){0,2}sink',t,re.I): return '一体盆未写材质','正文写一体盆'
     return '未写','未写材质'
-C=[('实木框架',r'solid[\s\-]wood\s+frame|hardwood\s+frame|solid\s+wood\s+(?:and|&|\+)\s+(?:MDF|plywood|engineered)'),('实木',r'solid\s+(?:wood|oak|pine|rubberwood|birch|ash|walnut)|rubberwood|100%\s+solid'),('含胶合板',r'plywood'),('含刨花板',r'particle\s?board|\bP2\b|chipboard'),('MDF',r'\bMDF\b|medium[\s\-]density')]
+C=[('实木框架',r'solid[\s\-]wood\s+frame|hardwood\s+frame|solid\s+wood\s+(?:and|&|\+)\s+(?:MDF|plywood|engineered)'),('实木',r'(?:100%|all|entirely|made (?:of|from)|constructed (?:of|from)|crafted (?:of|from)|built (?:of|from|with))\s+(?:premium\s+|high[- ]quality\s+|natural\s+)?solid\s+(?:wood|oak|pine|rubberwood|birch|ash|walnut)|solid (?:wood|oak|pine|rubberwood|birch) (?:cabinet|vanity|construction|body|board)|rubberwood'),('含胶合板',r'plywood'),('含刨花板',r'particle\s?board|\bP2\b|chipboard'),('MDF',r'\bMDF\b|medium[\s\-]density')]
 def cab(t2,spec):
     t=t2
     hits=[nm for nm,p in C if re.search(p,t,re.I)]
@@ -35,6 +35,33 @@ def cab(t2,spec):
     v=' '.join(spec.get(k,'') for k in ('Frame Material Type','Material Type','Material'))
     if re.search(r'engineered wood',v,re.I): return '人造板（未细分）','规格表 Engineered Wood'
     return '未写',''
+
+# ---- 补未标属性（只用来填原来没标的）----
+NOTOP=re.compile(r'without (?:a )?(?:counter)?top|no (?:counter)?top|top (?:is )?not included|countertop not included|vanity base only|cabinet only|base only',re.I)
+TOPS=[('石英石',r'\bquartz\b'),('岗石',r'\bgranite\b'),('岩板',r'sintered stone|rock (?:slab|plate)|\bslate\b'),('卡拉拉大理石',r'carrara'),('木板',r'(?:solid |natural )?wood(?:en)? (?:counter)?top|butcher ?block')]
+def top(parts,basin_label):
+    t=' '.join(x for _,x in parts[:3])
+    if NOTOP.search(t): return '不适用（不含台面）'
+    if basin_label in ('陶瓷','树脂'): return basin_label
+    if basin_label=='CM': return 'Cultured Marble'
+    for nm,p in TOPS:
+        if re.search(p,t,re.I): return nm
+    return None
+COL=[('白',r'\bwhite|ivory|cream|off[- ]white'),('黑',r'\bblack|charcoal'),('灰',r'\bgr[ae]y|greige|slate gray'),('蓝',r'\bblue|navy'),('绿',r'\bgreen|sage|olive'),
+     ('深木',r'walnut|espresso|dark (?:oak|wood|brown)|\bbrown|mahogany|cherry|chocolate|coffee'),('原木',r'\boak|natural|light (?:wood|brown)|maple|pine|teak|beige|honey|wood(?:en)? color')]
+def color(spec,title):
+    v=spec.get('Color','') or spec.get('Colour','') or spec.get('Finish Types','')
+    for src in (v,title):
+        for nm,p in COL:
+            if re.search(p,src,re.I): return nm
+    return None
+EL=[('rattan',r'rattan|\bcane\b|wicker'),('玻璃门',r'glass door'),('竖棱',r'flut(?:ed|e)|reeded|ribbed|grooved'),('农场风装饰饰条',r'barn ?door|farmhouse|x[- ]?(?:shape|design|panel)'),
+    ('夏克式',r'shaker'),('木条格栅',r'\bslat(?:s|ted)?\b|louver'),('自然木纹',r'wood ?grain'),('纯色',r'handle[- ]?(?:free|less)|flat[- ]panel|minimalist')]
+def elem(parts):
+    for _,t in parts[:2]:
+        for nm,p in EL:
+            if re.search(p,t,re.I): return nm
+    return None
 def width(spec):
     for k in ('Item Dimensions D x W x H','Product Dimensions','Item Dimensions  L x W x H','Size'):
         v=spec.get(k,'')
@@ -45,7 +72,9 @@ out={}
 for f in glob.glob(PAGES+'/*.json'):
     d=json.load(open(f));s=d.get('spec',{})
     t=' '.join([d.get('title',''),d.get('bullets',''),d.get('desc',''),d.get('overview',''),d.get('aplus',''),' '.join(f'{k} {v}' for k,v in s.items())])
-    b,bs=basin([('标题',d.get('title','')),('五点',d.get('bullets','')),('描述',d.get('desc','')+' '+d.get('overview','')),('图文详情',d.get('aplus',''))],s);c,cs=cab(' '.join([d.get('title',''),d.get('bullets',''),d.get('desc',''),d.get('aplus','')]),s)
-    out[d['asin']]=dict(basin=b,basin_src=bs,cab=c,cab_src=cs,width=width(s),title=d.get('title','')[:120])
+    b,bs=basin([('标题',d.get('title','')),('五点',d.get('bullets','')),('描述',d.get('desc','')+' '+d.get('overview','')),('图文详情',d.get('aplus',''))],s);c,cs=cab(' '.join([d.get('title',''),d.get('bullets',''),d.get('desc','')]),s)
+    parts=[('标题',d.get('title','')),('五点',d.get('bullets','')),('描述',d.get('desc','')+' '+d.get('overview','')),('图文详情',d.get('aplus',''))]
+    out[d['asin']]=dict(basin=b,basin_src=bs,cab=c,cab_src=cs,width=width(s),title=d.get('title','')[:120],
+        top=top(parts,b),color=color(s,d.get('title','')),elem=elem(parts))
 json.dump(out,open(os.path.join(q3paths.DATA,'amz_pdp_tags.json'),'w'),ensure_ascii=False)
-import collections;print(len(out),collections.Counter(v['basin'] for v in out.values()),collections.Counter(v['cab'] for v in out.values()))
+import collections;print(len(out),'台盆',dict(collections.Counter(v['basin'] for v in out.values())),'柜体',dict(collections.Counter(v['cab'] for v in out.values())),'台面',dict(collections.Counter(v['top'] for v in out.values())),'主色',dict(collections.Counter(v['color'] for v in out.values())),'元素',dict(collections.Counter(v['elem'] for v in out.values())))
