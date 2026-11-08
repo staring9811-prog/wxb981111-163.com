@@ -47,7 +47,7 @@ body.h-t .spk,body.h-t .hc dt:nth-of-type(5),body.h-t .hc dd:nth-of-type(5){disp
 .wrap{max-width:1320px}
 table.heat2 tr.grp{cursor:pointer}table.heat2 tr.grp .car{display:inline-block;margin-right:8px;transition:transform .15s}table.heat2 tr.grp.cl .car{transform:rotate(-90deg)}table.heat2 tr.gr.gh{display:none}
 #xfil .xr{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px dashed var(--line)}#xfil .xr b{width:64px;flex:none;font-size:13px;padding-top:4px}#xfil .xr div{display:flex;flex-wrap:wrap;gap:5px}
-.xchs{display:flex;gap:8px;margin-bottom:8px}.xch{border:2px solid var(--cc);background:#fff;color:var(--ink);border-radius:8px;padding:7px 18px;font-size:15px;font-weight:700;cursor:pointer}.xch.on{background:var(--cc);color:#fff}#xmets label{font-size:13px;display:inline-flex;gap:3px;align-items:center}table.xt td.xk b{display:block}table.xt td.xk span.m{display:block;font-size:11.5px;color:var(--ink2)}table.xt tr.xs td{border-top:2px solid #cfcdc6;font-weight:600}td.xk{position:relative}td.xk .xn{position:absolute;left:3px;top:2px;font-style:normal;font-size:12px;cursor:pointer;opacity:0;padding:0 3px;border-radius:4px;background:#fff8d6}td.xk:hover .xn,td.xk .xn.has{opacity:1}td.xk .xnb{margin-top:4px;text-align:left}td.xk .xnb textarea{width:100%;min-width:150px;min-height:60px;font:12px/1.5 inherit;border:1px solid #e8dfb8;background:#fffdf4;border-radius:6px;padding:4px;resize:vertical;box-sizing:border-box}td.xk .xnt{display:block;text-align:left;font-size:11.5px;color:#7a5b00;background:#fffbe6;border-radius:4px;padding:2px 4px;margin-top:3px;white-space:pre-wrap;max-width:220px}.xc{border:1px solid #cfd6e4;background:#fff;border-radius:14px;padding:3px 10px;font-size:12.5px;cursor:pointer;color:var(--ink)}.xc.on{background:#2a78d6;border-color:#2a78d6;color:#fff}.xc small{opacity:.7;margin-left:3px}
+.xchs{display:flex;gap:8px;margin-bottom:8px}.xch{border:2px solid var(--cc);background:#fff;color:var(--ink);border-radius:8px;padding:7px 18px;font-size:15px;font-weight:700;cursor:pointer}.xch.on{background:var(--cc);color:#fff}#xmets label{font-size:13px;display:inline-flex;gap:3px;align-items:center}table.xt td.xk b{display:block}table.xt td.xk span.m{display:block;font-size:11.5px;color:var(--ink2)}table.xt tr.xs td{border-top:2px solid #cfcdc6;font-weight:600}td.xk{position:relative}td.xk .xn{position:absolute;left:3px;top:2px;font-style:normal;font-size:12px;cursor:pointer;opacity:0;padding:0 3px;border-radius:4px;background:#fff8d6}td.xk:hover .xn,td.xk .xn.has{opacity:1}td.xk .xnb{margin-top:4px;text-align:left}td.xk .xnb textarea{width:100%;min-width:150px;min-height:60px;font:12px/1.5 inherit;border:1px solid #e8dfb8;background:#fffdf4;border-radius:6px;padding:4px;resize:vertical;box-sizing:border-box}td.xk .xnt{display:block;text-align:left;font-size:11.5px;color:#7a5b00;background:#fffbe6;border-radius:4px;padding:2px 4px;margin-top:3px;white-space:pre-wrap;max-width:220px}#rtbar{display:flex;gap:10px;align-items:center;padding:8px 12px;margin-bottom:8px;border-radius:8px;background:#fff8d6;font-size:13px}#rtbar button{border:0;background:#2a78d6;color:#fff;border-radius:6px;padding:5px 14px;cursor:pointer}#rtbar button:disabled{background:#9db7d9}select.rt{font-size:12px;max-width:120px}td.rtc{background:#ffe9a8!important}.xc{border:1px solid #cfd6e4;background:#fff;border-radius:14px;padding:3px 10px;font-size:12.5px;cursor:pointer;color:var(--ink)}.xc.on{background:#2a78d6;border-color:#2a78d6;color:#fff}.xc small{opacity:.7;margin-left:3px}
 .xbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:10px 0}.xbar select{font-size:13px;padding:3px 6px}.xbar button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 12px;cursor:pointer}
 table.xt td,table.xt th{text-align:right}table.xt td:first-child,table.xt th:first-child{text-align:left}table.xt td.xk{cursor:pointer}table.xt td.xk:hover{outline:2px solid #2a78d6}table.xt td small{display:block;color:var(--mute);font-size:11px}
 .conc{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-top:12px}.conc .card h3{margin:0 0 6px;font-size:15px}.chcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:16px}
@@ -170,6 +170,11 @@ var wrap=document.querySelector('.wrap');
 function get(){try{return localStorage.getItem(KEY)}catch(e){return null}}
 function put(v){try{localStorage.setItem(KEY,v);return true}catch(e){return false}}
 var saved=get(); if(saved) wrap.innerHTML=saved;
+else{try{var cr=JSON.parse(localStorage.getItem('q3-carry')||'null');if(cr){
+  if(cr.notes){wrap.querySelectorAll('aside.note').forEach(function(n){n.remove()});var tmp=document.createElement('div');tmp.innerHTML=cr.notes;while(tmp.lastChild)wrap.insertBefore(tmp.lastChild,wrap.firstChild)}
+  var xn=wrap.querySelector('#xnd');if(xn&&cr.xnd)xn.textContent=cr.xnd;
+  var says=wrap.querySelectorAll('.say');if(cr.say&&cr.say.length===says.length)says.forEach(function(x,i){x.innerHTML=cr.say[i]});
+  localStorage.removeItem('q3-carry');for(var ki=localStorage.length-1;ki>=0;ki--){var kk=localStorage.key(ki);if(kk&&kk.indexOf('q3vanity-report-')===0&&kk.indexOf(KEY)!==0)localStorage.removeItem(kk)}setTimeout(function(){wrap.dispatchEvent(new Event('input'))},0)}}catch(e){}}
 function lock(){
   wrap.contentEditable='true'; wrap.spellcheck=false;
   wrap.querySelectorAll('nav,.tabs,svg,button,.tgl,#sT .grid3,.note,.note .nh').forEach(function(x){x.contentEditable='false'});
@@ -209,9 +214,9 @@ document.addEventListener('click',function(e){
   var tot=L.reduce(function(s,r){return s+(lw?r[8]:r[7])},0);
   document.getElementById('mt').textContent=CN[c]+' · '+d+' = '+v+'：'+L.length+' 个'+(c==='amazon'?'子体':'父体')+'，'+(lw?'当下月销':'9 月销量')+'合计 '+Math.round(tot).toLocaleString()+' 件';
   var h='<table class="dt"><tr><th>图片</th><th>品牌</th><th>标题</th><th>售价</th><th>评分</th><th>'+(lw?'当下月销':'9 月销量')+'</th>'+(lw?'':'<th>10 月销量</th>')+'<th>拆装</th><th>形态</th><th>尺寸</th><th>台面</th><th>柜体</th><th>元素</th></tr>';
-  L.slice(0,300).forEach(function(r){var a=r[9];h+='<tr><td>'+(r[3]?'<img loading="lazy" src="'+esc(r[3])+'">':'')+'</td><td>'+esc(r[1])+'</td><td style="white-space:normal;min-width:260px"><a href="'+esc(r[4])+'" target="_blank">'+esc(r[2])+'</a><br><small>'+esc(r[0])+'</small></td><td>'+(r[5]?'$'+r[5]:'—')+'</td><td>'+(r[6]||'—')+'</td><td><b>'+(lw?r[8]:r[7]).toLocaleString()+'</b></td>'+(lw?'':'<td>'+r[8].toLocaleString()+'</td>')+'<td>'+esc(a['拆装'])+'</td><td>'+esc(a['形态'])+'</td><td>'+esc(a['尺寸'])+'</td><td>'+esc(a['台面'])+'</td><td>'+esc(a['柜体'])+'</td><td>'+esc(a['元素'])+'</td></tr>'});
+  L.slice(0,300).forEach(function(r){var a=r[9];h+='<tr data-pid="'+r[0]+'"><td>'+(r[3]?'<img loading="lazy" src="'+esc(r[3])+'">':'')+'</td><td>'+esc(r[1])+'</td><td style="white-space:normal;min-width:260px"><a href="'+esc(r[4])+'" target="_blank">'+esc(r[2])+'</a><br><small>'+esc(r[0])+'</small></td><td>'+(r[5]?'$'+r[5]:'—')+'</td><td>'+(r[6]||'—')+'</td><td><b>'+(lw?r[8]:r[7]).toLocaleString()+'</b></td>'+(lw?'':'<td>'+r[8].toLocaleString()+'</td>')+'<td>'+esc(a['拆装'])+'</td><td>'+esc(a['形态'])+'</td><td>'+esc(a['尺寸'])+'</td><td>'+esc(a['台面'])+'</td><td>'+esc(a['柜体'])+'</td><td>'+esc(a['元素'])+'</td></tr>'});
   h+='</table>'+(L.length>300?'<p class="hint">只列 9 月销量前 300 个。</p>':'')+(L.length?'':'<p class="na">没有 9 / 10 月有销量的商品。</p>');
-  document.getElementById('mbody').innerHTML=h; document.getElementById('modal').classList.add('on');
+  document.getElementById('mbody').innerHTML=h; window.Q3MC=c; window.retagify&&retagify(); document.getElementById('modal').classList.add('on');
 });
 document.getElementById('mx').addEventListener('click',function(){document.getElementById('modal').classList.remove('on')});
 document.getElementById('modal').addEventListener('click',function(e){if(e.target.id==='modal')this.classList.remove('on')});
@@ -299,13 +304,35 @@ document.addEventListener('click',function(e){var xn=e.target.closest('td.xk .xn
   var L=(PROD[c]||[]).filter(function(r){return ids[r[0]]}),lw=c==='lowes';L.sort(function(a,b){return lw?b[8]-a[8]:b[7]-a[7]});
   document.getElementById('mt').textContent=CN[c][1]+' · 筛选后'+(lab.length?' · '+lab.join(' · '):'')+'：'+L.length+' 个有 9/10 月销量的'+(c==='amazon'?'子体':'父体');
   var h='<table class="dt"><tr><th>图片</th><th>品牌</th><th>标题</th><th>售价</th><th>评分</th><th>'+(lw?'当下月销':'9 月销量')+'</th>'+(lw?'':'<th>10 月销量</th>')+'<th>拆装</th><th>形态</th><th>尺寸</th><th>台面</th><th>柜体</th><th>元素</th></tr>';
-  L.slice(0,300).forEach(function(r){var a=r[9];h+='<tr><td>'+(r[3]?'<img loading="lazy" src="'+r[3]+'">':'')+'</td><td>'+r[1]+'</td><td style="white-space:normal;min-width:260px"><a href="'+r[4]+'" target="_blank">'+r[2]+'</a><br><small>'+r[0]+'</small></td><td>'+(r[5]?'$'+r[5]:'—')+'</td><td>'+(r[6]||'—')+'</td><td><b>'+(lw?r[8]:r[7]).toLocaleString()+'</b></td>'+(lw?'':'<td>'+r[8].toLocaleString()+'</td>')+'<td>'+a['拆装']+'</td><td>'+a['形态']+'</td><td>'+a['尺寸']+'</td><td>'+a['台面']+'</td><td>'+a['柜体']+'</td><td>'+a['元素']+'</td></tr>'});
-  document.getElementById('mbody').innerHTML=h+'</table>'+(L.length>300?'<p class="hint">只列前 300 个。</p>':'')+(L.length?'':'<p class="na">没有 9 / 10 月有销量的商品。</p>');document.getElementById('modal').classList.add('on');return}
+  L.slice(0,300).forEach(function(r){var a=r[9];h+='<tr data-pid="'+r[0]+'"><td>'+(r[3]?'<img loading="lazy" src="'+r[3]+'">':'')+'</td><td>'+r[1]+'</td><td style="white-space:normal;min-width:260px"><a href="'+r[4]+'" target="_blank">'+r[2]+'</a><br><small>'+r[0]+'</small></td><td>'+(r[5]?'$'+r[5]:'—')+'</td><td>'+(r[6]||'—')+'</td><td><b>'+(lw?r[8]:r[7]).toLocaleString()+'</b></td>'+(lw?'':'<td>'+r[8].toLocaleString()+'</td>')+'<td>'+a['拆装']+'</td><td>'+a['形态']+'</td><td>'+a['尺寸']+'</td><td>'+a['台面']+'</td><td>'+a['柜体']+'</td><td>'+a['元素']+'</td></tr>'});
+  document.getElementById('mbody').innerHTML=h+'</table>'+(L.length>300?'<p class="hint">只列前 300 个。</p>':'')+(L.length?'':'<p class="na">没有 9 / 10 月有销量的商品。</p>');window.Q3MC=c;window.retagify&&retagify();document.getElementById('modal').classList.add('on');return}
  var g=e.target.closest('tr.grp');if(g){var cl=!g.classList.contains('cl');g.classList.toggle('cl',cl);document.querySelectorAll('tr.gr[data-g="'+g.dataset.g+'"]').forEach(function(r){r.classList.toggle('gh',cl)});document.querySelector('.wrap').dispatchEvent(new Event('input'))}});
 document.addEventListener('input',function(e){var ta=e.target.closest&&e.target.closest('td.xk .xnb textarea');if(!ta)return;var td=ta.closest('td.xk'),k=td.dataset.k,v=ta.value.trim();if(v)NT[k]=ta.value;else delete NT[k];var i=td.querySelector('.xn');i.classList.toggle('has',!!v);i.textContent=v?'📝':'✎';clearTimeout(window._xnt);window._xnt=setTimeout(nsave,800)});
 document.addEventListener('change',function(e){var id=e.target.id;if(id==='xrow'){st.row=e.target.value;sv();render()}if(id==='xcol'){st.col=e.target.value;sv();render()}
  if(e.target.classList.contains('xm')){st.mets=[].slice.call(document.querySelectorAll('.xm:checked')).map(function(x){return x.value});sv();render()}});
 E('xf').contentEditable='false';renderFil();render();
+})();
+</script>
+<script>
+(function(){
+var SRV=false,P={},EDIT=['拆装','形态','尺寸','台面','柜体','元素'];
+if(/^https?:$/.test(location.protocol))fetch('/api/ping').then(function(r){return r.json()}).then(function(d){SRV=!!d.ok}).catch(function(){});
+function bar(){var b=document.getElementById('rtbar');if(!b){b=document.createElement('div');b.id='rtbar';var mb=document.getElementById('mbody');mb.insertBefore(b,mb.firstChild)}return b}
+function cnt(){return Object.keys(P).length}
+function paint(){var b=bar();if(!SRV){b.innerHTML='想直接在这里改标签：在本机运行 <b>python serve.py</b> 打开报告（tools/q3_report），改动会写回打标库并重算整份报告。';return}
+ b.innerHTML='下拉框可直接改标签，改完点 →<button type="button" id="rtsave"'+(cnt()?'':' disabled')+'>保存改标并重算（'+cnt()+' 项）</button><span id="rtmsg"></span>'}
+window.retagify=function(){var c=window.Q3MC,tb=document.querySelector('#mbody table');paint();if(!SRV||!tb)return;
+ var hd=[].map.call(tb.rows[0].cells,function(x){return x.textContent});
+ [].forEach.call(tb.querySelectorAll('tr[data-pid]'),function(tr){var pid=tr.dataset.pid;hd.forEach(function(h,i){if(EDIT.indexOf(h)<0)return;var td=tr.cells[i],cur=td.textContent,k=c+'|'+pid+'|'+h,vs=(XD.vals[h]||[]).slice();if(vs.indexOf(cur)<0)vs.unshift(cur);
+  var now=P[k]?P[k].val:cur;td.innerHTML='<select class="rt" data-k="'+k+'" data-old="'+cur+'">'+vs.map(function(v){return '<option'+(v===now?' selected':'')+'>'+v+'</option>'}).join('')+'</select>';if(P[k])td.classList.add('rtc')})})};
+document.addEventListener('change',function(e){var s=e.target.closest&&e.target.closest('select.rt');if(!s)return;var k=s.dataset.k,a=k.split('|');
+ if(s.value===s.dataset.old)delete P[k];else P[k]={ch:a[0],pid:a[1],attr:a[2],val:s.value};s.parentNode.classList.toggle('rtc',!!P[k]);var b=document.getElementById('rtsave');b.disabled=!cnt();b.textContent='保存改标并重算（'+cnt()+' 项）'});
+document.addEventListener('click',function(e){if(e.target.id!=='rtsave')return;var b=e.target,m=document.getElementById('rtmsg');b.disabled=true;m.textContent=' 正在写回打标库并重算整份报告，约 10–20 秒…';
+ fetch('/api/retag',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({edits:Object.keys(P).map(function(k){return P[k]})})}).then(function(r){return r.json()}).then(function(d){
+  if(!d.ok){m.textContent=' 失败：'+d.err;b.disabled=false;return}
+  m.textContent=' 已保存 '+d['改标']+' 项（Amazon 打标库 '+d['写回Amazon打标库']+'，小平台打标表 '+d['写回小平台打标表']+'），正在刷新…';
+  var w=document.querySelector('.wrap');try{localStorage.setItem('q3-carry',JSON.stringify({notes:[].map.call(w.querySelectorAll('aside.note'),function(n){return n.outerHTML}).join(''),xnd:(w.querySelector('#xnd')||{}).textContent||'',say:[].map.call(w.querySelectorAll('.say'),function(x){return x.innerHTML})}))}catch(err){}
+  P={};setTimeout(function(){location.reload()},600)}).catch(function(err){m.textContent=' 失败：'+err;b.disabled=false})});
 })();
 </script>
 </body></html>
