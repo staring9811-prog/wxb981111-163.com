@@ -68,6 +68,24 @@ def width(spec):
         m=re.search(r'([\d.]+)"?\s*W',v) or re.search(r'x\s*([\d.]+)\s*x',v)
         if m: return float(m.group(1))
     return None
+# 开放层板（不带门的开放层板 / 储物格），规则同 solution-v2/数据准备/卖家精灵导出_打标.py 第 5 点
+import html as _html
+OPEN_RE=re.compile(r'\bopen(?:[ -]+(?:storage|display|side|bottom|lower|middle|upper|top|left|right|tier))*[ -]+(?:shel(?:f|ves|ving)|storage|cubb(?:y|ies)|cubes?|compartments?|spaces)\b'
+    r'|\bopening\s+(?:bottom\s+|lower\s+|side\s+)?shel(?:f|ves)\b|\bside\s+(?:open\s+)?(?:storage\s+)?shel(?:f|ves)\b'
+    r'|\b(?:2|3|two|three)[ -]tier(?:ed)?\s+(?:open\s+)?(?:side\s+)?(?:storage\s+)?shel(?:f|ves)\b|\bconsole\s+(?:vanity|sink|table)\b',re.I)
+_NEG=re.compile(r'\b(?:no|not|without)\s+(?:an?\s+|any\s+)?$',re.I)
+_MIR=re.compile(r'\b(?:mirror|medicine)\s+cabinet\b[^.|]{0,40}$',re.I)
+_PIPE=re.compile(r'^[^.|]{0,20}\b(?:accommodat\w*|fits?|for|around|hid(?:es?|ing))\s+(?:the\s+)?(?:pipes?|plumbing)\b',re.I)
+_DRB=re.compile(r'\bdoors?\s+(?:features?|has|have|with|includes?)\s+(?:an?\s+)?$',re.I); _DRA=re.compile(r'^\s*(?:on|inside|behind|in)\b',re.I)
+def open_cue(text):
+    t=_html.unescape(str(text or ''))
+    for mm in OPEN_RE.finditer(t):
+        b,a=t[max(0,mm.start()-60):mm.start()],t[mm.end():mm.end()+40]
+        if _NEG.search(b[-20:]) or _MIR.search(b) or _PIPE.search(a): continue
+        if re.match(r'(?:2|3|two|three)[ -]tier',mm.group(0),re.I) and 'open' not in mm.group(0).lower() and (_DRB.search(b) or _DRA.search(a)): continue
+        return True
+    return False
+OLD=json.load(open(os.path.join(q3paths.DATA,'amz_pdp_tags.json'),encoding='utf-8')) if os.path.exists(os.path.join(q3paths.DATA,'amz_pdp_tags.json')) else {}
 out={}
 for f in glob.glob(PAGES+'/*.json'):
     d=json.load(open(f));s=d.get('spec',{})
@@ -76,5 +94,10 @@ for f in glob.glob(PAGES+'/*.json'):
     parts=[('标题',d.get('title','')),('五点',d.get('bullets','')),('描述',d.get('desc','')+' '+d.get('overview','')),('图文详情',d.get('aplus',''))]
     out[d['asin']]=dict(basin=b,basin_src=bs,cab=c,cab_src=cs,width=width(s),title=d.get('title','')[:120],
         top=top(parts,b),color=color(s,d.get('title','')),elem=elem(parts))
+    o=OLD.get(d['asin'],{})   # 柜体结构：已有的（统一打标表 / 看图）优先，没有才看页面文字
+    out[d['asin']]['struct']=o.get('struct') or ('开放式' if open_cue(' '.join([d.get('title',''),d.get('bullets',''),' '.join(f'{k} {v}' for k,v in s.items())])) else None)
+    if o.get('struct_src'): out[d['asin']]['struct_src']=o['struct_src']
+for a,o in OLD.items():   # 没抓页面、只带柜体结构的 ASIN 保留
+    if a not in out and o.get('struct'): out[a]={'struct':o['struct'],'struct_src':o.get('struct_src')}
 json.dump(out,open(os.path.join(q3paths.DATA,'amz_pdp_tags.json'),'w'),ensure_ascii=False)
-import collections;print(len(out),'台盆',dict(collections.Counter(v['basin'] for v in out.values())),'柜体',dict(collections.Counter(v['cab'] for v in out.values())),'台面',dict(collections.Counter(v['top'] for v in out.values())),'主色',dict(collections.Counter(v['color'] for v in out.values())),'元素',dict(collections.Counter(v['elem'] for v in out.values())))
+import collections;print(len(out),'开放式',sum(v.get('struct')=='开放式' for v in out.values()),'台盆',dict(collections.Counter(v.get('basin') for v in out.values())),'柜体',dict(collections.Counter(v.get('cab') for v in out.values())),'台面',dict(collections.Counter(v.get('top') for v in out.values())),'主色',dict(collections.Counter(v.get('color') for v in out.values())),'元素',dict(collections.Counter(v.get('elem') for v in out.values())))
