@@ -156,7 +156,7 @@ ol.f li{margin:4px 0}code{background:#f1f0eb;padding:1px 5px;border-radius:4px;f
 <section id="s2x"><h2><span class="no">②+</span>属性交叉筛选（自己组合）</h2><p class="sub">先选渠道和行、列。行或列可选「渠道」，直接排列已选渠道。行列对应的属性默认全选，点已选取值可排除。其他属性点选要保留的取值，同一属性内是“或”，不同属性之间是“且”。点格子可看商品清单。</p>
 <div class="card" id="xf" contenteditable="false"><div class="xchs" id="xchs"></div><div id="xfil"></div>
 <div class="xbar" id="xmonths" role="group" aria-label="销量月份"></div>
-<div class="xbar"><label>行 <select id="xrow"></select></label><label>列 <select id="xcol"></select></label><label>锚定尺寸 <select id="xanchor"><option>24″</option><option>36″</option><option>60″</option></select></label><button id="xclr" type="button">清空筛选</button><span id="xsum" class="hint"></span></div>
+<div class="xbar"><label>行 <select id="xrow"></select></label><label>列 <select id="xcol"></select></label><label>锚定尺寸 <select id="xanchor"><option>24″</option><option>36″</option><option>60″</option></select></label><button id="xclr" type="button">清空筛选</button><button id="xexp" type="button" title="只导出下面的交叉热力表（完整、不截断），顶部带一行筛选说明">导出热力表图片</button><span id="xsum" class="hint"></span></div>
 <div class="xbar" id="xmets"></div><div id="xnd" hidden><!--CELLNOTES--></div>
 <div class="tw"><table class="dt xt" id="xtot"></table></div><div class="tw xcw" style="margin-top:12px"><table class="dt xt" id="xcross"></table></div>
 <p class="hint">口径：单选看当月，多选用所选月份销量合计 ÷ 所选月数。占渠道 = 格子月销 ÷ 同期渠道全部月销；占筛选 = 格子月销 ÷ 同期筛选后月销；均价、评分用报告中的商品售价和评分，按所选月份销量加权；销售额 = Σ 月销 × 售价。走势指标按固定时间计算：3M 趋势为 08–10 比 05–07，环比为 10 月 ÷ 9 月 − 1，销量 CAGR 按 1–10 月折算年化。价格 CAGR 比较 2026 年 1–3 月与 8–10 月的月度加权均价，按 7 个月间隔折算成年化增长率。价格 CAGR 仅 Amazon 有历史售价。Lowe&#39;s 始终显示当期采集快照。格子底色越深，占筛选内销量越多。Amazon 按子体 SKU，小平台按父体，小平台没有颜色打标。</p><p class="hint">锚定溢价：格内同尺寸加权均价 ÷ 同渠道、同月份、同筛选下该尺寸整体加权均价 − 1；同尺寸月销低于 20 件显示样本不足。单位 ASIN 贡献 = 格子月销量 ÷ 格内全部 SKU 数，小平台按父体，包含零销量商品。</p></div></section>
@@ -901,7 +901,7 @@ function cards(){return [].filter.call(document.querySelectorAll('.wrap .card'),
 function addBtns(){cards().forEach(function(c){if(c.querySelector(':scope > .imgx'))return;var b=document.createElement('button');b.type='button';b.className='imgx';b.contentEditable='false';b.textContent='导出图片';b.title='把这一块完整导出成 JPG（不截断、不折叠）';c.insertBefore(b,c.firstChild)})}
 addBtns();
 function name(c){var h=c.querySelector('h3,h2,.dtc h3');var t=(h?h.textContent:'')||(c.closest('section')&&c.closest('section').querySelector('h2')||{}).textContent||'报告截图';return t.replace(/[\\/:*?"<>|\s]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40)||'报告截图'}
-async function exp(c,btn){
+async function exp(c,btn,cap){
   btn.disabled=true;var old=btn.textContent;btn.textContent='导出中…';
   var holder=document.createElement('div');
   try{
@@ -909,8 +909,14 @@ async function exp(c,btn){
     var w=Math.max(c.offsetWidth,Math.max.apply(null,inner.concat([0]))+48);
     holder.style.cssText='position:absolute;left:-100000px;top:0;width:'+w+'px;background:#fff';
     var k=c.cloneNode(true);k.style.width=w+'px';k.style.maxWidth='none';k.style.margin='0';k.style.boxSizing='border-box';
-    k.querySelectorAll('.imgx').forEach(function(x){x.remove()});
-    k.querySelectorAll('.tw,.tw2,.xcw').forEach(function(x){x.style.overflow='visible';x.style.maxHeight='none'});
+    k.querySelectorAll('.imgx,#xexp').forEach(function(x){x.remove()});
+    // 列宽按页面上实际宽度固定（固定布局的表格复制后列宽会丢）
+    var lc=c.querySelectorAll('th,td'),kc=k.querySelectorAll('th,td');
+    for(var i=0;i<lc.length&&i<kc.length;i++){var cw=lc[i].getBoundingClientRect().width;if(cw){kc[i].style.minWidth=kc[i].style.width=cw+'px';kc[i].style.boxSizing='border-box'}}
+    k.querySelectorAll('table').forEach(function(t){t.style.tableLayout='auto';t.style.width='auto'});
+    k.querySelectorAll('col').forEach(function(x){x.remove()});
+    if(cap){var cp=document.createElement('p');cp.textContent=cap;cp.style.cssText='margin:0 0 8px;font-size:13px;color:#555;padding:4px 2px';k.insertBefore(cp,k.firstChild);k.style.padding='12px';k.style.background='#fff'}
+    [k].concat([].slice.call(k.querySelectorAll('.tw,.tw2,.xcw'))).forEach(function(x){x.style.overflow='visible';x.style.maxHeight='none'});
     k.querySelectorAll('th,td,tr').forEach(function(x){x.style.position='static'});
     k.querySelectorAll('tr.gr.gh').forEach(function(x){x.classList.remove('gh')});
     k.querySelectorAll('tr.grp.cl').forEach(function(x){x.classList.remove('cl')});
@@ -921,6 +927,7 @@ async function exp(c,btn){
     var a=document.createElement('a');a.href=bu;a.download=name(c)+'.jpg';setTimeout(function(){URL.revokeObjectURL(bu)},5000);document.body.appendChild(a);a.click();a.remove();
   }catch(e){alert('导出失败：'+e)}finally{holder.remove();btn.disabled=false;btn.textContent=old}
 }
+document.addEventListener('click',function(e){var x=e.target.closest('#xexp');if(!x)return;e.preventDefault();var r=document.getElementById('xrow'),cl=document.getElementById('xcol');exp(document.querySelector('#xf .xcw'),x,'属性交叉筛选 · 行：'+r.options[r.selectedIndex].text+' × 列：'+cl.options[cl.selectedIndex].text+' · '+document.getElementById('xsum').textContent)});
 document.addEventListener('click',function(e){var b=e.target.closest('.imgx');if(!b)return;e.preventDefault();e.stopPropagation();exp(b.parentNode,b)},true);
 document.addEventListener('click',function(e){if(e.target.closest('.dtab,.tab,.tfb,.tfr'))setTimeout(addBtns,50)});
 })();
