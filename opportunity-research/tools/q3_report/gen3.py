@@ -505,7 +505,7 @@ _N=json.load(open('notes.json',encoding='utf-8')) if os.path.exists('notes.json'
 tpl=tpl.replace('<!--SIDENOTES-->',_N['side'] if _N and _N.get('side') else open(q3paths.CODE+'/default_notes.html',encoding='utf-8').read())
 tpl=tpl.replace('<!--CELLNOTES-->',_hh.escape(_N['cells']) if _N else '').replace('__NOTES_TS__',str(_N['ts'] if _N else 0))
 import sync as _sync
-out=tpl.replace('/*Q3SYNC*/',_sync.build_block()).replace('/*TDJSON*/',TDJS).replace('<!--DTAB-->',DTAB).replace('/*XJSON*/',XJS).replace('<!--CONC-->','').replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
+out=tpl.replace('/*H2I*/',open(q3paths.CODE+'/vendor/html-to-image.js',encoding='utf-8').read().replace('</script','<\\/script')).replace('/*Q3SYNC*/',_sync.build_block()).replace('/*TDJSON*/',TDJS).replace('<!--DTAB-->',DTAB).replace('/*XJSON*/',XJS).replace('<!--CONC-->','').replace('<!--TOPCH-->',TOPCH).replace('/*PRODJSON*/',json.dumps(PROD,ensure_ascii=False)).replace('<!--CARDS-->',cards).replace('/*CSS*/',css).replace('<!--OV-->',''.join(ov)).replace('<!--HEAT-->',''.join(ht)).replace('<!--TABS-->',''.join(tabs)).replace('<!--PANELS-->',''.join(panels)).replace('<!--S1-->',s1).replace('<!--S2-->',s2).replace('<!--S3-->',s3)
 out=re.sub(r'<!--ED:(.*?)-->',lambda m:ED(m.group(1),'say'),out,flags=re.S)
 out=re.sub(r'<!--EDB:(.*?)-->',lambda m:ED(m.group(1),'say big'),out,flags=re.S)
 import hashlib
