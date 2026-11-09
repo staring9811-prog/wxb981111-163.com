@@ -162,7 +162,10 @@ for _ch,_L in list(recs.items())+[('amazon',LALL)]:
     for _r in _L: _ix.setdefault(_r['pid'],[]).append(_r)
     for _o in _OV:
         if _o['渠道']==_ch:
-            for _r in _ix.get(_o['商品ID'],[]): _r['at'][_o['属性']]=_o['改成']
+            for _r in _ix.get(_o['商品ID'],[]):
+                if _o['属性']=='售价':   # 补售价（如 Lowe's 系列页缺价），价格带跟着重算
+                    _r['price']=float(_o['改成']); _r['at']['价格带']=band(_r['price'])
+                else: _r['at'][_o['属性']]=_o['改成']
 print('人工改标',len(_OV),'条')
 import csv as _csv
 with open('asm_flips.csv','w',encoding='utf-8-sig',newline='') as _f:
