@@ -36,7 +36,8 @@ def table(ch,rows,kind='std',dim=None):
     _f=''
     if _dk!='拆装': _f+='<span class="tfl">拆装</span>'+''.join(f'<button type="button" class="tfb{" on" if v=="全部" else ""}" data-f="拆装" data-v="{v}">{v}</button>' for v in ('全部','拆装','整装'))
     if _dk!='形态': _f+='<span class="tfl">形态</span>'+''.join(f'<button type="button" class="tfb{" on" if v=="全部" else ""}" data-f="形态" data-v="{v}">{v}</button>' for v in ('全部','落地式','悬浮式','开放式'))
-    out=[f'<div class="tfil" contenteditable="false" data-c="{ch}" data-d="{E_(_dk)}" data-k="{kind}">{_f}<span class="tfn"></span></div><div class="tw"><table class="dt"><tr>'+''.join(th(h) for h in hs)+'</tr>']
+    _dn='<p class="dnote">数据期：SKU 数（期内有销量的 SKU / 父体）、月销量、占比、月销/SKU、均价、评分、供需指数、质量机会值均为 <b>2026-08 至 10 三个月月均</b>口径；每月走势 2026-01 至 10；3M 趋势 = 08–10 比 05–07；CAGR = 08–10 比 01–03 折算年化。'+('Lowe&#39;s 为 2026-11-02 Best Sellers 当下点。' if ch=='lowes' else '')+'</p>'
+    out=[_dn+f'<div class="tfil" contenteditable="false" data-c="{ch}" data-d="{E_(_dk)}" data-k="{kind}">{_f}<span class="tfn"></span></div><div class="tw"><table class="dt"><tr>'+''.join(th(h) for h in hs)+'</tr>']
     for x in rows:
         if x['u']<1 and x['sku']<3: continue
         gray=' class="mute"' if x['k']=='未知品牌' or '未标' in x['k'] else ''

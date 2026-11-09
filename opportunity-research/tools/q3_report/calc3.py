@@ -209,11 +209,12 @@ def metrics(ch,rows,tot_u,tot_sku):
     mon_=[sum(r['u'].get(m,0) for r in rows) for m in M]
     skum_=[len({r['pid'] for r in rows if r['u'].get(m,0)>0}) for m in M]
     act_=len({r['pid'] for r in rows if any(r['u'].get(m,0)>0 for m in W)})
-    return dict(skum=skum_,act=act_,mon=mon_,sku=len(pids),fam=len({r['fam'] for r in rows}),u=w,share=w/tot_u if tot_u else 0,size=sz.most_common(1)[0][0] if sz else '—',
-        price=wavg('price'),rating=wavg('rating'),anc_u=anc_u,anc_p=anc_p if anc_u>=20 else None,per=w/len(pids) if pids else 0,
-        trend=(w*3/p-1) if p>=150 else None,rc=rc,sdi=(w/tot_u)/(len(pids)/tot_sku) if tot_u and pids else None,qo=qo,p3=p)
+    _actr=[r for r in rows if any(r['u'].get(m,0)>0 for m in W)]
+    return dict(skum=skum_,act=act_,mon=mon_,sku=act_,sku_all=len(pids),fam=len({r['fam'] for r in _actr}),u=w,share=w/tot_u if tot_u else 0,size=sz.most_common(1)[0][0] if sz else '—',
+        price=wavg('price'),rating=wavg('rating'),anc_u=anc_u,anc_p=anc_p if anc_u>=20 else None,per=w/act_ if act_ else 0,
+        trend=(w*3/p-1) if p>=150 else None,rc=rc,sdi=(w/tot_u)/(act_/tot_sku) if tot_u and act_ else None,qo=qo,p3=p)
 def table(ch,keyfn,top=None,minu=0):
-    rows=recs[ch]; tot_u=sum(sum(r['u'].get(m,0) for m in W) for r in rows)/3; tot_sku=len({r['pid'] for r in rows})
+    rows=recs[ch]; tot_u=sum(sum(r['u'].get(m,0) for m in W) for r in rows)/3; tot_sku=len({r['pid'] for r in rows if any(r['u'].get(m,0)>0 for m in W)})
     g=C.defaultdict(list)
     for r in rows: g[keyfn(r)].append(r)
     out=[dict(k=k,**metrics(ch,v,tot_u,tot_sku)) for k,v in g.items()]
