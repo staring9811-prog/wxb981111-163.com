@@ -255,7 +255,7 @@ for c,_n,_ in CH:
     L=[]
     for r in _CROSS_RECS[c]:
         sep=r['u'].get('2026-09',0); octo=r['u'].get('2026-10',0)
-        if not any(r['u'].get(m,0)>0 for m in M10x): continue
+        if c=='amazon' and not any(r['u'].get(m,0)>0 for m in M10x): continue   # 小平台没销量的父体也列出（wen 2026-11-09）
         if c=='amazon':
             t,im,l=_AP.get(r['pid'],('','',''))
         else:
