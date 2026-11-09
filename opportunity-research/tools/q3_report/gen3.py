@@ -16,14 +16,31 @@ def rcf(ch,r):
     return s+(f'<small>（{r["na"]}→{r["nb"]}评）</small>' if r.get('na') is not None else '')
 def rating_cell(x): return '—' if not x else (f'<b class="dn">{x:.2f}</b>' if x<4.0 else f'{x:.2f}')
 def qo(x): return f'<b class="dn">{x:.1f}</b>' if x>=5 else f'{x:.1f}'
-HEAD={'品牌':['品牌','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','CAGR','3M评分变化','质量机会值','属性锚定溢价（36″）'],
- 'std':['标签','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','CAGR','3M评分变化','供需指数','质量机会值','锚定溢价']}
-TIPS={'搜销比':'只有 Amazon。本行关键词搜索量占比 ÷ 本行销量占比，都用 2026-07 至 09（搜索数据到 9 月）；只在本表有搜索词的取值之间算占比（少于 2 个取值有词时不算）；尺寸用尺寸词，其他维度按词里含的关键字归类，括号里是词数——词少的维度（如形态里的“落地式”，买家很少搜 freestanding）只作参考。≥ 1.3 = 搜多买少（绿），≤ 0.7 = 买多搜少（红）。搜索量不随上面的拆装 / 形态 / 价格带筛选变化，销量占比会跟着筛选重算。','关键词CAGR':'四个渠道都用 Amazon 搜索词（卖家精灵，只有 Amazon 有搜索数据），代表美国买家整体在搜什么。本行关键词搜索量的复合增长率：(2026-07 至 09 月均 ÷ 2024-10 至 12 月均)^(12 ÷ 21) − 1，与热力图格子里“搜索 CAGR”一致；起点 3 个月月均要 ≥ 300 次；2024 年底不够时改用近一年（2026-01 至 03 → 07 至 09），标“近一年”；两段都不够写“样本不足”（很多词是最近才有搜索量，起点太小算出的增速没有意义）。','CAGR':'复合增长率：(2026-08 至 10 月均 ÷ 2026-01 至 03 月均)^(12 ÷ 7) − 1，即把这 7 个月的变化折算成一年。前 3 个月月均不足 30 件写“样本不足”；Lowe’s 只有当下一个时间点，没有。','质量机会值':'只算评分低于 4.5 的商品：销量占比 ×（4.5 − 评分）× 100。越大 = 卖得多但评价差，越值得做“更好的同款”。','供需指数':'销量占比 ÷ SKU 数占比。大于 1：一个 SKU 能分到的销量比平均多，竞争相对松。','锚定溢价':'只看 36″ 的真实商品：本行 36″ 均价 ÷ 本表各行 36″ 均价的中位数 − 1。正数 = 同尺寸下卖得更贵。','属性锚定溢价（36″）':'只看 36″ 的真实商品：本品牌 36″ 均价 ÷ 本表各品牌 36″ 均价的中位数 − 1。','36″ 锚定价':'只用 36″（33–39 in）商品的销量加权均价，不跨尺寸推算。','3M销量趋势':'2026-08 至 10 合计，对比 2026-05 至 07 合计。前 3 个月月均不足 50 件写“样本不足”。','3M评分变化':'近 3 个月新评论平均星级 − 前 3 个月的；括号里是前后评论条数。任一段不足 10 条写“样本不足”。Amazon 用每月页面评分的变化。','月销/SKU':'月销量 ÷ SKU 数。','加权评分':'按销量加权的页面评分；评分低于 4.0 标红。','月销量':'2026-08 至 10 的月均（件）。'}
+HEAD={'品牌':['品牌','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','CAGR','均价CAGR','3M评分变化','质量机会值','属性锚定溢价（36″）'],
+ 'std':['标签','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','CAGR','均价CAGR','3M评分变化','供需指数','质量机会值','锚定溢价']}
+TIPS={'均价CAGR':'加权均价的复合增长率：(2026-08 至 10 销量加权均价 ÷ 2026-01 至 03 销量加权均价)^(12 ÷ 7) − 1。Amazon 用每个商品每月的页面价；小平台每个商品只有一个价，变化只来自哪些价位卖得多了 / 少了（卖货结构）。1–3 月销量合计不足 90 件写“样本不足”；Lowe’s 没有月度数据。±10% 上色。','搜销比':'只有 Amazon。本行关键词搜索量占比 ÷ 本行销量占比，都用 2026-07 至 09（搜索数据到 9 月）；只在本表有搜索词的取值之间算占比（少于 2 个取值有词时不算）；尺寸用尺寸词，其他维度按词里含的关键字归类，括号里是词数——词少的维度（如形态里的“落地式”，买家很少搜 freestanding）只作参考。≥ 1.3 = 搜多买少（绿），≤ 0.7 = 买多搜少（红）。搜索量不随上面的拆装 / 形态 / 价格带筛选变化，销量占比会跟着筛选重算。','关键词CAGR':'四个渠道都用 Amazon 搜索词（卖家精灵，只有 Amazon 有搜索数据），代表美国买家整体在搜什么。本行关键词搜索量的复合增长率：(2026-07 至 09 月均 ÷ 2024-10 至 12 月均)^(12 ÷ 21) − 1，与热力图格子里“搜索 CAGR”一致；起点 3 个月月均要 ≥ 300 次；2024 年底不够时改用近一年（2026-01 至 03 → 07 至 09），标“近一年”；两段都不够写“样本不足”（很多词是最近才有搜索量，起点太小算出的增速没有意义）。','CAGR':'复合增长率：(2026-08 至 10 月均 ÷ 2026-01 至 03 月均)^(12 ÷ 7) − 1，即把这 7 个月的变化折算成一年。前 3 个月月均不足 30 件写“样本不足”；Lowe’s 只有当下一个时间点，没有。','质量机会值':'只算评分低于 4.5 的商品：销量占比 ×（4.5 − 评分）× 100。越大 = 卖得多但评价差，越值得做“更好的同款”。','供需指数':'销量占比 ÷ SKU 数占比。大于 1：一个 SKU 能分到的销量比平均多，竞争相对松。','锚定溢价':'只看 36″ 的真实商品：本行 36″ 均价 ÷ 本表各行 36″ 均价的中位数 − 1。正数 = 同尺寸下卖得更贵。','属性锚定溢价（36″）':'只看 36″ 的真实商品：本品牌 36″ 均价 ÷ 本表各品牌 36″ 均价的中位数 − 1。','36″ 锚定价':'只用 36″（33–39 in）商品的销量加权均价，不跨尺寸推算。','3M销量趋势':'2026-08 至 10 合计，对比 2026-05 至 07 合计。前 3 个月月均不足 50 件写“样本不足”。','3M评分变化':'近 3 个月新评论平均星级 − 前 3 个月的；括号里是前后评论条数。任一段不足 10 条写“样本不足”。Amazon 用每月页面评分的变化。','月销/SKU':'月销量 ÷ SKU 数。','加权评分':'按销量加权的页面评分；评分低于 4.0 标红。','月销量':'2026-08 至 10 的月均（件）。'}
 def th(h): t=TIPS.get(h); return f'<th title="{E_(t)}">{h}<sup>?</sup></th>' if t else f'<th>{h}</th>'
 import pickle as _pk0,collections as _C0
 _LALL=_pk0.load(open('recs_amz_all.pkl','rb'))
 _M10=[f'2026-{i:02d}' for i in range(1,11)]
 CGM=_C0.defaultdict(lambda:[0.0]*10)
+# 均价 CAGR 用：每个商品 [1–3 月销售额, 1–3 月销量, 8–10 月销售额, 8–10 月销量]；Amazon 用每月页面价，小平台只有一个价（变化只来自卖货结构）
+_F3=['2026-01','2026-02','2026-03']; _L3=['2026-08','2026-09','2026-10']
+def _pa(r):
+    pm=r.get('pm') or {}; o=[0.0]*4
+    for j,ms in ((0,_F3),(2,_L3)):
+        for m in ms:
+            u=r['u'].get(m,0); p=pm.get(m) or r.get('price')
+            if u and p: o[j]+=u*p; o[j+1]+=u
+    return o
+def _pcagr(a):
+    return ((a[2]/a[3])/(a[0]/a[1]))**(12/7)-1 if a and a[1]>=90 and a[3]>0 else None
+CGP=_C0.defaultdict(lambda:[0.0]*4)
+def _cgp_add(ch,r):
+    _a=r['at']; v=_pa(r)
+    for _d,_k in [('品牌',r['brand']),('台面 × 柜体',f"{_a['台面']} × {_a['柜体']}")]+[(_d,_a.get(_d)) for _d in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')]:
+        g=CGP[(ch,_d,_k or '未标')]
+        for i in range(4): g[i]+=v[i]
 for _r in _LALL:
     _a=_r['at']
     for _d,_k in [('品牌',_r['brand']),('台面 × 柜体',f"{_a['台面']} × {_a['柜体']}")]+[(_d,_a.get(_d)) for _d in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')]:
@@ -52,6 +69,7 @@ def table(ch,rows,kind='std',dim=None):
         if szt and x['k']!='36″': anc_u=anc_p=prem='—'
         _m=CGM.get((dim or kind,x['k'])) if ch=='amazon' else (x.get('mon') or []);_m=_m or []; _f3=sum(_m[:3])/3 if len(_m)>=10 else 0; _l3=sum(_m[7:10])/3 if len(_m)>=10 else 0
         _cg=((_l3/_f3)**(12/7)-1) if (ch!='lowes' and _f3>=30 and _l3>0) else None
+        _pc=_pcagr(CGP.get((ch,dim or kind,x['k']))) if ch!='lowes' else None
         size='无尺寸拆分' if nos else x['size']
         cells=[E_(x['k']),trend_cell(ch,dim,x),I(x['sku']),I(x['u']),pct(x['share']),size,usd(x['price']),rating_cell(x['rating']),anc_u,anc_p,f"{x['per']:.1f}",tr(x['trend']),tr(_cg),rcf(ch,x['rc'])]
         if kind!='品牌': cells.append('—' if x['sdi'] is None else f"{x['sdi']:.2f}")
@@ -79,6 +97,7 @@ def table(ch,rows,kind='std',dim=None):
                 cls.append(_c(_sr,lambda v:v>=1.3,lambda v:v<=0.7))
             cells.append('<span class="na">无相关搜索词</span>' if not _z else tr(_z[1])+('<small>（近一年）</small>' if _z[3] and _z[1] is not None else ''))
             cls.append(_c(_z[1] if _z else None,lambda v:v>=0.2,lambda v:v<=-0.2))
+        cells.insert(13,'—' if ch=='lowes' else tr(_pc)); cls.insert(13,_c(_pc,lambda v:v>=0.1,lambda v:v<=-0.1))
         _rc='mute clkrow' if gray else 'clkrow'
         out.append(f'<tr class="{_rc}" data-c="{ch}" data-d="{E_(dim or kind)}" data-v="{E_(x["k"])}" title="点击看这一行的商品清单">'+''.join(f'<td{k}>{c}</td>' for c,k in zip(cells,cls))+'</tr>')
     return ''.join(out)+'</table></div>'
@@ -220,6 +239,9 @@ def trend_cell(ch,dim,x):
 # ---------- 弹窗产品数据 + 顶部趋势数据
 import pickle as _pk, sqlite3 as _sq3, csv as _csv
 _RC=_pk.load(open('recs.pkl','rb'))
+for _r in _LALL: _cgp_add('amazon',_r)
+for _c in ('homedepot','wayfair'):
+    for _r in _RC[_c]: _cgp_add(_c,_r)
 _CROSS_RECS={**_RC,'amazon':_pk.load(open('recs_amz_all.pkl','rb'))}
 _db=_sq3.connect('pdt.sqlite3')
 _AP={i:(t,im,l) for i,t,im,l in _db.execute("select item_id,title,image_url,link from product where channel='amazon'")}
@@ -515,13 +537,13 @@ for c,_n,_ in CH:
         wn=sum(r['u'].get(m,0)*rr[m] for m in ('2026-08','2026-09','2026-10') if m in rr and r['u'].get(m));wd=sum(r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10') if m in rr and r['u'].get(m))
         pn=sum(r['u'].get(m,0)*rr[m] for m in ('2026-05','2026-06','2026-07') if m in rr and r['u'].get(m));pd=sum(r['u'].get(m,0) for m in ('2026-05','2026-06','2026-07') if m in rr and r['u'].get(m))
         L.append([r['pid'],r['brand'],r['fam'],round(r['price'],2) if r['price'] else None,round(r['rating'],2) if r['rating'] else None,
-                  {k:a.get(k) or '未标' for k in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')},[round(r['u'].get(m,0),1) for m in M10x],[round(wn,1),round(wd,1),round(pn,1),round(pd,1)]])
+                  {k:a.get(k) or '未标' for k in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')},[round(r['u'].get(m,0),1) for m in M10x],[round(wn,1),round(wd,1),round(pn,1),round(pd,1)],0,[round(v,1) for v in _pa(r)]])
     if c=='amazon':
         _in={r['pid'] for r in _RC[c]}
         for r in _LALL:
             if r['pid'] in _in: continue
             a=r['at']
-            L.append([r['pid'],r['brand'],r['fam'],None,None,{k:a.get(k) or '未标' for k in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')},[round(r['u'].get(m,0),1) for m in M10x],[0,0,0,0],1])
+            L.append([r['pid'],r['brand'],r['fam'],None,None,{k:a.get(k) or '未标' for k in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')},[round(r['u'].get(m,0),1) for m in M10x],[0,0,0,0],1,[round(v,1) for v in _pa(r)]])
     _TDD[c]=L
 TDJS=json.dumps({'_kw':KWD,**_TDD},ensure_ascii=False,separators=(',',':'))
 XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))

@@ -25,15 +25,15 @@ for i,t,v in q("select item_id,tag,value from tag where channel='amazon'"): tags
 pinfo={i:(p or f,b) for i,p,f,b in q("select item_id,parent,family_key,brand from product where channel='amazon'")}
 import amzfix
 FIX,_=amzfix.corrections()
-A=C.defaultdict(lambda:dict(u={},r={},price=None,rating=None))
+A=C.defaultdict(lambda:dict(u={},r={},pm={},price=None,rating=None))
 for i,m,u,p,r,cu in q("select item_id,month,units,price,rating,json_extract(raw,'$.child_units') from snapshot where channel='amazon' and month>='2026-01' order by month"):
     a=A[i]; a['u'][m]=FIX.get((i,m),(cu if cu is not None else u) or 0)
     if r: a['r'][m]=r; a['rating']=r
-    if p: a['price']=p
+    if p: a['price']=p; a['pm'][m]=p
 L=[];LALL=[]   # LALL：2026 年出现过的全部子体（交叉筛选算 1–10 月趋势用，避免 1–4 月只卖过的商品被漏掉）
 for i,a in A.items():
     tg=tags.get(i,{}); fam,br=pinfo.get(i,(i,''))
-    LALL.append(dict(pid=i,fam=fam,brand=br or '未知品牌',price=a['price'],rating=a['rating'],u=a['u'],r=a['r'],
+    LALL.append(dict(pid=i,fam=fam,brand=br or '未知品牌',price=a['price'],rating=a['rating'],u=a['u'],r=a['r'],pm=a['pm'],
       at={'尺寸':AMZW.get(i) or nz(tg.get('尺寸段')),'形态':nz(tg.get('形态')),'拆装':nz(tg.get('装')),'台面':nz(tg.get('台面材质')),'柜体':nz(tg.get('柜体材质')),'主色':nz(tg.get('主色')),'元素':elem(tg.get('元素')),'价格带':band(a['price'])},
       listed=any(m in a['u'] for m in W)))
     if any(m in a['u'] for m in W+P): L.append(LALL[-1])

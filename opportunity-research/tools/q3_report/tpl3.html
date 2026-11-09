@@ -858,7 +858,7 @@ function render(box){
   rows.forEach(function(r){var k=key(d,r)||'未标';(g[k]=g[k]||[]).push(r)});
   var kwon=c==='amazon'&&kind!=='品牌',kwc=kind!=='品牌',kd=kwc?((TD._kw||{})[d]||{}):{},s3=function(L){return L.reduce(function(t,r){return t+(r[6][6]||0)+(r[6][7]||0)+(r[6][8]||0)},0)},ks=0,kus=0;
   var kn=0;Object.keys(g).forEach(function(k){if(kd[k]&&s3(g[k])>0){kn++;ks+=kd[k][0];kus+=s3(g[k])}});if(kn<2)ks=0;
-  var gm={};rowsAll.forEach(function(r){var k=key(d,r)||'未标';var a=gm[k]=gm[k]||[0,0,0,0,0,0,0,0,0,0];for(var i=0;i<10;i++)a[i]+=r[6][i]||0});
+  var gm={},gp={};rowsAll.forEach(function(r){var k=key(d,r)||'未标';var q=gp[k]=gp[k]||[0,0,0,0];if(r[9])for(var j=0;j<4;j++)q[j]+=r[9][j];var a=gm[k]=gm[k]||[0,0,0,0,0,0,0,0,0,0];for(var i=0;i<10;i++)a[i]+=r[6][i]||0});
   var out=Object.keys(g).map(function(k){var m=metrics(c,g[k],totU,totSku,gm[k]);m.k=k;return m});
   out.sort(function(a,b){var ua=(a.k==='未知品牌'||a.k.indexOf('未标')>=0),ub=(b.k==='未知品牌'||b.k.indexOf('未标')>=0);return ua!==ub?(ua?1:-1):b.u-a.u});
   if(d==='品牌')out=out.slice(0,20);if(d==='台面 × 柜体')out=out.slice(0,15);
@@ -875,6 +875,8 @@ function render(box){
       [x.trend==null?'<span class="na">样本不足</span>':sg(x.trend*100,1)+'%',cls(x.trend,function(v){return v>=0.2},function(v){return v<=-0.2})],
       [x.cagr==null?'<span class="na">样本不足</span>':sg(x.cagr*100,1)+'%',cls(x.cagr,function(v){return v>=0.2},function(v){return v<=-0.2})],
       [x.rc==null?'<span class="na">样本不足</span>':sg(x.rc,2),cls(x.rc,function(v){return v>=0.1},function(v){return v<=-0.1})]];
+    var pq=gp[x.k],pcg=(c!=='lowes'&&pq&&pq[1]>=90&&pq[3]>0)?Math.pow((pq[2]/pq[3])/(pq[0]/pq[1]),12/7)-1:null;
+    cells.splice(13,0,[c==='lowes'?'—':(pcg==null?'<span class="na">样本不足</span>':sg(pcg*100,1)+'%'),cls(pcg,function(v){return v>=0.1},function(v){return v<=-0.1})]);
     if(kind!=='品牌')cells.push([x.sdi==null?'—':x.sdi.toFixed(2),cls(x.sdi,function(v){return v>=1.5},function(v){return v<=0.6})]);
     cells.push([x.qo>=5?'<b class="dn">'+x.qo.toFixed(1)+'</b>':x.qo.toFixed(1),x.qo>=5?' class="cw"':'']);
     cells.push([hide?'—':(prem==null?'<span class="na">样本不足</span>':sg(prem*100,1)+'%'),hide?'':cls(prem,function(v){return v>=0.2},function(v){return v<=-0.2})]);
