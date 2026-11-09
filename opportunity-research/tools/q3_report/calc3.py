@@ -125,6 +125,18 @@ for _r in recs['amazon']+LALL:
     if _r['at'].get('柜体')=='实木': _r['at']['柜体']='实木框架'
     # 开放式（revision 10 口径）：落地式里柜体结构是开放层板的记为开放式；柜体结构来自统一打标表（含看图）和商品页文字
     if _r['at'].get('形态')=='落地式' and (_PDP.get(_r['pid']) or {}).get('struct')=='开放式': _r['at']['形态']='开放式'
+# 石材台面拆装（wen 2026-11-09）：标成拆装的石材台面，商品页写了已组装 → 整装；页面没写、售价 ≥ 石材线 → 整装；页面写了要组装的不动
+STONE_LINE={'18″':450,'24″':450,'28″':500,'30″':500,'36″':550,'42″':700,'48″':700,'60″':1000,'72″+':1200}
+_seen=set();_stn=C.Counter()
+for _r in recs['amazon']+LALL:
+    if id(_r) in _seen: continue
+    _seen.add(id(_r)); a=_r['at']
+    if a.get('台面') not in ('石英石','岗石','卡拉拉大理石','岩板') or a.get('拆装')!='拆装': continue
+    _pa_=(_PDP.get(_r['pid']) or {}).get('asm'); _ln=STONE_LINE.get(a.get('尺寸')); _p=_r.get('price')
+    if _pa_=='整装' or (_pa_ is None and _ln and _p and _p>=_ln):
+        _fl.append(('amazon',_r['pid'],_r['brand'],a.get('尺寸'),_p,'拆装 → 整装（石材台面'+('，页面写已组装' if _pa_ else '，价格线')+'）',round(sum(_r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10'))/3,1)))
+        a['拆装']='整装'; _stn['页面' if _pa_ else '价格线']+=1
+print('石材台面拆装→整装',dict(_stn))
 # 大尺寸树脂盆规则（wen 2026-11-08）：拆装、48″ 及以上、售价低于线价，台面标的是陶瓷或没标 → 树脂盆。
 # 高于线价的多是石材台面；木板台面、不含台面不动。
 RESIN_LINE={'48″':700,'60″':1000,'72″+':900}

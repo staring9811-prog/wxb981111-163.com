@@ -85,6 +85,11 @@ def open_cue(text):
         if re.match(r'(?:2|3|two|three)[ -]tier',mm.group(0),re.I) and 'open' not in mm.group(0).lower() and (_DRB.search(b) or _DRA.search(a)): continue
         return True
     return False
+# 拆装 / 整装：页面明确写了已组装 → 整装；写了要组装 → 拆装；都没写 → None（wen 2026-11-09，先用于石材台面）
+ASM_RE=re.compile(r'fully[\s-]+assembled|pre[\s-]?assembled|(?:comes?|arrives?|ships?|delivered)\s+(?:fully\s+|already\s+)?assembled|no\s+assembly\s+(?:is\s+)?(?:required|needed)|already\s+assembled|factory[\s-]assembled|cabinet\s+(?:is\s+)?(?:fully\s+)?assembled',re.I)
+KD_RE=re.compile(r'ready[\s-]to[\s-]assemble|\bRTA\b|flat[\s-]?pack|easy\s+(?:to\s+)?assembl|simple\s+assembl|assembly\s+(?:is\s+)?required|requires?\s+assembly|labell?ed\s+parts|assembl(?:e|y)\s+(?:the\s+)?(?:vanity\s+)?cabinet',re.I)
+def asm_of(t):
+    return '整装' if ASM_RE.search(t) else '拆装' if KD_RE.search(t) else None
 OLD=json.load(open(os.path.join(q3paths.DATA,'amz_pdp_tags.json'),encoding='utf-8')) if os.path.exists(os.path.join(q3paths.DATA,'amz_pdp_tags.json')) else {}
 out={}
 for f in glob.glob(PAGES+'/*.json'):
@@ -94,6 +99,7 @@ for f in glob.glob(PAGES+'/*.json'):
     parts=[('标题',d.get('title','')),('五点',d.get('bullets','')),('描述',d.get('desc','')+' '+d.get('overview','')),('图文详情',d.get('aplus',''))]
     out[d['asin']]=dict(basin=b,basin_src=bs,cab=c,cab_src=cs,width=width(s),title=d.get('title','')[:120],
         top=top(parts,b),color=color(s,d.get('title','')),elem=elem(parts))
+    out[d['asin']]['asm']=asm_of(' '.join([d.get('title',''),d.get('bullets',''),d.get('desc',''),' '.join(f'{k} {v}' for k,v in s.items())]))
     o=OLD.get(d['asin'],{})   # 柜体结构：已有的（统一打标表 / 看图）优先，没有才看页面文字
     out[d['asin']]['struct']=o.get('struct') or ('开放式' if open_cue(' '.join([d.get('title',''),d.get('bullets',''),' '.join(f'{k} {v}' for k,v in s.items())])) else None)
     if o.get('struct_src'): out[d['asin']]['struct_src']=o['struct_src']
