@@ -866,9 +866,10 @@ function render(box){
   var ap=out.filter(function(x){return x.anc_p&&x.k!=='未标'&&x.k!=='未知品牌'}).map(function(x){return x.anc_p}).sort(function(a,b){return a-b});
   var med=ap.length>=2?(ap.length%2?ap[(ap.length-1)/2]:(ap[ap.length/2-1]+ap[ap.length/2])/2):null;
   var head=tb.querySelector('tr').outerHTML,h=head,szt=kind==='尺寸';
-  out.forEach(function(x){if(x.u<1&&x.sku<3)return;var prem=(med&&x.anc_p)?x.anc_p/med-1:null;
+  out.forEach(function(x){var nrow=(g[x.k]||[]).length;if(x.u<1&&x.sku<3&&(c==='amazon'||!nrow))return;var prem=(med&&x.anc_p)?x.anc_p/med-1:null;
     var gray=(x.k==='未知品牌'||x.k.indexOf('未标')>=0)?'mute ':'';
     var tc='<div class="tc"><div class="lb2 t"><span>销量</span>'+bars(x.mon)+'</div><small class="kv skuv">在售 '+x.act+' 个 · 单款 '+I(x.per)+' 件/月</small>'+(x.trend!=null&&x.trend>=0.2?'<b class="tg g">销量增长快 +'+Math.round(x.trend*100)+'%</b>':x.trend!=null&&x.trend<=-0.2?'<b class="tg r">销量下降多 '+Math.round(x.trend*100)+'%</b>':'')+'</div>';
+    if(c!=='amazon'&&x.u<1)tc='<small class="kv">在榜 '+nrow+' 个父体，2026 年没有评论，推不出销量</small>';
     var hide=szt&&x.k!=='36″';
     var cells=[[x.k,''],[tc,''],[I(x.sku),''],[I(x.u),''],[(x.share*100).toFixed(1)+'%',''],[x.size,''],[usd(x.price),''],
       [x.rating?(x.rating<4?'<b class="dn">'+x.rating.toFixed(2)+'</b>':x.rating.toFixed(2)):'—',cls(x.rating,function(v){return v>=4.5},function(v){return v<4.0})],

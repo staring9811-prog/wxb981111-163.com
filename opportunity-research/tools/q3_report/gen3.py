@@ -59,11 +59,11 @@ def table(ch,rows,kind='std',dim=None):
     if _dk!='拆装': _f+='<span class="tfl">拆装</span>'+''.join(f'<button type="button" class="tfb{" on" if v=="全部" else ""}" data-f="拆装" data-v="{v}">{v}</button>' for v in ('全部','拆装','整装'))
     if _dk!='形态': _f+='<span class="tfl">形态</span>'+''.join(f'<button type="button" class="tfb{" on" if v=="全部" else ""}" data-f="形态" data-v="{v}">{v}</button>' for v in ('全部','落地式','悬浮式','开放式'))
     if _dk!='价格带': _f+='<span class="tfl">价格带</span>'+''.join(f'<button type="button" class="tfb{" on" if v=="全部" else ""}" data-f="价格带" data-v="{E_(v)}">{E_(v)}</button>' for v in ('全部','<$200','$200–399','$400–699','$700–999','≥$1000'))
-    _f+='<span class="tfl">显示哪些行</span>'+''.join(f'<button type="button" class="tfr on" data-v="{E_(x["k"])}" title="点一下去掉这一行（不参与占比等计算），再点恢复">{E_(x["k"])}</button>' for x in rows if not (x['u']<1 and x['sku']<3))
+    _f+='<span class="tfl">显示哪些行</span>'+''.join(f'<button type="button" class="tfr on" data-v="{E_(x["k"])}" title="点一下去掉这一行（不参与占比等计算），再点恢复">{E_(x["k"])}</button>' for x in rows if not (x['u']<1 and x['sku']<3 and (ch=='amazon' or not x.get('sku_all'))))
     _dn='<p class="dnote">数据期：SKU 数（期内有销量的 SKU / 父体）、月销量、占比、月销/SKU、均价、评分、供需指数、质量机会值均为 <b>2026-08 至 10 三个月月均</b>口径；每月走势 2026-01 至 10；3M 趋势 = 08–10 比 05–07；CAGR = 08–10 比 01–03 折算年化。'+('Lowe&#39;s 为 2026-11-02 Best Sellers 当下点。' if ch=='lowes' else '')+'</p>'
     out=[_dn+f'<div class="tfil" contenteditable="false" data-c="{ch}" data-d="{E_(_dk)}" data-k="{kind}">{_f}<span class="tfn"></span></div><div class="tw"><table class="dt"><tr>'+''.join(th(h) for h in hs)+'</tr>']
     for x in rows:
-        if x['u']<1 and x['sku']<3: continue
+        if x['u']<1 and x['sku']<3 and (ch=='amazon' or not x.get('sku_all')): continue
         gray=' class="mute"' if x['k']=='未知品牌' or '未标' in x['k'] else ''
         anc_u='无尺寸拆分' if nos else I(x['anc_u']); anc_p='—' if nos else ('<span class="na">样本不足</span>' if x['anc_p'] is None else usd(x['anc_p']))
         prem='—' if nos else ('<span class="na">样本不足</span>' if x['prem'] is None else f'<span class="{"up" if x["prem"]>0.05 else "dn" if x["prem"]<-0.05 else ""}">{"+" if x["prem"]>0 else ""}{x["prem"]*100:.1f}%</span>')
@@ -222,7 +222,7 @@ def tags(ch,dim,val,trend):
     elif trend is not None and trend<=-0.2: s+=f'<b class="tg r">销量下降多 {trend*100:.0f}%</b>'
     return s
 def trend_cell(ch,dim,x):
-    if not x.get('mon') or sum(x['mon'])<=0: return '<span class="na">—</span>'
+    if not x.get('mon') or sum(x['mon'])<=0: return f'<small class="kv">在榜 {x.get("sku_all",0)} 个父体，2026 年没有评论，推不出销量</small>' if ch!='amazon' and x.get('sku_all') else '<span class="na">—</span>'
     if ch=='lowes': return '<div class="tc"><small class="kv">只有当下时间点，没有月度走势</small>'+sku_part(ch,x,w=110)+'</div>'
     s=lab_bars('销量',x['mon'],w=110)
     if ch=='amazon' and dim in HD2KW:
