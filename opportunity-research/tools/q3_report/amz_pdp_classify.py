@@ -85,11 +85,15 @@ def open_cue(text):
         if re.match(r'(?:2|3|two|three)[ -]tier',mm.group(0),re.I) and 'open' not in mm.group(0).lower() and (_DRB.search(b) or _DRA.search(a)): continue
         return True
     return False
-# 拆装 / 整装：页面明确写了已组装 → 整装；写了要组装 → 拆装；都没写 → None（wen 2026-11-09，先用于石材台面）
+# 拆装 / 整装：页面明确写了到货已组装 → 整装；写了要组装或只部分预装 → 拆装；都没写 → None（wen 2026-11-09，用于全部 Amazon 商品）
 ASM_RE=re.compile(r'fully[\s-]+assembled|pre[\s-]?assembled|(?:comes?|arrives?|ships?|delivered)\s+(?:fully\s+|already\s+)?assembled|no\s+assembly\s+(?:is\s+)?(?:required|needed)|already\s+assembled|factory[\s-]assembled|cabinet\s+(?:is\s+)?(?:fully\s+)?assembled',re.I)
 KD_RE=re.compile(r'ready[\s-]to[\s-]assemble|\bRTA\b|flat[\s-]?pack|easy\s+(?:to\s+)?assembl|simple\s+assembl|assembly\s+(?:is\s+)?required|requires?\s+assembly|labell?ed\s+parts|assembl(?:e|y)\s+(?:the\s+)?(?:vanity\s+)?cabinet',re.I)
+PARTIAL=re.compile(r'(?:partially|partly|mostly|semi|largely|\d+\s*%|(?:some|most)\s+(?:of\s+(?:its|the)\s+)?(?:components?|parts?)(?:\s+(?:are|is))?)[\s-]+(?:pre[\s-]?)?assembled|some\s+assembly\s+(?:is\s+)?required|\b(?:no|not|without)\s+(?:\w+\s+){0,2}?(?:pre[\s-]?|fully\s+)?assembled|fully\s+assembl\w*\s+required|(?:needs?|has|have|must)\s+(?:to\s+)?be\s+(?:fully\s+)?assembled|requires?\s+(?:you\s+to\s+)?(?:fully\s+)?assemble',re.I)   # 部分预装、否定、要求自己组装都算拆装（wen 2026-11-09）
+NOTDELIV=re.compile(r'(?:once|when|after|if|until|till)\s+(?:\w+\s+){0,3}?(?:fully\s+)?assembled|assembled\s+(?:size|dimensions?|height|width|weight)',re.I)   # “装好之后……”不算到货已组装
 def asm_of(t):
-    return '整装' if ASM_RE.search(t) else '拆装' if KD_RE.search(t) else None
+    t2=NOTDELIV.sub(' ',PARTIAL.sub(' ',t))
+    if ASM_RE.search(t2): return '整装'
+    return '拆装' if (PARTIAL.search(t) or KD_RE.search(t)) else None
 OLD=json.load(open(os.path.join(q3paths.DATA,'amz_pdp_tags.json'),encoding='utf-8')) if os.path.exists(os.path.join(q3paths.DATA,'amz_pdp_tags.json')) else {}
 out={}
 for f in glob.glob(PAGES+'/*.json'):
