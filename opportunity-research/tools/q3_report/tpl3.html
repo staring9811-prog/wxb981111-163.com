@@ -927,7 +927,7 @@ async function exp(c,btn,cap){
     var a=document.createElement('a');a.href=bu;a.download=name(c)+'.jpg';setTimeout(function(){URL.revokeObjectURL(bu)},5000);document.body.appendChild(a);a.click();a.remove();
   }catch(e){alert('导出失败：'+e)}finally{holder.remove();btn.disabled=false;btn.textContent=old}
 }
-document.addEventListener('click',function(e){var x=e.target.closest('#xexp');if(!x)return;e.preventDefault();var r=document.getElementById('xrow'),cl=document.getElementById('xcol');exp(document.querySelector('#xf .xcw'),x,'属性交叉筛选 · 行：'+r.options[r.selectedIndex].text+' × 列：'+cl.options[cl.selectedIndex].text+' · '+document.getElementById('xsum').textContent)});
+document.addEventListener('click',function(e){var x=e.target.closest('#xexp,#xf > .imgx');if(!x)return;e.stopImmediatePropagation();e.preventDefault();var r=document.getElementById('xrow'),cl=document.getElementById('xcol');exp(document.querySelector('#xf .xcw'),x,'属性交叉筛选 · 行：'+r.options[r.selectedIndex].text+' × 列：'+cl.options[cl.selectedIndex].text+' · '+document.getElementById('xsum').textContent)},true);
 document.addEventListener('click',function(e){var b=e.target.closest('.imgx');if(!b)return;e.preventDefault();e.stopPropagation();exp(b.parentNode,b)},true);
 document.addEventListener('click',function(e){if(e.target.closest('.dtab,.tab,.tfb,.tfr'))setTimeout(addBtns,50)});
 })();
