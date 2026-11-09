@@ -18,7 +18,7 @@ def rating_cell(x): return '—' if not x else (f'<b class="dn">{x:.2f}</b>' if 
 def qo(x): return f'<b class="dn">{x:.1f}</b>' if x>=5 else f'{x:.1f}'
 HEAD={'品牌':['品牌','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','CAGR','3M评分变化','质量机会值','属性锚定溢价（36″）'],
  'std':['标签','SKU数','月销量','销量占比','主销尺寸','加权均价','加权评分','36″ 销量','36″ 锚定价','月销/SKU','3M销量趋势','CAGR','3M评分变化','供需指数','质量机会值','锚定溢价']}
-TIPS={'搜销比':'只有 Amazon。本行关键词搜索量占比 ÷ 本行销量占比，都用 2026-07 至 09（搜索数据到 9 月）；只在本表有搜索词的取值之间算占比（少于 2 个取值有词时不算）；尺寸用尺寸词，其他维度按词里含的关键字归类，括号里是词数——词少的维度（如形态里的“落地式”，买家很少搜 freestanding）只作参考。≥ 1.3 = 搜多买少（绿），≤ 0.7 = 买多搜少（红）。搜索量不随上面的拆装 / 形态 / 价格带筛选变化，销量占比会跟着筛选重算。','关键词CAGR':'只有 Amazon。本行关键词搜索量的复合增长率：(2026-07 至 09 月均 ÷ 2024-10 至 12 月均)^(12 ÷ 21) − 1，与热力图格子里“搜索 CAGR”一致。','CAGR':'复合增长率：(2026-08 至 10 月均 ÷ 2026-01 至 03 月均)^(12 ÷ 7) − 1，即把这 7 个月的变化折算成一年。前 3 个月月均不足 30 件写“样本不足”；Lowe’s 只有当下一个时间点，没有。','质量机会值':'只算评分低于 4.5 的商品：销量占比 ×（4.5 − 评分）× 100。越大 = 卖得多但评价差，越值得做“更好的同款”。','供需指数':'销量占比 ÷ SKU 数占比。大于 1：一个 SKU 能分到的销量比平均多，竞争相对松。','锚定溢价':'只看 36″ 的真实商品：本行 36″ 均价 ÷ 本表各行 36″ 均价的中位数 − 1。正数 = 同尺寸下卖得更贵。','属性锚定溢价（36″）':'只看 36″ 的真实商品：本品牌 36″ 均价 ÷ 本表各品牌 36″ 均价的中位数 − 1。','36″ 锚定价':'只用 36″（33–39 in）商品的销量加权均价，不跨尺寸推算。','3M销量趋势':'2026-08 至 10 合计，对比 2026-05 至 07 合计。前 3 个月月均不足 50 件写“样本不足”。','3M评分变化':'近 3 个月新评论平均星级 − 前 3 个月的；括号里是前后评论条数。任一段不足 10 条写“样本不足”。Amazon 用每月页面评分的变化。','月销/SKU':'月销量 ÷ SKU 数。','加权评分':'按销量加权的页面评分；评分低于 4.0 标红。','月销量':'2026-08 至 10 的月均（件）。'}
+TIPS={'搜销比':'只有 Amazon。本行关键词搜索量占比 ÷ 本行销量占比，都用 2026-07 至 09（搜索数据到 9 月）；只在本表有搜索词的取值之间算占比（少于 2 个取值有词时不算）；尺寸用尺寸词，其他维度按词里含的关键字归类，括号里是词数——词少的维度（如形态里的“落地式”，买家很少搜 freestanding）只作参考。≥ 1.3 = 搜多买少（绿），≤ 0.7 = 买多搜少（红）。搜索量不随上面的拆装 / 形态 / 价格带筛选变化，销量占比会跟着筛选重算。','关键词CAGR':'四个渠道都用 Amazon 搜索词（卖家精灵，只有 Amazon 有搜索数据），代表美国买家整体在搜什么。本行关键词搜索量的复合增长率：(2026-07 至 09 月均 ÷ 2024-10 至 12 月均)^(12 ÷ 21) − 1，与热力图格子里“搜索 CAGR”一致；起点 3 个月月均要 ≥ 300 次；2024 年底不够时改用近一年（2026-01 至 03 → 07 至 09），标“近一年”；两段都不够写“样本不足”（很多词是最近才有搜索量，起点太小算出的增速没有意义）。','CAGR':'复合增长率：(2026-08 至 10 月均 ÷ 2026-01 至 03 月均)^(12 ÷ 7) − 1，即把这 7 个月的变化折算成一年。前 3 个月月均不足 30 件写“样本不足”；Lowe’s 只有当下一个时间点，没有。','质量机会值':'只算评分低于 4.5 的商品：销量占比 ×（4.5 − 评分）× 100。越大 = 卖得多但评价差，越值得做“更好的同款”。','供需指数':'销量占比 ÷ SKU 数占比。大于 1：一个 SKU 能分到的销量比平均多，竞争相对松。','锚定溢价':'只看 36″ 的真实商品：本行 36″ 均价 ÷ 本表各行 36″ 均价的中位数 − 1。正数 = 同尺寸下卖得更贵。','属性锚定溢价（36″）':'只看 36″ 的真实商品：本品牌 36″ 均价 ÷ 本表各品牌 36″ 均价的中位数 − 1。','36″ 锚定价':'只用 36″（33–39 in）商品的销量加权均价，不跨尺寸推算。','3M销量趋势':'2026-08 至 10 合计，对比 2026-05 至 07 合计。前 3 个月月均不足 50 件写“样本不足”。','3M评分变化':'近 3 个月新评论平均星级 − 前 3 个月的；括号里是前后评论条数。任一段不足 10 条写“样本不足”。Amazon 用每月页面评分的变化。','月销/SKU':'月销量 ÷ SKU 数。','加权评分':'按销量加权的页面评分；评分低于 4.0 标红。','月销量':'2026-08 至 10 的月均（件）。'}
 def th(h): t=TIPS.get(h); return f'<th title="{E_(t)}">{h}<sup>?</sup></th>' if t else f'<th>{h}</th>'
 import pickle as _pk0,collections as _C0
 _LALL=_pk0.load(open('recs_amz_all.pkl','rb'))
@@ -32,9 +32,9 @@ for _r in _LALL:
 def table(ch,rows,kind='std',dim=None):
     hs=HEAD['品牌' if kind=='品牌' else 'std']; nos=False; szt=kind=='尺寸'
     hs=hs[:1]+['每月走势（2026-01 至 10）']+hs[1:]
-    _kwon=ch=='amazon' and kind!='品牌'
-    if _kwon: hs=hs+['搜销比','关键词CAGR']
-    _kd=KWD.get(dim or kind,{}) if _kwon else {}
+    _kwon=ch=='amazon' and kind!='品牌'; _kwc=kind!='品牌'
+    if _kwc: hs=hs+(['搜销比'] if _kwon else [])+['关键词CAGR']
+    _kd=KWD.get(dim or kind,{}) if _kwc else {}
     _kr=[x for x in rows if x['k'] in _kd and sum((x.get('mon') or [0]*10)[6:9])>0]
     _ks=sum(_kd[x['k']][0] for x in _kr) if len(_kr)>=2 else 0; _kus=sum(sum(x['mon'][6:9]) for x in _kr)
     _dk=dim or kind
@@ -71,11 +71,14 @@ def table(ch,rows,kind='std',dim=None):
             cls[14]=_c(x['sdi'],lambda v:v>=1.5,lambda v:v<=0.6); k0=15
         cls[k0]=' class="cw"' if x['qo']>=5 else ''
         if not (szt and x['k']!='36″'): cls[k0+1]=_c(x['prem'],lambda v:v>=0.2,lambda v:v<=-0.2)
-        if _kwon:
+        if _kwc:
             _z=_kd.get(x['k']); _uu=sum((x.get('mon') or [0]*10)[6:9])
             _sr=(_z[0]/_ks)/(_uu/_kus) if _z and _uu and _ks and _kus else None
-            cells+=['<span class="na">无相关搜索词</span>' if not _z else (('<span class="na">只有这一项有搜索词</span>' if _sr is None else f'×{_sr:.2f}')+(f'<small>（{_z[2]} 词）</small>' if _z[2] else '')),'—' if not _z else tr(_z[1])]
-            cls+=[_c(_sr,lambda v:v>=1.3,lambda v:v<=0.7),_c(_z[1] if _z else None,lambda v:v>=0.2,lambda v:v<=-0.2)]
+            if _kwon:
+                cells.append('<span class="na">无相关搜索词</span>' if not _z else (('<span class="na">只有这一项有搜索词</span>' if _sr is None else f'×{_sr:.2f}')+(f'<small>（{_z[2]} 词）</small>' if _z[2] else '')))
+                cls.append(_c(_sr,lambda v:v>=1.3,lambda v:v<=0.7))
+            cells.append('<span class="na">无相关搜索词</span>' if not _z else tr(_z[1])+('<small>（近一年）</small>' if _z[3] and _z[1] is not None else ''))
+            cls.append(_c(_z[1] if _z else None,lambda v:v>=0.2,lambda v:v<=-0.2))
         _rc='mute clkrow' if gray else 'clkrow'
         out.append(f'<tr class="{_rc}" data-c="{ch}" data-d="{E_(dim or kind)}" data-v="{E_(x["k"])}" title="点击看这一行的商品清单">'+''.join(f'<td{k}>{c}</td>' for c,k in zip(cells,cls))+'</tr>')
     return ''.join(out)+'</table></div>'
@@ -340,7 +343,10 @@ for _d,_vs in [('拆装',['拆装','整装']),('形态',['落地式','悬浮式'
     for _v in _vs:
         _z=(kw(_d,_v),None) if _d=='尺寸' else (kw2(_d,_v) or (None,None)); _k=_z[0]
         if _k and sum(_k.get(m,0) for m in CUR)>0:
-            KWD.setdefault(_d,{})[_v]=[round(sum(_k.get(m,0) for m in CUR)/3,1),gstats([_k.get(m) for m in K24])[2],_z[1]]
+            _kc=lambda ms:(lambda a,b:((b/a)**(12/(len(ms)-3))-1) if a>=300 and b>0 else None)(sum(_k.get(m) or 0 for m in ms[:3])/3,sum(_k.get(m) or 0 for m in ms[-3:])/3)
+            _cg=_kc(K24); _y1=_cg is None
+            if _y1: _cg=_kc(K24[-9:])
+            KWD.setdefault(_d,{})[_v]=[round(sum(_k.get(m,0) for m in CUR)/3,1),_cg,_z[1],1 if _y1 else 0]
 # ---------- heat table（统一格子：每格同样的位置放同样的数）
 DIMS=[('拆装',['拆装','整装']),('形态',['落地式','悬浮式','开放式']),('尺寸',['18″','24″','28″','30″','36″','42″','48″','60″','72″+']),('价格带',['<$200','$200–399','$400–699','$700–999','≥$1000']),('台面',['陶瓷','树脂','岗石','Cultured Marble','石英石','卡拉拉大理石','木板','不适用（不含台面）']),('柜体',['MDF','实木框架','实木','含刨花板','含胶合板']),('主色',['白','黑','灰','原木','深木','蓝','绿']),('元素',['夏克式','农场风装饰饰条','竖棱','纯色','自然木纹','横板条','搭叠式','现代线条纹理','玻璃门','rattan','rustic','木条格栅'])]
 CC={c:col for c,_,col in CH}

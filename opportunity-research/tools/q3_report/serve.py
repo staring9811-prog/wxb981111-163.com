@@ -57,6 +57,13 @@ class H(BaseHTTPRequestHandler):
     def log_message(self,*a): pass
 if __name__=='__main__':
     if not os.path.exists(OUT): print('先生成报告…'); rebuild()
+    else:
+        _code=[os.path.join(q3paths.CODE,f) for f in os.listdir(q3paths.CODE) if f.endswith(('.py','.html'))]
+        if max(os.path.getmtime(f) for f in _code)>os.path.getmtime(OUT):
+            print('代码有更新：先把当前报告里的改标、备注收回 data/，再重新生成（约 1–2 分钟）…',flush=True)
+            import sync
+            print('\n'.join(sync.merge(sync.extract(open(OUT,encoding='utf-8').read()))),flush=True)
+            rebuild(); print('已按新代码重新生成。',flush=True)
     port=int(os.environ.get('Q3_PORT','8765')); url=f'http://127.0.0.1:{port}/'
     print('报告已打开：',url,'（关掉这个窗口就停止）');
     try: webbrowser.open(url)
