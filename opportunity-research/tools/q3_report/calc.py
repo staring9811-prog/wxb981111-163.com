@@ -56,7 +56,7 @@ for i,m,u,p in snap:
         if d=='柜体材质' and v=='实木': v='实木框架'
         if d=='形态' and v=='落地式' and (_PDP.get(i) or {}).get('struct')=='开放式': v='开放式'   # 与 calc3 一致
         if (i,d) in _OVA: v=_OVA[(i,d)]
-        if d=='元素' and v: v=v.split('|')[0].split('+')[-1] if v.startswith('纯色+') else v.split('+')[0] if v.startswith('夏克式+') else v
+        if d=='元素' and v: v=v.split('|')[0]   # 组合元素单独成行（与 calc3 一致）
         share[d][m][v or '未标']+=u
 out['amz_share']={d:{m:dict(cn) for m,cn in ms.items()} for d,ms in share.items()}
 # channels 2026-01..10

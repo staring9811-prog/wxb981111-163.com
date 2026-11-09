@@ -11,10 +11,7 @@ def band(p):
     return '<$200' if p<200 else '$200–399' if p<400 else '$400–699' if p<700 else '$700–999' if p<1000 else '≥$1000'
 def elem(v):
     if not v: return '未标'
-    v=v.split('|')[0]
-    if v.startswith('纯色+'): return v.split('+')[-1]
-    if v.startswith('夏克式+'): return '夏克式'
-    return v
+    return v.split('|')[0]   # 组合元素（夏克式+复古立柱、纯色+竖棱等）单独成行，不再合并（wen 2026-11-09）
 recs={}   # ch -> list of dict(pid,fam,brand,attrs,price,rating,u{month:units},vp{},nv{})
 stars={}  # ch -> pid -> list (month,stars)
 # Amazon
