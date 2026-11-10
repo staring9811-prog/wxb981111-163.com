@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.2.2">
+<meta name="pc-app-version" content="1.3.0">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -516,6 +516,9 @@ body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(s
   <p class="lead">同一个渠道，在每个海运方案下分别按非旺季和旺季算利润。这里的旺季 = FBM 尾程旺季附加费 + FBA 旺季费率，不受产品上选的旺季和顶部 FBA 费率影响。平台按促销价。</p>
   <div class="row" style="margin-bottom:10px"><label class="f" style="flex-direction:row;align-items:center;gap:6px">渠道<select id="scenChan"></select></label></div>
   <div class="tw" id="resScen"></div>
+  <h2>整装浴室柜 / LTL <span class="note seaName"></span></h2>
+  <p class="lead">整装产品和走 LTL 的产品单独列出：判定原因、LTL 运费（报价或估算）、换成快递要多少，以及 Amazon FBM / CG 利润。LTL 报价在第 2 步“包装 / 尾程”列填写。</p>
+  <div class="tw" id="resLtl"></div>
   <h2>产品速览 <span class="note seaName"></span></h2>
   <div class="cards" id="resCards"></div>
   <h2>包裹明细</h2>
@@ -550,6 +553,8 @@ function defaultParams(){ return {
   commission:{threshold:200, furnLow:15, furnHigh:10, 汽配:12, 工业机械:12, 农机花园:15, 其他:15},
   sea:[{name:"FOB整柜·近三个月",rmb:100891,cbm:68},{name:"FOB整柜·近六个月",rmb:62891,cbm:68}],
   fbm:{dimDiv:250, lbPerKg:2.2046226, ceilLb:2.2, fuel:29.5},
+  /* 整装 + LTL. LTL estimate fitted on 19 past supplier quotes (整装浴室柜, 2026-11): base + $/lb × gross lb + $/m³ × volume. */
+  ltl:{kg:48, base:92.5, perLb:0.43, perM3:54, fill:70},
   fba:{dimDiv:139, fuel:3.5, peakMode:"auto", peakStart:"2026-10-15", peakEnd:"2027-01-14",
        osLen:96, osLG:130, os50:17, os70:21, os150:25,
        tiers:[
@@ -640,6 +645,18 @@ function fbaFee(L,M,N,W,LG){
   let os=0; if(W<=150&&(L>P.fba.osLen||LG>P.fba.osLG)) os = W<=50?P.fba.os50:W<=70?P.fba.os70:P.fba.os150;
   return {fee:Math.round((fee+os)*100)/100, tier:t.name, os};
 }
+/* 包装形式: 分包 / 整包 (flat-packed) / 整装 (fully assembled). Unset → read from name / description / package count. */
+const PACKS=["分包","整包","整装"];
+function packOf(p){ if(PACKS.includes(p.pack)) return p.pack; const t=[p.name,p.desc,p.key].join(" "); return /整装|assembled/i.test(t)?"整装":/整包/.test(t)?"整包":((p.pkgs&&p.pkgs.length>1)||/分包/.test(t))?"分包":"整包"; }
+/* LTL: forced when any package is beyond FedEx (超大包裹); automatic for 整装 products over the weight line; per-product override.
+   Cost = the product's own LTL quote if filled, else the fitted estimate. Replaces the whole FedEx tail (派送 + 处理 + 异常 + 燃油). */
+function ltlInfo(p,pk){
+  const kg=pk.reduce((a,x)=>a+x.kg,0), lb=kg*2.2046226, m3=pk.reduce((a,x)=>a+x.M,0), over=pk.some(x=>x.ltl==="LTL"), pack=packOf(p), mode=p.ltlMode||"auto";
+  const heavy=pack==="整装"&&kg>nz(P.ltl.kg);
+  const on=mode==="ltl"||(mode==="auto"&&(over||heavy));
+  const reason=mode==="ltl"?"手动指定走 LTL":mode==="parcel"?(over?"手动指定走快递（但包裹超出 FedEx 上限）":"手动指定走快递"):over?"包裹超出 FedEx 上限（超大包裹）":heavy?`整装且毛重 ${f1(kg)} kg > ${nz(P.ltl.kg)} kg`:"快递（FedEx）";
+  const est=nz(P.ltl.base)+nz(P.ltl.perLb)*lb+nz(P.ltl.perM3)*m3, quote=num(p.ltlQuote), hasQuote=quote>0;
+  return {on,pack,mode,kg,lb,m3,over,reason,est,quote:hasQuote?quote:NaN,cost:hasQuote?quote:est,fromQuote:hasQuote}; }
 function calcPkg(p,g,dom){
   const cm=[nz(g.l),nz(g.w),nz(g.h)].sort((a,b)=>b-a);
   const kg=nz(g.kg);
@@ -655,7 +672,8 @@ function calcPkg(p,g,dom){
   const bucket=cgBucket(J,K,L,Pw,V); const cr=P.cg.find(c=>c.bucket===bucket);
   const cgShip=cr?nz(cr.ship):0, cgLb=cr?nz(cr.perLb)*U:0, cgPick=cr?nz(cr.pick):0;
   const ltl=(J>108||V>165||Pw>150)?"LTL":(J>106||V>163||Pw>145)?"LTL预警":"小包裹";
-  const sea=P.sea.map((s,i)=>M*seaRate(i,dom));
+  const fill=packOf(p)==="整装"?Math.max(1,nz(P.ltl.fill)||100)/100:1;   // 整装 fills the container worse (default 70%)
+  const sea=P.sea.map((s,i)=>M*seaRate(i,dom)/fill);
   const fl=Math.round(cm[0]/2.54*100)/100, fm=Math.round(cm[1]/2.54*100)/100, fn=Math.round(cm[2]/2.54*100)/100;
   const ulb=kg*2.20462; const fw=Math.round((ulb>150?ulb:Math.max(ulb,fl*Math.max(fm,2)*Math.max(fn,2)/P.fba.dimDiv))*100)/100;
   const flg=Math.round((fl+2*(fm+fn))*100)/100; const fb=fbaFee(fl,fm,fn,fw,flg);
@@ -668,12 +686,14 @@ function calcProduct(p){
   const promo=price*P.promo/100, fx=price*P.fxLoss/100, comm=commission(price,p.category), refund=price*P.refund/100;
   const fees=promo+fx+comm+refund;
   const sum=f=>pk.reduce((a,x)=>a+f(x),0);
-  const fbmShip=sum(x=>x.fbmTotal), cgShip=sum(x=>x.cgShip+x.cgLb+x.cgPick), fbaShip=sum(x=>x.fba);
+  const ltl=ltlInfo(p,pk);
+  const fbmShip=ltl.on?ltl.cost:sum(x=>x.fbmTotal), cgShip=sum(x=>x.cgShip+x.cgLb+x.cgPick), fbaShip=sum(x=>x.fba);
   const sc=P.sea.map((s,i)=>{ const sea=sum(x=>x.sea[i]); const base=price-cost-sea-fees;
     return {sea, fbm:base-fbmShip, cg:base-cgShip, fba:base-fbaShip}; });
-  const warn=[]; pk.forEach((x,i)=>{ const tag=p.pkgs.length>1?`包裹${i+1}：`:""; if(x.ltl!=="小包裹") warn.push(tag+x.ltl); if(x.noTail) warn.push(tag+"计费重超出尾程表，FBM尾程按 0 计"); if(x.bucket==="null") warn.push(tag+"CG 无匹配档位，CG 运费按 0 计"); });
+  const warn=[]; if(ltl.on) warn.push(`FBM 尾程走 LTL（${ltl.reason}）：${ltl.fromQuote?"报价":"估算"} $${f2(ltl.cost)}`); else if(ltl.over) warn.push("包裹超出 FedEx 上限，但手动指定了快递");
+  pk.forEach((x,i)=>{ const tag=p.pkgs.length>1?`包裹${i+1}：`:""; if(!ltl.on&&x.ltl!=="小包裹") warn.push(tag+x.ltl); if(!ltl.on&&x.noTail) warn.push(tag+"计费重超出尾程表，FBM尾程按 0 计"); if(x.bucket==="null") warn.push(tag+"CG 无匹配档位，CG 运费按 0 计"); });
   if(!isFinite(cost)) warn.unshift(dom?"缺国内出货价（第 2 步填人民币含税价）":"缺 FOB 出厂价");
-  const res={pk,price,cost,promo,fx,comm,refund,fees,fbmShip,cgShip,fbaShip,sc,warn,dom};
+  const res={pk,price,cost,promo,fx,comm,refund,fees,fbmShip,cgShip,fbaShip,sc,warn,dom,ltl};
   res.plat=calcPlatforms(p,res);
   return res;
 }
@@ -691,7 +711,7 @@ function calcPlatforms(p,r){
   const out={}, sum=f=>r.pk.reduce((a,x)=>a+f(x),0);
   for(const pl of PLATS){
     const c=P.plat[pl.k]; const pp=platPrices(p,r,pl.k);
-    const logi=c.ship==="self"?sum(x=>x.fbmTotal):c.ship==="handling"?sum(x=>x.handling):0;
+    const logi=c.ship==="self"?r.fbmShip:c.ship==="handling"?sum(x=>x.handling):0;
     const pctO=(nz(c.ads)+nz(c.fx)+nz(c.refund)+nz(c.storage)+nz(c.outbound))/100, cm=nz(c.comm)/100, pct=pctO+cm;
     const mk=nz(c.markup)||1, fixed=nz(c.fixed)*Math.max(1,r.pk.length), commList=c.commBase==="list", listSettle=pp.list/mk;
     const sc=P.sea.map((s,i)=>{
@@ -887,6 +907,11 @@ document.getElementById("defCat").innerHTML=catOpts("家具");
 document.getElementById("bulkCat").innerHTML=catOpts("家具");
 
 /* ---------------- step 2: confirm ---------------- */
+function ltlCell(p,pi,rr){ const L=rr.ltl, pk=packOf(p);
+  return `<select data-p="${pi}" data-k="pack" title="包装形式：整装 = 整体组装发货" aria-label="包装形式">${PACKS.map(v=>`<option ${v===pk?"selected":""}>${v}</option>`).join("")}</select>
+  <select data-p="${pi}" data-k="ltlMode" aria-label="FBM 尾程方式" style="margin-top:4px">${[["auto","尾程：自动"],["ltl","尾程：LTL"],["parcel","尾程：快递"]].map(([v,l])=>`<option value="${v}" ${(p.ltlMode||"auto")===v?"selected":""}>${l}</option>`).join("")}</select>
+  ${L.on?`<label class="note" style="display:block;margin-top:4px">LTL 报价 $<input type="number" step="any" data-p="${pi}" data-k="ltlQuote" value="${esc(p.ltlQuote??"")}" placeholder="估 ${f0(L.est)}" style="width:80px"></label>`:""}
+  <span class="note" style="display:block;margin-top:2px">${L.on?`<span class="chip warn">LTL</span> ${L.fromQuote?"按报价":"估算"} $${f2(L.cost)}`:"快递 FedEx"}</span>`; }
 function renderS2(){
   const issues=[];
   const rows=products.map((p,pi)=>{
@@ -911,7 +936,8 @@ function renderS2(){
         <td rowspan="${n}"><select data-p="${pi}" data-k="costCur">${Object.entries(COST_CUR).map(([k,v])=>`<option value="${k}" ${k===p.costCur?"selected":""}>${v}</option>`).join("")}</select></td>
         <td rowspan="${n}"><input type="number" step="any" data-p="${pi}" data-k="adj" value="${esc(p.adj)}" title="例如减去排插、子抽等差价，填负数"></td>
         <td rowspan="${n}" class="n"><b>${money(c)}</b><br><span class="note">${nz(p.price)>0?pct(c/nz(p.price))+" 占比":""}</span><br><span class="note">${taxNote(p)}</span></td>
-        <td rowspan="${n}"><input type="number" step="any" data-p="${pi}" data-k="costRmb" value="${esc(p.costRmb??"")}" title="国内出货：工厂人民币含税价"><br><span class="note">${num(p.costRmb)>0?"退税后 "+money(domCostUSD(p)):"不填则不算国内出货"}</span></td>`;
+        <td rowspan="${n}"><input type="number" step="any" data-p="${pi}" data-k="costRmb" value="${esc(p.costRmb??"")}" title="国内出货：工厂人民币含税价"><br><span class="note">${num(p.costRmb)>0?"退税后 "+money(domCostUSD(p)):"不填则不算国内出货"}</span></td>
+        <td rowspan="${n}" style="min-width:150px">${ltlCell(p,pi,rr)}</td>`;
       return `<tr class="${gi?"":"first"}">${head}
         <td class="c">${gi+1}</td>
         <td><input type="number" step="any" data-p="${pi}" data-g="${gi}" data-k="l" value="${esc(g.l)}"${bad("l")}></td>
@@ -925,15 +951,15 @@ function renderS2(){
   }).join("");
   document.getElementById("confirmTable").innerHTML=`<table><thead><tr>
     <th>品名</th><th>材质 / 描述</th><th>供应商</th><th>品类</th><th>FBM旺季</th><th>Amazon 售价 $</th>${PLATS.map(pl=>`<th>${esc(pl.name)} $<br><span class="note">上架 / 促销</span>${upCtl(pl.k)}</th>`).join("")}<th>出厂价（FOB）</th><th>出厂价币种</th><th>成本调整 $</th><th>采购成本 $（FOB）${hi("cost")}</th><th>国内出货价 ¥${hi("dom")}<br><span class="note">含税，扣退税</span></th>
-    <th>包裹</th><th>长 cm</th><th>宽 cm</th><th>高 cm</th><th>毛重 kg</th><th>体积 m³</th><th>操作</th></tr></thead>
-    <tbody>${rows||`<tr><td colspan="${18+PLATS.length}" class="muted">还没有产品，点“+ 新增产品”或回到第 1 步导入报价表。</td></tr>`}</tbody></table>`;
+    <th>包装 / 尾程${hi("ltl")}</th><th>包裹</th><th>长 cm</th><th>宽 cm</th><th>高 cm</th><th>毛重 kg</th><th>体积 m³</th><th>操作</th></tr></thead>
+    <tbody>${rows||`<tr><td colspan="${19+PLATS.length}" class="muted">还没有产品，点“+ 新增产品”或回到第 1 步导入报价表。</td></tr>`}</tbody></table>`;
   document.getElementById("bulkPeak").value=allPeak();
   document.getElementById("checkMsg").innerHTML = issues.length? `<p class="msg">请补全：${issues.slice(0,8).map(esc).join("；")}${issues.length>8?" …":""}</p>` : products.length? `<p class="msg ok">${products.length} 个产品的尺寸、毛重、成本和售价都已填写。</p>`:"";
 }
 const ct=document.getElementById("confirmTable");
 ct.addEventListener("change",e=>{ const t=e.target;
   if(t.dataset.plat){ const p=products[+t.dataset.p]; p.prices=p.prices||{}; const o=p.prices[t.dataset.plat]=p.prices[t.dataset.plat]||{}; o[t.dataset.pk]=t.value===""?"":num(t.value); save(); renderS2(); return; }
-  if(!t.dataset.k) return; const p=products[+t.dataset.p]; const numK=["price","cost","costRmb","adj","l","w","h","kg"].includes(t.dataset.k);
+  if(!t.dataset.k) return; const p=products[+t.dataset.p]; const numK=["price","cost","costRmb","adj","l","w","h","kg","ltlQuote"].includes(t.dataset.k);
   const v=numK?(t.value===""?"":num(t.value)):t.value; if(t.dataset.g!==undefined) p.pkgs[+t.dataset.g][t.dataset.k]=v; else p[t.dataset.k]=v; save(); renderS2(); });
 ct.addEventListener("click",e=>{ const im=e.target.closest("[data-imgp]"); if(im){ const p=products[+im.dataset.imgp]; pickImage(id=>{ p.img=id; save(); renderS2(); }); return; }
   const b=e.target.closest("[data-act]"); if(!b) return; const pi=+b.dataset.p;
@@ -984,6 +1010,19 @@ Amazon 其他品类：售价 × 固定比例（汽配 ${esc(P.commission.汽配)
      <tr><td>平台发货</td><td>只扣订单处理费</td><td>货在我们的海外仓，我们拣货打包，平台派车取货并付运费</td></tr>
      <tr><td>平台仓</td><td>不扣（成本在仓储 %、出仓 % 里）</td><td>货提前入平台仓，存储、拣货、配送都由平台做</td></tr></tbody></table>${perChan("ship","FBM / CG / FBA 三种都算")}`},
    {id:"handling",title:"订单处理费（海外仓）",short:"海外仓按包裹计费重收的拣货打包费：查尾程费率表，1–5 lb $0.8 … 100 lb 以上 $5，多包裹相加",html:`<div class="f">订单处理费 = 按每个包裹的 FBM 计费重，在“尾程费率表”里查“订单处理费”列；多包裹相加</div><p>当前档位：1–5 lb $${esc(P.tail[0]&&P.tail[0].handling)}、6–20 lb $${esc(P.tail[5]&&P.tail[5].handling)}、21–50 lb $${esc(P.tail[20]&&P.tail[20].handling)}、51–70 lb $${esc(P.tail[50]&&P.tail[50].handling)}、71–100 lb $${esc(P.tail[70]&&P.tail[70].handling)}、101–150 lb $${esc(P.tail[100]&&P.tail[100].handling)}。计费重怎么算见“FBM 尾程”。</p>`},
+   {id:"ltl",title:"整装浴室柜与 LTL",short:`整装且毛重 > ${P.ltl.kg} kg、或包裹超出 FedEx 上限 → FBM 尾程走 LTL；LTL ≈ $${P.ltl.base} + $${P.ltl.perLb}/lb × 毛重 + $${P.ltl.perM3}/m³ × 体积；整装海运按 ${P.ltl.fill}% 装柜率`,html:`<div class="f">走不走 LTL（每个产品，第 2 步“包装 / 尾程”列）：
+  自动：包装 = 整装 且 毛重合计 > ${esc(P.ltl.kg)} kg → LTL
+        任一包裹超出 FedEx 上限（最长边 > 108 in、长+围长 > 165 in、计费重 > 150 lb）→ LTL
+  也可以手动指定“LTL”或“快递”。
+
+LTL 运费 = 这个产品填的 LTL 报价；没填就用估算：
+  LTL ≈ ${esc(P.ltl.base)} + ${esc(P.ltl.perLb)} × 毛重 lb + ${esc(P.ltl.perM3)} × 体积 m³
+
+走 LTL 时：FBM 尾程 = LTL 运费，不再加订单处理费、尾程异常费和燃油（LTL 报价是全包价）。
+自己发货的平台（如 Lowe's SC）同样按 LTL 算。CG、FBA 不变。
+
+整装海运：海运费 = 体积 × 每方单价 ÷ 装柜率 ${esc(P.ltl.fill)}%（整装柜子装不满整柜）。</div>
+<p>估算公式是用 2026-11 越南佳和 19 条整装柜 LTL 报价拟合的（24–72 寸，40–183 kg）：平均误差约 $15（7%），最大约 $28。供应商报价是分档的，同尺寸不同系列也会差 $20–40，所以<b>有实际报价请直接填报价</b>；估算只用于还没询价的新品。三个系数都可以在“变量 → 通用费用”里改。</p>`},
    {id:"tail",title:"FBM 尾程：派送、异常、住宅",short:"按计费重查尾程费率表；计费重 = max(毛重 × 2.2046, 英寸长×宽×高 ÷ 250) 向上取整",html:`<div class="f">英寸边长 = cm ÷ 2.54 向上取整
 FBM 计费重 lb = 向上取整( max(毛重 kg × ${esc(P.fbm.lbPerKg)}, 长×宽×高(英寸) ÷ ${esc(P.fbm.dimDiv)}) )
 尾程派送 = 尾程费率表里该计费重的“加权平均运费”
@@ -1002,9 +1041,9 @@ FBA 旺季：基础费换成“旺季基础费”；“按日期自动”时 ${e
   ]; }
 const helpShort=id=>{ const x=helpSections().find(h=>h.id===id); return x?x.short:""; };
 const hi=id=>{ const x=helpSections().find(h=>h.id===id); return x?`<button type="button" class="hi" data-help="${id}" title="${esc(x.short)}（点击看完整计算说明）" aria-label="${esc(x.title)}说明">ⓘ</button>`:""; };
-const HELP_BY_PATH=[[/^rate$/,"rate"],[/^fbm\.fuel$/,"fuel"],[/^fba\.(fuel|dimDiv|os)/,"fba"],[/^residential$/,"tail"],[/^fba\.peak/,"peak"],[/^targetMargin$/,"target"],[/^listFactor$/,"price"],[/^dom\.extra$/,"head"],[/^dom\./,"dom"],[/^tax$/,"cost"],[/^fbm\./,"tail"],[/^commission\./,"comm"]];
+const HELP_BY_PATH=[[/^ltl\./,"ltl"],[/^rate$/,"rate"],[/^fbm\.fuel$/,"fuel"],[/^fba\.(fuel|dimDiv|os)/,"fba"],[/^residential$/,"tail"],[/^fba\.peak/,"peak"],[/^targetMargin$/,"target"],[/^listFactor$/,"price"],[/^dom\.extra$/,"head"],[/^dom\./,"dom"],[/^tax$/,"cost"],[/^fbm\./,"tail"],[/^commission\./,"comm"]];
 const helpForPath=p=>{ const m=HELP_BY_PATH.find(([re])=>re.test(p)); return m?m[1]:null; };
-const HELP_BY_LABEL=[[/退税后/,"dom"],[/^采购成本/,"cost"],[/海运费|头程/,"head"],[/尾程派送|尾程异常|住宅/,"tail"],[/订单处理/,"handling"],[/燃油/,"fuel"],[/推广/,"ads"],[/汇损/,"fx"],[/佣金/,"comm"],[/退款/,"refund"],[/仓储/,"storage"],[/出仓/,"outbound"],[/平台订单费/,"fixed"],[/^CG/,"cg"],[/FBA/,"fba"]];
+const HELP_BY_LABEL=[[/LTL/,"ltl"],[/退税后/,"dom"],[/^采购成本/,"cost"],[/海运费|头程/,"head"],[/尾程派送|尾程异常|住宅/,"tail"],[/订单处理/,"handling"],[/燃油/,"fuel"],[/推广/,"ads"],[/汇损/,"fx"],[/佣金/,"comm"],[/退款/,"refund"],[/仓储/,"storage"],[/出仓/,"outbound"],[/平台订单费/,"fixed"],[/^CG/,"cg"],[/FBA/,"fba"]];
 const helpForLabel=l=>{ const m=HELP_BY_LABEL.find(([re])=>re.test(l)); return m?m[1]:null; };
 function openHelp(id){
   const S=helpSections(), m=document.getElementById("helpModal");
@@ -1044,7 +1083,7 @@ const PLAT_FEES=["ads","fx","refund","comm","commBase","storage","outbound","fix
 const VB={
   chan:()=>["promo","fxLoss","refund",...COMM_PATHS,...PLATS.flatMap(pl=>PLAT_FEES.map(f=>`plat.${pl.k}.${f}`))],
   deliv:()=>["dom.extra","dom.vat","dom.rebate"],
-  common:()=>["rate","fbm.fuel","fba.fuel","residential","fba.peakMode","targetMargin","listFactor","tax","fbm.dimDiv","fbm.lbPerKg","fbm.ceilLb","fba.dimDiv","fba.peakStart","fba.peakEnd","fba.osLen","fba.osLG","fba.os50","fba.os70","fba.os150"]};
+  common:()=>["rate","fbm.fuel","fba.fuel","residential","fba.peakMode","ltl.kg","ltl.fill","ltl.base","ltl.perLb","ltl.perM3","targetMargin","listFactor","tax","fbm.dimDiv","fbm.lbPerKg","fbm.ceilLb","fba.dimDiv","fba.peakStart","fba.peakEnd","fba.osLen","fba.osLG","fba.os50","fba.os70","fba.os150"]};
 const chgCount=b=>VB[b]().filter(isChg).length;
 let vAmzOpen=false;
 const vIn=(path,w)=>`<input type="number" step="any" data-path="${path}" value="${esc(getPath(path))}"${isChg(path)?` class="chg" title="默认 ${esc(defVal(path))}"`:""}${w?` style="width:${w}px"`:""}>`;
@@ -1078,7 +1117,7 @@ function renderVars(){
   // ③ common
   const peakSel=`<label class="f">FBM 旺季（应用到全部产品）<select data-allpeak="1">${[["mixed","各产品不同"],["非旺季","非旺季"],["旺季","旺季"]].map(([v,l])=>`<option value="${v}" ${v===allPeak()?"selected":""} ${v==="mixed"?"disabled":""}>${l}</option>`).join("")}</select></label>`;
   document.getElementById("vCommon").innerHTML=[fld("rate","汇率 RMB/USD"),fld("fbm.fuel","尾程燃油 %（我们发货的渠道）"),fld("fba.fuel","FBA 燃油/物流附加费 %"),fld("residential","FBM 住宅附加费",{type:"check"}),peakSel,
-    fld("fba.peakMode",`FBA 费率（当前按${fbaPeak()?"旺季":"非旺季"}）`,{type:"select",options:[["auto","按日期自动"],["on","始终旺季"],["off","始终非旺季"]]}),fld("targetMargin","目标利润率 %"),fld("listFactor","平台上架价系数（× Amazon 售价）")].join("");
+    fld("fba.peakMode",`FBA 费率（当前按${fbaPeak()?"旺季":"非旺季"}）`,{type:"select",options:[["auto","按日期自动"],["on","始终旺季"],["off","始终非旺季"]]}),fld("ltl.kg","整装走 LTL：毛重超过 kg"),fld("ltl.fill","整装装柜率 %"),fld("ltl.base","LTL 估算：起步价 $"),fld("ltl.perLb","LTL 估算：每磅 $/lb"),fld("ltl.perM3","LTL 估算：每立方 $/m³"),fld("targetMargin","目标利润率 %"),fld("listFactor","平台上架价系数（× Amazon 售价）")].join("");
   document.getElementById("vAdvKv").innerHTML=[fld("tax","采购税点 %（仅 RMB 含税价）"),fld("fbm.dimDiv","FBM 体积重除数"),fld("fbm.lbPerKg","kg→lb（计费重）"),fld("fbm.ceilLb","kg→lb（实重取整）"),fld("fba.dimDiv","FBA 体积重除数"),
     fld("fba.peakStart","FBA 旺季开始",{type:"date"}),fld("fba.peakEnd","FBA 旺季结束",{type:"date"}),fld("fba.osLen","超长：最长边 > in"),fld("fba.osLG","超长：长+围长 > in"),fld("fba.os50","超长附加 ≤50lb $"),fld("fba.os70","超长附加 ≤70lb $"),fld("fba.os150","超长附加 ≤150lb $")].join("");
   const tf=(i,k,w=64)=>`<input ${k==="name"?"":'type="number" step="any"'} data-tier="${i}" data-k="${k}" value="${esc(P.fba.tiers[i][k])}" style="width:${w}px">`;
@@ -1134,10 +1173,18 @@ function renderVarSummary(){ const si=seaIdx(), np=["chan","deliv","common"].red
 document.getElementById("varSummary").addEventListener("click",e=>{ if(e.target.closest("[data-openvars]")) openVars(); });
 
 /* ---------------- step 4: results ---------------- */
+function renderLtl(R){ const si=seaIdx(), L=R.filter(({p,r})=>r.ltl.on||r.ltl.pack==="整装"), el=document.getElementById("resLtl");
+  if(!L.length){ el.innerHTML=`<p class="muted" style="padding:12px">当前没有整装或走 LTL 的产品。第 2 步把“包装”设为“整装”（品名或描述里有“整装”会自动识别），或把尾程设为 LTL。</p>`; return; }
+  const m=v=>`<td class="n ${cls(v)}">${money(v)}</td>`, mr=(v,pr)=>`<td class="n ${cls(v)}">${pr>0?pct(v/pr):"–"}</td>`;
+  el.innerHTML=`<table><thead><tr><th rowspan="2">品名</th><th rowspan="2">包装</th><th rowspan="2">毛重 kg / lb</th><th rowspan="2">体积 m³</th><th rowspan="2">尾程方式</th><th class="grp" colspan="3">LTL 运费 $ ${hi("ltl")}</th><th rowspan="2">换成快递 $<br><span class="note">FedEx 含燃油</span></th><th rowspan="2">Amazon 售价 $</th><th rowspan="2">海运费 $<br><span class="note">整装按 ${esc(P.ltl.fill)}% 装柜</span></th><th class="grp" colspan="2">FBM</th><th class="grp" colspan="2">CG</th></tr>
+    <tr><th>报价</th><th>估算</th><th>采用</th><th>利润 $</th><th>利润率</th><th>利润 $</th><th>利润率</th></tr></thead><tbody>${L.map(({p,r})=>{ const x=r.ltl, s=r.sc[si], fed=r.pk.reduce((a,q)=>a+q.fbmTotal,0);
+    return `<tr><td>${esc(p.name)}</td><td class="c">${esc(x.pack)}</td><td class="n">${f1(x.kg)} / ${f0(x.lb)}</td><td class="n">${x.m3.toFixed(2)}</td><td>${x.on?'<span class="chip warn">LTL</span>':'<span class="chip">快递</span>'}<br><span class="note">${esc(x.reason)}</span></td>
+      <td class="n">${x.fromQuote?f2(x.quote):"–"}</td><td class="n">${f2(x.est)}</td><td class="n"><b>${x.on?f2(x.cost):"–"}</b></td><td class="n">${x.over?'<span class="note">超出 FedEx</span>':f2(fed)}</td>
+      <td class="n">${f2(r.price)}</td><td class="n">${f2(s.sea)}</td>${m(s.fbm)}${mr(s.fbm,r.price)}${m(s.cg)}${mr(s.cg,r.price)}</tr>`; }).join("")}</tbody></table>`; }
 function renderS4(){
-  renderVarSummary();
+  renderVarSummary(); refreshLtlAny();
   const R=products.map(p=>({p,r:calcProduct(p)}));
-  renderAll(R);
+  renderAll(R); renderLtl(R);
   document.getElementById("detailChan").innerHTML=DETAIL_OPTS().map(([v,l])=>`<option value="${v}" ${v===P.detailChan?"selected":""}>${esc(l)}</option>`).join("");
   if(!R.length){ document.getElementById("resCards").innerHTML=`<p class="muted">还没有产品。回到第 1 步导入报价表，或加载示例数据。</p>`; document.getElementById("resSummary").innerHTML=""; document.getElementById("resDetail").innerHTML=""; document.getElementById("resMix").innerHTML=""; return; }
   const si=seaIdx(), CH=chanList();
@@ -1170,9 +1217,20 @@ function chanVal(r,ch,si){ if(ch.amz) return {ok:r.price>0,rev:r.price,profit:r.
   const x=r.plat[ch.plat]; if(x.noPrice) return {ok:false,rev:NaN,profit:NaN}; const s=x.sc[si].promo; return {ok:true,rev:s.settle,profit:s.profit}; }
 const DETAIL_OPTS=()=>[...AMZ.map(a=>[`amz:${a.k}`,a.name]),...PLATS.flatMap(pl=>[[`plat:${pl.k}:promo`,`${pl.name} · 促销价`],[`plat:${pl.k}:list`,`${pl.name} · 上架价`]])];
 /* One channel's waterfall for one product: price → settlement → each deduction → profit. */
+let ltlAny=false;   // any product on LTL → the tail column is labelled “尾程派送 / LTL” (same labels for every row)
+function refreshLtlAny(){ ltlAny=products.some(p=>{ try{ return ltlInfo(p,p.pkgs.map(g=>calcPkg(p,g,isDom()))).on; }catch(e){ return false; } }); }
+/* Same step labels as the FedEx path, with the LTL cost in the tail column and the FedEx extras at 0. */
+function breakdownLtl(r,id,si,g,k,mode,fuel,tl){
+  const z=[[tl,r.ltl.cost],["订单处理",0],["尾程异常",0],...(P.residential?[["住宅附加",0]]:[]),[fuel,0]];
+  const sv=r.ltl; r.ltl={...sv,on:false}; const b=breakdown(r,id,si); r.ltl=sv; if(!b) return b;
+  const usesFbm=g==="amz"?k==="fbm":P.plat[k]&&P.plat[k].ship==="self"; if(!usesFbm) return b;
+  const i0=b.steps.findIndex(s=>s[0]===tl); if(i0>=0) b.steps.splice(i0,z.length,...z);
+  return b; }   // profit / margin already include LTL (calcProduct)
 function breakdown(r,id,si){
   const [g,k,mode]=id.split(":"), sum=f=>r.pk.reduce((a,x)=>a+f(x),0), fuel=`燃油 ${P.fbm.fuel}%`;
-  const fbmSteps=()=>[["尾程派送",sum(x=>x.tail)],["订单处理",sum(x=>x.handling)],["尾程异常",sum(x=>x.surch)],...(P.residential?[["住宅附加",sum(x=>x.resi)]]:[]),[fuel,sum(x=>x.fbmFuel)]];
+  const tl="尾程派送"+(ltlAny?" / LTL":""), L0=r.ltl&&r.ltl.on;
+  if(L0) return breakdownLtl(r,id,si,g,k,mode,fuel,tl);
+  const fbmSteps=()=>[[tl,sum(x=>x.tail)],["订单处理",sum(x=>x.handling)],["尾程异常",sum(x=>x.surch)],...(P.residential?[["住宅附加",sum(x=>x.resi)]]:[]),[fuel,sum(x=>x.fbmFuel)]];
   if(g==="amz"){
     const logi=k==="fbm"?fbmSteps():k==="cg"?[["CG 派送基础",sum(x=>x.cgShip)],["CG 每磅费",sum(x=>x.cgLb)],["CG 拣货费",sum(x=>x.cgPick)]]:[["FBA 配送费",r.fbaShip]];
     const steps=[[r.dom?"采购成本（退税后）":"采购成本",r.cost],[r.dom?"头程运费":"海运费",r.sc[si].sea],...logi,["推广",r.promo],["汇损",r.fx],["佣金",r.comm],["退款",r.refund]];
@@ -1319,10 +1377,10 @@ async function offer(filename,data,mime){
 function stamp(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0"); }
 document.getElementById("btnExport").addEventListener("click",()=>{
   const R=products.map(p=>({p,r:calcProduct(p)})); const wb=XLSX.utils.book_new(); const r2=v=>isFinite(v)?Math.round(v*100)/100:"";
-  const sumHead=["品名","材质/描述","供应商","品类","FBM旺季","包裹数","售价$","出厂价","出厂价币种","税点","成本调整$","采购成本$","采购占比","推广$","汇损$","佣金$","退款$","FBM尾程合计$(含燃油)","CG尾程合计$","FBA费合计$"];
+  const sumHead=["品名","材质/描述","供应商","品类","FBM旺季","包裹数","售价$","出厂价","出厂价币种","税点","成本调整$","采购成本$","采购占比","推广$","汇损$","佣金$","退款$","FBM尾程方式","FBM尾程合计$(含燃油/LTL)","CG尾程合计$","FBA费合计$"];
   const XL=seaList(P.shipMode); XL.forEach(i=>{ const s=P.sea[i]; sumHead.push(`[${s.name}]海运费$`,`[${s.name}]FBM利润$`,`[${s.name}]FBM利润率`,`[${s.name}]CG利润$`,`[${s.name}]CG利润率`,`[${s.name}]FBA利润$`,`[${s.name}]FBA利润率`); });
   sumHead.push("提示");
-  const sum=[sumHead,...R.map(({p,r})=>[p.name,p.desc,p.supplier,p.category,p.peak,p.pkgs.length,r2(r.price),nz(p.cost),COST_CUR[p.costCur],taxNote(p),nz(p.adj),r2(r.cost),r.price?Math.round(r.cost/r.price*1000)/1000:"",r2(r.promo),r2(r.fx),r2(r.comm),r2(r.refund),r2(r.fbmShip),r2(r.cgShip),r2(r.fbaShip),
+  const sum=[sumHead,...R.map(({p,r})=>[p.name,p.desc,p.supplier,p.category,p.peak,p.pkgs.length,r2(r.price),nz(p.cost),COST_CUR[p.costCur],taxNote(p),nz(p.adj),r2(r.cost),r.price?Math.round(r.cost/r.price*1000)/1000:"",r2(r.promo),r2(r.fx),r2(r.comm),r2(r.refund),r.ltl.on?`LTL（${r.ltl.fromQuote?"报价":"估算"}）`:"快递",r2(r.fbmShip),r2(r.cgShip),r2(r.fbaShip),
     ...XL.map(i=>r.sc[i]).flatMap(s=>[r2(s.sea),r2(s.fbm),r.price?Math.round(s.fbm/r.price*1000)/1000:"",r2(s.cg),r.price?Math.round(s.cg/r.price*1000)/1000:"",r2(s.fba),r.price?Math.round(s.fba/r.price*1000)/1000:""]),r.warn.join("；")])];
   const ws1=aoaSheet(sum); ws1["!cols"]=sumHead.map((h,i)=>({wch:i<2?22:12}));
   const D=detailRows(R); const ws2=aoaSheet([D.head,...D.rows.map(r=>r.map(v=>typeof v==="number"?Math.round(v*10000)/10000:v))]); ws2["!cols"]=D.head.map(()=>({wch:12}));
@@ -1702,6 +1760,7 @@ function migrate(){ const d=defaultParams(); for(const k in d) if(P[k]===undefin
   for(const k in d.showAmz) if(P.showAmz[k]===undefined) P.showAmz[k]=d.showAmz[k];
   for(const k in d.bulk) if(P.bulk[k]===undefined) P.bulk[k]=d.bulk[k];
   for(const k in d.dom) if(P.dom[k]===undefined) P.dom[k]=d.dom[k];
+  for(const k in d.ltl) if(P.ltl[k]===undefined) P.ltl[k]=d.ltl[k];
   for(const k in d.plat){ if(!P.plat[k]) P.plat[k]=d.plat[k]; else for(const f in d.plat[k]) if(P.plat[k][f]===undefined) P.plat[k][f]=d.plat[k][f]; }
   if(!(nz(P.seaView)>=0&&nz(P.seaView)<P.sea.length)) P.seaView=0;
   products.forEach(p=>{ if(!p.prices||typeof p.prices!=="object") p.prices={}; }); }
@@ -1785,7 +1844,7 @@ function libChanged(){ const el=document.getElementById("libCount"); if(el) el.t
 function guessSize(name){ const t=String(name||""); let m=t.match(/(\d{2,3}(?:\.\d)?)\s*(?:寸|"|”|''|inch\b|in\b|英寸)/i)||t.match(/(?:^|[^\d.])(\d{2})(?!\d)/); const v=m?+m[1]:NaN; return v>=12&&v<=120?String(v):""; }
 function guessSeries(name){ return String(name||"").replace(/(\d{2,3}(?:\.\d)?)\s*(?:寸|"|”|''|inch\b|in\b|英寸)/ig," ").replace(/(^|[^\d.])(\d{2})(?!\d)/,(m,a,d)=>(+d>=12&&+d<=120?a:m)).replace(/[（(]?(单包|双包|分包|三包|[一二三两]包)[)）]?/g," ").replace(/[\s\-_/·]+$/,"").replace(/^[\s\-_/·]+/,"").replace(/\s{2,}/g," ").trim().replace(/^[（(]([^）)]*)[)）]$/,"$1"); }
 function fillSeriesSize(p){ if(!p.size) p.size=guessSize(p.name)||guessSize(p.key); if(!p.series) p.series=guessSeries(p.name)||"未分系列"; if(!p.status) p.status="在售"; return p; }
-const LIB_FIELDS=["name","key","desc","supplier","category","peak","price","prices","cost","costRmb","costCur","adj","pkgs","qty","img","series","size","color","status"];
+const LIB_FIELDS=["name","key","desc","supplier","category","peak","price","prices","cost","costRmb","costCur","adj","pkgs","qty","img","series","size","color","status","pack","ltlMode","ltlQuote"];
 function libFromProduct(p,old){ const o=old||{id:"lb"+uid(),createdAt:Date.now()}; for(const k of LIB_FIELDS) if(p[k]!==undefined) o[k]=clone(p[k]); o.updatedAt=Date.now(); return fillSeriesSize(o); }
 const libMatch=p=>(p.libId&&libItems.find(x=>x.id===p.libId))||libItems.find(x=>x.name===p.name&&String(x.series||"")===String(p.series||"")&&String(x.size||"")===String(p.size||""));
 function libUpsertList(list){ let add=0, upd=0;
