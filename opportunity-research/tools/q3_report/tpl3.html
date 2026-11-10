@@ -125,11 +125,10 @@ ol.f li{margin:4px 0}code{background:#f1f0eb;padding:1px 5px;border-radius:4px;f
 <tr><td><i class="dot" style="background:#eda100"></i>Wayfair</td><td>“bathroom vanity with sink” 搜索结果自然位前 150 个链接，归成 123 个父体（剔除 7 个不是浴室柜的）</td><td>商品页内嵌评论（仅当是全部评论时）+ Apify 补抓，2026 年评论全部齐全</td><td><b>按父体</b>：品牌＋系列，评论大量重合的链接并为同一父体</td><td><b>评论推算</b>：已验证购买 ×50 + 其他评论（含送测、Wayfair Professional）×20；共用评论只算一次</td><td>只能到父体；尺寸、价格用父体代表链接</td></tr>
 </table></div>
 <p class="say" style="margin-top:10px"><b>统一口径：</b>月销量 = 2026-08 至 10 的月均；3M 趋势 = 08–10 对比 05–07；锚定尺寸 36″（33–39 in）；尺寸按柜体宽度归 18″/24″/30″/36″/42″/48″/60″/72″+ 档。小平台的绝对量只作参考，渠道之间重点比结构、价格和评分。各指标公式见文末“报告口径”。<br><b>SKU 级明细：</b>四个渠道每个 SKU 的链接、主图、打标、售价、评分、评论数、销量来源和每月销量，见附件《浴室柜四渠道_SKU级明细_2026-11.xlsx》，可以逐个核对。</p></div></section>
-<section id="sT" style="margin-top:18px"><h2>渠道大盘趋势</h2><p class="sub">两年维度：Amazon 销量、销售额 2024-11 至 2026-10，搜索 2024-10 至 2026-09；小平台只有 2026 年。鼠标放在点上看数字，每张图下面是环比、同比、CAGR。</p><!--TOPCH--></section>
-<div class="chcards">
+<section id="sT" style="margin-top:18px"><h2>渠道大盘趋势</h2><p class="sub">两年维度：Amazon 销量、销售额 2024-11 至 2026-10，搜索 2024-10 至 2026-09；小平台只有 2026 年。鼠标放在点上看数字，每张图下面是环比、同比、CAGR。</p><article class="chcards">
 <!--CARDS-->
-</div>
-<div class="card" style="margin-top:12px;font-size:13.5px"><b>卡片上的数字怎么算：</b>
+</article>
+<details class="card" style="margin-top:12px;font-size:13.5px"><summary><b>卡片上的数字怎么算</b>（点开）</summary>
 <ul style="margin:6px 0 0;padding-left:18px">
 <li><b>月销量</b> = 2026-08 至 10 三个月销量合计 ÷ 3（各渠道销量怎么估见上表）。</li>
 <li><b>SKU 数 / 父体数</b> = 2026-08 至 10 有销量的个数，和月销量同期：Amazon 数子体 ASIN，小平台数父体；Lowe&#39;s 为 2026-11-02 榜单当下点。</li>
@@ -138,7 +137,9 @@ ol.f li{margin:4px 0}code{background:#f1f0eb;padding:1px 5px;border-radius:4px;f
 <li><b>加权评分</b> = Σ(每个 SKU 月销量 × 页面评分) ÷ Σ 月销量；没有评分的商品不参与。</li>
 <li><b>拆装占比</b> = 拆装商品的月销量 ÷（拆装 + 整装商品的月销量），没标出拆装 / 整装的不算在内。</li>
 <li><b>质量机会值</b> = 把渠道里评分低于 4.5 的 SKU 逐个算“该 SKU 月销量 ÷ 渠道总月销量 ×（4.5 − 该 SKU 评分）”，全部加起来再 × 100。<br>例：一个 SKU 占渠道销量 10%、评分 4.0，它贡献 10% × 0.5 × 100 = 5。数值越大，说明“卖得多但评价差”的销量越多，越有机会用更好的质量切进去；评分 4.5 及以上的商品不计入。</li>
-</ul></div>
+</ul></details>
+<!--TOPCH--></section>
+
 <!--CONC-->
 <!--EDB:<b>一句话总结：</b>四个渠道卖的不是一种货。Amazon 是 400 美元以下的拆装陶瓷盆，评分普遍偏低；Home Depot、Lowe's 是整装 + 石材 / 人造大理石台面，质量机会值最高；Wayfair 价格高、评分最好（4.6）。（点击可改）-->
 <nav><a href="#s0">取数逻辑</a><a href="#s1">① 渠道总览</a><a href="#s2">② 多渠道对照</a><a href="#s2t">②· 分平台属性表</a><a href="#s2x">②+ 交叉筛选</a><a href="#s3">③ 分渠道明细</a><a href="#s4">④ Amazon 大盘</a><a href="#s5">⑤ Amazon 结构变化</a><a href="#s6">⑥ 关键词趋势</a><a href="#s7">⑦ 结论</a><a href="#s8">报告口径</a></nav>
