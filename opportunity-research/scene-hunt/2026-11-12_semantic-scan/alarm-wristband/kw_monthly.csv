@@ -1,0 +1,412 @@
+month,group,keyword,searches,purchases,products,adProducts,avgPrice,avgRating,titleDensity
+2025-07,ref,alarm clock for heavy sleepers,110423,3235,1662,142,19.99,4.5,22
+2025-07,ref,vibrating alarm clock,17397,764,630,104,25.99,4.3,34
+2025-07,ref,pavlok,8715,309,64,3,139.99,3.7,18
+2025-07,ref,bed shaker alarm clock,6686,283,387,31,27.99,4.3,7
+2025-07,ref,pavlok shock clock 3,4200,287,43,5,159.99,3.5,16
+2025-07,core,silent alarm wristband,4010,100,169,9,25.99,3.7,10
+2025-07,core,vibrating alarm wristband,3635,111,209,34,21.99,3.7,3
+2025-07,core,alarm watch,3287,68,10371,10,20.39,3.7,7
+2025-07,core,vibrating alarm watch,3268,78,519,10,21.99,3.7,14
+2025-07,core,vibrating alarm,2481,76,632,22,25.99,4.3,39
+2025-07,brand,fitsleep,1753,44,135,,99.99,3.4,43
+2025-07,core,silent alarm,1587,36,2320,4,21.99,4.3,9
+2025-07,core,wearable alarm clock,1483,23,810,9,78.8,3.7,1
+2025-07,core,alarm watch for heavy sleepers,1445,17,378,7,139.99,3.7,0
+2025-07,core,wrist alarm clock vibrating,1433,47,343,21,139.99,3.7,0
+2025-07,core,wrist alarm,846,18,5020,9,21.99,3.7,1
+2025-07,core,alarm clock watch,844,11,6169,4,21.99,3.9,25
+2025-07,core,vibration alarm,645,6,3982,16,21.99,4.3,9
+2025-07,core,alarm bracelet for heavy sleepers,333,19,131,25,139.99,3.7,0
+2025-07,core,alarm wristband,140,9,592,16,21.99,3.7,14
+2025-07,core,wrist alarm clock,140,3,2565,3,21.99,3.7,0
+2025-07,core,alarm bracelet,140,3,720,5,21.99,3.7,8
+2025-07,ref,shock alarm bracelet,140,4,165,5,139.99,3.7,0
+2025-10,ref,alarm clock for heavy sleepers,123583,4054,1726,190,29.99,4.5,19
+2025-10,ref,vibrating alarm clock,17598,670,863,88,22.09,4.3,31
+2025-10,core,vibrating alarm wristband,13514,488,265,86,21.99,3.7,1
+2025-10,brand,fitsleep,13341,119,71,54,21.99,2.7,29
+2025-10,ref,pavlok,11654,367,73,14,149.99,3.7,11
+2025-10,ref,bed shaker alarm clock,6607,248,457,45,39.99,4.5,8
+2025-10,brand,fitsleeps,5832,19,32,6,21.99,2.7,27
+2025-10,core,alarm watch,4259,105,11863,59,21.99,3.7,4
+2025-10,brand,fit sleeps wrist alarm,3794,24,739,37,19.99,3.2,0
+2025-10,core,silent alarm wristband,3628,100,173,18,21.99,3.7,9
+2025-10,ref,pavlok shock clock 3,3517,236,47,4,149.99,3.7,18
+2025-10,core,wrist alarm clock vibrating,3122,113,465,20,21.99,3.7,0
+2025-10,core,vibrating alarm watch,2660,67,741,22,21.99,3.7,14
+2025-10,core,alarm bracelet,2628,55,477,10,21.99,3.7,9
+2025-10,core,vibrating alarm,2577,68,561,29,22.09,4.3,33
+2025-10,core,alarm wristband,1967,6,447,6,21.99,3.7,10
+2025-10,core,alarm watch for heavy sleepers,1933,25,486,28,21.99,3.7,0
+2025-10,brand,fit sleep,1760,14,1541,7,19.99,2.7,0
+2025-10,core,wrist alarm clock,1655,43,2852,16,21.99,3.7,0
+2025-10,core,alarm clock watch,1619,32,6237,5,21.99,3.7,5
+2025-10,core,wearable alarm clock,1619,29,1513,47,22.09,3.9,1
+2025-10,core,wrist alarm,1600,41,5143,4,21.99,3.7,1
+2025-10,core,silent alarm,1513,32,4529,17,22.09,3.9,11
+2025-10,core,alarm bracelet for heavy sleepers,1260,7,127,2,139.99,3.7,1
+2025-10,core,vibration alarm,844,9,5283,3,19.99,4.4,3
+2025-10,core,wake up bracelet,737,5,192,8,139.99,3.7,4
+2025-10,core,vibrating wrist alarm,531,5,527,4,20.99,3.7,0
+2025-10,core,silent vibrating alarm wristband,140,1,125,2,21.99,3.7,0
+2026-01,ref,alarm clock for heavy sleepers,127597,4364,2238,130,19.69,4.5,18
+2026-01,core,vibrating alarm wristband,23071,584,283,71,21.99,3.7,10
+2026-01,brand,fitsleep,22792,212,58,13,28.99,3.7,15
+2026-01,ref,vibrating alarm clock,20519,796,969,41,23.99,4.3,35
+2026-01,brand,fitsleeps,14719,56,29,10,23.99,3.5,14
+2026-01,brand,fit sleeps wrist alarm,14371,66,934,45,21.99,3.7,1
+2026-01,ref,pavlok,14143,420,84,28,159.99,3.5,6
+2026-01,core,silent alarm wristband,8478,179,226,9,39.98,3.7,5
+2026-01,ref,bed shaker alarm clock,7696,326,450,45,29.99,4.3,7
+2026-01,core,wrist alarm clock vibrating,6666,217,450,24,21.99,3.7,0
+2026-01,core,alarm bracelet,6351,161,888,23,21.99,3.7,7
+2026-01,core,alarm watch,6170,115,12004,26,139.99,3.7,5
+2026-01,ref,pavlok shock clock 3,5203,367,65,6,179.99,3.7,19
+2026-01,core,vibrating alarm,5029,136,878,26,23.99,4.3,36
+2026-01,core,alarm wristband,3922,43,759,14,139.99,3.7,17
+2026-01,brand,fit sleep,3575,15,8354,23,21.99,3.7,2
+2026-01,core,wrist alarm,3322,72,5695,34,139.99,3.7,3
+2026-01,core,vibrating alarm watch,2923,79,682,23,21.99,3.7,11
+2026-01,core,silent alarm,2638,46,4480,40,23.99,4.0,2
+2026-01,core,alarm watch for heavy sleepers,2620,34,549,32,72.6,4.0,0
+2026-01,core,alarm bracelet for heavy sleepers,2524,11,155,16,139.99,3.7,0
+2026-01,core,wrist alarm clock,2494,60,3115,14,139.99,3.7,2
+2026-01,core,alarm clock watch,2410,47,6893,21,21.99,3.7,2
+2026-01,core,wearable alarm clock,2392,48,1612,7,23.99,4.0,0
+2026-01,core,vibrating wrist alarm,2098,12,478,10,21.99,3.7,0
+2026-01,core,vibration alarm,1729,25,5010,38,23.99,4.3,1
+2026-01,core,wake up bracelet,1406,8,196,11,139.99,3.7,4
+2026-01,core,vibration alarm wristband,826,3,202,7,25.99,3.7,0
+2026-01,core,wristband alarm,795,8,780,16,23.99,4.3,1
+2026-01,core,vibrating watch alarm,513,6,671,8,21.99,3.7,0
+2026-01,ref,shock alarm bracelet,140,5,165,9,139.99,3.7,0
+2026-02,ref,alarm clock for heavy sleepers,129838,3778,2181,194,18.99,4.5,20
+2026-02,core,vibrating alarm wristband,23513,736,289,137,23.99,4.0,22
+2026-02,ref,vibrating alarm clock,20490,877,1019,65,23.99,4.3,33
+2026-02,ref,pavlok,13949,402,84,6,159.99,3.7,9
+2026-02,brand,fitsleep,9883,69,71,63,22.99,3.5,11
+2026-02,ref,bed shaker alarm clock,7151,295,470,45,29.99,4.4,6
+2026-02,core,silent alarm wristband,6619,132,241,26,39.98,3.7,4
+2026-02,brand,fit sleeps wrist alarm,6523,44,938,44,22.99,3.5,0
+2026-02,brand,fitsleeps,6469,27,34,15,22.99,3.5,15
+2026-02,core,alarm watch,5374,130,10981,75,139.99,3.7,4
+2026-02,ref,pavlok shock clock 3,5323,352,65,5,159.99,3.7,16
+2026-02,core,wrist alarm clock vibrating,5231,153,482,87,39.98,3.7,0
+2026-02,core,alarm bracelet,4886,90,793,12,139.99,3.7,3
+2026-02,core,vibrating alarm,4838,175,888,37,23.99,4.3,37
+2026-02,core,alarm wristband,2813,21,776,11,23.99,3.7,19
+2026-02,core,alarm watch for heavy sleepers,2755,57,544,14,72.6,4.0,0
+2026-02,core,wrist alarm,2624,60,5124,53,139.99,3.7,4
+2026-02,core,vibrating alarm watch,2470,62,698,71,21.99,3.7,7
+2026-02,core,silent alarm,2301,46,4178,19,23.99,4.0,13
+2026-02,core,alarm bracelet for heavy sleepers,2200,13,150,21,139.99,3.7,0
+2026-02,brand,fit sleep,2033,12,192,5,22.99,3.5,3
+2026-02,core,wrist alarm clock,1940,47,3156,5,23.99,4.0,2
+2026-02,core,alarm clock watch,1839,34,6953,21,23.99,4.0,8
+2026-02,core,wearable alarm clock,1778,25,2802,8,23.99,4.0,0
+2026-02,core,vibration alarm,1531,30,4635,7,21.99,4.4,1
+2026-02,core,vibrating wrist alarm,1503,14,434,5,39.98,3.5,0
+2026-02,core,wake up bracelet,1332,8,178,13,23.99,4.0,3
+2026-02,core,vibrate wrist alarm,803,4,371,12,39.99,3.7,0
+2026-02,core,vibration alarm wristband,770,5,288,4,39.99,3.7,0
+2026-02,core,vibrating watch alarm,521,4,688,18,20.99,3.7,0
+2026-02,core,silent vibrating alarm wristband,140,2,190,7,39.98,3.7,9
+2026-03,ref,alarm clock for heavy sleepers,129033,3652,2139,95,27.99,4.5,23
+2026-03,core,vibrating alarm wristband,31055,950,259,78,23.99,4.4,11
+2026-03,brand,fitsleep,24145,278,61,66,22.99,3.5,7
+2026-03,ref,vibrating alarm clock,20611,921,928,39,23.99,4.3,32
+2026-03,brand,fitsleeps,15651,114,42,8,22.99,3.5,7
+2026-03,ref,pavlok,14661,520,97,4,159.99,3.7,9
+2026-03,brand,fit sleeps wrist alarm,12195,73,900,22,22.99,3.5,1
+2026-03,core,vibrating alarm,7358,261,972,8,23.99,4.3,38
+2026-03,core,alarm watch,7351,126,11405,20,21.99,4.5,4
+2026-03,ref,bed shaker alarm clock,6736,296,467,39,39.99,4.5,7
+2026-03,core,silent alarm wristband,6632,179,253,15,39.98,3.5,2
+2026-03,ref,pavlok shock clock 3,6629,471,63,4,159.99,3.7,23
+2026-03,core,wrist alarm clock vibrating,6340,189,486,24,21.99,3.5,0
+2026-03,core,alarm bracelet,5340,97,851,5,21.99,3.5,0
+2026-03,core,alarm watch for heavy sleepers,3693,56,7818,22,159.99,3.7,0
+2026-03,brand,fit sleep,3296,27,162398,14,22.99,3.4,4
+2026-03,core,wrist alarm,3144,65,5407,4,49.99,3.7,4
+2026-03,core,alarm wristband,3006,13,764,7,49.99,4.0,21
+2026-03,core,silent alarm,2794,53,4496,7,21.99,3.5,7
+2026-03,core,vibrating alarm watch,2758,63,657,8,21.99,3.5,9
+2026-03,core,alarm bracelet for heavy sleepers,2715,8,174,5,139.99,3.7,0
+2026-03,core,wearable alarm clock,2446,47,1396,4,23.99,4.4,0
+2026-03,core,vibrating wrist alarm,2391,9,454,17,21.99,3.5,0
+2026-03,core,vibration alarm,2371,44,4780,32,21.99,3.5,4
+2026-03,core,alarm clock watch,2217,39,6693,9,49.99,4.0,7
+2026-03,core,vibration alarm wristband,2187,14,296,7,21.99,3.5,0
+2026-03,core,wrist alarm clock,1911,52,3327,20,49.99,3.7,2
+2026-03,core,vibrating watch alarm,1403,17,688,7,21.99,3.7,0
+2026-03,ref,shock alarm bracelet,1371,47,141,4,159.99,3.7,0
+2026-03,core,wristband alarm,743,4,780,3,129.99,3.5,0
+2026-03,core,wake up bracelet,711,8,178,6,20.99,3.7,3
+2026-03,core,vibrate wrist alarm,635,5,371,4,21.99,3.5,0
+2026-03,core,bracelet alarm clock vibrating,519,2,180,4,21.99,3.5,0
+2026-03,core,silent alarm clock wristband,140,1,118,9,21.99,3.5,0
+2026-04,ref,alarm clock for heavy sleepers,118278,4223,2097,122,26.97,4.5,25
+2026-04,core,vibrating alarm wristband,38149,1049,304,66,21.99,3.5,12
+2026-04,brand,fitsleeps,25007,205,48,21,22.99,3.4,3
+2026-04,brand,fitsleep,24705,200,71,68,22.99,3.5,6
+2026-04,ref,vibrating alarm clock,18124,770,979,56,23.99,4.3,32
+2026-04,ref,pavlok,18072,539,105,10,129.99,3.5,17
+2026-04,brand,fit sleeps wrist alarm,13695,140,563,19,21.99,3.5,0
+2026-04,ref,pavlok shock clock 3,9259,650,80,13,21.99,3.5,17
+2026-04,core,alarm watch,7816,163,11442,30,21.99,3.5,6
+2026-04,core,silent alarm wristband,7359,145,207,25,21.99,3.5,2
+2026-04,core,vibrating alarm,7337,201,935,23,21.99,3.5,36
+2026-04,core,wrist alarm clock vibrating,6910,180,373,5,21.99,3.5,0
+2026-04,core,alarm bracelet,6257,99,901,12,21.99,3.5,1
+2026-04,ref,bed shaker alarm clock,6175,269,458,40,25.49,4.3,3
+2026-04,core,wrist alarm,5255,87,5146,11,21.99,3.5,4
+2026-04,ref,shock alarm bracelet,4785,160,137,3,21.99,3.5,0
+2026-04,core,alarm watch for heavy sleepers,4391,45,542,26,21.99,3.5,0
+2026-04,brand,fit sleep,4132,13,111,6,22.99,3.5,5
+2026-04,core,vibrating wrist alarm,3699,40,434,23,21.99,3.5,0
+2026-04,core,alarm wristband,3452,36,787,18,21.99,3.5,20
+2026-04,core,silent alarm,3022,60,4291,25,21.99,3.5,8
+2026-04,core,alarm bracelet for heavy sleepers,2924,25,164,12,21.99,3.5,0
+2026-04,core,vibrating alarm watch,2785,77,6879,49,21.99,3.5,16
+2026-04,core,wearable alarm clock,2730,45,1630,8,21.99,3.5,0
+2026-04,core,vibration alarm,2721,51,4360,18,21.99,3.5,4
+2026-04,core,vibration alarm wristband,2544,12,262,4,21.99,3.5,0
+2026-04,core,alarm clock watch,2333,36,6651,19,21.99,3.5,6
+2026-04,core,wrist alarm clock,2075,52,2863,17,21.99,3.5,1
+2026-04,brand,onyx vibration alarm,2057,22,51,,21.99,3.5,0
+2026-04,core,vibrating watch alarm,1976,10,707,8,21.99,3.5,0
+2026-04,core,silent vibrating alarm wristband,976,10,190,4,39.98,3.5,0
+2026-04,core,wristband alarm,647,7,6889,3,21.99,3.5,1
+2026-04,core,vibrate wrist alarm,488,6,447,6,21.99,3.5,0
+2026-04,core,wake up bracelet,140,2,178,6,21.99,3.5,3
+2026-04,core,bracelet alarm clock vibrating,140,1,180,6,22.99,4.0,0
+2026-05,ref,alarm clock for heavy sleepers,84404,2287,2431,84,27.99,4.5,24
+2026-05,core,vibrating alarm wristband,44930,1281,252,61,21.99,3.5,13
+2026-05,brand,fitsleeps,27879,259,42,25,21.99,3.5,6
+2026-05,ref,pavlok,18335,631,100,20,21.99,3.5,14
+2026-05,brand,onyx vibration alarm,18039,148,48,8,21.99,3.5,1
+2026-05,core,wrist alarm,14927,391,5028,50,21.99,3.5,9
+2026-05,ref,vibrating alarm clock,13220,564,804,47,25.99,4.0,34
+2026-05,brand,fitsleep,11676,127,60,76,21.99,3.5,5
+2026-05,brand,histrips alarm,9824,96,163,,21.99,3.5,0
+2026-05,core,silent alarm wristband,9574,273,205,23,21.99,3.5,2
+2026-05,brand,fit sleeps wrist alarm,8849,45,527,29,21.99,3.5,0
+2026-05,core,alarm watch,8808,199,11096,37,21.99,3.5,4
+2026-05,core,alarm bracelet,8300,129,765,32,21.99,3.5,1
+2026-05,core,vibration alarm wristband,7961,58,232,14,21.99,3.5,0
+2026-05,core,wrist alarm clock vibrating,7804,222,334,7,21.99,3.5,0
+2026-05,core,vibrating alarm,7626,226,838,21,21.99,3.5,40
+2026-05,ref,pavlok shock clock 3,7602,530,80,4,129.99,3.5,16
+2026-05,core,vibrating wrist alarm,7330,60,537,7,21.99,3.5,0
+2026-05,ref,shock alarm bracelet,5913,156,127,5,21.99,3.5,1
+2026-05,core,vibration alarm,5852,102,4567,40,21.99,3.5,5
+2026-05,core,alarm wristband,5805,39,639,7,21.99,3.5,19
+2026-05,ref,bed shaker alarm clock,5203,219,366,12,25.99,4.0,7
+2026-05,core,alarm watch for heavy sleepers,4699,94,202,37,21.99,3.5,0
+2026-05,core,vibrating alarm watch,3839,74,549,8,21.99,3.5,9
+2026-05,core,silent alarm,3694,68,4405,8,21.99,3.5,5
+2026-05,core,wrist alarm clock,3087,54,2888,21,21.99,3.5,2
+2026-05,brand,fit sleep,2974,23,49140,44,21.99,3.5,2
+2026-05,core,alarm bracelet for heavy sleepers,2496,29,147,4,21.99,3.5,0
+2026-05,core,vibrating watch alarm,2454,12,648,5,21.99,3.5,0
+2026-05,core,wearable alarm clock,2366,46,2677,7,21.99,3.5,0
+2026-05,core,alarm clock watch,2123,31,6519,8,21.99,3.5,8
+2026-05,core,wristband alarm,1993,9,556,35,21.99,3.5,0
+2026-05,brand,fitsleeps wrist alarm,764,5,79,,34.99,3.2,0
+2026-05,core,bracelet alarm clock vibrating,704,6,164,4,21.99,3.5,0
+2026-05,core,silent vibrating alarm wristband,556,3,179,37,21.99,3.5,4
+2026-05,core,vibrate wrist alarm,527,3,394,4,21.99,3.5,0
+2026-05,core,silent alarm clock wristband,344,2,315,4,21.99,3.5,1
+2026-05,core,wake up bracelet,140,1,229,8,21.99,3.5,6
+2026-06,ref,alarm clock for heavy sleepers,81573,2953,1370,119,27.99,4.5,22
+2026-06,core,vibrating alarm wristband,48419,1385,325,104,21.99,3.5,20
+2026-06,brand,onyx vibration alarm,31861,347,207,48,21.99,3.5,1
+2026-06,brand,fitsleeps,28238,294,42,18,21.99,3.5,8
+2026-06,ref,pavlok,22065,715,99,19,21.99,3.5,12
+2026-06,core,wrist alarm,22011,568,4786,60,21.99,3.5,9
+2026-06,brand,histrips alarm,20458,168,166,54,21.99,3.5,0
+2026-06,ref,vibrating alarm clock,15994,603,722,33,21.99,4.0,32
+2026-06,core,alarm bracelet,14166,279,730,60,21.99,3.5,1
+2026-06,ref,pavlok shock clock 3,13205,927,79,15,21.99,3.5,19
+2026-06,core,alarm watch,12697,259,10501,27,21.99,3.5,5
+2026-06,core,vibration alarm wristband,12379,73,340,34,21.99,3.5,0
+2026-06,core,vibrating alarm,9668,284,815,37,21.99,3.5,37
+2026-06,core,vibrating wrist alarm,9310,50,327,33,21.99,3.5,0
+2026-06,brand,fit sleeps wrist alarm,8996,73,540,27,21.99,3.5,0
+2026-06,core,silent alarm wristband,8743,192,526,20,21.99,3.5,2
+2026-06,core,alarm wristband,8573,34,592,46,21.99,3.5,15
+2026-06,brand,fitsleep,8006,91,55,28,21.99,3.5,8
+2026-06,core,vibration alarm,7643,117,4673,51,21.99,3.5,4
+2026-06,core,wrist alarm clock vibrating,7529,255,287,28,21.99,3.5,0
+2026-06,ref,shock alarm bracelet,6929,227,287,20,21.99,3.5,1
+2026-06,ref,bed shaker alarm clock,6040,237,333,33,25.99,4.4,5
+2026-06,core,alarm watch for heavy sleepers,4835,50,222,9,21.99,3.5,0
+2026-06,core,wrist alarm clock,3979,73,3557,9,21.99,3.5,4
+2026-06,core,wake up bracelet,3749,35,367,9,21.99,3.5,6
+2026-06,core,vibrating alarm watch,3687,98,519,19,21.99,3.5,7
+2026-06,core,silent alarm,3497,72,4637,15,21.99,3.5,4
+2026-06,core,alarm bracelet for heavy sleepers,2997,33,161,13,21.99,3.5,1
+2026-06,core,alarm clock watch,2800,53,6069,13,21.99,3.5,9
+2026-06,brand,fit sleep,2571,14,113,24,22.39,3.7,3
+2026-06,core,wristband alarm,2531,12,552,6,21.99,3.5,1
+2026-06,core,vibrating watch alarm,2531,18,494,9,21.99,3.5,0
+2026-06,core,wearable alarm clock,2511,41,2927,5,21.99,3.5,0
+2026-06,brand,fitsleeps wrist alarm,1165,7,108,3,21.99,3.5,0
+2026-06,core,bracelet alarm clock vibrating,816,8,174,3,21.99,3.5,0
+2026-06,core,silent vibrating alarm wristband,798,3,185,22,21.99,3.5,5
+2026-06,core,vibrate wrist alarm,666,3,287,4,21.99,3.5,0
+2026-06,core,silent alarm clock wristband,527,6,283,16,21.99,3.5,1
+2026-07,ref,alarm clock for heavy sleepers,106421,3129,1400,114,34.99,4.5,16
+2026-07,core,vibrating alarm wristband,43468,1426,249,126,21.99,3.5,22
+2026-07,brand,onyx vibration alarm,21426,234,65,40,21.99,3.5,0
+2026-07,brand,fitsleeps,20409,241,42,16,23.99,3.5,3
+2026-07,ref,pavlok,14845,444,112,4,137.99,3.5,23
+2026-07,ref,vibrating alarm clock,14777,658,691,69,25.99,4.0,31
+2026-07,brand,histrips alarm,14175,122,176,43,21.99,3.5,0
+2026-07,core,wrist alarm,13917,228,4751,15,23.99,3.5,9
+2026-07,core,alarm watch,9521,162,10711,29,21.99,3.5,6
+2026-07,core,vibration alarm wristband,9267,91,241,5,21.99,3.5,0
+2026-07,core,alarm bracelet,8939,152,665,22,21.99,3.5,1
+2026-07,ref,pavlok shock clock 3,8346,604,87,5,166.99,3.5,16
+2026-07,ref,bed shaker alarm clock,7770,307,338,21,41.99,4.5,4
+2026-07,core,vibrating alarm,7534,200,778,3,21.99,3.5,37
+2026-07,core,wrist alarm clock vibrating,7301,183,307,20,21.99,3.5,0
+2026-07,core,vibrating wrist alarm,6913,49,260,29,21.99,3.5,1
+2026-07,core,silent alarm wristband,6755,147,199,16,21.99,3.5,1
+2026-07,brand,fit sleeps wrist alarm,6361,56,496,23,23.88,3.7,0
+2026-07,core,vibration alarm,6297,75,5173,29,21.99,3.5,3
+2026-07,ref,shock alarm bracelet,6212,215,165,3,21.99,3.5,1
+2026-07,core,alarm wristband,5853,44,542,6,23.99,3.5,23
+2026-07,brand,fitsleep,4745,38,50,11,21.99,3.5,1
+2026-07,core,alarm watch for heavy sleepers,4632,68,285,16,21.99,3.5,0
+2026-07,core,wake up bracelet,4046,41,253,26,21.99,3.5,6
+2026-07,brand,fitsleeps wrist alarm,3769,37,97,6,23.88,3.5,0
+2026-07,core,silent alarm,3104,46,5047,32,25.99,4.3,10
+2026-07,core,vibrating alarm watch,2884,57,568,22,23.99,3.5,9
+2026-07,core,alarm bracelet for heavy sleepers,2787,17,150,4,21.99,3.5,0
+2026-07,core,wrist alarm clock,2697,50,2047,4,21.99,3.5,2
+2026-07,core,vibrating watch alarm,2261,16,482,8,23.99,3.5,0
+2026-07,core,wearable alarm clock,2079,32,3109,16,21.99,3.5,0
+2026-07,core,alarm clock watch,2056,22,6080,44,21.99,3.5,8
+2026-07,core,wristband alarm,1707,20,662,11,21.99,3.5,1
+2026-07,brand,fit sleep,1496,8,132,19,23.88,3.7,1
+2026-07,core,silent vibrating alarm wristband,621,7,198,7,21.99,3.5,2
+2026-07,core,bracelet alarm clock vibrating,438,4,197,5,23.88,3.5,0
+2026-08,ref,alarm clock for heavy sleepers,131349,3310,1830,157,27.99,4.4,15
+2026-08,core,vibrating alarm wristband,70219,1770,282,199,23.88,3.2,14
+2026-08,ref,vibrating alarm clock,23749,974,754,100,25.99,4.0,27
+2026-08,brand,onyx vibration alarm,21388,139,78,50,23.88,3.2,1
+2026-08,brand,fitsleeps wrist alarm,20931,149,124,48,23.88,3.2,0
+2026-08,ref,pavlok,19260,591,126,23,154.99,3.5,15
+2026-08,core,wrist alarm,17876,447,5168,39,23.88,3.2,4
+2026-08,core,vibrating alarm,14703,416,647,53,25.99,3.2,34
+2026-08,core,vibration alarm wristband,14191,44,269,45,23.88,3.2,0
+2026-08,ref,bed shaker alarm clock,13704,544,317,38,25.99,4.4,3
+2026-08,core,alarm bracelet,13669,339,722,53,23.88,3.2,1
+2026-08,brand,histrips alarm,13665,56,144,75,23.88,3.2,0
+2026-08,core,wrist alarm clock vibrating,13194,454,285,40,38.95,3.2,0
+2026-08,ref,pavlok shock clock 3,13147,887,174,11,154.99,3.5,16
+2026-08,core,vibrating wrist alarm,11695,50,396,45,21.99,3.2,0
+2026-08,core,alarm watch,11604,205,10330,77,23.88,3.2,4
+2026-08,brand,fit sleeps wrist alarm,11037,96,799,55,23.88,3.2,0
+2026-08,brand,fitsleeps,9438,46,56,63,23.88,3.2,4
+2026-08,core,alarm wristband,9288,46,568,55,23.88,3.2,20
+2026-08,core,silent alarm wristband,9145,190,222,53,23.88,3.2,0
+2026-08,ref,shock alarm bracelet,7550,251,170,24,137.99,3.7,1
+2026-08,core,vibration alarm,7545,141,5673,52,25.99,3.2,2
+2026-08,core,wrist alarm clock,6583,130,2623,33,21.99,3.2,0
+2026-08,core,alarm watch for heavy sleepers,5421,55,299,36,23.88,3.2,1
+2026-08,core,wake up bracelet,5316,37,259,13,38.95,3.2,4
+2026-08,brand,fitsleep,4508,52,49,12,23.88,3.2,8
+2026-08,core,silent alarm,4447,79,5152,13,25.99,3.2,6
+2026-08,core,vibrating alarm watch,4136,76,518,41,38.95,3.2,9
+2026-08,core,alarm bracelet for heavy sleepers,3421,19,166,32,23.88,3.2,0
+2026-08,core,alarm clock watch,2925,58,6806,23,23.88,3.2,5
+2026-08,core,vibrating watch alarm,2683,29,587,7,38.95,3.2,0
+2026-08,core,wristband alarm,2655,11,572,17,23.88,3.2,5
+2026-08,core,wearable alarm clock,2396,45,1903,28,25.99,3.2,0
+2026-08,brand,fit sleep,1893,8,147,13,23.88,3.2,2
+2026-08,core,bracelet alarm clock vibrating,1694,12,199,29,23.88,3.2,0
+2026-08,brand,fitsleeps pro vibrating alarm watch,1645,13,140,,23.88,3.2,0
+2026-08,core,silent vibrating alarm wristband,1361,15,231,4,21.99,3.2,0
+2026-08,core,vibrate wrist alarm,1200,6,307,13,23.99,3.2,0
+2026-08,core,silent alarm clock wristband,515,6,220,8,38.95,3.2,1
+2026-09,ref,alarm clock for heavy sleepers,128714,4685,2007,65,27.99,4.4,20
+2026-09,core,vibrating alarm wristband,69070,1803,388,76,23.99,2.7,18
+2026-09,brand,fitsleeps wrist alarm,39146,133,147,37,39.0,2.4,0
+2026-09,ref,pavlok,19517,642,194,15,119.99,3.7,13
+2026-09,brand,fit sleeps wrist alarm,18814,119,872,20,38.95,2.4,0
+2026-09,brand,fitsleeps,18399,162,64,37,39.0,2.4,2
+2026-09,ref,vibrating alarm clock,18181,762,882,54,23.36,4.0,26
+2026-09,core,wrist alarm,15347,381,5214,41,23.99,2.7,7
+2026-09,brand,onyx vibration alarm,15266,142,91,44,23.99,2.7,1
+2026-09,core,silent alarm wristband,14761,404,234,19,23.99,2.7,1
+2026-09,core,vibrating alarm,13586,359,976,4,23.36,3.2,34
+2026-09,core,alarm bracelet,12701,250,829,63,23.99,2.7,2
+2026-09,core,alarm watch,12295,282,10737,79,23.99,2.7,3
+2026-09,ref,bed shaker alarm clock,12130,478,366,44,35.69,4.4,2
+2026-09,core,vibration alarm wristband,12006,118,305,15,23.99,2.7,0
+2026-09,core,wrist alarm clock vibrating,9930,320,335,24,23.99,2.7,1
+2026-09,brand,fitsleep,9752,53,71,36,39.0,2.4,2
+2026-09,ref,pavlok shock clock 3,9584,685,184,25,184.99,3.7,14
+2026-09,core,vibrating wrist alarm,8318,33,422,14,23.99,2.7,0
+2026-09,core,alarm wristband,7628,70,674,47,23.99,2.7,24
+2026-09,ref,shock alarm bracelet,7513,273,170,14,109.99,3.7,0
+2026-09,brand,fit sleep,6169,27,171,57,39.0,2.4,0
+2026-09,core,vibration alarm,5987,97,5622,56,23.36,3.2,2
+2026-09,brand,histrips alarm,5955,26,120,27,23.99,3.5,0
+2026-09,core,alarm watch for heavy sleepers,5538,90,406,8,23.99,2.7,2
+2026-09,core,silent alarm,4916,80,5322,14,23.36,3.2,6
+2026-09,core,wake up bracelet,4852,32,354,23,23.99,2.7,8
+2026-09,core,vibrating alarm watch,3882,108,870,18,23.99,2.7,9
+2026-09,core,wrist alarm clock,3446,90,2652,5,23.99,2.7,3
+2026-09,core,alarm bracelet for heavy sleepers,3385,13,188,4,38.95,3.2,1
+2026-09,brand,fitsleeps pro vibrating alarm watch,3148,26,153,15,39.0,2.4,0
+2026-09,core,alarm clock watch,2730,43,7258,10,38.95,3.2,4
+2026-09,core,vibrate wrist alarm,2699,28,430,4,23.99,2.7,0
+2026-09,core,vibrating watch alarm,2613,19,694,4,23.99,2.7,0
+2026-09,core,wearable alarm clock,2597,33,2049,5,23.99,2.7,0
+2026-09,core,wristband alarm,2057,15,728,10,23.99,2.7,2
+2026-09,core,silent vibrating alarm wristband,1960,20,223,14,23.99,2.7,1
+2026-09,core,silent alarm clock wristband,1843,16,258,4,38.95,2.4,0
+2026-09,core,bracelet alarm clock vibrating,1667,17,247,22,23.99,2.7,0
+2026-10,ref,alarm clock for heavy sleepers,111488,3255,2487,163,34.99,4.4,15
+2026-10,core,vibrating alarm wristband,69790,2366,555,278,21.99,2.5,20
+2026-10,brand,fitsleeps wrist alarm,47036,268,178,96,39.0,2.5,0
+2026-10,brand,fit sleeps wrist alarm,24335,158,1126,79,39.0,2.5,0
+2026-10,core,silent alarm wristband,22689,476,774,91,21.99,2.5,1
+2026-10,brand,fitsleeps,20452,209,101,69,39.0,2.5,0
+2026-10,core,wrist alarm,16516,269,6201,155,21.99,2.5,5
+2026-10,ref,vibrating alarm clock,15530,697,1088,115,24.59,4.0,23
+2026-10,ref,pavlok,14799,374,139,34,169.99,3.7,15
+2026-10,core,alarm watch,13644,310,12261,79,38.95,3.2,4
+2026-10,core,alarm bracelet,13279,230,1616,106,21.99,2.7,1
+2026-10,core,vibrating alarm,13087,465,1316,94,24.59,3.2,32
+2026-10,core,wrist alarm clock vibrating,12668,321,748,165,21.99,3.2,0
+2026-10,brand,fitsleep,11681,109,104,68,39.0,2.5,0
+2026-10,brand,onyx vibration alarm,9869,42,188,28,19.99,2.5,0
+2026-10,core,vibration alarm wristband,9728,39,561,119,21.99,3.2,0
+2026-10,core,alarm wristband,9286,71,991,84,21.99,2.5,24
+2026-10,ref,bed shaker alarm clock,9048,349,283,73,39.99,4.4,2
+2026-10,core,vibrating wrist alarm,8919,51,743,86,21.99,2.5,0
+2026-10,brand,fit sleep,8678,40,123,58,39.0,2.5,1
+2026-10,ref,pavlok shock clock 3,7958,582,147,22,184.99,3.7,11
+2026-10,core,silent alarm,7868,111,6150,78,24.59,3.2,8
+2026-10,ref,shock alarm bracelet,5978,216,429,35,137.99,3.7,1
+2026-10,core,wake up bracelet,5557,48,625,32,38.95,3.2,11
+2026-10,core,alarm watch for heavy sleepers,4672,50,521,55,21.99,3.2,3
+2026-10,core,vibration alarm,4064,74,5876,76,24.59,3.2,2
+2026-10,brand,fitsleeps pro vibrating alarm watch,3759,22,318,22,39.0,2.9,0
+2026-10,core,vibrating alarm watch,3302,87,1188,41,21.99,2.5,4
+2026-10,core,alarm bracelet for heavy sleepers,3282,11,340,34,19.99,3.9,0
+2026-10,core,wrist alarm clock,3029,64,4262,37,21.99,3.2,1
+2026-10,core,vibrate wrist alarm,2990,24,831,9,21.99,2.5,0
+2026-10,core,silent alarm clock wristband,2930,28,530,24,21.99,3.2,0
+2026-10,core,wearable alarm clock,2848,44,2569,56,21.99,3.2,0
+2026-10,core,alarm clock watch,2841,36,7318,30,38.95,3.2,3
+2026-10,core,silent vibrating alarm wristband,2596,17,482,16,21.99,3.2,2
+2026-10,core,vibrating watch alarm,2434,25,1164,58,21.99,2.5,0
+2026-10,brand,histrips alarm,2390,17,127,35,19.99,3.2,0
+2026-10,core,wristband alarm,2321,13,961,26,21.99,3.2,1
+2026-10,core,bracelet alarm clock vibrating,2105,7,495,26,23.99,3.0,0
