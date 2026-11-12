@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.4.1">
+<meta name="pc-app-version" content="1.4.4">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -569,7 +569,7 @@ function defaultParams(){ return {
   sea:[{name:"FOB整柜·近三个月",rmb:100891,cbm:68},{name:"FOB整柜·近六个月",rmb:62891,cbm:68}],
   fbm:{dimDiv:250, lbPerKg:2.2046226, ceilLb:2.2, fuel:29.5},
   /* 整装 + LTL. LTL estimate fitted on 19 past supplier quotes (整装浴室柜, 2026-11): base + $/lb × gross lb + $/m³ × volume. */
-  ltl:{kg:48, base:92.5, perLb:0.43, perM3:54, fill:70},
+  ltl:{kg:48, base:92.5, perLb:0.43, perM3:54, fill:70, fillFlat:100},
   fba:{dimDiv:139, fuel:3.5, peakMode:"auto", peakStart:"2026-10-15", peakEnd:"2027-01-14",
        osLen:96, osLG:130, os50:17, os70:21, os150:25,
        tiers:[
@@ -669,7 +669,13 @@ function fbaFee(L,M,N,W,LG){
 }
 /* 包装形式: 分包 / 整包 (flat-packed) / 整装 (fully assembled). Unset → read from name / description / package count. */
 const PACKS=["分包","整包","整装"];
-function packOf(p){ if(PACKS.includes(p.pack)) return p.pack; const t=[p.name,p.desc,p.key].join(" "); return /整装|assembled/i.test(t)?"整装":/整包/.test(t)?"整包":((p.pkgs&&p.pkgs.length>1)||/分包/.test(t))?"分包":"整包"; }
+/* Container fill rate by pack type: the sea plan's 68 m³ is a full container; worse-stacking goods divide by their fill rate. */
+const fillOf=pk=>Math.max(1,nz(pk==="整装"?P.ltl.fill:P.ltl.fillFlat)||100)/100;
+const PACK_INFO=pk=>({
+  "整装":`整体组装好发货（柜体 + 台面一起）。海运按装柜率 ${nz(P.ltl.fill)}% 算（海运费 ÷ ${(nz(P.ltl.fill)/100).toFixed(2)}，因为装不满柜）；FBM 同时算快递和 LTL，默认用便宜的，超出 FedEx 上限只能 LTL。`,
+  "整包":`拆装平板、一个箱子发货（含“半整装”）。海运按装柜率 ${nz(P.ltl.fillFlat)}% 算；FBM 走快递，只有超出 FedEx 上限才走 LTL。`,
+  "分包":`一个产品分几个箱子发货。海运按装柜率 ${nz(P.ltl.fillFlat)}% 算，各包裹的海运和尾程相加；FBM 走快递，超出 FedEx 上限才走 LTL。`})[pk]||"";
+function packOf(p){ if(PACKS.includes(p.pack)) return p.pack; const t=[p.name,p.desc,p.key].join(" "); return /(^|[^半])整装|fully assembled/i.test(t)?"整装":/整包/.test(t)?"整包":((p.pkgs&&p.pkgs.length>1)||/分包/.test(t))?"分包":"整包"; }
 /* LTL: forced when any package is beyond FedEx (超大包裹); automatic for 整装 products over the weight line; per-product override.
    Cost = the product's own LTL quote if filled, else the fitted estimate. Replaces the whole FedEx tail (派送 + 处理 + 异常 + 燃油). */
 function ltlInfo(p,pk){
@@ -699,7 +705,7 @@ function calcPkg(p,g,dom){
   const bucket=cgBucket(J,K,L,Pw,V); const cr=P.cg.find(c=>c.bucket===bucket);
   const cgShip=cr?nz(cr.ship):0, cgLb=cr?nz(cr.perLb)*U:0, cgPick=cr?nz(cr.pick):0;
   const ltl=(J>108||V>165||Pw>150)?"LTL":(J>106||V>163||Pw>145)?"LTL预警":"小包裹";
-  const fill=packOf(p)==="整装"?Math.max(1,nz(P.ltl.fill)||100)/100:1;   // 整装 fills the container worse (default 70%)
+  const fill=fillOf(packOf(p));   // 整装 fills the container worse (default 70%); 整包 / 分包 default 100%
   const sea=P.sea.map((s,i)=>M*seaRate(seaFor(i,dom),dom)/fill);
   const fl=Math.round(cm[0]/2.54*100)/100, fm=Math.round(cm[1]/2.54*100)/100, fn=Math.round(cm[2]/2.54*100)/100;
   const ulb=kg*2.20462; const fw=Math.round((ulb>150?ulb:Math.max(ulb,fl*Math.max(fm,2)*Math.max(fn,2)/P.fba.dimDiv))*100)/100;
@@ -935,7 +941,8 @@ document.getElementById("bulkCat").innerHTML=catOpts("家具");
 
 /* ---------------- step 2: confirm ---------------- */
 function ltlCell(p,pi,rr){ const L=rr.ltl, pk=packOf(p);
-  return `<select data-p="${pi}" data-k="pack" title="包装形式：整装 = 整体组装发货" aria-label="包装形式">${PACKS.map(v=>`<option ${v===pk?"selected":""}>${v}</option>`).join("")}</select>
+  return `<select data-p="${pi}" data-k="pack" title="${esc("当前："+pk+" — "+PACK_INFO(pk)+"\n\n改成其他：\n"+PACKS.filter(v=>v!==pk).map(v=>"· "+v+"："+PACK_INFO(v)).join("\n"))}" aria-label="包装形式">${PACKS.map(v=>`<option title="${esc(PACK_INFO(v))}" ${v===pk?"selected":""}>${v}</option>`).join("")}</select>
+  <span class="note" style="display:block" title="${esc(PACK_INFO(pk))}">装柜率 ${pk==="整装"?nz(P.ltl.fill):nz(P.ltl.fillFlat)}%${p.pack?"":" · 自动识别"}</span>
   <div style="margin-top:4px">${L.on?`<button type="button" class="chip warn ltlchip" data-ltlgo="1" title="到第 4 步看快递和 LTL 的对比">LTL $${f2(L.cost)} ›</button>`:pk==="整装"?`<button type="button" class="chip ltlchip" data-ltlgo="1" title="到第 4 步看快递和 LTL 的对比">快递 $${f2(L.parcel)} ›</button>`:`<span class="note">快递 $${f2(L.parcel)}</span>`}</div>`; }
 function renderS2(){
   const issues=[];
@@ -1047,7 +1054,7 @@ FedEx 规则走不了快递（最长边 > 108 in、长+围长 > 165 in、计费�
 非整装产品照常走快递，只有超出 FedEx 上限时改走 LTL
 
 第 4 步顶部“整装尾程对比”里可以手动改“采用”，或填 LTL 报价；改完全渠道对比、利润明细、导出都按采用的方式算。自己发货的平台（Lowe's SC）同样适用。
-整装海运：海运费 ÷ 装柜率 ${esc(P.ltl.fill)}%。</div>
+海运装柜率：海运方案里的 68 方是整柜满装容量，不用改；按包装自动换算——整装 ÷ ${esc(P.ltl.fill)}%，整包 / 分包 ÷ ${esc(P.ltl.fillFlat)}%（两个比例都在“变量 → 通用费用”）。</div>
 <p>估算公式用 2026-11 越南佳和 19 条整装柜 LTL 报价拟合（24–72 寸，40–183 kg），平均误差约 $15（7%）。同尺寸不同系列报价能差 $20–40，<b>有实际报价请直接填报价</b>。</p>`},
    {id:"tail",title:"FBM 尾程：派送、异常、住宅",short:"按计费重查尾程费率表；计费重 = max(毛重 × 2.2046, 英寸长×宽×高 ÷ 250) 向上取整",html:`<div class="f">英寸边长 = cm ÷ 2.54 向上取整
 FBM 计费重 lb = 向上取整( max(毛重 kg × ${esc(P.fbm.lbPerKg)}, 长×宽×高(英寸) ÷ ${esc(P.fbm.dimDiv)}) )
@@ -1109,7 +1116,7 @@ const PLAT_FEES=["ads","fx","refund","comm","commBase","storage","outbound","fix
 const VB={
   chan:()=>["promo","fxLoss","refund",...COMM_PATHS,...PLATS.flatMap(pl=>PLAT_FEES.map(f=>`plat.${pl.k}.${f}`))],
   deliv:()=>["dom.extra","dom.vat","dom.rebate"],
-  common:()=>["rate","fbm.fuel","fba.fuel","residential","fba.peakMode","ltl.fill","ltl.base","ltl.perLb","ltl.perM3","targetMargin","listFactor","tax","fbm.dimDiv","fbm.lbPerKg","fbm.ceilLb","fba.dimDiv","fba.peakStart","fba.peakEnd","fba.osLen","fba.osLG","fba.os50","fba.os70","fba.os150"]};
+  common:()=>["rate","fbm.fuel","fba.fuel","residential","fba.peakMode","ltl.fill","ltl.fillFlat","ltl.base","ltl.perLb","ltl.perM3","targetMargin","listFactor","tax","fbm.dimDiv","fbm.lbPerKg","fbm.ceilLb","fba.dimDiv","fba.peakStart","fba.peakEnd","fba.osLen","fba.osLG","fba.os50","fba.os70","fba.os150"]};
 const chgCount=b=>VB[b]().filter(isChg).length;
 let vAmzOpen=false;
 const vIn=(path,w)=>`<input type="number" step="any" data-path="${path}" value="${esc(getPath(path))}"${isChg(path)?` class="chg" title="默认 ${esc(defVal(path))}"`:""}${w?` style="width:${w}px"`:""}>`;
@@ -1142,8 +1149,8 @@ function renderVars(){
   document.getElementById("vDom").innerHTML=[fld("dom.extra","国内杂费 RMB/柜"),fld("dom.vat","增值税率 %"),fld("dom.rebate","出口退税率 %")].join("");
   // ③ common
   const peakSel=`<label class="f">FBM 旺季（应用到全部产品）<select data-allpeak="1">${[["mixed","各产品不同"],["非旺季","非旺季"],["旺季","旺季"]].map(([v,l])=>`<option value="${v}" ${v===allPeak()?"selected":""} ${v==="mixed"?"disabled":""}>${l}</option>`).join("")}</select></label>`;
-  document.getElementById("vCommon").innerHTML=[fld("rate","汇率 RMB/USD"),fld("fbm.fuel","尾程燃油 %（我们发货的渠道）"),fld("fba.fuel","FBA 燃油/物流附加费 %"),fld("residential","FBM 住宅附加费",{type:"check"}),peakSel,
-    fld("fba.peakMode",`FBA 费率（当前按${fbaPeak()?"旺季":"非旺季"}）`,{type:"select",options:[["auto","按日期自动"],["on","始终旺季"],["off","始终非旺季"]]}),fld("ltl.fill","整装装柜率 %"),fld("ltl.base","LTL 估算：起步价 $"),fld("ltl.perLb","LTL 估算：每磅 $/lb"),fld("ltl.perM3","LTL 估算：每立方 $/m³"),fld("targetMargin","目标利润率 %"),fld("listFactor","平台上架价系数（× Amazon 售价）")].join("");
+  document.getElementById("vCommon").innerHTML=[fld("rate","汇率 RMB/USD")+`<div class="f" style="justify-content:flex-end"><span class="note">取汇率（USD→CNY）${P.rateSrc?` · 上次：${esc(P.rateSrc)}`:""}</span><div class="row" style="gap:6px"><button type="button" class="btn sm" data-fx="live">实时</button><button type="button" class="btn sm" data-fx="avg3">3 个月平均</button></div></div>`,fld("fbm.fuel","尾程燃油 %（我们发货的渠道）"),fld("fba.fuel","FBA 燃油/物流附加费 %"),fld("residential","FBM 住宅附加费",{type:"check"}),peakSel,
+    fld("fba.peakMode",`FBA 费率（当前按${fbaPeak()?"旺季":"非旺季"}）`,{type:"select",options:[["auto","按日期自动"],["on","始终旺季"],["off","始终非旺季"]]}),fld("ltl.fill","整装装柜率 %"),fld("ltl.fillFlat","整包 / 分包装柜率 %"),fld("ltl.base","LTL 估算：起步价 $"),fld("ltl.perLb","LTL 估算：每磅 $/lb"),fld("ltl.perM3","LTL 估算：每立方 $/m³"),fld("targetMargin","目标利润率 %"),fld("listFactor","平台上架价系数（× Amazon 售价）")].join("");
   document.getElementById("vAdvKv").innerHTML=[fld("tax","采购税点 %（仅 RMB 含税价）"),fld("fbm.dimDiv","FBM 体积重除数"),fld("fbm.lbPerKg","kg→lb（计费重）"),fld("fbm.ceilLb","kg→lb（实重取整）"),fld("fba.dimDiv","FBA 体积重除数"),
     fld("fba.peakStart","FBA 旺季开始",{type:"date"}),fld("fba.peakEnd","FBA 旺季结束",{type:"date"}),fld("fba.osLen","超长：最长边 > in"),fld("fba.osLG","超长：长+围长 > in"),fld("fba.os50","超长附加 ≤50lb $"),fld("fba.os70","超长附加 ≤70lb $"),fld("fba.os150","超长附加 ≤150lb $")].join("");
   const tf=(i,k,w=64)=>`<input ${k==="name"?"":'type="number" step="any"'} data-tier="${i}" data-k="${k}" value="${esc(P.fba.tiers[i][k])}" style="width:${w}px">`;
@@ -1159,13 +1166,29 @@ const vp=document.getElementById("varPanel");
 vp.addEventListener("change",e=>{ const t=e.target; let v=t.type==="number"?(t.value===""?"":num(t.value)):t.value;
   if(t.dataset.allpeak){ products.forEach(p=>p.peak=t.value); toast(`已把全部产品设为 FBM ${t.value}`); }
   else if(t.dataset.allrow){ if(t.value==="") return; const r=CHROWS.find(x=>x.plat===t.dataset.allrow); if(r.amz) setPath(r.amz,v); PLATS.forEach(pl=>P.plat[pl.k][r.plat]=v); toast(`${r.label}：全部渠道设为 ${v}`); }
-  else if(t.dataset.path){ if(t.dataset.bool) v=t.value==="1"; setPath(t.dataset.path,v); }
+  else if(t.dataset.path){ if(t.dataset.bool) v=t.value==="1"; setPath(t.dataset.path,v); if(t.dataset.path==="rate") P.rateSrc="手动填写"; }
   else if(t.dataset.sea!==undefined) P.sea[+t.dataset.sea][t.dataset.k]=v;
   else if(t.dataset.tier!==undefined) P.fba.tiers[+t.dataset.tier][t.dataset.k]=v;
   else if(t.dataset.tail!==undefined) P.tail[+t.dataset.tail][t.dataset.k]=v;
   else if(t.dataset.surch!==undefined) P.surch[+t.dataset.surch][t.dataset.k]=v;
   else if(t.dataset.cg!==undefined) P.cg[+t.dataset.cg][t.dataset.k]=v;
   else return; setTimeout(varsChanged); });
+/* Exchange rate from public APIs (no key, nothing sent but the request): Frankfurter = ECB reference rates; open.er-api.com as a fallback for the live rate. */
+const FX_API="https://api.frankfurter.dev/v1";
+const ymd=d=>d.toISOString().slice(0,10);
+async function fxFetch(kind){
+  const get=async u=>{ const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),12000); try{ const r=await fetch(u,{credentials:"omit",cache:"no-store",signal:ctl.signal}); if(!r.ok) throw Error("HTTP "+r.status); return await r.json(); } finally{ clearTimeout(t); } };
+  if(kind==="live"){
+    try{ const j=await get(`${FX_API}/latest?base=USD&symbols=CNY`); const v=j&&j.rates&&+j.rates.CNY; if(v>0) return {rate:v,src:`实时 ${j.date}（欧洲央行参考价）`}; }catch(e){}
+    const j=await get("https://open.er-api.com/v6/latest/USD"); const v=j&&j.rates&&+j.rates.CNY; if(!(v>0)) throw Error("接口没有返回人民币汇率");
+    return {rate:v,src:`实时 ${new Date((j.time_last_update_unix||Date.now()/1000)*1000).toISOString().slice(0,10)}（ExchangeRate-API）`}; }
+  const end=new Date(), start=new Date(end); start.setMonth(start.getMonth()-3);
+  const j=await get(`${FX_API}/${ymd(start)}..${ymd(end)}?base=USD&symbols=CNY`); const vals=Object.values((j&&j.rates)||{}).map(x=>+x.CNY).filter(v=>v>0);
+  if(!vals.length) throw Error("接口没有返回数据");
+  return {rate:vals.reduce((a,b)=>a+b,0)/vals.length,src:`近 3 个月平均 ${j.start_date}~${j.end_date}，${vals.length} 个工作日`}; }
+vp.addEventListener("click",async e=>{ const fx=e.target.closest("[data-fx]"); if(!fx) return; const btns=vp.querySelectorAll("[data-fx]"); btns.forEach(b=>b.disabled=true); fx.textContent="获取中…";
+  try{ const r=await fxFetch(fx.dataset.fx), old=P.rate; P.rate=Math.round(r.rate*10000)/10000; P.rateSrc=r.src; varsChanged(); toast(`汇率 ${old} → ${P.rate}（${r.src}）`); }
+  catch(err){ toast("获取汇率失败："+(err.name==="AbortError"?"连接超时":err.message)+"。可以手动填写。"); renderVars(); } });
 vp.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
   if(b.dataset.amzcomm){ vAmzOpen=!vAmzOpen; renderVars(); return; }
   if(b.dataset.delsea!==undefined){ P.sea.splice(+b.dataset.delsea,1); varsChanged(); return; }
