@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.4.3">
+<meta name="pc-app-version" content="1.4.4">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -1149,7 +1149,7 @@ function renderVars(){
   document.getElementById("vDom").innerHTML=[fld("dom.extra","国内杂费 RMB/柜"),fld("dom.vat","增值税率 %"),fld("dom.rebate","出口退税率 %")].join("");
   // ③ common
   const peakSel=`<label class="f">FBM 旺季（应用到全部产品）<select data-allpeak="1">${[["mixed","各产品不同"],["非旺季","非旺季"],["旺季","旺季"]].map(([v,l])=>`<option value="${v}" ${v===allPeak()?"selected":""} ${v==="mixed"?"disabled":""}>${l}</option>`).join("")}</select></label>`;
-  document.getElementById("vCommon").innerHTML=[fld("rate","汇率 RMB/USD"),fld("fbm.fuel","尾程燃油 %（我们发货的渠道）"),fld("fba.fuel","FBA 燃油/物流附加费 %"),fld("residential","FBM 住宅附加费",{type:"check"}),peakSel,
+  document.getElementById("vCommon").innerHTML=[fld("rate","汇率 RMB/USD")+`<div class="f" style="justify-content:flex-end"><span class="note">取汇率（USD→CNY）${P.rateSrc?` · 上次：${esc(P.rateSrc)}`:""}</span><div class="row" style="gap:6px"><button type="button" class="btn sm" data-fx="live">实时</button><button type="button" class="btn sm" data-fx="avg3">3 个月平均</button></div></div>`,fld("fbm.fuel","尾程燃油 %（我们发货的渠道）"),fld("fba.fuel","FBA 燃油/物流附加费 %"),fld("residential","FBM 住宅附加费",{type:"check"}),peakSel,
     fld("fba.peakMode",`FBA 费率（当前按${fbaPeak()?"旺季":"非旺季"}）`,{type:"select",options:[["auto","按日期自动"],["on","始终旺季"],["off","始终非旺季"]]}),fld("ltl.fill","整装装柜率 %"),fld("ltl.fillFlat","整包 / 分包装柜率 %"),fld("ltl.base","LTL 估算：起步价 $"),fld("ltl.perLb","LTL 估算：每磅 $/lb"),fld("ltl.perM3","LTL 估算：每立方 $/m³"),fld("targetMargin","目标利润率 %"),fld("listFactor","平台上架价系数（× Amazon 售价）")].join("");
   document.getElementById("vAdvKv").innerHTML=[fld("tax","采购税点 %（仅 RMB 含税价）"),fld("fbm.dimDiv","FBM 体积重除数"),fld("fbm.lbPerKg","kg→lb（计费重）"),fld("fbm.ceilLb","kg→lb（实重取整）"),fld("fba.dimDiv","FBA 体积重除数"),
     fld("fba.peakStart","FBA 旺季开始",{type:"date"}),fld("fba.peakEnd","FBA 旺季结束",{type:"date"}),fld("fba.osLen","超长：最长边 > in"),fld("fba.osLG","超长：长+围长 > in"),fld("fba.os50","超长附加 ≤50lb $"),fld("fba.os70","超长附加 ≤70lb $"),fld("fba.os150","超长附加 ≤150lb $")].join("");
@@ -1166,13 +1166,29 @@ const vp=document.getElementById("varPanel");
 vp.addEventListener("change",e=>{ const t=e.target; let v=t.type==="number"?(t.value===""?"":num(t.value)):t.value;
   if(t.dataset.allpeak){ products.forEach(p=>p.peak=t.value); toast(`已把全部产品设为 FBM ${t.value}`); }
   else if(t.dataset.allrow){ if(t.value==="") return; const r=CHROWS.find(x=>x.plat===t.dataset.allrow); if(r.amz) setPath(r.amz,v); PLATS.forEach(pl=>P.plat[pl.k][r.plat]=v); toast(`${r.label}：全部渠道设为 ${v}`); }
-  else if(t.dataset.path){ if(t.dataset.bool) v=t.value==="1"; setPath(t.dataset.path,v); }
+  else if(t.dataset.path){ if(t.dataset.bool) v=t.value==="1"; setPath(t.dataset.path,v); if(t.dataset.path==="rate") P.rateSrc="手动填写"; }
   else if(t.dataset.sea!==undefined) P.sea[+t.dataset.sea][t.dataset.k]=v;
   else if(t.dataset.tier!==undefined) P.fba.tiers[+t.dataset.tier][t.dataset.k]=v;
   else if(t.dataset.tail!==undefined) P.tail[+t.dataset.tail][t.dataset.k]=v;
   else if(t.dataset.surch!==undefined) P.surch[+t.dataset.surch][t.dataset.k]=v;
   else if(t.dataset.cg!==undefined) P.cg[+t.dataset.cg][t.dataset.k]=v;
   else return; setTimeout(varsChanged); });
+/* Exchange rate from public APIs (no key, nothing sent but the request): Frankfurter = ECB reference rates; open.er-api.com as a fallback for the live rate. */
+const FX_API="https://api.frankfurter.dev/v1";
+const ymd=d=>d.toISOString().slice(0,10);
+async function fxFetch(kind){
+  const get=async u=>{ const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),12000); try{ const r=await fetch(u,{credentials:"omit",cache:"no-store",signal:ctl.signal}); if(!r.ok) throw Error("HTTP "+r.status); return await r.json(); } finally{ clearTimeout(t); } };
+  if(kind==="live"){
+    try{ const j=await get(`${FX_API}/latest?base=USD&symbols=CNY`); const v=j&&j.rates&&+j.rates.CNY; if(v>0) return {rate:v,src:`实时 ${j.date}（欧洲央行参考价）`}; }catch(e){}
+    const j=await get("https://open.er-api.com/v6/latest/USD"); const v=j&&j.rates&&+j.rates.CNY; if(!(v>0)) throw Error("接口没有返回人民币汇率");
+    return {rate:v,src:`实时 ${new Date((j.time_last_update_unix||Date.now()/1000)*1000).toISOString().slice(0,10)}（ExchangeRate-API）`}; }
+  const end=new Date(), start=new Date(end); start.setMonth(start.getMonth()-3);
+  const j=await get(`${FX_API}/${ymd(start)}..${ymd(end)}?base=USD&symbols=CNY`); const vals=Object.values((j&&j.rates)||{}).map(x=>+x.CNY).filter(v=>v>0);
+  if(!vals.length) throw Error("接口没有返回数据");
+  return {rate:vals.reduce((a,b)=>a+b,0)/vals.length,src:`近 3 个月平均 ${j.start_date}~${j.end_date}，${vals.length} 个工作日`}; }
+vp.addEventListener("click",async e=>{ const fx=e.target.closest("[data-fx]"); if(!fx) return; const btns=vp.querySelectorAll("[data-fx]"); btns.forEach(b=>b.disabled=true); fx.textContent="获取中…";
+  try{ const r=await fxFetch(fx.dataset.fx), old=P.rate; P.rate=Math.round(r.rate*10000)/10000; P.rateSrc=r.src; varsChanged(); toast(`汇率 ${old} → ${P.rate}（${r.src}）`); }
+  catch(err){ toast("获取汇率失败："+(err.name==="AbortError"?"连接超时":err.message)+"。可以手动填写。"); renderVars(); } });
 vp.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
   if(b.dataset.amzcomm){ vAmzOpen=!vAmzOpen; renderVars(); return; }
   if(b.dataset.delsea!==undefined){ P.sea.splice(+b.dataset.delsea,1); varsChanged(); return; }
