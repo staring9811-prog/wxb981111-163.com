@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.4.1">
+<meta name="pc-app-version" content="1.4.2">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -669,7 +669,7 @@ function fbaFee(L,M,N,W,LG){
 }
 /* 包装形式: 分包 / 整包 (flat-packed) / 整装 (fully assembled). Unset → read from name / description / package count. */
 const PACKS=["分包","整包","整装"];
-function packOf(p){ if(PACKS.includes(p.pack)) return p.pack; const t=[p.name,p.desc,p.key].join(" "); return /整装|assembled/i.test(t)?"整装":/整包/.test(t)?"整包":((p.pkgs&&p.pkgs.length>1)||/分包/.test(t))?"分包":"整包"; }
+function packOf(p){ if(PACKS.includes(p.pack)) return p.pack; const t=[p.name,p.desc,p.key].join(" "); return /(^|[^半])整装|fully assembled/i.test(t)?"整装":/整包/.test(t)?"整包":((p.pkgs&&p.pkgs.length>1)||/分包/.test(t))?"分包":"整包"; }
 /* LTL: forced when any package is beyond FedEx (超大包裹); automatic for 整装 products over the weight line; per-product override.
    Cost = the product's own LTL quote if filled, else the fitted estimate. Replaces the whole FedEx tail (派送 + 处理 + 异常 + 燃油). */
 function ltlInfo(p,pk){
