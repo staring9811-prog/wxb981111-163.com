@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.4.0">
+<meta name="pc-app-version" content="1.4.1">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -625,6 +625,13 @@ const seaRate=(i,dom)=>{ const x=P.sea[i]||{}; return (nz(x.rmb)+(dom?nz(P.dom.e
 let modeOverride=null;
 function calcIn(mode,fn){ const keep=modeOverride; modeOverride=mode; try{ return fn(); } finally{ modeOverride=keep; } }
 const isDom=()=>(modeOverride||P.shipMode)==="dom";
+/* Per product: the chosen mode (top switch, or the FOB-vs-国内 comparison) when the product has that price;
+   a product that only has the other price uses the other mode — e.g. only an RMB price → 国内出货. */
+const hasFobCost=p=>nz(p.cost)>0, hasDomCost=p=>num(p.costRmb)>0;
+function productDom(p){ if(modeOverride) return modeOverride==="dom"; return P.shipMode==="dom"?(hasDomCost(p)||!hasFobCost(p)):(!hasFobCost(p)&&hasDomCost(p)); }
+/* The plan a product uses for a given column: a plan of the product's own kind as is, otherwise the selected plan of its kind. */
+function seaPick(mode){ const L=seaList(mode), i=Math.round(nz(mode==="dom"?P.seaViewDom:P.seaView)); return L.includes(i)?i:L[0]; }
+function seaFor(i,dom){ const want=dom&&hasDomSea()?"dom":"fob"; return seaKind(P.sea[i])===want?i:seaPick(dom?"dom":"fob"); }
 function taxNote(p){ return p.costCur==="RMB_TAX"?`已去税 ${P.tax}%`:p.costCur==="RMB_NET"?"税点不适用（未税价）":"税点不适用（FOB）"; }
 function commission(price,cat){ const c=P.commission; if(cat==="家具") return price<=c.threshold? price*c.furnLow/100 : c.threshold*c.furnLow/100+(price-c.threshold)*c.furnHigh/100; const r=c[cat]; return price*(isFinite(num(r))?num(r):c["其他"])/100; }
 function fbaPeak(){ if(P.fba.peakMode==="on") return true; if(P.fba.peakMode==="off") return false; const t=new Date(); const d=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0"); return d>=P.fba.peakStart && d<=P.fba.peakEnd; }
@@ -693,14 +700,14 @@ function calcPkg(p,g,dom){
   const cgShip=cr?nz(cr.ship):0, cgLb=cr?nz(cr.perLb)*U:0, cgPick=cr?nz(cr.pick):0;
   const ltl=(J>108||V>165||Pw>150)?"LTL":(J>106||V>163||Pw>145)?"LTL预警":"小包裹";
   const fill=packOf(p)==="整装"?Math.max(1,nz(P.ltl.fill)||100)/100:1;   // 整装 fills the container worse (default 70%)
-  const sea=P.sea.map((s,i)=>M*seaRate(i,dom)/fill);
+  const sea=P.sea.map((s,i)=>M*seaRate(seaFor(i,dom),dom)/fill);
   const fl=Math.round(cm[0]/2.54*100)/100, fm=Math.round(cm[1]/2.54*100)/100, fn=Math.round(cm[2]/2.54*100)/100;
   const ulb=kg*2.20462; const fw=Math.round((ulb>150?ulb:Math.max(ulb,fl*Math.max(fm,2)*Math.max(fn,2)/P.fba.dimDiv))*100)/100;
   const flg=Math.round((fl+2*(fm+fn))*100)/100; const fb=fbaFee(fl,fm,fn,fw,flg);
   return {cm,kg,J,K,L,M,N,O,Pw,R,T,U,V,W,tail,handling,surch,resi,fbmFuel,fbmTotal,bucket,cgShip,cgLb,cgPick,ltl,sea,fl,fm,fn,fw,flg,fba:fb.fee,fbaTier:fb.tier,fbaOs:fb.os,noTail:!tr};
 }
 function calcProduct(p){
-  const dom=isDom();
+  const dom=productDom(p);
   const pk=p.pkgs.map(g=>calcPkg(p,g,dom));
   const price=nz(p.price), cost=dom?domCostUSD(p):costUSD(p);
   const promo=price*P.promo/100, fx=price*P.fxLoss/100, comm=commission(price,p.category), refund=price*P.refund/100;
@@ -933,7 +940,7 @@ function ltlCell(p,pi,rr){ const L=rr.ltl, pk=packOf(p);
 function renderS2(){
   const issues=[];
   const rows=products.map((p,pi)=>{
-    const n=p.pkgs.length; const c=costUSD(p); const rr=calcProduct(p);
+    const n=p.pkgs.length; const rr=calcProduct(p); const c=rr.cost;
     if(!(nz(p.price)>0)) issues.push(`${p.name}：缺售价`); if(!(nz(p.cost)>0)&&!(nz(p.costRmb)>0)) issues.push(`${p.name}：缺出厂价（FOB 或国内出货至少填一个）`);
     return p.pkgs.map((g,gi)=>{
       const bad=k=>!(nz(g[k])>0)?' style="border-color:var(--neg)"':"";
@@ -950,10 +957,10 @@ function renderS2(){
           <label>上架<input type="number" step="any" data-p="${pi}" data-plat="${pl.k}" data-pk="list" value="${esc(pr.list??"")}" placeholder="${x.list>0?f2(x.list):"–"}"></label>
           <label>促销<input type="number" step="any" data-p="${pi}" data-plat="${pl.k}" data-pk="promo" value="${esc(pr.promo??"")}" placeholder="${x.promo>0?f2(x.promo):"–"}"></label>
           <span class="note">${x.list>0?pct(x.disc)+" off":""}${x.est?" · 估算":""}</span></div></td>`; }).join("")}
-        <td rowspan="${n}"><input type="number" step="any" data-p="${pi}" data-k="cost" value="${esc(p.cost)}"${!(nz(p.cost)>0)?' style="border-color:var(--neg)"':""}></td>
+        <td rowspan="${n}"><input type="number" step="any" data-p="${pi}" data-k="cost" value="${esc(p.cost)}"${!(nz(p.cost)>0)&&!hasDomCost(p)?' style="border-color:var(--neg)"':""} placeholder="${hasDomCost(p)&&!(nz(p.cost)>0)?"无 FOB 价":""}"></td>
         <td rowspan="${n}"><select data-p="${pi}" data-k="costCur">${Object.entries(COST_CUR).map(([k,v])=>`<option value="${k}" ${k===p.costCur?"selected":""}>${v}</option>`).join("")}</select></td>
         <td rowspan="${n}"><input type="number" step="any" data-p="${pi}" data-k="adj" value="${esc(p.adj)}" title="例如减去排插、子抽等差价，填负数"></td>
-        <td rowspan="${n}" class="n"><b>${money(c)}</b><br><span class="note">${nz(p.price)>0?pct(c/nz(p.price))+" 占比":""}</span><br><span class="note">${taxNote(p)}</span></td>
+        <td rowspan="${n}" class="n"><b>${money(c)}</b><br><span class="note">${nz(p.price)>0&&isFinite(c)?pct(c/nz(p.price))+" 占比":""}</span><br>${rr.dom?`<span class="chip warn" style="padding:0 6px">按国内出货</span>${P.shipMode!=="dom"?'<br><span class="note">只有国内价</span>':""}`:`<span class="note">${taxNote(p)}${P.shipMode==="dom"?" · 只有 FOB 价":""}</span>`}</td>
         <td rowspan="${n}"><input type="number" step="any" data-p="${pi}" data-k="costRmb" value="${esc(p.costRmb??"")}" title="国内出货：工厂人民币含税价"><br><span class="note">${num(p.costRmb)>0?"退税后 "+money(domCostUSD(p)):"不填则不算国内出货"}</span></td>
         <td rowspan="${n}" style="min-width:150px">${ltlCell(p,pi,rr)}</td>`;
       return `<tr class="${gi?"":"first"}">${head}
@@ -968,7 +975,7 @@ function renderS2(){
     }).join("");
   }).join("");
   document.getElementById("confirmTable").innerHTML=`<table><thead><tr>
-    <th>品名</th><th>材质 / 描述</th><th>供应商</th><th>品类</th><th>FBM旺季</th><th>Amazon 售价 $</th>${PLATS.map(pl=>`<th>${esc(pl.name)} $<br><span class="note">上架 / 促销</span>${upCtl(pl.k)}</th>`).join("")}<th>出厂价（FOB）</th><th>出厂价币种</th><th>成本调整 $</th><th>采购成本 $（FOB）${hi("cost")}</th><th>国内出货价 ¥${hi("dom")}<br><span class="note">含税，扣退税</span></th>
+    <th>品名</th><th>材质 / 描述</th><th>供应商</th><th>品类</th><th>FBM旺季</th><th>Amazon 售价 $</th>${PLATS.map(pl=>`<th>${esc(pl.name)} $<br><span class="note">上架 / 促销</span>${upCtl(pl.k)}</th>`).join("")}<th>出厂价（FOB）</th><th>出厂价币种</th><th>成本调整 $</th><th>采购成本 $${hi("cost")}<br><span class="note">按实际出货方式</span></th><th>国内出货价 ¥${hi("dom")}<br><span class="note">含税，扣退税</span></th>
     <th>包装 / 尾程${hi("ltl")}</th><th>包裹</th><th>长 cm</th><th>宽 cm</th><th>高 cm</th><th>毛重 kg</th><th>体积 m³</th><th>操作</th></tr></thead>
     <tbody>${rows||`<tr><td colspan="${19+PLATS.length}" class="muted">还没有产品，点“+ 新增产品”或回到第 1 步导入报价表。</td></tr>`}</tbody></table>`;
   document.getElementById("bulkPeak").value=allPeak();
@@ -1186,7 +1193,8 @@ document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; if(!docume
 function renderVarSummary(){ const si=seaIdx(), np=["chan","deliv","common"].reduce((a,b)=>a+chgCount(b),0), pk=allPeak();
   const c=(t,cls)=>`<span class="chip ${cls||""}">${t}</span>`;
   document.getElementById("varSummary").innerHTML=`<b style="font-size:13px">当前口径</b>`+
-    c(`汇率 ${esc(P.rate)}`)+c(`出货 ${P.shipMode==="dom"?"国内出货":"FOB"}`)+c(`头程 ${esc(P.sea[si]?P.sea[si].name:"–")}`)+c(`Amazon 推广 ${esc(P.promo)}% · 退款 ${esc(P.refund)}%`)+
+    c(`汇率 ${esc(P.rate)}`)+(()=>{ const other=products.filter(p=>productDom(p)!==(P.shipMode==="dom")).length, oi=seaPick(P.shipMode==="dom"?"fob":"dom");
+      return c(`出货 ${P.shipMode==="dom"?"国内出货":"FOB"}`)+c(`头程 ${esc(P.sea[si]?P.sea[si].name:"–")}`)+(other?c(`${other} 个产品只有${P.shipMode==="dom"?" FOB ":"国内"}价 → 按${P.shipMode==="dom"?" FOB（"+esc(P.sea[oi]?P.sea[oi].name:"–")+"）":"国内出货（"+esc(P.sea[oi]?P.sea[oi].name:"–")+"）"}`,"warn"):""); })()+c(`Amazon 推广 ${esc(P.promo)}% · 退款 ${esc(P.refund)}%`)+
     c(`尾程燃油 ${esc(P.fbm.fuel)}%`)+c(`FBM ${pk==="mixed"?"旺季各产品不同":pk}`)+c(`FBA ${fbaPeak()?"旺季":"非旺季"}`)+(np?c(`已改 ${np} 项`,"warn"):c("全部默认","ok"))+
     `<span style="flex:1"></span><button class="btn primary sm" data-openvars="1">编辑变量</button>`; }
 document.getElementById("varSummary").addEventListener("click",e=>{ if(e.target.closest("[data-openvars]")) openVars(); });
@@ -1255,7 +1263,7 @@ function chanVal(r,ch,si){ if(ch.amz) return {ok:r.price>0,rev:r.price,profit:r.
 const DETAIL_OPTS=()=>[...AMZ.map(a=>[`amz:${a.k}`,a.name]),...PLATS.flatMap(pl=>[[`plat:${pl.k}:promo`,`${pl.name} · 促销价`],[`plat:${pl.k}:list`,`${pl.name} · 上架价`]])];
 /* One channel's waterfall for one product: price → settlement → each deduction → profit. */
 let ltlAny=false;   // any product on LTL → the tail column is labelled “尾程派送 / LTL” (same labels for every row)
-function refreshLtlAny(){ ltlAny=products.some(p=>{ try{ return ltlInfo(p,p.pkgs.map(g=>calcPkg(p,g,isDom()))).on; }catch(e){ return false; } }); }
+function refreshLtlAny(){ ltlAny=products.some(p=>{ try{ return ltlInfo(p,p.pkgs.map(g=>calcPkg(p,g,productDom(p)))).on; }catch(e){ return false; } }); }
 /* Same step labels as the FedEx path, with the LTL cost in the tail column and the FedEx extras at 0. */
 function breakdownLtl(r,id,si,g,k,mode,fuel,tl){
   const z=[[tl,r.ltl.cost],["订单处理",0],["尾程异常",0],...(P.residential?[["住宅附加",0]]:[]),[fuel,0]];
