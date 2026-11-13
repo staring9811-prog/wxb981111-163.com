@@ -8,12 +8,12 @@ window.JADE_FS = `#version 300 es
 precision highp float; precision highp sampler3D;
 uniform sampler3D uGeom, uMat;
 uniform vec2 uRes; uniform vec3 uCamPos; uniform mat3 uCamRot; uniform float uTan;
-uniform vec3 uBox; uniform vec2 uClip; uniform float uPristine;
+uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[8]; uniform vec4 uCut; uniform float uCutOn;
 uniform vec3 uSkinCol; uniform float uSkinSig, uSkinGrain, uSkinRel, uWeather, uPhase;
 uniform vec3 uBodyCol, uBandCol, uHueAbs, uFogCol; uniform float uFogT;
 uniform int uNCr; uniform vec4 uCrA[6]; uniform vec4 uCrB[6]; uniform vec4 uCrC[6]; uniform vec3 uCrT[6];
 uniform vec4 uTorch; uniform vec3 uTorchDir, uTorchSurf, uRakePos; uniform float uRakeFall, uRakeI, uSpread;
-uniform float uAmbient; uniform vec4 uLens; uniform float uCutY; uniform int uK;
+uniform float uAmbient; uniform vec4 uLens; uniform int uK;
 out vec4 outC;
 
 float hash(vec3 p){ p=fract(p*0.3183099+vec3(.1,.2,.3)); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
@@ -24,6 +24,7 @@ float fbm(vec3 p){ return 0.5*vnoise(p)+0.3*vnoise(p*2.1+3.1)+0.2*vnoise(p*4.3+7
 vec4 G(vec3 p){ return texture(uGeom,p/(2.0*uBox)+0.5); }
 vec4 M(vec3 p){ return texture(uMat,p/(2.0*uBox)+0.5); }
 float sdfOf(vec4 g){ return mix(g.g,g.r,uPristine); }
+float planeD(vec3 p){ float m=-1e9; for(int i=0;i<8;i++){ if(i>=uNPl) break; m=max(m,dot(p,uPl[i].xyz)-uPl[i].w); } return m; }
 
 // 材质光学：种水越高衰减越小、散射越弱；色素吸收红蓝；棉增散射；脏全吸收
 vec3 sigT(vec4 m){ float b=mix(0.20,0.006,pow(smoothstep(0.03,0.97,m.g),0.6));
@@ -51,16 +52,16 @@ vec3 fluence(vec3 s){
 vec3 calcN(vec3 p){ const float e=1.0; vec2 k=vec2(1.,-1.);
   return normalize(k.xyy*sdfOf(G(p+k.xyy*e))+k.yyx*sdfOf(G(p+k.yyx*e))+k.yxy*sdfOf(G(p+k.yxy*e))+k.xxx*sdfOf(G(p+k.xxx*e))); }
 bool trace(vec3 ro, vec3 rd, out vec3 p, out vec3 n){
-  vec3 bmin=vec3(-uBox.x,max(-uBox.y,uClip.x),-uBox.z), bmax=vec3(uBox.x,min(uBox.y,uClip.y),uBox.z);
-  vec3 inv=1.0/(rd+vec3(1e-6)); vec3 t0=(bmin-ro)*inv, t1=(bmax-ro)*inv; vec3 a=min(t0,t1), b=max(t0,t1);
+  vec3 inv=1.0/(rd+vec3(1e-6)); vec3 t0=(-uBox-ro)*inv, t1=(uBox-ro)*inv; vec3 a=min(t0,t1), b=max(t0,t1);
   float tn=max(max(a.x,a.y),a.z), tf=min(min(b.x,b.y),b.z);
   if(tn>tf||tf<0.0) return false;
-  float t=max(tn,0.0)+0.01; p=ro+rd*t;
-  if(sdfOf(G(p))<0.0){ n=vec3(0.,-sign(rd.y),0.); return true; }
-  float d=1.0;
-  for(int i=0;i<128;i++){ p=ro+rd*t; d=sdfOf(G(p)); if(d<0.05){ n=calcN(p); return true; } t+=max(d*0.8,0.12); if(t>tf) return false; }
-  if(d<0.8){ n=calcN(p); return true; }
-  return false; }
+  float t=max(tn,0.0)+0.01; float d=1.0, sd=1.0, pd=-1e9;
+  for(int i=0;i<140;i++){ p=ro+rd*t; sd=sdfOf(G(p)); pd=planeD(p); d=max(sd,pd);
+    if(d<0.05) break; t+=max(d*0.8,0.12); if(t>tf) return false; }
+  if(d>0.8) return false;
+  if(pd>sd-0.06){ float m=-1e9; for(int i=0;i<8;i++){ if(i>=uNPl) break; float v=dot(p,uPl[i].xyz)-uPl[i].w; if(v>m){ m=v; n=uPl[i].xyz; } } }
+  else n=calcN(p);
+  return true; }
 
 vec3 shade(vec3 p, vec3 n, vec3 rd, float detail){
   vec4 g=G(p); float depth0=-g.r; float skinT=g.b;
@@ -99,7 +100,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail){
   for(int i=0;i<6;i++){ float ins; gp[i]=i<uNCr?crG(i,x,ins):1.0; }
   float ambL=uAmbient*(0.5+0.5*max(dot(n,keyL),0.0));
   for(int k=0;k<16;k++){ if(k>=uK) break;
-    vec3 s=x+dir*dt*0.5; vec4 gs=G(s); float ds=max(sdfOf(gs),max(s.y-uClip.y,uClip.x-s.y));
+    vec3 s=x+dir*dt*0.5; vec4 gs=G(s); float ds=max(sdfOf(gs),planeD(s));
     if(ds>0.4) break;
     vec4 m=M(s); vec3 sg=sigT(m); float sc=scat(m); vec3 al=albedo(m);
     float fogw=uFogT>0.0?1.0-smoothstep(gs.b+uFogT*0.6,gs.b+uFogT,-gs.r):0.0; al=mix(al,uFogCol,fogw*0.75); sg+=fogw*0.10;
@@ -118,7 +119,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail){
   float spec=pow(max(dot(reflect(-keyL,n),-rd),0.0),48.0)*0.5*uAmbient*flesh;
   vec3 col=surf*(1.0-flesh)+acc+spec;
   if(uTorch.w>0.0){ float r=length(p-uTorchSurf); col+=vec3(1.0,0.97,0.9)*min(uTorch.w,6.0)*0.05*exp(-r*r/9.0); col+=vec3(0.5)*(smoothstep(4.0,4.4,r)-smoothstep(4.6,5.0,r))*0.35; }
-  if(abs(p.y-uCutY)<0.4) col=mix(col,vec3(1.0,0.55,0.15),0.85);
+  if(uCutOn>0.5&&abs(dot(p,uCut.xyz)-uCut.w)<0.45) col=mix(col,vec3(1.0,0.55,0.15),0.85);
   return col; }
 
 void main(){
