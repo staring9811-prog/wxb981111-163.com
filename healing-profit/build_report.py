@@ -231,6 +231,40 @@ TH2_TIERS = [
   ["16\" 大顶喷或品牌款", "含预埋阀，安装配套齐", "品牌 + 较多评价"]),
 ]
 
+# ---------------- market-layout matrices (Amazon, SellerSprite 2026-10) ----------------
+import matrix as MX
+def _mx(name, keep, rf, cf, R, C):
+    rows = [r for r in MX.load(os.path.join(HERE, "mkt", name + ".csv")) if keep(r)]
+    MX.split_parent_units(rows)
+    return MX.build(rows, rf, cf, R, C), len(rows)
+(_sd, _sn) = _mx("sauna", lambda r: MX.sauna_keep(r["t"]), lambda r: MX.sauna_cap(r["t"]), lambda r: MX.sauna_wood(r["t"]), MX.SAUNA_ROWS, MX.SAUNA_COLS)
+(_td, _tn) = _mx("tandem", lambda r: MX.tandem_keep(r["t"]) and r["price"], lambda r: MX.tandem_row(r["price"]), lambda r: MX.tandem_cfg(r["t"]), MX.TANDEM_ROWS, MX.TANDEM_COLS)
+(_hd, _hn) = _mx("thermo", lambda r: MX.thermo_keep(r["t"], r["price"]), lambda r: MX.thermo_top(r["t"]), lambda r: MX.thermo_jets(r["t"]), MX.THERMO_ROWS, MX.THERMO_COLS)
+def _m(x): return f"{x*100:.0f}%"
+def _c(x): return "good" if x >= 0.15 else ("warn" if x >= 0 else "bad")
+_t = lambda sku, t, ch: (lambda r: r[ch] / r["amzPrice"])(next(x for x in TH if x["sku"] == sku and x["tier"] == t))
+s1m = R[("SAD6221-1", "mid")]["fbm"] / R[("SAD6221-1", "mid")]["amzPrice"]
+hcm = HC[("SMT-HC103", "mid")]["fbm"] / HC[("SMT-HC103", "mid")]["amzPrice"]
+s2m = R[("SAD6221-2", "mid")]["fbm"] / R[("SAD6221-2", "mid")]["amzPrice"]
+dmm = R[("DUAL", "mid")]["fba"] / R[("DUAL", "mid")]["amzPrice"]
+MX_HTML = (
+  MX.render("Amazon 红外桑拿房（木质房体）：容量 × 木材", f"2026-10 · 卖家精灵 {_sn} 个子体 · 父体月销按子体平均分摊",
+            _sd[0], _sd[1], _sd[2],
+            {"1 人": {"cells": ["铁杉"], "price": "$1,299", "margin": f"SAD6221-1 {_m(s1m)}<br>SMT-HC103 {_m(hcm)}", "cls": "bad"},
+             "1-2 人": {"cells": ["铁杉"], "price": "$1,799", "margin": f"SAD6221-2 {_m(s2m)}", "cls": _c(s2m)}},
+            row_label="容量", footnote="容量、木材按标题识别，标题没写木材的归“其他 / 未注明”；已剔除帐篷 / 便携 / 蒸汽 / 桶形款。利润率为 Amazon FBM，SMT-HC103 按包装 +10%。") +
+  MX.render("Amazon 双人淋浴花洒：价格带 × 配置", f"2026-10 · 卖家精灵 {_tn} 个子体（tandem / two people / couples 词组匹配）· 已剔除带阀门的淋浴系统",
+            _td[0], _td[1], _td[2],
+            {"$120–180": {"cells": ["双头 + 手持"], "price": "$149.99", "margin": _m(dmm), "cls": _c(dmm)}},
+            row_label="价格带", footnote="利润率为 Amazon FBA，成本 ¥190（1688 参考价）。") +
+  MX.render("Amazon 恒温 / 侧喷淋浴系统：顶喷尺寸 × 侧喷数量", f"2026-10 · 卖家精灵 {_hn} 个子体（thermostatic / body jets 词组匹配）",
+            _hd[0], _hd[1], _hd[2],
+            {"≤10″": {"cells": ["无侧喷"], "price": "$340", "margin": f"FFS223 {_m(_t('FFS223','mid','fba'))}", "cls": _c(_t('FFS223','mid','fba'))},
+             "12″": {"cells": ["2–4 个"], "price": "$490", "margin": f"F00F40 {_m(_t('F00F40','mid','fba'))}", "cls": _c(_t('F00F40','mid','fba'))},
+             "16″": {"cells": ["6 个及以上"], "price": "$650", "margin": f"F00F42 {_m(_t('F00F42','mid','fba'))}<br>F00F41 {_m(_t('F00F41','mid','fba'))}", "cls": "warn"}},
+            row_label="顶喷尺寸", footnote="顶喷尺寸、侧喷数按标题识别。我方落点：F00F41 / F42 的 400mm 顶喷约 16″；FFS223、F00F40 报价未写顶喷尺寸，暂按 ≤10″、12″ 放置，待采购确认。利润率为 Amazon FBA。")
+)
+
 P = calc["params"]
 s1 = S[("SAD6221-1", "mid")]; s1h = S[("SAD6221-1", "high")]
 dm = S[("DUAL", "mid")]; dl = S[("DUAL", "low")]
@@ -245,22 +279,23 @@ page = f"""<title>疗愈品类利润摸底</title>
   --bg:#f6f7f5; --panel:#ffffff; --fg:#1b2420; --muted:#5d6a64; --line:#dde3df; --accent:#1f5f55; --accent-soft:#e3efec;
   --good:#1d7a3e; --good-bg:#e2f3e7; --warn:#8a5a00; --warn-bg:#fbf0d6; --bad:#b3261e; --bad-bg:#fbe5e3; --na:#7b8580; --na-bg:#eef1ef;
   --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --g0:#e1f3ee; --g1:#fbe4ee; --heat:#3aa57f; --mine-bg:#fff4c7; --box:#e8a10a;
   --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }}
 @media (prefers-color-scheme: dark){{:root:not([data-theme="light"]){{
   --bg:#121614; --panel:#1a201d; --fg:#e7ece9; --muted:#9aa7a1; --line:#2c3531; --accent:#6cc2b1; --accent-soft:#1f2f2b;
   --good:#6fd38f; --good-bg:#16301f; --warn:#f0c15a; --warn-bg:#352a10; --bad:#ff8a80; --bad-bg:#3a1a18; --na:#93a09a; --na-bg:#232a27;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; color-scheme:dark}}}}
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --g0:#1d3a33; --g1:#3e2330; --heat:#2f9a73; --mine-bg:#3a3214; --box:#e0a020; color-scheme:dark}}}}
 :root[data-theme="dark"]{{
   --bg:#121614; --panel:#1a201d; --fg:#e7ece9; --muted:#9aa7a1; --line:#2c3531; --accent:#6cc2b1; --accent-soft:#1f2f2b;
   --good:#6fd38f; --good-bg:#16301f; --warn:#f0c15a; --warn-bg:#352a10; --bad:#ff8a80; --bad-bg:#3a1a18; --na:#93a09a; --na-bg:#232a27;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; color-scheme:dark}}
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --g0:#1d3a33; --g1:#3e2330; --heat:#2f9a73; --mine-bg:#3a3214; --box:#e0a020; color-scheme:dark}}
 body{{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.65}}
-.wrap{{max-width:1080px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:36px}}
+.wrap{{max-width:1080px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,1fr);gap:36px}}
 h1,h2,h3,h4,h5{{text-wrap:balance;margin:0;line-height:1.3}}
 h1{{font-size:28px}} h2{{font-size:21px;padding-bottom:8px;border-bottom:2px solid var(--accent)}} h3{{font-size:17px}} h4{{font-size:16px}} h5{{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:500;margin-bottom:6px}}
 p{{margin:0}} .sub{{color:var(--muted);font-size:13.5px}}
-section{{display:grid;gap:18px;min-width:0}}
+section{{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;min-width:0}}
 .num,.price,.profit,td,.pp,.rng,.bar-h,.lg b{{font-variant-numeric:tabular-nums}}
 .verdict{{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}}
 .vc{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:8px;align-content:start;border-top:4px solid var(--c)}}
@@ -318,6 +353,7 @@ tbody th{{font-weight:500}}
 .rules div{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}}
 .rules ul{{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}}
 details{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}} details>summary{{cursor:pointer;font-weight:500}} details .tw{{margin-top:10px}}
+{MX.MX_CSS}
 .todo{{margin:0;padding-left:20px;display:grid;gap:6px}}
 table.mtg td,table.mtg th{{white-space:normal;vertical-align:top;min-width:160px}}
 table.mtg tbody th{{white-space:nowrap}}
@@ -374,6 +410,26 @@ table.mtg tbody th{{white-space:nowrap}}
       <p class="decision">选品结论：第二优先级，增长期先发、绝对利润额高；便携式桑拿不做。</p></article>
   </div>
   <p class="note">来源：Grand View Research、Mordor Intelligence、卖家精灵关键词与类目数据、Google Trends（2026-08-04 采集）、桑拿四渠道属性分布报告、Reddit 讨论分析。</p>
+</section>
+
+<section aria-labelledby="mx">
+  <h2 id="mx">市场布局：我们落在哪一格</h2>
+  <p class="sub">一行一个尺寸 / 价格带，一组列一个材质 / 配置。看哪里卖得多（月销）、哪里挤（ASIN 数）、哪里单链接效率高（单 ASIN 月销，底色越深越好）、哪里口碑差（评分 &lt; 4.0 标红），以及我们的产品落在哪一格、按这个价能不能赚钱。</p>
+  {MX_HTML}
+  <div class="rules">
+    <div><b>桑拿房</b><ul>
+      <li>1 人 × 铁杉：月销 380、41 个 ASIN，单链接 9.3 台，均价 $1,203。我们两款按 $1,299 都亏（−36% / −12%）。</li>
+      <li>单链接效率最高的是 1-2 人“其他 / 未注明”格（26.5 台），其次 4 人+（18.8 台）但评分只有 3.76。</li>
+      <li>铁杉占木质房月销 30%，雪松只有 2%，雪松款在 Amazon 卖不动。</li></ul></div>
+    <div><b>双人淋浴花洒</b><ul>
+      <li>量在低价：&lt; $80 一行月销 1,742，占 41%，单链接 42–60 个。</li>
+      <li>我们落在 $120–180 × 双头 + 手持：只有 2 个 ASIN、评分 3.93，供给少、口碑有缺口；同价带不带手持的双头款月销 825。</li>
+      <li>$180–250 三头款单链接 63.8 最高，评分 4.4–4.8，是往上走的方向。</li></ul></div>
+    <div><b>恒温 / 侧喷系统</b><ul>
+      <li>最大的一格是 ≤10″ × 无侧喷：月销 2,727，单链接 105，均价 $233。FFS223 定 $340 比这格均价高 46%，要么配置拉开，要么价格贴近 $250。</li>
+      <li>16″ × 6 侧喷：月销 228、30 个 ASIN、均价 $540，F00F41 / F42 定 $650 高于均价且只有 4–8%。</li>
+      <li>有侧喷的系统合计只占月销约 34%，大头仍是不带侧喷的恒温款。</li></ul></div>
+  </div>
 </section>
 
 <section aria-labelledby="mt">

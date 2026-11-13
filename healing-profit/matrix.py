@@ -124,7 +124,7 @@ def build(rows, rowf, colf, row_names, col_names):
 
 def render(title, sub, data, rows, cols, ours, row_label="尺寸", footnote=""):
     """ours: {row: {"cells": [col,...], "price": str, "margin": str, "cls": "good|warn|bad"}}"""
-    out, _, _ = data
+    out = data
     maxper = max((v["per"] for v in out.values()), default=1) or 1
     tot = sum(v["u"] for v in out.values()) or 1
     h1 = f'<th rowspan="2" class="rh">{row_label}</th>' + "".join(f'<th colspan="5" class="g g{i%2}">{E(c)}</th>' for i, c in enumerate(cols)) + \
@@ -162,10 +162,10 @@ def render(title, sub, data, rows, cols, ours, row_label="尺寸", footnote=""):
             f'<p class="note">单ASIN月销 = 月销 ÷ ASIN数，越高底色越深；评分低于 4.0 标红；黄色行 / 橙框为我们的产品落点。{footnote}</p></figure>')
 
 MX_CSS = """
-.mx-fig{margin:0;display:grid;gap:8px}
+.mx-fig{margin:0;display:grid;gap:8px;width:min(1480px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%)}
 .mx-fig figcaption{display:grid;gap:2px} .mx-fig figcaption b{font-size:16px} .mx-fig figcaption span{font-size:12.5px;color:var(--muted)}
 table.mx{font-size:12.5px;border-collapse:separate;border-spacing:0}
-table.mx th,table.mx td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.mx th,table.mx td{padding:6px 7px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 table.mx thead th{text-align:center;font-weight:500;color:var(--fg);font-size:12px}
 table.mx th.g0{background:var(--g0)} table.mx th.g1{background:var(--g1)}
 table.mx th.rh{text-align:center;background:var(--bg);font-weight:500;position:sticky;left:0;z-index:1}
