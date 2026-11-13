@@ -71,6 +71,14 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .modal th, .modal td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; } .modal th:first-child { text-align: left; }
 .modal h3 { margin: 6px 0 0; font-size: 14px; color: var(--lamp); font-weight: 600; }
 .scroll { overflow-x: auto; flex: none; }
+.modal > div.tut { max-width: 46em; width: 100%; }
+.tut section { display: flex; flex-direction: column; gap: 8px; } .tut ol { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 4px; }
+.tut .scenes button { flex-direction: row; justify-content: center; }
+.atlas { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.atlas.six { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.atlas figure { margin: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+.atlas img { width: 100%; aspect-ratio: 1; display: block; object-fit: cover; }
+.atlas figcaption { padding: 5px 7px; display: flex; flex-direction: column; gap: 1px; font-size: 12px; } .atlas figcaption span { color: var(--dim); }
 .up { color: var(--up); } .down { color: var(--down); }
 .bargain { border-top: 1px dashed var(--line); margin-top: 5px; padding-top: 6px; display: flex; flex-direction: column; gap: 5px; }
 .bargain label { font-size: 12px; color: var(--dim); }
@@ -107,7 +115,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <h1>翡翠博弈</h1>
     <div id="stats"></div>
     <button data-act="mute">声音 开</button>
-    <button data-act="help">说明书</button>
+    <button data-act="help">教程</button>
     <button data-act="restart">新开一局</button>
     <button data-act="next" class="pri">收工，下一天</button>
   </header>
@@ -140,11 +148,87 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     </aside>
   </main>
 </div>
-<div id="help" class="modal" hidden><div>
-  <h2>说明书</h2>
-  <p>每块原石的内部在生成时就定死了：种水、色带的走向和深浅、裂、棉。你做的每件事都只是在看同一块石头，不会重新抽奖。赚钱靠的是比卖家和买家看得更准，以及知道什么时候停手。</p>
-  <h3>一块料的几条路</h3>
-  <ul>
+<div id="help" class="modal" hidden><div class="tut">
+  <h2>教程</h2>
+  <div class="scenes">
+    <button data-act="pane" data-k="play">怎么玩</button><button data-act="pane" data-k="skin">看皮壳</button><button data-act="pane" data-k="water">看种水</button><button data-act="pane" data-k="color">看色和裂</button><button data-act="pane" data-k="make">做件出货</button><button data-act="pane" data-k="value">价值表</button>
+  </div>
+  <section data-pane="play">
+    <p>每块原石的内部在生成时就定死了：种水、色带的走向和深浅、裂、棉。你做的每件事都只是在看同一块石头，不会重新抽奖。赚钱靠的是比卖家和买家看得更准，以及知道什么时候停手。</p>
+    <h3>一局的顺序</h3>
+    <ol>
+      <li><b>挑场子</b>：右侧「货源」顶上选场景。刚开始只有夜市地摊。</li>
+      <li><b>看料</b>：点一块石头。底下工具栏选「转动」拖着看四面；选「手电」在石头上点一下压灯，再转到侧面和背面看光从哪透出来；关掉「室内灯」看得更清楚；「放大镜」看砂粒和细裂。</li>
+      <li><b>读标签</b>：每块料标了它赌的是种水、色、裂还是镯位，选中后有一句提示。</li>
+      <li><b>出价</b>：还价或照价买。看不准就不买。公盘里是投暗标。</li>
+      <li><b>写判断本</b>：买下后先写你认为的种水、色、裂，之后对答案涨眼力。</li>
+      <li><b>开料</b>：「画圈开皮」剥一块皮看肉；「磨头开窗」自己控制深浅；「下刀切割」拖一条线切开。每一步之后右侧报价都会变，并写明原因。</li>
+      <li><b>出手</b>：随时可以按买家报价卖掉；或者「送去做件」，等几天到「成品盘」里卖成品。</li>
+      <li><b>收工</b>：右上角「收工，下一天」。货源换新，报价作废，货款和成品到账。</li>
+    </ol>
+    <h3>先分清这块料赌什么</h3>
+    <ul>
+    <li><b>赌种水</b>：没什么色，值不值钱全看种老不老。重点压灯看光晕。</li>
+    <li><b>赌色</b>：皮上或窗口见色。色是真的吗？是一条带穿进去，还是只贴着皮一层？</li>
+    <li><b>赌裂</b>：皮上已经能看到裂。裂走多深、会不会切断镯位，决定了能出什么货。</li>
+    <li><b>赌镯位</b>：个头够出手镯。一只好镯子能扛起整块料的成本，一条裂也能让它归零。</li>
+  </ul>
+    <h3>场子、眼力和订单</h3>
+    <ul>
+    <li><b>四个场子</b>：夜市地摊便宜但假表现多，黄灯下绿会显得更浓；集散地开窗料多、价格贴着货；公盘是暗标竞拍，出一口价、收工后开标；场口直采全是没人开过的蒙头料。后面的场子要眼力或资金够了才进得去。</li>
+    <li><b>判断本</b>：买下后、下刀前，写下你对种水、色、裂的判断。这块料全部出手后对答案，判断得准涨眼力。</li>
+    <li><b>客户订单</b>：成品盘里列着客人想要的东西，做出对路的成品交给他，比零售价还高。</li>
+    <li><b>藏品柜</b>：舍不得卖的成品可以收藏，随时拿出来看。</li>
+  </ul>
+  </section>
+  <section data-pane="skin" hidden>
+    <p>皮壳是你能免费看到的唯一线索。下面是同一块石头换上十二种皮的样子，由游戏自己的画面拍的。皮越厚越黑，灯越打不进去；皮薄的料好坏都藏不住。</p>
+    <div class="atlas" id="skinAtlas">正在拍对照图…</div>
+    <h3>皮上还要看什么</h3>
+    <ul>
+      <li><b>松花</b>：皮上一点点、一片片的绿色斑，是里面有色的线索。可信度看场口，有的皮上有、里面没有。</li>
+      <li><b>蟒带</b>：皮上一条条发亮、砂更细的带子，下面的种通常更老。</li>
+      <li><b>癣</b>：皮上的黑斑。癣常和色长在一起，也会吃掉色。</li>
+      <li><b>裂</b>：皮上的黑线，带锈边的是大裂，细发丝一样的是小裂。转着找，看它绕了石头多远。</li>
+      <li><b>雾</b>：皮和肉之间的一层黄、红或白。开皮见雾还没到肉，雾厚的料要多扣损耗。</li>
+    </ul>
+    <h3>各场口的脾气</h3>
+    <div class="scroll" id="originTable"></div>
+    <p class="note">这是本游戏里的倾向，不是真实统计。场口只给先验，每块石头都可能是反例。</p>
+  </section>
+  <section data-pane="water" hidden>
+    <p>种水是底价。下面是同一块薄皮石头、同一盏灯压在同一个位置，只换种水的样子。看的是<b>光晕多大、多干净</b>。</p>
+    <div class="atlas six" id="waterAtlas">正在拍对照图…</div>
+    <ul>
+    <li>压灯后<b>光晕大、边缘柔、颜色干净</b>，说明种老水长（冰种以上能透出好几厘米）。</li>
+    <li>光只在灯头附近<b>一小团发白</b>，说明种嫩（豆种、糯种），光被打散了走不远。</li>
+    <li>露肉后看质感：种老的像冰或玻璃，能看进去很深；种嫩的发白发闷，放大镜下能看到颗粒。</li>
+    <li>同一块料换几个位置压灯。一边透一边不透，可能是<b>变种</b>，也可能只是那边皮厚。</li>
+    <li>皮厚、皮黑的料挡光，灯下不亮不代表种差，只代表你看不清。</li>
+  </ul>
+    <p>做成成品后的差别可以到对照盘里转着看：<button data-act="gotoref">打开种水与颜色对照盘</button></p>
+  </section>
+  <section data-pane="color" hidden>
+    <h3>怎么看色</h3>
+    <ul>
+    <li>光晕被染绿只说明<b>光路上有色</b>。薄薄一层色就能把整团光染绿，所以灯下绿总是比实际的多。</li>
+    <li>把灯挪开一两厘米再压：绿光跟着走，说明色面积大；只有一个位置绿，说明色很局部。</li>
+    <li>从侧面和背面看光从哪里透出来。色带是一片有方向的东西，换角度才能看出它往哪走。</li>
+    <li>皮上的<b>松花</b>是色的线索，但有的场口松花不可靠，皮上有、里面没有。</li>
+    <li>窗口里的色只代表窗口那一小块。卖家开的窗一定开在最好看的地方。</li>
+  </ul>
+    <h3>怎么看裂、棉、脏</h3>
+    <ul>
+    <li><b>裂</b>会挡光：光晕里一条明暗分界线，一侧亮一侧暗，那就是裂面。换方向压灯能看出它的走向。</li>
+    <li>开「斜照」让光贴着皮打，皮上的裂线和起伏更明显。</li>
+    <li><b>棉</b>在灯下是一团团发白的云，<b>脏和癣</b>是吸光的黑块，常常挨着色。</li>
+    <li>大裂会切断手镯位；小纹影响不大。裂附近的料基本是废料。</li>
+    <li>灯太亮反而会把细裂“照穿”看不见；留着皮兜光会让色显得更深。条件不同，看到的不一样。</li>
+  </ul>
+  </section>
+  <section data-pane="make" hidden>
+    <h3>一块料的几条路</h3>
+    <ul>
     <li><b>原样转手</b>：买得便宜就直接卖，赚差价，不承担开料风险。</li>
     <li><b>画圈开皮</b>：在皮上画一个圈，整片切掉圈里的皮，只剥到刚露肉，不会磨深伤料。想自己控制深浅就用磨头。</li>
     <li><b>开窗</b>：磨掉一小块皮。窗口漂亮时买家会往好处想，这时卖掉常常比继续开更划算。</li>
@@ -152,49 +236,21 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <li><b>送去做件</b>：你来定做什么（手镯、牌子挂件、蛋面、珠串、雕件）、找谁做、什么题材。一份料的价值主要在能出几只什么档次的镯子；出不了镯子的料，色浓的小块取蛋面，棉多的做山水，裂多的车珠子或让好雕工藏进花件里，垮料也能回血。先下刀把好坏部分分开，再分别送去，比整块交出去值钱。</li>
     <li><b>成品盘</b>：做好的东西摆在托盘里，可以转着看，一件件卖或整盘卖。批发现结约零售的六成，寄卖接近零售但回款慢。盘里还有一个种水与颜色的对照盘可以随时看。</li>
   </ul>
-  <h3>场子、眼力和订单</h3>
-  <ul>
-    <li><b>四个场子</b>：夜市地摊便宜但假表现多，黄灯下绿会显得更浓；集散地开窗料多、价格贴着货；公盘是暗标竞拍，出一口价、收工后开标；场口直采全是没人开过的蒙头料。后面的场子要眼力或资金够了才进得去。</li>
-    <li><b>判断本</b>：买下后、下刀前，写下你对种水、色、裂的判断。这块料全部出手后对答案，判断得准涨眼力。</li>
-    <li><b>客户订单</b>：成品盘里列着客人想要的东西，做出对路的成品交给他，比零售价还高。</li>
-    <li><b>藏品柜</b>：舍不得卖的成品可以收藏，随时拿出来看。</li>
-  </ul>
-  <h3>先分清这块料赌什么</h3>
-  <ul>
-    <li><b>赌种水</b>：没什么色，值不值钱全看种老不老。重点压灯看光晕。</li>
-    <li><b>赌色</b>：皮上或窗口见色。色是真的吗？是一条带穿进去，还是只贴着皮一层？</li>
-    <li><b>赌裂</b>：皮上已经能看到裂。裂走多深、会不会切断镯位，决定了能出什么货。</li>
-    <li><b>赌镯位</b>：个头够出手镯。一只好镯子能扛起整块料的成本，一条裂也能让它归零。</li>
-  </ul>
-  <h3>怎么看种水</h3>
-  <ul>
-    <li>压灯后<b>光晕大、边缘柔、颜色干净</b>，说明种老水长（冰种以上能透出好几厘米）。</li>
-    <li>光只在灯头附近<b>一小团发白</b>，说明种嫩（豆种、糯种），光被打散了走不远。</li>
-    <li>露肉后看质感：种老的像冰或玻璃，能看进去很深；种嫩的发白发闷，放大镜下能看到颗粒。</li>
-    <li>同一块料换几个位置压灯。一边透一边不透，可能是<b>变种</b>，也可能只是那边皮厚。</li>
-    <li>皮厚、皮黑的料挡光，灯下不亮不代表种差，只代表你看不清。</li>
-  </ul>
-  <h3>怎么看色</h3>
-  <ul>
-    <li>光晕被染绿只说明<b>光路上有色</b>。薄薄一层色就能把整团光染绿，所以灯下绿总是比实际的多。</li>
-    <li>把灯挪开一两厘米再压：绿光跟着走，说明色面积大；只有一个位置绿，说明色很局部。</li>
-    <li>从侧面和背面看光从哪里透出来。色带是一片有方向的东西，换角度才能看出它往哪走。</li>
-    <li>皮上的<b>松花</b>是色的线索，但有的场口松花不可靠，皮上有、里面没有。</li>
-    <li>窗口里的色只代表窗口那一小块。卖家开的窗一定开在最好看的地方。</li>
-  </ul>
-  <h3>怎么看裂、棉、脏</h3>
-  <ul>
-    <li><b>裂</b>会挡光：光晕里一条明暗分界线，一侧亮一侧暗，那就是裂面。换方向压灯能看出它的走向。</li>
-    <li>开「斜照」让光贴着皮打，皮上的裂线和起伏更明显。</li>
-    <li><b>棉</b>在灯下是一团团发白的云，<b>脏和癣</b>是吸光的黑块，常常挨着色。</li>
-    <li>大裂会切断手镯位；小纹影响不大。裂附近的料基本是废料。</li>
-    <li>灯太亮反而会把细裂“照穿”看不见；留着皮兜光会让色显得更深。条件不同，看到的不一样。</li>
-  </ul>
-  <h3>价值是怎么倒推的</h3>
-  <p>成品价由种和色相乘决定，再从成品往回推：成品价 → 扣工费和渠道利润 → 明料价 → 看不见的部分打风险折扣 → 蒙头料价。所以同样的石头，看得越清，买家出价越接近它真正的价值，好坏都是。</p>
+    <h3>什么料做什么</h3>
+    <ul>
+      <li><b>手镯</b>：要一整圈无裂的料，片厚至少 10 毫米。最值钱，也最怕裂。找平洲镯师最稳。</li>
+      <li><b>牌子挂件</b>：出货稳。干净的高种料做素面无事牌最显水头；有棉做山水；有裂做花鸟龙凤把裂藏进纹路；拿不准就交给师傅定。</li>
+      <li><b>蛋面</b>：只取色最浓的一小块，其余算废料。先下刀把色块单独切出来再送。高货找揭阳师傅。</li>
+      <li><b>珠串</b>：能避开裂，碎料和裂多的料靠它回血。机雕厂就够。</li>
+      <li><b>雕件摆件</b>：整块随形雕，裂和脏都能藏。苏工最贵也最能化腐朽为神奇，但料太差撑不起工费。</li>
+    </ul>
+  </section>
+  <section data-pane="value" hidden>
+    <p>成品价由种和色相乘决定，再从成品往回推：成品价 → 扣工费和渠道利润 → 明料价 → 看不见的部分打风险折扣 → 蒙头料价。所以同样的石头，看得越清，买家出价越接近它真正的价值，好坏都是。</p>
   <div class="scroll" id="vtable"></div>
   <p class="note">表里是单只手镯的零售成交价（无棉无裂），按公开资料的量级定的游戏数值，不是实时行情。相邻种级差几倍，色差一档能差十倍。毛料买家按零售价的六成左右起算，再扣利润和风险；成品批发约六成，寄卖接近零售但回款慢。</p>
-  <button data-act="help" class="pri">知道了</button>
+  </section>
+  <button data-act="help" class="pri">开始玩</button>
 </div></div>
 <div id="confirm" class="modal" hidden><div>
   <h2>新开一局？</h2><p>当前进度会被清掉，现金回到 200K。</p>
@@ -207,11 +263,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v7</div>
+<div id="ver">v8</div>
 
 <script>
 (function () {
-  var LOCAL = 7, FILES = ['core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 8, FILES = ['core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }

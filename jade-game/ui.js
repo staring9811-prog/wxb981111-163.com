@@ -121,6 +121,7 @@ const REF = (() => { const B = C.BODIES['白底'], H = C.HUES, it = (type, name,
   it('pendant', '冰种', 0.65, 0, '阳绿', '像冰块，能看进去，反光清晰'), it('pendant', '高冰种', 0.82, 0, '阳绿', '通透，内部干净，高光锐利'), it('pendant', '玻璃种', 0.95, 0, '阳绿', '像玻璃，一眼看穿，表面起荧光'),
   it('cab', '淡绿', 0.65, 1, '淡绿', '色淡，只比无色贵一点'), it('cab', '阳绿', 0.65, 1, '阳绿', '鲜亮带黄味，贵十几倍'), it('cab', '正绿', 0.65, 1, '正绿', '浓而正，贵几十倍'), it('cab', '帝王绿', 0.65, 1, '帝王绿', '浓艳深沉，最贵'),
   it('cab', '紫罗兰', 0.65, 1, '紫罗兰', '春色，贵一两倍'), it('bracelet', '冰种飘花手镯', 0.65, 0.3, '阳绿', '色只占一段：种定底价，色定倍数'),
+  Object.assign(it('pendant', '佛公牌', 0.5, 0.35, '阳绿', '浮雕题材：常年好卖，不挑料'), { theme: '观音佛公' }), Object.assign(it('pendant', '山水牌', 0.4, 0.2, '淡绿', '棉可以做成雪和云'), { theme: '山水', cot: 0.5 }), Object.assign(it('pendant', '平安扣', 0.82, 0.15, '阳绿', '交给师傅定：圆润的扣子最显水头'), { theme: '师傅定' }), Object.assign(it('carve', '佛公摆件', 0.3, 0.4, '正绿', '整块随形雕，裂和脏藏进题材里'), { theme: '观音佛公' }),
 ]; })();
 function trayItems() { return V.ref ? REF : W.items.filter(i => i.state === (V.cab ? 'kept' : 'ready')).slice(0, 16); }
 function trayLayout(items) { const n = items.length, cols = Math.max(1, Math.ceil(Math.sqrt(n * 1.5))), rows = Math.ceil(n / cols), sp = 84; return { cols, rows, sp, pos: items.map((_, i) => [((i % cols) - (cols - 1) / 2) * sp, (Math.floor(i / cols) - (rows - 1) / 2) * sp]), half: [cols * sp / 2 + 14, rows * sp / 2 + 14] }; }
@@ -132,11 +133,12 @@ function renderTray(scale) {
   const items = trayItems(), lay = trayLayout(items), b = camBasis();
   gl.uniform2f(ut('uRes'), w, h); gl.uniform3fv(ut('uCamPos'), b.pos); gl.uniformMatrix3fv(ut('uCamRot'), false, [b.r[0], b.r[1], b.r[2], b.up[0], b.up[1], b.up[2], -b.f[0], -b.f[1], -b.f[2]]); gl.uniform1f(ut('uTan'), TANF); gl.uniform2f(ut('uTray'), Math.max(60, lay.half[0]), Math.max(60, lay.half[1]));
   const It = new Float32Array(64), Ic = new Float32Array(64), Ib = new Float32Array(64), Ix = new Float32Array(64);
-  items.forEach((it, i) => { It.set([lay.pos[i][0], lay.pos[i][1], TYPE_ID[it.type], it.seed % 97], i * 4); Ic.set([it.band[0], it.band[1], it.band[2], it.w], i * 4); Ib.set([it.body[0], it.body[1], it.body[2], it.lv], i * 4); Ix.set([V.sel === it.id ? 1 : 0, it.cot, it.theme === '素面无事牌' ? 0 : 1, 0], i * 4); });
+  items.forEach((it, i) => { It.set([lay.pos[i][0], lay.pos[i][1], TYPE_ID[it.type], it.seed % 97], i * 4); Ic.set([it.band[0], it.band[1], it.band[2], it.w], i * 4); Ib.set([it.body[0], it.body[1], it.body[2], it.lv], i * 4); Ix.set([V.sel === it.id ? 1 : 0, it.cot, ({ '素面无事牌': 0, '观音佛公': 1, '山水': 2, '花鸟龙凤': 3 })[it.theme] != null ? ({ '素面无事牌': 0, '观音佛公': 1, '山水': 2, '花鸟龙凤': 3 })[it.theme] : 4, 0], i * 4); });
   gl.uniform1i(ut('uN'), items.length); gl.uniform4fv(ut('uIt'), It); gl.uniform4fv(ut('uIc'), Ic); gl.uniform4fv(ut('uIb'), Ib); gl.uniform4fv(ut('uIx'), Ix);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 function openTray(ref, cab) { V.mode = 'tray'; V.ref = !!ref; V.cab = !!cab; V.rec = null; V.piece = null; V.e = null; V.sel = null; V.tool = 'rotate'; const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.yaw = 0.35; cam.pitch = 0.85; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); V.note = ''; tab = 'tray'; renderAll(); }
+function focusItem() { const items = trayItems(), i = items.findIndex(x => x.id === V.sel); if (i < 0) return; const lay = trayLayout(items); cam.t = [lay.pos[i][0], items[i].type === 'carve' ? 16 : 5, lay.pos[i][1]]; cam.dist = items[i].type === 'cab' ? 80 : 170; cam.pitch = Math.min(cam.pitch, 0.62); }
 function pickTray(cx, cy) { const r = rayAt(cx, cy); if (r.rd[1] >= 0) return null; const t = (5 - r.ro[1]) / r.rd[1], x = r.ro[0] + r.rd[0] * t, z = r.ro[2] + r.rd[2] * t, items = trayItems(), lay = trayLayout(items); let best = null, bd = 44; items.forEach((it, i) => { const d = Math.hypot(x - lay.pos[i][0], z - lay.pos[i][1]); if (d < bd) { bd = d; best = it; } }); return best; }
 function lookAlong(n) { cam.pitch = Math.max(-1.55, Math.min(1.55, Math.asin(Math.max(-1, Math.min(1, n[1]))))); cam.yaw = Math.atan2(n[0], n[2]); }
 function thumb(s, piece) {
@@ -294,6 +296,32 @@ function refreshQuote(s, p, record) {
 }
 function afterStoneChange(s) { if (s.closed) { tab = 'ledger'; view('review', s, null); } else { const next = s.pieces.find(x => !x.sold); if (next) { view('own', s, next); if (!s.last[next.id]) refreshQuote(s, next); renderAll(); } else { tab = 'mine'; view(null, null, null); } } }
 
+/* ---------- 教程里的对照图：用游戏自己的渲染器现场拍 ---------- */
+const SKIN_NOTES = { '黄砂皮': '最常见。砂粒均匀、翻砂有力的多半种老。', '白砂皮': '皮薄砂细，常出高种无色料。', '乌砂皮': '黑灰色，皮厚挡光；色料多，裂也多。', '红褐皮': '铁质重，皮下常有红雾。', '灰绿薄皮': '皮最薄，灯下最好看，里面什么样基本藏不住。', '黑乌砂': '最黑最厚，灯几乎打不进，赌性最大。', '黄红雾': '皮下有一层黄或红的雾，雾厚吃料，雾下的种通常不差。', '灰白盐砂': '砂粒像盐，手感扎，种老水好，色少。', '铁锈皮': '锈色斑驳，皮厚，底子容易偏灰。', '青灰皮': '细腻偏青，水头不错，容易带蓝灰底。', '黑蜡皮': '表面像打了蜡，光滑少砂，皮紧，裂多。', '褐黄砂': '黄砂的深色款，砂粗，种嫩的多。' };
+let atlasDone = false;
+function buildAtlas() {
+  if (atlasDone) return; atlasDone = true;
+  const keep = { mode: V.mode, rec: V.rec, piece: V.piece, e: V.e, torch: V.torch, room: V.room, lens: V.lens, cam: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist, t: cam.t } };
+  const mk = () => { const st = C.genStone(424242, '木那', '二级供应商'); st.feats = []; st.cracks = []; st.dirt = []; st.shift = null; st.wVar = 0; st.cot = 0.08; st.planes = []; st.fog = { t: 0, col: [1, 1, 1] }; st.body = '白底'; return st; };
+  const shot = (st, vol, torch) => { V.mode = 'own'; V.rec = null; V.piece = C.WHOLE; V.e = { st, vol }; V.lens = null; V.room = !torch; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; cam.dist = Math.max(vol.hx, vol.hy, vol.hz) * 3.9; V.torch = { on: false, p: null, n: null, rake: false };
+    if (torch) { const b = camBasis(), h = C.pick(vol, C.WHOLE, b.pos, b.f); if (h) V.torch = { on: true, p: h.p, n: h.n, rake: false }; }
+    render(1, 168); return canvas.toDataURL('image/jpeg', 0.85); };
+  try {
+    const st = mk(); st.w0 = 0.4; st.skin = Object.assign({}, st.skin, { t: 2 }); const vol = C.bake(st, 44); let h = '';
+    for (const name in C.SKINS) { const S = C.SKINS[name]; st.skin = { name, col: S.col, grain: S.grain, sig: S.sig, weather: S.weather, t: 2, phase: 3 }; const tr = S.sig * (S.t[0] + S.t[1]) / 2;
+      h += `<figure><img src="${shot(st, vol, false)}" alt="${name}"><figcaption><b>${name}</b><span>皮厚 ${S.t[0]}–${S.t[1]} mm · 透光${tr < 1.2 ? '好' : tr < 2.6 ? '一般' : '差'}</span><span>${SKIN_NOTES[name]}</span></figcaption></figure>`; }
+    $('#skinAtlas').innerHTML = h; h = '';
+    const notes = ['光只在灯头一小团，发白', '光晕稍大，浑而柔', '光晕明显变大，边缘柔和', '透出一大片，颜色干净', '几乎整块亮起来', '通体透亮，像灯泡'];
+    C.GRADES.forEach((g, i) => { const s2 = mk(); s2.w0 = g; s2.skin = { name: '灰绿薄皮', col: C.SKINS['灰绿薄皮'].col, grain: 0.22, sig: 0.45, weather: 0.3, t: 0.7, phase: 3 }; const v2 = C.bake(s2, 40);
+      h += `<figure><img src="${shot(s2, v2, true)}" alt="${C.waterName(g)}"><figcaption><b>${C.waterName(g)}</b><span>${notes[i]}</span></figcaption></figure>`; });
+    $('#waterAtlas').innerHTML = h;
+  } catch (e) { $('#skinAtlas').textContent = '对照图生成失败：' + e.message; }
+  V.mode = keep.mode; V.rec = keep.rec; V.piece = keep.piece; V.e = keep.e; V.torch = keep.torch; V.room = keep.room; V.lens = keep.lens; Object.assign(cam, keep.cam); loaded = null; invalidate(false);
+  const word = (v, a, b) => v >= b ? '高' : v >= a ? '中' : '低';
+  $('#originTable').innerHTML = '<table><thead><tr><th>场口</th><th>种水</th><th>出色</th><th>裂</th><th>皮壳表现可信度</th><th>常见皮</th></tr></thead><tbody>' + Object.keys(C.ORIGINS).map(k => { const O = C.ORIGINS[k]; return `<tr><th>${k}</th><td>${word(O.w, 35, 42)}</td><td>${word(O.c, 48, 54)}</td><td>${word(O.crack, 38, 48)}</td><td>${word(O.rel * 100, 50, 65)}</td><td style="text-align:left;white-space:normal">${O.skins.slice(0, 3).join('、')}</td></tr>`; }).join('') + '</tbody></table>';
+}
+function showPane(k) { document.querySelectorAll('#help [data-pane]').forEach(x => x.hidden = x.dataset.pane !== k); document.querySelectorAll('#help [data-act=pane]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k)); if (k === 'skin' || k === 'water') buildAtlas(); }
+
 /* ---------- 说明书里的价值表：直接用内核公式算，保证和游戏一致 ---------- */
 function fillManual() {
   const seeds = [['豆种', 0.10], ['糯种', 0.25], ['糯冰种', 0.45], ['冰种', 0.65], ['高冰种', 0.82], ['玻璃种', 0.95]];
@@ -332,7 +360,7 @@ document.addEventListener('click', ev => {
   else if (a === 'tray') openTray(false);
   else if (a === 'trayref') openTray(true);
   else if (a === 'trayback') openTray(false);
-  else if (a === 'isel') { if (ev.target.closest('button')) return; V.sel = V.ref ? b.dataset.i : +b.dataset.i; renderSide(); invalidate(false); }
+  else if (a === 'isel') { if (ev.target.closest('button')) return; V.sel = V.ref ? b.dataset.i : +b.dataset.i; focusItem(); renderSide(); invalidate(false); }
   else if (a === 'isell') { const it = W.items.find(x => x.id === +b.dataset.i); C.sellItem(W, it, b.dataset.how); Snd.coin(); save(); const s = W.stones.find(x => x.id === it.stone); if (s && s.closed && !trayItems().length) { tab = 'ledger'; view('review', s, null); } else openTray(false); }
   else if (a === 'iall') { for (const it of trayItems()) C.sellItem(W, it, b.dataset.how); save(); tab = 'ledger'; view(null, null, null); }
   else if (a === 'review') { view('review', W.stones.find(x => x.id === +b.dataset.s), null); }
@@ -361,7 +389,9 @@ document.addEventListener('click', ev => {
   else if (a === 'restart') { $('#confirm').hidden = false; }
   else if (a === 'no') { $('#confirm').hidden = true; }
   else if (a === 'yes') { $('#confirm').hidden = true; C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; view(null, null, null); }
-  else if (a === 'help') { $('#help').hidden = !$('#help').hidden; }
+  else if (a === 'help') { $('#help').hidden = !$('#help').hidden; if (!$('#help').hidden) showPane('play'); }
+  else if (a === 'pane') showPane(b.dataset.k);
+  else if (a === 'gotoref') { $('#help').hidden = true; openTray(true); }
 });
 document.addEventListener('input', ev => {
   if (ev.target.id === 'cutT') { V.cutT = +ev.target.value; $('#cutV').textContent = V.cutT; if (V.cut && V.cut.fromView) { V.cut.d = V.cut.base - V.cutT; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d); renderTools(); } invalidate(true); }
@@ -418,7 +448,7 @@ canvas.addEventListener('pointermove', ev => {
 });
 function endPtr(ev) {
   ptrs.delete(ev.pointerId); if (!drag) return;
-  if (drag.tray && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 6) { const it = pickTray(ev.clientX, ev.clientY); V.sel = it ? it.id : null; renderSide(); invalidate(false); }
+  if (drag.tray && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 6) { const it = pickTray(ev.clientX, ev.clientY); V.sel = it ? it.id : null; if (it) focusItem(); else { const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); } renderSide(); invalidate(false); }
   if (drag.kind === 'grind') { const s = V.rec, p = V.piece; refreshQuote(s, p, true); V.note = `本次打磨花费 ${Math.max(1, Math.round(strokeCost))} 元。`; save(); renderAll(); }
   if (drag.kind === 'loupe' && ev.pointerType !== 'mouse') { V.lens = null; invalidate(false); }
   if (drag.kind === 'lasso') { showLasso(null); doPeel(drag.pts); }
@@ -440,9 +470,11 @@ canvas.addEventListener('wheel', ev => { if (!V.e && V.mode !== 'tray') return; 
 new ResizeObserver(() => invalidate(false)).observe(canvas);
 
 /* ---------- 启动 ---------- */
+const hadSave = !!load();
 W = load() || C.newWorld((Date.now() ^ 0x5f3759df) >>> 0);
 window.JadeDebug = { V, cam, Q, render, invalidate, view, world: () => W, setWorld: w => { W = w; } };
 if (!W.market || !W.market.length) C.enterScene(W, W.scene || '夜市地摊');
 fillManual();
 view('market', W.market.find(L => !L.sold) || null, null);
+if (!hadSave) { $('#help').hidden = false; showPane('play'); }
 })();
