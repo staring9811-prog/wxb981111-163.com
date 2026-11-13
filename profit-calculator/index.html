@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.5.1">
+<meta name="pc-app-version" content="1.5.4">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -1451,261 +1451,138 @@ function loadExcelJS(){ if(window.ExcelJS) return Promise.resolve(window.ExcelJS
     s.onload=()=>window.ExcelJS?ok(window.ExcelJS):bad(Error("表格组件没加载成功")); s.onerror=()=>{ excelJsP=null; bad(Error("表格组件加载失败，请联网后再试")); }; document.head.appendChild(s); });
   return excelJsP; }
 const xlCol=n=>{ let s=""; n++; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; };
+/* Each channel is its own sheet and fully self-contained: prices, costs, freight items and every rate are typed in that sheet
+   (yellow), profits are formulas inside the sheet — nothing links to another sheet. */
 async function buildFormulaWorkbook(opt={}){
   const ExcelJS=await loadExcelJS(), noCache=!!opt.noCache, withImg=opt.images!==false;
   const wb=new ExcelJS.Workbook(); wb.creator="利润测算台"; wb.calcProperties.fullCalcOnLoad=true;
   const fill=c=>({type:"pattern",pattern:"solid",fgColor:{argb:"FF"+c}});
   const YEL=fill("FFF2B3"), ZEB=fill("F6F8FA");
-  const GRP={prod:["D9DEE3","EEF1F4"],price:["D9DEE3","EEF1F4"],cost:["CFE2F3","E6F0F9"],ship:["FCE4CC","FDF1E5"],ops:["E4DAF2","F1ECF8"],prof:["D5EEDB","E9F6EC"],cmp:["C7E9D0","E1F3E6"],sum:["D5EEDB","E9F6EC"],help:["E3E7EB","F1F3F5"],
-             size:["D9DEE3","EEF1F4"],fbm:["FCE4CC","FDF1E5"],cg:["E4DAF2","F1ECF8"],sea:["CFE2F3","E6F0F9"],fba:["D5EEDB","E9F6EC"]};
-  const FM={money:'"$"#,##0.00;[Red]("$"#,##0.00)',pct:'0.0%;[Red]-0.0%',n2:"0.00",n1:"0.0",int:"0",m3:"0.0000",rmb:'"¥"#,##0.00'};
+  const GRP={prod:["D9DEE3","EEF1F4"],price:["D9DEE3","EEF1F4"],cost:["CFE2F3","E6F0F9"],ship:["FCE4CC","FDF1E5"],ops:["E4DAF2","F1ECF8"],prof:["D5EEDB","E9F6EC"],cmp:["C7E9D0","E1F3E6"]};
+  const GN={prod:"产品",price:"价格",cost:"成本",ship:"运输费用",ops:"运营费用",prof:"利润",cmp:"方案对比（利润率）"};
+  const FM={money:'"$"#,##0.00;[Red]("$"#,##0.00)',pct:'0.0%;[Red]-0.0%',n2:"0.00",n1:"0.0",int:"0",m3:"0.0000"};
   const fv=(f,v)=>noCache||v===undefined||v===null||(typeof v==="number"&&!isFinite(v))?{formula:f}:{formula:f,result:v};
   const thin={style:"thin",color:{argb:"FFD5DBE1"}}, BOX={top:thin,left:thin,bottom:thin,right:thin};
-  const si=seaIdx(), R=products.map(p=>({p,r:calcProduct(p)}));
-  const fobI=seaPick("fob"), domI=seaPick("dom"), fobS=P.sea[fobI]||{rmb:0,cbm:68}, domS=P.sea[domI]||fobS;
-  const q=n=>`'${n.replace(/'/g,"''")}'`;
-  const S1="产品与成本", S2="包裹明细", S3="参数", S4="运费表";
-  const CH=[{k:"fbm",name:"Amazon FBM"},{k:"cg",name:"Amazon CG"},{k:"fba",name:"Amazon FBA"},...PLATS.map(pl=>({k:pl.k,name:pl.name.replace(/'/g,"’"),plat:1}))];
-  const view=(x)=>({views:[{state:"frozen",xSplit:x,ySplit:2,zoomScale:90}],properties:{outlineProperties:{summaryRight:false}}});
-  const wo=wb.addWorksheet(S1,view(2));
-  CH.forEach(c=>{ c.ws=wb.addWorksheet(c.name,view(2)); });
-  const wd=wb.addWorksheet(S2,view(3));
-  const wp=wb.addWorksheet(S3), wt=wb.addWorksheet(S4);
+  const r2=v=>isFinite(v)?Math.round(v*100)/100:null;
   const headCell=(c,v,bg,note)=>{ c.value=v; c.font={bold:true,size:10}; c.fill=fill(bg); c.alignment={wrapText:true,vertical:"middle",horizontal:"center"}; c.border=BOX; if(note) c.note=note; };
+  const si=seaIdx(), fobI=seaPick("fob"), domI=seaPick("dom"), tgt=nz(P.targetMargin)/100;
+  const R=products.map(p=>{ const r=calcProduct(p); return {p,r,f:hasFobCost(p)?calcIn("fob",()=>calcProduct(p)):null,d:hasDomCost(p)?calcIn("dom",()=>calcProduct(p)):null}; });
+  const D0=4, nP=R.length, last=D0-1+nP;
+  const CH=[{k:"fbm",name:"Amazon FBM"},{k:"cg",name:"Amazon CG"},{k:"fba",name:"Amazon FBA"},...PLATS.map(pl=>({k:pl.k,name:pl.name.replace(/'/g,"’"),plat:1}))];
+  const imgCache={};
+  async function jpeg(id){ if(id in imgCache) return imgCache[id]; let out=null; try{ const u=await imgUrl(id); if(u){ const bmp=await createImageBitmap(await (await fetch(u)).blob()); const s=54, k=Math.min(s/bmp.width,s/bmp.height);
+      const cv=document.createElement("canvas"); cv.width=Math.round(bmp.width*k*2); cv.height=Math.round(bmp.height*k*2); const g=cv.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,cv.width,cv.height); g.drawImage(bmp,0,0,cv.width,cv.height);
+      out={id:wb.addImage({base64:cv.toDataURL("image/jpeg",0.85),extension:"jpeg"}),ext:{width:Math.round(bmp.width*k),height:Math.round(bmp.height*k)}}; } }catch(e){} return imgCache[id]=out; }
 
-  /* ---------- 参数 ---------- */
-  wp.columns=[{width:34},{width:14},{width:50}];
-  const PRM={}; let pr=1;
-  [["参数","值","说明"]].forEach(h=>h.forEach((v,i)=>headCell(wp.getCell(pr,i+1),v,"D9DEE3"))); pr++;
-  const prm=(key,label,v,fmt,note)=>{ const row=pr++; wp.getCell(row,1).value=label; const c=wp.getCell(row,2); c.value=v; c.fill=YEL; c.border=BOX; if(fmt) c.numFmt=FM[fmt]; wp.getCell(row,3).value=note||""; wp.getCell(row,3).font={color:{argb:"FF6B7785"},size:9}; PRM[key]=`'${S3}'!$B$${row}`; };
-  const sect=t=>{ pr++; const c=wp.getCell(pr,1); c.value=t; c.font={bold:true,color:{argb:"FF0E5A6E"}}; pr++; };
-  sect("汇率与成本");
-  prm("rate","汇率 RMB/USD",nz(P.rate),"n2",P.rateSrc||""); prm("tax","税点（FOB 出厂价为 RMB 含税时去税）",nz(P.tax)/100,"pct");
-  prm("vat","增值税率（国内出货）",nz(P.dom.vat)/100,"pct"); prm("rebate","出口退税率（国内出货）",nz(P.dom.rebate)/100,"pct"); prm("extra","国内杂费 RMB/柜",nz(P.dom.extra),"int","只加在国内出货的头程上");
-  sect("海运 / 头程");
-  prm("fobRmb","FOB 海运柜价 RMB",nz(fobS.rmb),"int",`方案：${fobS.name||""}`); prm("fobCbm","FOB 每柜方数 m³",nz(fobS.cbm),"n1","整柜满装容量");
-  prm("domRmb","国内出货头程柜价 RMB",nz(domS.rmb),"int",`方案：${domS.name||""}`); prm("domCbm","国内出货每柜方数 m³",nz(domS.cbm),"n1");
-  prm("fill","整装装柜率",nz(P.ltl.fill)/100,"pct","整装海运 ÷ 装柜率"); prm("fillFlat","整包 / 分包装柜率",nz(P.ltl.fillFlat)/100,"pct");
-  sect("Amazon 运营费用");
-  prm("promo","推广",nz(P.promo)/100,"pct","× 售价"); prm("fx","汇损",nz(P.fxLoss)/100,"pct","× 售价"); prm("refund","退款",nz(P.refund)/100,"pct","× 售价");
-  prm("cThr","家具佣金阈值 $",nz(P.commission.threshold),"money"); prm("cLow","家具 ≤ 阈值部分",nz(P.commission.furnLow)/100,"pct"); prm("cHigh","家具 > 阈值部分",nz(P.commission.furnHigh)/100,"pct");
-  prm("cOther","其他品类佣金（佣金表找不到时）",nz(P.commission["其他"])/100,"pct"); prm("target","目标利润率（总览着色用）",nz(P.targetMargin)/100,"pct");
-  sect("FBM 尾程（快递 / LTL）");
-  prm("fuel","尾程燃油",nz(P.fbm.fuel)/100,"pct","× (派送+处理+异常+住宅)"); prm("resi","住宅附加费（1=计入，0=不计）",P.residential?1:0,"int");
-  prm("dimDiv","体积重除数",nz(P.fbm.dimDiv),"int"); prm("lbPerKg","kg→lb（计费重）",nz(P.fbm.lbPerKg),null); prm("ceilLb","kg→lb（实重取整，CG 用）",nz(P.fbm.ceilLb),null);
-  prm("ltlBase","LTL 估算：起步价 $",nz(P.ltl.base),"money","没填 LTL 报价时用估算"); prm("ltlLb","LTL 估算：每磅 $/lb",nz(P.ltl.perLb),"n2"); prm("ltlM3","LTL 估算：每方 $/m³",nz(P.ltl.perM3),"n2");
-  sect("FBA");
-  prm("fbaDiv","FBA 体积重除数",nz(P.fba.dimDiv),"int"); prm("fbaFuel","FBA 燃油/物流附加费",nz(P.fba.fuel)/100,"pct"); prm("fbaPeak","FBA 旺季（1=旺季费率，0=非旺季）",fbaPeak()?1:0,"int");
-  prm("osLen","FBA 超长：最长边 > in",nz(P.fba.osLen),"int"); prm("osLG","FBA 超长：长+围长 > in",nz(P.fba.osLG),"int");
-  prm("os50","超长附加 ≤50 lb $",nz(P.fba.os50),"money"); prm("os70","超长附加 ≤70 lb $",nz(P.fba.os70),"money"); prm("os150","超长附加 ≤150 lb $",nz(P.fba.os150),"money");
-  sect("非家具品类佣金"); const commR0=pr;
-  ["汽配","工业机械","农机花园","其他"].forEach(k=>{ wp.getCell(pr,1).value=k; const c=wp.getCell(pr,2); c.value=nz(P.commission[k])/100; c.numFmt=FM.pct; c.fill=YEL; c.border=BOX; pr++; });
-  const COMMT=`'${S3}'!$A$${commR0}:$B$${pr-1}`;
-  sect("其他平台"); const PLH=["平台","发货方","加价倍率","推广","汇损","佣金","退款","仓储","出仓","平台订单费 $/包","比例费基数"];
-  PLH.forEach((v,i)=>headCell(wp.getCell(pr,i+1),v,"E3E7EB")); pr++;
-  const SHIPX={self:"我们发货",handling:"平台发货",none:"平台仓"}, PL={};
-  PLATS.forEach(pl=>{ const c=P.plat[pl.k], row=pr++, vals=[pl.name,SHIPX[c.ship]||"平台发货",nz(c.markup)||1,nz(c.ads)/100,nz(c.fx)/100,nz(c.comm)/100,nz(c.refund)/100,nz(c.storage)/100,nz(c.outbound)/100,nz(c.fixed),c.commBase==="list"?"原批发价":"实际结算价"];
-    vals.forEach((v,i)=>{ const cell=wp.getCell(row,i+1); cell.value=v; cell.border=BOX; if(i>0){ cell.fill=YEL; if(i>=3&&i<=8) cell.numFmt=FM.pct; if(i===9) cell.numFmt=FM.money; } });
-    wp.getCell(row,2).dataValidation={type:"list",allowBlank:false,formulae:['"我们发货,平台发货,平台仓"']}; wp.getCell(row,11).dataValidation={type:"list",allowBlank:false,formulae:['"原批发价,实际结算价"']};
-    const a=i=>`'${S3}'!$${xlCol(i)}$${row}`; PL[pl.k]={ship:a(1),mk:a(2),ads:a(3),fx:a(4),comm:a(5),refund:a(6),storage:a(7),outbound:a(8),fixed:a(9),base:a(10)}; });
-  for(let i=4;i<=11;i++) wp.getColumn(i).width=12;
-
-  /* ---------- 运费表 ---------- */
-  ["计费重 lb","派送费 $","订单处理费 $"].forEach((h,j)=>headCell(wt.getCell(1,1+j),h,"FCE4CC"));
-  P.tail.forEach((t,i)=>{ [nz(t.lb),nz(t.fee),nz(t.handling)].forEach((v,j)=>{ const c=wt.getCell(i+2,j+1); c.value=v; if(j){ c.fill=YEL; c.numFmt=FM.n2; } }); });
-  const TAIL=`'${S4}'!$A$2:$C$${P.tail.length+1}`;
-  ["异常类型","附加费 $","旺季附加 $"].forEach((h,j)=>headCell(wt.getCell(1,5+j),h,"FCE4CC"));
-  P.surch.forEach((x,i)=>{ [x.type,nz(x.base),nz(x.peak)].forEach((v,j)=>{ const c=wt.getCell(i+2,5+j); c.value=v; if(j){ c.fill=YEL; c.numFmt=FM.n2; } }); });
-  const SUR=`'${S4}'!$E$2:$G$${P.surch.length+1}`;
-  ["CG 档位","拣货费 $","派送基础 $","每磅 $/lb"].forEach((h,j)=>headCell(wt.getCell(1,9+j),h,"E4DAF2"));
-  P.cg.forEach((x,i)=>{ [x.bucket,x.pick,x.ship,x.perLb].forEach((v,j)=>{ const c=wt.getCell(i+2,9+j); c.value=j&&!isFinite(v)?null:v; if(j) c.fill=YEL; }); });
-  const CGT=`'${S4}'!$I$2:$L$${P.cg.length+1}`;
-  const TK=["name","w","l","m","n","lg","base","peak","per","from"];
-  ["FBA 档位","重量 ≤ lb","最长边 ≤","次长边 ≤","最短边 ≤","长+围长 ≤","非旺季基础费 $","旺季基础费 $","续重 $/lb","起算 lb"].forEach((h,j)=>headCell(wt.getCell(1,14+j),h,"D5EEDB"));
-  P.fba.tiers.forEach((t,i)=>TK.forEach((k,j)=>{ const c=wt.getCell(i+2,14+j); const v=j?num(t[k]):t[k]; c.value=j?(isFinite(v)?v:null):v; if(j) c.fill=YEL; }));
-  const TR=P.fba.tiers.length, tcell=(k,i)=>`'${S4}'!$${xlCol(13+TK.indexOf(k))}$${i+2}`, tcol=k=>`'${S4}'!$${xlCol(13+TK.indexOf(k))}$2:$${xlCol(13+TK.indexOf(k))}$${TR+1}`;
-  for(let i=1;i<=23;i++) wt.getColumn(i).width=12; wt.getColumn(5).width=30; wt.getColumn(9).width=22; wt.getColumn(14).width=18; wt.views=[{state:"frozen",ySplit:1}];
-
-  /* ---------- column registries ---------- */
-  const mkReg=()=>{ const L=[]; const add=(key,head,o={})=>L.push(Object.assign({key,head},o)); const C={}; return {L,add,C,fin(){ L.forEach((c,i)=>{ C[c.key]=xlCol(i); }); },d(k){ return L.find(z=>z.key===k); }}; };
-  const GN={prod:"产品",price:"价格",cost:"成本",ship:"运输费用",ops:"运营费用",prof:"利润",cmp:"FBM 方案对比（利润率）",sum:"各渠道利润率（看各渠道表）",help:"计算中间值（点上方 + 展开）",size:"尺寸与重量",fbm:"FBM 快递尾程",cg:"CG",sea:"海运 / 头程",fba:"FBA"};
-  const drawHead=(ws,reg)=>{ let i=0; while(i<reg.L.length){ const c=reg.L[i]; let j=i; while(j+1<reg.L.length&&reg.L[j+1].g===c.g) j++;
-      const bg=GRP[c.g]||["E3E7EB","F1F3F5"]; if(j>i) ws.mergeCells(1,i+1,1,j+1); headCell(ws.getCell(1,i+1),GN[c.g]||c.g,bg[0]);
-      for(let k=i;k<=j;k++){ const d=reg.L[k]; headCell(ws.getCell(2,k+1),d.head,d.in?"FFF2B3":bg[1],d.note); ws.getColumn(k+1).width=d.w||9; if(d.g==="help"){ ws.getColumn(k+1).outlineLevel=1; ws.getColumn(k+1).hidden=true; } }
-      i=j+1; } ws.getRow(1).height=20; ws.getRow(2).height=34; };
-  const style=(cell,d,zebra)=>{ if(d.fmt) cell.numFmt=FM[d.fmt]; cell.border=BOX; cell.alignment={vertical:"middle",horizontal:["name","exc","bucket"].includes(d.key)?"left":"center",wrapText:d.key==="name"};
-    if(d.in){ cell.fill=YEL; cell.protection={locked:false}; } else if(zebra) cell.fill=ZEB; if(d.res) cell.font={bold:true}; if(d.dv) cell.dataValidation={type:"list",allowBlank:true,formulae:[d.dv]}; };
-  const NOTE_COST="FOB：USD 直接用；RMB 含税 ÷ (1+税点) ÷ 汇率；RMB 未税 ÷ 汇率。国内：国内价 × (1 − 退税率 ÷ (1+增值税)) ÷ 汇率。再加成本调整";
-  // 产品与成本 (shared inputs)
-  const O=mkReg(), oa=O.add;
-  oa("img","图片",{g:"prod",w:9}); oa("name","品名",{g:"prod",w:24,in:1,note:"新增产品：审阅 → 撤销工作表保护（没有密码），在本表和各渠道表复制一行到下面，并在“包裹明细”加上它的包裹行（产品# 填新行号）。"});
-  oa("pack","包装",{g:"prod",w:7,in:1,dv:'"整装,整包,分包"',note:"整装：海运按整装装柜率（默认 70%）；整包 / 分包：按整包装柜率（默认 100%）"});
-  oa("mode","出货方式",{g:"prod",w:8,in:1,dv:'"FOB,国内"',note:"FOB：FOB 出厂价 + FOB 海运；国内：国内出货价扣退税 + 国内头程（含国内杂费）"});
-  oa("tailMode","FBM 尾程",{g:"prod",w:8,in:1,dv:'"快递,LTL"',note:"快递：FedEx 尾程 + 订单处理 + 异常附加费 + 燃油；LTL：LTL 报价，没填用估算。自己发货的平台（如 Lowe's SC）也按这个算"});
-  oa("cat","品类",{g:"prod",w:8,in:1,dv:'"家具,汽配,工业机械,农机花园,其他"'}); oa("peak","FBM 旺季",{g:"prod",w:7,in:1,dv:'"非旺季,旺季"'});
-  oa("price","Amazon 售价 $",{g:"prod",w:10,in:1,fmt:"money",note:"Amazon FBM / CG / FBA 共用；其他平台的价格在各平台表里填"});
-  oa("fob","FOB 出厂价",{g:"cost",w:9,in:1,fmt:"n2"}); oa("cur","币种",{g:"cost",w:8,in:1,dv:'"USD,RMB含税,RMB未税"'}); oa("rmb","国内出货价 ¥",{g:"cost",w:10,in:1,fmt:"rmb",note:"人民币含税价；出货方式选“国内”时用"});
-  oa("adj","成本调整 $",{g:"cost",w:8,in:1,fmt:"money"}); oa("cost","采购成本 $",{g:"cost",w:10,fmt:"money",res:1,note:NOTE_COST});
-  oa("sea","海运 / 头程 $",{g:"cost",w:10,fmt:"money",res:1,note:"各包裹体积 × 柜价 ÷ 每柜方数 ÷ 汇率 ÷ 装柜率，见“包裹明细”"});
-  oa("ltlq","LTL 报价 $",{g:"ship",w:9,in:1,fmt:"money",note:"填了按报价；不填按估算：起步价 + 每磅 × 毛重 lb + 每方 × 体积"}); oa("fbmTail","FBM 尾程 $",{g:"ship",w:10,fmt:"money",res:1,note:"按“FBM 尾程”列：快递合计或 LTL"});
-  CH.forEach(c=>oa("m_"+c.k,c.name,{g:"sum",w:9,fmt:"pct",res:1,margin:1,note:`=“${c.name}”表的利润率`}));
-  [["pid","产品#"],["pkgs","包裹数"],["kgSum","毛重 kg"],["m3Sum","体积 m³"],["costFob","FOB 成本 $"],["costDom","国内成本 $"],["seaFob","FOB 海运 $"],["seaDom","国内头程 $"],["parcelSum","快递尾程 $"],["parcelOk","快递可走"],["ltlEst","LTL 估算 $"],["ltlUsed","LTL 采用 $"],["handSum","订单处理费 $"]]
-    .forEach(([k,h])=>oa(k,h,{g:"help",w:9,fmt:["parcelOk","pid","pkgs"].includes(k)?null:k==="m3Sum"?"m3":"money"}));
-  O.fin(); const OC=O.C;
-  // channel sheets
-  const amzOps=(a)=>{ a("promo","推广 $",{g:"ops",w:8,fmt:"money",note:"售价 × 推广%"}); a("fxl","汇损 $",{g:"ops",w:8,fmt:"money"}); a("comm","佣金 $",{g:"ops",w:8,fmt:"money",note:"家具：≤ 阈值部分 × 低档 + 超出部分 × 高档；其他品类按参数页佣金表"}); a("refund","退款 $",{g:"ops",w:8,fmt:"money"}); };
-  CH.forEach(c=>{ const g=mkReg(), a=g.add; c.reg=g;
-    a("img","图片",{g:"prod",w:9}); a("name","品名",{g:"prod",w:24}); a("pack","包装",{g:"prod",w:7}); a("mode","出货方式",{g:"prod",w:8});
-    if(!c.plat){
-      if(c.k==="fbm") a("tailMode","FBM 尾程",{g:"prod",w:8});
-      a("price","Amazon 售价 $",{g:"prod",w:10,fmt:"money",note:"在“产品与成本”表改"});
-      a("cost","采购成本 $",{g:"cost",w:10,fmt:"money",note:NOTE_COST}); a("sea","海运 / 头程 $",{g:"cost",w:10,fmt:"money"});
-      if(c.k==="fbm"){ a("tail","尾程派送 $",{g:"ship",w:9,fmt:"money",note:"快递：按计费重查运费表"}); a("hand","订单处理 $",{g:"ship",w:9,fmt:"money"}); a("surch","异常附加费 $",{g:"ship",w:9,fmt:"money",note:"AHS / OS 等，按包裹的 FedEx 异常类型；旺季加旺季附加"}); a("resi","住宅附加 $",{g:"ship",w:8,fmt:"money"}); a("fuel","燃油 $",{g:"ship",w:8,fmt:"money",note:"(派送+处理+异常+住宅) × 燃油%"});
-        a("parcel","快递合计 $",{g:"ship",w:9,fmt:"money"}); a("ltl","LTL $",{g:"ship",w:9,fmt:"money",note:"报价，没填用估算"}); a("ship","FBM 尾程 $",{g:"ship",w:10,fmt:"money",res:1,note:"按“FBM 尾程”方式取快递合计或 LTL"}); }
-      if(c.k==="cg"){ a("cgship","CG 派送基础 $",{g:"ship",w:9,fmt:"money"}); a("cglb","CG 每磅费 $",{g:"ship",w:9,fmt:"money"}); a("cgpick","CG 拣货费 $",{g:"ship",w:9,fmt:"money"}); a("ship","CG 运费合计 $",{g:"ship",w:10,fmt:"money",res:1}); }
-      if(c.k==="fba"){ a("ship","FBA 费 $",{g:"ship",w:10,fmt:"money",res:1,note:"按 FBA 档位：(基础费 + 续重) × (1+燃油%) + 超长附加，见包裹明细"}); }
-      amzOps(a);
-      a("P","利润 $",{g:"prof",w:10,fmt:"money",res:1,note:"售价 − 采购成本 − 海运 − 运输费用 − 运营费用"}); a("M","利润率",{g:"prof",w:8,fmt:"pct",res:1,margin:1,note:"利润 ÷ 售价"});
-      if(c.k==="fbm"){ a("cParcel","快递",{g:"cmp",w:8,fmt:"pct",margin:1,note:"FBM 尾程按快递时的利润率（整装 / LTL 产品才显示）"}); a("cLtl","LTL",{g:"cmp",w:8,fmt:"pct",margin:1,note:"FBM 尾程按 LTL 时的利润率（整装 / LTL 产品才显示）"});
-        a("cFob","FOB 出货",{g:"cmp",w:8,fmt:"pct",margin:1,note:"按 FOB 出厂价 + FOB 海运（有 FOB 价才显示）"}); a("cDom","国内出货",{g:"cmp",w:8,fmt:"pct",margin:1,note:"按国内出货价扣退税 + 国内头程（有国内价才显示）"}); }
-    } else {
-      a("list","上架价 $",{g:"price",w:9,in:1,fmt:"money"}); a("promo","促销价 $",{g:"price",w:9,in:1,fmt:"money"}); a("mk","加价倍率",{g:"price",w:7,fmt:"n2",note:"在参数页改"}); a("settle","结算价 $",{g:"price",w:9,fmt:"money",res:1,note:"促销价 ÷ 加价倍率"});
-      a("cost","采购成本 $",{g:"cost",w:10,fmt:"money",note:NOTE_COST}); a("sea","海运 / 头程 $",{g:"cost",w:10,fmt:"money"});
-      a("logi","物流 $",{g:"ship",w:9,fmt:"money",note:"发货方（参数页）：我们发货 = FBM 尾程（快递或 LTL）；平台发货 = 订单处理费；平台仓 = 0"}); a("fixed","平台订单费 $",{g:"ship",w:9,fmt:"money",note:"每包裹订单费 × 包裹数"});
-      a("fb","比例费基数 $",{g:"ops",w:9,fmt:"money",note:"原批发价 = 上架价 ÷ 倍率（促销不降）；实际结算价 = 结算价。参数页可改"});
-      [["ads","推广 $"],["fx","汇损 $"],["comm","佣金 $"],["refund","退款 $"],["storage","仓储 $"],["outbound","出仓 $"]].forEach(([k,h])=>a("o_"+k,h,{g:"ops",w:8,fmt:"money"}));
-      a("P","利润 $",{g:"prof",w:10,fmt:"money",res:1,note:"结算价 − 采购成本 − 海运 − 物流 − 平台订单费 − 运营费用"}); a("M","利润率",{g:"prof",w:8,fmt:"pct",res:1,margin:1,note:"利润 ÷ 结算价"});
-    }
-    g.fin(); });
-  // 包裹明细
-  const D=mkReg(), da=D.add;
-  da("pid","产品#",{g:"size",w:6}); da("name","品名",{g:"size",w:22}); da("pkgNo","包裹",{g:"size",w:5});
-  da("len","长 cm",{g:"size",w:7,in:1,fmt:"n1"}); da("wid","宽 cm",{g:"size",w:7,in:1,fmt:"n1"}); da("hei","高 cm",{g:"size",w:7,in:1,fmt:"n1"}); da("kg","毛重 kg",{g:"size",w:7,in:1,fmt:"n1"});
-  da("in1","最长边 in",{g:"size",w:7}); da("in2","次长边 in",{g:"size",w:7}); da("in3","最短边 in",{g:"size",w:7}); da("m3","体积 m³",{g:"size",w:8,fmt:"m3"}); da("cuin","立方英寸",{g:"size",w:8});
-  da("dimw","体积重 lb",{g:"size",w:8,fmt:"n2"}); da("pw","计费重 lb",{g:"size",w:7}); da("rlb","实重 lb",{g:"size",w:7}); da("girth","长+围长 in",{g:"size",w:8});
-  da("exc","FedEx 异常类型",{g:"fbm",w:26}); da("tail","尾程派送 $",{g:"fbm",w:9,fmt:"money"}); da("hand","订单处理 $",{g:"fbm",w:9,fmt:"money"}); da("surch","异常附加费 $",{g:"fbm",w:9,fmt:"money"}); da("resi","住宅附加 $",{g:"fbm",w:8,fmt:"money"}); da("fuel","燃油 $",{g:"fbm",w:8,fmt:"money"}); da("parcel","快递尾程合计 $",{g:"fbm",w:10,fmt:"money"});
-  da("bucket","CG 档位",{g:"cg",w:18}); da("cgw","CG 计费重 lb",{g:"cg",w:8,fmt:"n2"}); da("cgship","CG 派送基础 $",{g:"cg",w:9,fmt:"money"}); da("cglb","CG 每磅费 $",{g:"cg",w:9,fmt:"money"}); da("cgpick","CG 拣货费 $",{g:"cg",w:9,fmt:"money"});
-  da("seaFob","FOB 海运 $",{g:"sea",w:9,fmt:"money"}); da("seaDom","国内头程 $",{g:"sea",w:9,fmt:"money"});
-  da("fl","长 in",{g:"fba",w:7,fmt:"n2"}); da("fm","宽 in",{g:"fba",w:7,fmt:"n2"}); da("fn","高 in",{g:"fba",w:7,fmt:"n2"}); da("ulb","实重 lb",{g:"fba",w:7,fmt:"n2"}); da("fw","FBA 计费重 lb",{g:"fba",w:8,fmt:"n2"}); da("flg","长+围长 in",{g:"fba",w:8,fmt:"n2"}); da("tier","FBA 档位#",{g:"fba",w:7}); da("fba","FBA 费 $",{g:"fba",w:9,fmt:"money"});
-  D.fin(); const DC=D.C;
-  drawHead(wo,O); CH.forEach(c=>drawHead(c.ws,c.reg)); drawHead(wd,D);
-
-  /* ---------- rows ---------- */
-  const nP=R.length, oLast=2+nP, dLast=2+R.reduce((a,{p})=>a+Math.max(1,p.pkgs.length),0);
-  const drng=k=>`${q(S2)}!$${DC[k]}$3:$${DC[k]}$${dLast}`;
-  const imgs=[]; let drow=3;
-  for(let pi=0;pi<nP;pi++){
-    const {p,r}=R[pi], orow=3+pi, n=Math.max(1,p.pkgs.length), L0=r.ltl, sc=r.sc[si], zebra=pi%2===1;
-    const o=k=>`${OC[k]}${orow}`, oabs=k=>`${q(S1)}!$${OC[k]}$${orow}`;
-    const fobR=hasFobCost(p)?calcIn("fob",()=>calcProduct(p)):null, domR=hasDomCost(p)?calcIn("dom",()=>calcProduct(p)):null;
-    /* 包裹明细 rows */
-    for(let gi=0;gi<n;gi++,drow++){
-      const g=p.pkgs[gi]||{l:"",w:"",h:"",kg:""}, x=r.pk[gi]||{}, rr=drow, a=k=>`${DC[k]}${rr}`;
-      const set=(k,v)=>{ const c=wd.getCell(a(k)); c.value=v; style(c,D.d(k),zebra); };
-      set("pid",orow); set("name",gi?null:fv(`${oabs("name")}&""`,p.name)); set("pkgNo",gi+1);
-      set("len",num(g.l)||null); set("wid",num(g.w)||null); set("hei",num(g.h)||null); set("kg",num(g.kg)||null);
-      const dims=`${a("len")}:${a("hei")}`;
-      set("in1",fv(`ROUNDUP(MAX(${dims})/2.54,0)`,x.J)); set("in2",fv(`ROUNDUP(LARGE(${dims},2)/2.54,0)`,x.K)); set("in3",fv(`ROUNDUP(MIN(${dims})/2.54,0)`,x.L));
-      set("m3",fv(`${a("len")}*${a("wid")}*${a("hei")}/1000000`,x.M)); set("cuin",fv(`${a("in1")}*${a("in2")}*${a("in3")}`,x.N)); set("dimw",fv(`${a("cuin")}/${PRM.dimDiv}`,x.O));
-      set("pw",fv(`ROUNDUP(MAX(${a("kg")}*${PRM.lbPerKg},${a("dimw")}),0)`,x.Pw)); set("rlb",fv(`ROUNDUP(${a("kg")}*${PRM.ceilLb},0)`,x.R)); set("girth",fv(`${a("in1")}+2*(${a("in2")}+${a("in3")})`,x.V));
-      const I1=a("in1"),I2=a("in2"),I3=a("in3"),CU=a("cuin"),PW=a("pw"),GI=a("girth");
-      set("exc",fv(`IF(OR(${I1}>108,${PW}>150,${GI}>165),"超大包裹，LTL单独核算",IF(${I1}>=96,"OS-超尺寸附加费-超第一长边",IF(${CU}>=17280,"OS-超尺寸附加费-超立方体积",IF(${GI}>=130,"OS-超尺寸附加费-超围长",IF(${PW}>=110,"OS-超尺寸附加费-超重",IF(${PW}>=50,"AHS-操作附加费-超重",IF(${CU}>=10368,"AHS-操作附加费-超立方体积",IF(OR(${I1}>=48,${I2}>=30,${GI}>=105),"AHS-操作附加费-超尺寸","常规"))))))))`,x.W));
-      const EX=a("exc"), PK=oabs("peak");
-      set("tail",fv(`IFERROR(VLOOKUP(${PW},${TAIL},2,FALSE),0)`,x.tail)); set("hand",fv(`IFERROR(VLOOKUP(${PW},${TAIL},3,FALSE),0)`,x.handling));
-      set("surch",fv(`IFERROR(VLOOKUP(${EX},${SUR},2,FALSE),0)+IF(${PK}="旺季",IFERROR(VLOOKUP(${EX},${SUR},3,FALSE),0),0)`,x.surch));
-      set("resi",fv(`IF(${PRM.resi}=1,IFERROR(VLOOKUP("住宅附加费",${SUR},2,FALSE),0)+IF(${PK}="旺季",IFERROR(VLOOKUP("住宅附加费",${SUR},3,FALSE),0),0),0)`,x.resi));
-      set("fuel",fv(`(${a("tail")}+${a("hand")}+${a("surch")}+${a("resi")})*${PRM.fuel}`,x.fbmFuel)); set("parcel",fv(`${a("tail")}+${a("hand")}+${a("surch")}+${a("resi")}+${a("fuel")}`,x.fbmTotal));
-      const H=I1,K=I2,L=I3,N=PW,V=GI;
-      const conv=`OR(AND(${N}<120,${N}/${H}<50,${L}<36,${H}<72,SQRT((72+${K})^2+(${H}/2)^2)-72+2<45),AND(${N}<120,${N}/${H}<50,${K}<36,${H}<72,SQRT((72+${L})^2+(${H}/2)^2)-72+2<45),AND(${N}<120,${N}/${K}<50,${H}<36,${K}<72,SQRT((72+${L})^2+(${L}/2)^2)-72+2<45))`;
-      set("bucket",fv(`IF(NOT(${conv}),"Standard - Oversize",IF(AND(${H}<=19,${K}<=12,${L}<=6,${N}<=25),"Bin - Small",IF(AND(${H}<=26,${K}<=17,${L}<=14,${N}<=25),"Bin - Large",IF(AND(${H}<=26,${K}<=17,${L}<=14,${N}>25,${N}<=50),"Bin - Heavy",IF(AND(${H}<=48,${K}<=30,${L}<=30,${V}<=130,${N}<=70),"Standard - Small",IF(AND(${H}<=108,${V}<=165,${N}<=70),"Standard - Medium",IF(AND(${H}<=108,${V}<=165,${N}>70,${N}<=120),"Standard - Large",IF(AND(${H}<=108,${V}<=165,${N}<=150),"Standard - Oversize","null"))))))))`,x.bucket));
-      const BK=a("bucket");
-      set("cgw",fv(`IF(OR(${EX}="OS-超尺寸附加费-超第一长边",${EX}="OS-超尺寸附加费-超围长"),MAX(${a("rlb")},${a("dimw")},90),MAX(${a("dimw")},${a("rlb")}))`,x.U));
-      set("cgship",fv(`IFERROR(VLOOKUP(${BK},${CGT},3,FALSE)*1,0)`,x.cgShip)); set("cglb",fv(`IFERROR(VLOOKUP(${BK},${CGT},4,FALSE)*${a("cgw")},0)`,x.cgLb)); set("cgpick",fv(`IFERROR(VLOOKUP(${BK},${CGT},2,FALSE)*1,0)`,x.cgPick));
-      const FILL=`IF(${oabs("pack")}="整装",${PRM.fill},${PRM.fillFlat})`;
-      const fobSea=fobR&&fobR.pk[gi]?fobR.pk[gi].sea[fobI]:undefined, domSea=domR&&domR.pk[gi]?domR.pk[gi].sea[domI]:undefined;
-      set("seaFob",fv(`${a("m3")}*${PRM.fobRmb}/${PRM.fobCbm}/${PRM.rate}/${FILL}`,fobSea)); set("seaDom",fv(`${a("m3")}*(${PRM.domRmb}+${PRM.extra})/${PRM.domCbm}/${PRM.rate}/${FILL}`,domSea));
-      set("fl",fv(`ROUND(MAX(${dims})/2.54,2)`,x.fl)); set("fm",fv(`ROUND(LARGE(${dims},2)/2.54,2)`,x.fm)); set("fn",fv(`ROUND(MIN(${dims})/2.54,2)`,x.fn));
-      set("ulb",fv(`${a("kg")}*2.20462`,x.kg*2.20462)); set("fw",fv(`ROUND(IF(${a("ulb")}>150,${a("ulb")},MAX(${a("ulb")},${a("fl")}*MAX(${a("fm")},2)*MAX(${a("fn")},2)/${PRM.fbaDiv})),2)`,x.fw));
-      set("flg",fv(`ROUND(${a("fl")}+2*(${a("fm")}+${a("fn")}),2)`,x.flg));
-      const lim={w:"fw",l:"fl",m:"fm",n:"fn",lg:"flg"};
-      let tierF=String(TR); for(let i=TR-1;i>=0;i--){ const t=P.fba.tiers[i]; const conds=Object.keys(lim).filter(k=>isFinite(num(t[k]))).map(k=>`${a(lim[k])}<=${tcell(k,i)}`); tierF=conds.length?`IF(AND(${conds.join(",")}),${i+1},${tierF})`:`${i+1}`; }
-      const tIdx=P.fba.tiers.findIndex(t=>t.name===x.fbaTier); set("tier",fv(tierF,tIdx>=0?tIdx+1:undefined)); const TI=a("tier");
-      set("fba",fv(`ROUND((IF(${PRM.fbaPeak}=1,INDEX(${tcol("peak")},${TI}),INDEX(${tcol("base")},${TI}))+MAX(0,ROUNDUP(${a("fw")}-INDEX(${tcol("from")},${TI}),0))*INDEX(${tcol("per")},${TI}))*(1+${PRM.fbaFuel})+IF(AND(${a("fw")}<=150,OR(${a("fl")}>${PRM.osLen},${a("flg")}>${PRM.osLG})),IF(${a("fw")}<=50,${PRM.os50},IF(${a("fw")}<=70,${PRM.os70},${PRM.os150})),0),2)`,x.fba));
-      if(gi===n-1) wd.getRow(rr).eachCell({includeEmpty:true},c=>{ c.border=Object.assign({},c.border,{bottom:{style:"thin",color:{argb:"FF8FA3B1"}}}); });
-    }
-    /* 产品与成本 */
-    const set=(k,v)=>{ const c=wo.getCell(o(k)); c.value=v; style(c,O.d(k),zebra); };
-    const sumd=k=>`SUMIF(${drng("pid")},${o("pid")},${drng(k)})`;
-    set("pid",orow); set("name",p.name); set("pack",L0.pack); set("mode",r.dom?"国内":"FOB"); set("tailMode",L0.on?"LTL":"快递"); set("cat",p.category||"家具"); set("peak",p.peak==="旺季"?"旺季":"非旺季");
-    set("price",nz(p.price)); set("fob",num(p.cost)||null); set("cur",p.costCur==="RMB_TAX"?"RMB含税":p.costCur==="RMB_NET"?"RMB未税":"USD"); set("rmb",num(p.costRmb)||null); set("adj",nz(p.adj)); set("ltlq",num(p.ltlQuote)>0?num(p.ltlQuote):null);
-    set("pkgs",fv(`COUNTIF(${drng("pid")},${o("pid")})`,n)); set("kgSum",fv(sumd("kg"),L0.kg)); set("m3Sum",fv(sumd("m3"),L0.m3));
-    set("costFob",fv(`IF(N(${o("fob")})>0,IF(${o("cur")}="RMB含税",${o("fob")}/(1+${PRM.tax})/${PRM.rate},IF(${o("cur")}="RMB未税",${o("fob")}/${PRM.rate},${o("fob")}))+N(${o("adj")}),NA())`,fobR?fobR.cost:undefined));
-    set("costDom",fv(`IF(N(${o("rmb")})>0,${o("rmb")}*(1-${PRM.rebate}/(1+${PRM.vat}))/${PRM.rate}+N(${o("adj")}),NA())`,domR?domR.cost:undefined));
-    set("seaFob",fv(sumd("seaFob"),fobR?fobR.sc[fobI].sea:undefined)); set("seaDom",fv(sumd("seaDom"),domR?domR.sc[domI].sea:undefined));
-    set("cost",fv(`IF(${o("mode")}="国内",${o("costDom")},${o("costFob")})`,r.cost)); set("sea",fv(`IF(${o("mode")}="国内",${o("seaDom")},${o("seaFob")})`,sc.sea));
-    set("parcelSum",fv(sumd("parcel"),L0.parcel)); set("parcelOk",fv(`IF(COUNTIFS(${drng("pid")},${o("pid")},${drng("exc")},"超大包裹*")=0,1,0)`,L0.parcelOk?1:0));
-    set("ltlEst",fv(`${PRM.ltlBase}+${PRM.ltlLb}*${o("kgSum")}*2.2046226+${PRM.ltlM3}*${o("m3Sum")}`,L0.est)); set("ltlUsed",fv(`IF(N(${o("ltlq")})>0,${o("ltlq")},${o("ltlEst")})`,L0.cost));
-    set("handSum",fv(sumd("hand"),r.pk.reduce((a2,x)=>a2+x.handling,0))); set("fbmTail",fv(`IF(${o("tailMode")}="LTL",${o("ltlUsed")},${o("parcelSum")})`,r.fbmShip));
-    /* channel sheets (same row as the product) */
-    const pm=v=>r.price?v/r.price:undefined;
-    CH.forEach(c=>{ const ws=c.ws, g=c.reg, a=k=>`${g.C[k]}${orow}`, setc=(k,v)=>{ const cell=ws.getCell(a(k)); cell.value=v; style(cell,g.d(k),zebra); };
-      setc("name",fv(`${oabs("name")}&""`,p.name)); setc("pack",fv(`${oabs("pack")}&""`,L0.pack)); setc("mode",fv(`${oabs("mode")}&""`,r.dom?"国内":"FOB"));
-      setc("cost",fv(oabs("cost"),r.cost)); setc("sea",fv(oabs("sea"),sc.sea));
-      if(!c.plat){
-        if(c.k==="fbm") setc("tailMode",fv(`${oabs("tailMode")}&""`,L0.on?"LTL":"快递"));
-        setc("price",fv(oabs("price"),r.price)); const PR=a("price");
-        const sumd2=k=>`SUMIF(${drng("pid")},${oabs("pid")},${drng(k)})`;
-        let ship;
-        if(c.k==="fbm"){ const s=f=>r.pk.reduce((a2,x)=>a2+x[f],0);
-          const ok=`${oabs("parcelOk")}=1`, pv=v=>L0.parcelOk?v:"走不了";   // FedEx can't take it → no parcel breakdown
-          setc("tail",fv(`IF(${ok},${sumd2("tail")},"走不了")`,pv(s("tail")))); setc("hand",fv(`IF(${ok},${sumd2("hand")},"走不了")`,pv(s("handling")))); setc("surch",fv(`IF(${ok},${sumd2("surch")},"走不了")`,pv(s("surch")))); setc("resi",fv(`IF(${ok},${sumd2("resi")},"走不了")`,pv(s("resi")))); setc("fuel",fv(`IF(${ok},${sumd2("fuel")},"走不了")`,pv(s("fbmFuel"))));
-          setc("parcel",fv(`IF(${ok},${oabs("parcelSum")},"走不了")`,pv(L0.parcel))); setc("ltl",fv(oabs("ltlUsed"),L0.cost)); setc("ship",fv(oabs("fbmTail"),r.fbmShip)); ship=sc.fbm; }
-        if(c.k==="cg"){ const s=f=>r.pk.reduce((a2,x)=>a2+x[f],0); setc("cgship",fv(sumd2("cgship"),s("cgShip"))); setc("cglb",fv(sumd2("cglb"),s("cgLb"))); setc("cgpick",fv(sumd2("cgpick"),s("cgPick"))); setc("ship",fv(`${a("cgship")}+${a("cglb")}+${a("cgpick")}`,r.cgShip)); ship=sc.cg; }
-        if(c.k==="fba"){ setc("ship",fv(sumd2("fba"),r.fbaShip)); ship=sc.fba; }
-        setc("promo",fv(`${PR}*${PRM.promo}`,r.promo)); setc("fxl",fv(`${PR}*${PRM.fx}`,r.fx)); setc("refund",fv(`${PR}*${PRM.refund}`,r.refund));
-        setc("comm",fv(`IF(${oabs("cat")}="家具",IF(${PR}<=${PRM.cThr},${PR}*${PRM.cLow},${PRM.cThr}*${PRM.cLow}+(${PR}-${PRM.cThr})*${PRM.cHigh}),${PR}*IFERROR(VLOOKUP(${oabs("cat")},${COMMT},2,FALSE),${PRM.cOther}))`,r.comm));
-        const fees=`${a("promo")}+${a("fxl")}+${a("comm")}+${a("refund")}`;
-        setc("P",fv(`${PR}-${a("cost")}-${a("sea")}-${a("ship")}-(${fees})`,ship)); setc("M",fv(`IFERROR(${a("P")}/${PR},"")`,pm(ship)));
-        if(c.k==="fbm"){ const showL=`OR(${oabs("pack")}="整装",${oabs("tailMode")}="LTL")`, showLv=L0.pack==="整装"||L0.on, base=`${PR}-${a("cost")}-${a("sea")}-(${fees})`;
-          setc("cParcel",fv(`IF(${showL},IF(${oabs("parcelOk")}=1,(${base}-${oabs("parcelSum")})/${PR},"走不了"),"")`,showLv?(L0.parcelOk?pm(sc.fbmParcel):"走不了"):""));
-          setc("cLtl",fv(`IF(${showL},(${base}-${oabs("ltlUsed")})/${PR},"")`,showLv?pm(sc.fbmLtl):""));
-          setc("cFob",fv(`IFERROR((${PR}-${oabs("costFob")}-${oabs("seaFob")}-(${fees})-${a("ship")})/${PR},"")`,fobR?pm(fobR.sc[fobI].fbm):""));
-          setc("cDom",fv(`IFERROR((${PR}-${oabs("costDom")}-${oabs("seaDom")}-(${fees})-${a("ship")})/${PR},"")`,domR?pm(domR.sc[domI].fbm):"")); }
+  for(const ch of CH){
+    const ws=wb.addWorksheet(ch.name,{views:[{state:"frozen",xSplit:2,ySplit:3,zoomScale:90}]});
+    const L=[], col=(key,head,o={})=>L.push(Object.assign({key,head},o)), C={};
+    const amz=!ch.plat, cc=ch.plat?P.plat[ch.k]:null, selfShip=ch.k==="fbm"||(!!cc&&cc.ship==="self");
+    // ---- columns ----
+    col("img","图片",{g:"prod",w:9}); col("name","品名",{g:"prod",w:24,in:1}); col("pack","包装",{g:"prod",w:7,in:1,dv:'"整装,整包,分包"'}); col("pkgs","包裹数",{g:"prod",w:6,in:1,fmt:"int"});
+    if(amz){ col("cat","品类",{g:"prod",w:7,in:1,dv:'"家具,汽配,工业机械,农机花园,其他"',note:"家具按佣金阶梯（左上角）；其他品类按“非家具佣金率”"}); col("crate","非家具佣金率",{g:"prod",w:8,in:1,fmt:"pct",note:"品类不是家具时的佣金比例"}); col("price","Amazon 售价 $",{g:"price",w:11,in:1,fmt:"money"}); }
+    else { col("list","上架价 $",{g:"price",w:11,in:1,fmt:"money"}); col("promo","促销价 $",{g:"price",w:11,in:1,fmt:"money"});
+      col("mk","加价倍率",{g:"price",w:8,fmt:"n2",note:"倍率在本列顶上改",rate:{v:nz(cc.markup)||1,fmt:"n2"}}); col("settle","结算价 $",{g:"price",w:11,fmt:"money",res:1,note:"促销价 ÷ 加价倍率"}); }
+    col("mode","出货方式",{g:"cost",w:8,in:1,dv:'"FOB,国内"',note:"选 FOB 用 FOB 成本 + FOB 海运；选国内用国内成本 + 国内头程"});
+    col("cFob","FOB 成本 $",{g:"cost",w:10,in:1,fmt:"money",note:"FOB 出厂价换算成美元（含成本调整）"}); col("sFob","FOB 海运 $",{g:"cost",w:10,in:1,fmt:"money"});
+    col("cDom","国内成本 $",{g:"cost",w:10,in:1,fmt:"money",note:"国内出货价（人民币含税）扣退税后换算成美元（含成本调整）"}); col("sDom","国内头程 $",{g:"cost",w:10,in:1,fmt:"money"});
+    col("cost","采购成本 $",{g:"cost",w:10,fmt:"money",res:1,note:"按出货方式取 FOB 成本或国内成本"}); col("sea","海运 / 头程 $",{g:"cost",w:10,fmt:"money",res:1});
+    if(selfShip){
+      col("tailMode","尾程方式",{g:"ship",w:8,in:1,dv:'"快递,LTL"',note:"快递：派送 + 处理 + 异常 + 住宅 + 燃油；LTL：LTL 运费"});
+      col("tail","尾程派送 $",{g:"ship",w:9,in:1,fmt:"money"}); col("hand","订单处理 $",{g:"ship",w:9,in:1,fmt:"money"}); col("surch","异常附加费 $",{g:"ship",w:9,in:1,fmt:"money",note:"AHS / OS 附加费等"}); col("resi","住宅附加 $",{g:"ship",w:8,in:1,fmt:"money"});
+      col("fuel","燃油 $",{g:"ship",w:9,fmt:"money",note:"(派送+处理+异常+住宅) × 燃油%（比例在本列顶上改）",rate:{v:nz(P.fbm.fuel)/100,fmt:"pct"}});
+      col("parcel","快递合计 $",{g:"ship",w:10,fmt:"money"}); col("ltl","LTL 运费 $",{g:"ship",w:9,in:1,fmt:"money",note:"报价，或按估算填"});
+      col("ship","尾程合计 $",{g:"ship",w:10,fmt:"money",res:1,note:"按尾程方式取快递合计或 LTL"}); }
+    if(ch.k==="cg"){ col("cgship","CG 派送基础 $",{g:"ship",w:9,in:1,fmt:"money"}); col("cglb","CG 每磅费 $",{g:"ship",w:9,in:1,fmt:"money"}); col("cgpick","CG 拣货费 $",{g:"ship",w:9,in:1,fmt:"money"}); col("ship","CG 运费合计 $",{g:"ship",w:10,fmt:"money",res:1}); }
+    if(ch.k==="fba"){ col("ship","FBA 费 $",{g:"ship",w:10,in:1,fmt:"money",note:"FBA 配送费（已含燃油 / 物流附加费、超长附加）"}); }
+    if(ch.plat&&!selfShip){ col("ship","物流 $",{g:"ship",w:10,in:1,fmt:"money",note:cc.ship==="handling"?"平台发货：我们只付订单处理费":cc.ship==="none"?"平台仓：没有尾程物流费":"我们发货：尾程运费"}); }
+    if(ch.plat) col("fixed","平台订单费 $",{g:"ship",w:10,fmt:"money",note:"每包裹订单费（本列顶上改）× 包裹数",rate:{v:nz(cc.fixed),fmt:"money"}});
+    if(amz){ col("o_ads","推广 $",{g:"ops",w:9,fmt:"money",note:"售价 × 比例（本列顶上改）",rate:{v:nz(P.promo)/100,fmt:"pct"}}); col("o_fx","汇损 $",{g:"ops",w:9,fmt:"money",rate:{v:nz(P.fxLoss)/100,fmt:"pct"}});
+      col("o_comm","佣金 $",{g:"ops",w:9,fmt:"money",note:"家具：≤ 阈值部分 × 本列顶上的比例 + 超出部分 × 超出部分比例（左上角）；其他品类：售价 × 非家具佣金率",rate:{v:nz(P.commission.furnLow)/100,fmt:"pct"}});
+      col("o_refund","退款 $",{g:"ops",w:9,fmt:"money",rate:{v:nz(P.refund)/100,fmt:"pct"}}); }
+    else { col("fb","比例费基数 $",{g:"ops",w:11,fmt:"money",note:"本列顶上选：原批发价 = 上架价 ÷ 倍率（促销不降）；实际结算价 = 结算价",rate:{v:cc.commBase==="list"?"原批发价":"实际结算价",dv:'"原批发价,实际结算价"'}});
+      [["ads","推广 $"],["fx","汇损 $"],["comm","佣金 $"],["refund","退款 $"],["storage","仓储 $"],["outbound","出仓 $"]].forEach(([k,h])=>col("o_"+k,h,{g:"ops",w:9,fmt:"money",note:"比例费基数 × 比例（本列顶上改）",rate:{v:nz(cc[k])/100,fmt:"pct"}})); }
+    col("P","利润 $",{g:"prof",w:10,fmt:"money",res:1,note:amz?"售价 − 采购成本 − 海运 − 运输费用 − 运营费用":"结算价 − 采购成本 − 海运 − 运输费用 − 运营费用"}); col("M","利润率",{g:"prof",w:8,fmt:"pct",res:1,margin:1,note:amz?"利润 ÷ 售价":"利润 ÷ 结算价"});
+    if(ch.k==="fbm"){ col("xParcel","快递",{g:"cmp",w:8,fmt:"pct",margin:1,note:"尾程按快递合计时的利润率"}); col("xLtl","LTL",{g:"cmp",w:8,fmt:"pct",margin:1,note:"尾程按 LTL 运费时的利润率（填了 LTL 运费才显示）"});
+      col("xFob","FOB 出货",{g:"cmp",w:8,fmt:"pct",margin:1,note:"按 FOB 成本 + FOB 海运的利润率"}); col("xDom","国内出货",{g:"cmp",w:8,fmt:"pct",margin:1,note:"按国内成本 + 国内头程的利润率"}); }
+    L.forEach((c,i)=>{ C[c.key]=xlCol(i); });
+    // ---- header rows 2-3 ----
+    let i=0; while(i<L.length){ const c=L[i]; let j=i; while(j+1<L.length&&L[j+1].g===c.g) j++; const bg=GRP[c.g];
+      if(j>i) ws.mergeCells(2,i+1,2,j+1); headCell(ws.getCell(2,i+1),GN[c.g],bg[0]);
+      for(let k=i;k<=j;k++){ const d=L[k]; headCell(ws.getCell(3,k+1),d.head,d.in?"FFF2B3":bg[1],d.note); ws.getColumn(k+1).width=d.w||9; } i=j+1; }
+    ws.getRow(2).height=20; ws.getRow(3).height=34;
+    // ---- row 1: this channel's rates / settings ----
+    const RT={}; const rateCell=(addr,v,fmt,dv)=>{ const c=ws.getCell(addr); c.value=v; c.fill=YEL; c.border=BOX; c.font={bold:true,color:{argb:"FF0E5A6E"}}; c.alignment={horizontal:"center",vertical:"middle"}; if(fmt) c.numFmt=FM[fmt]; if(dv) c.dataValidation={type:"list",allowBlank:false,formulae:[dv]}; };
+    L.forEach((d,k)=>{ if(!d.rate) return; const addr=`${C[d.key]}1`; rateCell(addr,d.rate.v,d.rate.fmt,d.rate.dv); RT[d.key]=`$${C[d.key]}$1`; });
+    const lab=ws.getCell("B1"); lab.font={bold:true,color:{argb:"FF0E5A6E"},size:10}; lab.alignment={horizontal:"right",vertical:"middle",wrapText:true};
+    if(amz){ lab.value="家具佣金：阈值 $ ／ 超出部分比例 →"; rateCell("C1",nz(P.commission.threshold),"money"); rateCell("D1",nz(P.commission.furnHigh)/100,"pct");
+      RT.thr="$C$1"; RT.high="$D$1"; ws.getColumn(3).width=Math.max(ws.getColumn(3).width,9); }
+    else lab.value="本渠道的比例 / 设置在第一行（黄色），改了整张表跟着变 →";
+    ws.getRow(1).height=24;
+    // ---- product rows ----
+    for(let pi=0;pi<nP;pi++){
+      const {p,r,f,d}=R[pi], row=D0+pi, zebra=pi%2===1, a=k=>`${C[k]}${row}`, sc=r.sc[si], L0=r.ltl;
+      const set=(k,v)=>{ const dd=L.find(z=>z.key===k); const c=ws.getCell(a(k)); c.value=v; if(dd.fmt) c.numFmt=FM[dd.fmt]; c.border=BOX;
+        c.alignment={vertical:"middle",horizontal:k==="name"?"left":"center",wrapText:k==="name"}; if(dd.in) c.fill=YEL; else if(zebra) c.fill=ZEB; if(dd.res) c.font={bold:true}; if(dd.dv) c.dataValidation={type:"list",allowBlank:true,formulae:[dd.dv]}; };
+      set("name",p.name); set("pack",L0.pack); set("pkgs",Math.max(1,p.pkgs.length));
+      set("mode",r.dom?"国内":"FOB"); set("cFob",f?r2(f.cost):null); set("sFob",f?r2(f.sc[fobI].sea):null); set("cDom",d?r2(d.cost):null); set("sDom",d?r2(d.sc[domI].sea):null);
+      const cFobV=f?r2(f.cost):0, sFobV=f?r2(f.sc[fobI].sea):0, cDomV=d?r2(d.cost):0, sDomV=d?r2(d.sc[domI].sea):0, isDom=r.dom;
+      const costV=isDom?cDomV:cFobV, seaV=isDom?sDomV:sFobV;
+      set("cost",fv(`IF(${a("mode")}="国内",${a("cDom")},${a("cFob")})`,costV)); set("sea",fv(`IF(${a("mode")}="国内",${a("sDom")},${a("sFob")})`,seaV));
+      const sum=k=>r.pk.reduce((s2,x)=>s2+(x[k]||0),0);
+      let shipV=0;
+      if(selfShip){ const ok=L0.parcelOk, tv=ok?r2(sum("tail")):0,hv=ok?r2(sum("handling")):0,uv=ok?r2(sum("surch")):0,rv=ok?r2(sum("resi")):0, lv=r2(L0.cost);   // FedEx can't take it → parcel items left blank
+        set("tailMode",L0.on?"LTL":"快递"); set("tail",ok?tv:null); set("hand",ok?hv:null); set("surch",ok?uv:null); set("resi",ok?rv:null);
+        const fuelV=(tv+hv+uv+rv)*nz(P.fbm.fuel)/100, parV=tv+hv+uv+rv+fuelV;
+        set("fuel",fv(`(${a("tail")}+${a("hand")}+${a("surch")}+${a("resi")})*${RT.fuel}`,fuelV)); set("parcel",fv(`${a("tail")}+${a("hand")}+${a("surch")}+${a("resi")}+${a("fuel")}`,parV));
+        set("ltl",(L0.on||L0.pack==="整装"||!L0.parcelOk)?lv:null); shipV=L0.on?lv:parV;
+        set("ship",fv(`IF(${a("tailMode")}="LTL",N(${a("ltl")}),${a("parcel")})`,shipV)); }
+      if(ch.k==="cg"){ const a1=r2(sum("cgShip")),a2=r2(sum("cgLb")),a3=r2(sum("cgPick")); set("cgship",a1); set("cglb",a2); set("cgpick",a3); shipV=a1+a2+a3; set("ship",fv(`${a("cgship")}+${a("cglb")}+${a("cgpick")}`,shipV)); }
+      if(ch.k==="fba"){ shipV=r2(r.fbaShip); set("ship",shipV); }
+      if(ch.plat&&!selfShip){ shipV=r2(r.plat[ch.k].logi); set("ship",shipV); }
+      let profitV, baseV;
+      if(amz){ set("cat",p.category||"家具"); { const cr=P.commission[p.category]; set("crate",p.category==="家具"?null:(isFinite(num(cr))?num(cr):nz(P.commission["其他"]))/100); } set("price",nz(p.price)); const PR=a("price"), price=nz(p.price);
+        const adsV=price*nz(P.promo)/100, fxV=price*nz(P.fxLoss)/100, refV=price*nz(P.refund)/100, comV=commission(price,p.category);
+        set("o_ads",fv(`${PR}*${RT.o_ads}`,adsV)); set("o_fx",fv(`${PR}*${RT.o_fx}`,fxV)); set("o_refund",fv(`${PR}*${RT.o_refund}`,refV));
+        set("o_comm",fv(`IF(${a("cat")}="家具",IF(${PR}<=${RT.thr},${PR}*${RT.o_comm},${RT.thr}*${RT.o_comm}+(${PR}-${RT.thr})*${RT.high}),${PR}*N(${a("crate")}))`,comV));
+        const ops=`(${a("o_ads")}+${a("o_fx")}+${a("o_comm")}+${a("o_refund")})`, opsV=adsV+fxV+refV+comV;
+        baseV=price-costV-seaV-opsV; profitV=baseV-shipV;
+        set("P",fv(`${PR}-${a("cost")}-${a("sea")}-${a("ship")}-${ops}`,profitV)); set("M",fv(`IFERROR(${a("P")}/${PR},"")`,price?profitV/price:undefined));
+        if(ch.k==="fbm"){ const parV=L0.parcelOk?(r2(sum("tail"))+r2(sum("handling"))+r2(sum("surch"))+r2(sum("resi")))*(1+nz(P.fbm.fuel)/100):null, lv=(L0.on||L0.pack==="整装"||!L0.parcelOk)?r2(L0.cost):null;
+          set("xParcel",fv(`IF(N(${a("parcel")})>0,(${PR}-${a("cost")}-${a("sea")}-${ops}-${a("parcel")})/${PR},"走不了")`,!L0.parcelOk?"走不了":price?(baseV-((r2(sum("tail"))+r2(sum("handling"))+r2(sum("surch"))+r2(sum("resi")))*(1+nz(P.fbm.fuel)/100)))/price:undefined));
+          set("xLtl",fv(`IF(N(${a("ltl")})>0,(${PR}-${a("cost")}-${a("sea")}-${ops}-${a("ltl")})/${PR},"")`,lv&&price?(baseV-lv)/price:""));
+          set("xFob",fv(`IF(N(${a("cFob")})>0,(${PR}-${a("cFob")}-${a("sFob")}-${ops}-${a("ship")})/${PR},"")`,f&&price?(price-cFobV-sFobV-opsV-shipV)/price:""));
+          set("xDom",fv(`IF(N(${a("cDom")})>0,(${PR}-${a("cDom")}-${a("sDom")}-${ops}-${a("ship")})/${PR},"")`,d&&price?(price-cDomV-sDomV-opsV-shipV)/price:"")); }
       } else {
-        const x2=r.plat[c.k], s2=x2.sc[si], Q=PL[c.k];
-        setc("list",isFinite(x2.list)?Math.round(x2.list*100)/100:null); setc("promo",isFinite(x2.promo)?Math.round(x2.promo*100)/100:null);
-        setc("mk",fv(Q.mk,x2.mk)); setc("settle",fv(`${a("promo")}/${a("mk")}`,s2.promo.settle));
-        setc("logi",fv(`IF(${Q.ship}="我们发货",${oabs("fbmTail")},IF(${Q.ship}="平台发货",${oabs("handSum")},0))`,x2.logi)); setc("fixed",fv(`${Q.fixed}*${oabs("pkgs")}`,x2.fixed));
-        setc("fb",fv(`IF(${Q.base}="原批发价",${a("list")}/${a("mk")},${a("settle")})`,s2.promo.feeBase));
-        const cc=P.plat[c.k]; ["ads","fx","comm","refund","storage","outbound"].forEach(k=>setc("o_"+k,fv(`${a("fb")}*${Q[k]}`,s2.promo.feeBase*nz(cc[k])/100)));
-        const ops=["ads","fx","comm","refund","storage","outbound"].map(k=>a("o_"+k)).join("+");
-        setc("P",fv(`${a("settle")}-${a("cost")}-${a("sea")}-${a("logi")}-${a("fixed")}-(${ops})`,s2.promo.profit)); setc("M",fv(`IFERROR(${a("P")}/${a("settle")},"")`,s2.promo.margin));
-      }
-      ws.getRow(orow).height=withImg?44:22;
-      // margin summary on the product sheet
-      const mres=c.plat?r.plat[c.k].sc[si].promo.margin:pm(c.k==="fbm"?sc.fbm:c.k==="cg"?sc.cg:sc.fba);
-      set("m_"+c.k,fv(`${q(c.name)}!${g.C.M}${orow}`,mres)); });
-    wo.getRow(orow).height=withImg?44:22;
-    if(withImg&&p.img) imgs.push({id:p.img,row:orow});
+        const x2=r.plat[ch.k]; set("list",r2(x2.list)); set("promo",r2(x2.promo)); const listV=r2(x2.list)||0, promoV=r2(x2.promo)||0, mk=nz(cc.markup)||1;
+        set("mk",fv(RT.mk,mk)); const settleV=promoV/mk; set("settle",fv(`${a("promo")}/${a("mk")}`,settleV));
+        const fixedV=nz(cc.fixed)*Math.max(1,p.pkgs.length); set("fixed",fv(`${RT.fixed}*${a("pkgs")}`,fixedV));
+        const fbV=cc.commBase==="list"?listV/mk:settleV; set("fb",fv(`IF(${RT.fb}="原批发价",${a("list")}/${a("mk")},${a("settle")})`,fbV));
+        let opsV=0; ["ads","fx","comm","refund","storage","outbound"].forEach(k=>{ const v=fbV*nz(cc[k])/100; opsV+=v; set("o_"+k,fv(`${a("fb")}*${RT["o_"+k]}`,v)); });
+        const ops="("+["ads","fx","comm","refund","storage","outbound"].map(k=>a("o_"+k)).join("+")+")";
+        profitV=settleV-costV-seaV-shipV-fixedV-opsV;
+        set("P",fv(`${a("settle")}-${a("cost")}-${a("sea")}-${a("ship")}-${a("fixed")}-${ops}`,profitV)); set("M",fv(`IFERROR(${a("P")}/${a("settle")},"")`,settleV?profitV/settleV:undefined)); }
+      ws.getRow(row).height=withImg?44:22;
+      if(withImg&&p.img){ const im=await jpeg(p.img); if(im) ws.addImage(im.id,{tl:{col:0.1,row:row-1+0.06},ext:im.ext,editAs:"oneCell"}); }
+    }
+    // ---- colours ----
+    if(nP){ L.forEach((dd,k)=>{ if(!dd.margin) return; const ref=`${xlCol(k)}${D0}:${xlCol(k)}${last}`, A=`${xlCol(k)}${D0}`;
+        ws.addConditionalFormatting({ref,rules:[
+          {type:"expression",formulae:[`AND(ISNUMBER(${A}),${A}<0)`],style:{fill:{type:"pattern",pattern:"solid",bgColor:{argb:"FFFBE3E1"}},font:{color:{argb:"FFC0352A"},bold:true}},priority:1},
+          {type:"expression",formulae:[`AND(ISNUMBER(${A}),${A}>=${tgt})`],style:{fill:{type:"pattern",pattern:"solid",bgColor:{argb:"FFDDF2E3"}},font:{color:{argb:"FF1B7A45"},bold:true}},priority:2},
+          {type:"expression",formulae:[`AND(ISNUMBER(${A}),${A}>=0,${A}<${tgt})`],style:{fill:{type:"pattern",pattern:"solid",bgColor:{argb:"FFFCEBD7"}},font:{color:{argb:"FFA86A12"}}},priority:3}]}); });
+      [["tailMode","LTL","FFD9730D"],["mode","国内","FF1F5FA8"],["pack","整装","FFB0560A"]].forEach(([k,t,c2])=>{ if(!C[k]) return; ws.addConditionalFormatting({ref:`${C[k]}${D0}:${C[k]}${last}`,rules:[{type:"cellIs",operator:"equal",formulae:[`"${t}"`],style:{font:{color:{argb:c2},bold:true}},priority:4}]}); }); }
+    ws.autoFilter={from:{row:3,column:1},to:{row:3,column:L.length}};
   }
-  /* pictures (WebP thumbnails → JPEG, which Excel can show) on the product sheet and every channel sheet */
-  for(const im of imgs){ try{ const u=await imgUrl(im.id); if(!u) continue; const bmp=await createImageBitmap(await (await fetch(u)).blob()); const s=54, k=Math.min(s/bmp.width,s/bmp.height);
-      const cv=document.createElement("canvas"); cv.width=Math.round(bmp.width*k*2); cv.height=Math.round(bmp.height*k*2); const g2=cv.getContext("2d"); g2.fillStyle="#fff"; g2.fillRect(0,0,cv.width,cv.height); g2.drawImage(bmp,0,0,cv.width,cv.height);
-      const id=wb.addImage({base64:cv.toDataURL("image/jpeg",0.85),extension:"jpeg"}), ext={width:Math.round(bmp.width*k),height:Math.round(bmp.height*k)};
-      [wo,...CH.map(c=>c.ws)].forEach(ws=>ws.addImage(id,{tl:{col:0.1,row:im.row-1+0.06},ext,editAs:"oneCell"})); }catch(e){} }
-  /* conditional colours: margin red / amber / green; LTL, 国内, 整装 in bold colour */
-  const tgt=PRM.target;
-  const marginCF=(ws,reg)=>reg.L.forEach((d,i)=>{ if(!d.margin||!nP) return; const ref=`${xlCol(i)}3:${xlCol(i)}${oLast}`, A=`${xlCol(i)}3`;
-    ws.addConditionalFormatting({ref,rules:[
-      {type:"expression",formulae:[`AND(ISNUMBER(${A}),${A}<0)`],style:{fill:{type:"pattern",pattern:"solid",bgColor:{argb:"FFFBE3E1"}},font:{color:{argb:"FFC0352A"},bold:true}},priority:1},
-      {type:"expression",formulae:[`AND(ISNUMBER(${A}),${A}>=${tgt})`],style:{fill:{type:"pattern",pattern:"solid",bgColor:{argb:"FFDDF2E3"}},font:{color:{argb:"FF1B7A45"},bold:true}},priority:2},
-      {type:"expression",formulae:[`AND(ISNUMBER(${A}),${A}>=0,${A}<${tgt})`],style:{fill:{type:"pattern",pattern:"solid",bgColor:{argb:"FFFCEBD7"}},font:{color:{argb:"FFA86A12"}}},priority:3}]}); });
-  const tagCF=(ws,reg)=>[["tailMode","LTL","FFD9730D"],["mode","国内","FF1F5FA8"],["pack","整装","FFB0560A"]].forEach(([k,t,col])=>{ if(!nP||!reg.C[k]) return; ws.addConditionalFormatting({ref:`${reg.C[k]}3:${reg.C[k]}${oLast}`,rules:[{type:"cellIs",operator:"equal",formulae:[`"${t}"`],style:{font:{color:{argb:col},bold:true}},priority:4}]}); });
-  marginCF(wo,O); tagCF(wo,O); CH.forEach(c=>{ marginCF(c.ws,c.reg); tagCF(c.ws,c.reg); });
-  /* protect calculation sheets: only the yellow cells can be edited (no password: 审阅 → 撤销工作表保护) */
-  const popt={selectLockedCells:true,selectUnlockedCells:true,formatColumns:true,formatRows:true,autoFilter:true};
-  for(const ws of [wo,wd,...CH.map(c=>c.ws)]) await ws.protect("",popt);
-  [wo,...CH.map(c=>c.ws)].forEach(ws=>{ ws.autoFilter={from:{row:2,column:1},to:{row:2,column:ws.columnCount}}; });
+
+  /* ---- 包裹明细（参考）: values only, how the freight numbers above were worked out ---- */
+  const wd=wb.addWorksheet("包裹明细（参考）",{views:[{state:"frozen",xSplit:3,ySplit:1,zoomScale:90}]});
+  const DH=["品名","包裹","长 cm","宽 cm","高 cm","毛重 kg","体积 m³","最长边 in","次长边 in","最短边 in","计费重 lb","长+围长 in","FedEx 异常类型","尾程派送 $","订单处理 $","异常附加费 $","住宅附加 $","燃油 $","快递合计 $","CG 档位","CG 派送基础 $","CG 每磅费 $","CG 拣货费 $","FBA 档位","FBA 费 $","FOB 海运 $","国内头程 $"];
+  DH.forEach((h,j)=>{ headCell(wd.getCell(1,j+1),h,"E3E7EB",j===0?"仅供参考：各渠道表里的运费、成本都是可以直接改的数值，这里是工具按尺寸和运费表算出来的过程":null); wd.getColumn(j+1).width=[0,12,19].includes(j)?(j===0?24:24):(j===23?18:9); });
+  wd.getRow(1).height=34; let dr=2;
+  R.forEach(({p,r,f,d},pi)=>{ r.pk.forEach((x,gi)=>{ const g=p.pkgs[gi]||{};
+    const vals=[gi?"":p.name,gi+1,num(g.l),num(g.w),num(g.h),num(g.kg),x.M,x.J,x.K,x.L,x.Pw,x.V,x.W,x.tail,x.handling,x.surch,x.resi,x.fbmFuel,x.fbmTotal,x.bucket,x.cgShip,x.cgLb,x.cgPick,x.fbaTier,x.fba,f&&f.pk[gi]?f.pk[gi].sea[fobI]:null,d&&d.pk[gi]?d.pk[gi].sea[domI]:null];
+    vals.forEach((v,j)=>{ const c=wd.getCell(dr,j+1); c.value=typeof v==="number"&&!isFinite(v)?null:v; c.border=BOX; if(pi%2) c.fill=ZEB; if(typeof v==="number") c.numFmt=j===6?FM.m3:j>=13&&j!==19&&j!==23?FM.money:FM.n2; }); dr++; }); });
   wb.views=[{activeTab:0}];
   return wb; }
 
