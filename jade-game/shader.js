@@ -41,7 +41,10 @@ float mapD(vec3 p){ return max(sdfOf(G(p)),planeD(p)); }
 vec3 sigT(vec4 m){ float b=max(0.005,0.42*exp(-4.6*m.g)); // 豆 0.27 → 冰 0.02 → 玻璃 0.005，每毫米
   vec3 s=b*vec3(0.90,1.0,1.22); s+=m.r*uHueAbs*0.30; s+=(1.0-uBodyCol)*0.05; s+=m.b*0.10; s+=m.a*vec3(0.6,0.55,0.5); return s; }
 float scat(vec4 m){ return max(0.02,0.62*exp(-3.6*m.g))+m.b*0.3; }
-vec3 albedo(vec4 m){ vec3 a=mix(uBodyCol,uBandCol,clamp(m.r*1.2,0.,1.)); a=mix(a,vec3(0.97),m.b*0.6); return a*(1.0-0.8*m.a); }
+vec3 albedo(vec4 m){ // 色根：中心浓、往外晕开变淡，而不是一块平涂
+  float core=smoothstep(0.38,0.90,m.r), halo=smoothstep(0.03,0.42,m.r);
+  vec3 light=mix(uBandCol,uBodyCol,0.50)*vec3(1.04,1.0,0.92);
+  vec3 a=mix(uBodyCol,mix(light,uBandCol*0.92,core),halo); a=mix(a,vec3(0.97),m.b*0.6); return a*(1.0-0.8*m.a); }
 
 float crG(int i, vec3 p, out float ins){
   vec3 d=p-uCrA[i].xyz; vec3 n=uCrB[i].xyz; float h=dot(d,n); vec3 q=d-n*h; float r=length(q);
@@ -158,9 +161,16 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     vec4 m=Mw(s); vec3 sg=sigT(m); float sc=scat(m); vec3 al=albedo(m);
     float fogw=uFogT>0.0?1.0-smoothstep(gs.b+uFogT*0.6,gs.b+uFogT,-gs.r):0.0; al=mix(al,uFogCol,fogw*0.75); sg+=fogw*0.10;
     // 晶粒：种越嫩颗粒越明显；放大镜下更清楚
-    float cg=mix(vnoise(s*1.6+3.0),vnoise(s*4.5+1.0),0.45)-0.5; float gk=(1.0-m.g)*(0.30+detail*0.55);
+    // 玉肉天然的不均匀：絮状棉团、清透的水路、底色深浅、零星黑点
+    float cl=fbm(s*0.10+uPhase*0.37), cl2=vnoise(s*0.33+uPhase);
+    float floc=smoothstep(0.50,0.78,cl*0.65+cl2*0.35)*(0.30+m.b*1.6)*(1.0-0.45*m.g);
+    float vein=1.0-smoothstep(0.0,0.07,abs(vnoise(s*0.07+uPhase*0.9)-0.5));
+    al=mix(al,vec3(0.96,0.97,0.95),floc*0.55); sc*=1.0+floc*1.4; sc*=1.0-0.55*vein*m.g; sg*=1.0-0.40*vein*m.g;
+    al*=mix(vec3(0.74,0.79,0.76),vec3(1.0),smoothstep(0.22,0.78,fbm(s*0.045+uPhase*0.21)));
+    float spk=step(0.990-0.03*m.a,hash(floor(s*1.4)+uPhase))*(0.35+0.65*m.a+0.25*(1.0-m.g)); al*=1.0-0.85*spk;
+    float cg=mix(vnoise(s*1.6+3.0),vnoise(s*4.5+1.0),0.45)-0.5; float gk=(1.0-m.g)*(0.42+detail*0.55);
     al*=1.0+cg*gk; sc*=1.0+cg*gk*1.6;
-    vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.62,0.26,m.g)),flesh)*ambL*exp(-sg*trav*0.5);
+    vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.47,0.21,m.g)),flesh)*ambL*exp(-sg*trav*0.5);
     if(uTorch.w>0.0) Lin+=fluence(s);
     vec3 xe=x+dir*dt;
     for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);
@@ -233,7 +243,7 @@ void main(){
 window.JADE_TRAY_FS = `#version 300 es
 precision highp float;
 uniform vec2 uRes; uniform vec3 uCamPos; uniform mat3 uCamRot; uniform float uTan; uniform vec2 uTray;
-uniform int uN; uniform vec4 uIt[16]; uniform vec4 uIc[16]; uniform vec4 uIb[16]; uniform vec4 uIx[16];
+uniform int uN; uniform vec4 uIt[16]; uniform vec4 uIc[16]; uniform vec4 uIb[16]; uniform vec4 uIx[16]; uniform float uHold, uBack;
 out vec4 outC;
 float hash(vec3 p){ p=fract(p*0.3183099+vec3(.1,.2,.3)); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
 float vnoise(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.0-2.0*f);
@@ -316,7 +326,7 @@ vec3 jade(vec3 p, vec3 n, vec3 rd, int id, vec3 L, float sh){
     float grain=(vnoise(q*2.4+sd)-0.5)*(1.0-w);
     float dep=max(0.0,-d);
     float l1=exp(-sig*dep*1.5)*(0.50+0.50*ndl)*(0.45+0.55*sh);
-    float l2=exp(-sig*max(0.0,-sdItem(s+L2*2.5,id))*2.4)*0.60;
+    float l2=exp(-sig*max(0.0,-sdItem(s+L2*2.5,id))*2.4)*0.60*uBack;
     vec3 Lin=(vec3(1.0,0.97,0.92)*l1+vec3(0.86,0.93,1.0)*l2)*0.80+0.04;
     float sc=sig*(1.0+0.7*grain)+cm*0.5;
     vec3 ab=(1.0-alb)*(0.05+0.22*mask*w);                 // 色越浓、路越长，颜色越沉
@@ -324,6 +334,7 @@ vec3 jade(vec3 p, vec3 n, vec3 rd, int id, vec3 L, float sh){
     s+=dir*dt; se=s; dt*=1.13;
   }
   vec3 behind=feltAt(se.xz)*2.0*(0.35+0.65*sh)+vec3(0.05,0.055,0.06)*smoothstep(-0.2,0.6,dot(dir,-L2));
+  if(uHold>0.5) behind=vec3(0.03,0.028,0.026)+vec3(0.9,0.95,1.0)*0.22*uBack*smoothstep(0.1,0.95,dot(dir,-L2));
   acc+=T*mix(body,band,lv*0.5)*behind*(exited?1.0:0.35);
   float ndv=max(dot(n,-rd),0.0); float F=0.045+0.955*pow(1.0-ndv,5.0);
   vec3 hv=normalize(L-rd); float nh=max(dot(n,hv),0.0);
@@ -335,6 +346,7 @@ void main(){
   vec3 L=normalize(vec3(0.45,0.80,0.40)); vec3 col=vec3(0.02,0.018,0.016);
   float t=0.0, d=1e9; int id=-1; bool hit=false; float tg=rd.y<0.0?-ro.y/rd.y:1e9; float tmax=min(tg,2500.0);
   t=max(0.0,(ro.y-46.0)/max(1e-4,-rd.y)); if(rd.y>=0.0) t=tmax;
+  if(uHold>0.5){ t=0.0; tmax=1500.0; tg=1e9; vec2 cc=(gl_FragCoord.xy-0.5*uRes)/uRes.y; col=mix(vec3(0.012,0.011,0.010),vec3(0.085,0.075,0.066),exp(-dot(cc,cc)*3.0)); }
   for(int i=0;i<130;i++){ if(t>=tmax) break; d=mapI(ro+rd*t,id); if(d<0.02){ hit=true; break; } t+=d*0.85; }
   if(hit){ vec3 p=ro+rd*t, n=nrm(p,id); col=jade(p,n,rd,id,L,shadow(p+n*0.4,L)); }
   else if(tg<2400.0){
