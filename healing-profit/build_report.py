@@ -233,9 +233,11 @@ TH2_TIERS = [
 
 # ---------------- market-layout matrices (Amazon, SellerSprite 2026-10) ----------------
 import matrix as MX
+MX_ITEMS = {}
 def _mx(name, keep, rf, cf, R, C):
     rows = [r for r in MX.load(os.path.join(HERE, "mkt", name + ".csv")) if keep(r)]
     MX.split_parent_units(rows)
+    MX_ITEMS.update(MX.cell_items(rows, rf, cf, name))
     return MX.build(rows, rf, cf, R, C), len(rows)
 (_sd, _sn) = _mx("sauna", lambda r: MX.sauna_keep(r["t"]), lambda r: MX.sauna_cap(r["t"]), lambda r: MX.sauna_wood(r["t"]), MX.SAUNA_ROWS, MX.SAUNA_COLS)
 (_td, _tn) = _mx("tandem", lambda r: MX.tandem_keep(r["t"]) and r["price"], lambda r: MX.tandem_row(r["price"]), lambda r: MX.tandem_cfg(r["t"]), MX.TANDEM_ROWS, MX.TANDEM_COLS)
@@ -252,19 +254,20 @@ MX_HTML = (
             _sd[0], _sd[1], _sd[2],
             {"1 人": {"cells": ["铁杉"], "price": "$1,299", "margin": f"SAD6221-1 {_m(s1m)}<br>SMT-HC103 {_m(hcm)}", "cls": "bad"},
              "1-2 人": {"cells": ["铁杉"], "price": "$1,799", "margin": f"SAD6221-2 {_m(s2m)}", "cls": _c(s2m)}},
-            row_label="容量", footnote="容量、木材按标题识别，标题没写木材的归“其他 / 未注明”；已剔除帐篷 / 便携 / 蒸汽 / 桶形款。利润率为 Amazon FBM，SMT-HC103 按包装 +10%。") +
+            mid="sauna", row_label="容量", footnote="容量、木材按标题识别，标题没写木材的归“其他 / 未注明”；已剔除帐篷 / 便携 / 蒸汽 / 桶形款。利润率为 Amazon FBM，SMT-HC103 按包装 +10%。") +
   MX.render("Amazon 双人淋浴花洒：价格带 × 配置", f"2026-10 · 卖家精灵 {_tn} 个子体（tandem / two people / couples 词组匹配）· 已剔除带阀门的淋浴系统",
             _td[0], _td[1], _td[2],
             {"$120–180": {"cells": ["双头 + 手持"], "price": "$149.99", "margin": _m(dmm), "cls": _c(dmm)}},
-            row_label="价格带", footnote="利润率为 Amazon FBA，成本 ¥190（1688 参考价）。") +
+            mid="tandem", row_label="价格带", footnote="利润率为 Amazon FBA，成本 ¥190（1688 参考价）。") +
   MX.render("Amazon 恒温 / 侧喷淋浴系统：顶喷尺寸 × 侧喷数量", f"2026-10 · 卖家精灵 {_hn} 个子体（thermostatic / body jets 词组匹配）",
             _hd[0], _hd[1], _hd[2],
             {"≤10″": {"cells": ["无侧喷"], "price": "$340", "margin": f"FFS223 {_m(_t('FFS223','mid','fba'))}", "cls": _c(_t('FFS223','mid','fba'))},
              "12″": {"cells": ["2–4 个"], "price": "$490", "margin": f"F00F40 {_m(_t('F00F40','mid','fba'))}", "cls": _c(_t('F00F40','mid','fba'))},
              "16″": {"cells": ["6 个及以上"], "price": "$650", "margin": f"F00F42 {_m(_t('F00F42','mid','fba'))}<br>F00F41 {_m(_t('F00F41','mid','fba'))}", "cls": "warn"}},
-            row_label="顶喷尺寸", footnote="顶喷尺寸、侧喷数按标题识别。我方落点：F00F41 / F42 的 400mm 顶喷约 16″；FFS223、F00F40 报价未写顶喷尺寸，暂按 ≤10″、12″ 放置，待采购确认。利润率为 Amazon FBA。")
+            mid="thermo", row_label="顶喷尺寸", footnote="顶喷尺寸、侧喷数按标题识别。我方落点：F00F41 / F42 的 400mm 顶喷约 16″；FFS223、F00F40 报价未写顶喷尺寸，暂按 ≤10″、12″ 放置，待采购确认。利润率为 Amazon FBA。")
 )
 
+MX_DATA = json.dumps(MX_ITEMS, ensure_ascii=False).replace('</', '<\\/')
 P = calc["params"]
 s1 = S[("SAD6221-1", "mid")]; s1h = S[("SAD6221-1", "high")]
 dm = S[("DUAL", "mid")]; dl = S[("DUAL", "low")]
@@ -416,6 +419,8 @@ table.mtg tbody th{{white-space:nowrap}}
   <h2 id="mx">市场布局：我们落在哪一格</h2>
   <p class="sub">一行一个尺寸 / 价格带，一组列一个材质 / 配置。看哪里卖得多（月销）、哪里挤（ASIN 数）、哪里单链接效率高（单 ASIN 月销，底色越深越好）、哪里口碑差（评分 &lt; 4.0 标红），以及我们的产品落在哪一格、按这个价能不能赚钱。</p>
   {MX_HTML}
+  <script type="application/json" id="mxdata">{MX_DATA}</script>
+  {MX.MX_JS}
   <div class="rules">
     <div><b>桑拿房</b><ul>
       <li>1 人 × 铁杉：月销 380、41 个 ASIN，单链接 9.3 台，均价 $1,203。我们两款按 $1,299 都亏（−36% / −12%）。</li>

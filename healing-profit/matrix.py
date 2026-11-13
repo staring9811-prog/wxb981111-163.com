@@ -31,7 +31,7 @@ def split_parent_units(rows):
     for kids in by_p.values():
         u = max(k["units"] for k in kids)
         for k in kids:
-            k["u"] = u / len(kids)
+            k["u"] = u / len(kids); k["pu"] = u; k["sib"] = len(kids)
     return rows
 
 # ---------------- classifiers ----------------
@@ -106,6 +106,28 @@ def thermo_top(t):
     return "20″+"
 THERMO_ROWS = ["≤10″", "12″", "16″", "20″+", "方形大顶喷（14×20″ 等）", "未注明"]
 
+TAGS = {
+ "sauna": [("红光", r"red light|660|850 ?nm|near.infrared"), ("全光谱", r"full spectrum"), ("低 EMF", r"low.emf|ultra.low"), ("彩光疗法", r"chromo|7.colou?r|color light|colou?rful"),
+           ("蓝牙", r"bluetooth|speaker"), ("App / WiFi", r"\bapp\b|wifi|wi-fi|smart"), ("碳晶 / 碳纤维板", r"carbon"), ("陶瓷加热", r"ceramic"), ("云母板", r"mica"),
+           ("户外款", r"outdoor"), ("负离子 / 氧吧", r"ioniz|oxygen|negative ion"), ("盐砖", r"salt"), ("钢化玻璃", r"glass"), ("角落款", r"corner"), ("240V", r"240v|220v")],
+ "tandem": [("带手持", r"hand ?held|hand-held"), ("过滤", r"filter"), ("不锈钢", r"stainless"), ("全金属", r"all.metal|brass"), ("免打孔 / 租房友好", r"no.drill|renter|drill.free|tool.free"),
+            ("可调滑杆", r"slider|slide bar|adjustable"), ("高压", r"high pressure"), ("磁吸", r"magnet"), ("黑色", r"black"), ("金色", r"gold"), ("拉丝镍", r"nickel|brushed")],
+ "thermo": [("恒温", r"thermostatic"), ("压力平衡", r"pressure.balanc"), ("LED", r"\bled\b"), ("数显温度", r"digital|display"), ("蓝牙音乐", r"bluetooth|music"),
+            ("瀑布", r"waterfall"), ("吸顶", r"ceiling"), ("壁挂", r"wall.mount"), ("含预埋阀", r"rough.in|valve (?:and trim|included)|with valve"),
+            ("可同时出水", r"simultaneous|run (?:all )?together|at (?:the same|one) time|use at once"), ("浴缸龙头", r"tub spout|bathtub"), ("全铜", r"brass"), ("双顶喷", r"dual (?:rain|shower) head|double shower head|dual head")],
+}
+def cell_items(rows, rowf, colf, mid):
+    tags = [(n, re.compile(p)) for n, p in TAGS.get(mid, [])]
+    out = defaultdict(list)
+    for r in rows:
+        k = f"{mid}|{rowf(r)}|{colf(r)}"
+        out[k].append({"a": r["asin"], "p": r["price"], "u": round(r["u"], 1), "pu": round(r.get("pu", 0)),
+                       "rt": r["rating"], "rn": r.get("ratings") or "", "t": html.unescape(r.get("title") or "")[:220],
+                       "sku": html.unescape(r.get("sku") or "")[:80], "tg": [n for n, rx in tags if rx.search(r["t"])]})
+    for v in out.values():
+        v.sort(key=lambda x: -x["u"])
+    return dict(out)
+
 def build(rows, rowf, colf, row_names, col_names):
     cell = defaultdict(lambda: {"u": 0.0, "n": 0, "pu": 0.0, "ru": 0.0, "rw": 0.0, "pn": 0.0})
     for r in rows:
@@ -122,7 +144,7 @@ def build(rows, rowf, colf, row_names, col_names):
     cols_used = [c for c in col_names if any((r, c) in out for r in row_names)]
     return out, rows_used, cols_used
 
-def render(title, sub, data, rows, cols, ours, row_label="尺寸", footnote=""):
+def render(title, sub, data, rows, cols, ours, row_label="尺寸", footnote="", mid="m"):
     """ours: {row: {"cells": [col,...], "price": str, "margin": str, "cls": "good|warn|bad"}}"""
     out = data
     maxper = max((v["per"] for v in out.values()), default=1) or 1
@@ -145,10 +167,12 @@ def render(title, sub, data, rows, cols, ours, row_label="尺寸", footnote=""):
             a = 0.08 + 0.62 * (v["per"] / maxper)
             rt = v["rating"]
             rcls = "low" if rt is not None and rt < 4.0 else ""
-            tds.append(f'<td class="first{b}">{v["u"]:,.0f}</td><td class="{b.strip()}">{v["n"]}</td>'
-                       f'<td class="heat{b}" style="--a:{a:.2f}">{v["per"]:,.1f}</td>'
-                       f'<td class="{b.strip()}">{"$" + format(v["price"], ",.0f") if v["price"] else "—"}</td>'
-                       f'<td class="last{b} {rcls}">{f"{rt:.2f}" if rt else "—"}</td>')
+            k = E(f"{mid}|{r}|{c}", quote=True)
+            d = f' data-k="{k}"'
+            tds.append(f'<td class="clk first{b}"{d}>{v["u"]:,.0f}</td><td class="clk {b.strip()}"{d}>{v["n"]}</td>'
+                       f'<td class="clk heat{b}" style="--a:{a:.2f}"{d} tabindex="0" role="button" aria-label="查看 {E(r)} × {E(c)} 的产品">{v["per"]:,.1f}</td>'
+                       f'<td class="clk {b.strip()}"{d}>{"$" + format(v["price"], ",.0f") if v["price"] else "—"}</td>'
+                       f'<td class="clk last{b} {rcls}"{d}>{f"{rt:.2f}" if rt else "—"}</td>')
         rt = sum(out[(r, c)]["u"] for c in cols if (r, c) in out)
         mp = f'<td class="our">{o["price"]}</td><td class="our"><span class="pill {o["cls"]}">{o["margin"]}</span></td>' if o else '<td class="our"></td><td class="our"></td>'
         body.append(f'<tr{cls}><th scope="row" class="rh">{E(r)}{tag}</th>{"".join(tds)}<td class="tot">{rt:,.0f}</td>{mp}</tr>')
@@ -159,7 +183,7 @@ def render(title, sub, data, rows, cols, ours, row_label="尺寸", footnote=""):
     body.append(f'<tr class="sum"><th scope="row" class="rh">合计</th>{"".join(foot)}<td class="tot">{tot:,.0f}</td><td class="our"></td><td class="our"></td></tr>')
     return (f'<figure class="mx-fig"><figcaption><b>{E(title)}</b><span>{E(sub)}</span></figcaption>'
             f'<div class="tw mxw"><table class="mx"><thead><tr>{h1}</tr><tr>{h2}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
-            f'<p class="note">单ASIN月销 = 月销 ÷ ASIN数，越高底色越深；评分低于 4.0 标红；黄色行 / 橙框为我们的产品落点。{footnote}</p></figure>')
+            f'<p class="note">点任意有数据的格子可查看该格的具体产品。单ASIN月销 = 月销 ÷ ASIN数，越高底色越深；评分低于 4.0 标红；黄色行 / 橙框为我们的产品落点。{footnote}</p></figure>')
 
 MX_CSS = """
 .mx-fig{margin:0;display:grid;gap:8px;width:min(1480px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%)}
@@ -180,4 +204,59 @@ table.mx tr.mine>td.heat{background:color-mix(in srgb,var(--heat) calc(var(--a)*
 table.mx td.box{outline:2px solid var(--box);outline-offset:-2px}
 table.mx tr.sum td,table.mx tr.sum th{background:var(--bg);font-weight:600} table.mx td.share{text-align:left;color:var(--muted);font-weight:400}
 .chip{display:inline-block;font-size:10.5px;background:var(--box);color:#fff;border-radius:4px;padding:0 5px;margin-left:4px;vertical-align:1px}
+"""
+
+MX_CSS += """
+table.mx td.clk{cursor:pointer}
+table.mx tr:hover td.clk{filter:brightness(0.97)}
+table.mx td.clk:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.mxp-bg[hidden]{display:none!important}
+.mxp-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;display:flex;justify-content:flex-end}
+.mxp{background:var(--panel);color:var(--fg);width:min(860px,100%);height:100%;overflow:auto;padding:calc(18px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) 24px 18px;display:grid;gap:12px;align-content:start;box-shadow:-8px 0 24px rgba(0,0,0,.2)}
+.mxp-h{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.mxp-h h3{font-size:17px} .mxp-h p{font-size:12.5px;color:var(--muted);margin-top:4px}
+.mxp-x{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:4px 12px;font:inherit;cursor:pointer}
+.mxp-k{display:flex;flex-wrap:wrap;gap:8px}
+.mxp-k span{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px;color:var(--muted)} .mxp-k b{color:var(--fg);font-family:var(--f-num);margin-left:4px}
+.mxp-l{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.mxp-l li{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px}
+.mxp-t{font-size:13.5px;line-height:1.5} .mxp-t a{color:var(--accent);text-decoration:none;font-family:var(--f-num);font-size:12.5px;margin-right:6px}
+.mxp-m{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted)} .mxp-m b{color:var(--fg);font-family:var(--f-num);font-weight:600}
+.mxp-m .low{color:var(--bad)}
+.mxp-g{display:flex;flex-wrap:wrap;gap:4px} .mxp-g span{font-size:11.5px;border-radius:20px;padding:1px 8px;background:var(--accent-soft);color:var(--accent)}
+.mxp-s{font-size:12px;color:var(--muted)}
+"""
+MX_JS = r"""
+<div class="mxp-bg" id="mxp" hidden><aside class="mxp" role="dialog" aria-modal="true" aria-labelledby="mxp-title">
+  <div class="mxp-h"><div><h3 id="mxp-title"></h3><p id="mxp-sub"></p></div><button type="button" class="mxp-x" id="mxp-x">关闭</button></div>
+  <div class="mxp-k" id="mxp-k"></div><ul class="mxp-l" id="mxp-l"></ul></aside></div>
+<script>
+(function(){
+  var D={}; try{D=JSON.parse(document.getElementById('mxdata').textContent);}catch(e){}
+  var bg=document.getElementById('mxp'), L=document.getElementById('mxp-l'), last=null;
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function money(v){return v==null?'—':'$'+Number(v).toLocaleString('en-US',{maximumFractionDigits:2});}
+  function open(k,src){
+    var it=D[k]||[]; var p=k.split('|'); last=src;
+    var names={sauna:'红外桑拿房',tandem:'双人淋浴花洒',thermo:'恒温 / 侧喷系统'};
+    document.getElementById('mxp-title').textContent=(names[p[0]]||'')+' · '+p[1]+' × '+p[2];
+    var u=0,pw=0,pp=0,rw=0,rr=0; it.forEach(function(x){u+=x.u; var w=Math.max(x.u,0.01); if(x.p){pp+=x.p*w;pw+=w;} if(x.rt){rr+=x.rt*w;rw+=w;}});
+    document.getElementById('mxp-sub').textContent='Amazon 2026-10 · 按分摊月销从高到低 · 父体月销按子体平均分摊';
+    document.getElementById('mxp-k').innerHTML='<span>月销<b>'+Math.round(u).toLocaleString()+'</b></span><span>ASIN 数<b>'+it.length+'</b></span><span>加权均价<b>'+(pw?money(Math.round(pp/pw)):'—')+'</b></span><span>加权评分<b>'+(rw?(rr/rw).toFixed(2):'—')+'</b></span>';
+    L.innerHTML=it.map(function(x){
+      var rc=x.rt!=null&&x.rt<4?' class="low"':'';
+      return '<li><div class="mxp-t"><a href="https://www.amazon.com/dp/'+esc(x.a)+'" target="_blank" rel="noopener">'+esc(x.a)+' ↗</a>'+esc(x.t)+'</div>'+
+        '<div class="mxp-m"><span>售价 <b>'+money(x.p)+'</b></span><span>月销（分摊）<b>'+x.u+'</b></span><span>父体月销 <b>'+x.pu+'</b></span><span>评分 <b'+rc+'>'+(x.rt==null?'—':x.rt)+'</b>（'+esc(x.rn||0)+' 评）</span></div>'+
+        (x.sku?'<div class="mxp-s">变体：'+esc(x.sku)+'</div>':'')+
+        (x.tg&&x.tg.length?'<div class="mxp-g">'+x.tg.map(function(t){return '<span>'+esc(t)+'</span>';}).join('')+'</div>':'')+'</li>';
+    }).join('');
+    bg.hidden=false; document.getElementById('mxp-x').focus();
+  }
+  function close(){bg.hidden=true; if(last&&last.focus) last.focus();}
+  document.addEventListener('click',function(e){var td=e.target.closest&&e.target.closest('td[data-k]'); if(td) open(td.getAttribute('data-k'),td);});
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!bg.hidden) close(); var td=e.target.closest&&e.target.closest('td[data-k]'); if(td&&(e.key==='Enter'||e.key===' ')){e.preventDefault(); open(td.getAttribute('data-k'),td);} });
+  bg.addEventListener('click',function(e){ if(e.target===bg) close(); });
+  document.getElementById('mxp-x').addEventListener('click',close);
+})();
+</script>
 """
