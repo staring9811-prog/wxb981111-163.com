@@ -227,6 +227,8 @@ tbody th{{font-weight:500}}
 .rules div{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}}
 .rules ul{{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}}
 .todo{{margin:0;padding-left:20px;display:grid;gap:6px}}
+table.mtg td,table.mtg th{{white-space:normal;vertical-align:top;min-width:160px}}
+table.mtg tbody th{{white-space:nowrap}}
 </style>
 
 <div class="wrap">
@@ -274,6 +276,19 @@ tbody th{{font-weight:500}}
       <p class="decision">选品结论：第二优先级，增长期先发、绝对利润额高；便携式桑拿不做。</p></article>
   </div>
   <p class="note">来源：Grand View Research、Mordor Intelligence、卖家精灵关键词与类目数据、Google Trends（2026-08-04 采集）、桑拿四渠道属性分布报告、Reddit 讨论分析。</p>
+</section>
+
+<section aria-labelledby="mt">
+  <h2 id="mt">会议决策对照</h2>
+  <div class="tw"><table class="mtg"><thead><tr><th>会议</th><th>决策</th><th>本报告的对应</th></tr></thead><tbody>
+    <tr><th scope="row">8/6 家居疗愈品类筛选</th><td>用体量、头部垄断、评分、粗略利润、对 Wellness 品牌的锚点价值 5 个维度，在桑拿房和五金花洒里二选一；只看居家场景；马桶、浴缸直接排除</td><td>市场部分按这 5 个维度写；本报告补上第 4 维“粗略利润”，结果是花洒能赚、桑拿按现报价亏</td></tr>
+    <tr><th scope="row">10/10 光波房与淋浴花洒</th><td>花洒先用竞品 Amazon 链接反查供应商拿成本，暂不直接对接瑞林等工厂</td><td>反查对象建议用中价带的 OURBAOFU、KES、Novast（我方定位就在这一档）</td></tr>
+    <tr><th scope="row">10/10 光波房与淋浴花洒</th><td>花洒前期优先选工厂现有带认证（CEC、无铅）的款式，不做定制开发</td><td>与“中价带标准款、不打高价品牌款”的建议一致</td></tr>
+    <tr><th scope="row">10/10 光波房与淋浴花洒</th><td>光波房单人、双人款的箱规和重量由专人整理同步</td><td>本报告用的是报价单重量 220kg / 250kg，明显偏重；拿到会上整理的箱规后重算尾程</td></tr>
+    <tr><th scope="row">10/10 光波房与淋浴花洒</th><td>ETL 认证需以我方电商主体申请，不能用工厂主体</td><td>认证费用还没计入单件成本，立项时按首单量摊进去</td></tr>
+    <tr><th scope="row">10/10 光波房与淋浴花洒</th><td>判断不锈钢是卫浴材料趋势（成本降、工艺在优化）</td><td>中价带双人花洒的主流就是不锈钢滑杆，选款时优先不锈钢</td></tr>
+  </tbody></table></div>
+  <p class="note">来源：飞书智能纪要 2026-08-06、2026-10-10 的“关键决策”部分；纪要的总结、待办和文字记录需登录查看，未纳入。</p>
 </section>
 
 <section aria-labelledby="d">
@@ -327,7 +342,8 @@ tbody th{{font-weight:500}}
       <li>Wayfair：÷ 2.1，佣金 4%，入 CG 仓，仓储 2% + 出仓 4%</li>
       <li>各平台广告 10%、汇损 1%、退款 10%（Wayfair 5%）、仓储 2%</li></ul></div>
     <div><b>待确认</b><ol class="todo">
-      <li>桑拿重量：报价 220kg / 250kg 是同类 2 倍，确认是否为毛重、是否含托盘</li>
+      <li>桑拿重量：报价 220kg / 250kg 是同类 2 倍，用 10/10 会上整理的单人、双人箱规和重量替换后重算</li>
+      <li>ETL 认证（我方主体申请）的费用和周期，摊入单件成本</li>
       <li>桑拿报价是否含税（13%）</li>
       <li>双人淋浴：1688 具体链接与报价、包装尺寸和毛重</li>
       <li>桑拿谈价目标：高价带定位下含税 ≤ ¥3,100，并补蓝牙、7 色光、红光配置以撑起高价</li></ol></div>
