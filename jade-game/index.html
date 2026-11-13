@@ -64,6 +64,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .quotes { border-top: 1px dashed var(--line); margin-top: 5px; padding-top: 6px; display: flex; flex-direction: column; gap: 5px; }
 .q i { font-style: normal; color: var(--dim); font-size: 12px; } .q button { font-variant-numeric: tabular-nums; }
 .delta { margin: 0; font-size: 12.5px; }
+.work { border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+.work label { color: var(--dim); font-size: 12.5px; } .work select { font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; flex: 1; min-width: 0; max-width: 70%; }
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
 .modal > div { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; max-width: 34em; max-height: 90%; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
 .modal h2 { font-family: var(--display); margin: 0; font-size: 18px; color: var(--jade); }
@@ -101,6 +103,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <div id="tabs" role="tablist">
         <button data-tab="market" role="tab">货源</button>
         <button data-tab="mine" role="tab">我的料</button>
+        <button data-tab="tray" role="tab">成品盘</button>
         <button data-tab="ledger" role="tab">账本</button>
       </div>
       <div id="panel"></div>
@@ -115,7 +118,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <li><b>原样转手</b>：买得便宜就直接卖，赚差价，不承担开料风险。</li>
     <li><b>开窗</b>：磨掉一小块皮。窗口漂亮时买家会往好处想，这时卖掉常常比继续开更划算。</li>
     <li><b>下刀</b>：在石头上拖一条线就是锯路，任意角度都行；也可以把一个面转到正对自己，按厚度切片。切开的面一目了然，想象空间也没了。</li>
-    <li><b>送加工做成件</b>：付工费、等几天，拿到手镯和小件再批发或寄卖。能把买家的风险折扣赚回来，但暗裂会让镯子出不来，压镯本身也有小概率失败。一份料的价值主要在能出几只什么档次的镯子，其余是添头。</li>
+    <li><b>送去做件</b>：你来定做什么（手镯、牌子挂件、蛋面、珠串、雕件）、找谁做、什么题材。一份料的价值主要在能出几只什么档次的镯子；出不了镯子的料，色浓的小块取蛋面，棉多的做山水，裂多的车珠子或让好雕工藏进花件里，垮料也能回血。先下刀把好坏部分分开，再分别送去，比整块交出去值钱。</li>
+    <li><b>成品盘</b>：做好的东西摆在托盘里，可以转着看，一件件卖或整盘卖。批发现结约零售的六成，寄卖接近零售但回款慢。盘里还有一个种水与颜色的对照盘可以随时看。</li>
   </ul>
   <h3>先分清这块料赌什么</h3>
   <ul>

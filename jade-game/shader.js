@@ -8,7 +8,7 @@ window.JADE_FS = `#version 300 es
 precision highp float; precision highp sampler3D;
 uniform sampler3D uGeom, uMat;
 uniform vec2 uRes; uniform vec3 uCamPos; uniform mat3 uCamRot; uniform float uTan;
-uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[8]; uniform vec4 uCut; uniform float uCutOn;
+uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[16]; uniform vec4 uCut; uniform float uCutOn;
 uniform vec3 uSkinCol; uniform float uSkinSig, uSkinGrain, uSkinRel, uWeather, uPhase;
 uniform vec3 uBodyCol, uBandCol, uHueAbs, uFogCol; uniform float uFogT;
 uniform int uNCr; uniform vec4 uCrA[6]; uniform vec4 uCrB[6]; uniform vec4 uCrC[6]; uniform vec3 uCrT[6];
@@ -28,12 +28,12 @@ vec4 M(vec3 p){ return texture(uMat,p/(2.0*uBox)+0.5); }
 // 用小尺度噪声扰动取样位置，让色带边缘呈絮状、丝状，而不是体素的糊边
 vec4 Mw(vec3 p){ vec3 w=vec3(vnoise(p*0.55+11.0),vnoise(p*0.55+37.0),vnoise(p*0.55+71.0))-0.5; return M(p+w*2.2); }
 float sdfOf(vec4 g){ return mix(g.g,g.r,uPristine); }
-float planeD(vec3 p){ float m=-1e9; for(int i=0;i<8;i++){ if(i>=uNPl) break; m=max(m,dot(p,uPl[i].xyz)-uPl[i].w); } return m; }
+float planeD(vec3 p){ float m=-1e9; for(int i=0;i<16;i++){ if(i>=uNPl) break; m=max(m,dot(p,uPl[i].xyz)-uPl[i].w); } return m; }
 float mapD(vec3 p){ return max(sdfOf(G(p)),planeD(p)); }
 
-vec3 sigT(vec4 m){ float b=mix(0.20,0.006,pow(smoothstep(0.03,0.97,m.g),0.6));
+vec3 sigT(vec4 m){ float b=max(0.005,0.42*exp(-4.6*m.g)); // 豆 0.27 → 冰 0.02 → 玻璃 0.005，每毫米
   vec3 s=b*vec3(0.90,1.0,1.22); s+=m.r*uHueAbs*0.30; s+=(1.0-uBodyCol)*0.05; s+=m.b*0.10; s+=m.a*vec3(0.6,0.55,0.5); return s; }
-float scat(vec4 m){ return mix(0.50,0.03,pow(m.g,0.7))+m.b*0.3; }
+float scat(vec4 m){ return max(0.02,0.62*exp(-3.6*m.g))+m.b*0.3; }
 vec3 albedo(vec4 m){ vec3 a=mix(uBodyCol,uBandCol,clamp(m.r*1.2,0.,1.)); a=mix(a,vec3(0.97),m.b*0.6); return a*(1.0-0.8*m.a); }
 
 float crG(int i, vec3 p, out float ins){
@@ -66,7 +66,7 @@ bool trace(vec3 ro, vec3 rd, out vec3 p, out vec3 n, out float flat_){
   // 二分细化交点，让轮廓和窗口边缘更干净
   float ta=tp, tb=t; for(int i=0;i<5;i++){ float tm=0.5*(ta+tb); if(mapD(ro+rd*tm)<0.0) tb=tm; else ta=tm; }
   p=ro+rd*tb; sd=sdfOf(G(p)); pd=planeD(p);
-  if(pd>sd-0.06){ float m=-1e9; for(int i=0;i<8;i++){ if(i>=uNPl) break; float v=dot(p,uPl[i].xyz)-uPl[i].w; if(v>m){ m=v; n=uPl[i].xyz; } } flat_=1.0; }
+  if(pd>sd-0.06){ float m=-1e9; for(int i=0;i<16;i++){ if(i>=uNPl) break; float v=dot(p,uPl[i].xyz)-uPl[i].w; if(v>m){ m=v; n=uPl[i].xyz; } } flat_=1.0; }
   else n=calcN(p);
   return true; }
 float softShadow(vec3 p, vec3 l){ float res=1.0, t=2.5; for(int i=0;i<10;i++){ float d=mapD(p+l*t); res=min(res,7.0*d/t); t+=clamp(d,1.5,7.0); if(res<0.02||t>70.0) break; } return clamp(res,0.0,1.0); }
@@ -106,8 +106,10 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     float mang=smoothstep(0.5,0.8,mix(vnoise(p*0.03+uPhase*2.0),b1.g,uSkinRel))*smoothstep(0.45,0.6,vnoise(p*vec3(0.03,0.2,0.03)+uPhase));
     col=mix(col,col*1.22+0.04,mang*0.5);
     col=mix(col,vec3(0.05,0.06,0.05),smoothstep(0.2,0.6,max(b1.a,b2.a))*0.8*uSkinRel);
-    for(int i=0;i<6;i++){ if(i>=uNCr) break; if(uCrC[i].w>0.5){ float ins; float h=crG(i,p,ins);
-      col*=1.0-0.8*(1.0-smoothstep(0.10,0.42,abs(h)))*ins*uCrB[i].w; } }
+    float crk=0.0; // 到皮的裂：明显的是黑线带锈边，隐蔽的只是一条细发丝
+    for(int i=0;i<6;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); float vis=mix(0.38,1.0,uCrC[i].w)*uCrB[i].w*ins;
+      col=mix(col,col*vec3(1.15,0.72,0.5),(1.0-smoothstep(0.5,2.2,abs(h)))*vis*0.45);
+      float l=(1.0-smoothstep(0.14,mix(0.45,0.80,uCrC[i].w),abs(h)))*vis; col*=1.0-0.85*l; crk=max(crk,l); }
     // 凹凸：对高度场做有限差分
     float e=0.35; float h0=skinH(p,gf);
     vec3 gh=vec3(skinH(p+vec3(e,0,0),gf),skinH(p+vec3(0,e,0),gf),skinH(p+vec3(0,0,e),gf))-h0;
@@ -140,7 +142,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     // 晶粒：种越嫩颗粒越明显；放大镜下更清楚
     float cg=mix(vnoise(s*1.6+3.0),vnoise(s*4.5+1.0),0.45)-0.5; float gk=(1.0-m.g)*(0.30+detail*0.55);
     al*=1.0+cg*gk; sc*=1.0+cg*gk*1.6;
-    vec3 Lin=T0*mix(T0*0.4,vec3(0.42),flesh)*ambL*exp(-sg*trav*0.5);
+    vec3 Lin=T0*mix(T0*0.4,vec3(mix(0.62,0.26,m.g)),flesh)*ambL*exp(-sg*trav*0.5);
     if(uTorch.w>0.0) Lin+=fluence(s);
     vec3 xe=x+dir*dt;
     for(int i=0;i<6;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);
@@ -148,9 +150,11 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
       gp[i]=h; }
     acc+=T*al*sc*dt*Lin; T*=exp(-sg*dt); x=xe; trav+=dt; dt*=1.19;
   }
-  float line=0.0;
-  for(int i=0;i<6;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); line=max(line,(1.0-smoothstep(0.06,0.30,abs(h)))*ins*uCrB[i].w); }
-  acc*=1.0-0.65*line*flesh;
+  float line=0.0, halo=0.0; // 露肉面上的裂：一条暗线，两侧发白起雾，大裂带锈色
+  for(int i=0;i<6;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); float o=ins*uCrB[i].w;
+    line=max(line,(1.0-smoothstep(0.10,0.50,abs(h)))*o); halo=max(halo,(1.0-smoothstep(0.4,2.4,abs(h)))*o); }
+  acc=mix(acc,acc*vec3(1.0,0.86,0.70)+vec3(0.10,0.095,0.085)*uAmbient,halo*0.55*flesh);
+  acc*=1.0-0.80*line*flesh;
   if(flat_>0.5) acc*=1.0+0.035*sin(dot(p,uCamRot[0])*5.0+vnoise(p*0.3)*4.0)*flesh; // 锯痕
   // 菲涅耳反光：种水越好表面越“起光”
   float wS=M(p-n*0.5).g; float ndv=max(dot(nf,-rd),0.0);
@@ -179,5 +183,70 @@ void main(){
   col=pow(col,vec3(1.0/2.2));
   col+=(ign(gl_FragCoord.xy+17.0)-0.5)/255.0;
   col=mix(col,vec3(0.75,0.7,0.6),rim*0.9);
+  outC=vec4(col,1.0);
+}`;
+
+/* 成品托盘：解析形状的手镯、牌子、蛋面、珠串、雕件，同样按种水和色着色 */
+window.JADE_TRAY_FS = `#version 300 es
+precision highp float;
+uniform vec2 uRes; uniform vec3 uCamPos; uniform mat3 uCamRot; uniform float uTan; uniform vec2 uTray;
+uniform int uN; uniform vec4 uIt[16]; uniform vec4 uIc[16]; uniform vec4 uIb[16]; uniform vec4 uIx[16];
+out vec4 outC;
+float hash(vec3 p){ p=fract(p*0.3183099+vec3(.1,.2,.3)); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float vnoise(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.0-2.0*f);
+  return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z); }
+float fbm(vec3 p){ return 0.5*vnoise(p)+0.3*vnoise(p*2.1+3.1)+0.2*vnoise(p*4.3+7.7); }
+float ign(vec2 p){ return fract(52.9829189*fract(dot(p,vec2(0.06711056,0.00583715)))); }
+float sdItem(vec3 p, int i){
+  vec3 q=p-vec3(uIt[i].x,0.0,uIt[i].y); int t=int(uIt[i].z+0.5); float sd=uIt[i].w;
+  if(t==0){ vec2 c=vec2(length(q.xz)-31.0,(q.y-5.6)*0.92); return length(c)-5.4; }
+  if(t==1){ vec3 d=abs(q-vec3(0.0,3.4,0.0))-vec3(12.0,2.0,18.0)+2.0; float b=length(max(d,0.0))+min(max(d.x,max(d.y,d.z)),0.0)-2.0;
+    return b-uIx[i].z*0.55*smoothstep(0.42,0.62,vnoise(vec3(q.xz*0.30,sd)))*smoothstep(2.5,4.5,q.y); }
+  if(t==2){ vec3 r=vec3(7.5,4.6,6.0); float k=length(q/r); return max((k-1.0)*4.6,-q.y); }
+  if(t==3){ float sa=6.2831853/18.0; float a=round(atan(q.z,q.x)/sa)*sa; return length(q-vec3(26.0*cos(a),4.4,26.0*sin(a)))-4.3; }
+  vec3 qc=q-vec3(0.0,19.0,0.0); return (length(qc/vec3(17.0,20.0,12.0))-1.0)*12.0-3.2*(fbm(qc*0.11+sd)-0.5)-0.8*(vnoise(qc*0.5+sd)-0.5); }
+float mapI(vec3 p, out int id){ float d=1e9; id=-1; for(int i=0;i<16;i++){ if(i>=uN) break; vec2 c=p.xz-uIt[i].xy; if(dot(c,c)>2600.0&&d<1e8) { float far=length(c)-45.0; if(far<d){ } if(far>d) continue; } float v=sdItem(p,i); if(v<d){ d=v; id=i; } } return d; }
+float mapD(vec3 p){ int id; return mapI(p,id); }
+vec3 nrm(vec3 p){ const float e=0.25; vec2 k=vec2(1.,-1.); return normalize(k.xyy*mapD(p+k.xyy*e)+k.yyx*mapD(p+k.yyx*e)+k.yxy*mapD(p+k.yxy*e)+k.xxx*mapD(p+k.xxx*e)); }
+float shadow(vec3 p, vec3 l){ float res=1.0, t=1.0; for(int i=0;i<14;i++){ float d=mapD(p+l*t); res=min(res,5.0*d/t); t+=clamp(d,0.8,6.0); if(res<0.03||t>60.0) break; } return clamp(res,0.0,1.0); }
+vec3 env(vec3 r, vec3 L){ return vec3(1.0,0.97,0.92)*smoothstep(0.82,0.97,dot(r,L))*2.4+vec3(0.9,0.95,1.0)*smoothstep(0.90,0.98,dot(r,normalize(vec3(-0.5,0.7,-0.4))))*1.0+vec3(0.16,0.17,0.19)*smoothstep(-0.2,0.9,r.y)+0.02; }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0); }
+void main(){
+  vec2 uv=(gl_FragCoord.xy-0.5*uRes)/(0.5*uRes.y); vec3 rd=normalize(uCamRot*vec3(uv*uTan,-1.0)); vec3 ro=uCamPos;
+  vec3 L=normalize(vec3(0.45,0.80,0.40)); vec3 col=vec3(0.02,0.018,0.016);
+  float t=0.0, d=1e9; int id=-1; bool hit=false; float tg=rd.y<0.0?-ro.y/rd.y:1e9; float tmax=min(tg,2500.0);
+  t=max(0.0,(ro.y-46.0)/max(1e-4,-rd.y)); if(rd.y>=0.0) t=tmax;
+  for(int i=0;i<110;i++){ if(t>=tmax) break; d=mapI(ro+rd*t,id); if(d<0.03){ hit=true; break; } t+=d*0.9; }
+  if(hit){
+    vec3 p=ro+rd*t, n=nrm(p); float w=uIc[id].a, lv=uIb[id].a, sd=uIt[id].w, cot=uIx[id].y;
+    vec3 q=p-vec3(uIt[id].x,0.0,uIt[id].y);
+    float mask=smoothstep(1.0-lv-0.12,1.0-lv+0.14,fbm(q*0.075+sd)*0.75+0.25*vnoise(q*0.2+sd));
+    vec3 alb=mix(uIb[id].rgb,uIc[id].rgb,mask*(0.55+0.45*lv));
+    alb=mix(alb,vec3(0.97),cot*smoothstep(0.55,0.8,fbm(q*0.16+sd+9.0))*0.7);
+    alb*=1.0+(vnoise(q*1.9+sd)-0.5)*0.30*(1.0-w);                    // 种嫩：看得见颗粒
+    float ndl=dot(n,L), ndv=max(dot(n,-rd),0.0), sh=shadow(p+n*0.4,L);
+    float thick=clamp(-mapD(p-n*3.5)/3.5,0.0,1.0);                    // 3.5 毫米下还有多少料
+    float dif=pow(ndl*0.5+0.5,1.6)*mix(0.35,1.0,sh);
+    vec3 feltC=vec3(0.035,0.055,0.048);
+    vec3 c=alb*(dif*mix(0.80,0.22,w)+mix(0.12,0.04,w));                // 种嫩：发白发闷，像瓷
+    c=mix(c,c*0.30+feltC*alb*2.2*(0.5+0.5*sh),smoothstep(0.2,0.95,w)*0.88);                              // 种老：能看穿到下面的绒布
+    c+=alb*w*(0.30*pow(1.0-ndv,2.0)+0.35*smoothstep(-0.4,0.7,-ndl)*(1.0-0.6*thick)+0.06*(1.0-thick)*sh); // 种老：边缘和薄处透光
+    c*=mix(1.0,0.72+0.28*(1.0-ndv),w);                                 // 种老：正面看进去更深
+    float F=(0.04+0.96*pow(1.0-ndv,5.0))*mix(0.35,1.0,w);
+    vec3 hv=normalize(L-rd); float sp=pow(max(dot(n,hv),0.0),mix(24.0,340.0,w))*mix(0.25,2.6,w)*sh;
+    c+=env(reflect(rd,n),L)*F*mix(0.5,1.0,sh)+vec3(sp);
+    col=c;
+  } else if(tg<2400.0){
+    vec3 p=ro+rd*tg; vec2 a=abs(p.xz)-uTray; float inT=1.0-smoothstep(-1.0,1.0,max(a.x,a.y)); float rimd=abs(max(a.x,a.y));
+    vec3 felt=vec3(0.035,0.055,0.048)*(0.8+0.5*vnoise(vec3(p.xz*3.0,1.0)))+vec3(0.02)*vnoise(vec3(p.xz*0.05,3.0));
+    vec3 wood=vec3(0.10,0.065,0.04)*(0.6+0.6*vnoise(vec3(p.x*0.02,p.z*0.4,5.0)));
+    vec3 g=mix(wood,felt,inT); g=mix(g,vec3(0.23,0.16,0.09),(1.0-smoothstep(0.0,3.0,rimd))*0.9);
+    float sh=shadow(p+vec3(0.0,0.2,0.0),L); int ii; float ao=clamp(mapI(p+vec3(0.0,2.0,0.0),ii)/9.0,0.0,1.0);
+    g*=(0.25+0.75*sh)*(0.45+0.55*ao)*1.7*max(L.y,0.0)+0.03;
+    for(int i=0;i<16;i++){ if(i>=uN) break; if(uIx[i].x>0.5){ float r=length(p.xz-uIt[i].xy); g+=vec3(0.9,0.65,0.25)*(smoothstep(41.0,42.5,r)-smoothstep(43.5,45.0,r))*0.8; } }
+    col=g*exp(-tg*0.0007);
+  }
+  col=aces(col*1.05); col=pow(col,vec3(1.0/2.2)); col+=(ign(gl_FragCoord.xy)-0.5)/255.0;
   outC=vec4(col,1.0);
 }`;

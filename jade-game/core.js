@@ -91,7 +91,7 @@ const BUYERS = {
   '急收商人': { skill: 0.62, risk: 0.82, margin: 0.28, opt: 0.80, cash: 120000, days: 0, pref: '周转' },
 };
 const TOOLS = { '细磨头': { r: 4, bite: 1.0 }, '中磨头': { r: 7, bite: 1.5 }, '粗磨头': { r: 12, bite: 2.2 } };
-const ECON = { startCash: 200000, daily: 300, base: 16.7, yield: 0.12, braceletBonus: 4, rough: 0.6, pressFail: 0.05, grind: 0.06, cutBase: 80, cutArea: 0.015, kerf: 1.2, density: 3.33, priorScale: 0.8 };
+const ECON = { startCash: 200000, daily: 300, base: 16.7, yield: 0.3, braceletBonus: 4, rough: 0.6, pressFail: 0.05, grind: 0.06, cutBase: 80, cutArea: 0.015, kerf: 1.2, density: 3.33, priorScale: 0.8 };
 // 相对无色手镯零售价：豆 0.1 万、糯 0.5 万、糯冰 3 万、冰 15 万、高冰 40 万、玻璃 90 万（见 research/value-chain.md）
 const WATER_ANCHORS = [[0.10, 1], [0.25, 5], [0.45, 30], [0.65, 150], [0.82, 400], [0.95, 900]];
 function waterName(w) { w *= 100; return w < 18 ? '豆种' : w < 35 ? '糯种' : w < 55 ? '糯冰种' : w < 74 ? '冰种' : w < 89 ? '高冰种' : '玻璃种'; }
@@ -141,7 +141,7 @@ function genStone(seed, originId, channelId) {
       radii: [a * r.range(0.15, 0.45), a * r.range(0.12, 0.35), a * r.range(0.15, 0.45)], seed: r.int(1, 1e6),
     });
   }
-  st.cracks = []; const nc = Math.round(O.crack / 100 * r.range(0, 6.5));
+  st.cracks = []; const nc = Math.round(O.crack / 100 * r.range(1.5, 9));
   for (let i = 0; i < Math.min(nc, 6); i++) {
     const n = r.dir(), d = r.dir(), cr = r.range(0, 0.7);
     st.cracks.push({ c: [d[0] * st.rad[0] * cr, d[1] * st.rad[1] * cr, d[2] * st.rad[2] * cr], n, t1: norm3(cross(n, [0.31, 0.87, 0.38])), R: a * r.range(0.25, 1.1), warp: r.range(0.5, 3), freq: r.range(0.03, 0.09), phase: r.range(0, TAU), open: r.chance(0.7) ? 1 : 0.2, skinVis: r.chance(S.sig > 1 ? 0.35 : 0.65) ? 1 : 0 });
@@ -335,7 +335,7 @@ function evalPiece(st, vol, piece) {
     let wt = cov[id]; if (s === 2) { wt = 0; for (let dk = 0; dk < 2; dk++) for (let dj = 0; dj < 2; dj++) for (let di = 0; di < 2; di++) { const a = i * 2 + di, bb = j * 2 + dj, cc = k * 2 + dk; if (a < nx && bb < ny && cc < nz) wt += cov[a + nx * (bb + ny * cc)]; } }
     if (wt <= 0 || !(-g[b] > g[b + 2])) continue;
     const c = m[b] / 255, w = m[b + 1] / 255, cid = i + cx * (j + cy * k);
-    const cell = { id: cid, p: [(vi + 0.5) * vx - vol.hx, (vj + 0.5) * vx - vol.hy, (vk + 0.5) * vx - vol.hz], v: vd(w, c, m[b + 2] / 255, m[b + 3] / 255, grade), w, c, wt, k: 0, e: 0, conf: 0, Ft: 1, Fk: 1 };
+    const cell = { cot: m[b + 2] / 255, dirt: m[b + 3] / 255, id: cid, p: [(vi + 0.5) * vx - vol.hx, (vj + 0.5) * vx - vol.hy, (vk + 0.5) * vx - vol.hz], v: vd(w, c, m[b + 2] / 255, m[b + 3] / 255, grade), w, c, wt, k: 0, e: 0, conf: 0, Ft: 1, Fk: 1 };
     cells.push(cell);
     if (expo[cid]) { E.push(cell); if (c > 0.25) expColor++; expW += w; }
   }
@@ -344,6 +344,7 @@ function evalPiece(st, vol, piece) {
   for (let ci = 0; ci < st.cracks.length; ci++) { const c = st.cracks[ci]; if (c.open <= 0.5 || known[ci]) continue; for (const e of E) { crackG(c, e.p[0], e.p[1], e.p[2], _cg); if (Math.abs(_cg[0]) < 3.5 && _cg[1] > 0.5) { known[ci] = true; break; } } }
   const kGrid = new Float32Array(nc), thinK = T < 16 ? 0.92 - T * 0.01 : 0;
   let S1 = 0, S1u = 0, S2 = 0, S2u = 0, S3 = 0, S3u = 0, truth = 0, kSum = 0, wSum = 0;
+  const ag = { Vclean: 0, Vcrack: 0, Vtop: 0, volClean: 0, volCrack: 0, volTop: 0, col: 0, w: 0, cot: 0, dirt: 0 };
   for (const cl of cells) {
     let dmin = 1e9, wn = 0.3, sw = 0, swv = 0;
     for (const e of Es) { const dx = cl.p[0] - e.p[0], dy = cl.p[1] - e.p[1], dz = cl.p[2] - e.p[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz); if (d < dmin) { dmin = d; wn = e.w; } if (d < 70) { const ww = Math.exp(-d / 22); sw += ww; swv += ww * e.v; } }
@@ -352,6 +353,8 @@ function evalPiece(st, vol, piece) {
     kGrid[cl.id] = cl.k; kSum += cl.k * cl.wt; wSum += cl.wt;
     const u = 1 - cl.k, F = cl.Fk * cl.wt;
     truth += cl.v * cl.Ft * cl.wt;
+    if (cl.Ft === 1) { ag.Vclean += cl.v * cl.wt; ag.volClean += cl.wt; if (cl.c > 0.4) { ag.Vtop += cl.v * cl.wt; ag.volTop += cl.wt; } } else { ag.Vcrack += cl.v * cl.wt; ag.volCrack += cl.wt; }
+    if (cl.c > 0.25) ag.col += cl.wt; ag.w += cl.w * cl.wt; ag.cot += cl.cot * cl.wt; ag.dirt += cl.dirt * cl.wt;
     S1 += F * cl.k * cl.v; S1u += F * cl.k * cl.v * u; S2 += F * u * cl.conf * cl.e; S2u += F * u * u * cl.conf * cl.e; S3 += F * u * (1 - cl.conf); S3u += F * u * u * (1 - cl.conf);
   }
   const sc = v3 * ECON.yield;
@@ -389,7 +392,7 @@ function evalPiece(st, vol, piece) {
   let truthB = 0; for (const r of rT) truthB += r.v * ringVol;
   let ext = 0; if (!slab) { const inf = pieceInfo(vol, piece, [0, 1, 0]); ext = inf.hi - inf.lo; }
   return {
-    truth: truth * sc + truthB, truthParts: { small: truth * sc, rings: rT.map(r => r.v * ringVol) }, S: [S1 * sc, S1u * sc, S2 * sc, S2u * sc, S3 * sc, S3u * sc], rings: rK, ringVol,
+    truth: truth * sc + truthB, truthParts: { small: truth * sc, rings: rT.map(r => r.v * ringVol), Vclean: ag.Vclean * v3, Vcrack: ag.Vcrack * v3, Vtop: ag.Vtop * v3, volClean: ag.volClean * v3, volCrack: ag.volCrack * v3, volTop: ag.volTop * v3, colorFrac: wSum ? ag.col / wSum : 0, wMean: wSum ? ag.w / wSum : 0.3, cotMean: wSum ? ag.cot / wSum : 0, dirtMean: wSum ? ag.dirt / wSum : 0 }, S: [S1 * sc, S1u * sc, S2 * sc, S2u * sc, S3 * sc, S3u * sc], rings: rK, ringVol,
     stats: {
       weight: solidW * v3 * ECON.density, fleshCm3: wSum * v3, thickness: slab ? T : ext, isSlab: !!slab,
       expArea: expVox * vx * vx / 100, expColor: E.length ? expColor / E.length : 0, expWater: E.length ? expW / E.length : 0,
@@ -442,7 +445,7 @@ function getVol(rec) {
   return e;
 }
 const WHOLE = { id: 0, planes: [] };
-function newWorld(seed) { const w = { v: 2, seed, day: 1, cash: ECON.startCash, recv: [], stones: [], goods: [], market: [], log: [], nextId: 1, over: false }; genMarket(w); return w; }
+function newWorld(seed) { const w = { v: 3, seed, day: 1, cash: ECON.startCash, recv: [], stones: [], works: [], items: [], market: [], log: [], nextId: 1, over: false }; genMarket(w); return w; }
 function sellerWindow(st, vol, r) {
   let best = null; const o = [0, 0, 0, 0], grade = HUES[st.hue].grade;
   for (let i = 0; i < 60; i++) {
@@ -545,7 +548,7 @@ function cutPreview(s, piece, n, d) {
 // 沿任意平面下刀：一块变两块，锯缝吃掉 kerf 毫米
 function cut(w, s, piece, n, d) {
   n = norm3(n).map(v => Math.round(v * 1e4) / 1e4); d = Math.round(d * 100) / 100;
-  if (piece.planes.length >= 7) return { ok: false, msg: '这块料切面太多了，不能再切。' };
+  if (piece.planes.length >= 16) return { ok: false, msg: '这块料已经切了 16 个面，再切就碎了。' };
   const pv = cutPreview(s, piece, n, d);
   if (pv.a < 8 || pv.b < 8) return { ok: false, msg: '这一刀有一侧几乎没有料，换个位置。' };
   if (pv.cost > w.cash) return { ok: false, msg: '现金不够付切工。' };
@@ -562,35 +565,93 @@ function sell(w, s, piece, q) {
   s.proceeds += q.price;
   if (q.days) w.recv.push({ day: w.day + q.days, amt: q.price, from: q.buyer }); else w.cash += q.price;
   w.log.push({ day: w.day, t: `卖出 #${s.id} ${piece.name} → ${q.buyer}${q.days ? `（${q.days} 天后到账）` : ''}`, amt: q.price });
-  if (s.pieces.every(p => p.sold)) closeStone(w, s);
+  closeStone(w, s);
 }
-// 送加工做成件：结果由真相决定（暗裂会让镯子出不来）。几天后拿到成品，再批发或寄卖
-function workQuote(s, piece) {
-  const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), nb = ev.truthParts.rings.length;
-  const pub = ev.stats.bracelets; // 师傅只按看得见的镯位报工费
-  return { fee: Math.round(150 + pub * 300 + ev.stats.fleshCm3 * 4), days: 2 + (pub > 2 ? 1 : 0), pub };
+/* ---------- 做件：玩家决定做什么、找谁做、什么题材 ---------- */
+const ROUTES = {
+  bracelet: { name: '手镯', unit: '只', fee: 150, tip: '一只好镯子能扛起整块料。需要够大的无裂圈位，片厚至少 10 毫米。' },
+  pendant: { name: '牌子挂件', unit: '件', fee: 220, tip: '出货稳，吃工艺和题材。干净的料做素面，有棉有裂靠雕工遮。' },
+  cab: { name: '蛋面戒面', unit: '粒', fee: 70, tip: '只取色最浓的部分，其余算废料。色好的小料走这条路最值钱。' },
+  bead: { name: '珠串', unit: '串', fee: 130, tip: '车珠子能避开裂，碎料、裂多的料靠它回血。' },
+  carve: { name: '雕件摆件', unit: '件', fee: 900, tip: '整块随形雕，裂和脏可以藏进题材里。好师傅能把垮料做活。' },
+};
+// craft: 各路线的工艺系数；fee: 工费倍率；press: 压镯失败率；salv: 雕工把裂区变成可用料的能力
+const MASTERS = {
+  '机雕厂': { craft: { bracelet: 0.97, pendant: 0.62, cab: 0.85, bead: 1.0, carve: 0.55 }, fee: 0.3, days: 1, press: 0.06, salv: 0, tip: '便宜、一天交货。图案是模板，牌子和雕件卖不上价，适合低档料走量。' },
+  '街边师傅': { craft: { bracelet: 0.92, pendant: 0.88, cab: 0.9, bead: 0.95, carve: 0.85 }, fee: 0.6, days: 2, press: 0.09, salv: 0.1, tip: '什么都接，手艺一般，压镯偶尔失手。' },
+  '平洲镯师': { craft: { bracelet: 1.08, pendant: 0.9, cab: 0.9, bead: 1.0, carve: 0.8 }, fee: 1, days: 2, press: 0.02, salv: 0, tip: '专做手镯，圈口正、几乎不失手。雕件不是他的强项。' },
+  '揭阳高货师': { craft: { bracelet: 1.05, pendant: 1.05, cab: 1.35, bead: 1.0, carve: 1.0 }, fee: 2.2, days: 4, press: 0.03, salv: 0.1, high: 1.12, tip: '专做高种高色，蛋面起光最好；冰种以上的料交给他有溢价。普通料不划算。' },
+  '苏工玉雕师': { craft: { bracelet: 0.95, pendant: 1.5, cab: 0.9, bead: 0.95, carve: 1.6 }, fee: 4.5, days: 6, press: 0.05, salv: 0.35, tip: '设计和雕工一流，擅长化瑕为瑜。工费贵、工期长，料太差撑不起工费。' },
+};
+const THEMES = {
+  '师傅定': { tip: '让师傅看料下刀，中规中矩。' },
+  '素面无事牌': { tip: '不雕花，最显种水。料要干净：有棉有裂会很难看。' },
+  '观音佛公': { tip: '常年好卖，不挑料。' },
+  '山水': { tip: '棉可以做成雪和云，棉多的料反而出彩。' },
+  '花鸟龙凤': { tip: '镂雕花件，裂可以顺着纹路藏掉。' },
+};
+function themeDemand(w, theme) { if (theme === '师傅定') return 1; const r = new Rng(seedOf(w.seed, 'theme', Math.floor(w.day / 5), theme)); return theme === '观音佛公' ? r.range(0.98, 1.15) : r.range(0.8, 1.3); }
+function demandWord(d) { return d > 1.12 ? '热' : d < 0.92 ? '冷' : '平'; }
+// 真相下某方案的零售总值与件数；visible=true 时只算看得见的手镯位（给玩家看的预估）
+function routeValue(w, tp, ringsVisible, route, masterName, theme) {
+  const M = MASTERS[masterName], crackShare = tp.volCrack / Math.max(1e-6, tp.volCrack + tp.volClean);
+  let craft = M.craft[route] * (M.high && tp.wMean > 0.6 ? M.high : 1), mat = 0, n = 0, salv = M.salv, fit = 1, note = '';
+  if (route === 'bracelet') { n = ringsVisible; mat = (tp.Vclean) * 0.12; }
+  else if (route === 'pendant') { mat = tp.Vclean * 0.5; n = clamp(Math.round(tp.volClean / 14), 1, 10); }
+  else if (route === 'cab') { mat = tp.Vtop * 1.2; n = clamp(Math.round(tp.volTop / 1.5), 0, 12); }
+  else if (route === 'bead') { mat = tp.Vclean * 0.3; salv = Math.max(salv, 0.55); n = clamp(Math.round((tp.volClean + tp.volCrack) / 25), 1, 6); }
+  else { mat = tp.Vclean * 0.4; salv += 0.3; n = tp.volClean > 300 ? 2 : 1; }
+  if (route === 'pendant' || route === 'carve') {
+    let th = theme;
+    const fits = { '素面无事牌': (tp.cotMean < 0.12 && crackShare < 0.04) ? 1.18 : 0.68, '观音佛公': 1, '山水': 0.92 + 0.9 * tp.cotMean, '花鸟龙凤': 0.95 };
+    if (th === '师傅定') { fit = 0.97; if (M.craft[route] < 0.7) fit = 0.9; }
+    else { fit = fits[th] * themeDemand(w, th); if (th === '花鸟龙凤') salv += 0.3; if (th === '山水') salv += 0.1; }
+  }
+  mat += tp.Vcrack * Math.min(0.6, salv) * (route === 'bracelet' || route === 'cab' ? 0 : 0.5);
+  return { total: mat * craft * fit, n, craft, fit };
 }
-function sendWork(w, s, piece) {
-  const q = workQuote(s, piece); if (q.fee > w.cash) return { ok: false, msg: '现金不够付工费。' };
-  const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), tp = ev.truthParts;
-  w.cash -= q.fee; s.costs += q.fee; piece.sold = true; piece.soldPrice = 0; piece.buyer = '送加工';
-  const o = [0, 0, 0, 0];
-  w.goods.push({ id: w.nextId++, stone: s.id, from: `#${s.id} ${piece.name}`, ready: w.day + q.days, bracelets: tp.rings.map(v => Math.round(v * 1.1)).filter((_, i) => !new Rng(seedOf(w.seed, 'press', s.seed, piece.id, i)).chance(ECON.pressFail)), small: Math.round(tp.small), expected: q.pub, state: 'work' });
-  w.log.push({ day: w.day, t: `送加工 #${s.id} ${piece.name}`, amt: -q.fee });
-  s.pending = (s.pending || 0) + 1;
-  return { ok: true, fee: q.fee, days: q.days };
+function workPlan(w, s, piece, route, masterName, theme) {
+  const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), tp = ev.truthParts, M = MASTERS[masterName], R = ROUTES[route];
+  const rv = routeValue(w, tp, ev.stats.bracelets, route, masterName, theme), warn = [];
+  if (route === 'bracelet' && !ev.stats.bracelets) warn.push('看不到完整的手镯位：料不够大、太薄，或被裂切断。');
+  if (route === 'cab' && rv.n === 0) warn.push('没有够浓的色，出不了蛋面。');
+  if (ev.stats.kAvg < 0.5) warn.push('这块料大部分还没看清，师傅只能边做边看，结果可能和预想差很多。');
+  const fee = Math.round((120 + Math.max(1, rv.n) * R.fee) * M.fee);
+  return { fee, days: M.days, n: rv.n, warn, ok: !(route === 'cab' && rv.n === 0) && !(route === 'bracelet' && !ev.stats.bracelets) };
 }
-function goodsValue(g) { return g.bracelets.reduce((a, b) => a + b, 0) + g.small; }
-function sellGoods(w, g, how) {
-  const s = w.stones.find(x => x.id === g.stone), v = goodsValue(g), r = new Rng(seedOf(w.seed, 'goods', g.id));
-  const price = Math.round(v * (how === 'retail' ? 0.95 : 0.6) / 10) * 10, days = how === 'retail' ? r.int(6, 14) : 0;
-  g.state = 'sold'; g.price = price;
-  if (days) w.recv.push({ day: w.day + days, amt: price, from: '寄卖柜台' }); else w.cash += price;
-  w.log.push({ day: w.day, t: `成品出手（${g.from}）${how === 'retail' ? `寄卖，约 ${days} 天回款` : '批发现结'}`, amt: price });
-  if (s) { s.proceeds += price; s.pending--; if (s.pieces.every(p => p.sold) && !s.pending) closeStone(w, s); }
+function sendWork(w, s, piece, route, masterName, theme) {
+  const plan = workPlan(w, s, piece, route, masterName, theme); if (!plan.ok) return { ok: false, msg: plan.warn[0] };
+  if (plan.fee > w.cash) return { ok: false, msg: '现金不够付工费。' };
+  const e = getVol(s), st = e.st, ev = evalPiece(st, e.vol, piece), tp = ev.truthParts, M = MASTERS[masterName], R = ROUTES[route];
+  const r = new Rng(seedOf(w.seed, 'work', s.seed, piece.id, route, masterName)), items = [], body = BODIES[st.body], band = HUES[st.hue].band;
+  const mk = (type, name, value, lv) => { const t = clamp(lv, 0, 1); items.push({ id: w.nextId++, stone: s.id, type, name, theme: (type === 'pendant' || type === 'carve') ? theme : '', master: masterName, value: Math.max(20, Math.round(value)), w: Math.round(tp.wMean * 100) / 100, lv: Math.round(t * 100) / 100, body, band, cot: Math.round(tp.cotMean * 100) / 100, seed: r.int(1, 9999), state: 'work' }); };
+  const wn = waterName(tp.wMean), lvOf = () => clamp(tp.colorFrac * 1.6 * r.range(0.3, 1.7), 0, 1);
+  const rv = routeValue(w, tp, tp.rings.length, route, masterName, theme);
+  let lost = 0;
+  if (route === 'bracelet') {
+    for (const v of tp.rings) { if (r.chance(M.press)) { lost++; continue; } mk('bracelet', `${wn}手镯`, v * 1.1 * rv.craft, lvOf()); }
+    if (tp.Vclean * 0.12 > 50) mk('pendant', '镯芯与边角小件', tp.Vclean * 0.12 * rv.craft, lvOf());
+  } else {
+    const n = Math.max(1, rv.n), wts = []; let sum = 0; for (let i = 0; i < n; i++) { const x = Math.exp(r.norm() * 0.45); wts.push(x); sum += x; } wts.sort((a, b) => b - a);
+    const nm = { pendant: theme === '师傅定' ? '挂件' : theme, cab: '蛋面', bead: '珠串', carve: (theme === '师傅定' ? '随形' : theme) + '雕件' }[route];
+    for (let i = 0; i < n; i++) mk(route, `${wn}${nm}`, rv.total * wts[i] / sum, route === 'cab' ? r.range(0.65, 1) : lvOf() * (i < n / 2 ? 1.3 : 0.7));
+  }
+  w.cash -= plan.fee; s.costs += plan.fee; piece.sold = true; piece.soldPrice = 0; piece.buyer = '送加工';
+  w.works.push({ id: w.nextId++, stone: s.id, from: `#${s.id} ${piece.name}`, what: `${R.name} · ${masterName}`, ready: w.day + M.days, items, expected: plan.n, lost });
+  w.log.push({ day: w.day, t: `送加工 #${s.id} ${piece.name}（${R.name}，${masterName}）`, amt: -plan.fee });
+  return { ok: true, fee: plan.fee, days: M.days };
+}
+function stoneDone(w, s) { return s.pieces.every(p => p.sold) && !w.works.some(k => k.stone === s.id) && !w.items.some(i => i.stone === s.id && i.state !== 'sold'); }
+function sellItem(w, it, how) {
+  const r = new Rng(seedOf(w.seed, 'item', it.id)), price = Math.round(it.value * (how === 'retail' ? 0.95 : 0.6) / 10) * 10, days = how === 'retail' ? r.int(6, 14) : 0;
+  it.state = 'sold'; it.price = price;
+  if (days) w.recv.push({ day: w.day + days, amt: price, from: `寄卖 ${it.name}` }); else w.cash += price;
+  w.log.push({ day: w.day, t: `${it.name} ${how === 'retail' ? `寄卖，约 ${days} 天回款` : '批发现结'}`, amt: price });
+  const s = w.stones.find(x => x.id === it.stone); if (s) { s.proceeds += price; if (!s.closed && stoneDone(w, s)) closeStone(w, s); }
+  return price;
 }
 function closeStone(w, s) {
-  if (s.pending > 0) return;
+  if (!stoneDone(w, s)) return;
   s.closed = true; s.closeDay = w.day;
   const st = genStone(s.seed, s.origin, s.channel), fresh = bake(st), ev = evalPiece(st, fresh, WHOLE);
   s.review = { truth: Math.round(ev.truth), water: waterName(st.w0), hue: st.feats.length ? st.hue : '无色', cracks: st.cracks.filter(c => c.open > 0.5).length, feats: st.feats.map(f => ({ ribbon: '色带', pinch: '收尖色带', skin: '靠皮色', blob: '团块色', float: '飘花', full: '满色' })[f.type]), shift: st.shift ? (st.shift.drop > 0 ? '有变种（一侧种水变差）' : '有变种（一侧种水变好）') : '' };
@@ -599,14 +660,14 @@ function nextDay(w) {
   w.day++; w.cash -= ECON.daily; const notes = [`开销 ${ECON.daily}`];
   w.log.push({ day: w.day, t: '铺面与生活开销', amt: -ECON.daily });
   w.recv = w.recv.filter(r => { if (r.day <= w.day) { w.cash += r.amt; notes.push(`${r.from} 到账 ${fmt(r.amt)}`); return false; } return true; });
-  for (const g of w.goods) if (g.state === 'work' && g.ready <= w.day) { g.state = 'ready'; notes.push(`${g.from} 加工完成`); }
+  w.works = w.works.filter(k => { if (k.ready > w.day) return true; for (const it of k.items) { it.state = 'ready'; w.items.push(it); } notes.push(`${k.from} 做好了：${k.items.length} 件${k.lost ? `，压坏 ${k.lost} 只镯子` : ''}`); return false; });
   genMarket(w);
   const open = w.stones.some(s => !s.closed);
-  if (w.cash < 300 && !open && !w.recv.length) w.over = true;
+  if (w.cash < 300 && !open && !w.recv.length && !w.items.some(i => i.state !== 'sold')) w.over = true;
   return notes;
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, cutPreview, cut, sell, workQuote, sendWork, goodsValue, sellGoods, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, cutPreview, cut, sell, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const C = window.Core, $ = s => document.querySelector(s), fmt = C.fmt;
-const SAVE_KEY = 'jade-bargain-web-v2';
+const SAVE_KEY = 'jade-bargain-web-v3';
 const canvas = $('#gl'), gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
 if (!gl) { $('#hint').textContent = '这台设备的浏览器不支持 WebGL2，无法显示三维原石。'; return; }
 
@@ -10,6 +10,9 @@ if (!gl) { $('#hint').textContent = '这台设备的浏览器不支持 WebGL2，
 function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
 const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, window.JADE_VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, window.JADE_FS)); gl.linkProgram(prog);
 if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+const progT = gl.createProgram(); gl.attachShader(progT, sh(gl.VERTEX_SHADER, window.JADE_VS)); gl.attachShader(progT, sh(gl.FRAGMENT_SHADER, window.JADE_TRAY_FS)); gl.bindAttribLocation(progT, 0, 'aPos'); gl.linkProgram(progT);
+if (!gl.getProgramParameter(progT, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(progT));
+const UT = {}; const ut = n => UT[n] || (UT[n] = gl.getUniformLocation(progT, n));
 gl.useProgram(prog);
 const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
 const loc = gl.getAttribLocation(prog, 'aPos'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
@@ -32,13 +35,13 @@ function uploadBox(vol, b) {
 
 /* ---------- 状态 ---------- */
 let W = null;
-const V = { mode: null, rec: null, piece: null, e: null, tool: 'rotate', burr: '中磨头', torch: { on: false, p: null, n: null, rake: false }, room: true, lens: null, cut: null, cutT: 12, section: 0, msg: '', note: '' };
+const V = { mode: null, rec: null, piece: null, e: null, tool: 'rotate', burr: '中磨头', torch: { on: false, p: null, n: null, rake: false }, room: true, lens: null, cut: null, cutT: 12, section: 0, msg: '', note: '', wk: { route: 'bracelet', master: '平洲镯师', theme: '师傅定' }, ref: false, sel: null };
 const cam = { yaw: 0.6, pitch: 0.35, dist: 300, t: [0, 0, 0] };
 const Q = { scale: 1, fast: 0.45, K: 16, tuned: false };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
 
 function save() { try { localStorage.setItem(SAVE_KEY, C.serialize(W)); } catch (e) { /* 存不了也能继续玩 */ } }
-function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 2) return w; } } catch (e) { } return null; }
+function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 3) return w; } } catch (e) { } return null; }
 
 /* ---------- 相机与渲染 ---------- */
 function camBasis() {
@@ -59,6 +62,8 @@ function curPiece() { return V.mode === 'review' ? { planes: [[0, 1, 0, V.sectio
 let pending = false, pendingFast = false, fullTimer = 0;
 function invalidate(fast) { clearTimeout(fullTimer); if (fast) fullTimer = setTimeout(() => invalidate(false), 170); if (pending) { pendingFast = pendingFast && fast; return; } pending = true; pendingFast = !!fast; requestAnimationFrame(() => { pending = false; render(pendingFast ? Q.fast : 1); }); }
 function render(scale, forceSize) {
+  if (V.mode === 'tray') return renderTray(scale);
+  gl.useProgram(prog);
   if (!V.e) { gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(0.03, 0.027, 0.024, 1); gl.clear(gl.COLOR_BUFFER_BIT); return; }
   const rect = canvas.getBoundingClientRect(), pr = Math.min(window.devicePixelRatio || 1, 2) * Q.scale * scale;
   const w = forceSize || Math.max(2, Math.round(rect.width * pr)), h = forceSize || Math.max(2, Math.round(rect.height * pr));
@@ -70,8 +75,8 @@ function render(scale, forceSize) {
   gl.uniform2f(u('uRes'), w, h); gl.uniform3fv(u('uCamPos'), b.pos);
   gl.uniformMatrix3fv(u('uCamRot'), false, [b.r[0], b.r[1], b.r[2], b.up[0], b.up[1], b.up[2], -b.f[0], -b.f[1], -b.f[2]]);
   gl.uniform1f(u('uTan'), TANF); gl.uniform3f(u('uBox'), vol.hx, vol.hy, vol.hz);
-  const PL = new Float32Array(32); pc.planes.slice(0, 8).forEach((p, i) => PL.set(p, i * 4));
-  gl.uniform1i(u('uNPl'), Math.min(8, pc.planes.length)); gl.uniform4fv(u('uPl'), PL); gl.uniform1f(u('uPristine'), V.mode === 'review' ? 1 : 0);
+  const PL = new Float32Array(64); pc.planes.slice(0, 16).forEach((p, i) => PL.set(p, i * 4));
+  gl.uniform1i(u('uNPl'), Math.min(16, pc.planes.length)); gl.uniform4fv(u('uPl'), PL); gl.uniform1f(u('uPristine'), V.mode === 'review' ? 1 : 0);
   const sk = st.skin, H = C.HUES[st.hue];
   gl.uniform3fv(u('uSkinCol'), sk.col); gl.uniform1f(u('uSkinSig'), sk.sig); gl.uniform1f(u('uSkinGrain'), sk.grain); gl.uniform1f(u('uSkinRel'), C.ORIGINS[st.origin].rel); gl.uniform1f(u('uWeather'), sk.weather); gl.uniform1f(u('uPhase'), sk.phase);
   gl.uniform3fv(u('uBodyCol'), C.BODIES[st.body]); gl.uniform3fv(u('uBandCol'), H.band); gl.uniform3fv(u('uHueAbs'), H.abs); gl.uniform3fv(u('uFogCol'), st.fog.col); gl.uniform1f(u('uFogT'), st.fog.t);
@@ -101,6 +106,30 @@ function render(scale, forceSize) {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   if (scale === 1 && !forceSize && !Q.tuned) { const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const ms = performance.now() - t0; if (ms > 350 && Q.scale > 0.45) { Q.scale *= 0.7; invalidate(false); } else Q.tuned = true; }
 }
+/* ---------- 成品托盘 ---------- */
+const TYPE_ID = { bracelet: 0, pendant: 1, cab: 2, bead: 3, carve: 4 };
+const REF = (() => { const B = C.BODIES['白底'], H = C.HUES, it = (type, name, w, lv, hue, note) => ({ id: name, type, name, w, lv, body: B, band: H[hue].band, cot: 0.05, seed: 7, theme: '素面无事牌', note }); return [
+  it('pendant', '豆种', 0.10, 0, '阳绿', '发白发闷，像瓷，看得见颗粒，几乎不反光'), it('pendant', '糯种', 0.25, 0, '阳绿', '像糯米汤，浑而细，光只进表层'), it('pendant', '糯冰种', 0.45, 0, '阳绿', '半透，边缘开始透光，有点起光'),
+  it('pendant', '冰种', 0.65, 0, '阳绿', '像冰块，能看进去，反光清晰'), it('pendant', '高冰种', 0.82, 0, '阳绿', '通透，内部干净，高光锐利'), it('pendant', '玻璃种', 0.95, 0, '阳绿', '像玻璃，一眼看穿，表面起荧光'),
+  it('cab', '淡绿', 0.65, 1, '淡绿', '色淡，只比无色贵一点'), it('cab', '阳绿', 0.65, 1, '阳绿', '鲜亮带黄味，贵十几倍'), it('cab', '正绿', 0.65, 1, '正绿', '浓而正，贵几十倍'), it('cab', '帝王绿', 0.65, 1, '帝王绿', '浓艳深沉，最贵'),
+  it('cab', '紫罗兰', 0.65, 1, '紫罗兰', '春色，贵一两倍'), it('bracelet', '冰种飘花手镯', 0.65, 0.3, '阳绿', '色只占一段：种定底价，色定倍数'),
+]; })();
+function trayItems() { return V.ref ? REF : W.items.filter(i => i.state === 'ready').slice(0, 16); }
+function trayLayout(items) { const n = items.length, cols = Math.max(1, Math.ceil(Math.sqrt(n * 1.5))), rows = Math.ceil(n / cols), sp = 84; return { cols, rows, sp, pos: items.map((_, i) => [((i % cols) - (cols - 1) / 2) * sp, (Math.floor(i / cols) - (rows - 1) / 2) * sp]), half: [cols * sp / 2 + 14, rows * sp / 2 + 14] }; }
+function renderTray(scale) {
+  gl.useProgram(progT);
+  const rect = canvas.getBoundingClientRect(), pr = Math.min(window.devicePixelRatio || 1, 2) * Q.scale * scale, w = Math.max(2, Math.round(rect.width * pr)), h = Math.max(2, Math.round(rect.height * pr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, w, h);
+  const items = trayItems(), lay = trayLayout(items), b = camBasis();
+  gl.uniform2f(ut('uRes'), w, h); gl.uniform3fv(ut('uCamPos'), b.pos); gl.uniformMatrix3fv(ut('uCamRot'), false, [b.r[0], b.r[1], b.r[2], b.up[0], b.up[1], b.up[2], -b.f[0], -b.f[1], -b.f[2]]); gl.uniform1f(ut('uTan'), TANF); gl.uniform2f(ut('uTray'), Math.max(60, lay.half[0]), Math.max(60, lay.half[1]));
+  const It = new Float32Array(64), Ic = new Float32Array(64), Ib = new Float32Array(64), Ix = new Float32Array(64);
+  items.forEach((it, i) => { It.set([lay.pos[i][0], lay.pos[i][1], TYPE_ID[it.type], it.seed % 97], i * 4); Ic.set([it.band[0], it.band[1], it.band[2], it.w], i * 4); Ib.set([it.body[0], it.body[1], it.body[2], it.lv], i * 4); Ix.set([V.sel === it.id ? 1 : 0, it.cot, it.theme === '素面无事牌' ? 0 : 1, 0], i * 4); });
+  gl.uniform1i(ut('uN'), items.length); gl.uniform4fv(ut('uIt'), It); gl.uniform4fv(ut('uIc'), Ic); gl.uniform4fv(ut('uIb'), Ib); gl.uniform4fv(ut('uIx'), Ix);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+function openTray(ref) { V.mode = 'tray'; V.ref = !!ref; V.rec = null; V.piece = null; V.e = null; V.sel = null; V.tool = 'rotate'; const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.yaw = 0.35; cam.pitch = 0.85; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); V.note = ''; tab = 'tray'; renderAll(); }
+function pickTray(cx, cy) { const r = rayAt(cx, cy); if (r.rd[1] >= 0) return null; const t = (5 - r.ro[1]) / r.rd[1], x = r.ro[0] + r.rd[0] * t, z = r.ro[2] + r.rd[2] * t, items = trayItems(), lay = trayLayout(items); let best = null, bd = 44; items.forEach((it, i) => { const d = Math.hypot(x - lay.pos[i][0], z - lay.pos[i][1]); if (d < bd) { bd = d; best = it; } }); return best; }
 function lookAlong(n) { cam.pitch = Math.max(-1.55, Math.min(1.55, Math.asin(Math.max(-1, Math.min(1, n[1]))))); cam.yaw = Math.atan2(n[0], n[2]); }
 function thumb(s, piece) {
   const e = C.volCache.get(s.seed); if (!e) return '';
@@ -119,13 +148,14 @@ function thumb(s, piece) {
 /* ---------- 选择 ---------- */
 function frame() { const inf = C.pieceInfo(V.e.vol, V.mode === 'review' ? C.WHOLE : curPiece()); cam.t = inf.center; cam.dist = Math.max(60, inf.radius * 4.3); V.info = inf; }
 function view(mode, rec, piece) {
+  V.ref = false; if (tab === 'tray') tab = 'mine';
   V.mode = mode; V.rec = rec; V.piece = piece; V.e = rec ? C.getVol(rec) : null; V.torch.p = null; V.torch.on = false; V.lens = null; V.cut = null; V.msg = ''; V.note = '';
   if (V.e) { if (mode === 'review') V.section = V.e.vol.hy; frame(); }
   if (mode !== 'own' && (V.tool === 'grind' || V.tool === 'cut')) V.tool = 'rotate';
   renderAll();
 }
-function getQuotes(s, p) { const e = C.getVol(s), key = s.id + ':' + p.id + ':' + e.vol.ver + ':' + W.day + ':' + p.planes.length; let q = qcache.get(key); if (!q) { q = C.quotes(W, s, p); q.work = C.workQuote(s, p); qcache.set(key, q); } return q; }
-function bookOf(s) { let v = s.proceeds, all = true; for (const p of s.pieces) if (!p.sold) { if (!C.volCache.get(s.seed)) { all = false; continue; } v += getQuotes(s, p).best; } for (const g of W.goods) if (g.stone === s.id && g.state !== 'sold') all = false; return { v, all }; }
+function getQuotes(s, p) { const e = C.getVol(s), key = s.id + ':' + p.id + ':' + e.vol.ver + ':' + W.day + ':' + p.planes.length; let q = qcache.get(key); if (!q) { q = C.quotes(W, s, p); qcache.set(key, q); } return q; }
+function bookOf(s) { let v = s.proceeds, all = true; for (const p of s.pieces) if (!p.sold) { if (!C.volCache.get(s.seed)) { all = false; continue; } v += getQuotes(s, p).best; } if (W.works.some(k => k.stone === s.id)) all = false; for (const it of W.items) if (it.stone === s.id) { if (it.state === 'sold') continue; v += it.value * 0.6; } return { v, all }; }
 
 /* ---------- 面板 ---------- */
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -150,14 +180,10 @@ function renderSide() {
       h += `</article>`;
     });
   } else if (tab === 'mine') {
-    const open = W.stones.filter(s => !s.closed), goods = W.goods.filter(g => g.state !== 'sold');
-    if (!open.length && !goods.length) h += `<p class="note">还没有存货。到「货源」里挑一块买下，就能在这里开窗、下刀、询价或送加工。</p>`;
-    for (const g of goods) {
-      if (g.state === 'work') h += `<article class="card"><div class="row"><b>加工中 · ${esc(g.from)}</b><span class="dim">第 ${g.ready} 天取货</span></div><div class="row dim"><span>师傅按看得见的料估计能出 ${g.expected} 只手镯，开出来才知道。</span></div></article>`;
-      else { const v = C.goodsValue(g); h += `<article class="card sel"><div class="row"><b>成品 · ${esc(g.from)}</b><span>零售估值 ${fmt(v)}</span></div>
-        <div class="row dim"><span>手镯 ${g.bracelets.length} 只${g.bracelets.length !== g.expected ? `（原估 ${g.expected} 只）` : ''}${g.bracelets.length ? '：' + g.bracelets.map(fmt).join('、') : ''}</span></div><div class="row dim"><span>牌子、蛋面、珠子等小件一批：${fmt(g.small)}</span></div>
-        <div class="row"><button data-act="gsell" data-g="${g.id}" data-how="whole">批发现结 ${fmt(v * 0.6)}</button><button data-act="gsell" data-g="${g.id}" data-how="retail" class="pri">寄卖零售 ${fmt(v * 0.95)}（6–14 天回款）</button></div></article>`; }
-    }
+    const open = W.stones.filter(s => !s.closed), ready = W.items.filter(i => i.state === 'ready').length;
+    if (!open.length && !W.works.length) h += `<p class="note">还没有存货。到「货源」里挑一块买下，就能在这里开窗、下刀、询价或送去做件。</p>`;
+    for (const k of W.works) h += `<article class="card"><div class="row"><b>加工中 · ${esc(k.from)}</b><span class="dim">第 ${k.ready} 天取货</span></div><div class="row dim"><span>${esc(k.what)}，按看得见的料预计 ${k.expected} 件。开出来才知道。</span></div></article>`;
+    if (ready) h += `<article class="card" data-act="tray"><div class="row"><b>成品托盘里有 ${ready} 件待售</b><span class="price">去看看</span></div></article>`;
     for (const s of open) {
       const act = V.mode === 'own' && V.rec === s, bk = bookOf(s);
       h += `<article class="card ${act ? 'sel' : ''}"><div class="row"><b>#${s.id} ${s.origin} · ${s.info.skin}</b><span class="dim">第 ${s.buyDay} 天买入</span></div>
@@ -170,10 +196,28 @@ function renderSide() {
         h += `<div class="quotes"><div class="row dim"><span>${V.piece.name} · ${Math.round(stt.weight)} g${stt.isSlab ? ` · 片厚 ${stt.thickness.toFixed(0)} mm` : ''}${stt.bracelets ? ` · 可见手镯位 ${stt.bracelets}` : ''} · 看清程度 ${Math.round(stt.kAvg * 100)}%</span></div>`;
         if (last && last.prev != null && last.prev !== q.best) h += `<p class="delta">较上次报价 ${pct(q.best, Math.max(1, last.prev))}${last.why && last.why.length ? '：' + esc(last.why.join('；')) : ''}</p>`;
         for (const o of q.list) h += `<div class="row q"><span><b>${o.buyer}</b> <i>${esc(o.note)}</i></span>${o.price ? `<button data-act="sell" data-b="${o.buyer}">${fmt(o.price)} 卖</button>` : '<span class="dim">不收</span>'}</div>`;
-        h += `<div class="row q"><span><b>送加工做成件</b> <i>工费 ${fmt(q.work.fee)} · ${q.work.days} 天 · 成色和暗裂开出来才见分晓</i></span><button data-act="work">送去</button></div>`;
+        const K = V.wk, plan = C.workPlan(W, s, V.piece, K.route, K.master, K.theme), themed = K.route === 'pendant' || K.route === 'carve';
+        const opt = (o, cur, f) => Object.keys(o).map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${f(k)}</option>`).join('');
+        h += `<div class="work"><b>送去做件</b>
+          <div class="row"><label for="wkRoute">做什么</label><select id="wkRoute">${opt(C.ROUTES, K.route, k => C.ROUTES[k].name)}</select></div><p class="note">${C.ROUTES[K.route].tip}</p>
+          <div class="row"><label for="wkMaster">找谁做</label><select id="wkMaster">${opt(C.MASTERS, K.master, k => k)}</select></div><p class="note">${C.MASTERS[K.master].tip}</p>
+          ${themed ? `<div class="row"><label for="wkTheme">题材</label><select id="wkTheme">${opt(C.THEMES, K.theme, k => k === '师傅定' ? k : `${k}（行情${C.demandWord(C.themeDemand(W, k))}）`)}</select></div><p class="note">${C.THEMES[K.theme].tip}</p>` : ''}
+          ${plan.warn.map(x => `<p class="say">${esc(x)}</p>`).join('')}
+          <div class="row"><span class="dim">预计 ${plan.n} ${C.ROUTES[K.route].unit} · 工费 ${fmt(plan.fee)} · ${plan.days} 天</span><button data-act="work" class="pri" ${plan.ok ? '' : 'disabled'}>送去</button></div></div>`;
         h += `<p class="note">报价只在今天有效。账面开涨不是现金到账。</p></div>`;
       }
       h += `</article>`;
+    }
+  } else if (tab === 'tray') {
+    const items = trayItems();
+    if (V.ref) { h += `<p class="note">对照盘：上面六块素面牌从豆种到玻璃种，下面是同为冰种、不同颜色的蛋面。转动托盘，对着光看它们的差别。</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${it.name}</b></div><div class="row dim"><span>${it.note}</span></div></article>`; h += `<button data-act="trayback" class="pri">回到我的托盘</button>`; }
+    else {
+      for (const k of W.works) h += `<article class="card"><div class="row"><b>加工中 · ${esc(k.from)}</b><span class="dim">第 ${k.ready} 天取货</span></div><div class="row dim"><span>${esc(k.what)}</span></div></article>`;
+      if (!items.length) h += `<p class="note">托盘是空的。把料送去做件，做好后成品会摆在这里，可以转着看，一件件卖或整盘卖。</p>`;
+      else { const tot = items.reduce((a, i) => a + i.value, 0); h += `<article class="card"><div class="row"><b>整盘 ${items.length} 件</b><span>零售估值 ${fmt(tot)}</span></div><div class="row"><button data-act="iall" data-how="whole">整盘批发现结 ${fmt(tot * 0.6)}</button><button data-act="iall" data-how="retail" class="pri">整盘寄卖 ${fmt(tot * 0.95)}</button></div></article>`; }
+      for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${esc(it.name)}</b><span class="price">${fmt(it.value)}</span></div><div class="row dim"><span>${C.waterName(it.w)} · ${it.lv > 0.6 ? '色满' : it.lv > 0.25 ? '带色' : it.lv > 0.08 ? '飘色' : '无色'}${it.theme && it.theme !== '师傅定' ? ' · ' + it.theme : ''} · ${it.master} · 出自 #${it.stone}</span></div>
+        <div class="row"><button data-act="isell" data-i="${it.id}" data-how="whole">批发 ${fmt(it.value * 0.6)}</button><button data-act="isell" data-i="${it.id}" data-how="retail">寄卖 ${fmt(it.value * 0.95)}（6–14 天）</button></div></article>`;
+      h += `<button data-act="trayref">看种水与颜色对照盘</button>`;
     }
   } else {
     const recv = W.recv.map(r => `<div class="row dim"><span>${r.from}</span><span>第 ${r.day} 天到账 ${fmt(r.amt)}</span></div>`).join('');
@@ -202,8 +246,8 @@ function cutFromView() {
   V.cut = { n, d: inf.hi - V.cutT, base: inf.hi }; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d);
 }
 function renderTools() {
-  const own = V.mode === 'own' && V.piece && !V.piece.sold;
-  document.querySelectorAll('#tools button[data-tool]').forEach(b => { b.setAttribute('aria-pressed', b.dataset.tool === V.tool); b.disabled = (b.dataset.tool === 'grind' || b.dataset.tool === 'cut') && !own; });
+  const own = V.mode === 'own' && V.piece && !V.piece.sold, tray = V.mode === 'tray';
+  document.querySelectorAll('#tools button[data-tool]').forEach(b => { b.setAttribute('aria-pressed', b.dataset.tool === V.tool); b.disabled = ((b.dataset.tool === 'grind' || b.dataset.tool === 'cut') && !own) || (tray && b.dataset.tool !== 'rotate'); });
   let o = '';
   if (V.mode === 'review') o += `<label for="sec">剖面高度</label><input id="sec" type="range" min="${(-V.e.vol.hy).toFixed(0)}" max="${V.e.vol.hy.toFixed(0)}" step="0.5" value="${V.section}"><span class="dim">复盘：这是石头原本的内部</span>`;
   else if (V.tool === 'torch') o += `<button data-act="rake" aria-pressed="${V.torch.rake}">斜照</button><button data-act="toff" ${V.torch.on ? '' : 'disabled'}>关灯</button>`;
@@ -215,9 +259,10 @@ function renderTools() {
   o += `<button data-act="room" aria-pressed="${V.room}">室内灯</button>`;
   $('#opts').innerHTML = o;
   let t = V.e ? HINTS[V.tool] : '从右侧「货源」里点一块石头开始看料。';
+  if (tray) t = V.ref ? '对照盘：拖动转托盘，点一件看说明。' : '成品托盘：拖动转着看，点一件选中，在右侧一件件卖或整盘卖。';
   if (V.mode === 'review') t = '复盘剖面：拖动滑块看这块石头原本的内部结构。';
   $('#hint').textContent = V.note || t;
-  $('#title').textContent = V.rec ? (V.mode === 'market' ? `${V.rec.origin} · ${V.rec.info.skin}` : `#${V.rec.id} ${V.rec.origin} · ${V.rec.info.skin}${V.mode === 'own' && V.piece ? ' · ' + V.piece.name : ''}${V.mode === 'review' ? ' · 复盘' : ''}`) : '';
+  $('#title').textContent = tray ? (V.ref ? '种水与颜色对照盘' : '成品托盘') : V.rec ? (V.mode === 'market' ? `${V.rec.origin} · ${V.rec.info.skin}` : `#${V.rec.id} ${V.rec.origin} · ${V.rec.info.skin}${V.mode === 'own' && V.piece ? ' · ' + V.piece.name : ''}${V.mode === 'review' ? ' · 复盘' : ''}`) : '';
 }
 function renderAll() { renderTop(); renderSide(); renderTools(); invalidate(false); $('#over').hidden = !W.over; }
 function refreshQuote(s, p, record) {
@@ -241,7 +286,7 @@ function fillManual() {
 /* ---------- 交互 ---------- */
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act],[data-tab],[data-tool]'); if (!b) return;
-  if (b.dataset.tab) { tab = b.dataset.tab; renderSide(); return; }
+  if (b.dataset.tab) { if (b.dataset.tab === 'tray') { openTray(false); return; } if (V.mode === 'tray') { tab = b.dataset.tab; view(null, null, null); return; } tab = b.dataset.tab; renderSide(); return; }
   if (b.dataset.tool) { V.tool = b.dataset.tool; V.lens = null; V.cut = null; V.note = ''; renderTools(); invalidate(false); return; }
   const a = b.dataset.act;
   if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) view('market', L, null); }
@@ -253,8 +298,13 @@ document.addEventListener('click', ev => {
   }
   else if (a === 'piece') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); view('own', s, p); if (!s.last[p.id]) refreshQuote(s, p); renderAll(); }
   else if (a === 'sell') { const s = V.rec, p = V.piece, q = getQuotes(s, p).list.find(o => o.buyer === b.dataset.b); C.sell(W, s, p, q); qcache.clear(); save(); afterStoneChange(s); }
-  else if (a === 'work') { const s = V.rec, r = C.sendWork(W, s, V.piece); if (!r.ok) { V.note = r.msg; renderTools(); return; } qcache.clear(); save(); afterStoneChange(s); V.note = `已送加工，工费 ${fmt(r.fee)}，${r.days} 天后取成品。`; renderTools(); }
-  else if (a === 'gsell') { const g = W.goods.find(x => x.id === +b.dataset.g), s = W.stones.find(x => x.id === g.stone); C.sellGoods(W, g, b.dataset.how); save(); if (s && s.closed) { tab = 'ledger'; view('review', s, null); } else renderAll(); }
+  else if (a === 'work') { const s = V.rec, K = V.wk, r = C.sendWork(W, s, V.piece, K.route, K.master, K.theme); if (!r.ok) { V.note = r.msg; renderTools(); return; } qcache.clear(); save(); afterStoneChange(s); V.note = `已送去，工费 ${fmt(r.fee)}，${r.days} 天后到托盘取成品。`; renderTools(); }
+  else if (a === 'tray') openTray(false);
+  else if (a === 'trayref') openTray(true);
+  else if (a === 'trayback') openTray(false);
+  else if (a === 'isel') { if (ev.target.closest('button')) return; V.sel = V.ref ? b.dataset.i : +b.dataset.i; renderSide(); invalidate(false); }
+  else if (a === 'isell') { const it = W.items.find(x => x.id === +b.dataset.i); C.sellItem(W, it, b.dataset.how); save(); const s = W.stones.find(x => x.id === it.stone); if (s && s.closed && !trayItems().length) { tab = 'ledger'; view('review', s, null); } else openTray(false); }
+  else if (a === 'iall') { for (const it of trayItems()) C.sellItem(W, it, b.dataset.how); save(); tab = 'ledger'; view(null, null, null); }
   else if (a === 'review') { view('review', W.stones.find(x => x.id === +b.dataset.s), null); }
   else if (a === 'rake') { V.torch.rake = !V.torch.rake; renderTools(); invalidate(false); }
   else if (a === 'toff') { V.torch.on = false; renderTools(); invalidate(false); }
@@ -268,7 +318,7 @@ document.addEventListener('click', ev => {
     V.cut = null; refreshQuote(s, p, false); refreshQuote(s, r.piece, true); V.note = `下刀完成，切工 ${fmt(r.cost)}。分出的 ${r.piece.name} 已放到右侧，可单独查看、再切、出售或送加工。`;
     tab = 'mine'; save(); frame(); renderAll();
   }
-  else if (a === 'next') { const n = C.nextDay(W); qcache.clear(); for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold && C.volCache.get(s.seed)) refreshQuote(s, p, true); save(); tab = W.goods.some(g => g.state === 'ready') ? 'mine' : 'market'; view(null, null, null); V.note = `第 ${W.day} 天。${n.join('，')}。货源已更新，昨天的报价作废。`; renderTools(); }
+  else if (a === 'next') { const n = C.nextDay(W); qcache.clear(); for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold && C.volCache.get(s.seed)) refreshQuote(s, p, true); save(); const fresh = W.items.some(i => i.state === 'ready'); tab = 'market'; view(null, null, null); V.note = `第 ${W.day} 天。${n.join('，')}。货源已更新，昨天的报价作废。`; renderTools(); if (fresh && n.some(x => x.includes('做好了'))) { openTray(false); V.note = n.filter(x => x.includes('做好了')).join('；'); renderTools(); } }
   else if (a === 'restart') { $('#confirm').hidden = false; }
   else if (a === 'no') { $('#confirm').hidden = true; }
   else if (a === 'yes') { $('#confirm').hidden = true; C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; view(null, null, null); }
@@ -276,6 +326,7 @@ document.addEventListener('click', ev => {
 });
 document.addEventListener('input', ev => {
   if (ev.target.id === 'cutT') { V.cutT = +ev.target.value; $('#cutV').textContent = V.cutT; if (V.cut && V.cut.fromView) { V.cut.d = V.cut.base - V.cutT; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d); renderTools(); } invalidate(true); }
+  if (ev.target.id === 'wkRoute' || ev.target.id === 'wkMaster' || ev.target.id === 'wkTheme') { V.wk[{ wkRoute: 'route', wkMaster: 'master', wkTheme: 'theme' }[ev.target.id]] = ev.target.value; renderSide(); }
   if (ev.target.id === 'sec') { V.section = +ev.target.value; invalidate(true); }
 });
 const ptrs = new Map(); let drag = null, lastCarve = null, strokeCost = 0; const lineEl = $('#cutline');
@@ -289,6 +340,7 @@ function carveAt(ev) {
 function showLine(d) { const r = canvas.getBoundingClientRect(); lineEl.hidden = !d; if (d) { lineEl.setAttribute('x1', d.x0 - r.left); lineEl.setAttribute('y1', d.y0 - r.top); lineEl.setAttribute('x2', d.x - r.left); lineEl.setAttribute('y2', d.y - r.top); } }
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('pointerdown', ev => {
+  if (V.mode === 'tray') { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: 'orbit', x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, tray: true }; return; }
   if (!V.e) return; canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
   if (ptrs.size === 2) { showLine(null); const a = [...ptrs.values()]; drag = { kind: 'pinch', d: Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), x: (a[0][0] + a[1][0]) / 2, y: (a[0][1] + a[1][1]) / 2 }; return; }
   const own = V.mode === 'own' && V.piece && !V.piece.sold;
@@ -300,11 +352,11 @@ canvas.addEventListener('pointerdown', ev => {
   else if (V.tool === 'cut') { drag = { kind: 'line', x0: ev.clientX, y0: ev.clientY, x: ev.clientX, y: ev.clientY }; }
 });
 canvas.addEventListener('pointermove', ev => {
-  if (!V.e) return;
+  if (!V.e && V.mode !== 'tray') return;
   if (ptrs.has(ev.pointerId)) ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
   if (!drag) { if (V.tool === 'loupe' && ev.pointerType === 'mouse') { V.lens = { x: ev.clientX, y: ev.clientY }; invalidate(true); } return; }
   if (drag.kind === 'pinch' && ptrs.size === 2) { const a = [...ptrs.values()], d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), x = (a[0][0] + a[1][0]) / 2, y = (a[0][1] + a[1][1]) / 2; cam.dist = Math.min(1500, Math.max(40, cam.dist * drag.d / Math.max(1, d))); cam.yaw -= (x - drag.x) * 0.008; cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch + (y - drag.y) * 0.008)); drag.d = d; drag.x = x; drag.y = y; invalidate(true); }
-  else if (drag.kind === 'orbit') { cam.yaw -= (ev.clientX - drag.x) * 0.008; cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch + (ev.clientY - drag.y) * 0.008)); drag.x = ev.clientX; drag.y = ev.clientY; if (V.cut && V.cut.fromView) { V.cut = null; renderTools(); } invalidate(true); }
+  else if (drag.kind === 'orbit') { cam.yaw -= (ev.clientX - drag.x) * 0.008; cam.pitch = Math.max(V.mode === 'tray' ? 0.12 : -1.5, Math.min(1.5, cam.pitch + (ev.clientY - drag.y) * 0.008)); drag.x = ev.clientX; drag.y = ev.clientY; if (V.cut && V.cut.fromView) { V.cut = null; renderTools(); } invalidate(true); }
   else if (drag.kind === 'torch') { torchAt(ev); invalidate(true); }
   else if (drag.kind === 'loupe') { V.lens = { x: ev.clientX, y: ev.clientY }; invalidate(true); }
   else if (drag.kind === 'grind') carveAt(ev);
@@ -312,6 +364,7 @@ canvas.addEventListener('pointermove', ev => {
 });
 function endPtr(ev) {
   ptrs.delete(ev.pointerId); if (!drag) return;
+  if (drag.tray && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 6) { const it = pickTray(ev.clientX, ev.clientY); V.sel = it ? it.id : null; renderSide(); invalidate(false); }
   if (drag.kind === 'grind') { const s = V.rec, p = V.piece; refreshQuote(s, p, true); V.note = `本次打磨花费 ${Math.max(1, Math.round(strokeCost))} 元。`; save(); renderAll(); }
   if (drag.kind === 'loupe' && ev.pointerType !== 'mouse') { V.lens = null; invalidate(false); }
   if (drag.kind === 'line') {
@@ -328,7 +381,7 @@ function endPtr(ev) {
 }
 canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
 canvas.addEventListener('pointerleave', () => { if (V.lens && !drag) { V.lens = null; invalidate(false); } });
-canvas.addEventListener('wheel', ev => { if (!V.e) return; ev.preventDefault(); cam.dist = Math.min(1500, Math.max(40, cam.dist * Math.exp(ev.deltaY * 0.0012))); invalidate(true); }, { passive: false });
+canvas.addEventListener('wheel', ev => { if (!V.e && V.mode !== 'tray') return; ev.preventDefault(); cam.dist = Math.min(1500, Math.max(40, cam.dist * Math.exp(ev.deltaY * 0.0012))); invalidate(true); }, { passive: false });
 new ResizeObserver(() => invalidate(false)).observe(canvas);
 
 /* ---------- 启动 ---------- */
