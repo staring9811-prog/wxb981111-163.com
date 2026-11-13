@@ -34,7 +34,7 @@ function uploadBox(vol, b) {
 let W = null;
 const V = { mode: null, rec: null, piece: null, e: null, tool: 'rotate', burr: '中磨头', torch: { on: false, p: null, n: null, rake: false }, room: true, lens: null, cut: null, cutT: 12, section: 0, msg: '', note: '' };
 const cam = { yaw: 0.6, pitch: 0.35, dist: 300, t: [0, 0, 0] };
-const Q = { scale: 1, fast: 0.45, K: 12, tuned: false };
+const Q = { scale: 1, fast: 0.45, K: 16, tuned: false };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
 
 function save() { try { localStorage.setItem(SAVE_KEY, C.serialize(W)); } catch (e) { /* 存不了也能继续玩 */ } }
@@ -60,7 +60,7 @@ let pending = false, pendingFast = false, fullTimer = 0;
 function invalidate(fast) { clearTimeout(fullTimer); if (fast) fullTimer = setTimeout(() => invalidate(false), 170); if (pending) { pendingFast = pendingFast && fast; return; } pending = true; pendingFast = !!fast; requestAnimationFrame(() => { pending = false; render(pendingFast ? Q.fast : 1); }); }
 function render(scale, forceSize) {
   if (!V.e) { gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(0.03, 0.027, 0.024, 1); gl.clear(gl.COLOR_BUFFER_BIT); return; }
-  const rect = canvas.getBoundingClientRect(), pr = Math.min(window.devicePixelRatio || 1, 1.5) * Q.scale * scale;
+  const rect = canvas.getBoundingClientRect(), pr = Math.min(window.devicePixelRatio || 1, 2) * Q.scale * scale;
   const w = forceSize || Math.max(2, Math.round(rect.width * pr)), h = forceSize || Math.max(2, Math.round(rect.height * pr));
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const t0 = performance.now();
@@ -85,16 +85,19 @@ function render(scale, forceSize) {
     const dn = b.r[0] * n[0] + b.r[1] * n[1] + b.r[2] * n[2]; let tan = [b.r[0] - n[0] * dn, b.r[1] - n[1] * dn, b.r[2] - n[2] * dn];
     const tl = Math.hypot(tan[0], tan[1], tan[2]) || 1; tan = tan.map(v => v / tl);
     const dir = T.rake ? [-n[0] * 0.35 + tan[0] * 0.94, -n[1] * 0.35 + tan[1] * 0.94, -n[2] * 0.35 + tan[2] * 0.94] : [-n[0], -n[1], -n[2]];
-    gl.uniform4f(u('uTorch'), p[0] - n[0] * inset, p[1] - n[1] * inset, p[2] - n[2] * inset, 34 * entry * (T.rake ? 0.45 : 1));
+    gl.uniform4f(u('uTorch'), p[0] - n[0] * inset, p[1] - n[1] * inset, p[2] - n[2] * inset, 28 * entry * (T.rake ? 0.45 : 1));
     gl.uniform3fv(u('uTorchDir'), dir); gl.uniform3fv(u('uTorchSurf'), p);
     if (T.rake) { gl.uniform3f(u('uRakePos'), p[0] + n[0] * 9 - tan[0] * 22, p[1] + n[1] * 9 - tan[1] * 22, p[2] + n[2] * 9 - tan[2] * 22); gl.uniform1f(u('uRakeFall'), 1600); gl.uniform1f(u('uRakeI'), 3.2); }
     else { gl.uniform3f(u('uRakePos'), p[0] + n[0] * 3, p[1] + n[1] * 3, p[2] + n[2] * 3); gl.uniform1f(u('uRakeFall'), 40); gl.uniform1f(u('uRakeI'), 0.6); }
-  } else gl.uniform4f(u('uTorch'), 0, 0, 0, 0);
+    const v = [p[0] - b.pos[0], p[1] - b.pos[1], p[2] - b.pos[2]], z = v[0] * b.f[0] + v[1] * b.f[1] + v[2] * b.f[2];
+    const vis = Math.max(0, -(n[0] * b.f[0] + n[1] * b.f[1] + n[2] * b.f[2]));
+    gl.uniform3f(u('uGlare'), w / 2 + (v[0] * b.r[0] + v[1] * b.r[1] + v[2] * b.r[2]) / z / TANF * h / 2, h / 2 + (v[0] * b.up[0] + v[1] * b.up[1] + v[2] * b.up[2]) / z / TANF * h / 2, forceSize ? 0 : vis * (T.rake ? 0.03 : 0.06) * Math.sqrt(entry));
+  } else { gl.uniform4f(u('uTorch'), 0, 0, 0, 0); gl.uniform3f(u('uGlare'), 0, 0, 0); }
   gl.uniform1f(u('uSpread'), 260); gl.uniform1f(u('uAmbient'), V.room ? 1 : 0.06);
   if (V.lens && !forceSize) { const R = Math.min(w, h) * 0.2; gl.uniform4f(u('uLens'), (V.lens.x - rect.left) / rect.width * w, (1 - (V.lens.y - rect.top) / rect.height) * h, R, 3.2); } else gl.uniform4f(u('uLens'), 0, 0, 0, 1);
   const cutOn = V.cut && V.tool === 'cut' && V.mode === 'own' && !forceSize;
   gl.uniform1f(u('uCutOn'), cutOn ? 1 : 0); if (cutOn) gl.uniform4f(u('uCut'), V.cut.n[0], V.cut.n[1], V.cut.n[2], V.cut.d);
-  gl.uniform1i(u('uK'), scale < 1 ? 8 : Q.K);
+  gl.uniform1i(u('uK'), scale < 1 ? 8 : Q.K); gl.uniform1f(u('uHi'), scale < 1 ? 0 : 1);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   if (scale === 1 && !forceSize && !Q.tuned) { const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const ms = performance.now() - t0; if (ms > 350 && Q.scale > 0.45) { Q.scale *= 0.7; invalidate(false); } else Q.tuned = true; }
 }
