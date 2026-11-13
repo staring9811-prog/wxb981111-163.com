@@ -7,7 +7,9 @@ calc = json.load(open(os.path.join(HERE, "calc_out.json"), encoding="utf-8"))
 summ = json.load(open(os.path.join(HERE, "summary.json"), encoding="utf-8"))
 scen = json.load(open(os.path.join(HERE, "scen.json"), encoding="utf-8"))
 R = {(r["sku"], r["tier"]): r for r in calc["res"]}
-WX = {r["tier"]: r for r in json.load(open(os.path.join(HERE, "calc_wx.json"), encoding="utf-8"))["res"]}
+HC = {}
+for r in json.load(open(os.path.join(HERE, "calc_hc103.json"), encoding="utf-8"))["res"]:
+    HC[(r["sku"], r["tier"])] = r
 
 def wx_table():
     head = "".join(f"<th>{t}</th>" for _, t in TIERS)
@@ -17,13 +19,17 @@ def wx_table():
             price, profit, m = get(t)
             cells.append(f'<td><div class="cell"><span class="price">{usd(price)}</span><span class="profit {"neg" if profit < 0 else ""}">{usd(profit)}</span>{pill(m)}</div></td>')
         return f'<tr><th scope="row">{name}</th>{"".join(cells)}</tr>'
+    amz = lambda k: (lambda t: (HC[(k, t)]["amzPrice"], HC[(k, t)]["fbm"], HC[(k, t)]["fbm"] / HC[(k, t)]["amzPrice"]))
+    pl = lambda k, c: (lambda t: (HC[(k, t)]["plat"][c]["retail"], HC[(k, t)]["plat"][c]["profit"], HC[(k, t)]["plat"][c]["margin"]))
     rows = [
-        row("珠三角报价 ¥6,270 含税 · Amazon FBM", lambda t: (R[("SAD6221-1", t)]["amzPrice"], R[("SAD6221-1", t)]["fbm"], R[("SAD6221-1", t)]["fbm"] / R[("SAD6221-1", t)]["amzPrice"])),
-        row("皖徐报价 ¥3,700 未税 · Amazon FBM", lambda t: (WX[t]["amzPrice"], WX[t]["fbm"], WX[t]["fbm"] / WX[t]["amzPrice"])),
-        row("皖徐报价 ¥3,700 未税 · Home Depot", lambda t: (WX[t]["plat"]["hd"]["retail"], WX[t]["plat"]["hd"]["profit"], WX[t]["plat"]["hd"]["margin"])),
-        row("皖徐报价 ¥3,700 未税 · Lowe's SC", lambda t: (WX[t]["plat"]["lowesSC"]["retail"], WX[t]["plat"]["lowesSC"]["profit"], WX[t]["plat"]["lowesSC"]["margin"])),
+        row("对照：SAD6221-1 珠三角 ¥6,270 · Amazon FBM", lambda t: (R[("SAD6221-1", t)]["amzPrice"], R[("SAD6221-1", t)]["fbm"], R[("SAD6221-1", t)]["fbm"] / R[("SAD6221-1", t)]["amzPrice"])),
+        row("SMT-HC103 包装 +10% · Amazon FBM", amz("SMT-HC103")),
+        row("SMT-HC103 包装 +10% · Home Depot", pl("SMT-HC103", "hd")),
+        row("SMT-HC103 包装 +10% · Lowe's SC", pl("SMT-HC103", "lowesSC")),
+        row("SMT-HC103 包装 +10% · Wayfair", pl("SMT-HC103", "wf")),
+        row("参考：SMT-HC103 原包装 · Amazon FBM", amz("SMT-HC103-orig")),
     ]
-    return (f'<div class="tw"><table class="pt"><thead><tr><th>方案（单人房，包装同 SAD6221-1）</th>{head}</tr></thead>'
+    return (f'<div class="tw"><table class="pt"><thead><tr><th>方案（单人房）</th>{head}</tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>')
 S = {(r["sku"], r["tier"]): r for r in summ}
 E = html.escape
@@ -340,7 +346,7 @@ table.mtg tbody th{{white-space:nowrap}}
       <ul><li>报价 ¥6,270 → 采购 $816，海运 $165，LTL 尾程 $342，三项已超过中价带售价 $1,299</li>
       <li>高价带 $1,799 要达 15% 利润，含税采购价需 ≤ ¥{s1h['amzFBM']['maxCostRMB']:,}（约现报价的一半）</li>
       <li>报价重量 220kg 是同类（60–110kg）的 2 倍，直接推高尾程</li>
-      <li>换成皖徐报价（¥3,700 未税），高价带也只有 8–12%；要过 15% 还得降高度和包装重量</li></ul></div>
+      <li>合肥便宜款 SMT-HC103（¥3,842 含税，包装 +10%）高价带也只有约 9%；要过 15% 还得同时升配置、降高度</li></ul></div>
   </div>
 </section>
 
@@ -376,7 +382,7 @@ table.mtg tbody th{{white-space:nowrap}}
     <tr><th scope="row">6/25 Wellness 开品方向</th><td>核心人群三类：仪式疗愈型（占比最大）、变美型（约 35%）、压力管理 / 健康投资型（约 10%）；Home Spa 最重要的场景是淋浴和泡澡，水和光是载体；思路是从人群找痛点再开品，把高端品平民化</td><td>两个品类都落在“水 + 光”：花洒走水，红外桑拿走光（近红外抗炎修护）</td></tr>
     <tr><th scope="row">7/17 品类筛选规则</th><td>弃用漏斗穷举，改为积分卡加权（市场体量、进入难度、竞争、场景延展性）；范围从“浴室”扩到全 Home Wellness；不做单价低于 $30 的小件；收敛到 1–3 个方向</td><td>两个品类都远高于 $30，符合规则</td></tr>
     <tr><th scope="row">8/6 桑拿 vs 五金二选一</th><td>马桶（头部垄断）、浴缸（搜索仅 5–6 千且增长慢）、非木质便携桑拿排除；用体量、头部垄断、评分、粗略利润、品牌锚点价值 5 个维度二选一；桑拿试水款定为 1–2 人 / 2–3 人预组装红外房，Amazon 定价 $1,000–1,500，同价差异化可做波纹灯效、冥想 / 海浪音疗、香氛模块</td><td>本报告补上“粗略利润”这一维：花洒能赚；桑拿在 $1,000–1,500 这个试水价带按任何现有报价都亏</td></tr>
-    <tr><th scope="row">10/10 光波房与花洒调研</th><td>桑拿：珠三角单人房含税 ¥6,000–7,000、无起订量、质保 5–6 年；皖徐不含税 ¥3,400–4,000、整柜起订、质保短；Amazon 主流款高约 1.35 米以省尾程，我方报价都是 1.9–2.1 米；木箱 + 托盘包装；整机 ETL 须以我方电商主体申请。花洒：北美需 cUPC 等认证，单品类首次约 ¥10 万+；铜价高涨，行业转向不锈钢（比铜主体低约 ¥40）；前期选工厂现有带认证款，用竞品链接反查供应商</td><td>桑拿报价 ¥6,270 就是珠三角价位；改用皖徐价重算见下文。220kg 重量来自木箱托盘包装，高度和包装是物流费的关键。花洒中价带主流就是不锈钢滑杆</td></tr>
+    <tr><th scope="row">10/10 光波房与花洒调研</th><td>桑拿：珠三角单人房含税 ¥6,000–7,000、无起订量、质保 5–6 年；皖徐不含税 ¥3,400–4,000、整柜起订、质保短；Amazon 主流款高约 1.35 米以省尾程，我方报价都是 1.9–2.1 米；木箱 + 托盘包装；整机 ETL 须以我方电商主体申请。花洒：北美需 cUPC 等认证，单品类首次约 ¥10 万+；铜价高涨，行业转向不锈钢（比铜主体低约 ¥40）；前期选工厂现有带认证款，用竞品链接反查供应商</td><td>桑拿报价 ¥6,270 就是珠三角价位；合肥便宜款 SMT-HC103 实报价测算见下文。220kg 重量来自木箱托盘包装，高度和包装是物流费的关键。花洒中价带主流就是不锈钢滑杆</td></tr>
   </tbody></table></div>
   <p class="note">来源：飞书智能纪要 2026-06-25、07-17、08-06、10-10（AI 生成纪要，个别数字以原始录音为准）。</p>
 </section>
@@ -426,12 +432,19 @@ table.mtg tbody th{{white-space:nowrap}}
   <h3>SAD6221-2 1-2 人款（铁杉 ¥8,618）</h3>
   <div class="two">{price_grid("SAD6221-2")}<div class="callout"><b>为什么亏</b><span>采购 $1,122；海运 $195（0.891m³）；LTL $378（250kg）。Amazon 保本价 {usd(S[('SAD6221-2','mid')]['amzFBM']['breakeven'])}，高于 1-2 人款高价带 $2,299。</span></div></div>
   {profit_table("SAD6221-2", [CH[1], CH[0]] + CH[2:])}
-  <h3>换供应商能不能救回来（10/10 会议的皖徐报价）</h3>
-  <p class="sub">10/10 调研：珠三角单人房含税 ¥6,000–7,000（我方 ¥6,270 即此档），皖徐不含税 ¥3,400–4,000。下表取皖徐中值 ¥3,700，物流仍按 SAD6221-1 的 3 箱、220kg、0.757m³。</p>
+  <h3>便宜款实报价：SMT-HC103（合肥）</h3>
+  <div class="two">
+    <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>产品与报价</b>
+      <span>900×900×1900mm 单人房，铁杉，陶瓷加热器；USB + 蓝牙控制面板、双音箱、氧吧、LED 阅读灯。EXW 含税 ¥3,842（约 $500），20 尺柜起订，一柜 28 台。</span>
+      <span>配置对标低价带（陶瓷而非碳晶加热、无 7 色光 / 红光）。</span></div>
+    <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>包装（按要求各边 +10%）</b>
+      <span>工厂纸箱 4 件：183×96×17、183×92×17、98×110×20、86×50×13cm，毛重 110kg。</span>
+      <span>测算用 201×106×19、201×101×19、108×121×22、95×55×14cm，毛重 121kg（便宜款可能过不了跌落测试，加厚包装预留）。体积 1.14m³，海运 $249；最大一箱围长超 165 英寸，只能走 LTL，估 $269。</span></div>
+  </div>
   {wx_table()}
   <div class="two">
-    <div class="callout"><b>结论</b><span>采购降到 $544 后，高价带 $1,799 能做到 8–12%，仍低于 15% 目标；中价带 $1,299 还是亏。剩下的缺口在物流：海运 $165 + LTL $342 = $507，占高价带售价 28%。</span></div>
-    <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>物流怎么降</b><span>Amazon 主流单人款高约 1.35 米（我方 2.1 米），省尾程；220kg 主要是木箱 + 托盘包装，同类 1 人款毛重 60–110kg。另外皖徐工厂整柜起订，会上提到一柜约装 28 台；若按 28 台 / 柜，每台海运约 $330–530，比按体积分摊的 $165 高得多，需要拿到实际装柜数。</span></div>
+    <div class="callout"><b>结论</b><span>采购降到 $500，但包装加大后海运 $249 + LTL $269 = $518，比 SAD6221-1 的 $507 还高。结果是 Amazon 高价带 $1,799 约 9%，中价带 $1,299 亏 12%；Lowe's SC 高价带 13%。按原包装算，高价带也只到 13%，都没到 15%。</span></div>
+    <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>还能动的地方</b><span>这款低配只能卖低价带（$700–1,000），而低价带全渠道亏损。要么在这个成本上补碳晶板、7 色光把它推到 $1,500–1,800，要么压包装体积：Amazon 主流单人款高约 1.35 米，1.9 米高的板件是箱子长 1.8–2 米的原因。</span></div>
   </div>
   <div class="callout g"><b>差异化机会（10/10 会议）</b><span>Amazon 桑拿差评的核心是加热板配置不足、加热体感差。优质碳晶板套件成本 ¥1,000+，低价款 ¥300 出头；用好加热板 + 5–6 年质保，是在 $1,500–1,800 价带讲得通的卖点。8/6 会议提出的波纹灯效、冥想 / 海浪音疗、香氛模块可作为同价差异化。</span></div>
   <h3>要赚钱需要什么条件</h3>
@@ -467,7 +480,7 @@ table.mtg tbody th{{white-space:nowrap}}
       <li>桑拿报价是否含税（13%）</li>
       <li>双人淋浴：1688 具体链接与报价、包装尺寸和毛重</li>
       <li>桑拿谈价目标：高价带定位下含税 ≤ ¥3,100，并补蓝牙、7 色光、红光配置以撑起高价</li>
-      <li>皖徐工厂：单人款 1.35 米矮款的报价、箱规、毛重，以及 40 尺柜实际装多少台</li>
+      <li>SMT-HC103：跌落测试结果、加厚后的实际箱规和毛重；同厂 1.35 米矮款和碳晶板配置的报价</li>
       <li>花洒：工厂现有 cUPC 认证能否用于我方 Amazon 主体；不能的话认证费 ¥10 万+ 计入首批</li>
       <li>恒温系统 4 款的实测包装尺寸、毛重，以及报价是否含税</li></ol></div>
   </div>
