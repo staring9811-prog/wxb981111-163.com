@@ -116,12 +116,42 @@ TAGS = {
             ("瀑布", r"waterfall"), ("吸顶", r"ceiling"), ("壁挂", r"wall.mount"), ("含预埋阀", r"rough.in|valve (?:and trim|included)|with valve"),
             ("可同时出水", r"simultaneous|run (?:all )?together|at (?:the same|one) time|use at once"), ("浴缸龙头", r"tub spout|bathtub"), ("全铜", r"brass"), ("双顶喷", r"dual (?:rain|shower) head|double shower head|dual head")],
 }
-def cell_items(rows, rowf, colf, mid):
+SPRITE_PX = 88
+SPRITE_COLS = 24
+def load_meta(path):
+    m = {}
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                m[r["asin"]] = html.unescape(r.get("brand") or "")
+    return m
+
+def make_sprite(asins, img_dir, out_path):
+    """Pack thumbnails into one JPEG; returns {asin: index}. Missing images get no index."""
+    from PIL import Image
+    have = [a for a in asins if os.path.exists(os.path.join(img_dir, a + ".jpg"))]
+    n = len(have); cols = SPRITE_COLS; rows = (n + cols - 1) // cols or 1
+    sheet = Image.new("RGB", (cols * SPRITE_PX, rows * SPRITE_PX), (255, 255, 255))
+    idx = {}
+    for i, a in enumerate(have):
+        try:
+            im = Image.open(os.path.join(img_dir, a + ".jpg")).convert("RGB")
+            im.thumbnail((SPRITE_PX - 4, SPRITE_PX - 4))
+            x = (i % cols) * SPRITE_PX + (SPRITE_PX - im.width) // 2
+            y = (i // cols) * SPRITE_PX + (SPRITE_PX - im.height) // 2
+            sheet.paste(im, (x, y)); idx[a] = i
+        except Exception:
+            pass
+    sheet.save(out_path, "JPEG", quality=78, optimize=True)
+    return idx, rows
+
+def cell_items(rows, rowf, colf, mid, brands=None, sprite=None):
     tags = [(n, re.compile(p)) for n, p in TAGS.get(mid, [])]
+    brands = brands or {}; sprite = sprite or {}
     out = defaultdict(list)
     for r in rows:
         k = f"{mid}|{rowf(r)}|{colf(r)}"
-        out[k].append({"a": r["asin"], "p": r["price"], "u": round(r["u"], 1), "pu": round(r.get("pu", 0)),
+        out[k].append({"a": r["asin"], "b": brands.get(r["asin"], ""), "i": sprite.get(r["asin"], -1), "p": r["price"], "u": round(r["u"], 1), "pu": round(r.get("pu", 0)),
                        "rt": r["rating"], "rn": r.get("ratings") or "", "t": html.unescape(r.get("title") or "")[:220],
                        "sku": html.unescape(r.get("sku") or "")[:80], "tg": [n for n, rx in tags if rx.search(r["t"])]})
     for v in out.values():
@@ -219,20 +249,26 @@ table.mx td.clk:focus-visible{outline:2px solid var(--accent);outline-offset:-2p
 .mxp-k{display:flex;flex-wrap:wrap;gap:8px}
 .mxp-k span{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px;color:var(--muted)} .mxp-k b{color:var(--fg);font-family:var(--f-num);margin-left:4px}
 .mxp-l{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.mxp-l li{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px}
+.mxp-l li{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:88px minmax(0,1fr);gap:12px;align-items:start}
+.mxp-c{display:grid;gap:6px;min-width:0}
+.mxp-img{width:88px;height:88px;border-radius:8px;background-color:#fff;background-repeat:no-repeat;border:1px solid var(--line)}
+.mxp-img.none{display:grid;place-items:center;font-size:11px;color:#888}
+.mxp-b{display:inline-block;font-size:12px;font-weight:600;margin-right:6px;padding:0 6px;border-radius:4px;background:var(--bg);border:1px solid var(--line)}
+@media (max-width:520px){.mxp-l li{grid-template-columns:64px minmax(0,1fr)} .mxp-img{width:88px;height:88px;transform:scale(.727);transform-origin:0 0;margin-bottom:-24px}}
 .mxp-t{font-size:13.5px;line-height:1.5} .mxp-t a{color:var(--accent);text-decoration:none;font-family:var(--f-num);font-size:12.5px;margin-right:6px}
 .mxp-m{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted)} .mxp-m b{color:var(--fg);font-family:var(--f-num);font-weight:600}
 .mxp-m .low{color:var(--bad)}
 .mxp-g{display:flex;flex-wrap:wrap;gap:4px} .mxp-g span{font-size:11.5px;border-radius:20px;padding:1px 8px;background:var(--accent-soft);color:var(--accent)}
 .mxp-s{font-size:12px;color:var(--muted)}
 """
-MX_JS = r"""
+MX_JS_T = r"""
 <div class="mxp-bg" id="mxp" hidden><aside class="mxp" role="dialog" aria-modal="true" aria-labelledby="mxp-title">
   <div class="mxp-h"><div><h3 id="mxp-title"></h3><p id="mxp-sub"></p></div><button type="button" class="mxp-x" id="mxp-x">关闭</button></div>
   <div class="mxp-k" id="mxp-k"></div><ul class="mxp-l" id="mxp-l"></ul></aside></div>
 <script>
 (function(){
   var D={}; try{D=JSON.parse(document.getElementById('mxdata').textContent);}catch(e){}
+  var PX=%d, COLS=%d;
   var bg=document.getElementById('mxp'), L=document.getElementById('mxp-l'), last=null;
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function money(v){return v==null?'—':'$'+Number(v).toLocaleString('en-US',{maximumFractionDigits:2});}
@@ -245,10 +281,11 @@ MX_JS = r"""
     document.getElementById('mxp-k').innerHTML='<span>月销<b>'+Math.round(u).toLocaleString()+'</b></span><span>ASIN 数<b>'+it.length+'</b></span><span>加权均价<b>'+(pw?money(Math.round(pp/pw)):'—')+'</b></span><span>加权评分<b>'+(rw?(rr/rw).toFixed(2):'—')+'</b></span>';
     L.innerHTML=it.map(function(x){
       var rc=x.rt!=null&&x.rt<4?' class="low"':'';
-      return '<li><div class="mxp-t"><a href="https://www.amazon.com/dp/'+esc(x.a)+'" target="_blank" rel="noopener">'+esc(x.a)+' ↗</a>'+esc(x.t)+'</div>'+
+      var img=x.i>=0?'<div class="mxp-img" style="background-image:url(sprite_'+p[0]+'.jpg);background-position:-'+((x.i%COLS)*PX)+'px -'+(Math.floor(x.i/COLS)*PX)+'px"></div>':'<div class="mxp-img none">无图</div>';
+      return '<li>'+img+'<div class="mxp-c"><div class="mxp-t">'+(x.b?'<b class="mxp-b">'+esc(x.b)+'</b>':'')+'<a href="https://www.amazon.com/dp/'+esc(x.a)+'" target="_blank" rel="noopener">'+esc(x.a)+' ↗</a>'+esc(x.t)+'</div>'+
         '<div class="mxp-m"><span>售价 <b>'+money(x.p)+'</b></span><span>月销（分摊）<b>'+x.u+'</b></span><span>父体月销 <b>'+x.pu+'</b></span><span>评分 <b'+rc+'>'+(x.rt==null?'—':x.rt)+'</b>（'+esc(x.rn||0)+' 评）</span></div>'+
         (x.sku?'<div class="mxp-s">变体：'+esc(x.sku)+'</div>':'')+
-        (x.tg&&x.tg.length?'<div class="mxp-g">'+x.tg.map(function(t){return '<span>'+esc(t)+'</span>';}).join('')+'</div>':'')+'</li>';
+        (x.tg&&x.tg.length?'<div class="mxp-g">'+x.tg.map(function(t){return '<span>'+esc(t)+'</span>';}).join('')+'</div>':'')+'</div></li>';
     }).join('');
     bg.hidden=false; document.getElementById('mxp-x').focus();
   }
@@ -260,3 +297,5 @@ MX_JS = r"""
 })();
 </script>
 """
+
+MX_JS = MX_JS_T.replace("var PX=%d, COLS=%d;", f"var PX={SPRITE_PX}, COLS={SPRITE_COLS};")

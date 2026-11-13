@@ -237,7 +237,9 @@ MX_ITEMS = {}
 def _mx(name, keep, rf, cf, R, C):
     rows = [r for r in MX.load(os.path.join(HERE, "mkt", name + ".csv")) if keep(r)]
     MX.split_parent_units(rows)
-    MX_ITEMS.update(MX.cell_items(rows, rf, cf, name))
+    order = [r["asin"] for r in sorted(rows, key=lambda r: -r["u"])]
+    sp, _ = MX.make_sprite(order, os.path.join(HERE, "img"), os.path.join(HERE, f"sprite_{name}.jpg"))
+    MX_ITEMS.update(MX.cell_items(rows, rf, cf, name, MX.load_meta(os.path.join(HERE, "mkt", name + "_meta.csv")), sp))
     return MX.build(rows, rf, cf, R, C), len(rows)
 (_sd, _sn) = _mx("sauna", lambda r: MX.sauna_keep(r["t"]), lambda r: MX.sauna_cap(r["t"]), lambda r: MX.sauna_wood(r["t"]), MX.SAUNA_ROWS, MX.SAUNA_COLS)
 (_td, _tn) = _mx("tandem", lambda r: MX.tandem_keep(r["t"]) and r["price"], lambda r: MX.tandem_row(r["price"]), lambda r: MX.tandem_cfg(r["t"]), MX.TANDEM_ROWS, MX.TANDEM_COLS)
