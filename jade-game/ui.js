@@ -151,9 +151,9 @@ function renderSide() {
     if (!open.length && !goods.length) h += `<p class="note">还没有存货。到「货源」里挑一块买下，就能在这里开窗、下刀、询价或送加工。</p>`;
     for (const g of goods) {
       if (g.state === 'work') h += `<article class="card"><div class="row"><b>加工中 · ${esc(g.from)}</b><span class="dim">第 ${g.ready} 天取货</span></div><div class="row dim"><span>师傅按看得见的料估计能出 ${g.expected} 只手镯，开出来才知道。</span></div></article>`;
-      else { const v = C.goodsValue(g); h += `<article class="card sel"><div class="row"><b>成品 · ${esc(g.from)}</b><span>${fmt(v)}</span></div>
+      else { const v = C.goodsValue(g); h += `<article class="card sel"><div class="row"><b>成品 · ${esc(g.from)}</b><span>零售估值 ${fmt(v)}</span></div>
         <div class="row dim"><span>手镯 ${g.bracelets.length} 只${g.bracelets.length !== g.expected ? `（原估 ${g.expected} 只）` : ''}${g.bracelets.length ? '：' + g.bracelets.map(fmt).join('、') : ''}</span></div><div class="row dim"><span>牌子、蛋面、珠子等小件一批：${fmt(g.small)}</span></div>
-        <div class="row"><button data-act="gsell" data-g="${g.id}" data-how="whole">批发现结 ${fmt(v * 0.88)}</button><button data-act="gsell" data-g="${g.id}" data-how="retail" class="pri">寄卖 ${fmt(v * 1.12)}（3–7 天回款）</button></div></article>`; }
+        <div class="row"><button data-act="gsell" data-g="${g.id}" data-how="whole">批发现结 ${fmt(v * 0.6)}</button><button data-act="gsell" data-g="${g.id}" data-how="retail" class="pri">寄卖零售 ${fmt(v * 0.95)}（6–14 天回款）</button></div></article>`; }
     }
     for (const s of open) {
       const act = V.mode === 'own' && V.rec === s, bk = bookOf(s);
@@ -180,7 +180,7 @@ function renderSide() {
       h += `<article class="card ${V.mode === 'review' && V.rec === s ? 'sel' : ''}"><div class="row"><b>复盘 #${s.id} ${s.origin} · ${s.info.skin}</b><span class="${net >= 0 ? 'up' : 'down'}">${net >= 0 ? '+' : ''}${fmt(net)}</span></div>
       <div class="row dim"><span>买入 ${fmt(s.buyPrice)} · 加工 ${fmt(s.costs)} · 回款 ${fmt(s.proceeds)} · 持有 ${s.closeDay - s.buyDay} 天</span></div>
       <div class="row dim"><span>买入当天原样转手最高 ${fmt(s.flip)}；途中账面最高 ${fmt(s.best)}</span></div>
-      <div class="row dim"><span>真相：${r.water}，${r.feats.length ? r.hue + '（' + r.feats.join('、') + '）' : '基本无色'}，${r.cracks} 条裂${r.shift ? '，' + r.shift : ''}；完全看清时的出材潜力约 ${fmt(r.truth)}</span></div>
+      <div class="row dim"><span>真相：${r.water}，${r.feats.length ? r.hue + '（' + r.feats.join('、') + '）' : '基本无色'}，${r.cracks} 条裂${r.shift ? '，' + r.shift : ''}；全部做成件的零售价值约 ${fmt(r.truth)}</span></div>
       <div class="row"><span class="dim">一次赚钱不等于判断正确，亏了也不一定是决策错。</span><button data-act="review" data-s="${s.id}">看剖面</button></div></article>`;
     }
     h += `<article class="card"><b>流水</b>${W.log.slice(-40).reverse().map(l => `<div class="row dim"><span>第 ${l.day} 天 ${esc(l.t)}</span><span>${l.amt ? (l.amt > 0 ? '+' : '') + fmt(l.amt) : ''}</span></div>`).join('')}</article>`;
@@ -227,10 +227,10 @@ function afterStoneChange(s) { if (s.closed) { tab = 'ledger'; view('review', s,
 /* ---------- 说明书里的价值表：直接用内核公式算，保证和游戏一致 ---------- */
 function fillManual() {
   const seeds = [['豆种', 0.10], ['糯种', 0.25], ['糯冰种', 0.45], ['冰种', 0.65], ['高冰种', 0.82], ['玻璃种', 0.95]];
-  const cols = [['无色', 0, '阳绿'], ['飘花／淡绿', 0.25, '淡绿'], ['阳绿半色', 0.5, '阳绿'], ['正绿满色', 0.95, '正绿'], ['帝王绿满色', 1, '帝王绿']];
+  const cols = [['无色', 0, '阳绿'], ['淡绿／晴水', 0.6, '淡绿'], ['紫罗兰', 0.6, '紫罗兰'], ['阳绿一段', 0.17, '阳绿'], ['阳绿半圈', 0.6, '阳绿'], ['正绿满色', 1, '正绿'], ['帝王绿满色', 1, '帝王绿']];
   const ring = Math.PI * (36 * 36 - 28 * 28) * 9 / 1000 * C.ECON.braceletBonus * 1.1;
   let h = '<table><thead><tr><th>手镯成品</th>' + cols.map(c => `<th>${c[0]}</th>`).join('') + '</tr></thead><tbody>';
-  for (const s of seeds) h += `<tr><th>${s[0]}</th>` + cols.map(c => `<td>${fmt(C.vd(s[1], c[1], 0.1, 0, C.HUES[c[2]].grade) * ring)}</td>`).join('') + '</tr>';
+  for (const s of seeds) h += `<tr><th>${s[0]}</th>` + cols.map(c => `<td>${fmt(C.vd(s[1], c[1], 0, 0, C.HUES[c[2]].grade) * ring)}</td>`).join('') + '</tr>';
   h += '</tbody></table>';
   $('#vtable').innerHTML = h;
 }

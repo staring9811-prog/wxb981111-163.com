@@ -72,13 +72,13 @@ const SKINS = {
 };
 // band: 色带反照色；abs: 色素吸收（RGB 每单位浓度）；grade: 色价值系数
 const HUES = {
-  '淡绿': { band: [0.62, 0.82, 0.62], abs: [0.50, 0.06, 0.40], grade: 0.30 },
-  '油青': { band: [0.24, 0.42, 0.38], abs: [0.90, 0.32, 0.48], grade: 0.30 },
-  '黄翡': { band: [0.86, 0.62, 0.20], abs: [0.08, 0.34, 1.00], grade: 0.28 },
-  '紫罗兰': { band: [0.68, 0.54, 0.80], abs: [0.34, 0.60, 0.10], grade: 0.50 },
-  '阳绿': { band: [0.30, 0.74, 0.28], abs: [1.00, 0.05, 0.85], grade: 1.00 },
-  '正绿': { band: [0.12, 0.56, 0.28], abs: [1.10, 0.10, 0.75], grade: 1.20 },
-  '帝王绿': { band: [0.04, 0.42, 0.21], abs: [1.30, 0.18, 0.85], grade: 1.70 },
+  '淡绿': { band: [0.62, 0.82, 0.62], abs: [0.50, 0.06, 0.40], grade: 0.03 },
+  '油青': { band: [0.24, 0.42, 0.38], abs: [0.90, 0.32, 0.48], grade: 0.03 },
+  '黄翡': { band: [0.86, 0.62, 0.20], abs: [0.08, 0.34, 1.00], grade: 0.015 },
+  '紫罗兰': { band: [0.68, 0.54, 0.80], abs: [0.34, 0.60, 0.10], grade: 0.05 },
+  '阳绿': { band: [0.30, 0.74, 0.28], abs: [1.00, 0.05, 0.85], grade: 0.6 },
+  '正绿': { band: [0.12, 0.56, 0.28], abs: [1.10, 0.10, 0.75], grade: 1.3 },
+  '帝王绿': { band: [0.04, 0.42, 0.21], abs: [1.30, 0.18, 0.85], grade: 3.3 },
 };
 const BODIES = {
   '白底': [0.93, 0.94, 0.90], '灰底': [0.72, 0.74, 0.72], '晴水': [0.80, 0.90, 0.86],
@@ -91,8 +91,9 @@ const BUYERS = {
   '急收商人': { skill: 0.62, risk: 0.82, margin: 0.28, opt: 0.80, cash: 120000, days: 0, pref: '周转' },
 };
 const TOOLS = { '细磨头': { r: 4, bite: 1.0 }, '中磨头': { r: 7, bite: 1.5 }, '粗磨头': { r: 12, bite: 2.2 } };
-const ECON = { startCash: 200000, daily: 300, base: 6, yield: 0.45, braceletBonus: 4, grind: 0.06, cutBase: 80, cutArea: 0.015, kerf: 1.2, density: 3.33, priorScale: 1.0 };
-const WATER_ANCHORS = [[0.10, 1], [0.25, 3], [0.45, 12], [0.65, 55], [0.82, 200], [0.95, 600]];
+const ECON = { startCash: 200000, daily: 300, base: 16.7, yield: 0.12, braceletBonus: 4, rough: 0.6, pressFail: 0.05, grind: 0.06, cutBase: 80, cutArea: 0.015, kerf: 1.2, density: 3.33, priorScale: 0.8 };
+// 相对无色手镯零售价：豆 0.1 万、糯 0.5 万、糯冰 3 万、冰 15 万、高冰 40 万、玻璃 90 万（见 research/value-chain.md）
+const WATER_ANCHORS = [[0.10, 1], [0.25, 5], [0.45, 30], [0.65, 150], [0.82, 400], [0.95, 900]];
 function waterName(w) { w *= 100; return w < 18 ? '豆种' : w < 35 ? '糯种' : w < 55 ? '糯冰种' : w < 74 ? '冰种' : w < 89 ? '高冰种' : '玻璃种'; }
 function qWater(w) {
   const A = WATER_ANCHORS;
@@ -410,9 +411,9 @@ function estimate(st, vol, ev, who, prof) {
   const rho = 0.5 * prof.risk + 0.25 * O.crack / 100;
   let v = S[0] - rho * S[1] + prof.opt * (S[2] - rho * S[3]) + P * (S[4] - rho * S[5]);
   for (const r of ev.rings) { const u = 1 - r.k, b = r.k * r.v + u * (r.k * r.v * prof.opt + (1 - r.k) * P); v += ev.ringVol * b * (1 - rho * u) * lerp(1 - 0.5 * O.crack / 100, 1, r.k); }
-  return Math.max(0, v);
+  return Math.max(0, v) * ECON.rough; // 毛料按成品零售价的批发折扣计
 }
-function fmt(n) { n = Math.round(n); const a = Math.abs(n); if (a >= 10000) return (n / 1000).toFixed(a >= 100000 ? 0 : 1).replace(/\.0$/, '') + 'K'; return String(n); }
+function fmt(n) { n = Math.round(n); const a = Math.abs(n); if (a >= 1e6) return (n / 1e4).toFixed(0) + '万'; if (a >= 10000) return (n / 1000).toFixed(a >= 100000 ? 0 : 1).replace(/\.0$/, '') + 'K'; return String(n); }
 // 这块料赌的是什么：只根据外部能看到的迹象（含可能骗人的皮壳表现），不读内部真相
 function betOf(st, vol, hasWindowColor) {
   const O = ORIGINS[st.origin], r = new Rng(seedOf(st.seed, 'bet'));
@@ -567,14 +568,14 @@ function sell(w, s, piece, q) {
 function workQuote(s, piece) {
   const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), nb = ev.truthParts.rings.length;
   const pub = ev.stats.bracelets; // 师傅只按看得见的镯位报工费
-  return { fee: Math.round(200 + pub * 350 + ev.stats.fleshCm3 * 6), days: 2 + (pub > 2 ? 1 : 0), pub };
+  return { fee: Math.round(150 + pub * 300 + ev.stats.fleshCm3 * 4), days: 2 + (pub > 2 ? 1 : 0), pub };
 }
 function sendWork(w, s, piece) {
   const q = workQuote(s, piece); if (q.fee > w.cash) return { ok: false, msg: '现金不够付工费。' };
   const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), tp = ev.truthParts;
   w.cash -= q.fee; s.costs += q.fee; piece.sold = true; piece.soldPrice = 0; piece.buyer = '送加工';
   const o = [0, 0, 0, 0];
-  w.goods.push({ id: w.nextId++, stone: s.id, from: `#${s.id} ${piece.name}`, ready: w.day + q.days, bracelets: tp.rings.map(v => Math.round(v * 1.1)), small: Math.round(tp.small), expected: q.pub, state: 'work' });
+  w.goods.push({ id: w.nextId++, stone: s.id, from: `#${s.id} ${piece.name}`, ready: w.day + q.days, bracelets: tp.rings.map(v => Math.round(v * 1.1)).filter((_, i) => !new Rng(seedOf(w.seed, 'press', s.seed, piece.id, i)).chance(ECON.pressFail)), small: Math.round(tp.small), expected: q.pub, state: 'work' });
   w.log.push({ day: w.day, t: `送加工 #${s.id} ${piece.name}`, amt: -q.fee });
   s.pending = (s.pending || 0) + 1;
   return { ok: true, fee: q.fee, days: q.days };
@@ -582,7 +583,7 @@ function sendWork(w, s, piece) {
 function goodsValue(g) { return g.bracelets.reduce((a, b) => a + b, 0) + g.small; }
 function sellGoods(w, g, how) {
   const s = w.stones.find(x => x.id === g.stone), v = goodsValue(g), r = new Rng(seedOf(w.seed, 'goods', g.id));
-  const price = Math.round(v * (how === 'retail' ? 1.12 : 0.88) / 10) * 10, days = how === 'retail' ? r.int(3, 7) : 0;
+  const price = Math.round(v * (how === 'retail' ? 0.95 : 0.6) / 10) * 10, days = how === 'retail' ? r.int(6, 14) : 0;
   g.state = 'sold'; g.price = price;
   if (days) w.recv.push({ day: w.day + days, amt: price, from: '寄卖柜台' }); else w.cash += price;
   w.log.push({ day: w.day, t: `成品出手（${g.from}）${how === 'retail' ? `寄卖，约 ${days} 天回款` : '批发现结'}`, amt: price });
