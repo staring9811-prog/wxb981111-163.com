@@ -158,6 +158,73 @@ def price_grid(sku):
     return ('<div class="tw"><table class="pg"><thead><tr><th>测算用前台价</th><th>低</th><th>中</th><th>高</th></tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>')
 
+
+# ---------------- thermostatic shower systems (procurement quotes, estimated packaging) ----------------
+TH = json.load(open(os.path.join(HERE, "calc_thermo.json"), encoding="utf-8"))["res"]
+TS = json.load(open(os.path.join(HERE, "scen_thermo.json"), encoding="utf-8"))["skus"]
+_pct = (calc["params"]["promo"] + calc["params"]["fx"] + calc["params"]["refund"] + calc["params"]["comm"]) / 100
+def th_rows(sku):
+    return {r["tier"]: r for r in TH if r["sku"] == sku}
+def th_summary():
+    head = ('<tr><th>型号</th><th>报价</th><th>包装（估）</th><th>Amazon FBA 低</th><th>Amazon FBA 中</th><th>Amazon FBA 高</th>'
+            '<th>HD 中</th><th>Lowe\'s SC 中</th><th>Wayfair 中</th><th>Amazon 保本价</th></tr>')
+    body = []
+    for s in TS:
+        r = th_rows(s["id"]); g = s["pkgs"][0]
+        def amz(t):
+            x = r[t]; return f'<td><div class="cell"><span class="price">{usd(x["amzPrice"])}</span><span class="profit {"neg" if x["fba"]<0 else ""}">{usd(x["fba"])}</span>{pill(x["fba"]/x["amzPrice"])}</div></td>'
+        def plat(k):
+            v = r["mid"]["plat"][k]
+            if not v["priced"]: return '<td class="na-cell"><span class="pill na">无同类</span></td>'
+            return f'<td><div class="cell"><span class="price">{usd(v["retail"])}</span><span class="profit {"neg" if v["profit"]<0 else ""}">{usd(v["profit"])}</span>{pill(v["margin"])}</div></td>'
+        be = (r["mid"]["cost"] + r["mid"]["sea"] + r["mid"]["fbaShip"]) / (1 - _pct)
+        body.append(f'<tr><th scope="row">{s["id"]}</th><td>¥{s["cost"]:,}</td><td>{g[0]:.0f}×{g[1]:.0f}×{g[2]:.0f}cm · {g[3]}kg</td>'
+                    f'{amz("low")}{amz("mid")}{amz("high")}{plat("hd")}{plat("lowesSC")}{plat("wf")}<td>{usd(be)}</td></tr>')
+    return f'<div class="tw"><table class="pt"><thead>{head}</thead><tbody>{"".join(body)}</tbody></table></div>'
+def th_detail(sku):
+    r = th_rows(sku)
+    head = "".join(f"<th>{t}</th>" for _, t in TIERS)
+    rows = []
+    def cell(price, profit, m):
+        return f'<td><div class="cell"><span class="price">{usd(price)}</span><span class="profit {"neg" if profit<0 else ""}">{usd(profit)}</span>{pill(m)}</div></td>'
+    rows.append('<tr><th scope="row">Amazon FBA</th>' + "".join(cell(r[t]["amzPrice"], r[t]["fba"], r[t]["fba"]/r[t]["amzPrice"]) for t,_ in TIERS) + '</tr>')
+    rows.append('<tr><th scope="row">Amazon FBM</th>' + "".join(cell(r[t]["amzPrice"], r[t]["fbm"], r[t]["fbm"]/r[t]["amzPrice"]) for t,_ in TIERS) + '</tr>')
+    for k, name in [("hd","Home Depot"),("lowesVC","Lowe's VC"),("lowesSC","Lowe's SC"),("wf","Wayfair")]:
+        cs = []
+        for t,_ in TIERS:
+            v = r[t]["plat"][k]
+            cs.append(cell(v["retail"], v["profit"], v["margin"]) if v["priced"] else '<td class="na-cell"><span class="pill na">无同类</span></td>')
+        rows.append(f'<tr><th scope="row">{name}</th>{"".join(cs)}</tr>')
+    return f'<div class="tw"><table class="pt"><thead><tr><th>渠道</th>{head}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+TH_TIERS = [
+ ("低价带", "$250–420", [
+   ("Amazon", "Oupukle 恒温 12\" 顶喷 + 6 侧喷", "$360.99", ""),
+   ("Wayfair", "CASAINC 12\" 吸顶恒温 + 6 侧喷", "$362.50", "4.9★ 41 评"),
+   ("Home Depot", "Boyel Living 恒温 12\" + 6 侧喷", "$291.29", ""),
+   ("Lowe's", "Yichuhaoxi 12\" LED 顶喷 + 4 侧喷", "$421.98", "5★ 16 评")],
+  ["12\" 方 / 圆顶喷 + 4–6 个侧喷 + 手持", "基础恒温阀或压力平衡阀，按键 / 旋钮分水", "侧喷多为塑料或锌壳，顶喷 ABS 或薄不锈钢", "以中国卖家白牌为主"]),
+ ("中价带", "$450–870", [
+   ("Amazon", "JetsBath 16\" 恒温 + 6 侧喷", "$489.99", ""),
+   ("Amazon", "Dasan 恒温双头（16\" + 6\"）+ 6 侧喷", "$599–670", "月销约 80"),
+   ("Wayfair", "EVERSTEIN 12\" 双雨淋 + 6 侧喷", "$477", "5★"),
+   ("Home Depot", "Modland 16\" 恒温 + 6 侧喷", "$867.64", "")],
+  ["16\" 顶喷或双顶喷（雨淋 + 6\" 壁喷）", "6 个可调侧喷，各出水可同时开", "黄铜恒温阀体，3–4 路分水", "多色饰面（黑 / 镍 / 金）"]),
+ ("高价带", "$740–1,500", [
+   ("Amazon", "NPYSVSSS 14×20\" 吸顶 LED 恒温 + 侧喷", "$739.99", ""),
+   ("Amazon", "RomceBath 16×24\" 三合一（雨淋 / 瀑布 / 喷雾）", "$899.99", ""),
+   ("Wayfair", "EVERSTEIN 16\" 双雨淋 + 6 侧喷", "$1,118.55", "4.7★ 187 评"),
+   ("Home Depot", "GRANDJOY 16\" RGB LED + 6 侧喷", "$1,439.10", "")],
+  ["大尺寸嵌顶顶喷，多功能（雨淋 + 瀑布 + 喷雾）", "LED 灯 / 数显温度 / 蓝牙音乐", "全铜阀体，5–6 路分水", "品牌店铺（EVERSTEIN、GRANDJOY）+ 较多评价"]),
+]
+TH2_TIERS = [
+ ("低价带", "$160–180", [("Amazon", "Gabrylly 10\" 恒温花洒 + 浴缸龙头", "$179.99", "月销约 560"), ("Amazon", "VEVOR 恒温吸顶 + 6\" 壁喷 + 手持", "$158.99", "")],
+  ["10–12\" 顶喷 + 手持，两功能", "基础恒温阀", "顶喷 ABS，手持塑料"]),
+ ("中价带", "$340–550", [("Amazon", "SHOYELA 恒温 12\" + 6\" 双头", "$339.99", "4.3★ 196 评"), ("Amazon", "VANFOXLE 恒温花洒套装", "$349.99", ""), ("Home Depot", "EVERSTEIN 恒温壁挂 12\" + 6\"", "$548", ""), ("Lowe's", "GRANDJOY 恒温 12\" 双头 + 3 侧喷", "$479", "")],
+  ["12\" 顶喷 + 6\" 壁喷 + 手持", "按键分水，可同时出水", "黄铜阀体"]),
+ ("高价带", "$460–830", [("Amazon", "JetsBath 16\" 恒温双雨淋", "$459.99", ""), ("Home Depot", "YAWWALK 恒温 12\" + 6\" 7 种出水", "$669", "4.9★"), ("Wayfair", "EVERSTEIN 恒温 12\"（含预埋阀）", "$825.75", "4.8★ 106 评")],
+  ["16\" 大顶喷或品牌款", "含预埋阀，安装配套齐", "品牌 + 较多评价"]),
+]
+
 P = calc["params"]
 s1 = S[("SAD6221-1", "mid")]; s1h = S[("SAD6221-1", "high")]
 dm = S[("DUAL", "mid")]; dl = S[("DUAL", "low")]
@@ -244,6 +311,7 @@ tbody th{{font-weight:500}}
 .rules{{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;font-size:13.5px}}
 .rules div{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}}
 .rules ul{{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}}
+details{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}} details>summary{{cursor:pointer;font-weight:500}} details .tw{{margin-top:10px}}
 .todo{{margin:0;padding-left:20px;display:grid;gap:6px}}
 table.mtg td,table.mtg th{{white-space:normal;vertical-align:top;min-width:160px}}
 table.mtg tbody th{{white-space:nowrap}}
@@ -263,6 +331,10 @@ table.mtg tbody th{{white-space:nowrap}}
       <ul><li>落地成本约 $32（采购 ¥190 + 海运），四个渠道中价带利润率 33–40%</li>
       <li>低价带 $80 只剩 {dl['amzFBA']['margin']*100:.0f}%，Wayfair $93 基本保本，不打低价</li>
       <li>高价带 $249 需要品牌力（BOONA 一家独大）</li></ul></div>
+    <div class="vc ok"><h3>恒温顶喷 / 侧喷系统：两款能做，两款要谈价</h3>
+      <div class="big">35% <span class="sub">FFS223 Amazon 中价带 $340；F00F40 中价带 $490 为 25%</span></div>
+      <ul><li>F00F41 / F00F42 报价 ¥2,600–2,800，中价带 $650 只有 4–8%，含税要谈到约 ¥2,200</li>
+      <li>包装尺寸、毛重为估算；cUPC 认证约 ¥10 万+ 未计入</li></ul></div>
     <div class="vc no"><h3>红外单人桑拿房：按现报价全渠道亏损</h3>
       <div class="big">{usd(s1['amzFBM']['breakeven'])} <span class="sub">SAD6221-1 在 Amazon 的保本价，高于市场高价带 $1,799</span></div>
       <ul><li>报价 ¥6,270 → 采购 $816，海运 $165，LTL 尾程 $342，三项已超过中价带售价 $1,299</li>
@@ -317,14 +389,32 @@ table.mtg tbody th{{white-space:nowrap}}
   <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>供应端（10/10 会议）</b>
     <span>产业带：广东开平水口供应链最全、成本中等；厦门偏高端、成本最高；浙江以 ABS 塑料为主、成本最低。材质：铜价上涨，行业转向不锈钢主体（比铜主体每件低约 ¥40）；锌包塑水路寿命风险高，不用。</span>
     <span>认证：北美需 cUPC 等认证，单品类首次约 ¥10 万+；Amazon 要求认证主体与店铺主体一致。会上定的“先用工厂现有带认证款”要先确认认证能否转到我方主体，否则这 ¥10 万+ 要摊进首批成本。</span>
-    <span>会上的选型方向是带顶喷、腰喷、雨淋、恒温的疗愈类花洒，对应采购已报价的 F00F40 / F00F41 / F00F42 / FFS223，本报告暂未测算这 4 款。</span></div>
+    <span>会上的选型方向是带顶喷、腰喷、雨淋、恒温的疗愈类花洒，对应采购已报价的 4 款，测算见第三部分。</span></div>
   <h3>利润测算（成本 ¥190，按中价带规格）</h3>
   <div class="two">{price_grid("DUAL")}<div class="callout g"><b>成本构成</b><span>采购 ¥190（1688 参考价，按未税价）= $27.94；海运 $4.03；FBA 配送 $12.04（小号大件，旺季费率）；平台费用占售价 34%（佣金 15% + 广告 10% + 退款 8% + 汇损 1%）。</span><span>包装按 70×22×12cm、4kg 估算，待采购给实测尺寸。</span></div></div>
   {profit_table("DUAL", CH)}
 </section>
 
+<section aria-labelledby="t">
+  <h2 id="t">三、恒温顶喷 / 侧喷花洒系统（采购已报价 4 款）</h2>
+  <p class="sub">10/10 会议定的疗愈花洒选型方向：带顶喷、腰喷（侧喷）、雨淋、恒温。采购报价：F00F40 ¥1,289、F00F41 ¥2,800、F00F42 ¥2,600、FFS223 ¥640（按含税价处理）。包装尺寸和毛重为估算（参照 Amazon 同类 13–47 lb），待采购给实测值。</p>
+  <h3>带侧喷的恒温系统：各价带典型产品（对标 F00F40 / F41 / F42）</h3>
+  {tier_cards(TH_TIERS, "")}
+  <h3>恒温两功能（无侧喷）：各价带典型产品（对标 FFS223）</h3>
+  {tier_cards(TH2_TIERS, "中价带")}
+  <h3>利润测算总览</h3>
+  {th_summary()}
+  <p class="note">F00F40 测算价用“带侧喷”低 / 中 / 高价带；F00F41、F00F42 配置更高（400 两功能顶喷 + 6 侧喷 + 支架），从中价带起算：低 $490、中 $650、高 $900（Amazon），其他渠道同理上移一档。FFS223 用“恒温两功能”价带。利润率口径同上。</p>
+  <div class="two">
+    <div class="callout g"><b>能做：FFS223、F00F40</b><span>FFS223 报价 ¥640（约 $83），中价带 $340 在 Amazon 有 35%，HD / Lowe's 36–47%。F00F40 报价 ¥1,289（约 $168），中价带 $490 有 25%，高价带 $740 接近 40%；但它只有单功能顶喷 + 4 侧喷 + 塑料手持，配置在低价带，卖到中价带需要补外观或功能。</span></div>
+    <div class="callout"><b>要谈价：F00F41、F00F42</b><span>¥2,600–2,800（约 $338–364）在中价带 $650 只有 4–8%，要到高价带 $900 才有 21–24%，而高价带对手是 14×20" LED、三合一顶喷、数显恒温。F00F42 比 F00F41 便宜 ¥200 且多一路功能，二选一应选 F00F42。按 Amazon 中价带 $650 做到 15% 反推，含税报价需降到约 ¥2,200。</span></div>
+  </div>
+  <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>10/10 会议提醒</b><span>恒温、复杂水流款在北美售后风险高、普及度还不高；美国主流是带防烫的压力平衡阀。认证需 cUPC 等，单品类首次约 ¥10 万+，Amazon 要求认证主体与店铺一致。这些费用和退货率（测算按 8%）是这条线的主要风险。</span></div>
+  {"".join(f"<details><summary>{s['id']} 分渠道明细</summary>{th_detail(s['id'])}</details>" for s in TS)}
+</section>
+
 <section aria-labelledby="s">
-  <h2 id="s">三、红外单人桑拿房</h2>
+  <h2 id="s">四、红外单人桑拿房</h2>
   <h3>各价带典型产品与功能差异（1 人款）</h3>
   {tier_cards(SAUNA_TIERS, "")}
   <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>我方两款对标</b>
@@ -352,13 +442,13 @@ table.mtg tbody th{{white-space:nowrap}}
 </section>
 
 <section aria-labelledby="c">
-  <h2 id="c">四、钱花在哪里（Amazon 中价带）</h2>
+  <h2 id="c">五、钱花在哪里（Amazon 中价带）</h2>
   <div class="bars">{bars}</div>
   <p class="note">每条按成本合计与售价中较大者铺满；竖线是售价，竖线以右的部分就是亏损。</p>
 </section>
 
 <section aria-labelledby="r">
-  <h2 id="r">五、测算口径与待确认</h2>
+  <h2 id="r">六、测算口径与待确认</h2>
   <div class="rules">
     <div><b>通用（利润测算台 v1.14 默认）</b><ul>
       <li>汇率 {P['rate']}；Amazon 佣金 {P['comm']}%、广告 {P['promo']}%、退款 {P['refund']}%、汇损 {P['fx']}%</li>
@@ -379,7 +469,7 @@ table.mtg tbody th{{white-space:nowrap}}
       <li>桑拿谈价目标：高价带定位下含税 ≤ ¥3,100，并补蓝牙、7 色光、红光配置以撑起高价</li>
       <li>皖徐工厂：单人款 1.35 米矮款的报价、箱规、毛重，以及 40 尺柜实际装多少台</li>
       <li>花洒：工厂现有 cUPC 认证能否用于我方 Amazon 主体；不能的话认证费 ¥10 万+ 计入首批</li>
-      <li>恒温顶喷 / 腰喷系统 4 款（采购已报价）是否也要测算，需要包装尺寸和毛重</li></ol></div>
+      <li>恒温系统 4 款的实测包装尺寸、毛重，以及报价是否含税</li></ol></div>
   </div>
 </section>
 </div>
