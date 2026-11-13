@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.5.6">
+<meta name="pc-app-version" content="1.5.8">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -276,7 +276,7 @@ body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(s
 <dialog id="pcUpdateDialog" aria-labelledby="pcUpdateTitle">
  <div class="row"><h2 id="pcUpdateTitle" style="margin:0">系统更新与完整备份</h2><button class="btn sm" id="btnUpdateClose">关闭</button></div>
  <p>当前版本 v<span class="pcVer"></span>。新版只更新系统功能，报价、产品、参数和 API 设置保存在各自浏览器，不上传到 GitHub。</p>
- <p id="pcSelfNote">Chrome / Edge 可以<b>一键更新</b>：点“立即更新”后选中你正在用的这个 HTML 文件（会自动打开到它所在的文件夹），再点“保存更改”，就会直接覆盖它并自动刷新，数据不动。更新前会自动在浏览器里保留旧版和数据快照，可一键回退。</p>
+ <p id="pcSelfNote">Chrome / Edge 可以<b>一键更新</b>：点“立即更新”后选择这个 HTML 文件所在的<b>文件夹</b>（下次会自动打开到同一个文件夹），允许修改后，新版会以“利润测算 V版本号.html”保存在原文件夹、旧文件删掉，并自动打开新版，数据不动。更新前会自动在浏览器里保留旧版和数据快照，可一键回退。</p>
  <p>其他浏览器请下载新文件，替换原位置的同名文件，并使用同一浏览器。换文件名、目录、浏览器或电脑时，先导出完整备份，再在新页面恢复。</p>
  <label class="chk"><input type="checkbox" id="pcBackupKey" checked>完整备份包含 API Key（仅保留本机，请勿分享）</label>
  <div class="row" style="margin-top:12px"><button class="btn" id="btnFullBackup">下载完整备份</button><button class="btn" id="btnRestoreBackup">恢复完整备份</button><button class="btn primary" id="btnSelfUpdate" hidden>一键更新（覆盖当前文件）</button><button class="btn" id="btnGetUpdate" hidden>下载新版文件</button><button class="btn" id="btnRollback" hidden>回退到上一版</button></div>
@@ -372,6 +372,7 @@ body.has-toc #pageToc{display:block;position:fixed;z-index:6;left:max(12px,env(s
   <p class="lead">逐个核对包装尺寸（cm）、毛重（kg）、出厂价和售价。各平台价格可以不填：灰色是默认值（上架价 = Amazon 售价 × 系数，促销价 = 上架价 × (1 − 默认折扣)）；只填促销价时，上架价按折扣反推。一个产品可以有多个包裹。“采购成本$”按出厂价币种自动换算：FOB 美元价直接计入，不扣税点；RMB 含税价 ÷ (1+税点) ÷ 汇率；RMB 未税价 ÷ 汇率。</p>
   <div class="row" style="margin-bottom:10px">
     <button class="btn" id="btnAddProd">+ 新增产品</button>
+    <button class="btn" id="btnUniqNames" title="品名一样的产品，自动在品名后加上尺寸和不同的规格（如台面材质），方便在利润表里区分">区分重名</button>
     <button class="btn" id="btnLibFromProj2" title="把这里的产品（含图片）存入产品库；已在库里的会更新">存入产品库</button>
     <span class="muted">批量设置：</span>
     <select id="bulkCat"></select><button class="btn sm" id="btnBulkCat">品类应用到全部</button>
@@ -1004,6 +1005,7 @@ ct.addEventListener("click",e=>{ if(e.target.closest("[data-ltlgo]")){ go(4); se
 document.getElementById("btnAddProd").addEventListener("click",()=>{ products.push(blankProduct()); save(); renderS2(); });
 document.getElementById("btnBulkPack").addEventListener("click",()=>{ const v=document.getElementById("bulkPack").value; products.forEach(p=>{ if(v) p.pack=v; else delete p.pack; }); save(); renderS2();
   const n=products.filter(p=>calcProduct(p).ltl.on).length; toast(`包装已设为${v||"按品名自动"}；现在 ${n} 个产品的 FBM 尾程走 LTL`); });
+document.getElementById("btnUniqNames").addEventListener("click",()=>{ const n=uniqueNames(products); save(); renderS2(); toast(n?`已区分 ${n} 个重名产品的品名（可再手动改）`:"没有重名的产品"); });
 document.getElementById("btnBulkCat").addEventListener("click",()=>{ const v=document.getElementById("bulkCat").value; products.forEach(p=>p.category=v); save(); renderS2(); });
 const allPeak=()=>{ const v=[...new Set(products.map(p=>p.peak==="旺季"?"旺季":"非旺季"))]; return v.length===1?v[0]:"mixed"; };
 document.getElementById("bulkPeak").addEventListener("change",e=>{ const v=e.target.value; products.forEach(p=>p.peak=v); save(); renderS2(); toast(`已把全部产品设为 FBM ${v}`); });
@@ -1760,6 +1762,7 @@ function aiPrompt(body){
 1. packages 用外箱/纸箱/包装尺寸和毛重，不要用产品本身尺寸或净重；一个产品分几个箱子就列几个 package。
 2. price 填 FOB 美元价；price_rmb_tax 填人民币含税价（国内交货/出厂含税价），两者都有就都填。只有人民币未税价时，填在 price 并标 price_currency 为 RMB、price_tax 为未税。看不出含税与否时按含税处理并在 notes 说明。
 3. 同一型号只是颜色不同、价格和包装都相同，合并成一条，颜色写进 desc。
+6. name 要能一眼区分产品，不要所有产品都写同一个通用名：格式“系列/品名 + 尺寸（数字+寸）+ 区别点”，例如“藤编浴室柜 36寸 岗石台面”“藤编浴室柜 36寸 石英石台面”。区别点只写这份报价里真正不同的要素（台面材质 / 厚度、单双盆、分包整装、柜体材质等），各产品都一样的不写；控制在 18 个字以内；同一份报价里各产品的 name 必须互不相同。
 4. match_key 用于跨工厂对比同一规格，格式如“30寸 落地式”“24寸 单盆”：尺寸写成“数字+寸”，再加最能区分款式的一两个词。${keys.length?"已有这些规格键，同规格请原样复用："+keys.join("、"):""}
 5. 不要编造：表里没有的数填 null，并在 notes 说明。
 
@@ -1799,6 +1802,20 @@ async function aiCall(prompt,{images=[],pdf=null,signal,onProgress}={}){
   if(j.stop_reason==="max_tokens") throw {code:"too_long",message:"报价单太长，AI 没写完。请拆成几个文件分别识别。"};
   return parseLoose((j.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(""));
 }
+/* Products that share a name get the size and the description words that differ inside the group (e.g. 岗石 vs 石英石 台面),
+   so each one can be told apart in the tables. Used after AI recognition and by the “区分重名” button. */
+function sizeOf(x){ const t=[x.name,x.key,x.desc].join(" "); const m=t.match(/(\d{2,3})\s*(寸|"|”|''|inch|in\b|英寸)/i); return m?m[1]+"寸":""; }
+function uniqueNames(list){ const by={}; list.forEach(x=>{ const k=String(x.name||"").trim(); (by[k]=by[k]||[]).push(x); });
+  const toks=x=>String(x.desc||"").split(/[，,、；;。\s/|]+/).map(t=>t.trim()).filter(t=>t&&t.length<=14);
+  const rank=t=>/台面|岗石|石英|岩板|大理石|陶瓷|实木|贴皮|盆|整装|分包|整包|抽|门|mm/.test(t)?0:1;
+  let changed=0;
+  for(const [base,g] of Object.entries(by)){ if(g.length<2) continue;
+    const T=g.map(toks), common=T[0].filter(t=>T.every(a=>a.includes(t)));
+    g.forEach((x,i)=>{ const sz=sizeOf(x), diff=T[i].filter(t=>!common.includes(t)).sort((a,b)=>rank(a)-rank(b)).slice(0,2);
+      const parts=[base]; if(sz&&!base.includes(sz)) parts.push(sz); diff.forEach(d=>{ if(!parts.join(" ").includes(d)) parts.push(d); });
+      const nm=parts.join(" ").trim(); if(nm!==x.name){ x.name=nm; changed++; } });
+    const seen={}; g.forEach(x=>{ seen[x.name]=(seen[x.name]||0)+1; if(seen[x.name]>1){ x.name=x.name+" #"+seen[x.name]; changed++; } }); }
+  return changed; }
 function normItems(raw){
   const cv=(v,u)=>{ const n=num(v); if(!isFinite(n)) return ""; u=String(u||"cm").toLowerCase(); return +(u==="mm"?n/10:u.startsWith("in")?n*2.54:n).toFixed(2); };
   const wv=(v,u)=>{ const n=num(v); if(!isFinite(n)) return ""; return +(/lb/i.test(u||"")?n*0.45359237:n).toFixed(3); };
@@ -1807,6 +1824,7 @@ function normItems(raw){
     let cost=isFinite(num(it.price))?num(it.price):"", costRmb=isFinite(num(it.price_rmb_tax))?num(it.price_rmb_tax):"";
     if(cur==="RMB_TAX"&&cost!==""&&costRmb===""){ costRmb=cost; cost=""; }   // RMB VAT-inclusive price = domestic-shipment price
     return {sheet:String(it.sheet||""),row:Number.isInteger(+it.row)&&+it.row>0?+it.row:null,series:String(it.series||"").trim(),key:String(it.match_key||autoKey(it.name)||"").trim(),name:String(it.name||"").trim()||"未命名",desc:String(it.desc||""),cost,costRmb,costCur:cur==="RMB_TAX"?"USD":cur,moq:isFinite(num(it.moq))?num(it.moq):"",pkgs:pk.length?pk:[{l:"",w:"",h:"",kg:""}],notes:String(it.notes||"")}; }); }
+const normItemsU=raw=>{ const it=normItems(raw); uniqueNames(it); return it; };
 async function aiRun(file){
   if(!file){ toast("先选择报价单文件"); return; }
   const st=document.getElementById("aiStatus"), stop=document.getElementById("btnAiStop"), go_=document.getElementById("btnAi");
@@ -1821,7 +1839,7 @@ async function aiRun(file){
   st.textContent="AI 识别中…"+note;
   try{
     const out=await aiCall(prompt,{images,pdf,signal:aiCtl.signal,onProgress:n=>{chars=n;}});
-    const items=normItems(out&&out.items);
+    const items=normItemsU(out&&out.items);
     if(!items.length){ st.textContent="AI 没有在这份文件里找到产品报价。"; return; }
     let nImg=0; if(xbuf) try{ nImg=await attachItemImages(items,xbuf,xwb); }catch(e){ console.warn("image import",e); }
     aiResult={factory:String(out.factory||""),date:/^\d{4}-\d{2}-\d{2}$/.test(out.quote_date||"")?out.quote_date:today(),items,file:file.name};
@@ -2437,7 +2455,7 @@ const pcFileName=()=>{ try{ return decodeURIComponent(location.pathname.split("/
 async function pcSelfHandle(){
  let h=pcSelfH;
  if(!h){
-  const picked=await window.showOpenFilePicker({id:"pcself",startIn:"downloads",multiple:false,types:[{description:"利润测算台网页",accept:{"text/html":[".html",".htm"]}}]});
+  const picked=await window.showOpenFilePicker({id:"pcself",multiple:false,types:[{description:"利润测算台网页",accept:{"text/html":[".html",".htm"]}}]});
   h=picked[0]; const f=await h.getFile(), t=await f.text();
   if(!t.includes('id="btnCheckUpdate"')||!t.includes(`name="pc-app-version" content="${PC_RELEASE.version}"`)) throw Error("选的不是当前打开的这个利润测算台文件（版本对不上），文件未改动。请选地址栏里这个文件");
   if(pcFileName()&&f.name!==pcFileName()&&!window.confirm(`你选的是“${f.name}”，当前打开的是“${pcFileName()}”。确定覆盖“${f.name}”吗？`)) throw Error("已取消");
@@ -2449,15 +2467,41 @@ async function pcSelfHandle(){
 }
 async function pcWriteSelf(h,html){ const w=await h.createWritable(); await w.write(new Blob([html],{type:"text/html"})); await w.close();
  const back=await (await h.getFile()).text(); if(back!==html) throw Error("写入后核对不一致"); }
+/* 一键更新 picks the folder of the open file: the new version is written there as “利润测算 V<版本>.html”, the old file is removed,
+   and the page opens the new file (browser storage is shared by local files, so the data stays). Chrome won't rename a single picked
+   file, hence the folder. If a folder can't be picked (system folders such as Downloads itself), fall back to overwriting the file. */
+const pcNewName=ver=>`利润测算 V${ver}.html`;
+async function pcPickFolder(){
+  const dir=await window.showDirectoryPicker({id:"pcdir",mode:"readwrite"}), cur=pcFileName();
+  let fh; try{ fh=await dir.getFileHandle(cur); }catch(e){ throw Object.assign(Error(`这个文件夹里没有当前打开的“${cur}”，请选它所在的文件夹`),{name:"WrongFolder"}); }
+  const t=await (await fh.getFile()).text();
+  if(!t.includes('id="btnCheckUpdate"')||!t.includes(`name="pc-app-version" content="${PC_RELEASE.version}"`)) throw Object.assign(Error(`文件夹里的“${cur}”和当前打开的版本对不上`),{name:"WrongFolder"});
+  return {dir,fh,cur,old:t}; }
 async function selfUpdate(){
  const remote=pcUpdate.remote; if(!remote||compareAppVersions(remote.version,PC_RELEASE.version)<=0) return;
  if(remote.schema!==PC_RELEASE.schema){ setUpdateStatus("新版数据格式不同，本版本不能安全迁移。请先导出完整备份并联系维护者，已暂停更新。"); return; }
- openUpdatePanel(); setUpdateStatus("正在更新：请选中当前打开的这个 HTML 文件，然后点“保存更改”…");
+ openUpdatePanel();
  try{
+  let F=null;
+  if(typeof window.showDirectoryPicker==="function"){
+    setUpdateStatus(`正在更新：请选择这个文件所在的文件夹（${pcFileName()}），然后允许修改…`);
+    try{ F=await pcPickFolder(); }catch(e){ if(e&&(e.name==="AbortError"||e.name==="WrongFolder")) throw e; console.warn("folder",e); F=null; } }
+  if(F){
+    await idbPut("snapshot",{version:PC_RELEASE.version,savedAt:new Date().toISOString(),html:F.old,backup:makeFullBackup(true)});   // rollback point
+    const name=pcNewName(remote.version);
+    if(name===F.cur){ await pcWriteSelf(F.fh,remote.html); pcSelfH=F.fh; setUpdateStatus(`已更新到 v${remote.version}，正在刷新…`); setTimeout(pcReload,500); return; }
+    let nh=null; try{ nh=await F.dir.getFileHandle(name,{create:true}); }catch(e){ console.warn("new name",e); }
+    if(!nh){ await pcWriteSelf(F.fh,remote.html); pcSelfH=F.fh; setUpdateStatus(`已更新到 v${remote.version}（这台电脑不能用新文件名，已直接覆盖原文件），正在刷新…`); setTimeout(pcReload,500); return; }
+    await pcWriteSelf(nh,remote.html); pcSelfH=nh;
+    let removed=true; try{ await F.dir.removeEntry(F.cur); }catch(e){ removed=false; }
+    const url=location.href.split(/[?#]/)[0].replace(/[^/]*$/,encodeURIComponent(name));
+    setUpdateStatus(`已更新到 v${remote.version}，文件改名为“${name}”${removed?"":`（旧文件“${F.cur}”没能删除，可以手动删）`}，正在打开…`); setTimeout(()=>{ location.href=url; },600); return; }
+  // fallback: pick the file itself and overwrite it in place
+  setUpdateStatus("正在更新：请选中当前打开的这个 HTML 文件，然后点“保存更改”…");
   const h=await pcSelfHandle();
   const old=await (await h.getFile()).text();
   if(!old.includes('id="btnCheckUpdate"')) throw Error("记住的文件已不是利润测算台，请重新选择");
-  await idbPut("snapshot",{version:PC_RELEASE.version,savedAt:new Date().toISOString(),html:old,backup:makeFullBackup(true)});   // rollback point
+  await idbPut("snapshot",{version:PC_RELEASE.version,savedAt:new Date().toISOString(),html:old,backup:makeFullBackup(true)});
   await pcWriteSelf(h,remote.html);
   setUpdateStatus(`已更新到 v${remote.version}，正在刷新…`); setTimeout(pcReload,400);
  }catch(e){
