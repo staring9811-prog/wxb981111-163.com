@@ -15,6 +15,7 @@ uniform int uNCr; uniform vec4 uCrA[6]; uniform vec4 uCrB[6]; uniform vec4 uCrC[
 uniform vec4 uTorch; uniform vec3 uTorchDir, uTorchSurf, uRakePos; uniform float uRakeFall, uRakeI, uSpread;
 uniform vec3 uGlare; // 手电接触点的屏幕位置 xy（像素）与可见强度
 uniform float uAmbient; uniform vec4 uLens; uniform int uK; uniform float uHi;
+uniform vec3 uBgA, uBgB, uKeyCol; uniform int uScene;
 out vec4 outC;
 
 float hash(vec3 p){ p=fract(p*0.3183099+vec3(.1,.2,.3)); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
@@ -117,7 +118,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     vec3 ns=normalize(n-gh*(1.6+detail*0.8)*(1.0-mang*0.6));
     float cav=smoothstep(0.25,0.75,h0/(0.9+uSkinGrain));              // 凹处更暗
     float dif=max(dot(ns,keyL),0.0)*sh;
-    vec3 lit=vec3(1.0,0.96,0.90)*dif*0.95+vec3(0.55,0.62,0.75)*max(dot(ns,fillL),0.0)*0.22+vec3(0.9,0.9,1.0)*pow(max(dot(ns,rimL),0.0),2.0)*0.18+vec3(0.20,0.19,0.18)*ao*(0.6+0.4*ns.y);
+    vec3 lit=uKeyCol*dif*0.95+vec3(0.55,0.62,0.75)*max(dot(ns,fillL),0.0)*0.22+vec3(0.9,0.9,1.0)*pow(max(dot(ns,rimL),0.0),2.0)*0.18+vec3(0.20,0.19,0.18)*ao*(0.6+0.4*ns.y);
     vec3 hv=normalize(keyL-rd); float gloss=mix(0.22,0.05,uSkinGrain);
     float sp=pow(max(dot(ns,hv),0.0),mix(30.0,10.0,uSkinGrain))*gloss*sh;
     surf=(col*(0.72+0.38*cav)*lit+vec3(sp))*uAmbient;
@@ -134,6 +135,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   x+=dir*dt*(ign(gl_FragCoord.xy)-0.5)*0.9*flesh;   // 抖动起点，消除分层条纹
   for(int i=0;i<6;i++){ float ins; gp[i]=i<uNCr?crG(i,x,ins):1.0; }
   float ambL=uAmbient*(0.42+0.58*max(dot(nf,keyL),0.0)*mix(1.0,sh,0.6))*mix(1.0,ao,0.5);
+  vec3 ambC=mix(vec3(1.0),uKeyCol,0.85); // 场景灯光的颜色会改变你看到的色：黄灯下绿显得更浓
   for(int k=0;k<18;k++){ if(k>=uK) break;
     vec3 s=x+dir*dt*0.5; vec4 gs=G(s); float ds=max(sdfOf(gs),planeD(s));
     if(ds>0.4) break;
@@ -142,7 +144,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     // 晶粒：种越嫩颗粒越明显；放大镜下更清楚
     float cg=mix(vnoise(s*1.6+3.0),vnoise(s*4.5+1.0),0.45)-0.5; float gk=(1.0-m.g)*(0.30+detail*0.55);
     al*=1.0+cg*gk; sc*=1.0+cg*gk*1.6;
-    vec3 Lin=T0*mix(T0*0.4,vec3(mix(0.62,0.26,m.g)),flesh)*ambL*exp(-sg*trav*0.5);
+    vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.62,0.26,m.g)),flesh)*ambL*exp(-sg*trav*0.5);
     if(uTorch.w>0.0) Lin+=fluence(s);
     vec3 xe=x+dir*dt;
     for(int i=0;i<6;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);
@@ -175,7 +177,20 @@ void main(){
   vec2 c=(gl_FragCoord.xy-0.5*uRes)/uRes.y;
   // 背景：暗色台面，中间一团柔光，四周压暗
   float spot=exp(-dot(c*vec2(1.0,1.25)-vec2(0.0,-0.05),c*vec2(1.0,1.25)-vec2(0.0,-0.05))*2.6);
-  vec3 col=(mix(vec3(0.020,0.018,0.016),vec3(0.115,0.100,0.085),spot)+vec3(0.012)*(vnoise(vec3(gl_FragCoord.xy*0.9,1.0))-0.5))*(0.30+0.70*uAmbient);
+  vec3 col=mix(uBgB,uBgA,spot);
+  if(uScene==0){ // 夜市：远处虚化的灯泡
+    for(int i=0;i<7;i++){ vec2 q=vec2(hash(vec3(float(i),1.0,2.0))*1.9-0.95,0.12+hash(vec3(float(i),5.0,3.0))*0.36); float r=0.035+0.05*hash(vec3(float(i),9.0,4.0));
+      col+=mix(vec3(1.0,0.62,0.25),vec3(1.0,0.85,0.55),hash(vec3(float(i),2.0,7.0)))*(1.0-smoothstep(r*0.35,r,length(c-q)))*0.10; }
+    col+=vec3(0.16,0.085,0.03)*exp(-dot(c-vec2(-0.45,0.55),c-vec2(-0.45,0.55))*3.0);
+  } else if(uScene==2){ // 公盘：顶上一束冷光
+    col+=vec3(0.10,0.13,0.18)*exp(-c.x*c.x*7.0)*smoothstep(-0.55,0.5,c.y); col+=vec3(0.05,0.06,0.08)*exp(-dot(c*vec2(1.0,3.5)+vec2(0.0,1.2),c*vec2(1.0,3.5)+vec2(0.0,1.2))*3.0);
+  } else if(uScene==3){ // 场口：天光、远山、土坡
+    float hz=0.06+0.03*sin(c.x*5.0)+0.025*vnoise(vec3(c.x*6.0,0.0,3.0)); vec3 sky=mix(vec3(0.62,0.60,0.52),vec3(0.36,0.46,0.58),smoothstep(0.0,0.5,c.y));
+    vec3 gnd=mix(vec3(0.30,0.21,0.13),vec3(0.16,0.11,0.07),smoothstep(0.1,-0.5,c.y))*(0.85+0.3*vnoise(vec3(c*vec2(14.0,40.0),2.0)));
+    col=mix(gnd,sky,smoothstep(hz-0.01,hz+0.012,c.y))*0.62; col=mix(col,vec3(0.34,0.33,0.30),(1.0-smoothstep(hz,hz+0.10,c.y))*step(hz,c.y)*0.55);
+    col+=vec3(0.45,0.36,0.22)*exp(-dot(c-vec2(-0.5,0.42),c-vec2(-0.5,0.42))*6.0);
+  }
+  col=(col+vec3(0.012)*(vnoise(vec3(gl_FragCoord.xy*0.9,1.0))-0.5))*(0.30+0.70*uAmbient);
   vec3 p,n; float fl;
   if(trace(uCamPos,rd,p,n,fl)) col=shade(p,n,rd,detail,fl);
   if(uGlare.z>0.0){ float d=length(gl_FragCoord.xy-uGlare.xy)/uRes.y; col+=vec3(1.0,0.95,0.85)*uGlare.z*(0.020/(d*d+0.0012)+0.10*exp(-d*d*40.0)); }
