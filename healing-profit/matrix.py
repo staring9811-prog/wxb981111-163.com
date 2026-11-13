@@ -74,6 +74,34 @@ def tandem_cfg(t):
     if re.search(r"hand ?held|hand-held|handheld", t): return "双头 + 手持"
     return "双头"
 TANDEM_COLS = ["双头", "双头 + 手持", "三头（含手持）"]
+def load_tandem_detail(path):
+    """parent/asin -> (rod-span row, material column) from asin_detail (overviews.Material, feature bullets)."""
+    out = {}
+    if not os.path.exists(path): return out
+    for line in open(path, encoding="utf-8"):
+        d = json.loads(line)
+        ov = d.get("overviews") or "{}"
+        try: ov = json.loads(ov) if isinstance(ov, str) else (ov or {})
+        except Exception: ov = {}
+        m = (ov.get("Material") or "").lower()
+        plastic = bool(re.search(r"acrylonitrile|\babs\b|plastic", m))
+        steel = "stainless" in m; metal = bool(re.search(r"metal|brass|alloy|zinc|copper", m))
+        if not m: mat = "未注明"
+        elif plastic and (steel or metal): mat = "ABS + 不锈钢 / 金属"
+        elif plastic: mat = "ABS / 塑料"
+        elif steel: mat = "不锈钢"
+        else: mat = "金属 / 黄铜"
+        f = " ".join(d.get("features") or []) + " " + (d.get("dimensions") or "")
+        nums = [float(x) for x in re.findall(r"(\d{2}(?:\.\d)?)\s*(?:-|\s)?(?:inch|inches|in\b|\"|”)", f, re.I) if 30 <= float(x) <= 100]
+        span = max(nums) if nums else None
+        row = "未注明" if span is None else ("≤60″" if span <= 60 else ("61–80″" if span <= 80 else "81″+"))
+        v = (row, mat, span, ov.get("Material") or "")
+        out[d["asin"]] = v
+        if d.get("parent"): out[d["parent"]] = v
+    return out
+TANDEM2_ROWS = ["≤60″", "61–80″", "81″+", "未注明"]
+TANDEM2_COLS = ["ABS / 塑料", "ABS + 不锈钢 / 金属", "不锈钢", "金属 / 黄铜", "未注明"]
+
 def band(p, edges, labels):
     for e, l in zip(edges, labels):
         if p < e: return l
@@ -153,7 +181,7 @@ def cell_items(rows, rowf, colf, mid, brands=None, sprite=None):
         k = f"{mid}|{rowf(r)}|{colf(r)}"
         out[k].append({"a": r["asin"], "b": brands.get(r["asin"], ""), "i": sprite.get(r["asin"], -1), "p": r["price"], "u": round(r["u"], 1), "pu": round(r.get("pu", 0)),
                        "rt": r["rating"], "rn": r.get("ratings") or "", "t": html.unescape(r.get("title") or "")[:220],
-                       "sku": html.unescape(r.get("sku") or "")[:80], "tg": [n for n, rx in tags if rx.search(r["t"])]})
+                       "sku": html.unescape(r.get("sku") or "")[:80], "tg": (r.get("ex") or []) + [n for n, rx in tags if rx.search(r["t"])]})
     for v in out.values():
         v.sort(key=lambda x: -x["u"])
     return dict(out)

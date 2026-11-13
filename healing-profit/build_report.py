@@ -242,7 +242,13 @@ def _mx(name, keep, rf, cf, R, C):
     MX_ITEMS.update(MX.cell_items(rows, rf, cf, name, MX.load_meta(os.path.join(HERE, "mkt", name + "_meta.csv")), sp))
     return MX.build(rows, rf, cf, R, C), len(rows)
 (_sd, _sn) = _mx("sauna", lambda r: MX.sauna_keep(r["t"]), lambda r: MX.sauna_cap(r["t"]), lambda r: MX.sauna_wood(r["t"]), MX.SAUNA_ROWS, MX.SAUNA_COLS)
-(_td, _tn) = _mx("tandem", lambda r: MX.tandem_keep(r["t"]) and r["price"], lambda r: MX.tandem_row(r["price"]), lambda r: MX.tandem_cfg(r["t"]), MX.TANDEM_ROWS, MX.TANDEM_COLS)
+_TD = MX.load_tandem_detail(os.path.join(HERE, "mkt", "tandem_detail.jsonl"))
+def _tdg(r):
+    v = _TD.get(r.get("parent")) or _TD.get(r["asin"]) or ("未注明", "未注明", None, "")
+    if "ex" not in r:
+        r["ex"] = ([f"材质：{v[3][:60]}"] if v[3] else []) + ([f"可调宽度至 {v[2]:g}″"] if v[2] else []) + [MX.tandem_cfg(r["t"])]
+    return v
+(_td, _tn) = _mx("tandem", lambda r: MX.tandem_keep(r["t"]) and r["price"] and _tdg(r), lambda r: _tdg(r)[0], lambda r: _tdg(r)[1], MX.TANDEM2_ROWS, MX.TANDEM2_COLS)
 (_hd, _hn) = _mx("thermo", lambda r: MX.thermo_keep(r["t"], r["price"]), lambda r: MX.thermo_top(r["t"]), lambda r: MX.thermo_jets(r["t"]), MX.THERMO_ROWS, MX.THERMO_COLS)
 def _m(x): return f"{x*100:.0f}%"
 def _c(x): return "good" if x >= 0.15 else ("warn" if x >= 0 else "bad")
@@ -257,10 +263,10 @@ MX_HTML = (
             {"1 人": {"cells": ["铁杉"], "price": "$1,299", "margin": f"SAD6221-1 {_m(s1m)}<br>SMT-HC103 {_m(hcm)}", "cls": "bad"},
              "1-2 人": {"cells": ["铁杉"], "price": "$1,799", "margin": f"SAD6221-2 {_m(s2m)}", "cls": _c(s2m)}},
             mid="sauna", row_label="容量", footnote="容量、木材按标题识别，标题没写木材的归“其他 / 未注明”；已剔除帐篷 / 便携 / 蒸汽 / 桶形款。利润率为 Amazon FBM，SMT-HC103 按包装 +10%。") +
-  MX.render("Amazon 双人淋浴花洒：价格带 × 配置", f"2026-10 · 卖家精灵 {_tn} 个子体（tandem / two people / couples 词组匹配）· 已剔除带阀门的淋浴系统",
+  MX.render("Amazon 双人淋浴花洒：可调宽度 × 材质", f"2026-10 · 卖家精灵 {_tn} 个子体（tandem / two people / couples 词组匹配）· 已剔除带阀门的淋浴系统",
             _td[0], _td[1], _td[2],
-            {"$120–180": {"cells": ["双头 + 手持"], "price": "$149.99", "margin": _m(dmm), "cls": _c(dmm)}},
-            mid="tandem", row_label="价格带", footnote="利润率为 Amazon FBA，成本 ¥190（1688 参考价）。") +
+            {"61–80″": {"cells": ["ABS + 不锈钢 / 金属"], "price": "$149.99", "margin": _m(dmm), "cls": _c(dmm)}},
+            mid="tandem", row_label="可调宽度", footnote="材质取商品详情页的 Material 字段，可调宽度取卖点里写的最大适配宽度（如 fits 48–78 inch），按父体取一个代表 ASIN 的详情（49 个父体）。我方按 OURBAOFU 同款规格（ABS 花洒头 + 304 不锈钢杆，48–78″）落点。利润率为 Amazon FBA，成本 ¥190（1688 参考价）。") +
   MX.render("Amazon 恒温 / 侧喷淋浴系统：顶喷尺寸 × 侧喷数量", f"2026-10 · 卖家精灵 {_hn} 个子体（thermostatic / body jets 词组匹配）",
             _hd[0], _hd[1], _hd[2],
             {"≤10″": {"cells": ["无侧喷"], "price": "$340", "margin": f"FFS223 {_m(_t('FFS223','mid','fba'))}", "cls": _c(_t('FFS223','mid','fba'))},
@@ -429,9 +435,9 @@ table.mtg tbody th{{white-space:nowrap}}
       <li>单链接效率最高的是 1-2 人“其他 / 未注明”格（26.5 台），其次 4 人+（18.8 台）但评分只有 3.76。</li>
       <li>铁杉占木质房月销 30%，雪松只有 2%，雪松款在 Amazon 卖不动。</li></ul></div>
     <div><b>双人淋浴花洒</b><ul>
-      <li>量在低价：&lt; $80 一行月销 1,742，占 41%，单链接 42–60 个。</li>
-      <li>我们落在 $120–180 × 双头 + 手持：只有 2 个 ASIN、评分 3.93，供给少、口碑有缺口；同价带不带手持的双头款月销 825。</li>
-      <li>$180–250 三头款单链接 63.8 最高，评分 4.4–4.8，是往上走的方向。</li></ul></div>
+      <li>量最大的一格是 81″+ × 不锈钢：月销 1,359、23 个 ASIN，但加权均价只有 $84，是低价走量带。</li>
+      <li>我们落在 61–80″ × ABS + 不锈钢：月销 527、12 个 ASIN、均价 $141、评分 4.45；旁边 61–80″ × 纯不锈钢月销 763、均价 $222、评分 4.63，是往上走的方向。</li>
+      <li>纯 ABS 款很少（合计月销约 130），评分偏低（3.95）；“金属 / 黄铜”61–80″ 一格评分 3.96，有口碑缺口。</li></ul></div>
     <div><b>恒温 / 侧喷系统</b><ul>
       <li>最大的一格是 ≤10″ × 无侧喷：月销 2,727，单链接 105，均价 $233。FFS223 定 $340 比这格均价高 46%，要么配置拉开，要么价格贴近 $250。</li>
       <li>16″ × 6 侧喷：月销 228、30 个 ASIN、均价 $540，F00F41 / F42 定 $650 高于均价且只有 4–8%。</li>
