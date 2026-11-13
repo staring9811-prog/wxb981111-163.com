@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.5.8">
+<meta name="pc-app-version" content="1.5.9">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -1649,6 +1649,9 @@ async function buildFormulaWorkbook(opt={}){
         } else set("name",null);
         ws.getRow(rr).height=gi===0&&withImg&&p.img?44:20;
       }
+      // multi-package product: merge every product-level cell over its package rows (sizes, weights and per-package results stay per row;
+      // 产品# stays on every row because the per-product totals add packages up by it)
+      if(n>1) L.forEach((dd,k)=>{ if(dd.lv==="p") ws.mergeCells(F,k+1,F+n-1,k+1); });
       ws.getRow(row-1).eachCell({includeEmpty:false},c=>{ c.border=Object.assign({},c.border,{bottom:{style:"thin",color:{argb:"FF8FA3B1"}}}); });
       if(withImg&&p.img){ const im=await jpeg(p.img); if(im) ws.addImage(im.id,{tl:{col:0.1,row:F-1+0.06},ext:im.ext,editAs:"oneCell"}); }
     }
