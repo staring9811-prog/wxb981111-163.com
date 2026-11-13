@@ -71,7 +71,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .pieces { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
 .pc { padding: 3px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; width: 72px; }
 .pc img, .pc i { width: 64px; height: 64px; display: block; background: #070605; border-radius: 2px; }
-.pc.on { border-color: var(--lamp); } .pc.sold { opacity: .35; }
+.pc.on { border-color: var(--lamp); }
+.felt { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px; border-radius: 4px; background: #16241f; border: 2px solid #5a4326; } .felt .pc { background: #0f1a16; } .felt .pc .dim { font-size: 11px; } .pc.sold { opacity: .35; }
 .quotes { border-top: 1px dashed var(--line); margin-top: 5px; padding-top: 6px; display: flex; flex-direction: column; gap: 5px; }
 .q i { font-style: normal; color: var(--dim); font-size: 12px; } .q button { font-variant-numeric: tabular-nums; }
 .delta { margin: 0; font-size: 12.5px; }
@@ -116,7 +117,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
           <button data-tool="loupe">放大镜</button>
           <button data-tool="grind">磨头开窗</button>
           <button data-tool="peel">画圈开皮</button>
-          <button data-tool="cut">下刀切割</button>
+          <button data-tool="cut">大锯下刀</button>
+          <button data-tool="saw">小锯取料</button>
         </div>
         <div id="opts"></div>
       </div>
@@ -217,6 +219,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <li><b>原样转手</b>：买得便宜就直接卖，赚差价，不承担开料风险。</li>
     <li><b>画圈开皮</b>：在皮上画一个圈，整片切掉圈里的皮，只剥到刚露肉，不会磨深伤料。想自己控制深浅就用磨头。</li>
     <li><b>开窗</b>：磨掉一小块皮。窗口漂亮时买家会往好处想，这时卖掉常常比继续开更划算。</li>
+    <li><b>小锯取料</b>：料切明了以后，在面上圈出想要的那块（比如一条色带），小锯沿圈锯穿，把它单独取下来；剩下的料还在。色好的小块单独送去做蛋面，比混在大料里值钱。</li>
     <li><b>下刀</b>：在石头上拖一条线就是锯路，任意角度都行；也可以把一个面转到正对自己，按厚度切片。切开的面一目了然，想象空间也没了。</li>
     <li><b>送去做件</b>：你来定做什么（手镯、牌子挂件、蛋面、珠串、雕件）、找谁做、什么题材。一份料的价值主要在能出几只什么档次的镯子；出不了镯子的料，色浓的小块取蛋面，棉多的做山水，裂多的车珠子或让好雕工藏进花件里，垮料也能回血。先下刀把好坏部分分开，再分别送去，比整块交出去值钱。</li>
     <li><b>成品盘</b>：做好的东西摆在托盘里，可以转着看，一件件卖或整盘卖。批发现结约零售的六成，寄卖接近零售但回款慢。盘里还有一个种水与颜色的对照盘可以随时看。</li>

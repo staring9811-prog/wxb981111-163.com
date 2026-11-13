@@ -109,7 +109,7 @@ function genStone(seed, originId, channelId) {
   const r = new Rng(seedOf(seed, 'stone:v1'));
   const O = ORIGINS[originId];
   const st = { seed, origin: originId, channel: channelId };
-  const kg = 0.35 + 5.2 * Math.pow(r.u(), 2.3);
+  const kg = 0.5 + 6.5 * Math.pow(r.u(), 1.8); // 0.5–7 公斤，中等以上的料更常见，够切够做
   const ry = r.range(0.55, 0.85), rz = r.range(0.72, 1.0);
   const a = Math.cbrt(3 * kg / ECON.density * 1e6 / (4 * Math.PI * ry * rz));
   st.rad = [a, a * ry, a * rz];
@@ -264,7 +264,18 @@ function vIndex(vol, x, y, z) {
   return i + vol.nx * (j + vol.ny * k);
 }
 /* 一块料 = 原石体数据 + 若干切面（半空间）。piece.planes = [[nx,ny,nz,d]...]，保留 n·p <= d 的一侧。 */
-function planeD(piece, x, y, z) { let m = -1e9; const P = piece.planes; for (let i = 0; i < P.length; i++) { const v = P[i][0] * x + P[i][1] * y + P[i][2] * z - P[i][3]; if (v > m) m = v; } return m; }
+// holes：被小锯挖走的凸块（每个是一组平面），落在里面的点不属于这块料
+function planeD(piece, x, y, z) {
+  let m = -1e9; const P = piece.planes; for (let i = 0; i < P.length; i++) { const v = P[i][0] * x + P[i][1] * y + P[i][2] * z - P[i][3]; if (v > m) m = v; }
+  const H = piece.holes; if (H) for (let k = 0; k < H.length; k++) { let m2 = -1e9; const Q = H[k]; for (let i = 0; i < Q.length; i++) { const v = Q[i][0] * x + Q[i][1] * y + Q[i][2] * z - Q[i][3]; if (v > m2) m2 = v; } if (-m2 > m) m = -m2; }
+  return m;
+}
+function limitNormal(piece, x, y, z) {
+  let m = -1e9, n = [0, 1, 0]; for (const P of piece.planes) { const v = P[0] * x + P[1] * y + P[2] * z - P[3]; if (v > m) { m = v; n = [P[0], P[1], P[2]]; } }
+  for (const Q of (piece.holes || [])) { let m2 = -1e9, q = null; for (const P of Q) { const v = P[0] * x + P[1] * y + P[2] * z - P[3]; if (v > m2) { m2 = v; q = P; } } if (-m2 > m) { m = -m2; n = [-q[0], -q[1], -q[2]]; } }
+  return n;
+}
+const clipped = piece => piece.planes.length > 0 || (piece.holes && piece.holes.length > 0);
 // 视线拾取：返回 {p, n} 或 null
 function pick(vol, piece, ro, rd, pristine) {
   const ch = pristine ? 0 : 1, mn = [-vol.hx, -vol.hy, -vol.hz], mx = [vol.hx, vol.hy, vol.hz];
@@ -276,7 +287,7 @@ function pick(vol, piece, ro, rd, pristine) {
     const x = ro[0] + rd[0] * t, y = ro[1] + rd[1] * t, z = ro[2] + rd[2] * t;
     const sd = sampleG(vol, ch, x, y, z), pd = planeD(piece, x, y, z), d = Math.max(sd, pd);
     if (d < 0.04) {
-      if (pd > sd - 0.05) { let bi = 0, bv = -1e9; piece.planes.forEach((P, i) => { const v = P[0] * x + P[1] * y + P[2] * z - P[3]; if (v > bv) { bv = v; bi = i; } }); const P = piece.planes[bi]; return { p: [x, y, z], n: [P[0], P[1], P[2]], flat: true }; }
+      if (pd > sd - 0.05) return { p: [x, y, z], n: limitNormal(piece, x, y, z), flat: true };
       const e = 1, n = norm3([sampleG(vol, ch, x + e, y, z) - sampleG(vol, ch, x - e, y, z), sampleG(vol, ch, x, y + e, z) - sampleG(vol, ch, x, y - e, z), sampleG(vol, ch, x, y, z + e) - sampleG(vol, ch, x, y, z - e)]);
       return { p: [x, y, z], n, flat: false };
     }
@@ -326,7 +337,7 @@ function evalPiece(st, vol, piece) {
   for (let k = 0, id = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++, id++) {
     const g1 = g[id * 4 + 1]; if (g1 >= vx * 0.5) continue;
     let c = clamp(0.5 - g1 / vx, 0, 1);
-    if (piece.planes.length) { const pd = planeD(piece, (i + 0.5) * vx - vol.hx, (j + 0.5) * vx - vol.hy, (k + 0.5) * vx - vol.hz); if (pd > vx * 0.5) continue; c *= clamp(0.5 - pd / vx, 0, 1); }
+    if (clipped(piece)) { const pd = planeD(piece, (i + 0.5) * vx - vol.hx, (j + 0.5) * vx - vol.hy, (k + 0.5) * vx - vol.hz); if (pd > vx * 0.5) continue; c *= clamp(0.5 - pd / vx, 0, 1); }
     if (c > 0) { cov[id] = c; nCov++; solidW += c; }
   }
   const s = nCov < 16000 ? 1 : 2, cx = Math.ceil(nx / s), cy = Math.ceil(ny / s), cz = Math.ceil(nz / s), nc = cx * cy * cz, v3 = vx * vx * vx / 1000;
@@ -336,7 +347,7 @@ function evalPiece(st, vol, piece) {
     if (cov[id] <= 0) continue; const b = id * 4, g1 = g[b + 1]; if (g1 >= 0) continue;
     const windowed = g1 > -vx && g1 - g[b] > g[b + 2] + 0.2;
     let cutFace = false;
-    if (!windowed && piece.planes.length && -g[b] > g[b + 2]) cutFace = planeD(piece, (i + 0.5) * vx - vol.hx, (j + 0.5) * vx - vol.hy, (k + 0.5) * vx - vol.hz) > -vx;
+    if (!windowed && clipped(piece) && -g[b] > g[b + 2]) cutFace = planeD(piece, (i + 0.5) * vx - vol.hx, (j + 0.5) * vx - vol.hy, (k + 0.5) * vx - vol.hz) > -vx;
     if (windowed || cutFace) { expVox++; expo[Math.floor(i / s) + cx * (Math.floor(j / s) + cy * Math.floor(k / s))]++; }
   }
   // 3) 估值格
@@ -370,7 +381,7 @@ function evalPiece(st, vol, piece) {
   }
   const sc = v3 * ECON.yield;
   // 4) 手镯位：外径 72、内径 56、厚 9 的无裂圆环。片料只能顺着片面取；整料试三个方向取最好的
-  const fleshAt = (x, y, z) => { if (Math.abs(x) >= vol.hx || Math.abs(y) >= vol.hy || Math.abs(z) >= vol.hz) return false; if (piece.planes.length && planeD(piece, x, y, z) > 0) return false; const b = vIndex(vol, x, y, z) * 4; return g[b + 1] < 0 && -g[b] > g[b + 2]; };
+  const fleshAt = (x, y, z) => { if (Math.abs(x) >= vol.hx || Math.abs(y) >= vol.hy || Math.abs(z) >= vol.hz) return false; if (clipped(piece) && planeD(piece, x, y, z) > 0) return false; const b = vIndex(vol, x, y, z) * 4; return g[b + 1] < 0 && -g[b] > g[b + 2]; };
   const kAt = (x, y, z) => kGrid[clamp(Math.floor((x + vol.hx) / vx / s), 0, cx - 1) + cx * (clamp(Math.floor((y + vol.hy) / vx / s), 0, cy - 1) + cy * clamp(Math.floor((z + vol.hz) / vx / s), 0, cz - 1))];
   function rings(n, useKnown) {
     const res = [], t1 = norm3(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), t2 = cross(n, t1);
@@ -452,7 +463,7 @@ function getVol(rec) {
   let e = volCache.get(rec.seed);
   if (!e) { const st = genStone(rec.seed, rec.origin, rec.channel); const vol = bake(st); e = { st, vol, applied: 0 }; volCache.set(rec.seed, e); }
   const s = rec.strokes || [], clips = rec.clips || [[]];
-  for (; e.applied < s.length; e.applied += 5) carve(e.vol, { planes: clips[s[e.applied + 4]] || [] }, s[e.applied], s[e.applied + 1], s[e.applied + 2], s[e.applied + 3]);
+  for (; e.applied < s.length; e.applied += 5) carve(e.vol, clipPiece(clips[s[e.applied + 4]]), s[e.applied], s[e.applied + 1], s[e.applied + 2], s[e.applied + 3]);
   return e;
 }
 const WHOLE = { id: 0, planes: [] };
@@ -497,7 +508,7 @@ function placeBid(w, L, amount) {
   if (amount - old > w.cash) return { ok: false, msg: '现金不够押这个标。' };
   w.cash += old - amount; L.bid = amount; return { ok: true, msg: `已投标 ${fmt(amount)}，标款先押着，收工后开标。` };
 }
-function newWorld(seed) { const w = { v: 4, seed, day: 1, cash: ECON.startCash, recv: [], stones: [], works: [], items: [], market: [], markets: {}, scene: '夜市地摊', eye: 0, orders: [], ach: {}, news: [], log: [], nextId: 1, over: false }; genMarket(w); fillOrders(w); return w; }
+function newWorld(seed) { const w = { v: 5, seed, day: 1, cash: ECON.startCash, recv: [], stones: [], works: [], items: [], market: [], markets: {}, scene: '夜市地摊', eye: 0, orders: [], ach: {}, news: [], log: [], nextId: 1, over: false }; genMarket(w); fillOrders(w); return w; }
 function sellerWindow(st, vol, r) {
   let best = null; const o = [0, 0, 0, 0], grade = HUES[st.hue].grade;
   for (let i = 0; i < 60; i++) {
@@ -579,7 +590,8 @@ function explain(a, b) {
   if (b.bracelets !== a.bracelets) out.push(`可见手镯位 ${a.bracelets}→${b.bracelets}`);
   return out;
 }
-function clipIndex(s, piece) { const key = JSON.stringify(piece.planes); for (let i = 0; i < s.clips.length; i++) if (JSON.stringify(s.clips[i]) === key) return i; s.clips.push(JSON.parse(key)); return s.clips.length - 1; }
+function clipPiece(c) { return !c ? { planes: [] } : Array.isArray(c) ? { planes: c } : { planes: c.planes, holes: c.holes }; }
+function clipIndex(s, piece) { const key = JSON.stringify({ planes: piece.planes, holes: piece.holes || [] }); for (let i = 0; i < s.clips.length; i++) if (JSON.stringify(Array.isArray(s.clips[i]) ? { planes: s.clips[i], holes: [] } : s.clips[i]) === key) return i; s.clips.push(JSON.parse(key)); return s.clips.length - 1; }
 function grind(w, s, piece, p, n, toolName) {
   const T = TOOLS[toolName], e = getVol(s);
   const c = [p[0] + n[0] * (T.r - T.bite), p[1] + n[1] * (T.r - T.bite), p[2] + n[2] * (T.r - T.bite)].map(v => Math.round(v * 10) / 10);
@@ -603,7 +615,7 @@ function cutPreview(s, piece, n, d) {
   const e = getVol(s), vol = e.vol, { nx, ny, nz, vx, geom: g } = vol; let a = 0, b = 0, area = 0;
   for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     const g1 = g[(i + nx * (j + ny * k)) * 4 + 1]; if (g1 >= 0) continue;
-    const x = (i + 0.5) * vx - vol.hx, y = (j + 0.5) * vx - vol.hy, z = (k + 0.5) * vx - vol.hz; if (piece.planes.length && planeD(piece, x, y, z) > 0) continue;
+    const x = (i + 0.5) * vx - vol.hx, y = (j + 0.5) * vx - vol.hy, z = (k + 0.5) * vx - vol.hz; if (clipped(piece) && planeD(piece, x, y, z) > 0) continue;
     const h = n[0] * x + n[1] * y + n[2] * z - d; if (h > 0) b++; else a++; if (Math.abs(h) < vx / 2) area += vx * vx;
   }
   const k = vx * vx * vx / 1000 * ECON.density;
@@ -618,10 +630,37 @@ function cut(w, s, piece, n, d) {
   if (pv.cost > w.cash) return { ok: false, msg: '现金不够付切工。' };
   w.cash -= pv.cost; s.costs += pv.cost;
   const A = piece.planes.concat([[n[0], n[1], n[2], d - ECON.kerf / 2]]), B = piece.planes.concat([[-n[0], -n[1], -n[2], -d - ECON.kerf / 2]]);
-  const np = { id: s.nextPiece++, sold: false }; np.name = '料' + np.id;
+  const np = { id: s.nextPiece++, sold: false, holes: (piece.holes || []).map(h => h.slice()) }; np.name = '料' + np.id;
   if (pv.a >= pv.b) { piece.planes = A; np.planes = B; } else { piece.planes = B; np.planes = A; }
   s.pieces.push(np); getVol(s).vol.ver++;
   w.log.push({ day: w.day, t: `下刀（#${s.id}）分出 ${np.name}`, amt: -pv.cost });
+  return { ok: true, piece: np, cost: pv.cost };
+}
+// 小锯取料：planes 围成一个凸柱（保留 n·p<=d 的一侧），把柱内的料单独锯下来，其余留在原料上
+function sawPreview(s, piece, planes) {
+  const e = getVol(s), vol = e.vol, { nx, ny, nz, vx, geom: g } = vol; let a = 0, b = 0, edge = 0;
+  for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    if (g[(i + nx * (j + ny * k)) * 4 + 1] >= 0) continue;
+    const x = (i + 0.5) * vx - vol.hx, y = (j + 0.5) * vx - vol.hy, z = (k + 0.5) * vx - vol.hz; if (clipped(piece) && planeD(piece, x, y, z) > 0) continue;
+    let m = -1e9; for (const P of planes) { const v = P[0] * x + P[1] * y + P[2] * z - P[3]; if (v > m) m = v; }
+    if (m <= 0) a++; else b++; if (Math.abs(m) < vx / 2) edge += vx * vx;
+  }
+  const kq = vx * vx * vx / 1000 * ECON.density;
+  return { a: a * kq, b: b * kq, cost: Math.round(40 + edge * ECON.cutArea * 1.6) };
+}
+function saw(w, s, piece, planes) {
+  planes = planes.map(P => { const n = norm3(P); return [Math.round(n[0] * 1e4) / 1e4, Math.round(n[1] * 1e4) / 1e4, Math.round(n[2] * 1e4) / 1e4, Math.round(P[3] * 100) / 100]; });
+  if (planes.length < 3 || planes.length > 6) return { ok: false, msg: '圈得不成形，重新圈一下。' };
+  if ((piece.holes || []).length >= 4) return { ok: false, msg: '这块料已经挖过四处了，先用大锯分开再取。' };
+  if (piece.planes.length + planes.length > 16) return { ok: false, msg: '这块料切面太多，取不下来了。' };
+  const pv = sawPreview(s, piece, planes);
+  if (pv.a < 3) return { ok: false, msg: '圈里几乎没有料。' }; if (pv.b < 3) return { ok: false, msg: '整块都圈进去了，不用锯。' };
+  if (pv.cost > w.cash) return { ok: false, msg: '现金不够付锯工。' };
+  w.cash -= pv.cost; s.costs += pv.cost; const kf = ECON.kerf / 2;
+  const np = { id: s.nextPiece++, sold: false, holes: (piece.holes || []).map(h => h.slice()), planes: piece.planes.concat(planes.map(P => [P[0], P[1], P[2], P[3] - kf])) }; np.name = '料' + np.id;
+  piece.holes = (piece.holes || []).concat([planes.map(P => [P[0], P[1], P[2], P[3] + kf])]);
+  s.pieces.push(np); getVol(s).vol.ver++;
+  w.log.push({ day: w.day, t: `小锯取料（#${s.id}）取出 ${np.name}`, amt: -pv.cost });
   return { ok: true, piece: np, cost: pv.cost };
 }
 function sell(w, s, piece, q) {
@@ -736,6 +775,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sell, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);

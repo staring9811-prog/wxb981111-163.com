@@ -8,7 +8,7 @@ window.JADE_FS = `#version 300 es
 precision highp float; precision highp sampler3D;
 uniform sampler3D uGeom, uMat;
 uniform vec2 uRes; uniform vec3 uCamPos; uniform mat3 uCamRot; uniform float uTan;
-uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[16]; uniform vec4 uCut; uniform float uCutOn;
+uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[16]; uniform int uNHo; uniform vec4 uHo[24]; uniform int uHoN[4]; uniform vec4 uCut; uniform float uCutOn;
 uniform vec3 uSkinCol; uniform float uSkinSig, uSkinGrain, uSkinRel, uWeather, uPhase;
 uniform vec3 uBodyCol, uBandCol, uHueAbs, uFogCol; uniform float uFogT;
 uniform int uNCr; uniform vec4 uCrA[10]; uniform vec4 uCrB[10]; uniform vec4 uCrC[10]; uniform vec3 uCrT[10];
@@ -30,7 +30,12 @@ vec4 M(vec3 p){ return texture(uMat,p/(2.0*uBox)+0.5); }
 // 用小尺度噪声扰动取样位置，让色带边缘呈絮状、丝状，而不是体素的糊边
 vec4 Mw(vec3 p){ vec3 w=vec3(vnoise(p*0.55+11.0),vnoise(p*0.55+37.0),vnoise(p*0.55+71.0))-0.5; return M(p+w*2.2); }
 float sdfOf(vec4 g){ return mix(g.g,g.r,uPristine); }
-float planeD(vec3 p){ float m=-1e9; for(int i=0;i<16;i++){ if(i>=uNPl) break; m=max(m,dot(p,uPl[i].xyz)-uPl[i].w); } return m; }
+float planeD(vec3 p){ float m=-1e9; for(int i=0;i<16;i++){ if(i>=uNPl) break; m=max(m,dot(p,uPl[i].xyz)-uPl[i].w); }
+  for(int h=0;h<4;h++){ if(h>=uNHo) break; float m2=-1e9; for(int j=0;j<6;j++){ if(j>=uHoN[h]) break; m2=max(m2,dot(p,uHo[h*6+j].xyz)-uHo[h*6+j].w); } m=max(m,-m2); }
+  return m; }
+vec3 planeN(vec3 p){ float m=-1e9; vec3 n=vec3(0.,1.,0.); for(int i=0;i<16;i++){ if(i>=uNPl) break; float v=dot(p,uPl[i].xyz)-uPl[i].w; if(v>m){ m=v; n=uPl[i].xyz; } }
+  for(int h=0;h<4;h++){ if(h>=uNHo) break; float m2=-1e9; vec3 q=vec3(0.,1.,0.); for(int j=0;j<6;j++){ if(j>=uHoN[h]) break; float v=dot(p,uHo[h*6+j].xyz)-uHo[h*6+j].w; if(v>m2){ m2=v; q=uHo[h*6+j].xyz; } } if(-m2>m){ m=-m2; n=-q; } }
+  return n; }
 float mapD(vec3 p){ return max(sdfOf(G(p)),planeD(p)); }
 
 vec3 sigT(vec4 m){ float b=max(0.005,0.42*exp(-4.6*m.g)); // 豆 0.27 → 冰 0.02 → 玻璃 0.005，每毫米
@@ -79,7 +84,7 @@ bool trace(vec3 ro, vec3 rd, out vec3 p, out vec3 n, out float flat_){
   // 二分细化交点，让轮廓和窗口边缘更干净
   float ta=tp, tb=t; for(int i=0;i<5;i++){ float tm=0.5*(ta+tb); if(mapD(ro+rd*tm)<0.0) tb=tm; else ta=tm; }
   p=ro+rd*tb; sd=sdfOf(G(p)); pd=planeD(p);
-  if(pd>sd-0.06){ float m=-1e9; for(int i=0;i<16;i++){ if(i>=uNPl) break; float v=dot(p,uPl[i].xyz)-uPl[i].w; if(v>m){ m=v; n=uPl[i].xyz; } } flat_=1.0; }
+  if(pd>sd-0.06){ n=planeN(p); flat_=1.0; }
   else n=calcN(p);
   return true; }
 float softShadow(vec3 p, vec3 l){ float res=1.0, t=2.5; for(int i=0;i<10;i++){ float d=mapD(p+l*t); res=min(res,7.0*d/t); t+=clamp(d,1.5,7.0); if(res<0.02||t>70.0) break; } return clamp(res,0.0,1.0); }
