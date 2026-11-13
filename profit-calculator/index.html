@@ -1,5 +1,5 @@
 <title>利润测算台</title>
-<meta name="pc-app-version" content="1.5.5">
+<meta name="pc-app-version" content="1.5.6">
 <meta name="pc-data-schema" content="1">
 <script>
 (()=>{let theme=null;try{const v=localStorage.getItem("pc_theme");if(v==="dark"||v==="light")theme=v;}catch(e){}if(theme)document.documentElement.dataset.theme=theme;})();
@@ -1670,6 +1670,19 @@ async function exportFormulaXlsx(){
   catch(e){ toast("导出失败："+(e.message||e)); }
   finally{ btn.disabled=false; btn.textContent=t0; } }
 document.getElementById("btnExportF").addEventListener("click",exportFormulaXlsx);
+/* 历史库：把某个保存的版本导出成带公式的利润 Excel（用那个版本自己的产品和参数，不改动当前测算） */
+async function exportVersionXlsx(it,btn){
+  if(!it||!Array.isArray(it.products)||!it.products.length){ toast("这个版本里没有产品"); return; }
+  const t0=btn.textContent; btn.disabled=true; btn.textContent="生成中…";
+  const keepP=P, keepProducts=products; let wb=null;
+  try{ await loadExcelJS();
+    try{ P=Object.assign(defaultParams(),clone(it.params||{})); products=clone(it.products); migrate(); wb=await buildFormulaWorkbook(); }
+    finally{ P=keepP; products=keepProducts; }
+    const buf=await wb.xlsx.writeBuffer();
+    await offer(`${String(it.name||"历史版本").replace(/[\\/:*?"<>|]/g,"_")}_利润测算_${stamp()}.xlsx`,new Uint8Array(buf),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    toast(`已导出“${it.name}”的利润 Excel（带公式，黄色格子可改）`); }
+  catch(e){ toast("导出失败："+(e.message||e)); }
+  finally{ btn.disabled=false; btn.textContent=t0; } }
 
 document.getElementById("btnExport").addEventListener("click",()=>{
   const R=products.map(p=>({p,r:calcProduct(p)})); const wb=XLSX.utils.book_new(); const r2=v=>isFinite(v)?Math.round(v*100)/100:"";
@@ -2036,7 +2049,7 @@ function renderS5(){
     <td class="c">${esc(it.count)}</td>
     <td style="max-width:320px;white-space:normal" class="note">${esc((it.names||[]).join("、"))}</td>
     <td class="n">${esc(it.params&&it.params.rate)}</td>
-    <td class="c" style="white-space:nowrap"><button class="btn sm" data-hact="open" data-id="${esc(it.id)}">打开</button> <button class="btn sm" data-hact="overwrite" data-id="${esc(it.id)}" title="把当前测算存进这个版本，并把它设为当前版本">用当前覆盖</button> <button class="btn sm" data-hact="json" data-id="${esc(it.id)}">导出.json</button> <button class="btn sm danger" data-hact="del" data-id="${esc(it.id)}">删除</button></td>
+    <td class="c" style="white-space:nowrap"><button class="btn sm" data-hact="open" data-id="${esc(it.id)}">打开</button> <button class="btn sm" data-hact="overwrite" data-id="${esc(it.id)}" title="把当前测算存进这个版本，并把它设为当前版本">用当前覆盖</button> <button class="btn sm primary" data-hact="xlsx" data-id="${esc(it.id)}" title="把这个版本导出成带公式的利润 Excel：一个渠道一张表，尺寸、成本、售价、比例都能改，利润自动重算">导出利润Excel</button> <button class="btn sm" data-hact="json" data-id="${esc(it.id)}">导出.json</button> <button class="btn sm danger" data-hact="del" data-id="${esc(it.id)}">删除</button></td>
   </tr>`).join("")}</tbody></table>`;
 }
 
@@ -2047,6 +2060,7 @@ ht.addEventListener("click",e=>{ const b=e.target.closest("[data-hact]"); if(!b)
   if(act==="open"){ if(confirm2("替换当前测算?")) histOpen(id); }
   if(act==="overwrite"){ if(confirm2("确认覆盖?")){ const now=Date.now(); histUpdate(id,Object.assign({savedAtMs:now,savedAt:new Date(now).toISOString()},snapshot())).then(ok=>{ if(ok){ setCur({id,name:it.name,sig:sigOf()}); toast("已覆盖："+it.name); } }); } }
   if(act==="del"){ if(confirm2("确认删除?")) histDelete(id); }
+  if(act==="xlsx"){ exportVersionXlsx(it,b); return; }
   if(act==="json") offer(`${it.name.replace(/[\\/:*?"<>|]/g,"_")}.json`,JSON.stringify({version:1,name:it.name,savedAt:it.savedAt,params:it.params,products:it.products},null,1),"application/json");
 });
 initHistory();
