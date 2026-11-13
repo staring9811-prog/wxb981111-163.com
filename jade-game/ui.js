@@ -41,7 +41,7 @@ const Snd = (() => { let ac = null, on = true; const ctx = () => { if (!ac) try 
 
 /* ---------- 状态 ---------- */
 let W = null;
-const V = { mode: null, rec: null, piece: null, e: null, tool: 'rotate', burr: '中磨头', torch: { on: false, p: null, n: null, rake: false }, room: true, lens: null, cut: null, cutT: 12, section: 0, msg: '', note: '', wk: { route: 'bracelet', master: '平洲镯师', theme: '师傅定' }, ref: false, sel: null, cab: false };
+const V = { mode: null, rec: null, piece: null, e: null, tool: 'rotate', burr: '中磨头', torch: { on: false, p: null, n: null, rake: false, tilt: 0, az: 0, h: 0 }, room: true, lens: null, cut: null, cutT: 12, section: 0, msg: '', note: '', wk: { route: 'bracelet', master: '平洲镯师', theme: '师傅定' }, ref: false, sel: null, cab: false };
 const cam = { yaw: 0.6, pitch: 0.35, dist: 300, t: [0, 0, 0] };
 const Q = { scale: 1, fast: 0.45, K: 16, tuned: false };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
@@ -86,25 +86,31 @@ function render(scale, forceSize) {
   const sk = st.skin, H = C.HUES[st.hue];
   gl.uniform3fv(u('uSkinCol'), sk.col); gl.uniform1f(u('uSkinSig'), sk.sig); gl.uniform1f(u('uSkinGrain'), sk.grain); gl.uniform1f(u('uSkinRel'), C.ORIGINS[st.origin].rel); gl.uniform1f(u('uWeather'), sk.weather); gl.uniform1f(u('uPhase'), sk.phase);
   gl.uniform3fv(u('uBodyCol'), C.BODIES[st.body]); gl.uniform3fv(u('uBandCol'), H.band); gl.uniform3fv(u('uHueAbs'), H.abs); gl.uniform3fv(u('uFogCol'), st.fog.col); gl.uniform1f(u('uFogT'), st.fog.t);
-  const A = new Float32Array(24), B = new Float32Array(24), Cc = new Float32Array(24), Tt = new Float32Array(18);
-  st.cracks.forEach((c, i) => { A.set([c.c[0], c.c[1], c.c[2], c.R], i * 4); B.set([c.n[0], c.n[1], c.n[2], c.open], i * 4); Cc.set([c.warp, c.freq, c.phase, c.skinVis], i * 4); Tt.set(c.t1, i * 3); });
-  gl.uniform1i(u('uNCr'), st.cracks.length); gl.uniform4fv(u('uCrA'), A); gl.uniform4fv(u('uCrB'), B); gl.uniform4fv(u('uCrC'), Cc); gl.uniform3fv(u('uCrT'), Tt);
+  const A = new Float32Array(40), B = new Float32Array(40), Cc = new Float32Array(40), Tt = new Float32Array(30);
+  st.cracks.slice(0, 10).forEach((c, i) => { A.set([c.c[0], c.c[1], c.c[2], c.R], i * 4); B.set([c.n[0], c.n[1], c.n[2], c.open], i * 4); Cc.set([c.warp, c.freq, c.phase, c.skinVis], i * 4); Tt.set(c.t1, i * 3); });
+  gl.uniform1i(u('uNCr'), Math.min(10, st.cracks.length)); gl.uniform4fv(u('uCrA'), A); gl.uniform4fv(u('uCrB'), B); gl.uniform4fv(u('uCrC'), Cc); gl.uniform3fv(u('uCrT'), Tt);
   const T = V.torch;
   if (T.on && T.p) {
     const p = T.p, n = T.n, skinT = C.sampleG(vol, 2, p[0], p[1], p[2]), depth0 = -C.sampleG(vol, 0, p[0], p[1], p[2]);
     const onFlesh = depth0 > skinT - 0.2, left = Math.max(0, skinT - Math.max(0, depth0)), inset = onFlesh ? 0.6 : left + 0.6, entry = onFlesh ? 1 : Math.max(0.02, Math.exp(-sk.sig * left));
     const dn = b.r[0] * n[0] + b.r[1] * n[1] + b.r[2] * n[2]; let tan = [b.r[0] - n[0] * dn, b.r[1] - n[1] * dn, b.r[2] - n[2] * dn];
     const tl = Math.hypot(tan[0], tan[1], tan[2]) || 1; tan = tan.map(v => v / tl);
-    const dir = T.rake ? [-n[0] * 0.35 + tan[0] * 0.94, -n[1] * 0.35 + tan[1] * 0.94, -n[2] * 0.35 + tan[2] * 0.94] : [-n[0], -n[1], -n[2]];
-    gl.uniform4f(u('uTorch'), p[0] - n[0] * inset, p[1] - n[1] * inset, p[2] - n[2] * inset, 28 * entry * (T.rake ? 0.45 : 1));
+    const t2 = [n[1] * tan[2] - n[2] * tan[1], n[2] * tan[0] - n[0] * tan[2], n[0] * tan[1] - n[1] * tan[0]];
+    const th = T.tilt * Math.PI / 180, ph = T.az * Math.PI / 180, sT = Math.sin(th), cT = Math.cos(th), H = T.h;
+    const side = [tan[0] * Math.cos(ph) + t2[0] * Math.sin(ph), tan[1] * Math.cos(ph) + t2[1] * Math.sin(ph), tan[2] * Math.cos(ph) + t2[2] * Math.sin(ph)];
+    const dir = [-n[0] * cT + side[0] * sT, -n[1] * cT + side[1] * sT, -n[2] * cT + side[2] * sT];   // 光射入的方向
+    const lamp = [p[0] - dir[0] * (H + 2.5), p[1] - dir[1] * (H + 2.5), p[2] - dir[2] * (H + 2.5)];  // 灯头位置
+    // 贴着压灯光全进去；抬高或放斜，进去的少、洒在表面的多
+    gl.uniform4f(u('uTorch'), p[0] - n[0] * inset, p[1] - n[1] * inset, p[2] - n[2] * inset, 28 * entry * Math.pow(cT, 0.6) / (1 + (H / 9) * (H / 9)));
     gl.uniform3fv(u('uTorchDir'), dir); gl.uniform3fv(u('uTorchSurf'), p);
-    if (T.rake) { gl.uniform3f(u('uRakePos'), p[0] + n[0] * 9 - tan[0] * 22, p[1] + n[1] * 9 - tan[1] * 22, p[2] + n[2] * 9 - tan[2] * 22); gl.uniform1f(u('uRakeFall'), 1600); gl.uniform1f(u('uRakeI'), 3.2); }
-    else { gl.uniform3f(u('uRakePos'), p[0] + n[0] * 3, p[1] + n[1] * 3, p[2] + n[2] * 3); gl.uniform1f(u('uRakeFall'), 40); gl.uniform1f(u('uRakeI'), 0.6); }
+    gl.uniform3fv(u('uRakePos'), lamp); gl.uniform1f(u('uRakeFall'), 30 + H * H * 5 + sT * 1400); gl.uniform1f(u('uRakeI'), 0.5 + 2.0 * sT + Math.min(1.1, H * 0.04));
+    T.spread = 260 * (1 + H / 12);
+    gl.uniform3fv(u('uLampA'), lamp); gl.uniform3f(u('uLampB'), lamp[0] - dir[0] * 42, lamp[1] - dir[1] * 42, lamp[2] - dir[2] * 42); gl.uniform1f(u('uLampOn'), forceSize ? 0 : 1);
     const v = [p[0] - b.pos[0], p[1] - b.pos[1], p[2] - b.pos[2]], z = v[0] * b.f[0] + v[1] * b.f[1] + v[2] * b.f[2];
     const vis = Math.max(0, -(n[0] * b.f[0] + n[1] * b.f[1] + n[2] * b.f[2]));
-    gl.uniform3f(u('uGlare'), w / 2 + (v[0] * b.r[0] + v[1] * b.r[1] + v[2] * b.r[2]) / z / TANF * h / 2, h / 2 + (v[0] * b.up[0] + v[1] * b.up[1] + v[2] * b.up[2]) / z / TANF * h / 2, forceSize ? 0 : vis * (T.rake ? 0.03 : 0.06) * Math.sqrt(entry));
-  } else { gl.uniform4f(u('uTorch'), 0, 0, 0, 0); gl.uniform3f(u('uGlare'), 0, 0, 0); }
-  gl.uniform1f(u('uSpread'), 260); gl.uniform1f(u('uAmbient'), V.room ? 1 : 0.06);
+    gl.uniform3f(u('uGlare'), w / 2 + (v[0] * b.r[0] + v[1] * b.r[1] + v[2] * b.r[2]) / z / TANF * h / 2, h / 2 + (v[0] * b.up[0] + v[1] * b.up[1] + v[2] * b.up[2]) / z / TANF * h / 2, forceSize ? 0 : vis * 0.06 * Math.sqrt(entry) * (0.4 + 0.6 * cT) / (1 + H / 15));
+  } else { gl.uniform4f(u('uTorch'), 0, 0, 0, 0); gl.uniform3f(u('uGlare'), 0, 0, 0); gl.uniform1f(u('uLampOn'), 0); }
+  gl.uniform1f(u('uSpread'), (T.on && T.spread) || 260); gl.uniform1f(u('uAmbient'), V.room ? 1 : 0.06);
   if (V.lens && !forceSize) { const R = Math.min(w, h) * 0.2; gl.uniform4f(u('uLens'), (V.lens.x - rect.left) / rect.width * w, (1 - (V.lens.y - rect.top) / rect.height) * h, R, 3.2); } else gl.uniform4f(u('uLens'), 0, 0, 0, 1);
   const cutOn = V.cut && V.tool === 'cut' && V.mode === 'own' && !forceSize;
   gl.uniform1f(u('uCutOn'), cutOn ? 1 : 0); if (cutOn) gl.uniform4f(u('uCut'), V.cut.n[0], V.cut.n[1], V.cut.n[2], V.cut.d);
@@ -259,7 +265,7 @@ function renderSide() {
 }
 const HINTS = {
   rotate: '拖动转石头，滚轮或双指缩放。右键拖动在任何工具下都能转。',
-  torch: '点或拖到石头上压灯，灯会留在原处；转到别的角度看光从哪里透出来。',
+  torch: '点或拖到石头上放灯，灯会留在原处。贴着压（离皮 0、倾斜 0）光进得最深；放斜贴着皮扫，裂和起伏最明显；抬高是照表面。',
   loupe: '移动放大镜看皮壳颗粒、松花、细裂和玉肉晶粒。可以和手电一起用。',
   grind: '在石头上拖动磨皮开窗。同一处来回磨会越磨越深，磨掉的料回不来。',
   peel: '在石头上画一个圈，圈里的皮会被整片切掉，只剥到刚露肉，不伤里面的料。圈越大切工越贵，想象空间也越少。',
@@ -274,7 +280,7 @@ function renderTools() {
   document.querySelectorAll('#tools button[data-tool]').forEach(b => { b.setAttribute('aria-pressed', b.dataset.tool === V.tool); b.disabled = ((b.dataset.tool === 'grind' || b.dataset.tool === 'cut' || b.dataset.tool === 'peel') && !own) || (tray && b.dataset.tool !== 'rotate'); });
   let o = '';
   if (V.mode === 'review') o += `<label for="sec">剖面高度</label><input id="sec" type="range" min="${(-V.e.vol.hy).toFixed(0)}" max="${V.e.vol.hy.toFixed(0)}" step="0.5" value="${V.section}"><span class="dim">复盘：这是石头原本的内部</span>`;
-  else if (V.tool === 'torch') o += `<button data-act="rake" aria-pressed="${V.torch.rake}">斜照</button><button data-act="toff" ${V.torch.on ? '' : 'disabled'}>关灯</button>`;
+  else if (V.tool === 'torch') o += `<label for="tTilt">倾斜 <b id="tTiltV">${V.torch.tilt}</b>°</label><input id="tTilt" type="range" min="0" max="85" step="5" value="${V.torch.tilt}"><label for="tAz">朝向</label><input id="tAz" type="range" min="0" max="360" step="15" value="${V.torch.az}"><label for="tH">离皮 <b id="tHV">${V.torch.h}</b> mm</label><input id="tH" type="range" min="0" max="60" step="2" value="${V.torch.h}"><button data-act="toff" ${V.torch.on ? '' : 'disabled'}>关灯</button>`;
   else if (V.tool === 'grind') o += Object.keys(C.TOOLS).map(k => `<button data-act="burr" data-k="${k}" aria-pressed="${V.burr === k}">${k}</button>`).join('');
   else if (V.tool === 'cut' && own) {
     o += `<label for="cutT">片厚 <b id="cutV">${V.cutT}</b> mm</label><input id="cutT" type="range" min="3" max="60" step="1" value="${V.cutT}"><button data-act="cview">从正对我的面切这么厚</button>`;
@@ -303,8 +309,8 @@ function buildAtlas() {
   if (atlasDone) return; atlasDone = true;
   const keep = { mode: V.mode, rec: V.rec, piece: V.piece, e: V.e, torch: V.torch, room: V.room, lens: V.lens, cam: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist, t: cam.t } };
   const mk = () => { const st = C.genStone(424242, '木那', '二级供应商'); st.feats = []; st.cracks = []; st.dirt = []; st.shift = null; st.wVar = 0; st.cot = 0.08; st.planes = []; st.fog = { t: 0, col: [1, 1, 1] }; st.body = '白底'; return st; };
-  const shot = (st, vol, torch) => { V.mode = 'own'; V.rec = null; V.piece = C.WHOLE; V.e = { st, vol }; V.lens = null; V.room = !torch; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; cam.dist = Math.max(vol.hx, vol.hy, vol.hz) * 3.9; V.torch = { on: false, p: null, n: null, rake: false };
-    if (torch) { const b = camBasis(), h = C.pick(vol, C.WHOLE, b.pos, b.f); if (h) V.torch = { on: true, p: h.p, n: h.n, rake: false }; }
+  const shot = (st, vol, torch) => { V.mode = 'own'; V.rec = null; V.piece = C.WHOLE; V.e = { st, vol }; V.lens = null; V.room = !torch; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; cam.dist = Math.max(vol.hx, vol.hy, vol.hz) * 3.9; V.torch = { on: false, p: null, n: null, rake: false, tilt: 0, az: 0, h: 0 };
+    if (torch) { const b = camBasis(), h = C.pick(vol, C.WHOLE, b.pos, b.f); if (h) V.torch = { on: true, p: h.p, n: h.n, rake: false, tilt: 0, az: 0, h: 0 }; }
     render(1, 168); return canvas.toDataURL('image/jpeg', 0.85); };
   try {
     const st = mk(); st.w0 = 0.4; st.skin = Object.assign({}, st.skin, { t: 2 }); const vol = C.bake(st, 44); let h = '';
@@ -397,6 +403,7 @@ document.addEventListener('input', ev => {
   if (ev.target.id === 'cutT') { V.cutT = +ev.target.value; $('#cutV').textContent = V.cutT; if (V.cut && V.cut.fromView) { V.cut.d = V.cut.base - V.cutT; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d); renderTools(); } invalidate(true); }
   if (ev.target.id === 'gW' || ev.target.id === 'gC' || ev.target.id === 'gK') { const s = V.rec, w = $('#gW').value; s.guess = w === '' ? null : { water: +w, color: $('#gC').value, crack: $('#gK').value }; save(); }
   if (ev.target.id === 'wkRoute' || ev.target.id === 'wkMaster' || ev.target.id === 'wkTheme') { V.wk[{ wkRoute: 'route', wkMaster: 'master', wkTheme: 'theme' }[ev.target.id]] = ev.target.value; renderSide(); }
+  if (ev.target.id === 'tTilt' || ev.target.id === 'tAz' || ev.target.id === 'tH') { V.torch.tilt = +$('#tTilt').value; V.torch.az = +$('#tAz').value; V.torch.h = +$('#tH').value; $('#tTiltV').textContent = V.torch.tilt; $('#tHV').textContent = V.torch.h; invalidate(true); }
   if (ev.target.id === 'sec') { V.section = +ev.target.value; invalidate(true); }
 });
 const ptrs = new Map(); let drag = null, lastCarve = null, strokeCost = 0; const lineEl = $('#cutline');

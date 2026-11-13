@@ -146,6 +146,15 @@ function genStone(seed, originId, channelId) {
     const n = r.dir(), d = r.dir(), cr = r.range(0, 0.7);
     st.cracks.push({ c: [d[0] * st.rad[0] * cr, d[1] * st.rad[1] * cr, d[2] * st.rad[2] * cr], n, t1: norm3(cross(n, [0.31, 0.87, 0.38])), R: a * r.range(0.25, 1.1), warp: r.range(0.5, 3), freq: r.range(0.03, 0.09), phase: r.range(0, TAU), open: r.chance(0.7) ? 1 : 0.2, skinVis: r.chance(S.sig > 1 ? 0.35 : 0.65) ? 1 : 0 });
   }
+  { // 分叉：主裂上岔出去的小裂
+    const rb = new Rng(seedOf(seed, 'branch')), base = st.cracks.slice();
+    for (const c of base) { if (st.cracks.length >= 10) break; const nb = rb.chance(0.65) ? (rb.chance(0.35) ? 2 : 1) : 0;
+      for (let k = 0; k < nb && st.cracks.length < 10; k++) {
+        const t2 = cross(c.n, c.t1), ang = rb.range(0, TAU), rr = c.R * rb.range(0.25, 0.7), dir = [c.t1[0] * Math.cos(ang) + t2[0] * Math.sin(ang), c.t1[1] * Math.cos(ang) + t2[1] * Math.sin(ang), c.t1[2] * Math.cos(ang) + t2[2] * Math.sin(ang)];
+        const tilt = rb.range(0.4, 0.95) * (rb.chance(0.5) ? 1 : -1), n = norm3([c.n[0] * Math.cos(tilt) + dir[0] * Math.sin(tilt), c.n[1] * Math.cos(tilt) + dir[1] * Math.sin(tilt), c.n[2] * Math.cos(tilt) + dir[2] * Math.sin(tilt)]), R = c.R * rb.range(0.25, 0.5);
+        st.cracks.push({ c: [c.c[0] + dir[0] * rr + n[0] * 0, c.c[1] + dir[1] * rr, c.c[2] + dir[2] * rr], n, t1: norm3(cross(n, [0.31, 0.87, 0.38])), R, warp: c.warp * 0.7, freq: c.freq * 1.6, phase: rb.range(0, TAU), open: c.open > 0.5 ? (rb.chance(0.7) ? 1 : 0.2) : 0.2, skinVis: c.skinVis, branch: 1 });
+      } }
+  }
   st.cot = clamp(0.3 + 0.2 * r.norm(), 0, 0.9) * (1 - st.w0 * 0.5); st.cotSeed = r.int(1, 1e6);
   st.dirt = []; const nd = r.chance(O.crack > 45 ? 0.55 : 0.3) ? r.int(1, 2) : 0;
   for (let i = 0; i < nd; i++) {
@@ -171,6 +180,8 @@ function crackG(c, x, y, z, out) {
   const t2x = n[1] * t1[2] - n[2] * t1[1], t2y = n[2] * t1[0] - n[0] * t1[2], t2z = n[0] * t1[1] - n[1] * t1[0];
   const a = qx * t1[0] + qy * t1[1] + qz * t1[2], b = qx * t2x + qy * t2y + qz * t2z;
   h += c.warp * (Math.sin(a * c.freq + c.phase) + Math.sin(b * c.freq * 1.37 + c.phase * 2.1)) * 0.5;
+  const z1 = a * c.freq * 1.9 + c.phase, z2 = b * c.freq * 2.3 - c.phase; // 折线状的锯齿：裂不是光滑的面
+  h += c.warp * 0.35 * ((Math.abs(z1 - Math.floor(z1) - 0.5) * 4 - 1) + 0.6 * (Math.abs(z2 - Math.floor(z2) - 0.5) * 4 - 1));
   const R = c.R * (1 + 0.18 * Math.sin(Math.atan2(b, a) * 3 + c.phase));
   out[0] = h; out[1] = 1 - sstep(R * 0.85, R, r);
 }

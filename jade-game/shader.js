@@ -11,7 +11,8 @@ uniform vec2 uRes; uniform vec3 uCamPos; uniform mat3 uCamRot; uniform float uTa
 uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[16]; uniform vec4 uCut; uniform float uCutOn;
 uniform vec3 uSkinCol; uniform float uSkinSig, uSkinGrain, uSkinRel, uWeather, uPhase;
 uniform vec3 uBodyCol, uBandCol, uHueAbs, uFogCol; uniform float uFogT;
-uniform int uNCr; uniform vec4 uCrA[6]; uniform vec4 uCrB[6]; uniform vec4 uCrC[6]; uniform vec3 uCrT[6];
+uniform int uNCr; uniform vec4 uCrA[10]; uniform vec4 uCrB[10]; uniform vec4 uCrC[10]; uniform vec3 uCrT[10];
+uniform vec3 uLampA, uLampB; uniform float uLampOn;
 uniform vec4 uTorch; uniform vec3 uTorchDir, uTorchSurf, uRakePos; uniform float uRakeFall, uRakeI, uSpread;
 uniform vec3 uGlare; // 手电接触点的屏幕位置 xy（像素）与可见强度
 uniform float uAmbient; uniform vec4 uLens; uniform int uK; uniform float uHi;
@@ -41,9 +42,20 @@ float crG(int i, vec3 p, out float ins){
   vec3 d=p-uCrA[i].xyz; vec3 n=uCrB[i].xyz; float h=dot(d,n); vec3 q=d-n*h; float r=length(q);
   vec3 t1=uCrT[i]; vec3 t2=cross(n,t1); float a=dot(q,t1), b=dot(q,t2);
   h+=uCrC[i].x*(sin(a*uCrC[i].y+uCrC[i].z)+sin(b*uCrC[i].y*1.37+uCrC[i].z*2.1))*0.5;
+  h+=uCrC[i].x*0.35*((abs(fract(a*uCrC[i].y*1.9+uCrC[i].z)-0.5)*4.0-1.0)+0.6*(abs(fract(b*uCrC[i].y*2.3-uCrC[i].z)-0.5)*4.0-1.0));
   float R=uCrA[i].w*(1.0+0.18*sin(atan(b,a)*3.0+uCrC[i].z)); ins=1.0-smoothstep(R*0.85,R,r); return h; }
+// 裂在表面上的样子：细碎锯齿、粗细不一、时断时续，旁边带几丝羽裂。返回 x=主线 y=晕
+vec2 crLook(int i, vec3 p, float h, float ins){
+  float ph=uCrC[i].z; float n1=vnoise(p*0.33+ph), n2=vnoise(p*1.25+ph*1.7), n3=vnoise(p*0.11+ph*0.3);
+  float hh=h+(n2-0.5)*0.9+(vnoise(p*3.1+ph)-0.5)*0.25;
+  float wd=mix(0.07,0.62,n1*n1)*mix(0.6,1.0,uCrB[i].w);
+  float gap=smoothstep(0.18,0.36,n3+0.25*n1);                    // 有的段合上了，看不见
+  float main=(1.0-smoothstep(wd*0.35,wd,abs(hh)))*gap;
+  float off=0.9+2.2*n3; float fe=(1.0-smoothstep(0.03,0.13,abs(abs(hh)-off)))*smoothstep(0.55,0.75,vnoise(p*0.45+ph+5.0))*0.5; // 羽裂
+  float halo=(1.0-smoothstep(0.3,1.2+2.2*n1,abs(hh)))*(0.35+0.65*n3)*gap;
+  return vec2(max(main,fe),halo)*ins; }
 float segT(vec3 A, vec3 B){ float T=1.0;
-  for(int i=0;i<6;i++){ if(i>=uNCr) break; float ia,ib; float ga=crG(i,A,ia), gb=crG(i,B,ib);
+  for(int i=0;i<10;i++){ if(i>=uNCr) break; float ia,ib; float ga=crG(i,A,ia), gb=crG(i,B,ib);
     if(ga*gb<0.0){ float t=ga/(ga-gb); T*=1.0-mix(ia,ib,t)*uCrB[i].w*0.80; } }
   return T; }
 vec3 fluence(vec3 s){
@@ -108,9 +120,8 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     col=mix(col,col*1.22+0.04,mang*0.5);
     col=mix(col,vec3(0.05,0.06,0.05),smoothstep(0.2,0.6,max(b1.a,b2.a))*0.8*uSkinRel);
     float crk=0.0; // 到皮的裂：明显的是黑线带锈边，隐蔽的只是一条细发丝
-    for(int i=0;i<6;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); float vis=mix(0.38,1.0,uCrC[i].w)*uCrB[i].w*ins;
-      col=mix(col,col*vec3(1.15,0.72,0.5),(1.0-smoothstep(0.5,2.2,abs(h)))*vis*0.45);
-      float l=(1.0-smoothstep(0.14,mix(0.45,0.80,uCrC[i].w),abs(h)))*vis; col*=1.0-0.85*l; crk=max(crk,l); }
+    for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); if(ins<0.01||abs(h)>5.0) continue; float vis=mix(0.38,1.0,uCrC[i].w)*uCrB[i].w;
+      vec2 lk=crLook(i,p,h,ins)*vis; col=mix(col,col*vec3(1.15,0.70,0.48),lk.y*0.5); col*=1.0-0.88*lk.x; crk=max(crk,lk.x); }
     // 凹凸：对高度场做有限差分
     float e=0.35; float h0=skinH(p,gf);
     vec3 gh=vec3(skinH(p+vec3(e,0,0),gf),skinH(p+vec3(0,e,0),gf),skinH(p+vec3(0,0,e),gf))-h0;
@@ -131,9 +142,9 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   vec3 x=p-n*mix(skinT+0.4,0.05,flesh);
   vec3 tint=mix(vec3(1.0),uSkinCol/max(max(uSkinCol.r,uSkinCol.g),uSkinCol.b),0.7);
   vec3 T0=mix(exp(-uSkinSig*skinT)*tint,vec3(1.0),flesh);
-  vec3 T=T0, acc=vec3(0.0); float dt=0.40, trav=0.0; float gp[6];
+  vec3 T=T0, acc=vec3(0.0); float dt=0.40, trav=0.0; float gp[10];
   x+=dir*dt*(ign(gl_FragCoord.xy)-0.5)*0.9*flesh;   // 抖动起点，消除分层条纹
-  for(int i=0;i<6;i++){ float ins; gp[i]=i<uNCr?crG(i,x,ins):1.0; }
+  for(int i=0;i<10;i++){ float ins; gp[i]=i<uNCr?crG(i,x,ins):1.0; }
   float ambL=uAmbient*(0.42+0.58*max(dot(nf,keyL),0.0)*mix(1.0,sh,0.6))*mix(1.0,ao,0.5);
   vec3 ambC=mix(vec3(1.0),uKeyCol,0.85); // 场景灯光的颜色会改变你看到的色：黄灯下绿显得更浓
   for(int k=0;k<18;k++){ if(k>=uK) break;
@@ -147,14 +158,14 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.62,0.26,m.g)),flesh)*ambL*exp(-sg*trav*0.5);
     if(uTorch.w>0.0) Lin+=fluence(s);
     vec3 xe=x+dir*dt;
-    for(int i=0;i<6;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);
+    for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);
       if(h*gp[i]<0.0&&ins>0.3){ float op=uCrB[i].w; vec3 gl=T0*ambL*0.5; if(uTorch.w>0.0) gl+=fluence(xe); acc+=T*gl*op*0.45; T*=1.0-0.5*op; }
       gp[i]=h; }
     acc+=T*al*sc*dt*Lin; T*=exp(-sg*dt); x=xe; trav+=dt; dt*=1.19;
   }
   float line=0.0, halo=0.0; // 露肉面上的裂：一条暗线，两侧发白起雾，大裂带锈色
-  for(int i=0;i<6;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); float o=ins*uCrB[i].w;
-    line=max(line,(1.0-smoothstep(0.10,0.50,abs(h)))*o); halo=max(halo,(1.0-smoothstep(0.4,2.4,abs(h)))*o); }
+  for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); if(ins<0.01||abs(h)>5.0) continue;
+    vec2 lk=crLook(i,p,h,ins)*uCrB[i].w; line=max(line,lk.x); halo=max(halo,lk.y); }
   acc=mix(acc,acc*vec3(1.0,0.86,0.70)+vec3(0.10,0.095,0.085)*uAmbient,halo*0.55*flesh);
   acc*=1.0-0.80*line*flesh;
   if(flat_>0.5) acc*=1.0+0.035*sin(dot(p,uCamRot[0])*5.0+vnoise(p*0.3)*4.0)*flesh; // 锯痕
@@ -169,6 +180,12 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   return col; }
 
 vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0); }
+float capI(vec3 ro, vec3 rd, vec3 pa, vec3 pb, float ra){ // 视线与胶囊体求交（手电筒身）
+  vec3 ba=pb-pa, oa=ro-pa; float baba=dot(ba,ba), bard=dot(ba,rd), baoa=dot(ba,oa), rdoa=dot(rd,oa), oaoa=dot(oa,oa);
+  float a=baba-bard*bard, b=baba*rdoa-baoa*bard, c=baba*oaoa-baoa*baoa-ra*ra*baba, h=b*b-a*c;
+  if(h>=0.0){ float t=(-b-sqrt(h))/a; float y=baoa+t*bard; if(y>0.0&&y<baba) return t;
+    vec3 oc=(y<=0.0)?oa:ro-pb; b=dot(rd,oc); c=dot(oc,oc)-ra*ra; h=b*b-c; if(h>0.0) return -b-sqrt(h); }
+  return -1.0; }
 void main(){
   vec2 px=gl_FragCoord.xy; float detail=0.0; float rim=0.0;
   if(uLens.z>0.0){ float d=length(px-uLens.xy); if(d<uLens.z){ px=uLens.xy+(px-uLens.xy)/uLens.w; detail=1.0; } rim=smoothstep(uLens.z-3.0,uLens.z-1.0,d)-smoothstep(uLens.z+1.0,uLens.z+3.0,d); }
@@ -192,7 +209,12 @@ void main(){
   }
   col=(col+vec3(0.012)*(vnoise(vec3(gl_FragCoord.xy*0.9,1.0))-0.5))*(0.30+0.70*uAmbient);
   vec3 p,n; float fl;
-  if(trace(uCamPos,rd,p,n,fl)) col=shade(p,n,rd,detail,fl);
+  bool hitS=trace(uCamPos,rd,p,n,fl); if(hitS) col=shade(p,n,rd,detail,fl);
+  if(uLampOn>0.5){ float tc=capI(uCamPos,rd,uLampA,uLampB,5.5);
+    if(tc>0.0&&(!hitS||tc<length(p-uCamPos))){ vec3 pc=uCamPos+rd*tc; vec3 ax=normalize(uLampB-uLampA); vec3 nc=normalize((pc-uLampA)-ax*dot(pc-uLampA,ax)+ax*0.001);
+      float along=dot(pc-uLampA,ax); vec3 mc=mix(vec3(0.05,0.05,0.055),vec3(0.16,0.16,0.17),0.5+0.5*dot(nc,normalize(uCamRot*vec3(-0.5,0.6,0.6))))+vec3(0.25)*pow(max(dot(nc,normalize(uCamRot*vec3(-0.4,0.7,0.6))),0.0),24.0);
+      mc=mix(mc,vec3(1.0,0.95,0.8)*1.4,smoothstep(3.0,0.0,along)); mc*=0.85+0.15*step(0.5,fract(along*0.22));
+      col=mix(col,mc,0.62); } }
   if(uGlare.z>0.0){ float d=length(gl_FragCoord.xy-uGlare.xy)/uRes.y; col+=vec3(1.0,0.95,0.85)*uGlare.z*(0.020/(d*d+0.0012)+0.10*exp(-d*d*40.0)); }
   col=aces(col*1.15);
   col=pow(col,vec3(1.0/2.2));

@@ -220,7 +220,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <h3>怎么看裂、棉、脏</h3>
     <ul>
     <li><b>裂</b>会挡光：光晕里一条明暗分界线，一侧亮一侧暗，那就是裂面。换方向压灯能看出它的走向。</li>
-    <li>开「斜照」让光贴着皮打，皮上的裂线和起伏更明显。</li>
+    <li>把手电「倾斜」调大、贴着皮扫，皮上的裂线和起伏更明显；转「朝向」换个方向扫，顺着裂的方向照看不见，横着照最清楚。</li>
+    <li>裂不是一条直线：有锯齿、有粗有细、有的段合上了看不见，旁边还会带几丝羽裂，大裂常常岔出小裂。</li>
     <li><b>棉</b>在灯下是一团团发白的云，<b>脏和癣</b>是吸光的黑块，常常挨着色。</li>
     <li>大裂会切断手镯位；小纹影响不大。裂附近的料基本是废料。</li>
     <li>灯太亮反而会把细裂“照穿”看不见；留着皮兜光会让色显得更深。条件不同，看到的不一样。</li>
@@ -263,11 +264,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v8</div>
+<div id="ver">v9</div>
 
 <script>
 (function () {
-  var LOCAL = 8, FILES = ['core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 9, FILES = ['core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }
