@@ -1,0 +1,382 @@
+{
+ "products": [
+  {
+   "id": "yuze67h",
+   "name": "SAD6221-1 低价带",
+   "desc": "SAD6221-1 单人红外桑拿房 800×900×2100 铁杉",
+   "supplier": "",
+   "category": "其他",
+   "peak": "非旺季",
+   "price": 899,
+   "cost": 6270,
+   "costCur": "RMB_TAX",
+   "adj": 0,
+   "pack": "分包",
+   "prices": {
+    "lowesVC": {
+     "promo": 1449
+    },
+    "lowesSC": {
+     "promo": 1449
+    },
+    "hd": {
+     "promo": 1099
+    },
+    "wf": {
+     "promo": 849
+    }
+   },
+   "pkgs": [
+    {
+     "l": 77.4,
+     "w": 215,
+     "h": 30,
+     "kg": 145.1
+    },
+    {
+     "l": 83.6,
+     "w": 88.4,
+     "h": 19,
+     "kg": 40.8
+    },
+    {
+     "l": 60,
+     "w": 217,
+     "h": 9,
+     "kg": 34.1
+    }
+   ]
+  },
+  {
+   "id": "dr540bn",
+   "name": "SAD6221-1 中价带",
+   "desc": "SAD6221-1 单人红外桑拿房 800×900×2100 铁杉",
+   "supplier": "",
+   "category": "其他",
+   "peak": "非旺季",
+   "price": 1299,
+   "cost": 6270,
+   "costCur": "RMB_TAX",
+   "adj": 0,
+   "pack": "分包",
+   "prices": {
+    "lowesVC": {
+     "promo": 1700
+    },
+    "lowesSC": {
+     "promo": 1700
+    },
+    "hd": {
+     "promo": 1441
+    },
+    "wf": {
+     "promo": 1399
+    }
+   },
+   "pkgs": [
+    {
+     "l": 77.4,
+     "w": 215,
+     "h": 30,
+     "kg": 145.1
+    },
+    {
+     "l": 83.6,
+     "w": 88.4,
+     "h": 19,
+     "kg": 40.8
+    },
+    {
+     "l": 60,
+     "w": 217,
+     "h": 9,
+     "kg": 34.1
+    }
+   ]
+  },
+  {
+   "id": "tufdqoy",
+   "name": "SAD6221-1 高价带",
+   "desc": "SAD6221-1 单人红外桑拿房 800×900×2100 铁杉",
+   "supplier": "",
+   "category": "其他",
+   "peak": "非旺季",
+   "price": 1799,
+   "cost": 6270,
+   "costCur": "RMB_TAX",
+   "adj": 0,
+   "pack": "分包",
+   "prices": {
+    "lowesVC": {
+     "promo": 2089
+    },
+    "lowesSC": {
+     "promo": 2089
+    },
+    "hd": {
+     "promo": 1799
+    },
+    "wf": {
+     "promo": 1799
+    }
+   },
+   "pkgs": [
+    {
+     "l": 77.4,
+     "w": 215,
+     "h": 30,
+     "kg": 145.1
+    },
+    {
+     "l": 83.6,
+     "w": 88.4,
+     "h": 19,
+     "kg": 40.8
+    },
+    {
+     "l": 60,
+     "w": 217,
+     "h": 9,
+     "kg": 34.1
+    }
+   ]
+  },
+  {
+   "id": "7lfmcip",
+   "name": "SAD6221-2 低价带",
+   "desc": "SAD6221-2 1-2人红外桑拿房 900×1200×2100 铁杉",
+   "supplier": "",
+   "category": "其他",
+   "peak": "非旺季",
+   "price": 1299,
+   "cost": 8618,
+   "costCur": "RMB_TAX",
+   "adj": 0,
+   "pack": "分包",
+   "prices": {
+    "lowesVC": {
+     "promo": 1070
+    },
+    "lowesSC": {
+     "promo": 1070
+    },
+    "hd": {
+     "promo": 1499
+    },
+    "wf": {
+     "promo": 1123
+    }
+   },
+   "pkgs": [
+    {
+     "l": 87.4,
+     "w": 215,
+     "h": 30,
+     "kg": 158.1
+    },
+    {
+     "l": 93.6,
+     "w": 118.4,
+     "h": 19,
+     "kg": 59.1
+    },
+    {
+     "l": 60,
+     "w": 217,
+     "h": 9,
+     "kg": 32.9
+    }
+   ]
+  },
+  {
+   "id": "85azrnq",
+   "name": "SAD6221-2 中价带",
+   "desc": "SAD6221-2 1-2人红外桑拿房 900×1200×2100 铁杉",
+   "supplier": "",
+   "category": "其他",
+   "peak": "非旺季",
+   "price": 1799,
+   "cost": 8618,
+   "costCur": "RMB_TAX",
+   "adj": 0,
+   "pack": "分包",
+   "prices": {
+    "lowesVC": {
+     "promo": 1600
+    },
+    "lowesSC": {
+     "promo": 1600
+    },
+    "hd": {
+     "promo": 1815
+    },
+    "wf": {
+     "promo": 1600
+    }
+   },
+   "pkgs": [
+    {
+     "l": 87.4,
+     "w": 215,
+     "h": 30,
+     "kg": 158.1
+    },
+    {
+     "l": 93.6,
+     "w": 118.4,
+     "h": 19,
+     "kg": 59.1
+    },
+    {
+     "l": 60,
+     "w": 217,
+     "h": 9,
+     "kg": 32.9
+    }
+   ]
+  },
+  {
+   "id": "if0kweu",
+   "name": "SAD6221-2 高价带",
+   "desc": "SAD6221-2 1-2人红外桑拿房 900×1200×2100 铁杉",
+   "supplier": "",
+   "category": "其他",
+   "peak": "非旺季",
+   "price": 2299,
+   "cost": 8618,
+   "costCur": "RMB_TAX",
+   "adj": 0,
+   "pack": "分包",
+   "prices": {
+    "lowesVC": {
+     "promo": 1999
+    },
+    "lowesSC": {
+     "promo": 1999
+    },
+    "hd": {
+     "promo": 2099
+    },
+    "wf": {
+     "promo": 1999
+    }
+   },
+   "pkgs": [
+    {
+     "l": 87.4,
+     "w": 215,
+     "h": 30,
+     "kg": 158.1
+    },
+    {
+     "l": 93.6,
+     "w": 118.4,
+     "h": 19,
+     "kg": 59.1
+    },
+    {
+     "l": 60,
+     "w": 217,
+     "h": 9,
+     "kg": 32.9
+    }
+   ]
+  },
+  {
+   "id": "6gv18ps",
+   "name": "DUAL 低价带",
+   "desc": "双人淋浴花洒（滑杆双头+手持，1688 参考成本）",
+   "supplier": "",
+   "category": "其他",
+   "peak": "非旺季",
+   "price": 79.99,
+   "cost": 190,
+   "costCur": "RMB_NET",
+   "adj": 0,
+   "pack": "整包",
+   "prices": {
+    "lowesVC": {
+     "promo": 134.98
+    },
+    "lowesSC": {
+     "promo": 134.98
+    },
+    "wf": {
+     "promo": 92.99
+    }
+   },
+   "pkgs": [
+    {
+     "l": 70,
+     "w": 22,
+     "h": 12,
+     "kg": 4.0
+    }
+   ]
+  },
+  {
+   "id": "4fqukeo",
+   "name": "DUAL 中价带",
+   "desc": "双人淋浴花洒（滑杆双头+手持，1688 参考成本）",
+   "supplier": "",
+   "category": "其他",
+   "peak": "非旺季",
+   "price": 149.99,
+   "cost": 190,
+   "costCur": "RMB_NET",
+   "adj": 0,
+   "pack": "整包",
+   "prices": {
+    "lowesVC": {
+     "promo": 177.98
+    },
+    "lowesSC": {
+     "promo": 177.98
+    },
+    "hd": {
+     "promo": 159.99
+    },
+    "wf": {
+     "promo": 163.99
+    }
+   },
+   "pkgs": [
+    {
+     "l": 70,
+     "w": 22,
+     "h": 12,
+     "kg": 4.0
+    }
+   ]
+  },
+  {
+   "id": "qt3e005",
+   "name": "DUAL 高价带",
+   "desc": "双人淋浴花洒（滑杆双头+手持，1688 参考成本）",
+   "supplier": "",
+   "category": "其他",
+   "peak": "非旺季",
+   "price": 249,
+   "cost": 190,
+   "costCur": "RMB_NET",
+   "adj": 0,
+   "pack": "整包",
+   "prices": {
+    "lowesVC": {
+     "promo": 387.48
+    },
+    "lowesSC": {
+     "promo": 387.48
+    }
+   },
+   "pkgs": [
+    {
+     "l": 70,
+     "w": 22,
+     "h": 12,
+     "kg": 4.0
+    }
+   ]
+  }
+ ]
+}
