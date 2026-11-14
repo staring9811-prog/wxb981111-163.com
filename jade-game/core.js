@@ -188,7 +188,7 @@ function crackG(c, x, y, z, out) {
   const a = qx * t1[0] + qy * t1[1] + qz * t1[2], b = qx * t2x + qy * t2y + qz * t2z;
   h += c.warp * (Math.sin(a * c.freq + c.phase) + Math.sin(b * c.freq * 1.37 + c.phase * 2.1)) * 0.5;
   const z1 = a * c.freq * 1.9 + c.phase, z2 = b * c.freq * 2.3 - c.phase; // 折线状的锯齿：裂不是光滑的面
-  h += c.warp * 0.35 * ((Math.abs(z1 - Math.floor(z1) - 0.5) * 4 - 1) + 0.6 * (Math.abs(z2 - Math.floor(z2) - 0.5) * 4 - 1));
+  h += c.warp * 0.10 * ((Math.abs(z1 - Math.floor(z1) - 0.5) * 4 - 1) + 0.6 * (Math.abs(z2 - Math.floor(z2) - 0.5) * 4 - 1));
   const R = c.R * (1 + 0.18 * Math.sin(Math.atan2(b, a) * 3 + c.phase));
   out[0] = h; out[1] = 1 - sstep(R * 0.85, R, r);
 }

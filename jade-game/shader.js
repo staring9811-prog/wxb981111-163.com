@@ -66,7 +66,7 @@ float crG(int i, vec3 p, out float ins){
   vec3 d=p-uCrA[i].xyz; vec3 n=uCrB[i].xyz; float h=dot(d,n); vec3 q=d-n*h; float r=length(q);
   vec3 t1=uCrT[i]; vec3 t2=cross(n,t1); float a=dot(q,t1), b=dot(q,t2);
   h+=uCrC[i].x*(sin(a*uCrC[i].y+uCrC[i].z)+sin(b*uCrC[i].y*1.37+uCrC[i].z*2.1))*0.5;
-  h+=uCrC[i].x*0.35*((abs(fract(a*uCrC[i].y*1.9+uCrC[i].z)-0.5)*4.0-1.0)+0.6*(abs(fract(b*uCrC[i].y*2.3-uCrC[i].z)-0.5)*4.0-1.0));
+  h+=uCrC[i].x*0.10*((abs(fract(a*uCrC[i].y*1.9+uCrC[i].z)-0.5)*4.0-1.0)+0.6*(abs(fract(b*uCrC[i].y*2.3-uCrC[i].z)-0.5)*4.0-1.0));
   float R=uCrA[i].w*(1.0+0.18*sin(atan(b,a)*3.0+uCrC[i].z)); ins=1.0-smoothstep(R*0.85,R,r); return h; }
 // 裂在表面上的样子：一条连续的细线，粗细有变化、到尖端收细，旁边带几丝羽裂；合上的裂（石纹）是一条白线。
 // 返回 x=暗线 y=两侧的晕 z=愈合的白线
@@ -226,8 +226,8 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   acc=mix(acc,acc*0.88+vec3(0.15,0.15,0.14)*uAmbient,halo*0.5*flesh);
   acc=mix(acc,acc*vec3(0.96,0.66,0.36),rust*0.8*flesh);
   acc*=1.0-0.86*line*flesh;
-  acc=mix(acc,acc*1.04+vec3(0.20,0.20,0.19)*uAmbient,heal*0.65*flesh);
-  if(flat_>0.5) acc*=1.0+0.014*sin(dot(p,vec3(0.83,0.21,0.52))*4.3+vnoise(p*0.25)*9.0)*flesh; // 很淡的锯痕
+  acc=mix(acc,acc*1.03+vec3(0.13,0.13,0.125)*uAmbient,heal*mix(0.55,0.28,M(p).g)*flesh);   // 石纹：种越好越淡，只是一丝发白
+  if(flat_>0.5){ vec3 sc0=vec3(170.0,90.0,-140.0); float arc=sin(length(p-sc0)*5.2+vnoise(p*0.2)*2.5); acc*=1.0+(0.020*arc+0.010*sin(length(p-sc0)*17.0))*flesh; } // 圆锯片留下的一圈圈弧形锯痕
   // 菲涅耳反光：种水越好表面越“起光”
   float wS=M(p-n*0.5).g; float ndv=max(dot(nf,-rd),0.0);
   float F=(0.05+0.95*pow(1.0-ndv,5.0))*mix(0.45,1.0,wS)*mix(0.55,1.0,flat_);
@@ -237,7 +237,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   spec+=pow(max(dot(nf,hv2),0.0),9.0)*0.10*mix(0.6,1.0,flat_)*sh;            // 油脂到玻璃光泽之间那层宽而柔的反光
   acc*=1.0+0.30*pow(1.0-ndv,3.0)*wS;                                        // 种好的料，边缘薄处更透亮
   float wet=mix(0.55,1.0,flat_);                                            // 表面一层水膜
-  vec3 col=surf*(1.0-flesh)+acc*(1.0-F*0.6)+(refl*F*wet*1.25+vec3(spec)*0.5)*uAmbient*flesh;
+  vec3 col=surf*(1.0-flesh)+acc*(1.0-F*0.6)+(refl*F*wet*mix(1.25,3.4,flat_)+vec3(spec)*0.5)*uAmbient*flesh;
   if(flesh>0.5){ vec3 cell=floor(p*3.6); vec3 rn=normalize(n+(hash3(cell+uPhase)-0.5)*1.1); float gl=step(0.955,hash(cell+uPhase*3.0))*pow(max(dot(reflect(rd,rn),keyL),0.0),26.0); col+=vec3(1.0,0.99,0.95)*gl*pow(1.0-wS,3.0)*1.1*uAmbient*sh; } // 翠性：种嫩的料切面上有一片片晶面的闪光
   if(uTorch.w>0.0){ float r=length(p-uTorchSurf); col+=vec3(1.0,0.97,0.9)*min(uTorch.w,6.0)*0.06*exp(-r*r/9.0); col+=vec3(0.5)*(smoothstep(4.0,4.4,r)-smoothstep(4.6,5.0,r))*0.30; }
   if(uFakeT>2.5){ float ch=smoothstep(0.2,0.6,M(p).r)*flesh; float net=1.0-smoothstep(0.015,0.085,abs(vnoise(p*1.9+uPhase)-0.5)); if(detail>0.5) col=mix(col,col*vec3(0.25,0.62,0.33),net*ch*0.9); else col=mix(col,col*vec3(0.80,1.14,0.80),0.4*ch); } // 上色窗：远看绿得匀而艳，放大镜下颜色沿着晶粒缝成网
