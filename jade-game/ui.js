@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const C = window.Core, $ = s => document.querySelector(s), fmt = C.fmt;
-const SAVE_KEY = 'jade-bargain-web-v11';
+const SAVE_KEY = 'jade-save', OLD_KEYS = ['jade-bargain-web-v11', 'jade-bargain-web-v10', 'jade-bargain-web-v9'];
 const canvas = $('#gl'), gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
 if (!gl) { $('#hint').textContent = '这台设备的浏览器不支持 WebGL2，无法显示三维原石。'; return; }
 
@@ -54,7 +54,19 @@ const Q = { scale: 1, fast: 0.45, K: 16, tuned: false, user: 1 };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
 
 function save() { try { localStorage.setItem(SAVE_KEY, C.serialize(W)); } catch (e) { /* 存不了也能继续玩 */ } }
-function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 11) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
+function parseSave(s) { const w = JSON.parse(s); if (!w || typeof w !== 'object' || !w.seed || !w.markets || !(w.v >= 9)) return null; C.migrate(w); w.market = w.markets[w.scene] || []; C.applyTools(w); C.lifeCost(w); return w; }
+function load() { for (const k of [SAVE_KEY].concat(OLD_KEYS)) { try { const s = localStorage.getItem(k); if (!s) continue; const w = parseSave(s); if (w) { if (k !== SAVE_KEY) { try { localStorage.setItem('jade-save-bak', s); } catch (e) { } } return w; } } catch (e) { } } return null; }
+function sumOf(w) { return `第 ${w.day} 天 · ${C.rankOf(w)} · 现金 ${fmt(w.cash)} · ${(C.CHAPTERS[w.chapter] || { title: '主线完成' }).title}`; }
+function useWorld(w) { C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = w; save(); tab = 'market'; $('#saves').hidden = true; $('#start').hidden = true; view('market', W.market.find(L => !L.sold) || W.market[0], null); renderAll(); }
+function renderSaves(msg) { let h = `<div class="row"><h2 style="margin:0">存档</h2><button data-act="savesclose">关闭（Esc）</button></div><p class="note">游戏每一步都自动存在这台设备的这个浏览器里。更新版本不会清档：旧存档会自动升级，教程和主线进度都留着。换设备、换浏览器或清了浏览器数据，要靠下面的「导出」。</p>
+    <div class="row"><span><b>当前进度</b> <span class="dim">${sumOf(W)}</span></span></div>`;
+  for (let i = 1; i <= 3; i++) { let s = null; try { s = JSON.parse(localStorage.getItem('jade-slot-' + i) || 'null'); } catch (e) { } h += `<div class="row"><span><b>存档位 ${i}</b> <span class="dim">${s ? sumOf(s) + (s.savedAt ? ' · 存于 ' + s.savedAt : '') : '空'}</span></span><span><button data-act="slotsave" data-i="${i}">存到这里</button> <button data-act="slotload" data-i="${i}" ${s ? '' : 'disabled'}>读取</button> <button data-act="slotdel" data-i="${i}" ${s ? '' : 'disabled'}>删除</button></span></div>`; }
+  let bak = false; try { bak = !!localStorage.getItem('jade-save-bak'); } catch (e) { }
+  if (bak) h += `<div class="row"><span><b>更新前的备份</b> <span class="dim">上次版本升级时自动留的一份</span></span><button data-act="slotload" data-i="bak">读取</button></div>`;
+  h += `<div class="row"><span class="dim">导出：把存档变成一个文件或一段文字，自己收好。</span><span><button data-act="saveexport">下载存档文件</button> <button data-act="savetext">显示成文字</button></span></div>
+    <div class="row"><span class="dim">导入：选一个存档文件，或把存档文字贴到下面再点读取。会覆盖当前进度。</span><span><input type="file" id="saveFile" accept=".json,.txt" style="max-width:190px"> <button data-act="saveimport">读取文字</button></span></div>
+    <textarea id="saveText" rows="4" style="width:100%;box-sizing:border-box;background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:4px;font:12px monospace" placeholder="存档文字"></textarea><p class="say" id="saveMsg">${msg || ''}</p>`;
+  $('#savesbody').innerHTML = h; }
 
 /* ---------- 相机与渲染 ---------- */
 function camBasis() {
@@ -97,7 +109,7 @@ function render(scale, forceSize) {
   gl.uniform3fv(u('uBodyCol'), C.BODIES[st.body]); gl.uniform3fv(u('uBandCol'), H.band); gl.uniform3fv(u('uHueAbs'), H.abs); gl.uniform3fv(u('uFogCol'), st.fog.col); gl.uniform1f(u('uFogT'), st.fog.t);
   const A = new Float32Array(40), B = new Float32Array(40), Cc = new Float32Array(40), Tt = new Float32Array(30);
   st.cracks.slice(0, 10).forEach((c, i) => { A.set([c.c[0], c.c[1], c.c[2], c.R], i * 4); B.set([c.n[0], c.n[1], c.n[2], c.open], i * 4); Cc.set([c.warp, c.freq, c.phase, c.skinVis], i * 4); Tt.set(c.t1, i * 3); });
-  gl.uniform1f(u('uFakeT'), V.rec && V.rec.fake && V.mode !== 'review' ? (V.rec.fake.type === 'paint' ? 1 : 2) : 0);
+  gl.uniform1f(u('uFakeT'), V.fakeT != null ? V.fakeT : V.rec && V.rec.fake && V.mode !== 'review' ? ({ paint: 1, veneer: 2, dye: 3 }[V.rec.fake.type] || 0) : 0);
   gl.uniform1i(u('uNCr'), Math.min(10, st.cracks.length)); gl.uniform4fv(u('uCrA'), A); gl.uniform4fv(u('uCrB'), B); gl.uniform4fv(u('uCrC'), Cc); gl.uniform3fv(u('uCrT'), Tt);
   const T = V.torch;
   if (T.on && T.p) {
@@ -119,7 +131,7 @@ function render(scale, forceSize) {
     gl.uniform3f(u('uGlare'), w / 2 + (v[0] * b.r[0] + v[1] * b.r[1] + v[2] * b.r[2]) / z / TANF * h / 2, h / 2 + (v[0] * b.up[0] + v[1] * b.up[1] + v[2] * b.up[2]) / z / TANF * h / 2, forceSize ? 0 : vis * 0.06 * Math.sqrt(entry) * (0.4 + 0.6 * cT) / (1 + H / 15));
   } else { gl.uniform4f(u('uTorch'), 0, 0, 0, 0); gl.uniform3f(u('uGlare'), 0, 0, 0); gl.uniform1f(u('uLampOn'), 0); }
   gl.uniform1f(u('uSpread'), (T.on && T.spread) || 260); gl.uniform1f(u('uAmbient'), V.room ? 1 : 0.06);
-  if (V.lens && !forceSize) { const R = Math.min(w, h) * 0.2; gl.uniform4f(u('uLens'), (V.lens.x - rect.left) / rect.width * w, (1 - (V.lens.y - rect.top) / rect.height) * h, R, [3.2, 5, 8][W.tools.loupe - 1]); } else gl.uniform4f(u('uLens'), 0, 0, 0, 1);
+  if (V.lens && !forceSize) { const R = Math.min(w, h) * 0.2; gl.uniform4f(u('uLens'), (V.lens.x - rect.left) / rect.width * w, (1 - (V.lens.y - rect.top) / rect.height) * h, R, [3.2, 5, 8][W.tools.loupe - 1]); } else if (V.lensAll) gl.uniform4f(u('uLens'), w / 2, h / 2, w * 3, 1); else gl.uniform4f(u('uLens'), 0, 0, 0, 1);
   const cutOn = V.cut && (V.tool === 'cut' || V.sawing) && V.mode === 'own' && !forceSize;
   gl.uniform1f(u('uCutOn'), cutOn ? (V.sawing ? 2 + (V.sawing % 7) : 1) : 0); if (cutOn) gl.uniform4f(u('uCut'), V.cut.n[0], V.cut.n[1], V.cut.n[2], V.cut.d);
   const SC = { '夜市地摊': [0, [0.075, 0.05, 0.03], [0.014, 0.010, 0.009], [1.0, 0.82, 0.56]], '玉石集散地': [1, [0.125, 0.115, 0.10], [0.022, 0.02, 0.018], [1.0, 0.97, 0.92]], '翡翠公盘': [2, [0.05, 0.06, 0.08], [0.008, 0.01, 0.014], [0.92, 0.97, 1.0]], '场口直采': [3, [0.3, 0.25, 0.18], [0.12, 0.10, 0.08], [1.0, 0.94, 0.84]] }[(V.rec && V.rec.scene) || W.scene] || [1, [0.115, 0.1, 0.085], [0.02, 0.018, 0.016], [1, 0.96, 0.9]];
@@ -483,6 +495,9 @@ function buildAtlas() {
     C.GRADES.forEach((g, i) => { const s2 = mk(); s2.w0 = g; s2.skin = { name: '灰绿薄皮', col: C.SKINS['灰绿薄皮'].col, grain: 0.22, sig: 0.45, weather: 0.3, t: 0.7, phase: 3 }; const v2 = C.bake(s2, 40);
       h += `<figure><img src="${shot(s2, v2, true)}" alt="${C.waterName(g)}"><figcaption><b>${C.waterName(g)}</b><span>${notes[i]}</span></figcaption></figure>`; });
     $('#waterAtlas').innerHTML = h;
+    h = ''; V.lensAll = true; for (const [nm, gr, tx] of [['粗砂', 0.95, '颗粒大、松、扎手。里面晶粒通常也粗：豆种居多'], ['中砂', 0.55, '颗粒看得见但排得紧。糯种到糯冰'], ['细砂', 0.22, '颗粒要凑近才看得出，摸着像细砂纸。种老的相'], ['蜡壳、极细', 0.05, '几乎看不到颗粒，表面发亮像打了蜡。常见于老坑高种']]) { const s3 = mk(); s3.w0 = 0.4; s3.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: gr, sig: 0.7, weather: 0.35, t: 1.6, phase: 3 }; const v3 = C.bake(s3, 44); V.mode = 'own'; V.rec = null; V.piece = C.WHOLE; V.e = { st: s3, vol: v3 }; V.lens = null; V.room = true; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; cam.dist = Math.max(v3.hx, v3.hy, v3.hz) * 1.3; V.torch = { on: false, p: null, n: null }; loaded = null; render(1, 168);
+      h += `<figure><img src="${canvas.toDataURL('image/jpeg', 0.85)}" alt="${nm}"><figcaption><b>${nm}</b><span>${tx}</span></figcaption></figure>`; } V.lensAll = false;
+    $('#grainAtlas').innerHTML = h;
   } catch (e) { $('#skinAtlas').textContent = '对照图生成失败：' + e.message; }
   V.mode = keep.mode; V.rec = keep.rec; V.piece = keep.piece; V.e = keep.e; V.torch = keep.torch; V.room = keep.room; V.lens = keep.lens; Object.assign(cam, keep.cam); loaded = null; invalidate(false);
   const word = (v, a, b) => v >= b ? '高' : v >= a ? '中' : '低';
@@ -540,7 +555,7 @@ function buildCases() {
   };
   setTimeout(step, 30);
 }
-function showPane(k) { document.querySelectorAll('#help [data-pane]').forEach(x => x.hidden = x.dataset.pane !== k); document.querySelectorAll('#help [data-act=pane]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k)); if (k === 'skin' || k === 'water') buildAtlas(); if (k === 'atlas') buildCases(); if (k === 'crack') buildCracks(); }
+function showPane(k) { document.querySelectorAll('#help [data-pane]').forEach(x => x.hidden = x.dataset.pane !== k); document.querySelectorAll('#help [data-act=pane]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k)); if (k === 'skin' || k === 'water') buildAtlas(); if (k === 'atlas') buildCases(); if (k === 'crack') buildCracks(); if (k === 'fake') buildFakes(); }
 
 /* 裂图鉴：每种裂拍四张——皮上、隔皮压灯、切开、切面压灯 */
 const CRK = [
@@ -580,9 +595,49 @@ function buildCracks() {
   };
   setTimeout(step, 30);
 }
+/* 假料图鉴：每种假料和真料并排，各拍四张 */
+const FAKES = [
+  ['染色做皮（假松花）', 'paint', ['皮上远看', '放大镜看皮', '隔着皮压灯', '切开'], '皮上一身绿斑，卖家说是“松花”，是满色料的相。真松花是里面的色顶到皮上来的：颜色有深有浅，藏在砂粒之间，压灯时附近透出绿光。染的松花是刷上去的：放大镜下色块平、边缘齐、盖在砂粒上面没有颗粒感；压灯时光是白的，一点绿都透不出来。切开，真的里面有色，假的一片白。'],
+  ['贴片假窗', 'veneer', ['窗口', '放大镜看窗口', '对着窗口压灯', '切开'], '窗口看上去种好色好，其实是在差料上挖个坑，贴了一片好料。放大镜沿着窗口边缘找：真窗口是皮到肉自然过渡，贴片的窗口边上有一圈黄色胶线。压灯时光只在薄薄一片里亮，透不到周围。切开后好料只有两三毫米厚，后面全是差料。'],
+  ['窗口上色', 'dye', ['窗口', '放大镜看窗口', '对着窗口压灯', '切开'], '窗口是真开的，但窗面上染了绿。远看绿得又匀又艳，没有深浅变化。放大镜下，真色是从里面透出来的，有色根，浓淡过渡自然；染的色沿着晶粒之间的缝隙走，像一张绿色的网，晶粒中间反而是白的。往里磨一点，或者切开，色就没了。'],
+];
+let fakesStarted = false;
+function buildFakes() {
+  if (fakesStarted) return; fakesStarted = true;
+  const host = $('#fakeAtlas'); host.innerHTML = '';
+  const keep = { mode: V.mode, rec: V.rec, piece: V.piece, e: V.e, torch: V.torch, room: V.room, lens: V.lens, cam: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist, t: cam.t } };
+  const restore = () => { V.fakeT = null; V.lensAll = false; V.mode = keep.mode; V.rec = keep.rec; V.piece = keep.piece; V.e = keep.e; V.torch = keep.torch; V.room = keep.room; V.lens = keep.lens; Object.assign(cam, keep.cam); loaded = null; invalidate(false); };
+  const jobs = []; for (const f of FAKES) { jobs.push([f, false]); jobs.push([f, true]); } let i = 0, rowHtml = '';
+  const step = () => {
+    if (i >= jobs.length || $('#help').hidden || $('#help [data-pane=fake]').hidden) { restore(); if (i < jobs.length) fakesStarted = false; return; }
+    const [[name, type, caps, text], fake] = jobs[i++];
+    try {
+      const st = C.genStone(515151, '木那', '二级供应商'); st.cracks = []; st.dirt = []; st.shift = null; st.wVar = 0; st.cot = 0.2; st.planes = []; st.fog = { t: 0, col: [1, 1, 1] }; st.body = '白底'; st.hue = '阳绿'; st.feats = [];
+      st.w0 = fake ? (type === 'veneer' ? 0.18 : 0.4) : 0.55; if (!fake) st.feats.push({ type: 'full', strength: 0.85, seed: 77, c: [0, 0, 0] });
+      st.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: 0.78, sig: 0.75, weather: 0.45, t: 1.6, phase: 3 };
+      const vol = C.bake(st, 44), R0 = Math.max(vol.hx, vol.hy, vol.hz);
+      V.mode = 'own'; V.rec = null; V.e = { st, vol }; V.lens = null; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; cam.dist = R0 * 3.4; const b = camBasis();
+      if (type !== 'paint') { const h = C.pick(vol, C.WHOLE, b.pos, b.f), sk = C.sampleG(vol, 2, h.p[0], h.p[1], h.p[2]), sp = [];
+        for (const [dx, dy] of [[0, 0], [7, 2], [-7, -1], [1, 7], [-2, -7]]) { const q = [0, 1, 2].map(k => h.p[k] + b.r[k] * dx + b.up[k] * dy), rr = C.pick(vol, C.WHOLE, [q[0] - b.f[0] * 300, q[1] - b.f[1] * 300, q[2] - b.f[2] * 300], b.f); if (rr) { const c = [0, 1, 2].map(k => rr.p[k] + rr.n[k] * (9 - sk - 1.3)); C.carve(vol, C.WHOLE, c[0], c[1], c[2], 9); sp.push(c[0], c[1], c[2], 9); } }
+        if (fake) (type === 'veneer' ? C.veneer : C.dyeWin)(vol, sp); }
+      loaded = null; V.fakeT = fake ? { paint: 1, veneer: 2, dye: 3 }[type] : 0;
+      const shot = (torch, piece, dist, lens) => { V.piece = piece; V.room = !torch; V.lensAll = !!lens; cam.dist = R0 * dist; const bb = camBasis(); V.torch = { on: false, p: null, n: null };
+        if (torch) { const h = C.pick(vol, piece, bb.pos, bb.f); if (h) V.torch = { on: true, p: h.p, n: h.n, dir: h.n, h: 0 }; }
+        const lb = V.lampBody; V.lampBody = false; render(1, 176); V.lampBody = lb; V.lensAll = false; return canvas.toDataURL('image/jpeg', 0.85); };
+      const cut = { planes: [[-b.f[0], -b.f[1], -b.f[2], 0]] }, near = type === 'paint' ? 3.2 : 2.3;
+      const imgs = [shot(false, C.WHOLE, near), shot(false, C.WHOLE, 1.25, true), shot(true, C.WHOLE, type === 'paint' ? 3.5 : 2.6), shot(false, cut, 3.3)];
+      rowHtml += `<div class="row"><b class="${fake ? 'say' : ''}" style="min-width:2.5em">${fake ? '假' : '真'}</b></div><div class="four">${imgs.map((x, k) => `<figure><img src="${x}" alt="${name}${fake ? '假' : '真'}${caps[k]}"><figcaption>${caps[k]}</figcaption></figure>`).join('')}</div>`;
+      if (fake) { host.insertAdjacentHTML('beforeend', `<article class="case"><div class="row"><b>${name}</b></div>${rowHtml}<p>${text}</p></article>`); rowHtml = ''; }
+    } catch (e) { host.insertAdjacentHTML('beforeend', `<p class="note">${name} 的图没拍出来：${e.message}</p>`); rowHtml = ''; }
+    $('#fakeProg').textContent = i < jobs.length ? `正在拍第 ${Math.floor(i / 2) + 1} / ${FAKES.length} 组…` : '';
+    setTimeout(step, 30);
+  };
+  setTimeout(step, 30);
+}
 /* Esc：关掉最上面一层打开的东西 */
 addEventListener('keydown', ev => { if (ev.key !== 'Escape') return; const open = id => $(id) && !$(id).hidden; let done = true;
-  if (open('#help')) $('#help').hidden = true;
+  if (open('#saves')) $('#saves').hidden = true;
+  else if (open('#help')) $('#help').hidden = true;
   else if (open('#confirm')) $('#confirm').hidden = true;
   else if (open('#story')) { const bs = $('#storybody').querySelectorAll('button'); if (bs.length === 1) bs[0].click(); else done = false; }
   else if (open('#live')) { const x = $('#live [data-act=liveend]'); if (x) x.click(); else done = false; }
@@ -691,6 +746,14 @@ document.addEventListener('click', ev => {
   else if (a === 'startnew') { C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; $('#start').hidden = true; Snd.amb('夜市地摊'); view('market', W.market.find(L => !L.sold && !L.fake) || W.market[0], null); const ch = C.CHAPTERS[0]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">去夜市蹲着</button>`; $('#story').hidden = false; }
   else if (a === 'starthelp') { $('#start').hidden = true; $('#help').hidden = false; showPane('play'); renderAll(); }
   else if (a === 'home') { showStart(); }
+  else if (a === 'saves') { renderSaves(); $('#saves').hidden = false; }
+  else if (a === 'savesclose') { $('#saves').hidden = true; }
+  else if (a === 'slotsave') { try { const o = JSON.parse(C.serialize(W)); o.savedAt = new Date().toLocaleString(); localStorage.setItem('jade-slot-' + b.dataset.i, JSON.stringify(o)); renderSaves('已存到存档位 ' + b.dataset.i + '。'); } catch (e) { renderSaves('存不进去：浏览器不让写，或者空间满了。用「导出」留一份。'); } }
+  else if (a === 'slotdel') { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '再点一次确认'; return; } try { localStorage.removeItem('jade-slot-' + b.dataset.i); } catch (e) { } renderSaves('已删除。'); }
+  else if (a === 'slotload') { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '会覆盖当前进度，再点一次'; return; } try { const w = parseSave(localStorage.getItem(b.dataset.i === 'bak' ? 'jade-save-bak' : 'jade-slot-' + b.dataset.i)); if (w) { useWorld(w); V.note = '已读取存档。'; renderTools(); } else renderSaves('这个存档读不出来。'); } catch (e) { renderSaves('这个存档读不出来。'); } }
+  else if (a === 'savetext') { $('#saveText').value = C.serialize(W); $('#saveText').select(); $('#saveMsg').textContent = '全选复制，存到备忘录或发给自己。'; }
+  else if (a === 'saveexport') { try { const u = URL.createObjectURL(new Blob([C.serialize(W)], { type: 'application/json' })), l = document.createElement('a'); l.href = u; l.download = `翡翠博弈存档-第${W.day}天.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); $('#saveMsg').textContent = '如果没有开始下载，用「显示成文字」复制。'; } catch (e) { $('#saveMsg').textContent = '这里不让下载文件，用「显示成文字」复制。'; } }
+  else if (a === 'saveimport') { try { const w = parseSave($('#saveText').value.trim()); if (w) { useWorld(w); V.note = '已导入存档。'; renderTools(); } else $('#saveMsg').textContent = '这段文字不是存档。'; } catch (e) { $('#saveMsg').textContent = '这段文字不是存档，或者不完整。'; } }
   else if (a === 'codego') { const c = $('#codeIn').value; if (codeOk(c)) { try { localStorage.setItem('jade-license', c); } catch (e) { } $('#paywall').hidden = true; Snd.win(); V.note = '激活成功，谢谢支持。'; showStart(); } else { $('#codeMsg').textContent = '这个激活码不对。检查一下有没有输错，字母不分大小写。'; } }
   else if (a === 'codeopen') { $('#codeMsg').textContent = ''; $('#paywall').hidden = false; }
   else if (a === 'codeclose') { $('#paywall').hidden = true; }
@@ -736,6 +799,7 @@ document.addEventListener('input', ev => {
   if (ev.target.id === 'cutT') { V.cutT = +ev.target.value; $('#cutV').textContent = V.cutT; if (V.cut && V.cut.fromView) { V.cut.d = V.cut.base - V.cutT; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d); renderTools(); } invalidate(true); }
   if (ev.target.id === 'gW' || ev.target.id === 'gC' || ev.target.id === 'gK') { const s = V.rec, w = $('#gW').value; s.guess = w === '' ? null : { water: +w, color: $('#gC').value, crack: $('#gK').value }; save(); if (s.guess) flag('guess'); }
   if (ev.target.id === 'wW' || ev.target.id === 'wC' || ev.target.id === 'wK') { const w0 = $('#wW').value; V.wg = { water: w0 === '' ? null : +w0, color: $('#wC').value, crack: $('#wK').value }; }
+  if (ev.target.id === 'saveFile' && ev.target.files[0]) { const fr = new FileReader(); fr.onload = () => { try { const w = parseSave(String(fr.result)); if (w) { useWorld(w); V.note = '已导入存档。'; renderTools(); } else $('#saveMsg').textContent = '这个文件不是存档。'; } catch (e) { $('#saveMsg').textContent = '这个文件不是存档。'; } }; fr.readAsText(ev.target.files[0]); }
   if (ev.target.id === 'dvLaw') { V.law = +ev.target.value; }
   if (ev.target.id === 'fFood') { W.fam.food = +ev.target.value; save(); renderSide(); }
   if (/^kS\d+$/.test(ev.target.id)) { const r = C.setSchool(W, +ev.target.id.slice(2), ev.target.value); V.note = r.msg; save(); renderSide(); renderTools(); }
@@ -748,7 +812,7 @@ document.addEventListener('input', ev => {
   if (ev.target.id === 'sec') { V.section = +ev.target.value; invalidate(true); }
 });
 const ptrs = new Map(); let drag = null, lastCarve = null, strokeCost = 0; const lineEl = $('#cutline');
-function torchAt(ev) { const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, curPiece(), r.ro, r.rd, V.mode === 'review'); if (h) { flag('torch'); const T = V.torch; T.on = true; T.p = h.p; T.n = h.n; if (!T.dir || T.dir[0] * h.n[0] + T.dir[1] * h.n[1] + T.dir[2] * h.n[2] < 0.15) { T.dir = h.n; } } return h; }
+function torchAt(ev) { const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, curPiece(), r.ro, r.rd, V.mode === 'review'); if (h) { flag('torch'); const T = V.torch; T.on = true; T.p = h.p; T.n = h.n; T.dir = h.n; } return h; }
 function carveAt(ev) {
   const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, V.piece, r.ro, r.rd); if (!h) return;
   if (lastCarve && Math.hypot(h.p[0] - lastCarve[0], h.p[1] - lastCarve[1], h.p[2] - lastCarve[2]) < 1.2) return;

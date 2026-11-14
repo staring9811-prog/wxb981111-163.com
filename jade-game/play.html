@@ -195,7 +195,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <h1>翡翠博弈</h1>
     <div id="stats"></div>
     <button id="menuBtn" data-act="menu">菜单</button>
-    <div id="hmenu"><button data-act="quality">画质 标准</button><button data-act="mute">声音 开</button><button data-act="help">教程</button><button data-act="home">主页</button></div>
+    <div id="hmenu"><button data-act="quality">画质 标准</button><button data-act="mute">声音 开</button><button data-act="help">教程</button><button data-act="saves">存档</button><button data-act="home">主页</button></div>
     <button data-act="next" class="pri">收工，下一天</button>
   </header>
   <main>
@@ -245,7 +245,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 <div id="help" class="modal" hidden><div class="tut">
   <div class="row"><h2 style="margin:0">教程</h2><button data-act="help">关闭（Esc）</button></div>
   <div class="scenes">
-    <button data-act="pane" data-k="play">怎么玩</button><button data-act="pane" data-k="skin">看皮壳</button><button data-act="pane" data-k="water">看种水</button><button data-act="pane" data-k="atlas">种色图鉴</button><button data-act="pane" data-k="color">看色和裂</button><button data-act="pane" data-k="crack">裂图鉴</button><button data-act="pane" data-k="make">做件出货</button><button data-act="pane" data-k="value">价值表</button>
+    <button data-act="pane" data-k="play">怎么玩</button><button data-act="pane" data-k="skin">看皮壳</button><button data-act="pane" data-k="water">看种水</button><button data-act="pane" data-k="atlas">种色图鉴</button><button data-act="pane" data-k="color">看色和裂</button><button data-act="pane" data-k="crack">裂图鉴</button><button data-act="pane" data-k="fake">假料图鉴</button><button data-act="pane" data-k="make">做件出货</button><button data-act="pane" data-k="value">价值表</button>
   </div>
   <section data-pane="play">
     <p>你从一个蹲在摊边看热闹的人做起：先围观猜石头练眼力，再小本倒手，再自己下刀做货、开铺面、开直播、开分店。每一章解锁新的玩法，牛叔会带着你做第一遍。</p>
@@ -253,7 +253,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <h3>一局的顺序</h3>
     <ol>
       <li><b>挑场子</b>：右侧「货源」顶上选场景。刚开始只有夜市地摊。</li>
-      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了；手电亮着时，<b>点一下石头</b>灯就挪到那里；抓筒尾拖动来倾斜（往下拖向自己倒，往上拖向对面倒，左右拖左右倒），也可以用旁边的<b>方向盘</b>精确调（双击回正）；抓筒身中段或用滑杆拉远拉近。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角是<b>室内灯开关</b>（可以拖到顺手的位置），关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
+      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了（灯每次落到新位置，都先垂直于那个面，再用陀螺盘或拖筒尾去倾斜）；手电亮着时，<b>点一下石头</b>灯就挪到那里；抓筒尾拖动来倾斜（往下拖向自己倒，往上拖向对面倒，左右拖左右倒），也可以用旁边的<b>方向盘</b>精确调（双击回正）；抓筒身中段或用滑杆拉远拉近。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角是<b>室内灯开关</b>（可以拖到顺手的位置），关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
       <li><b>读标签</b>：每块料标了它赌的是种水、色、裂还是镯位，选中后有一句提示。</li>
       <li><b>出价</b>：还价或照价买。看不准就不买。公盘里是投暗标。</li>
       <li><b>写判断本</b>：买下后先写你认为的种水、色、裂，之后对答案涨眼力。</li>
@@ -317,6 +317,17 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <section data-pane="skin" hidden>
     <p>皮壳是你能免费看到的唯一线索。下面是同一块石头换上十二种皮的样子，由游戏自己的画面拍的。皮越厚越黑，灯越打不进去；皮薄的料好坏都藏不住。</p>
     <div class="atlas" id="skinAtlas">正在拍对照图…</div>
+    <h3>皮细不细，怎么判断</h3>
+    <p>原石的皮没有国家标准，行里靠的是一套经验口诀：<b>皮上的砂就是里面晶粒的影子</b>。砂粗的，肉粗（豆种）；砂细而紧的，肉细（种老）。下面是放大镜下四档砂的样子，同一种皮只换粗细：</p>
+    <div class="atlas" id="grainAtlas">正在拍对照图…</div>
+    <ul>
+      <li><b>看</b>：砂粒大小匀不匀。大小一致、排得紧密的叫“翻砂有力”，是好相；有粗有细、松松垮垮的，里面多半也乱。</li>
+      <li><b>摸</b>：手掌来回蹭。扎手、掉砂的是粗砂；像细砂纸一样涩手的是细砂；滑溜溜的不一定是好事，可能是水石磨光了，也可能是人工抛过。</li>
+      <li><b>照</b>：手电贴着皮斜着扫（把手电倾斜调大）。砂粒的影子越细密，皮越细；灯下起一圈均匀的光晕、不散，说明砂紧。</li>
+      <li><b>蘸水</b>：皮上抹点水。干得快的皮松、吃水；干得慢的皮紧、种老。</li>
+      <li><b>别只看一处</b>：同一块石头不同部位砂的粗细可能不一样，粗的那一侧底下肉也差。转着看，找最粗的地方定底线。</li>
+    </ul>
+    <p class="note">成品翡翠有国家标准《翡翠分级》（GB/T 23885），其中“质地”按晶粒大小分成极细、细、较细、较粗、粗五档，那是对肉说的、要在放大镜下量晶粒。原石的皮只能按上面的经验类比，各场口口诀也不完全一样；游戏里皮的砂粗细和里面种水的对应关系由场口的“皮壳表现可信度”决定，不是百分之百。</p>
     <h3>皮上还要看什么</h3>
     <ul>
       <li><b>松花</b>：皮上一点点、一片片的绿色斑，是里面有色的线索。可信度看场口，有的皮上有、里面没有。</li>
@@ -359,6 +370,24 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <li>看它<b>朝哪个方向</b>：顺着大裂下刀，把料一分为二，损失最小；垂直着裂去切片，每一片都带裂。</li>
       <li>一块石头上的裂大多平行。找到一条，就顺着它的方向在旁边再压灯找第二条。</li>
       <li>按任意打开的窗口、教程、对话，都可以按 <b>Esc</b> 关掉。</li>
+    </ul>
+  </section>
+  <section data-pane="fake" hidden>
+    <p>夜市地摊上大约四块里有一块做过手脚，集散地也偶尔有。下面每种假料和真料并排，上面一行是真的，下面一行是假的，同样的四个看法。认出来以后在货源里点「当面说破」，老板会大降价；说错了他翻脸不卖。</p>
+    <p class="note" id="fakeProg">正在拍第 1 组…</p>
+    <div id="fakeAtlas" style="display:flex;flex-direction:column;gap:8px"></div>
+    <h3>记住三句话</h3>
+    <ul>
+      <li><b>色要从里面来</b>：真色压灯会透出绿光，有深有浅有色根。浮在表面、又匀又艳、压灯不透绿的，先当假的看。</li>
+      <li><b>放大镜看边缘和缝隙</b>：色块边缘齐不齐、窗口边上有没有胶线、颜色是不是沿着晶粒缝走成网。</li>
+      <li><b>便宜得不合理就是理由</b>：一身松花、窗口满绿却只卖几千，卖家比你更清楚里面是什么。</li>
+    </ul>
+    <h3>游戏里还没做、现实里常见的</h3>
+    <ul>
+      <li><b>做假皮</b>：把切过的差料用胶和砂重新糊一层皮。皮的砂粒大小一样、没有风化层次，敲起来声音发闷，用火烧或热水泡会有胶味。</li>
+      <li><b>掏心灌胶</b>：把好肉掏走，里面灌胶或铅再封口。掂重量不对，接缝处皮纹对不上。</li>
+      <li><b>打色灯</b>：卖家用黄光或绿光手电照，白肉也泛绿。永远用自己的白光手电再照一遍。</li>
+      <li><b>成品的 B 货、C 货</b>：酸洗注胶（B 货）表面有蛛网状酸蚀纹，光泽发蜡；染色（C 货）颜色沿裂隙成丝网。成品要证书。</li>
     </ul>
   </section>
   <section data-pane="color" hidden>
@@ -416,6 +445,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <button data-act="startgo" id="stCont" class="pri">继续游戏</button>
   <button data-act="startnew">新的一局</button>
   <button data-act="starthelp">教程与图鉴</button>
+  <button data-act="saves">存档管理</button>
   <button data-act="codeopen" id="stCode" hidden>输入激活码</button>
   <p id="stLic" class="note"></p>
 </div></div>
@@ -432,6 +462,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <p class="note" id="buyText"></p>
   <div class="row"><button data-act="codeclose">先不输</button><button data-act="codego" class="pri">激活</button></div>
 </div></div>
+<div id="saves" class="modal" hidden><div id="savesbody" class="tut" style="display:flex;flex-direction:column;gap:8px"></div></div>
 <div id="confirm" class="modal" hidden><div>
   <h2>新开一局？</h2><p>当前进度会被清掉，现金回到 200K。</p>
   <div class="row"><button data-act="no">继续当前这局</button><button data-act="yes" class="pri">清空并重新开始</button></div>
@@ -443,11 +474,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v27</div>
+<div id="ver">v28</div>
 
 <script>
 (function () {
-  var LOCAL = 27, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 28, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }
