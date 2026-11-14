@@ -309,7 +309,7 @@ MX_JS_T = r"""
     document.getElementById('mxp-k').innerHTML='<span>月销<b>'+Math.round(u).toLocaleString()+'</b></span><span>ASIN 数<b>'+it.length+'</b></span><span>加权均价<b>'+(pw?money(Math.round(pp/pw)):'—')+'</b></span><span>加权评分<b>'+(rw?(rr/rw).toFixed(2):'—')+'</b></span>';
     L.innerHTML=it.map(function(x){
       var rc=x.rt!=null&&x.rt<4?' class="low"':'';
-      var img=x.i>=0?'<div class="mxp-img" style="background-image:url(sprite_'+p[0]+'.jpg);background-position:-'+((x.i%COLS)*PX)+'px -'+(Math.floor(x.i/COLS)*PX)+'px"></div>':'<div class="mxp-img none">无图</div>';
+      var img=x.i>=0?'<div class="mxp-img" style="background-image:url('+((window.MX_SPRITES||{})[p[0]]||('sprite_'+p[0]+'.jpg'))+');background-position:-'+((x.i%COLS)*PX)+'px -'+(Math.floor(x.i/COLS)*PX)+'px"></div>':'<div class="mxp-img none">无图</div>';
       return '<li>'+img+'<div class="mxp-c"><div class="mxp-t">'+(x.b?'<b class="mxp-b">'+esc(x.b)+'</b>':'')+'<a href="https://www.amazon.com/dp/'+esc(x.a)+'" target="_blank" rel="noopener">'+esc(x.a)+' ↗</a>'+esc(x.t)+'</div>'+
         '<div class="mxp-m"><span>售价 <b>'+money(x.p)+'</b></span><span>月销（分摊）<b>'+x.u+'</b></span><span>父体月销 <b>'+x.pu+'</b></span><span>评分 <b'+rc+'>'+(x.rt==null?'—':x.rt)+'</b>（'+esc(x.rn||0)+' 评）</span></div>'+
         (x.sku?'<div class="mxp-s">变体：'+esc(x.sku)+'</div>':'')+
