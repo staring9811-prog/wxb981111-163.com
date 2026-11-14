@@ -13,7 +13,7 @@
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 14px; line-height: 1.5; overflow: hidden; }
 #app { height: 100%; display: flex; flex-direction: column; }
-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); }
+header { position: relative; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); }
 h1 { font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: .12em; margin: 0; color: var(--jade); }
 #stats { display: flex; gap: 16px; flex: 1; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
 #stats span { color: var(--dim); font-size: 12px; } #stats b { margin: 0 3px; font-size: 15px; }
@@ -58,6 +58,14 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 #npc .rivals { display: flex; gap: 6px; position: absolute; left: 14px; top: 26px; } #npc .rivals span { display: flex; flex-direction: column; align-items: center; } #npc .rivals i { font-style: normal; font-size: 10.5px; color: #b9b0a2; text-shadow: 0 1px 3px #000; }
 .ava { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; align-items: center; justify-content: center; font-size: 11px; color: #fff; margin-right: 5px; vertical-align: middle; }
 @media (max-width: 760px) { #npc .seller svg { width: 60px; height: 65px; } #npc .bubble { max-width: 170px; font-size: 12px; } #npc .rivals { display: none; } }
+#reveal.sawing { background: transparent; justify-content: flex-end; padding-bottom: 120px; pointer-events: auto; } #reveal.sawing p { background: #000a; padding: 4px 12px; border-radius: 12px; color: var(--lamp); }
+#gl.shake { animation: shake .09s linear infinite; } @keyframes shake { 0% { transform: translate(0, 0) } 25% { transform: translate(1.5px, -1px) } 50% { transform: translate(-1.5px, 1px) } 75% { transform: translate(1px, 1.5px) } 100% { transform: translate(0, 0) } }
+#daycard { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #050403; text-align: center; padding: 20px; opacity: 0; pointer-events: none; }
+#daycard.go { animation: daycard 2.3s ease forwards; } @keyframes daycard { 0% { opacity: 0 } 12% { opacity: 1 } 78% { opacity: 1 } 100% { opacity: 0 } }
+#daycard h2 { font-family: var(--display); font-size: 40px; letter-spacing: .25em; margin: 0; color: var(--fg); } #daycard .eyebrow { margin: 0; letter-spacing: .3em; font-size: 12px; color: var(--dim); } #daycard p { margin: 0; color: var(--dim); font-size: 13px; max-width: 30em; }
+.floater { position: absolute; left: 150px; top: 100%; font-weight: 700; font-size: 15px !important; pointer-events: none; animation: floatup 1.5s ease-out forwards; text-shadow: 0 1px 4px #000; z-index: 40; } .floater.up { color: var(--up) !important; } .floater.down { color: var(--down) !important; }
+@keyframes floatup { 0% { transform: translateY(8px); opacity: 0 } 15% { opacity: 1 } 100% { transform: translateY(-26px); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { #gl.shake { animation: none; } #daycard.go { animation-duration: 1.2s; } }
 #coach { position: absolute; left: 50%; transform: translateX(-50%); bottom: 150px; z-index: 4; max-width: min(92%, 560px); background: #f3ecddf2; color: #2a2018; border-radius: 10px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; font-size: 13.5px; box-shadow: 0 4px 16px #000b; }
 #coach small { color: #7a6a55; white-space: nowrap; } #coach button { background: #e2d8c2; color: #2a2018; border-color: #b9ab8e; font-size: 12px; padding: 2px 8px; white-space: nowrap; }
 .goal { border-color: #6a5632; background: #1c1810; } .goal .row { font-size: 12.5px; color: var(--dim); } .goal .row:first-child { font-size: 14px; color: var(--lamp); } .goal .done { color: var(--jade); } .goal button { font-size: 12px; padding: 1px 8px; }
@@ -167,6 +175,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <div id="sawbox" hidden></div>
       <div id="npc" hidden></div>
       <div id="coach" hidden></div>
+      <div id="daycard" hidden></div>
       <button id="lightsw" data-act="room" aria-label="室内灯开关" title="室内灯"><span></span></button>
       <div id="tfloat" hidden><button id="tfP" data-act="tpower" title="关手电">关</button><button id="tfC" data-act="tcolor" title="白光/黄光">白</button></div>
       <div id="torchdock" title="手电">

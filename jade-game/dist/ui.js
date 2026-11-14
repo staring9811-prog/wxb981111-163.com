@@ -34,10 +34,17 @@ function uploadBox(vol, b) {
 }
 
 /* ---------- 音效（合成，无素材） ---------- */
-const Snd = (() => { let ac = null, on = true; const ctx = () => { if (!ac) try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } return ac; };
+const Snd = (() => { let ac = null, on = true, amb = null; const ctx = () => { if (!ac) try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } return ac; };
   function noise(d, f, q, g) { const a = ctx(); if (!a || !on) return; const n = Math.floor(a.sampleRate * d), b = a.createBuffer(1, n, a.sampleRate), ch = b.getChannelData(0); for (let i = 0; i < n; i++) ch[i] = Math.random() * 2 - 1; const s = a.createBufferSource(); s.buffer = b; const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q; const gn = a.createGain(); gn.gain.setValueAtTime(0, a.currentTime); gn.gain.linearRampToValueAtTime(g, a.currentTime + 0.04); gn.gain.linearRampToValueAtTime(0, a.currentTime + d); s.connect(bp); bp.connect(gn); gn.connect(a.destination); s.start(); }
   function tone(f, d, g, type, delay) { const a = ctx(); if (!a || !on) return; const o = a.createOscillator(), gn = a.createGain(), t = a.currentTime + (delay || 0); o.type = type || 'sine'; o.frequency.value = f; gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(g, t + 0.01); gn.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(gn); gn.connect(a.destination); o.start(t); o.stop(t + d + 0.05); }
-  return { saw() { noise(1.15, 2600, 3, 0.22); tone(170, 1.15, 0.04, 'sawtooth'); }, grind() { noise(0.12, 4300, 2, 0.06); }, coin() { tone(1320, 0.12, 0.10); tone(1760, 0.3, 0.08, 'sine', 0.08); }, win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.35, 0.09, 'triangle', i * 0.09)); }, lose() { tone(196, 0.5, 0.10); tone(147, 0.8, 0.10, 'sine', 0.2); }, tap() { tone(700, 0.05, 0.04); }, toggle() { on = !on; return on; } }; })();
+  return { saw() { noise(1.15, 2600, 3, 0.22); tone(170, 1.15, 0.04, 'sawtooth'); }, grind() { noise(0.12, 4300, 2, 0.06); }, coin() { tone(1320, 0.12, 0.10); tone(1760, 0.3, 0.08, 'sine', 0.08); }, win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.35, 0.09, 'triangle', i * 0.09)); }, lose() { tone(196, 0.5, 0.10); tone(147, 0.8, 0.10, 'sine', 0.2); }, tap() { tone(700, 0.05, 0.04); }, toggle() { on = !on; if (!on && amb) { try { amb.g.gain.value = 0; } catch (e) { } } else if (on && amb) amb.g.gain.value = amb.v; return on; },
+    // 环境声：夜市和集散地是人声嗡嗡加偶尔的碰石头声，公盘安静，场口是风
+    amb(scene) { const a = ctx(); if (!a) return; if (amb) { try { amb.s.stop(); } catch (e) { } clearInterval(amb.t); amb = null; }
+      const n = a.sampleRate * 3, b = a.createBuffer(1, n, a.sampleRate), ch = b.getChannelData(0); let last = 0; for (let i = 0; i < n; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; ch[i] = last * 3.5; }
+      const s = a.createBufferSource(); s.buffer = b; s.loop = true; const f = a.createBiquadFilter(), g = a.createGain(); const P = { '夜市地摊': ['bandpass', 420, 0.6, 0.11], '玉石集散地': ['bandpass', 520, 0.5, 0.08], '翡翠公盘': ['lowpass', 180, 0.7, 0.04], '场口直采': ['bandpass', 260, 1.4, 0.10] }[scene] || ['lowpass', 300, 0.7, 0.05];
+      f.type = P[0]; f.frequency.value = P[1]; f.Q.value = P[2]; g.gain.value = on ? P[3] : 0; s.connect(f); f.connect(g); g.connect(a.destination); s.start();
+      const t = setInterval(() => { if (!on) return; if (scene === '场口直采') { try { f.frequency.linearRampToValueAtTime(180 + Math.random() * 260, a.currentTime + 2.5); } catch (e) { } } else if (scene !== '翡翠公盘' && Math.random() < 0.5) { tone(1500 + Math.random() * 1400, 0.05, 0.012, 'triangle'); tone(900 + Math.random() * 500, 0.07, 0.008, 'sine', 0.03); } }, 2600);
+      amb = { s, g, t, v: P[3] }; } }; })();
 
 /* ---------- 状态 ---------- */
 let W = null;
@@ -113,8 +120,8 @@ function render(scale, forceSize) {
   } else { gl.uniform4f(u('uTorch'), 0, 0, 0, 0); gl.uniform3f(u('uGlare'), 0, 0, 0); gl.uniform1f(u('uLampOn'), 0); }
   gl.uniform1f(u('uSpread'), (T.on && T.spread) || 260); gl.uniform1f(u('uAmbient'), V.room ? 1 : 0.06);
   if (V.lens && !forceSize) { const R = Math.min(w, h) * 0.2; gl.uniform4f(u('uLens'), (V.lens.x - rect.left) / rect.width * w, (1 - (V.lens.y - rect.top) / rect.height) * h, R, [3.2, 5, 8][W.tools.loupe - 1]); } else gl.uniform4f(u('uLens'), 0, 0, 0, 1);
-  const cutOn = V.cut && V.tool === 'cut' && V.mode === 'own' && !forceSize;
-  gl.uniform1f(u('uCutOn'), cutOn ? 1 : 0); if (cutOn) gl.uniform4f(u('uCut'), V.cut.n[0], V.cut.n[1], V.cut.n[2], V.cut.d);
+  const cutOn = V.cut && (V.tool === 'cut' || V.sawing) && V.mode === 'own' && !forceSize;
+  gl.uniform1f(u('uCutOn'), cutOn ? (V.sawing ? 2 + (V.sawing % 7) : 1) : 0); if (cutOn) gl.uniform4f(u('uCut'), V.cut.n[0], V.cut.n[1], V.cut.n[2], V.cut.d);
   const SC = { '夜市地摊': [0, [0.075, 0.05, 0.03], [0.014, 0.010, 0.009], [1.0, 0.82, 0.56]], '玉石集散地': [1, [0.125, 0.115, 0.10], [0.022, 0.02, 0.018], [1.0, 0.97, 0.92]], '翡翠公盘': [2, [0.05, 0.06, 0.08], [0.008, 0.01, 0.014], [0.92, 0.97, 1.0]], '场口直采': [3, [0.3, 0.25, 0.18], [0.12, 0.10, 0.08], [1.0, 0.94, 0.84]] }[(V.rec && V.rec.scene) || W.scene] || [1, [0.115, 0.1, 0.085], [0.02, 0.018, 0.016], [1, 0.96, 0.9]];
   gl.uniform1i(u('uScene'), V.mode === 'market' ? SC[0] : 1); gl.uniform3fv(u('uBgA'), V.mode === 'market' ? SC[1] : [0.115, 0.1, 0.085]); gl.uniform3fv(u('uBgB'), V.mode === 'market' ? SC[2] : [0.02, 0.018, 0.016]); gl.uniform3fv(u('uKeyCol'), V.mode === 'market' ? SC[3] : [1, 0.96, 0.9]);
   { const tab = { '夜市地摊': [0.20, 0.07, 0.05], '玉石集散地': [0.10, 0.16, 0.13], '翡翠公盘': [0.035, 0.04, 0.055], '场口直采': [0.30, 0.23, 0.15] }; const on = !forceSize && V.info && V.mode !== 'review' && V.floor !== false; gl.uniform1f(u('uFloorOn'), on ? 1 : 0); gl.uniform1f(u('uDecor'), on && V.mode === 'market' ? 1 : 0); if (on) { gl.uniform1f(u('uFloorY'), V.info.lo - 0.4); gl.uniform1f(u('uFloorR'), Math.max(120, V.info.radius * 3.2)); gl.uniform3fv(u('uTabCol'), V.mode === 'market' ? (tab[(V.rec && V.rec.scene) || W.scene] || tab['玉石集散地']) : [0.09, 0.14, 0.12]); } }
@@ -181,10 +188,15 @@ function bookOf(s) { let v = s.proceeds, all = true; for (const p of s.pieces) i
 /* ---------- 面板 ---------- */
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 function pct(a, b) { const r = (a / b - 1) * 100; return `<span class="${r >= 0 ? 'up' : 'down'}">${r >= 0 ? '+' : ''}${r.toFixed(0)}%</span>`; }
+let lastCash = null;
+function floatCash(d) { const h = $('#stats'), s = document.createElement('span'); s.className = 'floater ' + (d > 0 ? 'up' : 'down'); s.textContent = (d > 0 ? '+' : '') + fmt(d); h.appendChild(s); setTimeout(() => s.remove(), 1500); }
+function dayCard(lines) { const el = $('#daycard'); el.innerHTML = `<p class="eyebrow">${W.scene}</p><h2>第 ${W.day} 天</h2>${lines.slice(0, 4).map(x => `<p>${esc(x)}</p>`).join('')}`; el.hidden = false; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); setTimeout(() => { el.hidden = true; }, 2300); }
 function renderTop() {
   const recv = W.recv.reduce((a, r) => a + r.amt, 0);
   let inv = 0; for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold) inv += (s.last[p.id] || {}).best || 0;
+  const cashNow = W.cash; 
   $('#stats').innerHTML = `<div><span>第</span><b>${W.day}</b><span>天</span></div><div><span>现金</span><b>${fmt(W.cash)}</b></div><div><span>应收</span><b>${fmt(recv)}</b></div><div><span>存货报价</span><b>${fmt(inv)}</b></div><div><span>${C.rankOf(W)} · 眼力</span><b>${W.eye}</b></div>${C.can(W, 'live') ? `<div><span>粉丝</span><b>${fmt(W.fans)}</b></div>` : ''}`;
+  if (lastCash != null && Math.abs(cashNow - lastCash) >= 1 && $('#start').hidden) floatCash(cashNow - lastCash); lastCash = cashNow;
 }
 function betHtml(bet, full) { return `<span class="tag b">${bet.main}</span>${bet.tags.map(t => `<span class="tag">${t}</span>`).join('')}${full ? `<p class="why">${esc(bet.why)}</p>` : ''}`; }
 function renderSide() {
@@ -373,7 +385,8 @@ function renderNpc() { const el = $('#npc'); if (!el) return; const L = V.rec; i
   let h = '';
   if (L.auction) h += `<div class="rivals">${[0, 1, 2].map(i => `<span style="opacity:${0.5 + 0.15 * i}">${npcSvg(['#3a3f4c', '#4c3a3a', '#3a4c44'][i], ['suit', 'glass', 'cap'][i], 46)}<i>${['也在看这块', '写了标书', '摇摇头走了'][(L.seed + i) % 3]}</i></span>`).join('')}</div>`;
   h += `<div class="seller"><button class="bubble" data-act="npcnext" title="再听听老板怎么说">${esc(say)}</button>${npcSvg(lk[0], lk[1], 92)}<b>${L.auction ? '公盘主持' : L.channel === '个人转让' ? '卖家' : '老板'} · ${L.channel}</b></div>`;
-  el.innerHTML = h; }
+  if (el.dataset.say === say) { el.innerHTML = h; return; } el.dataset.say = say; el.innerHTML = h;
+  const bub = el.querySelector('.bubble'); clearInterval(renderNpc.t); let n = 0; bub.textContent = ''; renderNpc.t = setInterval(() => { n += 2; bub.textContent = say.slice(0, n); if (n >= say.length) clearInterval(renderNpc.t); }, 40); } // 话是一个字一个字说出来的
 function renderAll() { storyCheck(); coachUpdate(); renderTop(); renderSide(); renderTools(); renderDock(); renderNpc(); invalidate(false); $('#over').hidden = !W.over; }
 function refreshQuote(s, p, record) {
   const prev = s.last[p.id]; qcache.clear();
@@ -488,7 +501,7 @@ document.addEventListener('click', ev => {
   else if (a === 'piece') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); view('own', s, p); if (!s.last[p.id]) refreshQuote(s, p); renderAll(); }
   else if (a === 'sell') { const s = V.rec, p = V.piece, q = getQuotes(s, p).list.find(o => o.buyer === b.dataset.b); C.sell(W, s, p, q); Snd.coin(); qcache.clear(); save(); afterStoneChange(s); }
   else if (a === 'work') { const s = V.rec, K = V.wk, r = C.sendWork(W, s, V.piece, K.route, K.master, K.theme, K.route === 'cab' && K.cabKey === s.id + ':' + V.piece.id ? { cabMult: K.cabMult } : null); if (!r.ok) { V.note = r.msg; renderTools(); return; } qcache.clear(); save(); afterStoneChange(s); V.note = `已送去，工费 ${fmt(r.fee)}，${r.days} 天后到托盘取成品。`; renderTools(); }
-  else if (a === 'scene') { C.enterScene(W, b.dataset.k); save(); Snd.tap(); view('market', W.market.find(L => !L.sold) || null, null); }
+  else if (a === 'scene') { C.enterScene(W, b.dataset.k); save(); Snd.tap(); Snd.amb(b.dataset.k); view('market', W.market.find(L => !L.sold) || null, null); }
   else if (a === 'bid') { const L = V.rec, r = C.placeBid(W, L, +($('#offer').value || 0)); V.msg = r.msg; if (r.ok) Snd.coin(); save(); renderTop(); renderSide(); renderNpc(); }
   else if (a === 'cab0') openTray(false, false);
   else if (a === 'cab1') openTray(false, true);
@@ -542,8 +555,8 @@ document.addEventListener('click', ev => {
   else if (a === 'storyok') { $('#story').hidden = true; renderAll(); }
   else if (a === 'storyshow') { const ch = C.CHAPTERS[W.chapter]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${C.goalDone(W, g[0]) ? '✔ ' : ''}${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">知道了</button>`; $('#story').hidden = false; }
   else if (a === 'debt') { const r = C.payDebt(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
-  else if (a === 'startgo') { $('#start').hidden = true; Snd.tap(); renderAll(); }
-  else if (a === 'startnew') { C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; $('#start').hidden = true; view('market', W.market.find(L => !L.sold && !L.fake) || W.market[0], null); const ch = C.CHAPTERS[0]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">去夜市蹲着</button>`; $('#story').hidden = false; }
+  else if (a === 'startgo') { $('#start').hidden = true; Snd.tap(); Snd.amb(W.scene); renderAll(); }
+  else if (a === 'startnew') { C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; $('#start').hidden = true; Snd.amb('夜市地摊'); view('market', W.market.find(L => !L.sold && !L.fake) || W.market[0], null); const ch = C.CHAPTERS[0]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">去夜市蹲着</button>`; $('#story').hidden = false; }
   else if (a === 'starthelp') { $('#start').hidden = true; $('#help').hidden = false; showPane('play'); renderAll(); }
   else if (a === 'home') { showStart(); }
   else if (a === 'codego') { const c = $('#codeIn').value; if (codeOk(c)) { try { localStorage.setItem('jade-license', c); } catch (e) { } $('#paywall').hidden = true; Snd.win(); V.note = '激活成功，谢谢支持。'; showStart(); } else { $('#codeMsg').textContent = '这个激活码不对。检查一下有没有输错，字母不分大小写。'; } }
@@ -562,7 +575,8 @@ document.addEventListener('click', ev => {
   else if (a === 'ccancel') { V.cut = null; renderTools(); invalidate(false); }
   else if (a === 'cut') {
     const s = V.rec, p = V.piece, before = bookOf(s).v, rv = $('#reveal'), cutSpec = V.cut;
-    rv.className = 'sawing'; rv.innerHTML = '<div class="blade"></div><p>下刀中…</p>'; rv.hidden = false; Snd.saw();
+    rv.className = 'sawing'; rv.innerHTML = '<p>锯片吃进去了…</p>'; rv.hidden = false; Snd.saw(); canvas.classList.add('shake'); if (navigator.vibrate) try { navigator.vibrate([40, 30, 40, 30, 80]); } catch (e) { }
+    V.sawing = 1; const fx = setInterval(() => { V.sawing++; render(Q.fast); }, 110); setTimeout(() => { clearInterval(fx); V.sawing = 0; canvas.classList.remove('shake'); }, 1100);
     setTimeout(() => {
       const r = C.cut(W, s, p, cutSpec.n, cutSpec.d);
       if (!r.ok) { rv.hidden = true; V.note = r.msg; renderTools(); return; }
@@ -576,7 +590,7 @@ document.addEventListener('click', ev => {
     }, 1150);
   }
   else if (a === 'rvok') { $('#reveal').hidden = true; }
-  else if (a === 'next') { if (!licensed() && W.day >= CFG.trialDays) { $('#codeMsg').textContent = `试玩到第 ${CFG.trialDays} 天为止。输入激活码后可以接着这个存档一直玩下去。`; $('#paywall').hidden = false; return; } const n = C.nextDay(W); qcache.clear(); for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold && C.volCache.get(s.seed)) refreshQuote(s, p, true); save(); const fresh = W.items.some(i => i.state === 'ready'); tab = 'market'; view(null, null, null); V.note = `第 ${W.day} 天。${n.join('，')}。货源已更新，昨天的报价作废。`; renderTools(); if (fresh && n.some(x => x.includes('做好了'))) { openTray(false); V.note = n.filter(x => x.includes('做好了')).join('；'); renderTools(); } }
+  else if (a === 'next') { if (!licensed() && W.day >= CFG.trialDays) { $('#codeMsg').textContent = `试玩到第 ${CFG.trialDays} 天为止。输入激活码后可以接着这个存档一直玩下去。`; $('#paywall').hidden = false; return; } const n = C.nextDay(W); qcache.clear(); for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold && C.volCache.get(s.seed)) refreshQuote(s, p, true); save(); const fresh = W.items.some(i => i.state === 'ready'); tab = 'market'; view(null, null, null); V.note = `第 ${W.day} 天。${n.join('，')}。货源已更新，昨天的报价作废。`; renderTools(); dayCard(n); Snd.amb(W.scene); if (fresh && n.some(x => x.includes('做好了'))) { openTray(false); V.note = n.filter(x => x.includes('做好了')).join('；'); renderTools(); } }
   else if (a === 'restart') { $('#confirm').hidden = false; }
   else if (a === 'no') { $('#confirm').hidden = true; }
   else if (a === 'yes') { $('#confirm').hidden = true; C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; view(null, null, null); }

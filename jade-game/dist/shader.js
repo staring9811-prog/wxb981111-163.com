@@ -83,19 +83,23 @@ vec3 fluence(vec3 s){
   float beam=mix(0.30,1.0,smoothstep(-0.3,0.8,dot(dn,uTorchDir)));
   return uTorch.w*uTorchCol*exp(-tau)*geo*beam*segT(uTorch.xyz,s); }
 
+// 石皮的粗糙轮廓：没被磨过、切过的地方，表面有一两毫米的起伏和崩口，不是光滑的鹅卵石
+float sdR(vec3 p){ vec4 gg=G(p); float s=sdfOf(gg);
+  if(s<2.6&&gg.g-gg.r<0.15&&uPristine<0.5){ float a=vnoise(p*0.40+uPhase), b=vnoise(p*1.25+uPhase*1.7); s-=1.5*(a-0.5)+0.45*(b-0.5)-0.9*smoothstep(0.80,0.95,vnoise(p*0.16+uPhase*0.5)); }
+  return s; }
 vec3 calcN(vec3 p){ const float e=1.0; vec2 k=vec2(1.,-1.);
-  return normalize(k.xyy*sdfOf(G(p+k.xyy*e))+k.yyx*sdfOf(G(p+k.yyx*e))+k.yxy*sdfOf(G(p+k.yxy*e))+k.xxx*sdfOf(G(p+k.xxx*e))); }
+  return normalize(k.xyy*sdR(p+k.xyy*e)+k.yyx*sdR(p+k.yyx*e)+k.yxy*sdR(p+k.yxy*e)+k.xxx*sdR(p+k.xxx*e)); }
 bool trace(vec3 ro, vec3 rd, out vec3 p, out vec3 n, out float flat_){
   vec3 inv=1.0/(rd+vec3(1e-6)); vec3 t0=(-uBox-ro)*inv, t1=(uBox-ro)*inv; vec3 a=min(t0,t1), b=max(t0,t1);
   float tn=max(max(a.x,a.y),a.z), tf=min(min(b.x,b.y),b.z); flat_=0.0;
   if(tn>tf||tf<0.0) return false;
   float t=max(tn,0.0)+0.01; float d=1.0, sd=1.0, pd=-1e9, tp=t;
-  for(int i=0;i<150;i++){ p=ro+rd*t; sd=sdfOf(G(p)); pd=planeD(p); d=max(sd,pd);
+  for(int i=0;i<150;i++){ p=ro+rd*t; sd=sdR(p); pd=planeD(p); d=max(sd,pd);
     if(d<0.02) break; tp=t; t+=max(d*0.8,0.10); if(t>tf) return false; }
   if(d>0.8) return false;
   // 二分细化交点，让轮廓和窗口边缘更干净
-  float ta=tp, tb=t; for(int i=0;i<5;i++){ float tm=0.5*(ta+tb); if(mapD(ro+rd*tm)<0.0) tb=tm; else ta=tm; }
-  p=ro+rd*tb; sd=sdfOf(G(p)); pd=planeD(p);
+  float ta=tp, tb=t; for(int i=0;i<5;i++){ float tm=0.5*(ta+tb); vec3 qm=ro+rd*tm; if(max(sdR(qm),planeD(qm))<0.0) tb=tm; else ta=tm; }
+  p=ro+rd*tb; sd=sdR(p); pd=planeD(p);
   if(pd>sd-0.06){ n=planeN(p); flat_=1.0; }
   else n=calcN(p);
   return true; }
@@ -216,7 +220,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   vec3 col=surf*(1.0-flesh)+acc*(1.0-F*0.6)+(refl*F*wet*1.25+vec3(spec)*0.5)*uAmbient*flesh;
   if(uTorch.w>0.0){ float r=length(p-uTorchSurf); col+=vec3(1.0,0.97,0.9)*min(uTorch.w,6.0)*0.06*exp(-r*r/9.0); col+=vec3(0.5)*(smoothstep(4.0,4.4,r)-smoothstep(4.6,5.0,r))*0.30; }
   if(uFakeT>1.5&&detail>0.5){ float rv=smoothstep(0.06,0.30,flesh)*(1.0-smoothstep(0.70,0.96,flesh)); col=mix(col,vec3(0.98,0.82,0.45),rv*0.85); } // 贴片窗：放大镜下窗口一圈胶线
-  if(uCutOn>0.5&&abs(dot(p,uCut.xyz)-uCut.w)<0.45) col=mix(col,vec3(1.0,0.55,0.15),0.85);
+  if(uCutOn>0.5){ float cd=abs(dot(p,uCut.xyz)-uCut.w); if(uCutOn>1.5){ float fl=0.6+0.4*hash(floor(p*0.7)+uCutOn); col+=vec3(1.0,0.75,0.4)*fl*exp(-cd*cd/5.0)*1.6; col=mix(col,vec3(1.0,0.97,0.9),(1.0-smoothstep(0.2,0.9,cd))); } else if(cd<0.45) col=mix(col,vec3(1.0,0.55,0.15),0.85); } // 预览是橙线；锯的时候发白发亮、带火星
   if(uSawN>0){ float ms=-1e9; for(int i=0;i<9;i++){ if(i>=uSawN) break; ms=max(ms,dot(p,uSaw[i].xyz)-uSaw[i].w); }   // 小锯要取的范围：面上描边、里面染色
     if(ms<0.0) col=mix(col,vec3(1.0,0.55,0.15),0.22); col=mix(col,vec3(1.0,0.62,0.2),0.92*(1.0-smoothstep(0.25,0.75,abs(ms)))); }
   return col; }
@@ -229,8 +233,8 @@ float capI(vec3 ro, vec3 rd, vec3 pa, vec3 pb, float ra){ // 视线与胶囊体�
     vec3 oc=(y<=0.0)?oa:ro-pb; b=dot(rd,oc); c=dot(oc,oc)-ra*ra; h=b*b-c; if(h>0.0) return -b-sqrt(h); }
   return -1.0; }
 void main(){
-  vec2 px=gl_FragCoord.xy; float detail=0.0; float rim=0.0;
-  if(uLens.z>0.0){ float d=length(px-uLens.xy); if(d<uLens.z){ px=uLens.xy+(px-uLens.xy)/uLens.w; detail=1.0; } rim=smoothstep(uLens.z-3.0,uLens.z-1.0,d)-smoothstep(uLens.z+1.0,uLens.z+3.0,d); }
+  vec2 px=gl_FragCoord.xy; float detail=0.0; float rim=0.0; float lensQ=-1.0;
+  if(uLens.z>0.0){ float d=length(px-uLens.xy); if(d<uLens.z){ float q=d/uLens.z; px=uLens.xy+(px-uLens.xy)/uLens.w*(1.0-0.16*q*q); detail=1.0; lensQ=q; } rim=smoothstep(uLens.z-5.0,uLens.z-2.0,d)-smoothstep(uLens.z+2.0,uLens.z+5.0,d); }
   vec2 uv=(px-0.5*uRes)/(0.5*uRes.y);
   vec3 rd=normalize(uCamRot*vec3(uv*uTan,-1.0));
   vec2 c=(gl_FragCoord.xy-0.5*uRes)/uRes.y;
@@ -259,12 +263,13 @@ void main(){
       vec3 rad=vec3(1.0,0.62,0.8)*sz, cc=vec3(cos(ang)*rr,uFloorY+rad.y*0.92,sin(ang)*rr); vec3 o=(uCamPos-cc)/rad, d=rd/rad; float a=dot(d,d), b=dot(o,d), c2=dot(o,o)-1.0, h=b*b-a*c2;
       if(h>0.0){ float t=(-b-sqrt(h))/a; if(t>0.0&&t<tb){ tb=t; vec3 q=uCamPos+rd*t; vec3 nn=normalize((q-cc)/(rad*rad)); nn=normalize(nn+0.35*(vec3(vnoise(q*0.5),vnoise(q*0.5+9.0),vnoise(q*0.5+17.0))-0.5));
           vec3 base=mix(vec3(0.42,0.34,0.24),vec3(0.20,0.22,0.20),hash(vec3(fi,7.0,uPhase)))*(0.7+0.6*fbm(q*0.12+fi*3.0))*(0.8+0.4*vnoise(q*1.6));
-          col=base*(uKeyCol*max(dot(nn,keyL),0.0)*0.95+0.20+uTabCol*max(-nn.y,0.0)*0.5)*uAmbient; hitD=true; } } } }
+          col=base*(uKeyCol*max(dot(nn,keyL),0.0)*0.95+0.20+uTabCol*max(-nn.y,0.0)*0.5)*uAmbient*mix(0.30,1.0,exp(-rr*rr/(uFloorR*uFloorR*0.42))); hitD=true; } } } }
   if(!hitS&&!hitD&&uFloorOn>0.5&&rd.y<-0.001&&uCamPos.y>uFloorY){ float tf=(uFloorY-uCamPos.y)/rd.y; vec3 q=uCamPos+rd*tf; float rr=length(q.xz);
     if(rr<uFloorR*1.6){ vec3 keyL=normalize(uCamRot*vec3(-0.55,0.62,0.56)); if(keyL.y<0.25){ keyL.y=0.25; keyL=normalize(keyL); }
       float sh=softShadow(q+vec3(0.0,0.6,0.0),keyL); float near=mapD(q+vec3(0.0,2.5,0.0)); float ao=clamp(near/14.0,0.0,1.0); ao=0.35+0.65*ao*ao;
       float weave=0.82+0.18*vnoise(vec3(q.xz*2.6,3.0))+0.10*(vnoise(vec3(q.xz*0.06,7.0))-0.5)+0.05*sin(q.x*3.1)*sin(q.z*3.1);
-      vec3 tc=uTabCol*weave*(uKeyCol*(0.20+0.80*sh)*max(keyL.y,0.0)*1.5+0.10)*ao*uAmbient;
+      float pool=mix(0.30,1.15,exp(-rr*rr/(uFloorR*uFloorR*0.42)));   // 头顶一盏灯，照亮中间一圈，四周暗下去
+      vec3 tc=uTabCol*weave*(uKeyCol*(0.20+0.80*sh)*max(keyL.y,0.0)*1.5+0.10)*ao*uAmbient*pool;
       if(uTorch.w>0.0){ vec3 dl=uRakePos-q; float dd=length(dl); tc+=uTabCol*weave*uTorchCol*max(dl.y/dd,0.0)*uRakeI*2.0/(1.0+dd*dd/900.0)*softShadow(q+vec3(0.0,0.6,0.0),dl/dd);
         float dg=length(q-vec3(uTorchSurf.x,uFloorY,uTorchSurf.z)); tc+=uTabCol*uTorchCol*min(uTorch.w,12.0)*0.012*exp(-dg*dg/1800.0); }
       col=mix(tc,col,smoothstep(uFloorR*0.9,uFloorR*1.6,rr)); } }
@@ -274,17 +279,21 @@ void main(){
     if(ok&&tE<tX){ float th=tX-tE; col=mix(col,vec3(1.0,0.55,0.15),0.10+0.45*(1.0-smoothstep(0.0,2.2,th)));
       vec3 pe=uCamPos+rd*tE, px2=uCamPos+rd*tX; float e1=1e9, e2=1e9, f1=1e9, f2=1e9; for(int i=0;i<9;i++){ if(i>=uSawN) break; float a=abs(dot(pe,uSaw[i].xyz)-uSaw[i].w), b=abs(dot(px2,uSaw[i].xyz)-uSaw[i].w); if(a<e1){ e2=e1; e1=a; } else if(a<e2) e2=a; if(b<f1){ f2=f1; f1=b; } else if(b<f2) f2=b; }
       col=mix(col,vec3(1.0,0.70,0.30),0.75*(1.0-smoothstep(0.3,0.9,e2))+0.45*(1.0-smoothstep(0.3,0.9,f2))); } }
-  if(uLampOn>0.5){ float tc=capI(uCamPos,rd,uLampA,uLampB,5.5);
-    if(tc>0.0&&(!hitS||tc<length(p-uCamPos))){ vec3 pc=uCamPos+rd*tc; vec3 ax=normalize(uLampB-uLampA); vec3 nc=normalize((pc-uLampA)-ax*dot(pc-uLampA,ax)+ax*0.001);
-      float along=dot(pc-uLampA,ax); vec3 mc=mix(vec3(0.05,0.05,0.055),vec3(0.16,0.16,0.17),0.5+0.5*dot(nc,normalize(uCamRot*vec3(-0.5,0.6,0.6))))+vec3(0.25)*pow(max(dot(nc,normalize(uCamRot*vec3(-0.4,0.7,0.6))),0.0),24.0);
-      mc=mix(mc,vec3(1.0,0.95,0.8)*1.4,smoothstep(3.0,0.0,along)); mc*=0.85+0.15*step(0.5,fract(along*0.22));
-      col=mix(col,mc,0.62); } }
+  if(uLampOn>0.5){ vec3 ax=normalize(uLampB-uLampA); float t1=capI(uCamPos,rd,uLampA,uLampB,5.2), t2=capI(uCamPos,rd,uLampA,uLampA+ax*10.0,7.4); float tc=-1.0, rad=5.2;
+    if(t1>0.0) tc=t1; if(t2>0.0&&(tc<0.0||t2<tc)){ tc=t2; rad=7.4; }
+    if(tc>0.0&&(!hitS||tc<length(p-uCamPos))){ vec3 pc=uCamPos+rd*tc; float along=dot(pc-uLampA,ax); vec3 nc=normalize((pc-uLampA)-ax*along+ax*0.001);
+      vec3 kL=normalize(uCamRot*vec3(-0.5,0.6,0.6)); float kn=along>14.0&&along<34.0?0.75+0.25*step(0.5,fract(along*0.9))*step(0.5,fract(atan(nc.y,nc.x)*4.0)):1.0; // 握把上的滚花
+      vec3 mc=mix(vec3(0.035,0.035,0.04),vec3(0.20,0.20,0.215),0.5+0.5*dot(nc,kL))*kn+vec3(0.55)*pow(max(dot(reflect(rd,nc),kL),0.0),30.0);
+      mc=mix(mc,vec3(0.45,0.36,0.18),step(9.5,along)*step(along,11.0));                       // 灯头和筒身之间一圈铜箍
+      mc=mix(mc,uTorchCol*vec3(1.0,0.96,0.82)*2.2,smoothstep(2.2,0.0,along));                 // 灯头的光
+      col=mix(col,mc,rad>6.0?0.86:0.70); } }
   if(uGlare.z>0.0){ float d=length(gl_FragCoord.xy-uGlare.xy)/uRes.y; col+=vec3(1.0,0.95,0.85)*uGlare.z*(0.020/(d*d+0.0012)+0.10*exp(-d*d*40.0)); }
   col*=1.0-0.22*dot(c,c);
   col=aces(col*1.15);
   col=pow(col,vec3(1.0/2.2));
   col+=(ign(gl_FragCoord.xy+17.0)-0.5)/255.0;
-  col=mix(col,vec3(0.75,0.7,0.6),rim*0.9);
+  if(lensQ>=0.0){ col*=1.0-0.42*smoothstep(0.62,1.0,lensQ); col+=vec3(0.10,0.11,0.12)*smoothstep(0.75,0.0,length((gl_FragCoord.xy-uLens.xy)/uLens.z-vec2(-0.35,0.40)))*0.5; } // 镜片边缘压暗，左上有一块反光
+  col=mix(col,mix(vec3(0.35,0.27,0.14),vec3(0.95,0.85,0.55),smoothstep(-1.0,1.0,dot(normalize(gl_FragCoord.xy-uLens.xy+1e-3),vec2(-0.6,0.8)))),rim*0.95);
   outC=vec4(col,1.0);
 }`;
 
