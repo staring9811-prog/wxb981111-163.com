@@ -83,7 +83,8 @@ function render(scale, forceSize) {
   gl.uniform1f(u('uTan'), TANF); gl.uniform3f(u('uBox'), vol.hx, vol.hy, vol.hz);
   const PL = new Float32Array(64); pc.planes.slice(0, 16).forEach((p, i) => PL.set(p, i * 4));
   gl.uniform1i(u('uNPl'), Math.min(16, pc.planes.length)); gl.uniform4fv(u('uPl'), PL);
-  const HO = new Float32Array(96), HN = new Int32Array(4), hs = (pc.holes || []).slice(0, 4); hs.forEach((H, k) => { HN[k] = Math.min(6, H.length); H.slice(0, 6).forEach((P, j) => HO.set(P, (k * 6 + j) * 4)); }); gl.uniform1i(u('uNHo'), hs.length); gl.uniform4fv(u('uHo'), HO); gl.uniform1iv(u('uHoN'), HN); gl.uniform1f(u('uPristine'), V.mode === 'review' ? 1 : 0);
+  const HO = new Float32Array(128), HN = new Int32Array(4), hs = (pc.holes || []).slice(0, 4); hs.forEach((H, k) => { HN[k] = Math.min(8, H.length); H.slice(0, 8).forEach((P, j) => HO.set(P, (k * 8 + j) * 4)); });
+  { const SP = new Float32Array(36), sp = V.sawPlan && V.mode === 'own' && !forceSize ? V.sawPlan.box : []; sp.forEach((P, j) => SP.set(P, j * 4)); gl.uniform1i(u('uSawN'), sp.length); gl.uniform4fv(u('uSaw'), SP); } gl.uniform1i(u('uNHo'), hs.length); gl.uniform4fv(u('uHo'), HO); gl.uniform1iv(u('uHoN'), HN); gl.uniform1f(u('uPristine'), V.mode === 'review' ? 1 : 0);
   const sk = st.skin, H = C.HUES[st.hue];
   gl.uniform3fv(u('uSkinCol'), sk.col); gl.uniform1f(u('uSkinSig'), sk.sig); gl.uniform1f(u('uSkinGrain'), sk.grain); gl.uniform1f(u('uSkinRel'), C.ORIGINS[st.origin].rel); gl.uniform1f(u('uWeather'), sk.weather); gl.uniform1f(u('uPhase'), sk.phase);
   gl.uniform3fv(u('uBodyCol'), C.BODIES[st.body]); gl.uniform3fv(u('uBandCol'), H.band); gl.uniform3fv(u('uHueAbs'), H.abs); gl.uniform3fv(u('uFogCol'), st.fog.col); gl.uniform1f(u('uFogT'), st.fog.t);
@@ -301,7 +302,7 @@ function renderTools() {
   let o = '';
   if (V.mode === 'review') o += `<label for="sec">剖面高度</label><input id="sec" type="range" min="${(-V.e.vol.hy).toFixed(0)}" max="${V.e.vol.hy.toFixed(0)}" step="0.5" value="${V.section}"><span class="dim">复盘：这是石头原本的内部</span>`;
   else if (V.tool === 'torch') o += `<label for="tTilt">倾斜 <b id="tTiltV">${V.torch.tilt}</b>°</label><input id="tTilt" type="range" min="0" max="85" step="5" value="${V.torch.tilt}"><label for="tAz">朝向</label><input id="tAz" type="range" min="0" max="360" step="15" value="${V.torch.az}"><label for="tH">离皮 <b id="tHV">${V.torch.h}</b> mm</label><input id="tH" type="range" min="0" max="60" step="2" value="${V.torch.h}"><button data-act="lbody" aria-pressed="${V.lampBody}">显示筒身</button><button data-act="toff" ${V.torch.on ? '' : 'disabled'}>关灯</button>`;
-  else if (V.tool === 'saw' && own) o += V.sawPlan ? `<button data-act="sawgo" class="pri">下锯（锯工 ${fmt(V.sawPlan.pv.cost)}）</button><button data-act="sawno">取消</button><span class="dim">取出约 ${Math.round(V.sawPlan.pv.a)} g，剩下约 ${Math.round(V.sawPlan.pv.b)} g</span>` : `<button data-act="sawsmart">智能圈色</button><span class="dim">或自己在料上圈出要取的那一块。画完线先预览，确认了才锯。</span>`;
+  else if (V.tool === 'saw' && own) o += V.sawPlan ? `<span class="dim">橙框是要取的范围。在石头旁的小框里调深度、确认或重画；右键拖动可以转着看。</span>` : `<button data-act="sawsmart">智能圈色</button><span class="dim">或自己在料上圈出要取的那一块。画完线先预览，确认了才锯。</span>`;
   else if (V.tool === 'grind') o += Object.keys(C.TOOLS).map(k => `<button data-act="burr" data-k="${k}" aria-pressed="${V.burr === k}">${k}</button>`).join('');
   else if (V.tool === 'cut' && own) {
     o += `<label for="cutT">片厚 <b id="cutV">${V.cutT}</b> mm</label><input id="cutT" type="range" min="3" max="60" step="1" value="${V.cutT}"><button data-act="cview">从正对我的面切这么厚</button>`;
@@ -510,6 +511,7 @@ document.addEventListener('input', ev => {
   if (ev.target.id === 'gW' || ev.target.id === 'gC' || ev.target.id === 'gK') { const s = V.rec, w = $('#gW').value; s.guess = w === '' ? null : { water: +w, color: $('#gC').value, crack: $('#gK').value }; save(); }
   if (ev.target.id === 'wkRoute' || ev.target.id === 'wkMaster' || ev.target.id === 'wkTheme') { V.wk[{ wkRoute: 'route', wkMaster: 'master', wkTheme: 'theme' }[ev.target.id]] = ev.target.value; renderSide(); }
   if (ev.target.id === 'tTilt' || ev.target.id === 'tAz' || ev.target.id === 'tH') { V.torch.tilt = +$('#tTilt').value; V.torch.az = +$('#tAz').value; V.torch.h = +$('#tH').value; $('#tTiltV').textContent = V.torch.tilt; $('#tHV').textContent = V.torch.h; invalidate(true); }
+  if (ev.target.id === 'sawD' && V.sawPlan) { V.sawPlan.depth = +ev.target.value; sawRebuild(); const el = $('#sawD'); if (el) el.focus(); }
   if (ev.target.id === 'tDist') { V.torch.h = +ev.target.value; $('#tDistV').textContent = V.torch.h; invalidate(true); }
   if (ev.target.id === 'betSel') V.bet = ev.target.value;
   if (ev.target.id === 'sec') { V.section = +ev.target.value; invalidate(true); }
@@ -522,7 +524,7 @@ function carveAt(ev) {
   lastCarve = h.p; Snd.grind(); const res = C.grind(W, V.rec, V.piece, h.p, h.n, V.burr); strokeCost += res.removed * C.ECON.grind;
   uploadBox(V.e.vol, res.box); invalidate(true);
 }
-function showLine(d) { const r = canvas.getBoundingClientRect(); lineEl.hidden = !d; if (d) { lineEl.setAttribute('x1', d.x0 - r.left); lineEl.setAttribute('y1', d.y0 - r.top); lineEl.setAttribute('x2', d.x - r.left); lineEl.setAttribute('y2', d.y - r.top); } }
+function showLine(d) { const r = canvas.getBoundingClientRect(); if (d) lineEl.removeAttribute('hidden'); else lineEl.setAttribute('hidden', ''); if (d) { lineEl.setAttribute('x1', d.x0 - r.left); lineEl.setAttribute('y1', d.y0 - r.top); lineEl.setAttribute('x2', d.x - r.left); lineEl.setAttribute('y2', d.y - r.top); } }
 /* 手电是场景里的实物：从左下角的手电上拖出来放到石头上；抓灯头挪位置，抓筒尾转角度、拉远 */
 function proj(wp) { const r = canvas.getBoundingClientRect(), b = camBasis(), v = [wp[0] - b.pos[0], wp[1] - b.pos[1], wp[2] - b.pos[2]], z = v[0] * b.f[0] + v[1] * b.f[1] + v[2] * b.f[2]; return [r.left + r.width / 2 + (v[0] * b.r[0] + v[1] * b.r[1] + v[2] * b.r[2]) / z / TANF * r.height / 2, r.top + r.height / 2 - (v[0] * b.up[0] + v[1] * b.up[1] + v[2] * b.up[2]) / z / TANF * r.height / 2]; }
 function torchPts() { const T = V.torch, d = T.dir || T.n, h = (T.h || 0) + 2.5; return { head: [T.p[0] + d[0] * h, T.p[1] + d[1] * h, T.p[2] + d[2] * h], tail: [T.p[0] + d[0] * (h + 42), T.p[1] + d[1] * (h + 42), T.p[2] + d[2] * (h + 42)] }; }
@@ -550,7 +552,7 @@ function renderCab() { const c = V.cab_, g = c.g, el = $('#cabbody'), nxt = c.k 
   else h += `<p>现在是 ${g.sizes[c.k]} 毫米。再放大一号，价值大约涨到 ${(g.mults[c.k + 1] / g.mults[c.k]).toFixed(1)} 倍；师傅估计有 ${Math.round(nxt * 100)}% 的可能磨出裂或脏。</p>`;
   h += c.done ? `<button data-act="cabok" class="pri">就按这个做</button>` : `<div class="row"><button data-act="cabup">再放大一号</button><button data-act="cabstop" class="pri">收手，就这么大</button></div>`;
   el.innerHTML = h; }
-function showLasso(pts) { const el = $('#lasso'), r = canvas.getBoundingClientRect(); el.hidden = !pts; if (pts) el.setAttribute('points', pts.map(p => (p[0] - r.left) + ',' + (p[1] - r.top)).join(' ')); }
+function showLasso(pts) { const el = $('#lasso'), r = canvas.getBoundingClientRect(); if (pts) el.removeAttribute('hidden'); else el.setAttribute('hidden', ''); if (pts) el.setAttribute('points', pts.map(p => (p[0] - r.left) + ',' + (p[1] - r.top)).join(' ')); }
 function planSaw(pts) {
   // 凸包，再削到最多六个角
   const P = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = [];
@@ -564,11 +566,18 @@ function planSaw(pts) {
     let n = [r1.rd[1] * r2.rd[2] - r1.rd[2] * r2.rd[1], r1.rd[2] * r2.rd[0] - r1.rd[0] * r2.rd[2], r1.rd[0] * r2.rd[1] - r1.rd[1] * r2.rd[0]]; const l = Math.hypot(n[0], n[1], n[2]); n = n.map(v => v / l);
     if (n[0] * rc.rd[0] + n[1] * rc.rd[1] + n[2] * rc.rd[2] > 0) n = n.map(v => -v);
     planes.push([n[0], n[1], n[2], n[0] * r1.ro[0] + n[1] * r1.ro[1] + n[2] * r1.ro[2]]); }
-  showLasso(hull); V.sawPlan = { planes, pv: C.sawPreview(V.rec, V.piece, planes) }; V.note = '线画好了，还没有锯。看清楚取多少、剩多少，确认了再下锯。';
-  const sb = $('#sawbox'), sr = canvas.getBoundingClientRect(); sb.hidden = false; sb.style.left = Math.max(8, Math.min(sr.width - 230, cx - sr.left - 100)) + 'px'; sb.style.top = Math.max(8, Math.min(sr.height - 90, Math.max(...hull.map(p => p[1])) - sr.top + 10)) + 'px';
-  sb.innerHTML = `<span>取出约 <b>${Math.round(V.sawPlan.pv.a)} g</b>，剩下约 ${Math.round(V.sawPlan.pv.b)} g，锯工 ${fmt(V.sawPlan.pv.cost)}</span><div class="row"><button data-act="sawno">重画</button><button data-act="sawgo" class="pri">确认下锯</button></div>`;
+  showLasso(null);
+  // 取料深度从看得见的表面往里量：取圈里离眼睛最近的那一点作基准
+  const f = camBasis().f; let d0 = 1e9; for (const q of hull.concat([[cx, cy]])) { const rr = rayAt(q[0], q[1]), hh = C.pick(V.e.vol, V.piece, rr.ro, rr.rd); if (hh) d0 = Math.min(d0, hh.p[0] * f[0] + hh.p[1] * f[1] + hh.p[2] * f[2]); }
+  if (d0 > 1e8) { V.note = '圈里没有料。'; renderTools(); return; }
+  V.sawPlan = { side: planes, f, d0, depth: V.sawDepth || 18 }; sawRebuild();
   renderTools();
 }
+function sawRebuild() { const P = V.sawPlan, back = [P.f[0], P.f[1], P.f[2], P.d0 + P.depth]; P.planes = P.side.concat([back]); P.box = P.planes.concat([[-P.f[0], -P.f[1], -P.f[2], -(P.d0 - 1.5)]]); P.pv = C.sawPreview(V.rec, V.piece, P.planes); V.sawDepth = P.depth;
+  V.note = '橙色的框就是小锯要取走的范围，还没有锯。可以右键拖动转过去看它伸进去多深，调好深度再确认。';
+  const sb = $('#sawbox'); sb.hidden = false;
+  sb.innerHTML = `<span>取出约 <b>${Math.round(P.pv.a)} g</b>，剩下约 ${Math.round(P.pv.b)} g</span><label for="sawD">取料深度 <b id="sawDV">${P.depth}</b> mm</label><input id="sawD" type="range" min="3" max="80" step="1" value="${P.depth}"><span class="dim">锯工 ${fmt(P.pv.cost)}</span><div class="row"><button data-act="sawno">重画</button><button data-act="sawgo" class="pri" ${P.pv.a < 3 ? 'disabled' : ''}>确认下锯</button></div>`;
+  renderTools(); invalidate(false); }
 // 智能圈色：在当前看到的露肉面上找最大的一片色，自动把线画好
 function smartSaw() {
   const r = canvas.getBoundingClientRect(), vol = V.e.vol, m = vol.mat, g = vol.geom, N = 46, cw = r.width / N, ch = r.height / N, val = new Float32Array(N * N); let mx = 0;
@@ -614,6 +623,7 @@ canvas.addEventListener('pointerdown', ev => {
   else if (V.tool === 'torch') { drag = { kind: 'torch' }; torchAt(ev); renderTools(); invalidate(true); }
   else if (V.tool === 'loupe') { drag = { kind: 'loupe' }; V.lens = { x: ev.clientX, y: ev.clientY }; invalidate(true); }
   else if (V.tool === 'grind') { drag = { kind: 'grind' }; lastCarve = null; strokeCost = 0; carveAt(ev); }
+  else if (V.tool === 'saw' && V.sawPlan) { drag = { kind: 'orbit', x: ev.clientX, y: ev.clientY }; }
   else if (V.tool === 'peel' || V.tool === 'saw') { drag = { kind: 'lasso', saw: V.tool === 'saw', pts: [[ev.clientX, ev.clientY]] }; V.sawPlan = null; }
   else if (V.tool === 'cut') { drag = { kind: 'line', x0: ev.clientX, y0: ev.clientY, x: ev.clientX, y: ev.clientY }; }
 });

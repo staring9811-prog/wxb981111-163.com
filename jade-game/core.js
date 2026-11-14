@@ -730,7 +730,7 @@ function sawPreview(s, piece, planes) {
 }
 function saw(w, s, piece, planes) {
   planes = planes.map(P => { const n = norm3(P); return [Math.round(n[0] * 1e4) / 1e4, Math.round(n[1] * 1e4) / 1e4, Math.round(n[2] * 1e4) / 1e4, Math.round(P[3] * 100) / 100]; });
-  if (planes.length < 3 || planes.length > 6) return { ok: false, msg: '圈得不成形，重新圈一下。' };
+  if (planes.length < 3 || planes.length > 8) return { ok: false, msg: '圈得不成形，重新圈一下。' };
   if ((piece.holes || []).length >= 4) return { ok: false, msg: '这块料已经挖过四处了，先用大锯分开再取。' };
   if (piece.planes.length + planes.length > 16) return { ok: false, msg: '这块料切面太多，取不下来了。' };
   const pv = sawPreview(s, piece, planes);

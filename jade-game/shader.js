@@ -8,7 +8,7 @@ window.JADE_FS = `#version 300 es
 precision highp float; precision highp sampler3D;
 uniform sampler3D uGeom, uMat;
 uniform vec2 uRes; uniform vec3 uCamPos; uniform mat3 uCamRot; uniform float uTan;
-uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[16]; uniform int uNHo; uniform vec4 uHo[24]; uniform int uHoN[4]; uniform vec4 uCut; uniform float uCutOn;
+uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[16]; uniform int uNHo; uniform vec4 uHo[32]; uniform int uHoN[4]; uniform int uSawN; uniform vec4 uSaw[9]; uniform vec4 uCut; uniform float uCutOn;
 uniform vec3 uSkinCol; uniform float uSkinSig, uSkinGrain, uSkinRel, uWeather, uPhase;
 uniform vec3 uBodyCol, uBandCol, uHueAbs, uFogCol; uniform float uFogT;
 uniform int uNCr; uniform vec4 uCrA[10]; uniform vec4 uCrB[10]; uniform vec4 uCrC[10]; uniform vec3 uCrT[10];
@@ -39,10 +39,10 @@ vec3 hash3(vec3 c){ return vec3(hash(c),hash(c+17.3),hash(c+41.7)); }
 float worley(vec3 p){ vec3 b=floor(p-0.5); float d=9.0; for(int x=0;x<2;x++) for(int y=0;y<2;y++) for(int z=0;z<2;z++){ vec3 c=b+vec3(float(x),float(y),float(z)); vec3 q=c+hash3(c)-p; d=min(d,dot(q,q)); } return sqrt(d); }
 float sdfOf(vec4 g){ return mix(g.g,g.r,uPristine); }
 float planeD(vec3 p){ float m=-1e9; for(int i=0;i<16;i++){ if(i>=uNPl) break; m=max(m,dot(p,uPl[i].xyz)-uPl[i].w); }
-  for(int h=0;h<4;h++){ if(h>=uNHo) break; float m2=-1e9; for(int j=0;j<6;j++){ if(j>=uHoN[h]) break; m2=max(m2,dot(p,uHo[h*6+j].xyz)-uHo[h*6+j].w); } m=max(m,-m2); }
+  for(int h=0;h<4;h++){ if(h>=uNHo) break; float m2=-1e9; for(int j=0;j<8;j++){ if(j>=uHoN[h]) break; m2=max(m2,dot(p,uHo[h*8+j].xyz)-uHo[h*8+j].w); } m=max(m,-m2); }
   return m; }
 vec3 planeN(vec3 p){ float m=-1e9; vec3 n=vec3(0.,1.,0.); for(int i=0;i<16;i++){ if(i>=uNPl) break; float v=dot(p,uPl[i].xyz)-uPl[i].w; if(v>m){ m=v; n=uPl[i].xyz; } }
-  for(int h=0;h<4;h++){ if(h>=uNHo) break; float m2=-1e9; vec3 q=vec3(0.,1.,0.); for(int j=0;j<6;j++){ if(j>=uHoN[h]) break; float v=dot(p,uHo[h*6+j].xyz)-uHo[h*6+j].w; if(v>m2){ m2=v; q=uHo[h*6+j].xyz; } } if(-m2>m){ m=-m2; n=-q; } }
+  for(int h=0;h<4;h++){ if(h>=uNHo) break; float m2=-1e9; vec3 q=vec3(0.,1.,0.); for(int j=0;j<8;j++){ if(j>=uHoN[h]) break; float v=dot(p,uHo[h*8+j].xyz)-uHo[h*8+j].w; if(v>m2){ m2=v; q=uHo[h*8+j].xyz; } } if(-m2>m){ m=-m2; n=-q; } }
   return n; }
 float mapD(vec3 p){ return max(sdfOf(G(p)),planeD(p)); }
 
@@ -217,6 +217,8 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   if(uTorch.w>0.0){ float r=length(p-uTorchSurf); col+=vec3(1.0,0.97,0.9)*min(uTorch.w,6.0)*0.06*exp(-r*r/9.0); col+=vec3(0.5)*(smoothstep(4.0,4.4,r)-smoothstep(4.6,5.0,r))*0.30; }
   if(uFakeT>1.5&&detail>0.5){ float rv=smoothstep(0.06,0.30,flesh)*(1.0-smoothstep(0.70,0.96,flesh)); col=mix(col,vec3(0.98,0.82,0.45),rv*0.85); } // 贴片窗：放大镜下窗口一圈胶线
   if(uCutOn>0.5&&abs(dot(p,uCut.xyz)-uCut.w)<0.45) col=mix(col,vec3(1.0,0.55,0.15),0.85);
+  if(uSawN>0){ float ms=-1e9; for(int i=0;i<9;i++){ if(i>=uSawN) break; ms=max(ms,dot(p,uSaw[i].xyz)-uSaw[i].w); }   // 小锯要取的范围：面上描边、里面染色
+    if(ms<0.0) col=mix(col,vec3(1.0,0.55,0.15),0.22); col=mix(col,vec3(1.0,0.62,0.2),0.92*(1.0-smoothstep(0.25,0.75,abs(ms)))); }
   return col; }
 
 vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0); }
@@ -259,6 +261,12 @@ void main(){
       if(uTorch.w>0.0){ vec3 dl=uRakePos-q; float dd=length(dl); tc+=uTabCol*weave*uTorchCol*max(dl.y/dd,0.0)*uRakeI*2.0/(1.0+dd*dd/900.0)*softShadow(q+vec3(0.0,0.6,0.0),dl/dd);
         float dg=length(q-vec3(uTorchSurf.x,uFloorY,uTorchSurf.z)); tc+=uTabCol*uTorchCol*min(uTorch.w,12.0)*0.012*exp(-dg*dg/1800.0); }
       col=mix(tc,col,smoothstep(uFloorR*0.9,uFloorR*1.6,rr)); } }
+  if(uSawN>0){ // 立体的取料框：隔着石头也能看到它伸进去多深
+    float tE=0.0, tX=1e9; bool ok=true; for(int i=0;i<9;i++){ if(i>=uSawN) break; float dn=dot(uSaw[i].xyz,rd), ds=dot(uSaw[i].xyz,uCamPos)-uSaw[i].w;
+      if(dn<-1e-5) tE=max(tE,-ds/dn); else if(dn>1e-5) tX=min(tX,-ds/dn); else if(ds>0.0) ok=false; }
+    if(ok&&tE<tX){ float th=tX-tE; col=mix(col,vec3(1.0,0.55,0.15),0.10+0.45*(1.0-smoothstep(0.0,2.2,th)));
+      vec3 pe=uCamPos+rd*tE, px2=uCamPos+rd*tX; float e1=1e9, e2=1e9, f1=1e9, f2=1e9; for(int i=0;i<9;i++){ if(i>=uSawN) break; float a=abs(dot(pe,uSaw[i].xyz)-uSaw[i].w), b=abs(dot(px2,uSaw[i].xyz)-uSaw[i].w); if(a<e1){ e2=e1; e1=a; } else if(a<e2) e2=a; if(b<f1){ f2=f1; f1=b; } else if(b<f2) f2=b; }
+      col=mix(col,vec3(1.0,0.70,0.30),0.75*(1.0-smoothstep(0.3,0.9,e2))+0.45*(1.0-smoothstep(0.3,0.9,f2))); } }
   if(uLampOn>0.5){ float tc=capI(uCamPos,rd,uLampA,uLampB,5.5);
     if(tc>0.0&&(!hitS||tc<length(p-uCamPos))){ vec3 pc=uCamPos+rd*tc; vec3 ax=normalize(uLampB-uLampA); vec3 nc=normalize((pc-uLampA)-ax*dot(pc-uLampA,ax)+ax*0.001);
       float along=dot(pc-uLampA,ax); vec3 mc=mix(vec3(0.05,0.05,0.055),vec3(0.16,0.16,0.17),0.5+0.5*dot(nc,normalize(uCamRot*vec3(-0.5,0.6,0.6))))+vec3(0.25)*pow(max(dot(nc,normalize(uCamRot*vec3(-0.4,0.7,0.6))),0.0),24.0);
