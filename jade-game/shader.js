@@ -184,7 +184,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   vec3 x=p-n*mix(skinT+0.4,0.05,flesh);
   vec3 tint=mix(vec3(1.0),uSkinCol/max(max(uSkinCol.r,uSkinCol.g),uSkinCol.b),0.7);
   vec3 T0=mix(exp(-uSkinSig*skinT)*tint,vec3(1.0),flesh);
-  vec3 T=T0, acc=vec3(0.0); float dt=0.40, trav=0.0; float gp[10];
+  vec3 T=T0, acc=vec3(0.0); float dt=uK<12?0.50:0.40, trav=0.0; float grow=uK<12?1.39:1.19; float gp[10];
   x+=dir*dt*(ign(gl_FragCoord.xy)-0.5)*0.9*flesh;   // 抖动起点，消除分层条纹
   for(int i=0;i<10;i++){ float ins; gp[i]=i<uNCr?crG(i,x,ins):1.0; }
   float ambL=uAmbient*(0.42+0.58*max(dot(nf,keyL),0.0)*mix(1.0,sh,0.6)+0.14*max(-nf.y,0.0)*uFloorOn)*mix(1.0,ao,0.5);
@@ -217,7 +217,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);
       if(h*gp[i]<0.0&&ins>0.3){ float op=uCrB[i].w; vec3 gl=T0*ambL*0.5; if(uTorch.w>0.0) gl+=fluence(xe); acc+=T*gl*op*0.45; T*=1.0-0.5*op; }
       gp[i]=h; }
-    acc+=T*al*sc*dt*Lin; T*=exp(-sg*dt); x=xe; trav+=dt; dt*=1.19;
+    acc+=T*al*sc*dt*Lin; T*=exp(-sg*dt); x=xe; trav+=dt; dt*=grow;
   }
   float line=0.0, halo=0.0, heal=0.0, rust=0.0; // 露肉面上的裂：一条暗线，两侧起白雾；靠皮的一段被水和铁锈沁黄，越往里越淡
   for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); if(ins<0.01||abs(h)>5.0) continue;

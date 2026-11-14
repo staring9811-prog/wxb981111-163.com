@@ -471,10 +471,17 @@ function getVol(rec) {
   if (!e) { const st = genStone(rec.seed, rec.origin, rec.channel); const vol = bake(st); e = { st, vol, applied: 0 }; volCache.set(rec.seed, e); }
   const s = rec.strokes || [], clips = rec.clips || [[]];
   for (; e.applied < s.length; e.applied += 5) carve(e.vol, clipPiece(clips[s[e.applied + 4]]), s[e.applied], s[e.applied + 1], s[e.applied + 2], s[e.applied + 3]);
+  if (rec.peeled && !e.peeledDone) { e.peeledDone = true; peelVol(e.vol); }
   if (rec.fake && !e.faked) { e.faked = true; e.st.fake = rec.fake.type; if (rec.fake.type === 'veneer') veneer(e.vol, rec.fake.spheres); if (rec.fake.type === 'dye') dyeWin(e.vol, rec.fake.spheres); }
   return e;
 }
 const WHOLE = { id: 0, planes: [] };
+// 全去皮：整块石头的皮都剥到刚露肉。返回剥掉的体积（立方毫米）
+function peelVol(vol) { const { nx, ny, nz, vx, geom: g } = vol; let rem = 0; for (let i = 0, n = nx * ny * nz; i < n; i++) { const b = i * 4, t = g[b] + g[b + 2] + 0.45; if (g[b + 1] < 0 && t > g[b + 1]) { if (t >= 0) rem += vx * vx * vx; g[b + 1] = t; } } vol.ver = (vol.ver || 0) + 1; return rem; }
+function peelAllCost(s) { const e = getVol(s), { nx, ny, nz, vx, geom: g } = e.vol; let rem = 0; for (let i = 0, n = nx * ny * nz; i < n; i++) { const b = i * 4; if (g[b + 1] < 0 && g[b] + g[b + 2] + 0.45 >= 0) rem += vx * vx * vx; } return Math.round(rem * ECON.grind * 1.2); }
+function peelAll(w, s) { if (s.peeled) return { ok: false, msg: '这块已经全去过皮了。' }; const cost = peelAllCost(s); if (cost > w.cash) return { ok: false, msg: '现金不够。' }; s.peeled = true; getVol(s); s.costs += cost; w.cash -= cost; w.log.push({ day: w.day, t: `#${s.id} 全去皮`, amt: -cost }); return { ok: true, cost }; }
+// 画圈开皮的预估：这一点要切掉多少皮（不动石头）
+function peelLeft(s, p) { const v = getVol(s).vol; return sampleG(v, 2, p[0], p[1], p[2]) - Math.max(0, -sampleG(v, 0, p[0], p[1], p[2])); }
 /* ---------- 造假料 ----------
  * paint：染色做皮，皮上满是“松花”，里面没有。放大镜下色块平、边缘齐、没有砂粒。
  * veneer：贴片假窗，窗口贴了两毫米好料，下面是原来的差料。压灯时光散不开，放大镜下窗口一圈有胶线。 */
@@ -1154,6 +1161,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -137,7 +137,7 @@ function render(scale, forceSize) {
   const SC = { '夜市地摊': [0, [0.075, 0.05, 0.03], [0.014, 0.010, 0.009], [1.0, 0.82, 0.56]], '玉石集散地': [1, [0.125, 0.115, 0.10], [0.022, 0.02, 0.018], [1.0, 0.97, 0.92]], '翡翠公盘': [2, [0.05, 0.06, 0.08], [0.008, 0.01, 0.014], [0.92, 0.97, 1.0]], '场口直采': [3, [0.3, 0.25, 0.18], [0.12, 0.10, 0.08], [1.0, 0.94, 0.84]] }[(V.rec && V.rec.scene) || W.scene] || [1, [0.115, 0.1, 0.085], [0.02, 0.018, 0.016], [1, 0.96, 0.9]];
   gl.uniform1i(u('uScene'), V.mode === 'market' ? SC[0] : 1); gl.uniform3fv(u('uBgA'), V.mode === 'market' ? SC[1] : [0.115, 0.1, 0.085]); gl.uniform3fv(u('uBgB'), V.mode === 'market' ? SC[2] : [0.02, 0.018, 0.016]); gl.uniform3fv(u('uKeyCol'), V.mode === 'market' ? SC[3] : [1, 0.96, 0.9]);
   { const tab = { '夜市地摊': [0.20, 0.07, 0.05], '玉石集散地': [0.10, 0.16, 0.13], '翡翠公盘': [0.035, 0.04, 0.055], '场口直采': [0.30, 0.23, 0.15] }; const on = !forceSize && V.info && V.mode !== 'review' && V.floor !== false; gl.uniform1f(u('uFloorOn'), on ? 1 : 0); gl.uniform1f(u('uDecor'), on && V.mode === 'market' ? 1 : 0); if (on) { gl.uniform1f(u('uFloorY'), V.info.lo - 0.4); gl.uniform1f(u('uFloorR'), Math.max(120, V.info.radius * 3.2)); gl.uniform3fv(u('uTabCol'), V.mode === 'market' ? (tab[(V.rec && V.rec.scene) || W.scene] || tab['玉石集散地']) : [0.09, 0.14, 0.12]); } }
-  gl.uniform1i(u('uK'), scale < 1 ? 8 : Q.K); gl.uniform1f(u('uHi'), scale < 1 ? 0 : 1);
+  gl.uniform1i(u('uK'), scale < 1 ? 10 : Q.K); gl.uniform1f(u('uHi'), scale < 1 ? 0 : 1);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   if (scale === 1 && !forceSize && !Q.tuned) { const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const ms = performance.now() - t0; if (ms > 350 && Q.scale > 0.45) { Q.scale *= 0.7; invalidate(false); } else Q.tuned = true; }
 }
@@ -392,7 +392,7 @@ const HINTS = {
   loupe: '移动放大镜看皮壳颗粒、松花、细裂和玉肉晶粒。可以和手电一起用。',
   grind: '在石头上拖动磨皮开窗。同一处来回磨会越磨越深，磨掉的料回不来。',
   saw: '小锯取料：在看得清的面上圈出想要的那一块（比如色带），沿圈直着锯穿，把它单独取下来。圈会被拉成最多六条边的形状。',
-  peel: '在石头上画一个圈，圈里的皮会被整片切掉，只剥到刚露肉，不伤里面的料。圈越大切工越贵，想象空间也越少。',
+  peel: '在石头上画一个圈，确认后圈里的皮会被整片切掉，只剥到刚露肉，不伤里面的料。圈越大切工越贵，想象空间也越少。',
   cut: '在石头上拖一条线，就是锯片走的位置；或者把想切的面转到正对自己，按厚度切一片。橙线是下刀处。',
 };
 function cutFromView() {
@@ -405,6 +405,7 @@ function renderTools() {
   let o = '';
   if (V.mode === 'review') o += `<label for="sec">剖面高度</label><input id="sec" type="range" min="${(-V.e.vol.hy).toFixed(0)}" max="${V.e.vol.hy.toFixed(0)}" step="0.5" value="${V.section}"><span class="dim">复盘：这是石头原本的内部</span>`;
   else if (V.tool === 'torch') o += `<label for="tTilt">倾斜 <b id="tTiltV">${V.torch.tilt}</b>°</label><input id="tTilt" type="range" min="0" max="85" step="5" value="${V.torch.tilt}"><label for="tAz">朝向</label><input id="tAz" type="range" min="0" max="360" step="15" value="${V.torch.az}"><label for="tH">离皮 <b id="tHV">${V.torch.h}</b> mm</label><input id="tH" type="range" min="0" max="60" step="2" value="${V.torch.h}"><button data-act="lbody" aria-pressed="${V.lampBody}">显示筒身</button><button data-act="toff" ${V.torch.on ? '' : 'disabled'}>关灯</button>`;
+  else if (V.tool === 'peel' && own) o += V.peelPlan ? `<span class="dim">虚线圈是要切的范围。在石头旁的小框里确认或取消；右键拖动可以转着看。</span>` : `<button data-act="peelall" ${V.rec.peeled ? 'disabled' : ''}>${V.rec.peeled ? '已全去皮' : '全去皮'}</button><span class="dim">或在石头上画圈，只切圈里的皮。画完先预览，确认了才切。全去皮最干净，但想象空间也全没了。</span>`;
   else if (V.tool === 'saw' && own) o += V.sawPlan ? `<span class="dim">橙框是要取的范围。在石头旁的小框里调深度、确认或重画；右键拖动可以转着看。</span>` : `<button data-act="sawsmart">智能圈色</button><span class="dim">或自己在料上圈出要取的那一块。画完线先预览，确认了才锯。</span>`;
   else if (V.tool === 'grind') o += Object.keys(C.TOOLS).map(k => `<button data-act="burr" data-k="${k}" aria-pressed="${V.burr === k}">${k}</button>`).join('');
   else if (V.tool === 'cut' && own) {
@@ -637,6 +638,7 @@ function buildFakes() {
 /* Esc：关掉最上面一层打开的东西 */
 addEventListener('keydown', ev => { if (ev.key !== 'Escape') return; const open = id => $(id) && !$(id).hidden; let done = true;
   if (open('#saves')) $('#saves').hidden = true;
+  else if (V.peelPlan) { V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true; renderTools(); }
   else if (open('#help')) $('#help').hidden = true;
   else if (open('#confirm')) $('#confirm').hidden = true;
   else if (open('#story')) { const bs = $('#storybody').querySelectorAll('button'); if (bs.length === 1) bs[0].click(); else done = false; }
@@ -659,7 +661,7 @@ function fillManual() {
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act],[data-tab],[data-tool]'); if (!b) return;
   if (b.dataset.tab) { if (b.dataset.tab === 'tray') { openTray(false); return; } if (V.mode === 'tray') { tab = b.dataset.tab; view(null, null, null); return; } tab = b.dataset.tab; renderSide(); return; }
-  if (b.dataset.tool) { V.tool = b.dataset.tool; V.lens = null; V.cut = null; V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); invalidate(false); return; }
+  if (b.dataset.tool) { V.tool = b.dataset.tool; V.lens = null; V.cut = null; V.sawPlan = null; V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); invalidate(false); return; }
   const a = b.dataset.act;
   if (a !== 'menu') $('#hmenu').classList.remove('open');
   if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) view('market', L, null); }
@@ -693,6 +695,9 @@ document.addEventListener('click', ev => {
   else if (a === 'iall') { for (const it of trayItems()) C.sellItem(W, it, b.dataset.how); save(); tab = 'ledger'; view(null, null, null); }
   else if (a === 'review') { view('review', W.stones.find(x => x.id === +b.dataset.s), null); }
   else if (a === 'rake') { V.torch.rake = !V.torch.rake; renderTools(); invalidate(false); }
+  else if (a === 'peelgo') { doPeel(); }
+  else if (a === 'peelno') { V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); }
+  else if (a === 'peelall') { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = `整块的皮都剥掉，花 ${fmt(C.peelAllCost(V.rec))}，回不去。再点一次确认`; return; } const r = C.peelAll(W, V.rec); if (!r.ok) { V.note = r.msg; renderTools(); return; } flag('open'); loaded = null; qcache.clear(); Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `全去皮完成，花费 ${fmt(r.cost)}。里面什么样，现在谁都看得见了。`; renderAll(); }
   else if (a === 'sawno') { V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); }
   else if (a === 'sawsmart') { smartSaw(); }
   else if (a === 'pshelf') { const r = C.pieceShelf(W, V.rec, V.piece); V.note = r.ok ? '已摆进铺面，散客会按零售价来买。' : r.msg; save(); renderAll(); }
@@ -886,13 +891,19 @@ function smartSaw() {
   const pts = []; for (const c of best) { const x = r.left + (c % N + 0.5) * cw, y = r.top + (((c / N) | 0) + 0.5) * ch; pts.push([x - cw * 0.7, y - ch * 0.7], [x + cw * 0.7, y - ch * 0.7], [x - cw * 0.7, y + ch * 0.7], [x + cw * 0.7, y + ch * 0.7]); }
   planSaw(pts);
 }
-function doPeel(pts) {
-  if (pts.length < 6) return;
+function planPeel(pts) {
+  if (pts.length < 6) { showLasso(null); return; }
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (const p of pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
-  if (x1 - x0 < 12 || y1 - y0 < 12) return;
+  if (x1 - x0 < 12 || y1 - y0 < 12) { showLasso(null); return; }
   const inside = (x, y) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
   const step = Math.max(5, Math.sqrt((x1 - x0) * (y1 - y0) / 900)), hits = [];
   for (let y = y0; y <= y1; y += step) for (let x = x0; x <= x1; x += step) if (inside(x, y)) { const r = rayAt(x, y), h = C.pick(V.e.vol, V.piece, r.ro, r.rd); if (h && !h.flat) hits.push(h); }
+  const todo = hits.filter(h => C.peelLeft(V.rec, h.p) > 0.05);
+  if (!todo.length) { showLasso(null); V.note = '圈里没有可切的皮。'; renderTools(); return; }
+  V.peelPlan = { hits: todo }; showLasso(pts);
+  const bx = $('#sawbox'); bx.innerHTML = `<b>画圈开皮</b><span class="dim">圈里有 ${todo.length} 处皮要切，只剥到刚露肉。切了就回不去，露出来的买家也都看得见。</span><div class="row"><button data-act="peelgo" class="pri">确认切皮</button><button data-act="peelno">取消重画</button></div>`; bx.hidden = false; renderTools();
+}
+function doPeel() { const hits = V.peelPlan ? V.peelPlan.hits : []; V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true;
   let cost = 0, n = 0; for (const h of hits) { const res = C.peelAt(W, V.rec, V.piece, h.p, h.n); if (res) { cost += res.cost; n++; } }
   if (!n) { V.note = '圈里没有可切的皮。'; renderTools(); return; }
   flag('open'); loaded = null; Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `切皮完成，花费 ${Math.max(1, Math.round(cost))} 元。`; renderAll();
@@ -908,8 +919,8 @@ $('#gyro').addEventListener('pointerup', () => invalidate(false));
 $('#gyro').addEventListener('dblclick', () => { gyroSet(0, 0); invalidate(false); });
 $('#torchdock').addEventListener('pointerdown', ev => { if (ev.target.closest('button') || ev.target.closest('#gyrowrap') || !V.e) return; ev.preventDefault(); canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: 'torch' }; V.torch.h = 0; V.torch.dir = null; });
 canvas.addEventListener('pointerdown', ev => {
-  if (V.e && V.mode !== 'tray' && V.torch.on && V.torch.p && ev.button !== 2) { const tp = torchPts(), a = proj(tp.tail), b2 = proj(tp.head), mid = [(a[0] + b2[0]) / 2, (a[1] + b2[1]) / 2], dt = Math.hypot(ev.clientX - a[0], ev.clientY - a[1]), dh = Math.hypot(ev.clientX - b2[0], ev.clientY - b2[1]), dm = Math.hypot(ev.clientX - mid[0], ev.clientY - mid[1]), mn = Math.min(dt, dh, dm);
-    if (mn < 24) { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: mn === dt ? 'ttail' : mn === dh ? 'torch' : 'tmid', lx: ev.clientX, ly: ev.clientY }; return; } }
+  if (V.e && V.mode !== 'tray' && V.torch.on && V.torch.p && ev.button !== 2) { const tp = torchPts(), a = proj(tp.tail), b2 = proj(tp.head), mid = [(a[0] + b2[0]) / 2, (a[1] + b2[1]) / 2], dt = Math.hypot(ev.clientX - a[0], ev.clientY - a[1]), dh = Math.hypot(ev.clientX - b2[0], ev.clientY - b2[1]), dm = Math.hypot(ev.clientX - mid[0], ev.clientY - mid[1]), seg = (() => { const vx = a[0] - b2[0], vy = a[1] - b2[1], l2 = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((ev.clientX - b2[0]) * vx + (ev.clientY - b2[1]) * vy) / l2)); return [Math.hypot(ev.clientX - b2[0] - vx * t, ev.clientY - b2[1] - vy * t), t]; })(), mn = Math.min(dt, dh, dm);
+    if (mn < 26 || seg[0] < 20) { if (mn >= 26) { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: seg[1] < 0.3 ? 'torch' : seg[1] > 0.7 ? 'ttail' : 'tmid', lx: ev.clientX, ly: ev.clientY }; return; } canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: mn === dt ? 'ttail' : mn === dh ? 'torch' : 'tmid', lx: ev.clientX, ly: ev.clientY }; return; } }
   if (V.mode === 'tray') { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: 'orbit', x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, tray: true }; return; }
   if (!V.e) return; canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
   if (ptrs.size === 2) { showLine(null); const a = [...ptrs.values()]; drag = { kind: 'pinch', d: Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), x: (a[0][0] + a[1][0]) / 2, y: (a[0][1] + a[1][1]) / 2 }; return; }
@@ -919,7 +930,7 @@ canvas.addEventListener('pointerdown', ev => {
   else if (V.tool === 'torch') { drag = { kind: 'torch' }; torchAt(ev); renderTools(); invalidate(true); }
   else if (V.tool === 'loupe') { drag = { kind: 'loupe' }; V.lens = { x: ev.clientX, y: ev.clientY }; invalidate(true); }
   else if (V.tool === 'grind') { drag = { kind: 'grind' }; lastCarve = null; strokeCost = 0; carveAt(ev); }
-  else if (V.tool === 'saw' && V.sawPlan) { drag = { kind: 'orbit', x: ev.clientX, y: ev.clientY }; }
+  else if ((V.tool === 'saw' && V.sawPlan) || (V.tool === 'peel' && V.peelPlan)) { drag = { kind: 'orbit', x: ev.clientX, y: ev.clientY }; }
   else if (V.tool === 'peel' || V.tool === 'saw') { drag = { kind: 'lasso', saw: V.tool === 'saw', pts: [[ev.clientX, ev.clientY]] }; V.sawPlan = null; }
   else if (V.tool === 'cut') { drag = { kind: 'line', x0: ev.clientX, y0: ev.clientY, x: ev.clientX, y: ev.clientY }; }
 });
@@ -944,7 +955,7 @@ function endPtr(ev) {
   if (drag.kind === 'loupe' && ev.pointerType !== 'mouse') { V.lens = null; invalidate(false); }
   if (drag.kind === 'orbit' && drag.click && V.torch.on && V.torch.p && V.e && V.mode !== 'tray' && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 5) { torchAt(ev); Snd.tap(); } // 手电亮着时，点一下石头就把灯挪过去
   if (drag.kind === 'torch' || drag.kind === 'ttail' || drag.kind === 'tmid' || drag.kind === 'orbit') { renderDock(); invalidate(false); }
-  if (drag.kind === 'lasso') { if (drag.saw) planSaw(drag.pts); else { showLasso(null); doPeel(drag.pts); } }
+  if (drag.kind === 'lasso') { if (drag.saw) planSaw(drag.pts); else planPeel(drag.pts); }
   if (drag.kind === 'line') {
     showLine(null);
     if (Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > 24) {
