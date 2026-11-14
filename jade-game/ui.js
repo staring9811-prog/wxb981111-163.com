@@ -233,6 +233,14 @@ function faceSvg(o, size) { const ph = photoKey(o); if (ph) return `<span class=
   <path class="pf-mouth" d="M${60 - 7} ${ey + (baby ? 14 : 18)} Q60 ${ey + (baby ? 19 : 22) + (o.sad ? -4 : 0)} ${60 + 7} ${ey + (baby ? 14 : 18)}" stroke="${fem ? '#b8424e' : '#8a4a3c'}" stroke-width="${fem ? 2.6 : 1.8}" fill="none" stroke-linecap="round"/>
   ${hairTop}${!fem && !kid && !baby && !old && rnd(7) > 0.5 ? `<path d="M${60 - 11} ${ey + 25} q11 5 22 0" stroke="#3a2a20" stroke-width="3" opacity="0.25" fill="none"/>` : ''}</g></g></g></svg>`; }
 function kidFace(k, size) { return faceSvg({ months: k.months, kind: k.months < 30 ? 'baby' : k.months < 204 ? 'kid' : 'man', seed: k.name.charCodeAt(1) * 7 + k.name.length, name: k.name, girl: k.name.charCodeAt(1) % 2 === 0 && k.months >= 204 }, size); }
+/* 假料讲解：手脚做在哪、为什么这么做、当时怎么看得出来、下次怎么查 */
+const FAKE_HELP = {
+  paint: ['染色做皮（假松花）', '手脚在皮上：那一身绿斑是用颜料刷上去的，冒充“松花”，让人以为里面满色。', '里面是没色的普通料，刷一身绿就能按赌色料的价钱卖，要价翻一两倍。', ['用放大镜看绿斑：真松花藏在砂粒之间、有深有浅；染的是平平一片盖在砂粒上面，边缘齐。', '对着绿斑压灯：真有色，灯下会透出绿光；染的只有白光。', '看价钱：一身松花却只要几千几万，不合理。']],
+  veneer: ['贴片假窗', '手脚在窗口：在差料上挖个坑，贴了一片两三毫米厚的好料，窗口看上去种好色好。', '窗口是买家唯一能看到肉的地方，窗口好，整块就能按好料卖。', ['用放大镜沿着窗口边缘看一圈：贴片的边上有一圈黄色的胶线，真窗口是皮到肉自然过渡。', '对着窗口压灯：光只在薄薄一片里亮，透不到窗口周围的皮下面去。', '换个地方隔着皮压灯：别处的光晕又小又浑，和窗口的表现对不上。']],
+  dye: ['窗口上色', '手脚在窗面上：窗口是真开的，但肉的表面染了一层绿。', '无色的料，窗口一见绿，就能按“窗口见色”的价钱卖。', ['用放大镜看窗面：染的色沿着晶粒之间的缝走，像一张绿色的网，晶粒中间是白的；真色有色根，浓淡过渡自然。', '看颜色的样子：又匀又艳、没有深浅变化，像涂上去的。', '对着窗口压灯：真色的光晕带绿而且往里走；染的只在表面发绿，往旁边挪一点就全白了。']],
+};
+function fakeExplain(key) { const k = FAKE_HELP[key] ? key : Object.keys(FAKE_HELP).find(x => String(key).indexOf(FAKE_HELP[x][0].slice(0, 4)) === 0); if (!k) return ''; const F = FAKE_HELP[k];
+  return `<div class="fakehelp"><b class="say">这是一块假料：${F[0]}</b><p><b>手脚做在哪：</b>${F[1]}</p><p><b>为什么这么做：</b>${F[2]}</p><p><b>当时怎么看得出来：</b></p><ol>${F[3].map(x => `<li>${x}</li>`).join('')}</ol><button data-act="gofake">打开假料图鉴，看真假并排对照</button></div>`; }
 function workCard(k) { const is = C.issueOf(W, k); let h = `<article class="card"><div class="row"><b>加工中 · ${esc(k.from)}</b><span class="dim">${is ? '停工，等你拿主意' : '第 ' + k.ready + ' 天取货'}</span></div><div class="row dim"><span>${esc(k.what)}，按看得见的料预计 ${k.expected} 件。</span></div>`;
   if (is) h += issueHtml(k, is); else if (k.issue && k.issue.done) h += `<p class="${k.issue.win ? 'note' : 'say'}">${esc(k.issue.note)}</p>`; return h + '</article>'; }
 function issueHtml(k, is) { const word = p => p >= 1 ? '稳' : is.see ? Math.round(p * 100) + '% 把握' : p > 0.7 ? '把握大' : p > 0.45 ? '五五开' : '把握不大'; return `<p class="say">${esc(is.text)}</p>${is.opts.map((o, i) => `<div class="row"><span class="dim">${word(o.p)}${o.p < 1 ? `：成了 ×${o.win}，不成 ×${o.lose}` : `：×${o.win}`}</span><button data-act="issue" data-id="${k.id}" data-i="${i}">${esc(o.label)}</button></div>`).join('')}${is.see ? '' : '<p class="note">学了相应的手艺，这里能看到具体几成把握。</p>'}`; }
@@ -264,6 +272,7 @@ function renderSide() {
       <div class="tags"><span class="tag ${L.info.window ? 'w' : ''}">${L.info.window ? '卖家已开窗' : '全蒙头'}</span>${betHtml(L.info.bet, sel)}</div>`;
       if (sel && !L.sold && !L.called && C.can(W, 'buy')) h += `<div class="row"><span class="dim">觉得皮或窗口做过手脚？说对了老板大降价，说错了他翻脸不卖。</span><button data-act="callout">当面说这是假货</button></div>`;
       if (sel && !L.sold) { const eff = C.famEff(W, 'spotter'); if (eff > 0) { const kid = W.fam.kids.find(k => k.job === 'spotter'), st = C.getVol(L).st, rr = new C.Rng(C.seedOf(L.seed, 'kidsay')), right = rr.u() < 0.35 + eff * 0.9, gi = C.gradeIdx(st.w0), g2 = right ? gi : Math.max(0, Math.min(5, gi + (rr.u() < 0.5 ? 1 : -1))); h += `<p class="patter">${kid.name}凑过来小声说：“我看像${['豆种', '糯种', '糯冰种', '冰种', '高冰种', '玻璃种'][g2]}${L.fake && rr.u() < eff + 0.2 ? '，可这皮我觉得不对劲' : ''}。”</p>`; } }
+      if (sel && L.exposed && L.fake) h += fakeExplain(L.fake.type);
       if (sel && !L.sold) h += `${(L.patter || []).map(x => `<p class="patter">${esc(x)}</p>`).join('')}${L.opinion ? `<p class="say">${esc(L.opinion)}</p>` : `<div class="row"><span class="dim">拿不准？</span><button data-act="appr">请师傅掌眼（${fmt(C.appraiseFee(L))}）</button></div>`}`;
       if (L.auction && L.bid && !L.sold) h += `<div class="row"><span class="say">已投标 ${fmt(L.bid)}，收工后开标</span></div>`;
       if (sel && !L.sold && L.auction) h += `<div class="bargain"><label for="offer">暗标出价（元）。别人出多少你看不到，出高了白花钱，出低了拿不到。</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${L.bid || V.offer || L.floor}"><button data-act="bid" class="pri">${L.bid ? '改标' : '投标'}</button></div>${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
@@ -372,7 +381,7 @@ function renderSide() {
       h += `<article class="card ${V.mode === 'review' && V.rec === s ? 'sel' : ''}"><div class="row"><b>复盘 #${s.id} ${s.origin} · ${s.info.skin}</b><span class="${net >= 0 ? 'up' : 'down'}">${net >= 0 ? '+' : ''}${fmt(net)}</span></div>
       <div class="row dim"><span>买入 ${fmt(s.buyPrice)} · 加工 ${fmt(s.costs)} · 回款 ${fmt(s.proceeds)} · 持有 ${s.closeDay - s.buyDay} 天</span></div>${s.share < 1 ? `<div class="row"><span class="say">合伙料：你出一半本钱，结账${s.settle >= 0 ? `分给合伙人 ${fmt(s.settle)}` : `合伙人补给你 ${fmt(-s.settle)}`}，你实际净${(s.proceeds - s.buyPrice - s.costs) >= 0 ? '赚' : '亏'} ${fmt(Math.abs((s.proceeds - s.buyPrice - s.costs) * s.share))}</span></div>` : ''}
       <div class="row dim"><span>买入当天原样转手最高 ${fmt(s.flip)}；途中账面最高 ${fmt(s.best)}</span></div>
-      ${r.fake ? `<div class="row"><span class="say">这是一块假料：${r.fake}</span></div>` : ''}
+      ${r.fake ? fakeExplain(r.fake) : ''}
       <div class="row dim"><span>真相：${r.water}，${r.feats.length ? r.hue + '（' + r.feats.join('、') + '）' : '基本无色'}，${r.cracks} 条裂${r.shift ? '，' + r.shift : ''}；全部做成件的零售价值约 ${fmt(r.truth)}</span></div>
       ${s.guessResult ? `<div class="row"><span class="say">判断本：你写的是 ${C.waterName(C.GRADES[s.guess.water])}／${{ none: '无色', skin: '贴皮色', deep: '色吃进去', full: '满色' }[s.guess.color]}／${s.guess.crack === 'few' ? '裂少' : '裂多'}，实际 ${C.waterName(C.GRADES[s.guessResult.water])}／${{ none: '无色', skin: '贴皮色', deep: '色吃进去', full: '满色' }[s.guessResult.color]}／${s.guessResult.crack === 'few' ? '裂少' : '裂多'}。眼力 +${s.guessResult.pts}</span></div>` : ''}
       <div class="row"><span class="dim">一次赚钱不等于判断正确，亏了也不一定是决策错。</span><button data-act="review" data-s="${s.id}">看剖面</button></div></article>`;
@@ -739,7 +748,7 @@ document.addEventListener('click', ev => {
   else if (a === 'menu') { $('#hmenu').classList.toggle('open'); }
   else if (a === 'watch') { const L = V.rec, g = V.wg || {}; if (g.water == null) { V.msg = '先选一个种水再看。'; renderSide(); return; } const r = C.watch(W, L, { water: g.water, color: g.color || 'none', crack: g.crack || 'few' }); if (!r.ok) { V.msg = r.msg; renderSide(); return; }
     V.wg = null; Snd.saw(); save(); L.id = '围观'; const nm = ['豆种', '糯种', '糯冰种', '冰种', '高冰种', '玻璃种'], cn = { none: '基本无色', skin: '只有贴皮色', deep: '色吃进去了', full: '满色' };
-    $('#storybody').innerHTML = `<h2>他一刀切开了</h2><p>实际是：<b>${nm[r.water]}</b>，${cn[r.color]}，${r.crack === 'few' ? '裂少' : '裂多'}。${r.fake ? '而且这是一块假料：' + r.fake + '。' : ''}</p><p>你猜的是：${nm[g.water]}，${cn[g.color || 'none']}，${(g.crack || 'few') === 'few' ? '裂少' : '裂多'}。</p><p class="say">眼力 +${r.pts}${r.tip ? `；种水猜对了，旁边的人输给你 ${r.tip} 块彩头` : ''}</p><p class="note">关掉这个框后可以拖动「剖面高度」看这块石头里面到底什么样，和你刚才打灯看到的对一对。</p><button data-act="storyok" class="pri">看剖面</button>`;
+    $('#storybody').innerHTML = `<h2>他一刀切开了</h2><p>实际是：<b>${nm[r.water]}</b>，${cn[r.color]}，${r.crack === 'few' ? '裂少' : '裂多'}。</p>${r.fake ? fakeExplain(r.fake) : ''}<p>你猜的是：${nm[g.water]}，${cn[g.color || 'none']}，${(g.crack || 'few') === 'few' ? '裂少' : '裂多'}。</p><p class="say">眼力 +${r.pts}${r.tip ? `；种水猜对了，旁边的人输给你 ${r.tip} 块彩头` : ''}</p><p class="note">关掉这个框后可以拖动「剖面高度」看这块石头里面到底什么样，和你刚才打灯看到的对一对。</p><button data-act="storyok" class="pri">看剖面</button>`;
     $('#story').hidden = false; view('review', L, null); }
   else if (a === 'livego') { const r = C.liveRun(W); if (!r.ok) { V.note = r.msg; renderTools(); renderSide(); return; } save(); const box = $('#livechat'); box.innerHTML = ''; $('#liveview').textContent = r.viewers + ' 人在看'; $('#liveend').hidden = true; $('#live').hidden = false;
     r.lines.forEach((ln, i) => setTimeout(() => { const d = document.createElement('p'); d.className = ln[0]; d.textContent = ln[0] === 'c' ? '观众：' + ln[1] : ln[1]; box.appendChild(d); box.scrollTop = box.scrollHeight; if (ln[0] === 'sys' && i) Snd.coin(); if (i === r.lines.length - 1) $('#liveend').hidden = false; }, 350 + i * 520)); }
@@ -812,6 +821,7 @@ document.addEventListener('click', ev => {
   else if (a === 'yes') { $('#confirm').hidden = true; C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; view(null, null, null); }
   else if (a === 'help') { $('#help').hidden = !$('#help').hidden; if (!$('#help').hidden) showPane('play'); }
   else if (a === 'pane') showPane(b.dataset.k);
+  else if (a === 'gofake') { $('#story').hidden = true; $('#help').hidden = false; showPane('fake'); }
   else if (a === 'gotoref') { $('#help').hidden = true; openTray(true); }
 });
 document.addEventListener('input', ev => {
