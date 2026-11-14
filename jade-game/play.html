@@ -85,6 +85,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 #coach { position: absolute; left: 50%; transform: translateX(-50%); bottom: 150px; z-index: 4; max-width: min(92%, 560px); background: #f3ecddf2; color: #2a2018; border-radius: 10px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; font-size: 13.5px; box-shadow: 0 4px 16px #000b; }
 #coach small { color: #7a6a55; white-space: nowrap; } #coach button { background: #e2d8c2; color: #2a2018; border-color: #b9ab8e; font-size: 12px; padding: 2px 8px; white-space: nowrap; }
 .goal { border-color: #6a5632; background: #1c1810; } .goal .row { font-size: 12.5px; color: var(--dim); } .goal .row:first-child { font-size: 14px; color: var(--lamp); } .goal .done { color: var(--jade); } .goal button { font-size: 12px; padding: 1px 8px; }
+.props { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 4px 0; } .props i { color: var(--dim, #9a948a); font-style: normal; font-size: 12px; }
 .bar { flex: 1; height: 8px; border-radius: 4px; background: var(--raise); overflow: hidden; max-width: 60%; align-self: center; } .bar i { display: block; height: 100%; }
 #panel select { font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; max-width: 72%; }
 .storybox button { text-align: left; }
@@ -249,6 +250,14 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <li><b>出手</b>：随时可以按买家报价卖掉；或者「送去做件」，等几天到「成品盘」里卖成品。</li>
       <li><b>收工</b>：右上角「收工，下一天」。货源换新，报价作废，货款和成品到账。</li>
     </ol>
+    <h3>师傅、提案和中途决断</h3>
+    <ul>
+      <li><b>每个师傅三项本事</b>：避裂、做色、设计。镯师避裂好，揭阳师傅做色好，苏工设计和避裂都强但贵。雇了驻店师傅后多一个「自家师傅」，只收料工，属性雇来时随机，有一项是长处，做得越多越熟。</li>
+      <li><b>提案</b>：选好师傅后，他会看料给两三个做法（主推、备选、稳妥）。料没看清时他也是猜，设计好的师傅猜得准。可以照他的做，也可以自己定。</li>
+      <li><b>做到一半要你拿主意</b>：料里看不清的部分越多，越可能出状况。<b>冒出裂</b>：改小避开（稳）、改题材藏裂（看师傅避裂）、硬做赌裂不深（成了多赚，不成整件崩掉）。<b>色比想的好</b>：改方案追色（看师傅做色，成了价钱近乎翻倍，不成形也乱了）或者照原样做。<b>色只有一层皮</b>：薄薄留住，或者磨掉做素件。</li>
+      <li>师傅停工等你的时候不会交货，到「我的料」或「成品盘」里那一单上做决定。</li>
+      <li><b>我的手艺</b>（在「我的料」里学）：排料设计让你看懂提案值多少、省工费、少废料；识裂避裂和追色留色让你看到每条路几成把握，并提高成功率。</li>
+    </ul>
     <h3>家</h3>
     <ul>
       <li><b>一家四口</b>：老婆阿秀，八岁的小满，刚出生的小宝。游戏里过一天，家里过一个月，孩子按月长大。</li>
@@ -421,11 +430,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v24</div>
+<div id="ver">v25</div>
 
 <script>
 (function () {
-  var LOCAL = 24, FILES = ['config.js', 'licenses.js', 'core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 25, FILES = ['config.js', 'licenses.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }
