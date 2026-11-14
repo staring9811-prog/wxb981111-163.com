@@ -408,7 +408,7 @@ function evalPiece(st, vol, piece) {
             const bb = vIndex(vol, x, y, z) * 4; sv += vd(m[bb + 1] / 255, m[bb] / 255, m[bb + 2] / 255, m[bb + 3] / 255, grade); sk += kAt(x, y, z); cnt++;
           } if (!ok) break; }
         }
-        if (ok && cnt) { const r = { v: sv / cnt, k: sk / cnt }; if (!best || r.v > best.v) best = r; }
+        if (ok && cnt) { const hc = top - 4.5, r = { v: sv / cnt, k: sk / cnt, n, c: [t1[0] * a + t2[0] * b + n[0] * hc, t1[1] * a + t2[1] * b + n[1] * hc, t1[2] * a + t2[2] * b + n[2] * hc] }; if (!best || r.v > best.v) best = r; }
       }
       if (best) res.push(best);
     }
@@ -421,7 +421,7 @@ function evalPiece(st, vol, piece) {
   let truthB = 0; for (const r of rT) truthB += r.v * ringVol;
   let ext = 0; if (!slab) { const inf = pieceInfo(vol, piece, [0, 1, 0]); ext = inf.hi - inf.lo; }
   return {
-    truth: truth * sc + truthB, truthParts: { small: truth * sc, rings: rT.map(r => r.v * ringVol), Vclean: ag.Vclean * v3, Vcrack: ag.Vcrack * v3, Vtop: ag.Vtop * v3, volClean: ag.volClean * v3, volCrack: ag.volCrack * v3, volTop: ag.volTop * v3, colorFrac: wSum ? ag.col / wSum : 0, wMean: wSum ? ag.w / wSum : 0.3, cotMean: wSum ? ag.cot / wSum : 0, dirtMean: wSum ? ag.dirt / wSum : 0 }, S: [S1 * sc, S1u * sc, S2 * sc, S2u * sc, S3 * sc, S3u * sc], rings: rK, ringVol,
+    truth: truth * sc + truthB, truthParts: { small: truth * sc, rings: rT.map(r => r.v * ringVol), Vclean: ag.Vclean * v3, Vcrack: ag.Vcrack * v3, Vtop: ag.Vtop * v3, volClean: ag.volClean * v3, volCrack: ag.volCrack * v3, volTop: ag.volTop * v3, colorFrac: wSum ? ag.col / wSum : 0, wMean: wSum ? ag.w / wSum : 0.3, cotMean: wSum ? ag.cot / wSum : 0, dirtMean: wSum ? ag.dirt / wSum : 0 }, S: [S1 * sc, S1u * sc, S2 * sc, S2u * sc, S3 * sc, S3u * sc], rings: rK, ringVol, known, kAt,
     stats: {
       weight: solidW * v3 * ECON.density, fleshCm3: wSum * v3, thickness: slab ? T : ext, isSlab: !!slab,
       expArea: expVox * vx * vx / 100, expColor: E.length ? expColor / E.length : 0, expWater: E.length ? expW / E.length : 0,
@@ -638,6 +638,9 @@ const GIFTS = ['book', 'craft', 'eye', 'talk', 'manage'];
 function newKid(seed, name, months, school) { const r = new Rng(seedOf(seed, 'kid', name)); return { name, months, school, job: 'none', t: { book: months > 72 ? 18 : 0, craft: 2, eye: 2, talk: months > 72 ? 8 : 0, manage: 0, moral: 60 }, gift: r.pick(GIFTS), weak: r.pick(GIFTS), away: false }; }
 const TRAIN = { book: { name: '请家教补课', cost: 800, trait: 'book', gain: 3 }, craft: { name: '送去玉雕师傅那里学手艺', cost: 1200, trait: 'craft', gain: 3.5 }, eye: { name: '带去公盘看石头练眼', cost: 1500, trait: 'eye', gain: 3.5 }, talk: { name: '口才主持班', cost: 1000, trait: 'talk', gain: 3.5 }, manage: { name: '到铺子里学记账管货', cost: 600, trait: 'manage', gain: 3 }, sport: { name: '体育锻炼、夏令营', cost: 400, trait: 'moral', gain: 2.5 } };
 const BABY_NAMES = ['小禾', '小石', '小翠', '小安', '小舟', '小年', '小糯', '小冰', '小阳', '小川'], WIFE_NAMES = ['小芸', '阿琴', '玉兰', '晓梅'], LOVER_NAMES = ['小薇', '阿珍', '丽丽'];
+const LAWYERS = [{ name: '不请律师', fee: 0, share: 0.5 }, { name: '普通律师', fee: 20000, share: 0.32 }, { name: '金牌律师', fee: 60000, share: 0.16 }];
+// 离婚分走现金的比例：律师能压低；你有错（外面有人）多分给她，她有错（被你抓到）少分
+function divorceShare(w, lawyer) { const f = w.fam; return clamp(LAWYERS[lawyer || 0].share + (f.lover || f.caught ? 0.15 : 0) - (f.cuck && f.cuck.known ? 0.25 : 0), 0, 0.7); }
 const FAMC = { baby: 30000, divorce: 5000, wedding: 88000, loverDaily: 150, breakup: 15000, alimony: 60, nanny: 80, maxKids: 10 };
 function newFamily(seed) { return { wife: '阿秀', hp: 70, har: 65, food: 0, home: 0, car: 0, kids: [newKid(seed, '小满', 96, 'pri_vil'), newKid(seed, '小宝', 2, 'home')], loans: [], rested: 0 }; }
 function kidAge(k) { return Math.floor(k.months / 12); }
@@ -670,7 +673,7 @@ function haveBaby(w, withLover) { const f = w.fam; if (withLover ? !f.lover : !f
   w.cash -= FAMC.baby; w.log.push({ day: w.day, t: '添了个孩子', amt: -FAMC.baby }); f.babyDay = w.day; const name = BABY_NAMES.find(n => !f.kids.some(k => k.name === n)) || '小' + (f.kids.length + 1), k = newKid(seedOf(w.seed, 'baby', w.day), name, 0, 'home'); if (withLover) { k.out = true; k.withMom = true; k.away = true; f.lover.heat = (f.lover.heat || 0) + 0.04; } else { f.har = clamp(f.har + 6, 0, 100); f.hp = clamp(f.hp - 3, 0, 100); } f.kids.push(k);
   return { ok: true, msg: withLover ? `${f.lover.name}生了个孩子，取名${name}。孩子跟她，你每天付抚养费。` : `${f.wife}生了，取名${name}。家里又多一张嘴。` }; }
 // 离婚：现金分一半，手续费另算。孩子跟你（没人带小的就得请保姆）或跟她（付抚养费到 18 岁，帮不上家里的忙）
-function divorce(w, keepKids) { const f = w.fam; if (!f.wife) return { ok: false, msg: '现在是单身。' }; const half = Math.max(0, Math.round(w.cash / 2)); w.cash -= half + FAMC.divorce; w.log.push({ day: w.day, t: `离婚（分给${f.wife}一半现金、手续）`, amt: -(half + FAMC.divorce) });
+function divorce(w, keepKids, lawyer) { const f = w.fam; if (!f.wife) return { ok: false, msg: '现在是单身。' }; lawyer = lawyer || 0; const fee = LAWYERS[lawyer].fee; if (fee && w.cash < fee) return { ok: false, msg: '律师费不够。' }; w.cash -= fee; const sh = divorceShare(w, lawyer), half = Math.max(0, Math.round(w.cash * sh)); w.cash -= half + FAMC.divorce; w.log.push({ day: w.day, t: `离婚（分给${f.wife} ${Math.round(sh * 100)}% 现金${fee ? '、律师费' : ''}、手续）`, amt: -(half + FAMC.divorce + fee) }); f.cuck = null;
   for (const k of f.kids) { if (k.out) continue; k.t.moral = clamp(k.t.moral - 8, 0, 100); if (!keepKids && k.months < 216 && !k.away) { k.withMom = true; k.away = true; k.job = 'none'; } }
   f.ex = f.wife; f.wife = null; f.har = 40; f.caught = false; w.fame -= 3; return { ok: true, msg: `和${f.ex}离了，分走 ${fmt(half)}。${keepKids ? '孩子跟你。' : '孩子跟她，你付抚养费。'}` }; }
 function marry(w) { const f = w.fam; if (f.wife) return { ok: false, msg: '' }; const cost = f.lover ? Math.round(FAMC.wedding * 0.6) : FAMC.wedding; if (w.cash < cost) return { ok: false, msg: `彩礼、婚礼要 ${fmt(cost)}，现金不够。` }; w.cash -= cost; w.log.push({ day: w.day, t: '结婚', amt: -cost });
@@ -682,6 +685,7 @@ function endAffair(w) { const f = w.fam; if (!f.lover) return { ok: false, msg: 
 // 家里的事：每天小概率来一件，要么花钱，要么花感情
 function lifeEvent(w) {
   const f = w.fam, r = new Rng(seedOf(w.seed, 'life', w.day));
+  if (f.cuck && f.cuck.known && !f.cuck.asked && f.wife) { const L = w.cash >= LAWYERS[1].fee * 2 ? 1 : 0; return { cuck: true, text: `你提前收摊回家，在巷口看见${f.wife}从一辆陌生的车上下来，和车里的人说了很久的话。回到家她没有否认。`, opts: [{ label: '为了孩子，原谅这一次', har: 18, hp: -6, act: 'forgive' }, { label: `离婚，孩子跟我${L ? '（请普通律师 20000，她有错在先，分得很少）' : '（她有错在先，少分）'}`, act: 'divorce1', lawyer: L }, { label: `离婚，孩子跟她${L ? '（请普通律师 20000）' : ''}`, act: 'divorce0', lawyer: L }] }; }
   if (f.caught && f.wife && f.lover) return { text: `${f.wife}翻到了你的手机，知道了${f.lover.name}的事。她把手机摔在桌上，孩子在里屋哭。`, opts: [{ label: `认错，和${f.lover.name}断干净（分手费 ${fmt(FAMC.breakup)}，再赔礼 20000）`, cost: FAMC.breakup + 20000, har: -25, act: 'endaffair' }, { label: '离婚，孩子跟我（分一半现金）', act: 'divorce1' }, { label: '离婚，孩子跟她（分一半现金，付抚养费）', act: 'divorce0' }] };
   if (!r.chance(0.16)) return null;
   const k = r.pick(f.kids.filter(x => !x.away)) || f.kids[0], ki = f.kids.indexOf(k), sc = k.school, age = kidAge(k);
@@ -704,7 +708,7 @@ function lifeEvent(w) {
 function applyEvent(w, ev, i) { const o = ev.opts[i], f = w.fam, r = new Rng(seedOf(w.seed, 'lifeopt', w.day, i)); let note = '';
   if (o.cost) { if (o.cost > w.cash) return { ok: false, msg: '现金不够。' }; w.cash -= o.cost; w.log.push({ day: w.day, t: '家里的事', amt: -o.cost }); }
   if (o.har) f.har = clamp(f.har + o.har, 0, 100); if (o.hp) f.hp = clamp(f.hp + o.hp, 0, 100); if (o.fame) w.fame += o.fame; if (o.watch) w.watchLeft = Math.max(0, w.watchLeft + o.watch); if (o.rest) restDay(w); if (o.heat && f.lover) f.lover.heat = (f.lover.heat || 0) + o.heat;
-  if (o.act === 'endaffair') { f.lover = null; f.caught = false; note = '她没再说什么，可这个家回不到从前了。'; } if (o.act === 'divorce1' || o.act === 'divorce0') note = divorce(w, o.act === 'divorce1').msg;
+  if (o.act === 'endaffair') { f.lover = null; f.caught = false; note = '她没再说什么，可这个家回不到从前了。'; } if (o.act === 'forgive' && f.cuck) { f.cuck = null; f.cuckDay = w.day; note = '日子还得过。只是有些东西不一样了。'; } if (o.act === 'divorce1' || o.act === 'divorce0') note = divorce(w, o.act === 'divorce1', o.lawyer || 0).msg;
   if (o.kid) { const k = f.kids[o.ki]; for (const t2 in o.kid) k.t[t2] = clamp(k.t[t2] + o.kid[t2], 0, 100); }
   if (o.riskCost && r.chance(o.risk)) { w.cash -= o.riskCost; note = o.riskNote; w.log.push({ day: w.day, t: '家里的事（后续）', amt: -o.riskCost }); }
   if (o.back) { if (r.chance(o.risk)) note = '后来这笔钱一直没还，也不好意思再提。'; else { w.recv.push({ day: w.day + r.int(8, 20), amt: o.back, from: '亲戚还钱' }); note = '亲戚说过阵子就还。'; } }
@@ -716,6 +720,10 @@ function lifeTick(w, notes) {
   f.hp = clamp(f.hp + FOODS[f.food].hp + HOMES[f.home].hp + (f.car >= 1 ? 0.1 : -0.1) - 0.15 - busy, 0, 100);
   f.har = clamp(f.har + FOODS[f.food].har + HOMES[f.home].har - 0.2 - busy, 0, 100);
   if (!f.wife) f.har = clamp(f.har - 0.2, 0, 100);
+  // 被绿：家和越低、你自己外面有人，越容易发生；发生后你不一定马上知道，只会觉得家里钱对不上、人总不在
+  if (f.wife) { const rc = new Rng(seedOf(w.seed, 'cuck', w.day));
+    if (!f.cuck) { if (w.day - (f.cuckDay || -99) > 20 && rc.chance(0.003 + (f.har < 35 ? 0.03 : f.har < 50 ? 0.008 : 0) + (f.lover ? 0.012 : 0))) f.cuck = { day: w.day, known: false }; }
+    else if (!f.cuck.known) { w.cash -= 60; f.har = clamp(f.har - 0.3, 0, 100); if (rc.chance(0.10)) { f.cuck.known = true; } else if (rc.chance(0.3)) notes.push(rc.pick([`${f.wife}最近总是很晚才回来，说是去打牌`, '这个月家里的钱有一笔对不上', `${f.wife}换了新手机壳，电话响了就走到门外去接`])); } }
   if (f.lover) { f.har = clamp(f.har - 0.5, 0, 100); const pr = 0.035 + (f.lover.heat || 0) + Math.max(0, w.fame) / 1500 + (w.fans || 0) / 400000; if (f.wife && !f.caught && new Rng(seedOf(w.seed, 'caught', w.day)).chance(pr)) { f.caught = true; if (w.fans > 2000) { w.fame -= 6; notes.push('你的事被人拍到发上了网，直播间里都在问'); } } }
   for (const k of f.kids) { k.months++; if (k.tired) k.tired = Math.max(0, k.tired - 0.5); const S = SCHOOLS[k.school], r = new Rng(seedOf(w.seed, 'grow', k.name, w.day));
     for (const t2 in S.g) k.t[t2] = clamp(k.t[t2] + S.g[t2] * r.range(0.5, 1.5) * (t2 === k.gift ? 1.8 : t2 === k.weak ? 0.5 : 1) * (f.har > 40 ? 1 : 0.6), 0, 100);
@@ -1044,6 +1052,24 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
   w.log.push({ day: w.day, t: `送加工 #${s.id} ${piece.name}（${R.name}，${masterName}）`, amt: -plan.fee });
   return { ok: true, fee: plan.fee, days: M.days };
 }
+// 三维排料：按看得见的料，把成品一件件摆进石头里。只让开已经看得见的裂；k 是这个位置看清了几成
+function layoutPlan(w, s, piece, route) {
+  const e = getVol(s), st = e.st, vol = e.vol, ev = evalPiece(st, vol, piece), g = vol.geom, m = vol.mat, out = [], cg = [0, 0];
+  const flesh = (x, y, z) => { if (Math.abs(x) >= vol.hx || Math.abs(y) >= vol.hy || Math.abs(z) >= vol.hz) return false; if (clipped(piece) && planeD(piece, x, y, z) > 0) return false; const b = vIndex(vol, x, y, z) * 4; return g[b + 1] < 0 && -g[b] > g[b + 2]; };
+  const hit = (x, y, z) => { for (let ci = 0; ci < st.cracks.length; ci++) { if (!ev.known[ci]) continue; crackG(st.cracks[ci], x, y, z, cg); if (Math.abs(cg[0]) < 2.2 && cg[1] > 0.5) return true; } return false; };
+  const slab = slabOf(piece); let n = slab && slab.n, inf = n && pieceInfo(vol, piece, n);
+  if (!n) { for (const d of [[0, 1, 0], [1, 0, 0], [0, 0, 1]]) { const f = pieceInfo(vol, piece, d); if (!inf || f.hi - f.lo < inf.hi - inf.lo) { inf = f; n = d; } } }
+  const t1 = norm3(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), t2 = cross(n, t1), c0 = inf.center, a0 = dot(c0, t1), b0 = dot(c0, t2), R = inf.radius;
+  const P = (a, b, h) => [t1[0] * a + t2[0] * b + n[0] * h, t1[1] * a + t2[1] * b + n[1] * h, t1[2] * a + t2[2] * b + n[2] * h];
+  const test = (a, b, h, pts) => { let k = 0; for (const d of pts) { const p = P(a + d[0], b + d[1], h + d[2]); if (!flesh(p[0], p[1], p[2]) || hit(p[0], p[1], p[2])) return -1; k += ev.kAt(p[0], p[1], p[2]); } return k / pts.length; };
+  const grid = (da, db, T, pts, mk, cap, score) => { const found = []; for (let h = inf.hi - 0.8 - T / 2; h - T / 2 >= inf.lo + 0.4; h -= T + ECON.kerf) for (let a = a0 - R; a <= a0 + R; a += da) for (let b = b0 - R; b <= b0 + R; b += db) { const k = test(a, b, h, pts); if (k < 0) continue; const c = P(a, b, h), sc = score ? score(c, k) : k; if (sc < 0) continue; found.push(Object.assign(mk(c, k), { sc })); } found.sort((x, y) => y.sc - x.sc); for (const f of found.slice(0, cap)) out.push(f); };
+  if (route === 'bracelet') { for (const r of ev.rings) out.push({ type: 'ring', c: r.c, n: r.n, k: r.k }); }
+  else if (route === 'pendant') grid(42, 30, 8, [[0, 0, 0], [17, 11, 3], [-17, 11, 3], [17, -11, 3], [-17, -11, 3], [17, 11, -3], [-17, 11, -3], [17, -11, -3], [-17, -11, -3]], (c, k) => ({ type: 'box', c, n, t1, t2, k }), 10);
+  else if (route === 'cab') grid(15, 13, 6, [[0, 0, 0], [5, 0, 0], [-5, 0, 0], [0, 4, 0], [0, -4, 0], [0, 0, 2]], (c, k) => ({ type: 'cab', c, n, t1, t2, k }), 12, (c, k) => { const ch = m[vIndex(vol, c[0], c[1], c[2]) * 4] / 255; return ch > 0.4 && k > 0.45 ? ch : -1; });
+  else if (route === 'bead') grid(11.5, 11.5, 10.5, [[0, 0, 0], [4, 0, 0], [-4, 0, 0], [0, 4, 0], [0, -4, 0], [0, 0, 4], [0, 0, -4]], (c, k) => ({ type: 'bead', c, k }), 54);
+  else { const ex = d => { const f = pieceInfo(vol, piece, d); return (f.hi - f.lo) / 2 * 0.78; }; out.push({ type: 'carve', c: c0, n, t1, t2, r: [ex(t1), ex(t2), ex(n)], k: ev.stats.kAvg }); }
+  return { shapes: out, n: out.length, unsure: out.filter(o => o.k < 0.5).length };
+}
 // 师傅的提案：他按看得见的料和自己的眼光排几种做法。设计越好，对看不清的部分猜得越准
 function proposals(w, s, piece, masterName) {
   const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), tp = ev.truthParts, k = ev.stats.kAvg, M = masterOf(w, masterName), cand = [];
@@ -1117,6 +1143,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);

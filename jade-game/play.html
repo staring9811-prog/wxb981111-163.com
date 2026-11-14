@@ -85,6 +85,12 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 #coach { position: absolute; left: 50%; transform: translateX(-50%); bottom: 150px; z-index: 4; max-width: min(92%, 560px); background: #f3ecddf2; color: #2a2018; border-radius: 10px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; font-size: 13.5px; box-shadow: 0 4px 16px #000b; }
 #coach small { color: #7a6a55; white-space: nowrap; } #coach button { background: #e2d8c2; color: #2a2018; border-color: #b9ab8e; font-size: 12px; padding: 2px 8px; white-space: nowrap; }
 .goal { border-color: #6a5632; background: #1c1810; } .goal .row { font-size: 12.5px; color: var(--dim); } .goal .row:first-child { font-size: 14px; color: var(--lamp); } .goal .done { color: var(--jade); } .goal button { font-size: 12px; padding: 1px 8px; }
+.people { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 4px 0 8px; } .people figure { margin: 0; text-align: center; } .people figcaption { font-size: 12px; color: var(--fg); opacity: .8; margin-top: 2px; }
+.pf { border-radius: 10px; display: block; } .pf-body { animation: pfb 4s ease-in-out infinite; } .pf-head { animation: pfh 8s ease-in-out infinite; } .pf-eye { animation: pfe 5.3s linear infinite; }
+@keyframes pfb { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(1.6px) } }
+@keyframes pfh { 0%, 38%, 100% { transform: rotate(0) } 48%, 62% { transform: rotate(-2.4deg) } 78%, 88% { transform: rotate(1.6deg) } }
+@keyframes pfe { 0%, 93%, 100% { transform: scaleY(1) } 95.5% { transform: scaleY(0.08) } }
+@media (prefers-reduced-motion: reduce) { .pf-body, .pf-head, .pf-eye { animation: none; } }
 .props { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 4px 0; } .props i { color: var(--dim, #9a948a); font-style: normal; font-size: 12px; }
 .bar { flex: 1; height: 8px; border-radius: 4px; background: var(--raise); overflow: hidden; max-width: 60%; align-self: center; } .bar i { display: block; height: 100%; }
 #panel select { font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; max-width: 72%; }
@@ -190,7 +196,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <main>
     <section id="stage">
       <canvas id="gl"></canvas>
-      <svg id="overlay" aria-hidden="true"><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
+      <svg id="overlay" aria-hidden="true"><g id="layoutg"></g><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
       <div id="reveal" hidden></div>
       <div id="sawbox" hidden></div>
       <div id="npc" hidden></div>
@@ -253,6 +259,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <h3>师傅、提案和中途决断</h3>
     <ul>
       <li><b>每个师傅三项本事</b>：避裂、做色、设计。镯师避裂好，揭阳师傅做色好，苏工设计和避裂都强但贵。雇了驻店师傅后多一个「自家师傅」，只收料工，属性雇来时随机，有一项是长处，做得越多越熟。</li>
+      <li><b>排料图</b>：在「送去做件」里点「看排料图」，石头上会画出这种件每一件摆在哪里（手镯是圆环，牌子是方片，蛋面是小椭圆，珠子是小球，雕件是整体轮廓）。排料只按看得见的料来排，会让开看得见的裂；学了排料设计后，黄色表示那个位置还没看清。多开窗、多切一刀，黄的会变绿，也可能直接消失。换「做什么」图跟着变。</li>
       <li><b>提案</b>：选好师傅后，他会看料给两三个做法（主推、备选、稳妥）。料没看清时他也是猜，设计好的师傅猜得准。可以照他的做，也可以自己定。</li>
       <li><b>做到一半要你拿主意</b>：料里看不清的部分越多，越可能出状况。<b>冒出裂</b>：改小避开（稳）、改题材藏裂（看师傅避裂）、硬做赌裂不深（成了多赚，不成整件崩掉）。<b>色比想的好</b>：改方案追色（看师傅做色，成了价钱近乎翻倍，不成形也乱了）或者照原样做。<b>色只有一层皮</b>：薄薄留住，或者磨掉做素件。</li>
       <li>师傅停工等你的时候不会交货，到「我的料」或「成品盘」里那一单上做决定。</li>
@@ -266,7 +273,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <li><b>12 岁以后可以帮忙</b>：学雕刻做货、看店、跟着看石头、开机器切石头、当主播。课余帮忙效果减半；不上学全职干效果翻倍，但书就不读了。上了大学的孩子几年不在家，毕业后可能回来接班，也可能留在外地。</li>
       <li><b>借钱</b>：房子、车子可以抵押，利息低；民间借贷不要抵押但利息高，拖久了有人上门。房和车都能卖，卖价是买价的八成。</li>
       <li><b>花钱培养</b>：五岁以后可以每天送孩子去补课、学手艺、练眼、练口才、学管账或者锻炼。对上天分长得快，对上短板事倍功半；练得太密孩子会累。</li>
-      <li><b>婚姻</b>：可以再生孩子（一天就是一个月，所以一年能添好几个，每个都要钱养）；可以离婚（现金分一半，孩子跟谁你选）；可以再婚；也可以有婚外情，但每天花钱、家和下降，被发现就是赔礼或离婚，当了主播还会掉口碑。</li>
+      <li><b>婚姻</b>：可以再生孩子（一天就是一个月，所以一年能添好几个，每个都要钱养）；可以离婚（不请律师分走一半现金，请律师能压到三成甚至一成多；你外面有人会多分，她有错会少分；孩子跟谁你选）；可以再婚；也可以有婚外情，但每天花钱、家和下降，被发现就是赔礼或离婚，当了主播还会掉口碑。</li>
+      <li><b>被绿</b>：家和太低，或者你自己外面有人，妻子也可能有别人。一开始你不会知道，只会看到些迹象（晚归、钱对不上），过一阵才会撞见，那时选原谅还是离婚。</li>
       <li><b>家里的事</b>：孩子生病、家长会、亲戚借钱……时不时来一件，选花钱还是花感情。</li>
     </ul>
     <h3>假货、熟客和铺面</h3>
@@ -430,11 +438,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v25</div>
+<div id="ver">v26</div>
 
 <script>
 (function () {
-  var LOCAL = 25, FILES = ['config.js', 'licenses.js', 'core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 26, FILES = ['config.js', 'licenses.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }
