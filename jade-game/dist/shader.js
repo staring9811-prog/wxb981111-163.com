@@ -35,7 +35,13 @@ vec4 Mw(vec3 p){ vec3 w=vec3(vnoise(p*0.55+11.0),vnoise(p*0.55+37.0),vnoise(p*0.
   float fib=vnoise(p*vec3(1.6,0.28,1.6)+uPhase)*0.6+vnoise(p*vec3(3.8,0.5,3.8)+uPhase*1.3)*0.4;
   float wisp=vnoise(p*0.42+uPhase*2.0)*0.6+vnoise(p*1.1+uPhase)*0.4;
   float c=m.r+(fib-0.5)*0.46+(wisp-0.5)*0.30;                     // 边缘不是渐变的雾，而是一丝丝、一絮絮咬进去
-  m.r=clamp(mix(m.r*(0.7+0.6*fib),smoothstep(0.16,0.50,c)*min(1.0,m.r*2.2+0.25),0.72),0.0,1.0); return m; }
+  float cov=clamp(mix(m.r*(0.7+0.6*fib),smoothstep(0.16,0.50,c)*min(1.0,m.r*2.2+0.25),0.72),0.0,1.0);
+  // 色区里不是一整块同样的绿：一层浅色的底，上面是深色的色丝、色点和一团团浓处
+  float thr=1.0-abs(vnoise(p*vec3(0.55,1.7,0.55)+uPhase*1.9)*2.0-1.0); thr=thr*thr*thr;        // 丝
+  float thr2=1.0-abs(vnoise(p*vec3(1.5,0.5,1.2)+uPhase*0.7)*2.0-1.0); thr2=thr2*thr2*thr2*thr2;  // 另一个方向的细丝
+  float clump=smoothstep(0.45,0.80,fbm(p*0.16+uPhase*1.1));                                       // 一团团浓的
+  float dots=smoothstep(0.74,0.90,vnoise(p*1.9+uPhase));                                          // 色点
+  m.r=cov*clamp(0.20+0.26*m.r+0.50*thr+0.30*thr2+0.42*clump+0.28*dots,0.0,1.0); return m; }
 vec3 hash3(vec3 c){ return vec3(hash(c),hash(c+17.3),hash(c+41.7)); }
 float worley(vec3 p){ vec3 b=floor(p-0.5); float d=9.0; for(int x=0;x<2;x++) for(int y=0;y<2;y++) for(int z=0;z<2;z++){ vec3 c=b+vec3(float(x),float(y),float(z)); vec3 q=c+hash3(c)-p; d=min(d,dot(q,q)); } return sqrt(d); }
 float sdfOf(vec4 g){ return mix(g.g,g.r,uPristine); }
@@ -52,7 +58,7 @@ vec3 sigT(vec4 m){ float b=max(0.005,0.42*exp(-4.6*m.g)); // 豆 0.27 → 冰 0.
 float scat(vec4 m){ return max(0.02,0.62*exp(-3.6*m.g))+m.b*0.3; }
 vec3 albedo(vec4 m){ // 色根：中心浓、往外晕开变淡，而不是一块平涂
   float core=smoothstep(0.38,0.90,m.r), halo=smoothstep(0.03,0.42,m.r);
-  vec3 light=mix(uBandCol,uBodyCol,0.50)*vec3(1.04,1.0,0.92);
+  vec3 light=mix(uBandCol,uBodyCol,0.62)*vec3(1.05,1.0,0.90);
   vec3 deep=mix(uBandCol,vec3(dot(uBandCol,vec3(0.3,0.5,0.2))),0.14)*0.74;   // 浓处往深里走，不是荧光绿
   vec3 a=mix(uBodyCol,mix(light,deep,core),halo); a=mix(a,vec3(0.97),m.b*0.6); return a*(1.0-0.8*m.a); }
 
@@ -195,11 +201,13 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     float vein=1.0-smoothstep(0.0,0.07,abs(vnoise(s*0.07+uPhase*0.9)-0.5));
     float lit=1.0; if(uHi>0.5){ float f2=fbm((s+keyL*3.0)*0.10+uPhase*0.37); lit=1.0-0.42*smoothstep(0.50,0.78,f2)*(0.4+0.6*m.g); } // 絮团互相遮光，才有里面一层层的感觉
     al=mix(al,vec3(0.96,0.97,0.95),floc*0.55); sc*=1.0+floc*1.4; sc*=1.0-0.55*vein*m.g; sg*=1.0-0.40*vein*m.g;
-    al*=mix(vec3(0.74,0.79,0.76),vec3(1.0),smoothstep(0.22,0.78,fbm(s*0.045+uPhase*0.21)));
+    al*=mix(vec3(0.86,0.91,0.89),vec3(1.0),smoothstep(0.22,0.78,fbm(s*0.045+uPhase*0.21)));
+    float silk=vnoise(s*vec3(0.35,2.6,0.35)+uPhase*0.6)*0.6+vnoise(s*vec3(2.2,0.4,2.0)+uPhase)*0.4; sc*=0.86+0.30*silk; al*=0.95+0.10*silk;      // 纤维交织：玉肉特有的丝絮感
+    float snow=smoothstep(0.80,0.93,vnoise(s*2.4+uPhase*2.0))*smoothstep(0.35,0.7,fbm(s*0.07+uPhase*0.9))*(0.25+m.b*1.5); al=mix(al,vec3(0.97,0.98,0.97),snow*0.8); sc*=1.0+snow*1.8; // 成片的细碎白棉
     float spk=step(0.990-0.03*m.a,hash(floor(s*1.4)+uPhase))*(0.35+0.65*m.a+0.25*(1.0-m.g)); al*=1.0-0.85*spk;
     float cg=mix(vnoise(s*1.6+3.0),vnoise(s*4.5+1.0),0.45)-0.5; float gk=(1.0-m.g)*(0.42+detail*0.55);
     al*=1.0+cg*gk; sc*=1.0+cg*gk*1.6;
-    vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.47,0.21,m.g)),flesh)*ambL*exp(-sg*trav*0.5)*lit;
+    vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.50,0.30,m.g)),flesh)*ambL*exp(-sg*trav*0.42)*lit;
     if(uTorch.w>0.0) Lin+=fluence(s);
     vec3 xe=x+dir*dt;
     for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);

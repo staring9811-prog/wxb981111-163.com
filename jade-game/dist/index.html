@@ -79,6 +79,9 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 #coach { position: absolute; left: 50%; transform: translateX(-50%); bottom: 150px; z-index: 4; max-width: min(92%, 560px); background: #f3ecddf2; color: #2a2018; border-radius: 10px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; font-size: 13.5px; box-shadow: 0 4px 16px #000b; }
 #coach small { color: #7a6a55; white-space: nowrap; } #coach button { background: #e2d8c2; color: #2a2018; border-color: #b9ab8e; font-size: 12px; padding: 2px 8px; white-space: nowrap; }
 .goal { border-color: #6a5632; background: #1c1810; } .goal .row { font-size: 12.5px; color: var(--dim); } .goal .row:first-child { font-size: 14px; color: var(--lamp); } .goal .done { color: var(--jade); } .goal button { font-size: 12px; padding: 1px 8px; }
+.bar { flex: 1; height: 8px; border-radius: 4px; background: var(--raise); overflow: hidden; max-width: 60%; align-self: center; } .bar i { display: block; height: 100%; }
+#panel select { font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; max-width: 72%; }
+.storybox button { text-align: left; }
 .achs { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px; color: #6f675c; } .achs .got { color: var(--lamp); }
 .startbox { align-items: center; text-align: center; min-width: min(86vw, 340px); padding: 28px 26px !important; background: radial-gradient(circle at 50% 0%, #2a3a2f, #14110e 70%) !important; border-color: #3f6a55 !important; }
 .startbox .eyebrow { margin: 0; font-size: 12px; letter-spacing: .3em; color: var(--dim); } .startbox .big { font-family: var(--display); font-size: 44px; letter-spacing: .18em; margin: 4px 0; color: var(--jade); text-shadow: 0 0 24px #66c49755; }
@@ -214,6 +217,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
         <button data-tab="market" role="tab">货源</button>
         <button data-tab="mine" role="tab">我的料</button>
         <button data-tab="tray" role="tab">成品盘</button>
+        <button data-tab="home" role="tab">家</button>
         <button data-tab="ledger" role="tab">账本</button>
       </div>
       <div id="panel"></div>
@@ -239,6 +243,15 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <li><b>出手</b>：随时可以按买家报价卖掉；或者「送去做件」，等几天到「成品盘」里卖成品。</li>
       <li><b>收工</b>：右上角「收工，下一天」。货源换新，报价作废，货款和成品到账。</li>
     </ol>
+    <h3>家</h3>
+    <ul>
+      <li><b>一家四口</b>：老婆阿秀，八岁的小满，刚出生的小宝。游戏里过一天，家里过一个月，孩子按月长大。</li>
+      <li><b>吃住行都要钱</b>：在「家」里选吃什么、住哪里、开什么车。吃得差住得差省钱，但身体和家和每天往下掉，掉低了会生病、吵架。可以歇业一天陪家人。</li>
+      <li><b>上学</b>：每个年龄段有几种学校可选，贵贱不同，孩子长的本事也不同（读书、手艺、眼力、口才、管事）。每个孩子有自己的天分和短板，开始看不出来。学校还会带来以后的人和事，好坏都有。</li>
+      <li><b>12 岁以后可以帮忙</b>：学雕刻做货、看店、跟着看石头、开机器切石头、当主播。课余帮忙效果减半；不上学全职干效果翻倍，但书就不读了。上了大学的孩子几年不在家，毕业后可能回来接班，也可能留在外地。</li>
+      <li><b>借钱</b>：房子、车子可以抵押，利息低；民间借贷不要抵押但利息高，拖久了有人上门。房和车都能卖，卖价是买价的八成。</li>
+      <li><b>家里的事</b>：孩子生病、家长会、亲戚借钱……时不时来一件，选花钱还是花感情。</li>
+    </ul>
     <h3>假货、熟客和铺面</h3>
     <ul>
       <li><b>假货</b>：夜市里约三成是做过手脚的料，集散地偶尔也有。<b>染色皮</b>远看一身松花，放大镜下色块是平的、边缘齐、没有砂粒；<b>贴片窗</b>窗口种色极好，但压灯时光散不开，放大镜下窗口一圈有黄色胶线。看出来可以当面说破，老板会大降价；说错了他翻脸不卖。</li>
@@ -383,11 +396,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <h2>周转不动了</h2><p>现金见底，手里也没有可卖的货。翻开账本看看每块石头错在判断还是错在价钱，然后重新开始。</p>
   <button data-act="yes" class="pri">重新开始</button>
 </div></div>
-<script src="config.js?v=22"></script>
-<script src="licenses.js?v=22"></script>
-<script src="core.js?v=22"></script>
-<script src="shader.js?v=22"></script>
-<script src="ui.js?v=22"></script>
+<script src="config.js?v=23"></script>
+<script src="licenses.js?v=23"></script>
+<script src="core.js?v=23"></script>
+<script src="shader.js?v=23"></script>
+<script src="ui.js?v=23"></script>
 
 </body>
 </html>

@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const C = window.Core, $ = s => document.querySelector(s), fmt = C.fmt;
-const SAVE_KEY = 'jade-bargain-web-v9';
+const SAVE_KEY = 'jade-bargain-web-v10';
 const canvas = $('#gl'), gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
 if (!gl) { $('#hint').textContent = '这台设备的浏览器不支持 WebGL2，无法显示三维原石。'; return; }
 
@@ -54,7 +54,7 @@ const Q = { scale: 1, fast: 0.45, K: 16, tuned: false, user: 1 };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
 
 function save() { try { localStorage.setItem(SAVE_KEY, C.serialize(W)); } catch (e) { /* 存不了也能继续玩 */ } }
-function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 9) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
+function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 10) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
 
 /* ---------- 相机与渲染 ---------- */
 function camBasis() {
@@ -210,6 +210,7 @@ function renderSide() {
       <div class="row dim"><span>${(L.info.weight / 1000).toFixed(2)} kg · ${L.info.dims.join('×')} mm</span><span>${L.channel}</span></div>
       <div class="tags"><span class="tag ${L.info.window ? 'w' : ''}">${L.info.window ? '卖家已开窗' : '全蒙头'}</span>${betHtml(L.info.bet, sel)}</div>`;
       if (sel && !L.sold && !L.called && C.can(W, 'buy')) h += `<div class="row"><span class="dim">觉得皮或窗口做过手脚？说对了老板大降价，说错了他翻脸不卖。</span><button data-act="callout">当面说这是假货</button></div>`;
+      if (sel && !L.sold) { const eff = C.famEff(W, 'spotter'); if (eff > 0) { const kid = W.fam.kids.find(k => k.job === 'spotter'), st = C.getVol(L).st, rr = new C.Rng(C.seedOf(L.seed, 'kidsay')), right = rr.u() < 0.35 + eff * 0.9, gi = C.gradeIdx(st.w0), g2 = right ? gi : Math.max(0, Math.min(5, gi + (rr.u() < 0.5 ? 1 : -1))); h += `<p class="patter">${kid.name}凑过来小声说：“我看像${['豆种', '糯种', '糯冰种', '冰种', '高冰种', '玻璃种'][g2]}${L.fake && rr.u() < eff + 0.2 ? '，可这皮我觉得不对劲' : ''}。”</p>`; } }
       if (sel && !L.sold) h += `${(L.patter || []).map(x => `<p class="patter">${esc(x)}</p>`).join('')}${L.opinion ? `<p class="say">${esc(L.opinion)}</p>` : `<div class="row"><span class="dim">拿不准？</span><button data-act="appr">请师傅掌眼（${fmt(C.appraiseFee(L))}）</button></div>`}`;
       if (L.auction && L.bid && !L.sold) h += `<div class="row"><span class="say">已投标 ${fmt(L.bid)}，收工后开标</span></div>`;
       if (sel && !L.sold && L.auction) h += `<div class="bargain"><label for="offer">暗标出价（元）。别人出多少你看不到，出高了白花钱，出低了拿不到。</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${L.bid || V.offer || L.floor}"><button data-act="bid" class="pri">${L.bid ? '改标' : '投标'}</button></div>${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
@@ -263,6 +264,22 @@ function renderSide() {
       }
       h += `</article>`;
     }
+  } else if (tab === 'home') {
+    const f = W.fam, lc = C.lifeCost(W), bar = (v, c) => `<span class="bar"><i style="width:${Math.round(v)}%;background:${c}"></i></span>`, sel = (id, opts, cur) => `<select id="${id}">${opts.map(o => `<option value="${o[0]}" ${String(o[0]) === String(cur) ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>`;
+    h += `<article class="card"><div class="row"><b>一家四口</b><span class="dim">每天家用 ${fmt(lc.total)}</span></div>
+      <div class="row"><span>身体 ${Math.round(f.hp)}</span>${bar(f.hp, f.hp < 30 ? 'var(--up)' : 'var(--jade)')}</div><div class="row"><span>家和 ${Math.round(f.har)}</span>${bar(f.har, f.har < 30 ? 'var(--up)' : 'var(--lamp)')}</div>
+      <div class="row dim"><span>${lc.items.map(x => `${x[0]} ${x[1]}`).join(' · ')}</span></div>
+      <div class="row"><label for="fFood">吃</label>${sel('fFood', C.FOODS.map((x, i) => [i, `${x.name}（每天 ${x.cost}）`]), f.food)}</div>
+      <div class="row"><span class="dim">吃得差、住得差，身体和家和每天都在掉；掉到底会生病、吵架。家里过一个月，游戏里是一天。</span><button data-act="rest" ${f.rested === W.day ? 'disabled' : ''}>今天歇业陪家人</button></div></article>`;
+    h += `<article class="card"><div class="row"><b>住：${C.HOMES[f.home].name}</b><span class="dim">${C.HOMES[f.home].rent ? '日租 ' + C.HOMES[f.home].rent : '自有'}</span></div>${C.HOMES.map((x, i) => i === f.home ? '' : `<div class="row"><span class="dim">${x.name}${x.price ? ' ' + fmt(x.price) : `（日租 ${x.rent}）`}</span><button data-act="asset" data-k="home" data-i="${i}">${i > f.home ? (x.price ? '买下' : '搬过去') : (C.HOMES[f.home].price ? '卖房，搬到这里' : '搬过去')}</button></div>`).join('')}</article>`;
+    h += `<article class="card"><div class="row"><b>行：${C.CARS[f.car].name}</b><span class="dim">${C.CARS[f.car].tip}</span></div>${C.CARS.map((x, i) => i === f.car || i === 0 && f.car === 0 ? '' : `<div class="row"><span class="dim">${x.name}${x.price ? ' ' + fmt(x.price) + '。' + x.tip : ''}</span><button data-act="asset" data-k="car" data-i="${i}">${i > f.car ? '买' : (i === 0 ? '卖车' : '卖掉，换这个')}</button></div>`).join('')}</article>`;
+    f.kids.forEach((k, i) => { const sch = C.schoolsFor(k), can12 = k.months >= 144 && !k.away, T = [['book', '读书'], ['craft', '手艺'], ['eye', '眼力'], ['talk', '口才'], ['manage', '管事']];
+      h += `<article class="card"><div class="row"><b>${k.name} · ${C.kidAge(k)} 岁${k.months % 12 ? ' ' + (k.months % 12) + ' 个月' : ''}</b><span class="dim">${k.away ? '在外地' : C.SCHOOLS[k.school].name}</span></div>
+        ${k.months >= 36 ? `<div class="row dim"><span>${T.map(x => `${x[1]}${C.traitWord(k.t[x[0]])}`).join(' · ')}</span></div>` : '<div class="row dim"><span>还在吃奶，什么都看不出来。</span></div>'}
+        ${k.away ? '' : `<div class="row"><label for="kS${i}">上学</label>${sel('kS' + i, sch.map(id => [id, `${C.SCHOOLS[id].name}（每天 ${C.SCHOOLS[id].cost}）`]), k.school)}</div>`}
+        ${can12 ? `<div class="row"><label for="kJ${i}">帮忙</label>${sel('kJ' + i, Object.keys(C.JOBS).map(id => [id, C.JOBS[id].name]), k.job)}</div><p class="note">${k.job !== 'none' ? C.JOBS[k.job].tip + (k.school === 'work' ? '全职在干。' : '课余帮忙，效果减半。') : '满 12 岁了，可以课余帮忙；不上学全职干效果翻倍，但书就不读了，16 岁前这样做家里也有怨气。'}</p>` : (k.months >= 72 ? '<p class="note">学校不只决定成绩：同学、老师、路上遇到的人，都会在以后的日子里冒出来。贵的不一定适合这个孩子。</p>' : '')}</article>`; });
+    h += `<article class="card"><b>借钱</b>${f.loans.map((L, i) => `<div class="row"><span>${C.LOANS[L.type].name} ${fmt(L.principal)} <span class="dim">每天利息 ${fmt(L.principal * L.rate)}</span></span><button data-act="repay" data-i="${i}">还清</button></div>`).join('') || '<div class="row dim"><span>没有欠债</span></div>'}
+      ${Object.keys(C.LOANS).map(t => { const room = C.loanRoom(W, t); return `<div class="row"><span class="dim">${C.LOANS[t].name}：还能借 ${fmt(room)}，日息 ${(C.LOANS[t].rate * 100).toFixed(2)}%${t === 'shark' ? '。拖过 25 天会有人上门' : ''}</span>${room >= 5000 ? `<span><button data-act="borrow" data-t="${t}" data-a="${Math.min(room, 20000)}">借 ${fmt(Math.min(room, 20000))}</button> <button data-act="borrow" data-t="${t}" data-a="${room}">借满</button></span>` : ''}</div>`; }).join('')}</article>`;
   } else if (tab === 'tray') {
     const items = trayItems();
     if (!C.can(W, 'tray') && !V.ref) h += `<p class="note">成品盘在第三章「自己做货」解锁。现在可以先看看对照盘，认一认各种种水和颜色。</p>`;
@@ -552,6 +569,11 @@ document.addEventListener('click', ev => {
   else if (a === 'liveend') { $('#live').hidden = true; openTray(false, false); }
   else if (a === 'branch') { const r = C.openBranch(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
   else if (a === 'hire') { const r = C.hire(W, b.dataset.k, +b.dataset.d); V.note = r.msg; save(); renderAll(); }
+  else if (a === 'rest') { C.restDay(W); Snd.tap(); V.note = '今天不出摊，陪家里人。身体和家和都回来一些。'; save(); renderSide(); renderTools(); }
+  else if (a === 'asset') { const r = C.buyAsset(W, b.dataset.k, +b.dataset.i); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
+  else if (a === 'borrow') { const r = C.borrow(W, b.dataset.t, +b.dataset.a); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
+  else if (a === 'repay') { const r = C.repay(W, +b.dataset.i); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
+  else if (a === 'evopt') { const r = C.applyEvent(W, V.lifeEv, +b.dataset.i); if (!r.ok) { $('#evmsg').textContent = r.msg; return; } save(); V.lifeEv = null; if (r.note) { $('#storybody').innerHTML = `<h2>后来</h2><p>${esc(r.note)}</p><button data-act="storyok" class="pri">知道了</button>`; } else $('#story').hidden = true; renderAll(); }
   else if (a === 'skiptut') { W.flags.notut = true; save(); renderAll(); }
   else if (a === 'storyok') { $('#story').hidden = true; renderAll(); }
   else if (a === 'storyshow') { const ch = C.CHAPTERS[W.chapter]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${C.goalDone(W, g[0]) ? '✔ ' : ''}${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">知道了</button>`; $('#story').hidden = false; }
@@ -591,7 +613,8 @@ document.addEventListener('click', ev => {
     }, 1150);
   }
   else if (a === 'rvok') { $('#reveal').hidden = true; }
-  else if (a === 'next') { if (!licensed() && W.day >= CFG.trialDays) { $('#codeMsg').textContent = `试玩到第 ${CFG.trialDays} 天为止。输入激活码后可以接着这个存档一直玩下去。`; $('#paywall').hidden = false; return; } const n = C.nextDay(W); qcache.clear(); for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold && C.volCache.get(s.seed)) refreshQuote(s, p, true); save(); const fresh = W.items.some(i => i.state === 'ready'); tab = 'market'; view(null, null, null); V.note = `第 ${W.day} 天。${n.join('，')}。货源已更新，昨天的报价作废。`; renderTools(); dayCard(n); Snd.amb(W.scene); if (fresh && n.some(x => x.includes('做好了'))) { openTray(false); V.note = n.filter(x => x.includes('做好了')).join('；'); renderTools(); } }
+  else if (a === 'next') { if (!licensed() && W.day >= CFG.trialDays) { $('#codeMsg').textContent = `试玩到第 ${CFG.trialDays} 天为止。输入激活码后可以接着这个存档一直玩下去。`; $('#paywall').hidden = false; return; } const n = C.nextDay(W); qcache.clear(); for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold && C.volCache.get(s.seed)) refreshQuote(s, p, true); save(); const fresh = W.items.some(i => i.state === 'ready'); tab = 'market'; view(null, null, null); V.note = `第 ${W.day} 天。${n.join('，')}。货源已更新，昨天的报价作废。`; renderTools(); dayCard(n); Snd.amb(W.scene);
+    const lev = C.lifeEvent(W); if (lev) setTimeout(() => { if (!$('#story').hidden) return; V.lifeEv = lev; $('#storybody').innerHTML = `<h2>家里的事</h2><p>${esc(lev.text)}</p><p id="evmsg" class="say"></p>${lev.opts.map((o, i) => `<button data-act="evopt" data-i="${i}">${esc(o.label)}</button>`).join('')}`; $('#story').hidden = false; }, 2400); if (fresh && n.some(x => x.includes('做好了'))) { openTray(false); V.note = n.filter(x => x.includes('做好了')).join('；'); renderTools(); } }
   else if (a === 'restart') { $('#confirm').hidden = false; }
   else if (a === 'no') { $('#confirm').hidden = true; }
   else if (a === 'yes') { $('#confirm').hidden = true; C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; view(null, null, null); }
@@ -603,6 +626,9 @@ document.addEventListener('input', ev => {
   if (ev.target.id === 'cutT') { V.cutT = +ev.target.value; $('#cutV').textContent = V.cutT; if (V.cut && V.cut.fromView) { V.cut.d = V.cut.base - V.cutT; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d); renderTools(); } invalidate(true); }
   if (ev.target.id === 'gW' || ev.target.id === 'gC' || ev.target.id === 'gK') { const s = V.rec, w = $('#gW').value; s.guess = w === '' ? null : { water: +w, color: $('#gC').value, crack: $('#gK').value }; save(); if (s.guess) flag('guess'); }
   if (ev.target.id === 'wW' || ev.target.id === 'wC' || ev.target.id === 'wK') { const w0 = $('#wW').value; V.wg = { water: w0 === '' ? null : +w0, color: $('#wC').value, crack: $('#wK').value }; }
+  if (ev.target.id === 'fFood') { W.fam.food = +ev.target.value; save(); renderSide(); }
+  if (/^kS\d+$/.test(ev.target.id)) { const r = C.setSchool(W, +ev.target.id.slice(2), ev.target.value); V.note = r.msg; save(); renderSide(); renderTools(); }
+  if (/^kJ\d+$/.test(ev.target.id)) { C.setJob(W, +ev.target.id.slice(2), ev.target.value); save(); renderSide(); }
   if (ev.target.id === 'wkRoute' || ev.target.id === 'wkMaster' || ev.target.id === 'wkTheme') { V.wk[{ wkRoute: 'route', wkMaster: 'master', wkTheme: 'theme' }[ev.target.id]] = ev.target.value; renderSide(); }
   if (ev.target.id === 'tTilt' || ev.target.id === 'tAz' || ev.target.id === 'tH') { V.torch.tilt = +$('#tTilt').value; V.torch.az = +$('#tAz').value; V.torch.h = +$('#tH').value; $('#tTiltV').textContent = V.torch.tilt; $('#tHV').textContent = V.torch.h; invalidate(true); }
   if (ev.target.id === 'sawD' && V.sawPlan) { V.sawPlan.depth = +ev.target.value; sawRebuild(); const el = $('#sawD'); if (el) el.focus(); }
