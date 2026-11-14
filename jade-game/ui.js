@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const C = window.Core, $ = s => document.querySelector(s), fmt = C.fmt;
-const SAVE_KEY = 'jade-bargain-web-v8';
+const SAVE_KEY = 'jade-bargain-web-v9';
 const canvas = $('#gl'), gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
 if (!gl) { $('#hint').textContent = '这台设备的浏览器不支持 WebGL2，无法显示三维原石。'; return; }
 
@@ -47,7 +47,7 @@ const Q = { scale: 1, fast: 0.45, K: 16, tuned: false, user: 1 };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
 
 function save() { try { localStorage.setItem(SAVE_KEY, C.serialize(W)); } catch (e) { /* 存不了也能继续玩 */ } }
-function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 8) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
+function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 9) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
 
 /* ---------- 相机与渲染 ---------- */
 function camBasis() {
@@ -184,24 +184,30 @@ function pct(a, b) { const r = (a / b - 1) * 100; return `<span class="${r >= 0 
 function renderTop() {
   const recv = W.recv.reduce((a, r) => a + r.amt, 0);
   let inv = 0; for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold) inv += (s.last[p.id] || {}).best || 0;
-  $('#stats').innerHTML = `<div><span>第</span><b>${W.day}</b><span>天</span></div><div><span>现金</span><b>${fmt(W.cash)}</b></div><div><span>应收</span><b>${fmt(recv)}</b></div><div><span>存货报价</span><b>${fmt(inv)}</b></div><div><span>${C.rankOf(W)} · 眼力</span><b>${W.eye}</b></div>`;
+  $('#stats').innerHTML = `<div><span>第</span><b>${W.day}</b><span>天</span></div><div><span>现金</span><b>${fmt(W.cash)}</b></div><div><span>应收</span><b>${fmt(recv)}</b></div><div><span>存货报价</span><b>${fmt(inv)}</b></div><div><span>${C.rankOf(W)} · 眼力</span><b>${W.eye}</b></div>${C.can(W, 'live') ? `<div><span>粉丝</span><b>${fmt(W.fans)}</b></div>` : ''}`;
 }
 function betHtml(bet, full) { return `<span class="tag b">${bet.main}</span>${bet.tags.map(t => `<span class="tag">${t}</span>`).join('')}${full ? `<p class="why">${esc(bet.why)}</p>` : ''}`; }
 function renderSide() {
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
   const el = $('#panel'); let h = goalCard();
   if (tab === 'market') {
-    h += `<div class="scenes">${Object.keys(C.SCENES).map(k => { const S = C.SCENES[k], ok = C.sceneOpen(W, k); return `<button data-act="scene" data-k="${k}" aria-pressed="${W.scene === k}" ${ok ? '' : 'disabled'}>${k}${ok ? '' : `<small>眼力 ${S.eye}</small>`}</button>`; }).join('')}</div><p class="note">${C.SCENES[W.scene].tip}</p>${W.event ? `<p class="say">今日行情：${esc(W.event.t)}</p>` : ''}`;
+    h += `<div class="scenes">${Object.keys(C.SCENES).map(k => { const S = C.SCENES[k], ok = C.sceneOpen(W, k); return `<button data-act="scene" data-k="${k}" aria-pressed="${W.scene === k}" ${ok ? '' : 'disabled'}>${k}${ok ? '' : `<small>第 ${C.SCENE_CH[k] + 1} 章开放</small>`}</button>`; }).join('')}</div><p class="note">${C.SCENES[W.scene].tip}</p>${W.event ? `<p class="say">今日行情：${esc(W.event.t)}</p>` : ''}`;
     W.market.forEach((L, i) => {
       const sel = V.mode === 'market' && V.rec === L;
       h += `<article class="card ${sel ? 'sel' : ''} ${L.sold ? 'gone' : ''}" data-act="listing" data-i="${i}"><div class="row"><b>${L.origin} · ${L.info.skin}</b><span class="price">${L.sold ? '已买' : L.auction ? '底价 ' + fmt(L.floor) : fmt(L.ask)}</span></div>
       <div class="row dim"><span>${(L.info.weight / 1000).toFixed(2)} kg · ${L.info.dims.join('×')} mm</span><span>${L.channel}</span></div>
       <div class="tags"><span class="tag ${L.info.window ? 'w' : ''}">${L.info.window ? '卖家已开窗' : '全蒙头'}</span>${betHtml(L.info.bet, sel)}</div>`;
-      if (sel && !L.sold && !L.called) h += `<div class="row"><span class="dim">觉得皮或窗口做过手脚？说对了老板大降价，说错了他翻脸不卖。</span><button data-act="callout">当面说这是假货</button></div>`;
+      if (sel && !L.sold && !L.called && C.can(W, 'buy')) h += `<div class="row"><span class="dim">觉得皮或窗口做过手脚？说对了老板大降价，说错了他翻脸不卖。</span><button data-act="callout">当面说这是假货</button></div>`;
       if (sel && !L.sold) h += `${(L.patter || []).map(x => `<p class="patter">${esc(x)}</p>`).join('')}${L.opinion ? `<p class="say">${esc(L.opinion)}</p>` : `<div class="row"><span class="dim">拿不准？</span><button data-act="appr">请师傅掌眼（${fmt(C.appraiseFee(L))}）</button></div>`}`;
       if (L.auction && L.bid && !L.sold) h += `<div class="row"><span class="say">已投标 ${fmt(L.bid)}，收工后开标</span></div>`;
       if (sel && !L.sold && L.auction) h += `<div class="bargain"><label for="offer">暗标出价（元）。别人出多少你看不到，出高了白花钱，出低了拿不到。</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${L.bid || V.offer || L.floor}"><button data-act="bid" class="pri">${L.bid ? '改标' : '投标'}</button></div>${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
-      else if (sel && !L.sold) h += `<div class="bargain"><label for="offer">出价（元）</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${V.offer || Math.round(L.ask * 0.7 / 100) * 100}"><button data-act="offer">还价</button><button data-act="take" class="pri">照价买 ${fmt(L.ask)}</button></div>${L.ask >= 20000 ? `<div class="row"><button data-act="partner" aria-pressed="${!!V.partner}">找人合伙</button><span class="dim">${V.partner ? '合伙人出一半本钱，赚了亏了都对半分。' : '本钱不够或怕风险，可以拉人各出一半。'}</span></div>` : ''}${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
+      else if (sel && !L.sold && !C.can(W, 'buy')) { const g = V.wg || {}, o = (arr, cur) => arr.map(x => `<option value="${x[0]}" ${String(cur) === String(x[0]) ? 'selected' : ''}>${x[1]}</option>`).join('');
+        h += `<div class="work"><b>围观：先猜，再看他切</b><p class="note">你还没本钱，也没人信你。先把判断写下来，别人切开后对答案：猜得准涨眼力，猜对种水还能赢旁人的彩头。今天还能看 ${W.watchLeft} 块。</p>
+          <div class="row"><label for="wW">种水</label><select id="wW">${o([['', '还没想好'], [0, '豆种'], [1, '糯种'], [2, '糯冰种'], [3, '冰种'], [4, '高冰种'], [5, '玻璃种']], g.water == null ? '' : g.water)}</select></div>
+          <div class="row"><label for="wC">色</label><select id="wC">${o([['none', '基本无色'], ['skin', '只有贴皮一层'], ['deep', '有色吃进去'], ['full', '满色']], g.color || 'none')}</select></div>
+          <div class="row"><label for="wK">裂</label><select id="wK">${o([['few', '裂少（至多一条）'], ['many', '裂多（两条以上）']], g.crack || 'few')}</select></div>
+          <div class="row"><span class="say">${esc(V.msg || '')}</span><button data-act="watch" class="pri">看他切</button></div></div>`; }
+      else if (sel && !L.sold) h += `<div class="bargain"><label for="offer">出价（元）</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${V.offer || Math.round(L.ask * 0.7 / 100) * 100}"><button data-act="offer">还价</button><button data-act="take" class="pri">照价买 ${fmt(L.ask)}</button></div>${L.ask >= 8000 ? `<div class="row"><button data-act="partner" aria-pressed="${!!V.partner}">找人合伙</button><span class="dim">${V.partner ? '合伙人出一半本钱，赚了亏了都对半分。' : '本钱不够或怕风险，可以拉人各出一半。'}</span></div>` : ''}${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
       h += `</article>`;
     });
   } else if (tab === 'mine') {
@@ -231,7 +237,7 @@ function renderSide() {
         h += `<div class="quotes"><div class="row dim"><span>${V.piece.name} · ${Math.round(stt.weight)} g${stt.isSlab ? ` · 片厚 ${stt.thickness.toFixed(0)} mm` : ''}${stt.bracelets ? ` · 可见手镯位 ${stt.bracelets}` : ''} · 看清程度 ${Math.round(stt.kAvg * 100)}%</span></div>`;
         if (last && last.prev != null && last.prev !== q.best) h += `<p class="delta">较上次报价 ${pct(q.best, Math.max(1, last.prev))}${last.why && last.why.length ? '：' + esc(last.why.join('；')) : ''}</p>`;
         for (const o of q.list) h += `<div class="row q"><span><span class="ava" style="background:${{ '稳健同行': '#4a6a5a', '直播货主': '#8a4a5a', '私人藏家': '#6a5a8a', '急收商人': '#8a6a3a' }[o.buyer]}">${o.buyer[0]}</span><b>${o.buyer}</b> <i>${o.rel ? o.rel + ' · ' : ''}${esc(o.note)}</i></span>${o.price ? `<button data-act="sell" data-b="${o.buyer}">${fmt(o.price)} 卖</button>` : '<span class="dim">不收</span>'}</div>`;
-        const K = V.wk, plan = C.workPlan(W, s, V.piece, K.route, K.master, K.theme), themed = K.route === 'pendant' || K.route === 'carve';
+        if (C.can(W, 'work')) { const K = V.wk, plan = C.workPlan(W, s, V.piece, K.route, K.master, K.theme), themed = K.route === 'pendant' || K.route === 'carve';
         const opt = (o, cur, f) => Object.keys(o).map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${f(k)}</option>`).join('');
         h += `<div class="work"><b>送去做件</b>
           <div class="row"><label for="wkRoute">做什么</label><select id="wkRoute">${opt(C.ROUTES, K.route, k => C.ROUTES[k].name)}</select></div><p class="note">${C.ROUTES[K.route].tip}</p>
@@ -239,7 +245,7 @@ function renderSide() {
           ${themed ? `<div class="row"><label for="wkTheme">题材</label><select id="wkTheme">${opt(C.THEMES, K.theme, k => k === '师傅定' ? k : `${k}（行情${C.demandWord(C.themeDemand(W, k))}）`)}</select></div><p class="note">${C.THEMES[K.theme].tip}</p>` : ''}
           ${K.route === 'cab' && plan.ok ? `<div class="row"><span class="dim">${K.cabKey === s.id + ':' + V.piece.id ? `你定的尺寸：${K.cabText}` : '可以自己盯着师傅一号一号放大，贪大有风险。'}</span><button data-act="cabgo" ${K.cabKey === s.id + ':' + V.piece.id ? 'disabled' : ''}>自己盯着取</button></div>` : ''}
           ${plan.warn.map(x => `<p class="say">${esc(x)}</p>`).join('')}
-          <div class="row"><span class="dim">预计 ${plan.n} ${C.ROUTES[K.route].unit} · 工费 ${fmt(plan.fee)} · ${plan.days} 天</span><button data-act="work" class="pri" ${plan.ok ? '' : 'disabled'}>送去</button></div></div>`;
+          <div class="row"><span class="dim">预计 ${plan.n} ${C.ROUTES[K.route].unit} · 工费 ${fmt(plan.fee)} · ${plan.days} 天</span><button data-act="work" class="pri" ${plan.ok ? '' : 'disabled'}>送去</button></div></div>`; } else h += `<p class="note">下刀和做成品要到第三章「自己做货」才解锁。现在先学会低买高卖。</p>`;
         h += `<div class="row q"><span><b>不急着卖</b> <i>${V.piece.shelf ? '已摆在铺面' : '摆进铺面零售，或收进藏品柜'}</i></span><span><button data-act="pshelf" ${V.piece.shelf ? 'disabled' : ''}>摆进铺面</button> <button data-act="pkeep">收藏</button></span></div>`;
         h += `<p class="note">报价只在今天有效。账面开涨不是现金到账。</p></div>`;
       }
@@ -247,12 +253,14 @@ function renderSide() {
     }
   } else if (tab === 'tray') {
     const items = trayItems();
+    if (!C.can(W, 'tray') && !V.ref) h += `<p class="note">成品盘在第三章「自己做货」解锁。现在可以先看看对照盘，认一认各种种水和颜色。</p>`;
     if (V.ref) { h += `<p class="note">对照盘：上面六块素面牌从豆种到玻璃种，下面是同为冰种、不同颜色的蛋面。转动托盘，对着光看它们的差别。</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${it.name}</b></div><div class="row dim"><span>${it.note}</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button></div></article>`; h += `<button data-act="trayback" class="pri">回到我的托盘</button>`; }
     else {
-      h += `<div class="scenes"><button data-act="cab0" aria-pressed="${!V.cab}">待售托盘</button><button data-act="cab2" aria-pressed="${V.cab === 'shelf'}">铺面柜台（${C.shelfCount(W)}/${C.SHOPLV[W.shop].slots}）</button><button data-act="cab1" aria-pressed="${V.cab === true}">藏品柜（${W.items.filter(i => i.state === 'kept').length}）</button></div>`;
+      h += `<div class="scenes"><button data-act="cab0" aria-pressed="${!V.cab}">待售托盘</button><button data-act="cab2" aria-pressed="${V.cab === 'shelf'}">铺面柜台（${C.shelfCount(W)}/${C.slotsOf(W)}）</button><button data-act="cab1" aria-pressed="${V.cab === true}">藏品柜（${W.items.filter(i => i.state === 'kept').length}）</button></div>`;
       const rawOf = key => { const o = []; for (const s of W.stones) for (const p of s.pieces) if (p[key] && !p.sold) o.push([s, p]); return o; }, rawCard = (s, p, lbl) => `<article class="card"><div class="row"><b>料头 #${s.id} ${p.name}</b><span class="price">${fmt(((s.last[p.id] || {}).best || 0) * (lbl === 'shelf' ? 1.12 * C.SHOPLV[W.shop].mult : 1))}</span></div><div class="row">${thumb(s, p) ? `<img class="rawimg" src="${thumb(s, p)}" alt="">` : ''}<span class="dim">${s.origin} · ${s.info.skin}。这是没加工的明料，拿到工作台上可以转着看、打灯把玩。</span></div><div class="row"><button data-act="pview" data-s="${s.id}" data-p="${p.id}">拿到工作台看</button><button data-act="pback" data-s="${s.id}" data-p="${p.id}">撤回料头盘</button></div></article>`;
       if (V.cab === 'shelf') h += rawOf('shelf').map(x => rawCard(x[0], x[1], 'shelf')).join(''); if (V.cab === true) h += rawOf('kept').map(x => rawCard(x[0], x[1], 'kept')).join('');
       if (V.cab === 'shelf') { h += `<p class="note">${W.shop ? `${C.SHOPLV[W.shop].name}：摆在这里的成品每天有散客上门，按零售价${C.SHOPLV[W.shop].mult > 1 ? '加一点' : ''}买走，口碑越好卖得越快。` : '还没有铺面。到「账本」里盘一个柜台，成品就能自己零售，不用再让批发商压价。'}</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${esc(it.name)}</b><span class="price">${fmt(it.value * C.SHOPLV[W.shop].mult)}</span></div><div class="row dim"><span>${C.waterName(it.w)} · 第 ${it.shelfDay} 天上柜</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button><button data-act="unshelf" data-i="${it.id}">撤回托盘</button></div></article>`; }
+      if (!V.cab && C.can(W, 'live')) h += `<article class="card"><div class="row"><b>直播间</b><span>粉丝 ${fmt(W.fans)}</span></div><div class="row"><span class="dim">${W.liveDay === W.day ? '今天已经播过了。' : '把托盘和柜台里的成品挂上去卖。当天切过石头再播，看的人更多。'}</span><button data-act="livego" class="pri" ${W.liveDay === W.day ? 'disabled' : ''}>开直播</button></div></article>`;
       if (!V.cab && W.event) h += `<p class="say">今日行情：${esc(W.event.t)}（${W.event.m > 1 ? '+' : ''}${Math.round((W.event.m - 1) * 100)}%）</p>`;
       if (!V.cab) { h += `<article class="card"><b>客户订单</b>${W.orders.map(o => `<div class="row dim"><span>${esc(C.orderText(o))}</span><span>加价 ${Math.round((o.bonus - 1) * 100)}% · 第 ${o.due} 天前</span></div>`).join('') || '<div class="row dim"><span>暂时没有订单</span></div>'}</article>`;
       for (const k of W.works) h += `<article class="card"><div class="row"><b>加工中 · ${esc(k.from)}</b><span class="dim">第 ${k.ready} 天取货</span></div><div class="row dim"><span>${esc(k.what)}</span></div></article>`; }
@@ -276,9 +284,10 @@ function renderSide() {
       ${s.guessResult ? `<div class="row"><span class="say">判断本：你写的是 ${C.waterName(C.GRADES[s.guess.water])}／${{ none: '无色', skin: '贴皮色', deep: '色吃进去', full: '满色' }[s.guess.color]}／${s.guess.crack === 'few' ? '裂少' : '裂多'}，实际 ${C.waterName(C.GRADES[s.guessResult.water])}／${{ none: '无色', skin: '贴皮色', deep: '色吃进去', full: '满色' }[s.guessResult.color]}／${s.guessResult.crack === 'few' ? '裂少' : '裂多'}。眼力 +${s.guessResult.pts}</span></div>` : ''}
       <div class="row"><span class="dim">一次赚钱不等于判断正确，亏了也不一定是决策错。</span><button data-act="review" data-s="${s.id}">看剖面</button></div></article>`;
     }
-    { const S = C.SHOPLV[W.shop], nx = C.SHOPLV[W.shop + 1]; h += `<article class="card"><div class="row"><b>铺面：${S.name}</b><span class="dim">口碑 ${Math.round(W.fame)}</span></div>${W.shop ? `<div class="row dim"><span>日租 ${S.rent} · 柜位 ${C.shelfCount(W)}/${S.slots} · 零售价 ×${S.mult}</span></div>` : ''}${nx ? `<div class="row"><span class="dim">${nx.tip} 日租 ${nx.rent}。</span><button data-act="shopup">盘下${nx.name} ${fmt(nx.cost)}</button></div>` : ''}<div class="row dim"><span>熟客：${Object.keys(C.BUYERS).map(k => `${k} ${C.relWord(C.relOf(W, k))}`).join('，')}</span></div></article>`; }
-    h += `<article class="card"><b>工具铺</b>${Object.keys(C.SHOP).map(k => { const S = C.SHOP[k], lv = W.tools[k], mx = lv >= S.levels.length; return `<div class="row"><span><b>${S.levels[lv - 1]}</b> <span class="dim">${S.tip}</span></span>${mx ? '<span class="dim">已是最好的</span>' : `<button data-act="tool" data-k="${k}">换${S.levels[lv]} ${fmt(S.price[lv - 1])}</button>`}</div>`; }).join('')}</article>`;
-    if (!W.flags.debt) h += `<article class="card"><div class="row"><b>父亲留下的欠条</b><span>${fmt(C.DEBT)}</span></div><div class="row"><span class="dim">还清它是第三章的目标之一。还的时候要留够周转的钱。</span><button data-act="debt">还清</button></div></article>`;
+    if (!C.can(W, 'shop')) h += `<article class="card"><div class="row"><b>铺面</b><span class="dim">第四章解锁</span></div></article>`;
+    if (C.can(W, 'chain')) h += `<article class="card"><div class="row"><b>分店与员工</b><span class="dim">分店 ${W.branches} 家 · 柜位共 ${C.slotsOf(W)}</span></div><div class="row"><span class="dim">每家分店多 10 个柜位、货更好卖，日租 ${C.BRANCH_RENT}。</span><button data-act="branch">开分店 ${fmt(C.BRANCH_COST)}</button></div>${Object.keys(C.STAFF).map(k => { const S = C.STAFF[k]; return `<div class="row"><span><b>${S.name} ${W.staff[k]}/${S.max}</b> <span class="dim">日薪 ${S.pay}。${S.tip}</span></span><span><button data-act="hire" data-k="${k}" data-d="-1" ${W.staff[k] ? '' : 'disabled'}>辞</button> <button data-act="hire" data-k="${k}" data-d="1" ${W.staff[k] >= S.max ? 'disabled' : ''}>雇</button></span></div>`; }).join('')}</article>`;
+    if (C.can(W, 'shop')) { const S = C.SHOPLV[W.shop], nx = C.SHOPLV[W.shop + 1]; h += `<article class="card"><div class="row"><b>铺面：${S.name}</b><span class="dim">口碑 ${Math.round(W.fame)}</span></div>${W.shop ? `<div class="row dim"><span>日租 ${S.rent} · 柜位 ${C.shelfCount(W)}/${S.slots} · 零售价 ×${S.mult}</span></div>` : ''}${nx ? `<div class="row"><span class="dim">${nx.tip} 日租 ${nx.rent}。</span><button data-act="shopup">盘下${nx.name} ${fmt(nx.cost)}</button></div>` : ''}<div class="row dim"><span>熟客：${Object.keys(C.BUYERS).map(k => `${k} ${C.relWord(C.relOf(W, k))}`).join('，')}</span></div></article>`; }
+    if (C.can(W, 'tools')) h += `<article class="card"><b>工具铺</b>${Object.keys(C.SHOP).map(k => { const S = C.SHOP[k], lv = W.tools[k], mx = lv >= S.levels.length; return `<div class="row"><span><b>${S.levels[lv - 1]}</b> <span class="dim">${S.tip}</span></span>${mx ? '<span class="dim">已是最好的</span>' : `<button data-act="tool" data-k="${k}">换${S.levels[lv]} ${fmt(S.price[lv - 1])}</button>`}</div>`; }).join('')}</article>`;
     h += `<article class="card"><div class="row"><b>${C.rankOf(W)}</b><span>眼力 ${W.eye} · 身家 ${fmt(C.netWorth(W))}</span></div><div class="row dim"><span>${C.RANKS.map(r => `${r[1]} ${r[0]}`).join(' → ')}</span></div><div class="achs">${C.ACH_ALL.map(a => { const g = W.ach[a[0]]; return `<span class="${g ? 'got' : ''}" title="${g ? '第 ' + g.day + ' 天达成' : '未达成'}">${g ? '★' : '☆'} ${a[1]}</span>`; }).join('')}</div><div class="row dim"><span>已达成 ${C.ACH_ALL.filter(a => W.ach[a[0]]).length} / ${C.ACH_ALL.length}</span></div></article>`;
     h += `<article class="card"><b>流水</b>${W.log.slice(-40).reverse().map(l => `<div class="row dim"><span>第 ${l.day} 天 ${esc(l.t)}</span><span>${l.amt ? (l.amt > 0 ? '+' : '') + fmt(l.amt) : ''}</span></div>`).join('')}</article>`;
   }
@@ -299,7 +308,7 @@ function cutFromView() {
 }
 function renderTools() {
   const own = V.mode === 'own' && V.piece && !V.piece.sold, tray = V.mode === 'tray';
-  document.querySelectorAll('#tools button[data-tool]').forEach(b => { b.setAttribute('aria-pressed', b.dataset.tool === V.tool); b.disabled = ((b.dataset.tool === 'grind' || b.dataset.tool === 'cut' || b.dataset.tool === 'peel' || b.dataset.tool === 'saw') && !own) || (tray && b.dataset.tool !== 'rotate'); });
+  document.querySelectorAll('#tools button[data-tool]').forEach(b => { b.setAttribute('aria-pressed', b.dataset.tool === V.tool); b.disabled = ((b.dataset.tool === 'cut' || b.dataset.tool === 'saw') && !C.can(W, 'cut')) || ((b.dataset.tool === 'grind' || b.dataset.tool === 'cut' || b.dataset.tool === 'peel' || b.dataset.tool === 'saw') && !own) || (tray && b.dataset.tool !== 'rotate'); });
   let o = '';
   if (V.mode === 'review') o += `<label for="sec">剖面高度</label><input id="sec" type="range" min="${(-V.e.vol.hy).toFixed(0)}" max="${V.e.vol.hy.toFixed(0)}" step="0.5" value="${V.section}"><span class="dim">复盘：这是石头原本的内部</span>`;
   else if (V.tool === 'torch') o += `<label for="tTilt">倾斜 <b id="tTiltV">${V.torch.tilt}</b>°</label><input id="tTilt" type="range" min="0" max="85" step="5" value="${V.torch.tilt}"><label for="tAz">朝向</label><input id="tAz" type="range" min="0" max="360" step="15" value="${V.torch.az}"><label for="tH">离皮 <b id="tHV">${V.torch.h}</b> mm</label><input id="tH" type="range" min="0" max="60" step="2" value="${V.torch.h}"><button data-act="lbody" aria-pressed="${V.lampBody}">显示筒身</button><button data-act="toff" ${V.torch.on ? '' : 'disabled'}>关灯</button>`;
@@ -338,21 +347,20 @@ function codeOk(c) { c = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
 function licensed() { if (!CFG.license) return true; try { return codeOk(localStorage.getItem('jade-license')); } catch (e) { return false; } }
 /* ---------- 新手教学：牛叔带着看第一块石头 ---------- */
 const COACH = [
-  ['牛叔：先别急着买。按住石头拖一拖，四面都转着看一遍。', () => W.flags.orbit],
-  ['牛叔：左下角那支手电，按住它拖到石头上。', () => W.flags.torch],
-  ['牛叔：把右上角的室内灯关了，看光透出来多大一片。再点石头别的位置比一比。', () => W.flags.dark],
-  ['牛叔：看右边这块料的标签和老板说的话。觉得行就还个价买下来；不行就点别的料。', () => W.stones.length > 0],
-  ['牛叔：买下了。先在右边的「判断本」里写下你觉得的种水、色、裂，以后对答案。', () => W.flags.guess],
-  ['牛叔：选底下的「画圈开皮」，在石头上圈一小块，看看皮下面是什么。', () => W.flags.open],
-  ['牛叔：右边报价变了，还写了原因。可以卖给出价最高的，也可以接着切。卖出一件货，我就不啰嗦了。', () => W.stat.sold > 0],
+  [['牛叔：没本钱不要紧，先学看。按住石头拖着转，四面看一遍。', () => W.flags.orbit], ['牛叔：左下角那支手电，按住拖到石头上；再把右上角的灯关了，看光透出来多大一片。', () => W.flags.torch && W.flags.dark], ['牛叔：在右边写下你猜的种水、色、裂，然后点「看他切」。猜对种水，旁边的人输你彩头。', () => W.stat.watch > 0]],
+  [['牛叔：有本钱了，挑一块便宜的，还个价买下来。看不准的不买；老板吆喝得越凶越要小心。', () => W.stones.length > 0], ['牛叔：用底下的「画圈开皮」开个小窗。窗口好看，报价就涨。', () => W.flags.open], ['牛叔：卖给出价最高的人。窗口漂亮的时候卖，常常比接着开划算。', () => W.stat.sold > 0]],
+  [['牛叔：现在可以下刀了。选「大锯下刀」，在石头上拖一条线，再点下刀。', () => W.stat.cuts > 0], ['牛叔：切开的料，在右边「送去做件」里挑做什么、找谁做。', () => W.works.length > 0 || W.items.length > 0], ['牛叔：过几天成品做好，到「成品盘」里卖，或者交给客户订单。', () => W.items.some(i => i.state === 'sold')]],
+  [['牛叔：到「账本」里盘一个铺面。', () => W.shop >= 1], ['牛叔：把成品或料头「摆进铺面」，散客会按零售价上门买。', () => C.shelfCount(W) > 0 || W.stat.shelfSold > 0]],
+  [['牛叔：到「成品盘」点「开直播」。当天切过石头再播，看的人更多。', () => W.stat.live > 0]],
+  [['牛叔：到「账本」里开分店、雇人。店员卖货，师傅做货，主播替你播。', () => W.branches > 0 || W.staff.clerk + W.staff.master + W.staff.host > 0]],
 ];
-function coachUpdate() { const el = $('#coach'); if (!W || W.flags.tut || V.mode === 'tray' || !$('#start').hidden) { el.hidden = true; return; }
-  let i = 0; while (i < COACH.length && COACH[i][1]()) i++;
-  if (i >= COACH.length) { W.flags.tut = true; el.hidden = true; save(); V.note = '牛叔：行了，剩下的自己摸。右上角「教程」里有图鉴，忘了就翻。'; renderAll(); return; }
-  el.hidden = false; el.innerHTML = `<span>${esc(COACH[i][0])}</span><small>${i + 1} / ${COACH.length}</small><button data-act="skiptut">跳过教学</button>`; }
+function coachUpdate() { const el = $('#coach'), key = 'tut' + (W ? W.chapter : 0), steps = W && COACH[W.chapter]; if (!W || !steps || W.flags[key] || W.flags.notut || V.mode === 'tray' && W.chapter < 2 || !$('#start').hidden) { el.hidden = true; return; }
+  let i = 0; while (i < steps.length && steps[i][1]()) i++;
+  if (i >= steps.length) { W.flags[key] = true; el.hidden = true; save(); return; }
+  el.hidden = false; el.innerHTML = `<span>${esc(steps[i][0])}</span><small>${i + 1} / ${steps.length}</small><button data-act="skiptut">不用教了</button>`; }
 function flag(k) { if (W && !W.flags[k]) { W.flags[k] = true; coachUpdate(); storyCheck(); } }
-function storyCheck() { const ch = C.checkStory(W); if (!ch) return; save(); Snd.win(); const nx = C.CHAPTERS[W.chapter];
-  $('#storybody').innerHTML = `<h2>${ch.title} · 完成</h2><p>${esc(ch.done)}</p><p class="say">眼力 +${ch.reward.eye}${ch.reward.cash ? `，奖励 ${fmt(ch.reward.cash)}` : ''}</p>${nx ? `<h3>${nx.title}</h3><p>${esc(nx.story)}</p><ul>${nx.goals.map(g => `<li>${g[1]}</li>`).join('')}</ul>` : '<p>主线完成。生意可以一直做下去。</p>'}<button data-act="storyok" class="pri">继续</button>`;
+function storyCheck() { if (!$('#story').hidden) return; const ch = C.checkStory(W); if (!ch) return; W.flags.notut = false; save(); Snd.win(); const nx = C.CHAPTERS[W.chapter];
+  $('#storybody').innerHTML = `<h2>${ch.title} · 完成</h2><p>${esc(ch.done)}</p><p class="say">眼力 +${ch.reward.eye}${ch.reward.cash ? `，到手 ${fmt(ch.reward.cash)}` : ''}${ch.unlock ? `。解锁：${ch.unlock}` : ''}</p>${nx ? `<h3>${nx.title}</h3><p>${esc(nx.story)}</p><ul>${nx.goals.map(g => `<li>${g[1]}</li>`).join('')}</ul>` : '<p>主线完成。生意可以一直做下去。</p>'}<button data-act="storyok" class="pri">继续</button>`;
   $('#story').hidden = false; renderTop(); renderSide(); }
 function goalCard() { const ch = C.CHAPTERS[W.chapter]; if (!ch) return `<article class="card goal"><div class="row"><b>主线完成</b><span class="dim">一代货主</span></div></article>`;
   return `<article class="card goal"><div class="row"><b>${ch.title}</b><button data-act="storyshow">剧情</button></div>${ch.goals.map(g => { const d = C.goalDone(W, g[0]); return `<div class="row ${d ? 'done' : ''}"><span>${d ? '✔' : '○'} ${g[1]}</span></div>`; }).join('')}</article>`; }
@@ -473,7 +481,7 @@ document.addEventListener('click', ev => {
   if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) view('market', L, null); }
   else if (a === 'offer' || a === 'take') {
     const L = V.rec, offer = a === 'take' ? L.ask : +($('#offer').value || 0); V.offer = offer;
-    const sh = V.partner && L.ask >= 20000 ? 0.5 : 1, r = C.negotiate(W, L, offer, sh); V.msg = r.msg;
+    const sh = V.partner && L.ask >= 8000 ? 0.5 : 1, r = C.negotiate(W, L, offer, sh); V.msg = r.msg;
     if (r.res === 'deal') { Snd.coin(); const s = C.buy(W, L, r.price, sh); V.partner = false; tab = 'mine'; view('own', s, s.pieces[0]); refreshQuote(s, s.pieces[0], true); save(); V.note = `成交 ${fmt(r.price)}。可以直接询价转手，也可以开窗、下刀或送加工。`; renderAll(); return; }
     save(); renderSide(); renderNpc();
   }
@@ -521,12 +529,21 @@ document.addEventListener('click', ev => {
   else if (a === 'cabstop') { V.cab_.done = true; renderCab(); }
   else if (a === 'cabok') { const c = V.cab_; V.wk.cabMult = c.g.mults[c.k] / c.g.mults[Math.min(c.g.max, 2)] * (c.hurt ? 0.6 : 1); V.wk.cabKey = c.key; V.wk.cabText = `${c.g.sizes[c.k]} mm${c.hurt ? '（磨伤了）' : ''}`; $('#cabgame').hidden = true; renderSide(); }
   else if (a === 'menu') { $('#hmenu').classList.toggle('open'); }
-  else if (a === 'skiptut') { W.flags.tut = true; save(); renderAll(); }
-  else if (a === 'storyok') { $('#story').hidden = true; }
+  else if (a === 'watch') { const L = V.rec, g = V.wg || {}; if (g.water == null) { V.msg = '先选一个种水再看。'; renderSide(); return; } const r = C.watch(W, L, { water: g.water, color: g.color || 'none', crack: g.crack || 'few' }); if (!r.ok) { V.msg = r.msg; renderSide(); return; }
+    V.wg = null; Snd.saw(); save(); L.id = '围观'; const nm = ['豆种', '糯种', '糯冰种', '冰种', '高冰种', '玻璃种'], cn = { none: '基本无色', skin: '只有贴皮色', deep: '色吃进去了', full: '满色' };
+    $('#storybody').innerHTML = `<h2>他一刀切开了</h2><p>实际是：<b>${nm[r.water]}</b>，${cn[r.color]}，${r.crack === 'few' ? '裂少' : '裂多'}。${r.fake ? '而且这是一块假料：' + r.fake + '。' : ''}</p><p>你猜的是：${nm[g.water]}，${cn[g.color || 'none']}，${(g.crack || 'few') === 'few' ? '裂少' : '裂多'}。</p><p class="say">眼力 +${r.pts}${r.tip ? `；种水猜对了，旁边的人输给你 ${r.tip} 块彩头` : ''}</p><p class="note">关掉这个框后可以拖动「剖面高度」看这块石头里面到底什么样，和你刚才打灯看到的对一对。</p><button data-act="storyok" class="pri">看剖面</button>`;
+    $('#story').hidden = false; view('review', L, null); }
+  else if (a === 'livego') { const r = C.liveRun(W); if (!r.ok) { V.note = r.msg; renderTools(); renderSide(); return; } save(); const box = $('#livechat'); box.innerHTML = ''; $('#liveview').textContent = r.viewers + ' 人在看'; $('#liveend').hidden = true; $('#live').hidden = false;
+    r.lines.forEach((ln, i) => setTimeout(() => { const d = document.createElement('p'); d.className = ln[0]; d.textContent = ln[0] === 'c' ? '观众：' + ln[1] : ln[1]; box.appendChild(d); box.scrollTop = box.scrollHeight; if (ln[0] === 'sys' && i) Snd.coin(); if (i === r.lines.length - 1) $('#liveend').hidden = false; }, 350 + i * 520)); }
+  else if (a === 'liveend') { $('#live').hidden = true; openTray(false, false); }
+  else if (a === 'branch') { const r = C.openBranch(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
+  else if (a === 'hire') { const r = C.hire(W, b.dataset.k, +b.dataset.d); V.note = r.msg; save(); renderAll(); }
+  else if (a === 'skiptut') { W.flags.notut = true; save(); renderAll(); }
+  else if (a === 'storyok') { $('#story').hidden = true; renderAll(); }
   else if (a === 'storyshow') { const ch = C.CHAPTERS[W.chapter]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${C.goalDone(W, g[0]) ? '✔ ' : ''}${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">知道了</button>`; $('#story').hidden = false; }
   else if (a === 'debt') { const r = C.payDebt(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
   else if (a === 'startgo') { $('#start').hidden = true; Snd.tap(); renderAll(); }
-  else if (a === 'startnew') { C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; $('#start').hidden = true; view('market', W.market.find(L => !L.sold && !L.fake) || W.market[0], null); const ch = C.CHAPTERS[0]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">进夜市</button>`; $('#story').hidden = false; }
+  else if (a === 'startnew') { C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; $('#start').hidden = true; view('market', W.market.find(L => !L.sold && !L.fake) || W.market[0], null); const ch = C.CHAPTERS[0]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">去夜市蹲着</button>`; $('#story').hidden = false; }
   else if (a === 'starthelp') { $('#start').hidden = true; $('#help').hidden = false; showPane('play'); renderAll(); }
   else if (a === 'home') { showStart(); }
   else if (a === 'codego') { const c = $('#codeIn').value; if (codeOk(c)) { try { localStorage.setItem('jade-license', c); } catch (e) { } $('#paywall').hidden = true; Snd.win(); V.note = '激活成功，谢谢支持。'; showStart(); } else { $('#codeMsg').textContent = '这个激活码不对。检查一下有没有输错，字母不分大小写。'; } }
@@ -570,6 +587,7 @@ document.addEventListener('click', ev => {
 document.addEventListener('input', ev => {
   if (ev.target.id === 'cutT') { V.cutT = +ev.target.value; $('#cutV').textContent = V.cutT; if (V.cut && V.cut.fromView) { V.cut.d = V.cut.base - V.cutT; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d); renderTools(); } invalidate(true); }
   if (ev.target.id === 'gW' || ev.target.id === 'gC' || ev.target.id === 'gK') { const s = V.rec, w = $('#gW').value; s.guess = w === '' ? null : { water: +w, color: $('#gC').value, crack: $('#gK').value }; save(); if (s.guess) flag('guess'); }
+  if (ev.target.id === 'wW' || ev.target.id === 'wC' || ev.target.id === 'wK') { const w0 = $('#wW').value; V.wg = { water: w0 === '' ? null : +w0, color: $('#wC').value, crack: $('#wK').value }; }
   if (ev.target.id === 'wkRoute' || ev.target.id === 'wkMaster' || ev.target.id === 'wkTheme') { V.wk[{ wkRoute: 'route', wkMaster: 'master', wkTheme: 'theme' }[ev.target.id]] = ev.target.value; renderSide(); }
   if (ev.target.id === 'tTilt' || ev.target.id === 'tAz' || ev.target.id === 'tH') { V.torch.tilt = +$('#tTilt').value; V.torch.az = +$('#tAz').value; V.torch.h = +$('#tH').value; $('#tTiltV').textContent = V.torch.tilt; $('#tHV').textContent = V.torch.h; invalidate(true); }
   if (ev.target.id === 'sawD' && V.sawPlan) { V.sawPlan.depth = +ev.target.value; sawRebuild(); const el = $('#sawD'); if (el) el.focus(); }

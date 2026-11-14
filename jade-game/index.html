@@ -65,7 +65,9 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .startbox { align-items: center; text-align: center; min-width: min(86vw, 340px); padding: 28px 26px !important; background: radial-gradient(circle at 50% 0%, #2a3a2f, #14110e 70%) !important; border-color: #3f6a55 !important; }
 .startbox .eyebrow { margin: 0; font-size: 12px; letter-spacing: .3em; color: var(--dim); } .startbox .big { font-family: var(--display); font-size: 44px; letter-spacing: .18em; margin: 4px 0; color: var(--jade); text-shadow: 0 0 24px #66c49755; }
 .startbox .tag2 { margin: 0 0 8px; color: var(--fg); max-width: 22em; } .startbox button { width: 100%; padding: 9px; font-size: 15px; }
-.storybox { max-width: 32em !important; } .storybox h3 { margin: 8px 0 0; font-size: 15px; color: var(--lamp); }
+.storybox { max-width: 32em !important; }
+.phone { width: min(92vw, 340px); border-radius: 22px !important; border: 3px solid #3a3a3e !important; background: linear-gradient(#1a1418, #0f0d10) !important; } .phone b { color: #ff6b6b; }
+#livechat { height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 4px 2px; } #livechat p { margin: 0; font-size: 13px; padding: 3px 8px; border-radius: 10px; background: #ffffff12; align-self: flex-start; } #livechat p.sys { background: #f0c07030; color: var(--lamp); align-self: stretch; text-align: center; } .storybox h3 { margin: 8px 0 0; font-size: 15px; color: var(--lamp); }
 #paywall input { font: inherit; font-size: 17px; letter-spacing: .08em; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; text-align: center; }
 #sawbox { right: 14px; top: 116px; } #sawbox input { accent-color: var(--lamp); width: 100%; }
 #sawbox { position: absolute; z-index: 4; width: 220px; background: #1a1714ee; border: 1px solid var(--lamp); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; box-shadow: 0 4px 14px #000a; }
@@ -205,6 +207,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <button data-act="pane" data-k="play">怎么玩</button><button data-act="pane" data-k="skin">看皮壳</button><button data-act="pane" data-k="water">看种水</button><button data-act="pane" data-k="atlas">种色图鉴</button><button data-act="pane" data-k="color">看色和裂</button><button data-act="pane" data-k="make">做件出货</button><button data-act="pane" data-k="value">价值表</button>
   </div>
   <section data-pane="play">
+    <p>你从一个蹲在摊边看热闹的人做起：先围观猜石头练眼力，再小本倒手，再自己下刀做货、开铺面、开直播、开分店。每一章解锁新的玩法，牛叔会带着你做第一遍。</p>
     <p>每块原石的内部在生成时就定死了：种水、色带的走向和深浅、裂、棉。你做的每件事都只是在看同一块石头，不会重新抽奖。赚钱靠的是比卖家和买家看得更准，以及知道什么时候停手。</p>
     <h3>一局的顺序</h3>
     <ol>
@@ -341,6 +344,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <p id="stLic" class="note"></p>
 </div></div>
 <div id="story" class="modal" hidden><div id="storybody" class="storybox"></div></div>
+<div id="live" class="modal" hidden><div class="phone">
+  <div class="row"><b>● 直播中 · 牛叔的徒弟</b><span id="liveview" class="dim"></span></div>
+  <div id="livechat"></div>
+  <button data-act="liveend" id="liveend" class="pri" hidden>下播</button>
+</div></div>
 <div id="paywall" class="modal" hidden><div>
   <h2>输入激活码</h2><p id="codeMsg" class="say"></p>
   <label for="codeIn" class="note">激活码（16 位，形如 ABCD-EFGH-JKLM-NPQR）</label>
