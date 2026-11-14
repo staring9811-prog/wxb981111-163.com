@@ -504,7 +504,15 @@ function dyeWin(vol, spheres) {
 // 旧存档升级：缺什么补什么，不清档
 function migrate(w) { const t = newWorld(w.seed || 1); for (const k in t) if (w[k] === undefined) w[k] = t[k]; for (const k of ['stat', 'tools', 'staff', 'flags', 'fam', 'rel', 'ach']) { if (!w[k] || typeof w[k] !== 'object') w[k] = t[k]; else for (const j in t[k]) if (w[k][j] === undefined) w[k][j] = t[k][j]; }
   skillsOf(w); for (const k of w.fam.kids || []) { if (!k.t) k.t = { book: 0, craft: 0, eye: 0, talk: 0, manage: 0, moral: 60 }; if (!SCHOOLS[k.school]) k.school = 'home'; if (!JOBS[k.job]) k.job = 'none'; } w.works = (w.works || []).map(k => Object.assign({ master: '街边师傅', route: 'pendant' }, k)); w.v = t.v; return w; }
-const FAKE_NAME = { dye: '窗口上色：窗口的绿是染上去的，只有表面一层', paint: '染色做皮：皮上的松花是染上去的', veneer: '贴片假窗：窗口贴了一层好料，底下是差料' };
+const FAKE_NAME = { skin: '做假皮：整层皮是胶拌砂糊上去的，里面是切过的差料', dye: '窗口上色：窗口的绿是染上去的，只有表面一层', paint: '染色做皮：皮上的松花是染上去的', veneer: '贴片假窗：窗口贴了一层好料，底下是差料' };
+// 买回来以后自己查一遍有没有做过手脚：每块料查一次
+const FAKE_LESSON = 800;
+function inspectFee(s) { return clamp(Math.round(s.buyPrice * 0.02 / 10) * 10, 300, 3000); }
+// 花钱请师傅讲一种假料：手脚做在哪、为什么、怎么认。每种学一次
+function learnFake(w, type) { const L = w.lessons || (w.lessons = {}); if (L[type]) return { ok: false, msg: '这种已经学过了。' }; if (w.cash < FAKE_LESSON) return { ok: false, msg: '现金不够。' }; w.cash -= FAKE_LESSON; L[type] = true; w.eye += 1; w.log.push({ day: w.day, t: `请师傅讲假料：${FAKE_NAME[type].split('：')[0]}`, amt: -FAKE_LESSON }); return { ok: true, msg: '师傅拿着料给你讲了一遍。眼力 +1' }; }
+function inspectFake(w, s) { if (s.checked) return { ok: false, msg: '这块已经查过了。' }; const fee = inspectFee(s); if (w.cash < fee) return { ok: false, msg: '鉴定费不够。' }; w.cash -= fee; s.costs += fee; w.log.push({ day: w.day, t: `#${s.id} 请师傅鉴定真假`, amt: -fee }); s.checked = true; if (s.fake) { s.fakeKnown = true; w.eye += 2; return { ok: true, fake: s.fake.type, msg: `查出来了：${FAKE_NAME[s.fake.type]}。眼力 +2` }; } return { ok: true, fake: null, msg: '皮、窗口、颜色都查了一遍，没看出做过手脚。是真料。' }; }
+// 丢弃：所有还没出手的块按 0 处理，结账复盘
+function discardStone(w, s) { let n = 0; for (const p of s.pieces) if (!p.sold) { p.sold = true; p.soldPrice = 0; p.buyer = '丢弃'; p.kept = false; p.shelf = false; n++; } s.discarded = true; w.log.push({ day: w.day, t: `#${s.id} 丢弃（${s.fake ? '假料' : '不要了'}）`, amt: 0 }); closeStone(w, s); return { ok: true, n }; }
 // 当面指出是假货：说对了老板心虚大降价，说错了老板翻脸不卖
 function callOut(w, L) {
   if (L.called) return { msg: '已经说过了。' }; L.called = true;
@@ -817,17 +825,17 @@ function makeListing(wseed, day, i, scene) {
   const origin = r.pick(Object.keys(ORIGINS)), channel = r.pick(SCENES[scene].channels), C = CHANNELS[channel];
   const L = { scene, seed: seedOf(wseed, 'stone', day, i, scene), origin, channel, strokes: [], clips: [[]], patience: 3, sold: false };
   let e = getVol(L);
-  const fk = r.chance(FAKE_RATE[scene] || 0) ? ['paint', 'paint', 'veneer', 'dye', 'dye'][Math.floor(r.u() * 5)] : null;
-  if ((r.chance(C.window) || fk === 'veneer' || fk === 'dye') && scene !== '场口直采') { L.strokes = sellerWindow(e.st, e.vol, r); e = getVol(L); }
+  const fk = r.chance(FAKE_RATE[scene] || 0) ? ['paint', 'paint', 'veneer', 'dye', 'dye', 'skin'][Math.floor(r.u() * 6)] : null;
+  if ((r.chance(C.window) || fk === 'veneer' || fk === 'dye') && scene !== '场口直采' && fk !== 'skin') { L.strokes = sellerWindow(e.st, e.vol, r); e = getVol(L); }
   if ((fk === 'veneer' || fk === 'dye') && L.strokes.length) { const sp = []; for (let q = 0; q < L.strokes.length && q < 20; q += 5) sp.push(L.strokes[q], L.strokes[q + 1], L.strokes[q + 2], L.strokes[q + 3]); L.fake = { type: fk, spheres: sp }; e = getVol(L); }
-  else if (fk === 'paint') { L.fake = { type: 'paint' }; e = getVol(L); }
+  else if (fk === 'paint' || fk === 'skin') { L.fake = { type: fk }; e = getVol(L); }
   const ev = evalPiece(e.st, e.vol, WHOLE);
   const est = estimate(e.st, e.vol, ev, 'seller', { skill: C.skill, risk: 0.3, opt: 1.0 });
   L.reserve = Math.max(300, Math.round(est * (0.95 + C.margin) * Math.exp(r.norm() * 0.15) / 10) * 10);
   L.ask = Math.max(Math.round(L.reserve * 1.12 / 10) * 10, Math.round(est * (1.35 + C.margin * 2) * Math.exp(r.norm() * 0.2) / 10) * 10);
   if (SCENES[scene].auction) { L.auction = true; L.floor = Math.max(200, Math.round(L.reserve * 0.55 / 10) * 10); let top = 0; for (let k = 0; k < 4; k++) top = Math.max(top, L.reserve * r.range(0.62, 1.22)); L.top = Math.round(top / 10) * 10; }
-  if (L.fake) { const k = L.fake.type === 'paint' ? r.range(1.8, 2.6) : L.fake.type === 'dye' ? r.range(1.2, 1.5) : r.range(1.1, 1.3); L.reserve = Math.round(L.reserve * k / 10) * 10; L.ask = Math.round(L.ask * k / 10) * 10; if (L.top) L.top = Math.round(L.top * k / 10) * 10; }
-  L.patter = patter(e.st, e.vol, L); if (L.fake) L.patter[1] = L.fake.type === 'paint' ? '老板：你看这一身松花，满色料的相，过了这村没这店。' : L.fake.type === 'dye' ? '老板：窗口这个绿你自己看，阳得很，打灯都是绿的。' : '老板：窗都给你开好了，种色摆在这，闭着眼睛买。';
+  if (L.fake) { const k = L.fake.type === 'paint' ? r.range(1.8, 2.6) : L.fake.type === 'skin' ? r.range(1.4, 1.9) : L.fake.type === 'dye' ? r.range(1.2, 1.5) : r.range(1.1, 1.3); L.reserve = Math.round(L.reserve * k / 10) * 10; L.ask = Math.round(L.ask * k / 10) * 10; if (L.top) L.top = Math.round(L.top * k / 10) * 10; }
+  L.patter = patter(e.st, e.vol, L); if (L.fake) L.patter[1] = L.fake.type === 'paint' ? '老板：你看这一身松花，满色料的相，过了这村没这店。' : L.fake.type === 'skin' ? '老板：全蒙头的老坑料，一刀没动过，赌的就是这个心跳。' : L.fake.type === 'dye' ? '老板：窗口这个绿你自己看，阳得很，打灯都是绿的。' : '老板：窗都给你开好了，种色摆在这，闭着眼睛买。';
   L.info = { skin: e.st.skin.name, weight: ev.stats.weight, dims: e.st.rad.map(v => Math.round(v * 2)), window: L.strokes.length > 0, bet: betOf(e.st, e.vol, ev.stats.hasWindow && ev.stats.expColor > 0.15) };
   if (L.fake && L.fake.type === 'paint') { L.info.bet.main = '赌色'; L.info.bet.why = '皮上松花很多。色是真是假、进得深不深，要压灯和上放大镜比对。'; }
   return L;
@@ -1161,6 +1169,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);

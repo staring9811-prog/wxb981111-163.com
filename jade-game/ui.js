@@ -109,7 +109,7 @@ function render(scale, forceSize) {
   gl.uniform3fv(u('uBodyCol'), C.BODIES[st.body]); gl.uniform3fv(u('uBandCol'), H.band); gl.uniform3fv(u('uHueAbs'), H.abs); gl.uniform3fv(u('uFogCol'), st.fog.col); gl.uniform1f(u('uFogT'), st.fog.t);
   const A = new Float32Array(40), B = new Float32Array(40), Cc = new Float32Array(40), Tt = new Float32Array(30);
   st.cracks.slice(0, 10).forEach((c, i) => { A.set([c.c[0], c.c[1], c.c[2], c.R], i * 4); B.set([c.n[0], c.n[1], c.n[2], c.open], i * 4); Cc.set([c.warp, c.freq, c.phase, c.skinVis], i * 4); Tt.set(c.t1, i * 3); });
-  gl.uniform1f(u('uFakeT'), V.fakeT != null ? V.fakeT : V.rec && V.rec.fake && V.mode !== 'review' ? ({ paint: 1, veneer: 2, dye: 3 }[V.rec.fake.type] || 0) : 0);
+  gl.uniform1f(u('uFakeT'), V.fakeT != null ? V.fakeT : V.rec && V.rec.fake && V.mode !== 'review' ? ({ paint: 1, veneer: 2, dye: 3, skin: 4 }[V.rec.fake.type] || 0) : 0);
   gl.uniform1i(u('uNCr'), Math.min(10, st.cracks.length)); gl.uniform4fv(u('uCrA'), A); gl.uniform4fv(u('uCrB'), B); gl.uniform4fv(u('uCrC'), Cc); gl.uniform3fv(u('uCrT'), Tt);
   const T = V.torch;
   if (T.on && T.p) {
@@ -237,10 +237,13 @@ function kidFace(k, size) { return faceSvg({ months: k.months, kind: k.months < 
 const FAKE_HELP = {
   paint: ['染色做皮（假松花）', '手脚在皮上：那一身绿斑是用颜料刷上去的，冒充“松花”，让人以为里面满色。', '里面是没色的普通料，刷一身绿就能按赌色料的价钱卖，要价翻一两倍。', ['用放大镜看绿斑：真松花藏在砂粒之间、有深有浅；染的是平平一片盖在砂粒上面，边缘齐。', '对着绿斑压灯：真有色，灯下会透出绿光；染的只有白光。', '看价钱：一身松花却只要几千几万，不合理。']],
   veneer: ['贴片假窗', '手脚在窗口：在差料上挖个坑，贴了一片两三毫米厚的好料，窗口看上去种好色好。', '窗口是买家唯一能看到肉的地方，窗口好，整块就能按好料卖。', ['用放大镜沿着窗口边缘看一圈：贴片的边上有一圈黄色的胶线，真窗口是皮到肉自然过渡。', '对着窗口压灯：光只在薄薄一片里亮，透不到窗口周围的皮下面去。', '换个地方隔着皮压灯：别处的光晕又小又浑，和窗口的表现对不上。']],
+  skin: ['做假皮', '手脚是整层皮：把切过、卖不掉的差料用胶拌砂重新糊了一层皮，冒充没开过的全蒙头料。', '全蒙头料赌性最大，没人看得见里面，差料糊上皮就能按“老坑蒙头”卖。', ['转着找接缝：假皮总有收口的地方，是一道黄色的胶线，两边颜色对不上。', '用放大镜看砂粒：一样大、排得整整齐齐、颜色一个样，没有风化的深浅。', '看反光：胶面发亮像刷了清漆，上面有小气泡眼；真皮是哑的。', '压灯：隔着胶皮光发闷发黄，透不进去。']],
   dye: ['窗口上色', '手脚在窗面上：窗口是真开的，但肉的表面染了一层绿。', '无色的料，窗口一见绿，就能按“窗口见色”的价钱卖。', ['用放大镜看窗面：染的色沿着晶粒之间的缝走，像一张绿色的网，晶粒中间是白的；真色有色根，浓淡过渡自然。', '看颜色的样子：又匀又艳、没有深浅变化，像涂上去的。', '对着窗口压灯：真色的光晕带绿而且往里走；染的只在表面发绿，往旁边挪一点就全白了。']],
 };
 function fakeExplain(key) { const k = FAKE_HELP[key] ? key : Object.keys(FAKE_HELP).find(x => String(key).indexOf(FAKE_HELP[x][0].slice(0, 4)) === 0); if (!k) return ''; const F = FAKE_HELP[k];
+  if (!(W.lessons || {})[k]) return `<div class="fakehelp"><b class="say">这是一块假料：${F[0]}</b><p>知道它是假的，但手脚做在哪、为什么这么做、当时怎么看得出来，要请师傅拿着料给你讲。每种假料学一次，学会了以后遇到都看得到讲解。</p><button data-act="flesson" data-k="${k}">请师傅讲解（${fmt(C.FAKE_LESSON)}）</button></div>`;
   return `<div class="fakehelp"><b class="say">这是一块假料：${F[0]}</b><p><b>手脚做在哪：</b>${F[1]}</p><p><b>为什么这么做：</b>${F[2]}</p><p><b>当时怎么看得出来：</b></p><ol>${F[3].map(x => `<li>${x}</li>`).join('')}</ol><button data-act="gofake">打开假料图鉴，看真假并排对照</button></div>`; }
+function fakeTag(s) { if (!(W.lessons || {})[s.fake.type]) return `<div class="fakehelp"><b class="say">假料标本 · #${s.id} ${s.origin} ${s.info.skin} · ${FAKE_HELP[s.fake.type][0]}</b><p class="dim">买入 ${fmt(s.buyPrice)}，第 ${s.buyDay} 天。这块假在哪、怎么看，还没请师傅讲过。</p><button data-act="flesson" data-k="${s.fake.type}">请师傅讲解（${fmt(C.FAKE_LESSON)}）</button></div>`; const F = FAKE_HELP[s.fake.type], n = s.fake.spheres ? Math.round(s.fake.spheres.length / 4) : 0; return `<div class="fakehelp"><b class="say">假料标本 · #${s.id} ${s.origin} ${s.info.skin} · ${F[0]}</b><p><b>这块假在哪：</b>${s.fake.type === 'paint' ? '皮上那些绿斑全是刷上去的' : s.fake.type === 'skin' ? '整层皮都是糊的，接缝在侧面' : `卖家开的那 ${n || 1} 处窗口`}。${F[1]}</p><p><b>在这块上怎么看：</b>${F[3][0]}</p><p class="dim">买入 ${fmt(s.buyPrice)}，第 ${s.buyDay} 天。拿到工作台上，用放大镜和手电对着上面说的位置再看一遍。</p></div>`; }
 function workCard(k) { const is = C.issueOf(W, k); let h = `<article class="card"><div class="row"><b>加工中 · ${esc(k.from)}</b><span class="dim">${is ? '停工，等你拿主意' : '第 ' + k.ready + ' 天取货'}</span></div><div class="row dim"><span>${esc(k.what)}，按看得见的料预计 ${k.expected} 件。</span></div>`;
   if (is) h += issueHtml(k, is); else if (k.issue && k.issue.done) h += `<p class="${k.issue.win ? 'note' : 'say'}">${esc(k.issue.note)}</p>`; return h + '</article>'; }
 function issueHtml(k, is) { const word = p => p >= 1 ? '稳' : is.see ? Math.round(p * 100) + '% 把握' : p > 0.7 ? '把握大' : p > 0.45 ? '五五开' : '把握不大'; return `<p class="say">${esc(is.text)}</p>${is.opts.map((o, i) => `<div class="row"><span class="dim">${word(o.p)}${o.p < 1 ? `：成了 ×${o.win}，不成 ×${o.lose}` : `：×${o.win}`}</span><button data-act="issue" data-id="${k.id}" data-i="${i}">${esc(o.label)}</button></div>`).join('')}${is.see ? '' : '<p class="note">学了相应的手艺，这里能看到具体几成把握。</p>'}`; }
@@ -326,6 +329,9 @@ function renderSide() {
           ${plan.warn.map(x => `<p class="say">${esc(x)}</p>`).join('')}
           <div class="row"><span class="dim">${V.layoutOn && V.layout ? (V.layout.n ? `石头上画出了 ${V.layout.n} ${K.route === 'bead' ? '颗珠子' : K.route === 'carve' ? '件的大致轮廓' : C.ROUTES[K.route].unit}的位置${lay >= 1 ? `：绿的是看清了的料${V.layout.unsure ? `，黄的 ${V.layout.unsure} 处还没看清，里面可能有裂或没色` : ''}` : '。学了「排料设计」能分出哪些位置没看清'}。已经让开看得见的裂。转动石头可以从各个方向看。` : '按现在看得见的料，这种件一件也排不下。') : '把这种件按看得见的料一件件摆进石头里。'}</span><button data-act="layout">${V.layoutOn ? '收起排料图' : '看排料图'}</button></div>
           <div class="row"><span class="dim">预计 ${plan.n} ${C.ROUTES[K.route].unit} · 工费 ${fmt(plan.fee)} · ${plan.days} 天</span><button data-act="work" class="pri" ${plan.ok ? '' : 'disabled'}>送去</button></div></div>`; } else h += `<p class="note">下刀和做成品要到第三章「自己做货」才解锁。现在先学会低买高卖。</p>`;
+        if (s.fake && (s.fakeKnown || s.exposed)) h += fakeExplain(s.fake.type) + `<div class="row q"><span><b>这块假料怎么办</b> <i>卖给不知情的人会砸口碑</i></span><span><button data-act="fkeep">贴上标签放进藏品柜</button> <button data-act="fdiscard">丢弃</button></span></div>`;
+        else if (!s.checked) h += `<div class="row q"><span><b>怀疑做过手脚？</b> <i>请师傅把皮、窗口、颜色查一遍，每块料一次</i></span><button data-act="fcheck">请师傅鉴定（${fmt(C.inspectFee(s))}）</button></div>`;
+        else if (!s.fake) h += `<p class="note">查过了，这块是真料。</p>`;
         h += `<div class="row q"><span><b>不急着卖</b> <i>${V.piece.shelf ? '已摆在铺面' : '摆进铺面零售，或收进藏品柜'}</i></span><span><button data-act="pshelf" ${V.piece.shelf ? 'disabled' : ''}>摆进铺面</button> <button data-act="pkeep">收藏</button></span></div>`;
         h += `<p class="note">报价只在今天有效。账面开涨不是现金到账。</p></div>`;
       }
@@ -359,7 +365,7 @@ function renderSide() {
     if (V.ref) { h += `<p class="note">对照盘：上面六块素面牌从豆种到玻璃种，下面是同为冰种、不同颜色的蛋面。转动托盘，对着光看它们的差别。</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${it.name}</b></div><div class="row dim"><span>${it.note}</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button></div></article>`; h += `<button data-act="trayback" class="pri">回到我的托盘</button>`; }
     else {
       h += `<div class="scenes"><button data-act="cab0" aria-pressed="${!V.cab}">待售托盘</button><button data-act="cab2" aria-pressed="${V.cab === 'shelf'}">铺面柜台（${C.shelfCount(W)}/${C.slotsOf(W)}）</button><button data-act="cab1" aria-pressed="${V.cab === true}">藏品柜（${W.items.filter(i => i.state === 'kept').length}）</button></div>`;
-      const rawOf = key => { const o = []; for (const s of W.stones) for (const p of s.pieces) if (p[key] && !p.sold) o.push([s, p]); return o; }, rawCard = (s, p, lbl) => `<article class="card"><div class="row"><b>料头 #${s.id} ${p.name}</b><span class="price">${fmt(((s.last[p.id] || {}).best || 0) * (lbl === 'shelf' ? 1.12 * C.SHOPLV[W.shop].mult : 1))}</span></div><div class="row">${thumb(s, p) ? `<img class="rawimg" src="${thumb(s, p)}" alt="">` : ''}<span class="dim">${s.origin} · ${s.info.skin}。这是没加工的明料，拿到工作台上可以转着看、打灯把玩。</span></div><div class="row"><button data-act="pview" data-s="${s.id}" data-p="${p.id}">拿到工作台看</button><button data-act="pback" data-s="${s.id}" data-p="${p.id}">撤回料头盘</button></div></article>`;
+      const rawOf = key => { const o = []; for (const s of W.stones) for (const p of s.pieces) if (p[key] && !p.sold) o.push([s, p]); return o; }, rawCard = (s, p, lbl) => `<article class="card"><div class="row"><b>料头 #${s.id} ${p.name}</b><span class="price">${fmt(((s.last[p.id] || {}).best || 0) * (lbl === 'shelf' ? 1.12 * C.SHOPLV[W.shop].mult : 1))}</span></div><div class="row">${thumb(s, p) ? `<img class="rawimg" src="${thumb(s, p)}" alt="">` : ''}<span class="dim">${s.origin} · ${s.info.skin}。${s.fake && (s.fakeKnown || s.exposed) ? '假料标本，留着认假用。' : '这是没加工的明料，拿到工作台上可以转着看、打灯把玩。'}</span></div>${s.fake && (s.fakeKnown || s.exposed) ? fakeTag(s) : ''}<div class="row"><button data-act="pview" data-s="${s.id}" data-p="${p.id}">拿到工作台看</button><button data-act="pback" data-s="${s.id}" data-p="${p.id}">撤回料头盘</button></div></article>`;
       if (V.cab === 'shelf') h += rawOf('shelf').map(x => rawCard(x[0], x[1], 'shelf')).join(''); if (V.cab === true) h += rawOf('kept').map(x => rawCard(x[0], x[1], 'kept')).join('');
       if (V.cab === 'shelf') { h += `<p class="note">${W.shop ? `${C.SHOPLV[W.shop].name}：摆在这里的成品每天有散客上门，按零售价${C.SHOPLV[W.shop].mult > 1 ? '加一点' : ''}买走，口碑越好卖得越快。` : '还没有铺面。到「账本」里盘一个柜台，成品就能自己零售，不用再让批发商压价。'}</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${esc(it.name)}</b><span class="price">${fmt(it.value * C.SHOPLV[W.shop].mult)}</span></div><div class="row dim"><span>${C.waterName(it.w)} · 第 ${it.shelfDay} 天上柜</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button><button data-act="unshelf" data-i="${it.id}">撤回托盘</button></div></article>`; }
       if (!V.cab && C.can(W, 'live')) h += `<article class="card"><div class="row"><b>直播间</b><span>粉丝 ${fmt(W.fans)}</span></div><div class="row"><span class="dim">${W.liveDay === W.day ? '今天已经播过了。' : '把托盘和柜台里的成品挂上去卖。当天切过石头再播，看的人更多。'}</span><button data-act="livego" class="pri" ${W.liveDay === W.day ? 'disabled' : ''}>开直播</button></div></article>`;
@@ -623,6 +629,7 @@ function buildCracks() {
 const FAKES = [
   ['染色做皮（假松花）', 'paint', ['皮上远看', '放大镜看皮', '隔着皮压灯', '切开'], '皮上一身绿斑，卖家说是“松花”，是满色料的相。真松花是里面的色顶到皮上来的：颜色有深有浅，藏在砂粒之间，压灯时附近透出绿光。染的松花是刷上去的：放大镜下色块平、边缘齐、盖在砂粒上面没有颗粒感；压灯时光是白的，一点绿都透不出来。切开，真的里面有色，假的一片白。'],
   ['贴片假窗', 'veneer', ['窗口', '放大镜看窗口', '对着窗口压灯', '切开'], '窗口看上去种好色好，其实是在差料上挖个坑，贴了一片好料。放大镜沿着窗口边缘找：真窗口是皮到肉自然过渡，贴片的窗口边上有一圈黄色胶线。压灯时光只在薄薄一片里亮，透不到周围。切开后好料只有两三毫米厚，后面全是差料。'],
+  ['做假皮', 'skin', ['皮上远看', '放大镜看皮', '隔着皮压灯', '切开'], '把切过的差料用胶拌砂重新糊一层皮，冒充全蒙头料。远看颜色一个样，没有风化的深浅；侧面有一道黄色的收口胶线，两边颜色对不上。放大镜下砂粒一样大、排得整整齐齐，还有小气泡眼，表面发亮像刷了清漆。真皮的砂有大有小，颜色有深有浅，是哑的。'],
   ['窗口上色', 'dye', ['窗口', '放大镜看窗口', '对着窗口压灯', '切开'], '窗口是真开的，但窗面上染了绿。远看绿得又匀又艳，没有深浅变化。放大镜下，真色是从里面透出来的，有色根，浓淡过渡自然；染的色沿着晶粒之间的缝隙走，像一张绿色的网，晶粒中间反而是白的。往里磨一点，或者切开，色就没了。'],
 ];
 let fakesStarted = false;
@@ -637,19 +644,19 @@ function buildFakes() {
     const [[name, type, caps, text], fake] = jobs[i++];
     try {
       const st = C.genStone(515151, '木那', '二级供应商'); st.cracks = []; st.dirt = []; st.shift = null; st.wVar = 0; st.cot = 0.2; st.planes = []; st.fog = { t: 0, col: [1, 1, 1] }; st.body = '白底'; st.hue = '阳绿'; st.feats = [];
-      st.w0 = fake ? (type === 'veneer' ? 0.18 : 0.4) : 0.55; if (!fake) st.feats.push({ type: 'full', strength: 0.85, seed: 77, c: [0, 0, 0] });
+      st.w0 = fake ? (type === 'veneer' || type === 'skin' ? 0.18 : 0.4) : 0.55; if (!fake && type !== 'skin') st.feats.push({ type: 'full', strength: 0.85, seed: 77, c: [0, 0, 0] });
       st.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: 0.78, sig: 0.75, weather: 0.45, t: 1.6, phase: 3 };
       const vol = C.bake(st, 44), R0 = Math.max(vol.hx, vol.hy, vol.hz);
       V.mode = 'own'; V.rec = null; V.e = { st, vol }; V.lens = null; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; cam.dist = R0 * 3.4; const b = camBasis();
-      if (type !== 'paint') { const h = C.pick(vol, C.WHOLE, b.pos, b.f), sk = C.sampleG(vol, 2, h.p[0], h.p[1], h.p[2]), sp = [];
+      if (type !== 'paint' && type !== 'skin') { const h = C.pick(vol, C.WHOLE, b.pos, b.f), sk = C.sampleG(vol, 2, h.p[0], h.p[1], h.p[2]), sp = [];
         for (const [dx, dy] of [[0, 0], [7, 2], [-7, -1], [1, 7], [-2, -7]]) { const q = [0, 1, 2].map(k => h.p[k] + b.r[k] * dx + b.up[k] * dy), rr = C.pick(vol, C.WHOLE, [q[0] - b.f[0] * 300, q[1] - b.f[1] * 300, q[2] - b.f[2] * 300], b.f); if (rr) { const c = [0, 1, 2].map(k => rr.p[k] + rr.n[k] * (9 - sk - 1.3)); C.carve(vol, C.WHOLE, c[0], c[1], c[2], 9); sp.push(c[0], c[1], c[2], 9); } }
         if (fake) (type === 'veneer' ? C.veneer : C.dyeWin)(vol, sp); }
-      loaded = null; V.fakeT = fake ? { paint: 1, veneer: 2, dye: 3 }[type] : 0;
+      loaded = null; V.fakeT = fake ? { paint: 1, veneer: 2, dye: 3, skin: 4 }[type] : 0;
       const shot = (torch, piece, dist, lens) => { V.piece = piece; V.room = !torch; V.lensAll = !!lens; cam.dist = R0 * dist; const bb = camBasis(); V.torch = { on: false, p: null, n: null };
         if (torch) { const h = C.pick(vol, piece, bb.pos, bb.f); if (h) V.torch = { on: true, p: h.p, n: h.n, dir: h.n, h: 0 }; }
         const lb = V.lampBody; V.lampBody = false; render(1, 176); V.lampBody = lb; V.lensAll = false; return canvas.toDataURL('image/jpeg', 0.85); };
-      const cut = { planes: [[-b.f[0], -b.f[1], -b.f[2], 0]] }, near = type === 'paint' ? 3.2 : 2.3;
-      const imgs = [shot(false, C.WHOLE, near), shot(false, C.WHOLE, 1.25, true), shot(true, C.WHOLE, type === 'paint' ? 3.5 : 2.6), shot(false, cut, 3.3)];
+      const cut = { planes: [[-b.f[0], -b.f[1], -b.f[2], 0]] }, near = type === 'paint' || type === 'skin' ? 3.2 : 2.3;
+      const imgs = [shot(false, C.WHOLE, near), shot(false, C.WHOLE, 1.25, true), shot(true, C.WHOLE, type === 'paint' || type === 'skin' ? 3.5 : 2.6), shot(false, cut, 3.3)];
       rowHtml += `<div class="row"><b class="${fake ? 'say' : ''}" style="min-width:2.5em">${fake ? '假' : '真'}</b></div><div class="four">${imgs.map((x, k) => `<figure><img src="${x}" alt="${name}${fake ? '假' : '真'}${caps[k]}"><figcaption>${caps[k]}</figcaption></figure>`).join('')}</div>`;
       if (fake) { host.insertAdjacentHTML('beforeend', `<article class="case"><div class="row"><b>${name}</b></div>${rowHtml}<p>${text}</p></article>`); rowHtml = ''; }
     } catch (e) { host.insertAdjacentHTML('beforeend', `<p class="note">${name} 的图没拍出来：${e.message}</p>`); rowHtml = ''; }
@@ -724,6 +731,10 @@ document.addEventListener('click', ev => {
   else if (a === 'sawno') { V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); }
   else if (a === 'sawsmart') { smartSaw(); }
   else if (a === 'pshelf') { const r = C.pieceShelf(W, V.rec, V.piece); V.note = r.ok ? '已摆进铺面，散客会按零售价来买。' : r.msg; save(); renderAll(); }
+  else if (a === 'flesson') { const r = C.learnFake(W, b.dataset.k); V.note = r.msg; if (r.ok) Snd.coin(); save(); if (!$('#story').hidden && r.ok) $('#story').querySelector('.fakehelp').outerHTML = fakeExplain(b.dataset.k); renderAll(); }
+  else if (a === 'fcheck') { const r = C.inspectFake(W, V.rec); V.note = r.msg; if (r.fake) Snd.lose(); save(); renderAll(); }
+  else if (a === 'fkeep') { const s = V.rec; for (const p of s.pieces) if (!p.sold && !p.kept) C.pieceKeep(W, s, p, true); save(); V.note = '贴了标签，收进藏品柜。到「成品盘 → 藏品柜」里能看到标签。'; if (s.closed) { tab = 'ledger'; view('review', s, null); } else renderAll(); }
+  else if (a === 'fdiscard') { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '丢了就没了，再点一次确认'; return; } const s = V.rec; C.discardStone(W, s); qcache.clear(); save(); V.note = '丢掉了。交的学费记在账本里。'; tab = 'ledger'; view('review', s, null); }
   else if (a === 'pkeep') { const s = V.rec, p = V.piece; C.pieceKeep(W, s, p, true); save(); V.note = '已收进藏品柜。'; if (s.closed) { tab = 'ledger'; view('review', s, null); } else renderAll(); }
   else if (a === 'pback') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); if (p.kept) C.pieceKeep(W, s, p, false); p.shelf = false; save(); openTray(false, V.cab); }
   else if (a === 'pview') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); tab = 'mine'; view('own', s, p); if (!s.last[p.id]) refreshQuote(s, p); renderAll(); }
