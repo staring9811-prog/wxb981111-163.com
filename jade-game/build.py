@@ -11,7 +11,7 @@ body = re.sub(r'<title>.*?</title>\s*', '', body, count=1)
 loader = r'''
 <script>
 (function () {
-  var LOCAL = __VER__, FILES = ['config.js', 'licenses.js', 'core.js', 'shader.js', 'ui.js'];
+  var LOCAL = __VER__, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }
@@ -83,7 +83,7 @@ if '--dist' in sys.argv:
 </body>
 </html>
 ''', encoding='utf-8')
-    for f in ['core.js', 'shader.js', 'ui.js', 'licenses.js']: shutil.copy(here / f, dist / f)
+    for f in ['core.js', 'shader.js', 'ui.js', 'licenses.js', 'faces.js']: shutil.copy(here / f, dist / f)
     cfg = (here / 'config.js').read_text(encoding='utf-8').replace('license: false', 'license: true')
     (dist / 'config.js').write_text(cfg, encoding='utf-8')
     print('dist/ built with license check ON')

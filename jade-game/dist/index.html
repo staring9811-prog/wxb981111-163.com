@@ -80,6 +80,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 #coach small { color: #7a6a55; white-space: nowrap; } #coach button { background: #e2d8c2; color: #2a2018; border-color: #b9ab8e; font-size: 12px; padding: 2px 8px; white-space: nowrap; }
 .goal { border-color: #6a5632; background: #1c1810; } .goal .row { font-size: 12.5px; color: var(--dim); } .goal .row:first-child { font-size: 14px; color: var(--lamp); } .goal .done { color: var(--jade); } .goal button { font-size: 12px; padding: 1px 8px; }
 .people { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 4px 0 8px; } .people figure { margin: 0; text-align: center; } .people figcaption { font-size: 12px; color: var(--fg); opacity: .8; margin-top: 2px; }
+.ph { display: block; border-radius: 10px; overflow: hidden; background: #1c1814; box-shadow: 0 2px 10px #0008, inset 0 0 0 1px #ffffff14; position: relative; } .ph::after { content: ''; position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 30%, transparent 55%, #0009 100%), linear-gradient(#ffb86b14, #0000 40%); pointer-events: none; }
+.ph img { width: 100%; height: 100%; object-fit: cover; display: block; transform-origin: 50% 85%; animation: phb 4.6s ease-in-out infinite, phn 11s ease-in-out infinite; animation-composition: add; filter: saturate(.9) contrast(1.03) sepia(.08); }
+@keyframes phb { 0%, 100% { transform: scale(1.04) translateY(0) } 50% { transform: scale(1.062) translateY(-1.2%) } }
+@keyframes phn { 0%, 40%, 100% { transform: rotate(0) translateX(0) } 46% { transform: rotate(-1.6deg) translateX(-1%) } 54% { transform: rotate(-1.2deg) translateX(-0.6%) } 62%, 80% { transform: rotate(0) } 86% { transform: rotate(1.3deg) translateX(0.8%) } 93% { transform: rotate(0) } }
+@media (prefers-reduced-motion: reduce) { .ph img { animation: none; } }
 .pf { border-radius: 10px; display: block; } .pf-body { animation: pfb 4s ease-in-out infinite; } .pf-head { animation: pfh 8s ease-in-out infinite; } .pf-eye { animation: pfe 5.3s linear infinite; }
 @keyframes pfb { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(1.6px) } }
 @keyframes pfh { 0%, 38%, 100% { transform: rotate(0) } 48%, 62% { transform: rotate(-2.4deg) } 78%, 88% { transform: rotate(1.6deg) } }
@@ -429,11 +434,12 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <h2>周转不动了</h2><p>现金见底，手里也没有可卖的货。翻开账本看看每块石头错在判断还是错在价钱，然后重新开始。</p>
   <button data-act="yes" class="pri">重新开始</button>
 </div></div>
-<script src="config.js?v=26"></script>
-<script src="licenses.js?v=26"></script>
-<script src="core.js?v=26"></script>
-<script src="shader.js?v=26"></script>
-<script src="ui.js?v=26"></script>
+<script src="config.js?v=27"></script>
+<script src="licenses.js?v=27"></script>
+<script src="faces.js?v=27"></script>
+<script src="core.js?v=27"></script>
+<script src="shader.js?v=27"></script>
+<script src="ui.js?v=27"></script>
 
 </body>
 </html>
