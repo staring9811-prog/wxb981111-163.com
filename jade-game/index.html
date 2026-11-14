@@ -89,6 +89,15 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 #torchdock.lit .thead::after { background: #fff3c4; box-shadow: 0 0 14px 4px #ffe9a0aa; }
 #torchdock button { padding: 2px 7px; font-size: 11.5px; border-radius: 10px; background: #0d0d0e; border-color: #4a4c51; }
 #torchdock button[aria-pressed="true"] { color: var(--lamp); border-color: var(--lamp); background: #2a2416; }
+#gyrowrap { display: flex; gap: 10px; align-items: center; cursor: default; padding: 4px 4px 0; }
+#gyro { position: relative; width: 66px; height: 66px; border-radius: 50%; flex: none; cursor: crosshair; touch-action: none; background: radial-gradient(circle, #2c2e33 0 2px, transparent 3px), repeating-radial-gradient(circle, transparent 0 10px, #4a4c5155 10px 11px), #101113; border: 1px solid #6a6d73; box-shadow: 0 2px 6px #000a; }
+#gyro::before, #gyro::after { content: ""; position: absolute; background: #4a4c51; } #gyro::before { left: 50%; top: 4px; bottom: 4px; width: 1px; } #gyro::after { top: 50%; left: 4px; right: 4px; height: 1px; }
+#gyrodot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--lamp); box-shadow: 0 0 8px #f0c070; left: 50%; top: 50%; z-index: 1; pointer-events: none; }
+.tdist { display: flex; flex-direction: column; font-size: 11.5px; color: #c9bfb0; text-shadow: 0 1px 3px #000; } .tdist input { width: 110px; accent-color: var(--lamp); }
+#tfloat { position: absolute; z-index: 3; display: flex; gap: 3px; } #tfloat button { width: 24px; height: 24px; padding: 0; border-radius: 50%; font-size: 11px; background: #0d0d0ecc; border-color: #6a6d73; }
+#tfloat button[aria-pressed="true"] { color: var(--lamp); border-color: var(--lamp); }
+.cabrow { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; } .cabrow span { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; color: var(--dim); } .cabrow i { display: block; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #c8f0cf, #2f9a55 55%, #146b3a); opacity: .35; } .cabrow .past i { opacity: .6; } .cabrow .on i { opacity: 1; box-shadow: 0 0 10px #66c497; } .cabrow .on { color: var(--fg); }
+#opts select { font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; }
 #torchdock .tinfo { display: flex; gap: 8px; font-size: 11.5px; color: #c9bfb0; text-shadow: 0 1px 3px #000; padding-left: 4px; } #torchdock .tinfo b { color: var(--fg); }
 .scenes { display: flex; gap: 5px; flex-wrap: wrap; } .scenes button { flex: 1; min-width: 72px; padding: 5px 4px; font-size: 13px; display: flex; flex-direction: column; align-items: center; line-height: 1.25; } .scenes small { font-size: 10.5px; color: var(--dim); }
 #reveal { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(8,6,5,.72); text-align: center; padding: 16px; }
@@ -124,11 +133,14 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <svg id="overlay" aria-hidden="true"><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
       <div id="reveal" hidden></div>
       <button id="lightsw" data-act="room" aria-label="室内灯开关" title="室内灯"><span></span></button>
+      <div id="tfloat" hidden><button id="tfP" data-act="tpower" title="关手电">关</button><button id="tfC" data-act="tcolor" title="白光/黄光">白</button></div>
       <div id="torchdock" title="手电">
         <div class="tbody"><i class="thead"></i>
           <button id="tkPower" data-act="tpower" title="开关">开关</button><button id="tkColor" data-act="tcolor" title="光色">白光</button><button id="tkDim" data-act="tdim" title="亮度">强光</button><button id="tkBody" data-act="lbody" title="画面里显示筒身">筒身</button>
         </div>
         <div class="tinfo"><b id="tkName">手电</b><span id="tkTip">按住拖到石头上</span></div>
+        <div id="gyrowrap" hidden><div id="gyro" title="方向盘：拖动小点改变手电倾斜的方向和角度，双击回正"><i id="gyrodot"></i></div>
+          <div class="tdist"><label for="tDist">离石头 <b id="tDistV">0</b> mm</label><input id="tDist" type="range" min="0" max="90" step="1" value="0"></div></div>
       </div>
       <div id="hud"><div id="title"></div><div id="hint">正在备货…</div></div>
       <div id="bar">
@@ -164,7 +176,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <h3>一局的顺序</h3>
     <ol>
       <li><b>挑场子</b>：右侧「货源」顶上选场景。刚开始只有夜市地摊。</li>
-      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了；抓灯头可以挪位置，抓筒尾可以转角度、往外拉远。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角墙上是<b>室内灯开关</b>，关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
+      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了；抓灯头可以挪位置；旁边的<b>方向盘</b>拖小点改倾斜方向和角度（双击回正）；滑杆或抓筒尾沿着筒身拉远拉近。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角墙上是<b>室内灯开关</b>，关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
       <li><b>读标签</b>：每块料标了它赌的是种水、色、裂还是镯位，选中后有一句提示。</li>
       <li><b>出价</b>：还价或照价买。看不准就不买。公盘里是投暗标。</li>
       <li><b>写判断本</b>：买下后先写你认为的种水、色、裂，之后对答案涨眼力。</li>
@@ -177,6 +189,9 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <li><b>假货</b>：夜市里约三成是做过手脚的料，集散地偶尔也有。<b>染色皮</b>远看一身松花，放大镜下色块是平的、边缘齐、没有砂粒；<b>贴片窗</b>窗口种色极好，但压灯时光散不开，放大镜下窗口一圈有黄色胶线。看出来可以当面说破，老板会大降价；说错了他翻脸不卖。</li>
       <li><b>熟客</b>：买家回去切了才知道你卖的料怎么样。他切涨了会记你的好、以后出价更高；切垮了会压你的价；把假料卖出去会被上门退货，口碑大跌。</li>
       <li><b>铺面</b>：在「账本」里盘柜台或店面，成品摆进去每天有散客按零售价买，不用让批发商压价。要付日租，口碑越好卖得越快。</li>
+      <li><b>合伙</b>：两万以上的料可以「找人合伙」，各出一半本钱，这块料出完货后赚亏对半分。</li>
+      <li><b>赌一刀</b>：下刀前可以和旁边的行家赌这一刀是涨是垮，赌注是账面的 5%。</li>
+      <li><b>盯着取蛋面</b>：做蛋面时可以自己盯着，从小号一号一号放大，越大越值钱，但每放一号都可能磨出裂，磨伤了要退一号还打折。</li>
       <li><b>黄光</b>：手电切到黄光，绿会显得更浓。卖家爱用这招，你自己看料最好用白光。</li>
     </ul>
     <h3>能帮你的东西</h3>
@@ -274,6 +289,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   </section>
   <button data-act="help" class="pri">开始玩</button>
 </div></div>
+<div id="cabgame" class="modal" hidden><div><h2>盯着师傅取蛋面</h2><div id="cabbody" style="display:flex;flex-direction:column;gap:8px"></div></div></div>
 <div id="confirm" class="modal" hidden><div>
   <h2>新开一局？</h2><p>当前进度会被清掉，现金回到 200K。</p>
   <div class="row"><button data-act="no">继续当前这局</button><button data-act="yes" class="pri">清空并重新开始</button></div>

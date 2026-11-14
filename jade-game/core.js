@@ -619,21 +619,21 @@ function genMarket(w) {
   for (const k in w.markets) for (const L of w.markets[k]) if (!L.sold) volCache.delete(L.seed);
   w.markets = {}; enterScene(w, sceneOpen(w, w.scene) ? w.scene : '夜市地摊');
 }
-function negotiate(w, L, offer) {
-  offer = Math.round(offer);
+function negotiate(w, L, offer, share) {
+  offer = Math.round(offer); share = share || 1;
   if (L.sold || L.patience <= 0) return { res: 'gone', msg: '老板摆摆手：这块不谈了。' };
-  if (offer > w.cash) return { res: 'poor', msg: '现金不够。' };
+  if (offer * share > w.cash) return { res: 'poor', msg: '现金不够。' };
   if (offer >= L.reserve) return { res: 'deal', price: Math.min(offer, L.ask), msg: '老板：行，拿走。' };
   L.patience--;
   if (offer >= L.reserve * 0.8) { L.ask = Math.max(Math.round(L.reserve * 1.03 / 10) * 10, Math.round((L.ask + offer) / 20) * 10); return { res: 'counter', msg: L.patience > 0 ? `老板：最低 ${fmt(L.ask)}，再少不卖。` : `老板：${fmt(L.ask)}，最后一口价。` }; }
   return { res: 'low', msg: L.patience > 0 ? '老板皱眉：这价连本都不够，诚心要就再加点。' : '老板把石头收了回去。' };
 }
-function buy(w, L, price) {
-  w.cash -= price; L.sold = true;
-  const s = { id: w.nextId++, seed: L.seed, origin: L.origin, channel: L.channel, strokes: L.strokes.slice(), clips: [[]], buyDay: w.day, buyPrice: price, costs: 0, proceeds: 0, pieces: [{ id: 0, name: '原石', planes: [], sold: false }], nextPiece: 1, best: 0, flip: 0, closed: false, info: L.info, last: {}, scene: L.scene, guess: null, fake: L.fake || null, exposed: !!L.exposed };
+function buy(w, L, price, share) {
+  share = share || 1; w.cash -= Math.round(price * share); L.sold = true;
+  const s = { id: w.nextId++, seed: L.seed, origin: L.origin, channel: L.channel, strokes: L.strokes.slice(), clips: [[]], buyDay: w.day, buyPrice: price, costs: 0, proceeds: 0, pieces: [{ id: 0, name: '原石', planes: [], sold: false }], nextPiece: 1, best: 0, flip: 0, closed: false, info: L.info, last: {}, scene: L.scene, guess: null, fake: L.fake || null, exposed: !!L.exposed, share };
   w.stones.push(s);
   const q = quotes(w, s, s.pieces[0]); s.flip = q.best; s.best = q.best;
-  w.log.push({ day: w.day, t: `买入 ${s.origin}·${s.info.skin} ${fmt(price)}`, amt: -price });
+  w.log.push({ day: w.day, t: `买入 ${s.origin}·${s.info.skin} ${fmt(price)}${share < 1 ? '（合伙，你出一半）' : ''}`, amt: -Math.round(price * share) });
   return s;
 }
 function quotes(w, s, piece) {
@@ -795,6 +795,15 @@ function routeValue(w, tp, ringsVisible, route, masterName, theme) {
   mat += tp.Vcrack * Math.min(0.6, salv) * (route === 'bracelet' || route === 'cab' ? 0 : 0.5);
   return { total: mat * craft * fit, n, craft, fit };
 }
+// 蛋面逐步取料：从小号开始，每放大一号都可能磨出裂或脏；磨出来就伤了，退回上一号还要打折
+const CAB_SIZES = [8, 10, 12, 14, 16, 18], CAB_MULT = CAB_SIZES.map(s => Math.pow(s / 12, 3));
+function cabGame(w, s, piece) {
+  const e = getVol(s), tp = evalPiece(e.st, e.vol, piece).truthParts, r = new Rng(seedOf(w.seed, 'cab', s.seed, piece.id));
+  const crackShare = tp.volCrack / Math.max(1e-6, tp.volCrack + tp.volClean), base = clamp(0.07 + 0.9 * crackShare + 0.35 * tp.dirtMean + 0.25 * tp.cotMean, 0.05, 0.6);
+  const max = clamp(1 + Math.floor(tp.volTop / 1.2), 1, CAB_SIZES.length - 1), risks = [], rolls = [];
+  for (let k = 1; k <= max; k++) { risks.push(clamp(base * (1 + 0.4 * (k - 1)), 0, 0.85)); rolls.push(r.u()); }
+  return { sizes: CAB_SIZES, mults: CAB_MULT, max, risks, rolls, hint: base < 0.14 ? '料很干净，可以大胆放。' : base < 0.3 ? '有点棉和小纹，放大要掂量。' : '裂和脏不少，贪大容易伤。' };
+}
 function workPlan(w, s, piece, route, masterName, theme) {
   const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), tp = ev.truthParts, M = MASTERS[masterName], R = ROUTES[route];
   const rv = routeValue(w, tp, ev.stats.bracelets, route, masterName, theme), warn = [];
@@ -804,14 +813,14 @@ function workPlan(w, s, piece, route, masterName, theme) {
   const fee = Math.round((120 + Math.max(1, rv.n) * R.fee) * M.fee);
   return { fee, days: M.days, n: rv.n, warn, ok: !(route === 'cab' && rv.n === 0) && !(route === 'bracelet' && !ev.stats.bracelets) };
 }
-function sendWork(w, s, piece, route, masterName, theme) {
+function sendWork(w, s, piece, route, masterName, theme, opts) {
   const plan = workPlan(w, s, piece, route, masterName, theme); if (!plan.ok) return { ok: false, msg: plan.warn[0] };
   if (plan.fee > w.cash) return { ok: false, msg: '现金不够付工费。' };
   const e = getVol(s), st = e.st, ev = evalPiece(st, e.vol, piece), tp = ev.truthParts, M = MASTERS[masterName], R = ROUTES[route];
   const r = new Rng(seedOf(w.seed, 'work', s.seed, piece.id, route, masterName)), items = [], body = BODIES[st.body], band = HUES[st.hue].band;
   const mk = (type, name, value, lv) => { const t = clamp(lv, 0, 1); items.push({ id: w.nextId++, stone: s.id, type, name, theme: (type === 'pendant' || type === 'carve') ? theme : '', master: masterName, value: Math.max(20, Math.round(value)), w: Math.round(tp.wMean * 100) / 100, lv: Math.round(t * 100) / 100, body, band, cot: Math.round(tp.cotMean * 100) / 100, seed: r.int(1, 9999), state: 'work' }); };
   const wn = waterName(tp.wMean), lvOf = () => clamp(tp.colorFrac * 1.6 * r.range(0.3, 1.7), 0, 1);
-  const rv = routeValue(w, tp, tp.rings.length, route, masterName, theme);
+  const rv = routeValue(w, tp, tp.rings.length, route, masterName, theme); if (route === 'cab' && opts && opts.cabMult) rv.total *= opts.cabMult;
   let lost = 0;
   if (route === 'bracelet') {
     for (const v of tp.rings) { if (r.chance(M.press)) { lost++; continue; } mk('bracelet', `${wn}手镯`, v * 1.1 * rv.craft, lvOf()); }
@@ -836,7 +845,8 @@ function sellItem(w, it, how) {
   return price;
 }
 function closeStone(w, s) {
-  if (!stoneDone(w, s)) return;
+  if (s.closed || !stoneDone(w, s)) return;
+  if (s.share < 1) { const settle = Math.round((s.proceeds - s.costs) * (1 - s.share)); w.cash -= settle; s.settle = settle; w.log.push({ day: w.day, t: `#${s.id} 合伙结账：${settle >= 0 ? '分给合伙人' : '合伙人补给你'}`, amt: -settle }); }
   s.closed = true; s.closeDay = w.day;
   const st = genStone(s.seed, s.origin, s.channel), fresh = bake(st), ev = evalPiece(st, fresh, WHOLE);
   const net0 = s.proceeds - s.buyPrice - s.costs; if (net0 > 0) achieve(w, 'win', '第一块赚钱的石头'); if (net0 > s.buyPrice * 2) achieve(w, 'steal', '捡漏：净赚超过买价两倍'); if (net0 < -s.buyPrice * 0.6) achieve(w, 'bust', '交学费：一块亏掉六成以上');
@@ -866,6 +876,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, CAB_SIZES, cabGame, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);

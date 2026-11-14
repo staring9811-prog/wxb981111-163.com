@@ -199,7 +199,7 @@ function renderSide() {
       if (sel && !L.sold) h += `${(L.patter || []).map(x => `<p class="patter">${esc(x)}</p>`).join('')}${L.opinion ? `<p class="say">${esc(L.opinion)}</p>` : `<div class="row"><span class="dim">拿不准？</span><button data-act="appr">请师傅掌眼（${fmt(C.appraiseFee(L))}）</button></div>`}`;
       if (L.auction && L.bid && !L.sold) h += `<div class="row"><span class="say">已投标 ${fmt(L.bid)}，收工后开标</span></div>`;
       if (sel && !L.sold && L.auction) h += `<div class="bargain"><label for="offer">暗标出价（元）。别人出多少你看不到，出高了白花钱，出低了拿不到。</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${L.bid || V.offer || L.floor}"><button data-act="bid" class="pri">${L.bid ? '改标' : '投标'}</button></div>${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
-      else if (sel && !L.sold) h += `<div class="bargain"><label for="offer">出价（元）</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${V.offer || Math.round(L.ask * 0.7 / 100) * 100}"><button data-act="offer">还价</button><button data-act="take" class="pri">照价买 ${fmt(L.ask)}</button></div>${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
+      else if (sel && !L.sold) h += `<div class="bargain"><label for="offer">出价（元）</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${V.offer || Math.round(L.ask * 0.7 / 100) * 100}"><button data-act="offer">还价</button><button data-act="take" class="pri">照价买 ${fmt(L.ask)}</button></div>${L.ask >= 20000 ? `<div class="row"><button data-act="partner" aria-pressed="${!!V.partner}">找人合伙</button><span class="dim">${V.partner ? '合伙人出一半本钱，赚了亏了都对半分。' : '本钱不够或怕风险，可以拉人各出一半。'}</span></div>` : ''}${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
       h += `</article>`;
     });
   } else if (tab === 'mine') {
@@ -235,6 +235,7 @@ function renderSide() {
           <div class="row"><label for="wkRoute">做什么</label><select id="wkRoute">${opt(C.ROUTES, K.route, k => C.ROUTES[k].name)}</select></div><p class="note">${C.ROUTES[K.route].tip}</p>
           <div class="row"><label for="wkMaster">找谁做</label><select id="wkMaster">${opt(C.MASTERS, K.master, k => k)}</select></div><p class="note">${C.MASTERS[K.master].tip}</p>
           ${themed ? `<div class="row"><label for="wkTheme">题材</label><select id="wkTheme">${opt(C.THEMES, K.theme, k => k === '师傅定' ? k : `${k}（行情${C.demandWord(C.themeDemand(W, k))}）`)}</select></div><p class="note">${C.THEMES[K.theme].tip}</p>` : ''}
+          ${K.route === 'cab' && plan.ok ? `<div class="row"><span class="dim">${K.cabKey === s.id + ':' + V.piece.id ? `你定的尺寸：${K.cabText}` : '可以自己盯着师傅一号一号放大，贪大有风险。'}</span><button data-act="cabgo" ${K.cabKey === s.id + ':' + V.piece.id ? 'disabled' : ''}>自己盯着取</button></div>` : ''}
           ${plan.warn.map(x => `<p class="say">${esc(x)}</p>`).join('')}
           <div class="row"><span class="dim">预计 ${plan.n} ${C.ROUTES[K.route].unit} · 工费 ${fmt(plan.fee)} · ${plan.days} 天</span><button data-act="work" class="pri" ${plan.ok ? '' : 'disabled'}>送去</button></div></div>`;
         h += `<p class="note">报价只在今天有效。账面开涨不是现金到账。</p></div>`;
@@ -263,7 +264,7 @@ function renderSide() {
     for (const s of W.stones.filter(s => s.closed).reverse()) {
       const r = s.review, net = s.proceeds - s.buyPrice - s.costs;
       h += `<article class="card ${V.mode === 'review' && V.rec === s ? 'sel' : ''}"><div class="row"><b>复盘 #${s.id} ${s.origin} · ${s.info.skin}</b><span class="${net >= 0 ? 'up' : 'down'}">${net >= 0 ? '+' : ''}${fmt(net)}</span></div>
-      <div class="row dim"><span>买入 ${fmt(s.buyPrice)} · 加工 ${fmt(s.costs)} · 回款 ${fmt(s.proceeds)} · 持有 ${s.closeDay - s.buyDay} 天</span></div>
+      <div class="row dim"><span>买入 ${fmt(s.buyPrice)} · 加工 ${fmt(s.costs)} · 回款 ${fmt(s.proceeds)} · 持有 ${s.closeDay - s.buyDay} 天</span></div>${s.share < 1 ? `<div class="row"><span class="say">合伙料：你出一半本钱，结账${s.settle >= 0 ? `分给合伙人 ${fmt(s.settle)}` : `合伙人补给你 ${fmt(-s.settle)}`}，你实际净${(s.proceeds - s.buyPrice - s.costs) >= 0 ? '赚' : '亏'} ${fmt(Math.abs((s.proceeds - s.buyPrice - s.costs) * s.share))}</span></div>` : ''}
       <div class="row dim"><span>买入当天原样转手最高 ${fmt(s.flip)}；途中账面最高 ${fmt(s.best)}</span></div>
       ${r.fake ? `<div class="row"><span class="say">这是一块假料：${r.fake}</span></div>` : ''}
       <div class="row dim"><span>真相：${r.water}，${r.feats.length ? r.hue + '（' + r.feats.join('、') + '）' : '基本无色'}，${r.cracks} 条裂${r.shift ? '，' + r.shift : ''}；全部做成件的零售价值约 ${fmt(r.truth)}</span></div>
@@ -300,7 +301,7 @@ function renderTools() {
   else if (V.tool === 'grind') o += Object.keys(C.TOOLS).map(k => `<button data-act="burr" data-k="${k}" aria-pressed="${V.burr === k}">${k}</button>`).join('');
   else if (V.tool === 'cut' && own) {
     o += `<label for="cutT">片厚 <b id="cutV">${V.cutT}</b> mm</label><input id="cutT" type="range" min="3" max="60" step="1" value="${V.cutT}"><button data-act="cview">从正对我的面切这么厚</button>`;
-    if (V.cut) o += `<button data-act="cut" class="pri">下刀（切工 ${fmt(V.cut.pv.cost)}）</button><button data-act="ccancel">取消</button><span class="dim">两侧约 ${Math.round(V.cut.pv.a)} g / ${Math.round(V.cut.pv.b)} g</span>`;
+    if (V.cut) o += `<select id="betSel" aria-label="和旁边的行家赌这一刀"><option value="">不赌</option><option value="up" ${V.bet === 'up' ? 'selected' : ''}>赌这刀切涨</option><option value="down" ${V.bet === 'down' ? 'selected' : ''}>赌这刀切垮</option></select><button data-act="cut" class="pri">下刀（切工 ${fmt(V.cut.pv.cost)}）</button><button data-act="ccancel">取消</button><span class="dim">两侧约 ${Math.round(V.cut.pv.a)} g / ${Math.round(V.cut.pv.b)} g</span>`;
   }
   if (tray && V.hold != null) o = `<button data-act="back" aria-pressed="${!!V.back}">打背光</button><button data-act="unhold" class="pri">放回托盘</button>`;
   else if (tray) o = `<span class="dim">点一件选中，再点「拿起来看」</span>`;
@@ -367,13 +368,13 @@ document.addEventListener('click', ev => {
   if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) view('market', L, null); }
   else if (a === 'offer' || a === 'take') {
     const L = V.rec, offer = a === 'take' ? L.ask : +($('#offer').value || 0); V.offer = offer;
-    const r = C.negotiate(W, L, offer); V.msg = r.msg;
-    if (r.res === 'deal') { Snd.coin(); const s = C.buy(W, L, r.price); tab = 'mine'; view('own', s, s.pieces[0]); refreshQuote(s, s.pieces[0], true); save(); V.note = `成交 ${fmt(r.price)}。可以直接询价转手，也可以开窗、下刀或送加工。`; renderAll(); return; }
+    const sh = V.partner && L.ask >= 20000 ? 0.5 : 1, r = C.negotiate(W, L, offer, sh); V.msg = r.msg;
+    if (r.res === 'deal') { Snd.coin(); const s = C.buy(W, L, r.price, sh); V.partner = false; tab = 'mine'; view('own', s, s.pieces[0]); refreshQuote(s, s.pieces[0], true); save(); V.note = `成交 ${fmt(r.price)}。可以直接询价转手，也可以开窗、下刀或送加工。`; renderAll(); return; }
     save(); renderSide();
   }
   else if (a === 'piece') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); view('own', s, p); if (!s.last[p.id]) refreshQuote(s, p); renderAll(); }
   else if (a === 'sell') { const s = V.rec, p = V.piece, q = getQuotes(s, p).list.find(o => o.buyer === b.dataset.b); C.sell(W, s, p, q); Snd.coin(); qcache.clear(); save(); afterStoneChange(s); }
-  else if (a === 'work') { const s = V.rec, K = V.wk, r = C.sendWork(W, s, V.piece, K.route, K.master, K.theme); if (!r.ok) { V.note = r.msg; renderTools(); return; } qcache.clear(); save(); afterStoneChange(s); V.note = `已送去，工费 ${fmt(r.fee)}，${r.days} 天后到托盘取成品。`; renderTools(); }
+  else if (a === 'work') { const s = V.rec, K = V.wk, r = C.sendWork(W, s, V.piece, K.route, K.master, K.theme, K.route === 'cab' && K.cabKey === s.id + ':' + V.piece.id ? { cabMult: K.cabMult } : null); if (!r.ok) { V.note = r.msg; renderTools(); return; } qcache.clear(); save(); afterStoneChange(s); V.note = `已送去，工费 ${fmt(r.fee)}，${r.days} 天后到托盘取成品。`; renderTools(); }
   else if (a === 'scene') { C.enterScene(W, b.dataset.k); save(); Snd.tap(); view('market', W.market.find(L => !L.sold) || null, null); }
   else if (a === 'bid') { const L = V.rec, r = C.placeBid(W, L, +($('#offer').value || 0)); V.msg = r.msg; if (r.ok) Snd.coin(); save(); renderTop(); renderSide(); }
   else if (a === 'cab0') openTray(false, false);
@@ -403,6 +404,11 @@ document.addEventListener('click', ev => {
   else if (a === 'tpower') { const T = V.torch; if (T.on && T.p) T.on = false; else if (T.p) T.on = true; Snd.tap(); renderDock(); invalidate(false); }
   else if (a === 'tcolor') { V.torch.yellow = !V.torch.yellow; Snd.tap(); renderDock(); invalidate(false); }
   else if (a === 'tdim') { V.torch.dim = !V.torch.dim; Snd.tap(); renderDock(); invalidate(false); }
+  else if (a === 'partner') { V.partner = !V.partner; renderSide(); }
+  else if (a === 'cabgo') { const s = V.rec, p = V.piece, g = C.cabGame(W, s, p); V.cab_ = { g, k: 0, hurt: false, done: false, key: s.id + ':' + p.id }; renderCab(); $('#cabgame').hidden = false; }
+  else if (a === 'cabup') { const c = V.cab_, i = c.k; if (c.g.rolls[i] < c.g.risks[i]) { c.hurt = true; c.done = true; Snd.lose(); } else { c.k++; Snd.grind(); if (c.k >= c.g.max) c.done = true; } renderCab(); }
+  else if (a === 'cabstop') { V.cab_.done = true; renderCab(); }
+  else if (a === 'cabok') { const c = V.cab_; V.wk.cabMult = c.g.mults[c.k] / c.g.mults[Math.min(c.g.max, 2)] * (c.hurt ? 0.6 : 1); V.wk.cabKey = c.key; V.wk.cabText = `${c.g.sizes[c.k]} mm${c.hurt ? '（磨伤了）' : ''}`; $('#cabgame').hidden = true; renderSide(); }
   else if (a === 'callout') { const r = C.callOut(W, V.rec); V.msg = r.msg; if (r.ok) Snd.win(); else Snd.lose(); save(); renderTop(); renderSide(); }
   else if (a === 'shopup') { const r = C.upgradeShop(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
   else if (a === 'shelf') { const r = C.toShelf(W, W.items.find(x => x.id === +b.dataset.i)); if (!r.ok) { V.note = r.msg; renderTools(); } save(); openTray(false, false); }
@@ -421,9 +427,10 @@ document.addEventListener('click', ev => {
       if (!r.ok) { rv.hidden = true; V.note = r.msg; renderTools(); return; }
       V.cut = null; refreshQuote(s, p, false); refreshQuote(s, r.piece, true); tab = 'mine'; save(); frame(); renderAll();
       const after = bookOf(s).v, d = (after / Math.max(1, before) - 1) * 100, why = (s.last[p.id].why || []).concat(s.last[r.piece.id].why || []).filter(x => !x.startsWith('重量')).slice(0, 3);
+      let betMsg = ''; if (V.bet) { const stake = Math.min(W.cash, Math.max(200, Math.round(before * 0.05 / 10) * 10)), win = (V.bet === 'up' && d >= 3) || (V.bet === 'down' && d <= -3), push = Math.abs(d) < 3; if (!push) { W.cash += win ? stake : -stake; W.log.push({ day: W.day, t: `和行家赌一刀（赌${V.bet === 'up' ? '涨' : '垮'}）`, amt: win ? stake : -stake }); } betMsg = push ? '平开，赌注不算。' : win ? `赌对了，赢了行家 ${fmt(stake)}。` : `赌错了，输给行家 ${fmt(stake)}。`; V.bet = ''; save(); renderTop(); }
       const up = d >= 3, down = d <= -3; if (up) { Snd.win(); C.achieve(W, 'cutup', '第一刀切涨'); } else if (down) Snd.lose(); else Snd.tap();
       rv.className = up ? 'up' : down ? 'down' : 'flat';
-      rv.innerHTML = `<h2>${up ? '切涨了' : down ? '切垮了' : '平开'}</h2><p class="big">${d >= 0 ? '+' : ''}${d.toFixed(0)}%</p><p>账面 ${fmt(before)} → ${fmt(after)}</p>${why.map(x => `<p class="why2">${esc(x)}</p>`).join('')}<button data-act="rvok" class="pri">继续</button>`;
+      rv.innerHTML = `<h2>${up ? '切涨了' : down ? '切垮了' : '平开'}</h2><p class="big">${d >= 0 ? '+' : ''}${d.toFixed(0)}%</p><p>账面 ${fmt(before)} → ${fmt(after)}</p>${why.map(x => `<p class="why2">${esc(x)}</p>`).join('')}${betMsg ? `<p class="say">${betMsg}</p>` : ''}<button data-act="rvok" class="pri">继续</button>`;
       V.note = `切工 ${fmt(r.cost)}。分出的 ${r.piece.name} 在右侧，可单独查看、再切、出售或送去做件。`; renderTools();
     }, 1150);
   }
@@ -441,6 +448,8 @@ document.addEventListener('input', ev => {
   if (ev.target.id === 'gW' || ev.target.id === 'gC' || ev.target.id === 'gK') { const s = V.rec, w = $('#gW').value; s.guess = w === '' ? null : { water: +w, color: $('#gC').value, crack: $('#gK').value }; save(); }
   if (ev.target.id === 'wkRoute' || ev.target.id === 'wkMaster' || ev.target.id === 'wkTheme') { V.wk[{ wkRoute: 'route', wkMaster: 'master', wkTheme: 'theme' }[ev.target.id]] = ev.target.value; renderSide(); }
   if (ev.target.id === 'tTilt' || ev.target.id === 'tAz' || ev.target.id === 'tH') { V.torch.tilt = +$('#tTilt').value; V.torch.az = +$('#tAz').value; V.torch.h = +$('#tH').value; $('#tTiltV').textContent = V.torch.tilt; $('#tHV').textContent = V.torch.h; invalidate(true); }
+  if (ev.target.id === 'tDist') { V.torch.h = +ev.target.value; $('#tDistV').textContent = V.torch.h; invalidate(true); }
+  if (ev.target.id === 'betSel') V.bet = ev.target.value;
   if (ev.target.id === 'sec') { V.section = +ev.target.value; invalidate(true); }
 });
 const ptrs = new Map(); let drag = null, lastCarve = null, strokeCost = 0; const lineEl = $('#cutline');
@@ -459,10 +468,24 @@ function torchTail(ev) { const T = V.torch, r = rayAt(ev.clientX, ev.clientY), b
   const tt = ((T.p[0] - r.ro[0]) * b.f[0] + (T.p[1] - r.ro[1]) * b.f[1] + (T.p[2] - r.ro[2]) * b.f[2]) / den, q = [r.ro[0] + r.rd[0] * tt, r.ro[1] + r.rd[1] * tt, r.ro[2] + r.rd[2] * tt];
   let v = [q[0] - T.p[0], q[1] - T.p[1], q[2] - T.p[2]]; const len = Math.hypot(v[0], v[1], v[2]) || 1; v = v.map(x => x / len); const dn = v[0] * T.n[0] + v[1] * T.n[1] + v[2] * T.n[2];
   if (dn < 0.09) { v = v.map((x, i) => x + T.n[i] * (0.09 - dn)); const l2 = Math.hypot(v[0], v[1], v[2]); v = v.map(x => x / l2); }
-  T.dir = v; T.h = Math.max(0, Math.min(90, len - 44.5)); invalidate(true); }
+  const d0 = T.dir || T.n, along = (q[0] - T.p[0]) * d0[0] + (q[1] - T.p[1]) * d0[1] + (q[2] - T.p[2]) * d0[2]; T.h = Math.max(0, Math.min(90, along - 44.5)); invalidate(true); renderDock(); } // 抓筒尾只沿轴向拉远拉近，转方向用方向盘
+function gyroBasis() { const T = V.torch, n = T.n, b = camBasis(), pr = v => { const d = v[0] * n[0] + v[1] * n[1] + v[2] * n[2]; let o = [v[0] - n[0] * d, v[1] - n[1] * d, v[2] - n[2] * d]; const l = Math.hypot(o[0], o[1], o[2]) || 1; return o.map(x => x / l); }; const tx = pr(b.r); let ty = [n[1] * tx[2] - n[2] * tx[1], n[2] * tx[0] - n[0] * tx[2], n[0] * tx[1] - n[1] * tx[0]]; if (ty[0] * b.up[0] + ty[1] * b.up[1] + ty[2] * b.up[2] < 0) ty = ty.map(x => -x); return { tx, ty }; }
+function gyroSet(px, py) { const T = V.torch; if (!T.p) return; const g = gyroBasis(), r = Math.min(1, Math.hypot(px, py)), tilt = r * 1.45, s = Math.sin(tilt), c = Math.cos(tilt), k = r > 1e-3 ? 1 / Math.hypot(px, py) : 0;
+  T.dir = [0, 1, 2].map(i => T.n[i] * c + (g.tx[i] * px + g.ty[i] * py) * k * s); invalidate(true); renderDock(); }
+function gyroPad(ev) { const r = $('#gyro').getBoundingClientRect(); gyroSet(((ev.clientX - r.left) / r.width - 0.5) * 2, -((ev.clientY - r.top) / r.height - 0.5) * 2); }
 function renderDock() { const d = $('#torchdock'), T = V.torch, show = !!V.e && V.mode !== 'tray'; d.hidden = !show; $('#lightsw').hidden = !show; if (!show) return;
   d.classList.toggle('lit', T.on && !!T.p); $('#tkPower').setAttribute('aria-pressed', T.on && !!T.p); $('#tkColor').setAttribute('aria-pressed', !!T.yellow); $('#tkColor').textContent = T.yellow ? '黄光' : '白光'; $('#tkDim').setAttribute('aria-pressed', !T.dim); $('#tkDim').textContent = T.dim ? '弱光' : '强光'; $('#tkBody').setAttribute('aria-pressed', V.lampBody);
-  $('#tkName').textContent = C.SHOP.torch.levels[W.tools.torch - 1]; $('#tkTip').textContent = T.on && T.p ? '抓灯头挪位置，抓筒尾转角度、拉远' : '按住拖到石头上'; $('#lightsw').setAttribute('aria-pressed', V.room); }
+  $('#tkName').textContent = C.SHOP.torch.levels[W.tools.torch - 1]; $('#tkTip').textContent = T.on && T.p ? '抓灯头挪位置；方向盘转角度；滑杆或抓筒尾拉远' : '按住拖到石头上'; $('#lightsw').setAttribute('aria-pressed', V.room);
+  const placed = T.on && !!T.p; $('#gyrowrap').hidden = !placed; const fl = $('#tfloat'); fl.hidden = !placed || !V.lampBody;
+  if (placed) { const g = gyroBasis(), d = T.dir || T.n, cT = Math.max(-1, Math.min(1, d[0] * T.n[0] + d[1] * T.n[1] + d[2] * T.n[2])), rr = Math.acos(cT) / 1.45, sx = d[0] * g.tx[0] + d[1] * g.tx[1] + d[2] * g.tx[2], sy = d[0] * g.ty[0] + d[1] * g.ty[1] + d[2] * g.ty[2], l = Math.hypot(sx, sy) || 1; $('#gyrodot').style.left = (50 + sx / l * rr * 46) + '%'; $('#gyrodot').style.top = (50 - sy / l * rr * 46) + '%'; $('#tDist').value = T.h || 0; $('#tDistV').textContent = Math.round(T.h || 0);
+    const sr = canvas.getBoundingClientRect(), tp = proj(torchPts().tail); fl.style.left = Math.max(4, Math.min(sr.width - 70, tp[0] - sr.left + 10)) + 'px'; fl.style.top = Math.max(4, Math.min(sr.height - 30, tp[1] - sr.top - 12)) + 'px'; $('#tfP').setAttribute('aria-pressed', true); $('#tfC').textContent = T.yellow ? '黄' : '白'; } }
+function renderCab() { const c = V.cab_, g = c.g, el = $('#cabbody'), nxt = c.k < g.max ? g.risks[c.k] : 0;
+  let h = `<p>师傅把色最浓的那块粘在杆上，先磨了个 ${g.sizes[0]} 毫米的小蛋面。${g.hint}</p><div class="cabrow">${g.sizes.slice(0, g.max + 1).map((s, i) => `<span class="${i === c.k ? 'on' : i < c.k ? 'past' : ''}"><i style="width:${s * 2.2}px;height:${s * 1.8}px"></i>${s} mm<small>×${g.mults[i].toFixed(1)}</small></span>`).join('')}</div>`;
+  if (c.hurt) h += `<p class="say">放大的时候磨出了一道裂。只能退回 ${g.sizes[c.k]} 毫米，品相也打了折扣。</p>`;
+  else if (c.done) h += `<p class="say">定在 ${g.sizes[c.k]} 毫米，干干净净。</p>`;
+  else h += `<p>现在是 ${g.sizes[c.k]} 毫米。再放大一号，价值大约涨到 ${(g.mults[c.k + 1] / g.mults[c.k]).toFixed(1)} 倍；师傅估计有 ${Math.round(nxt * 100)}% 的可能磨出裂或脏。</p>`;
+  h += c.done ? `<button data-act="cabok" class="pri">就按这个做</button>` : `<div class="row"><button data-act="cabup">再放大一号</button><button data-act="cabstop" class="pri">收手，就这么大</button></div>`;
+  el.innerHTML = h; }
 function showLasso(pts) { const el = $('#lasso'), r = canvas.getBoundingClientRect(); el.hidden = !pts; if (pts) el.setAttribute('points', pts.map(p => (p[0] - r.left) + ',' + (p[1] - r.top)).join(' ')); }
 function planSaw(pts) {
   // 凸包，再削到最多六个角
@@ -491,7 +514,11 @@ function doPeel(pts) {
   loaded = null; Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `切皮完成，花费 ${Math.max(1, Math.round(cost))} 元。`; renderAll();
 }
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-$('#torchdock').addEventListener('pointerdown', ev => { if (ev.target.closest('button') || !V.e) return; ev.preventDefault(); canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: 'torch' }; V.torch.h = 0; V.torch.dir = null; });
+$('#gyro').addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); $('#gyro').setPointerCapture(ev.pointerId); gyroPad(ev); });
+$('#gyro').addEventListener('pointermove', ev => { if (ev.buttons || ev.pointerType !== 'mouse') gyroPad(ev); });
+$('#gyro').addEventListener('pointerup', () => invalidate(false));
+$('#gyro').addEventListener('dblclick', () => { gyroSet(0, 0); invalidate(false); });
+$('#torchdock').addEventListener('pointerdown', ev => { if (ev.target.closest('button') || ev.target.closest('#gyrowrap') || !V.e) return; ev.preventDefault(); canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: 'torch' }; V.torch.h = 0; V.torch.dir = null; });
 canvas.addEventListener('pointerdown', ev => {
   if (V.e && V.mode !== 'tray' && V.torch.on && V.torch.p && ev.button !== 2) { const tp = torchPts(), a = proj(tp.tail), b2 = proj(tp.head), dt = Math.hypot(ev.clientX - a[0], ev.clientY - a[1]), dh = Math.hypot(ev.clientX - b2[0], ev.clientY - b2[1]);
     if (dt < 26 || dh < 20) { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: dt <= dh ? 'ttail' : 'torch' }; return; } }
@@ -525,7 +552,7 @@ function endPtr(ev) {
   if (drag.tray && V.hold == null && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 6) { const it = pickTray(ev.clientX, ev.clientY); V.sel = it ? it.id : null; if (it) focusItem(); else { const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); } renderSide(); invalidate(false); }
   if (drag.kind === 'grind') { const s = V.rec, p = V.piece; refreshQuote(s, p, true); V.note = `本次打磨花费 ${Math.max(1, Math.round(strokeCost))} 元。`; save(); renderAll(); }
   if (drag.kind === 'loupe' && ev.pointerType !== 'mouse') { V.lens = null; invalidate(false); }
-  if (drag.kind === 'torch' || drag.kind === 'ttail') { renderDock(); invalidate(false); }
+  if (drag.kind === 'torch' || drag.kind === 'ttail' || drag.kind === 'orbit') { renderDock(); invalidate(false); }
   if (drag.kind === 'lasso') { if (drag.saw) planSaw(drag.pts); else { showLasso(null); doPeel(drag.pts); } }
   if (drag.kind === 'line') {
     showLine(null);
