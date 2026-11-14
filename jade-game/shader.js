@@ -17,7 +17,7 @@ uniform vec4 uTorch; uniform vec3 uTorchDir, uTorchSurf, uRakePos; uniform float
 uniform vec3 uGlare; // 手电接触点的屏幕位置 xy（像素）与可见强度
 uniform float uAmbient; uniform vec4 uLens; uniform int uK; uniform float uHi;
 uniform vec3 uBgA, uBgB, uKeyCol; uniform int uScene;
-uniform float uFloorY, uFloorOn, uFloorR; uniform vec3 uTabCol;
+uniform float uFloorY, uFloorOn, uFloorR, uDecor; uniform vec3 uTabCol;
 out vec4 outC;
 
 float hash(vec3 p){ p=fract(p*0.3183099+vec3(.1,.2,.3)); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
@@ -253,7 +253,14 @@ void main(){
   vec3 p,n; float fl;
   bool hitS=trace(uCamPos,rd,p,n,fl); if(hitS) col=shade(p,n,rd,detail,fl);
   // 台面：石头放在桌上，有接触阴影、主光投影和手电洒出来的光
-  if(!hitS&&uFloorOn>0.5&&rd.y<-0.001&&uCamPos.y>uFloorY){ float tf=(uFloorY-uCamPos.y)/rd.y; vec3 q=uCamPos+rd*tf; float rr=length(q.xz);
+  bool hitD=false; // 摊位上别的石头：只是陪衬，不能操作
+  if(!hitS&&uDecor>0.5&&uFloorOn>0.5){ float tb=1e9; vec3 keyL=normalize(uCamRot*vec3(-0.55,0.62,0.56));
+    for(int i=0;i<6;i++){ float fi=float(i), ang=fi*1.37+0.9+uPhase*0.1, rr=uFloorR*(0.50+0.07*fi), sz=uFloorR*(0.075+0.05*hash(vec3(fi,2.0,uPhase)));
+      vec3 rad=vec3(1.0,0.62,0.8)*sz, cc=vec3(cos(ang)*rr,uFloorY+rad.y*0.92,sin(ang)*rr); vec3 o=(uCamPos-cc)/rad, d=rd/rad; float a=dot(d,d), b=dot(o,d), c2=dot(o,o)-1.0, h=b*b-a*c2;
+      if(h>0.0){ float t=(-b-sqrt(h))/a; if(t>0.0&&t<tb){ tb=t; vec3 q=uCamPos+rd*t; vec3 nn=normalize((q-cc)/(rad*rad)); nn=normalize(nn+0.35*(vec3(vnoise(q*0.5),vnoise(q*0.5+9.0),vnoise(q*0.5+17.0))-0.5));
+          vec3 base=mix(vec3(0.42,0.34,0.24),vec3(0.20,0.22,0.20),hash(vec3(fi,7.0,uPhase)))*(0.7+0.6*fbm(q*0.12+fi*3.0))*(0.8+0.4*vnoise(q*1.6));
+          col=base*(uKeyCol*max(dot(nn,keyL),0.0)*0.95+0.20+uTabCol*max(-nn.y,0.0)*0.5)*uAmbient; hitD=true; } } } }
+  if(!hitS&&!hitD&&uFloorOn>0.5&&rd.y<-0.001&&uCamPos.y>uFloorY){ float tf=(uFloorY-uCamPos.y)/rd.y; vec3 q=uCamPos+rd*tf; float rr=length(q.xz);
     if(rr<uFloorR*1.6){ vec3 keyL=normalize(uCamRot*vec3(-0.55,0.62,0.56)); if(keyL.y<0.25){ keyL.y=0.25; keyL=normalize(keyL); }
       float sh=softShadow(q+vec3(0.0,0.6,0.0),keyL); float near=mapD(q+vec3(0.0,2.5,0.0)); float ao=clamp(near/14.0,0.0,1.0); ao=0.35+0.65*ao*ao;
       float weave=0.82+0.18*vnoise(vec3(q.xz*2.6,3.0))+0.10*(vnoise(vec3(q.xz*0.06,7.0))-0.5)+0.05*sin(q.x*3.1)*sin(q.z*3.1);

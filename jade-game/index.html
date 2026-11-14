@@ -50,6 +50,14 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .why { margin: 2px 0 0; flex-basis: 100%; color: var(--fg); font-size: 12.5px; }
 #overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 #cutline { stroke: #ff9a3c; stroke-width: 2; stroke-dasharray: 6 4; }
+#npc { position: absolute; left: 0; right: 0; top: 44px; z-index: 1; pointer-events: none; display: flex; justify-content: center; gap: 28px; align-items: flex-start; }
+#npc .seller { position: absolute; right: 62px; top: -6px; display: flex; flex-direction: column; align-items: flex-end; filter: drop-shadow(0 4px 8px #000a); } #npc .seller b { font-size: 11.5px; font-weight: 500; color: #c9bfb0; text-shadow: 0 1px 3px #000; margin-top: -8px; }
+#npc .bubble { pointer-events: auto; max-width: 230px; background: #f3ecdd; color: #2a2018; border: 0; border-radius: 12px; padding: 6px 11px; font-size: 13px; line-height: 1.4; text-align: left; position: relative; margin-bottom: 6px; box-shadow: 0 2px 8px #0008; }
+#npc .bubble::after { content: ""; position: absolute; left: auto; right: 34px; bottom: -7px; margin-left: -7px; border: 7px solid transparent; border-top-color: #f3ecdd; border-bottom: 0; }
+#npc .bubble:hover { background: #fff8e8; border: 0; }
+#npc .rivals { display: flex; gap: 6px; position: absolute; left: 14px; top: 26px; } #npc .rivals span { display: flex; flex-direction: column; align-items: center; } #npc .rivals i { font-style: normal; font-size: 10.5px; color: #b9b0a2; text-shadow: 0 1px 3px #000; }
+.ava { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; align-items: center; justify-content: center; font-size: 11px; color: #fff; margin-right: 5px; vertical-align: middle; }
+@media (max-width: 760px) { #npc .seller svg { width: 60px; height: 65px; } #npc .bubble { max-width: 170px; font-size: 12px; } #npc .rivals { display: none; } }
 #sawbox { right: 14px; top: 116px; } #sawbox input { accent-color: var(--lamp); width: 100%; }
 #sawbox { position: absolute; z-index: 4; width: 220px; background: #1a1714ee; border: 1px solid var(--lamp); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; box-shadow: 0 4px 14px #000a; }
 .rawimg { width: 72px; height: 72px; border-radius: 3px; flex: none; }
@@ -140,6 +148,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <svg id="overlay" aria-hidden="true"><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
       <div id="reveal" hidden></div>
       <div id="sawbox" hidden></div>
+      <div id="npc" hidden></div>
       <button id="lightsw" data-act="room" aria-label="室内灯开关" title="室内灯"><span></span></button>
       <div id="tfloat" hidden><button id="tfP" data-act="tpower" title="关手电">关</button><button id="tfC" data-act="tcolor" title="白光/黄光">白</button></div>
       <div id="torchdock" title="手电">
@@ -184,7 +193,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <h3>一局的顺序</h3>
     <ol>
       <li><b>挑场子</b>：右侧「货源」顶上选场景。刚开始只有夜市地摊。</li>
-      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了；抓灯头挪位置；抓筒尾直接转方向，或用旁边的<b>方向盘</b>精确调（双击回正）；抓筒身中段或用滑杆拉远拉近。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角是<b>室内灯开关</b>（可以拖到顺手的位置），关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
+      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了；手电亮着时，<b>点一下石头</b>灯就挪到那里；抓筒尾拖动来倾斜（往下拖向自己倒，往上拖向对面倒，左右拖左右倒），也可以用旁边的<b>方向盘</b>精确调（双击回正）；抓筒身中段或用滑杆拉远拉近。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角是<b>室内灯开关</b>（可以拖到顺手的位置），关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
       <li><b>读标签</b>：每块料标了它赌的是种水、色、裂还是镯位，选中后有一句提示。</li>
       <li><b>出价</b>：还价或照价买。看不准就不买。公盘里是投暗标。</li>
       <li><b>写判断本</b>：买下后先写你认为的种水、色、裂，之后对答案涨眼力。</li>
