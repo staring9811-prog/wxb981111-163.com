@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const C = window.Core, $ = s => document.querySelector(s), fmt = C.fmt;
-const SAVE_KEY = 'jade-bargain-web-v7';
+const SAVE_KEY = 'jade-bargain-web-v8';
 const canvas = $('#gl'), gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
 if (!gl) { $('#hint').textContent = '这台设备的浏览器不支持 WebGL2，无法显示三维原石。'; return; }
 
@@ -47,7 +47,7 @@ const Q = { scale: 1, fast: 0.45, K: 16, tuned: false, user: 1 };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
 
 function save() { try { localStorage.setItem(SAVE_KEY, C.serialize(W)); } catch (e) { /* 存不了也能继续玩 */ } }
-function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 7) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
+function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 8) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
 
 /* ---------- 相机与渲染 ---------- */
 function camBasis() {
@@ -189,7 +189,7 @@ function renderTop() {
 function betHtml(bet, full) { return `<span class="tag b">${bet.main}</span>${bet.tags.map(t => `<span class="tag">${t}</span>`).join('')}${full ? `<p class="why">${esc(bet.why)}</p>` : ''}`; }
 function renderSide() {
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
-  const el = $('#panel'); let h = '';
+  const el = $('#panel'); let h = goalCard();
   if (tab === 'market') {
     h += `<div class="scenes">${Object.keys(C.SCENES).map(k => { const S = C.SCENES[k], ok = C.sceneOpen(W, k); return `<button data-act="scene" data-k="${k}" aria-pressed="${W.scene === k}" ${ok ? '' : 'disabled'}>${k}${ok ? '' : `<small>眼力 ${S.eye}</small>`}</button>`; }).join('')}</div><p class="note">${C.SCENES[W.scene].tip}</p>${W.event ? `<p class="say">今日行情：${esc(W.event.t)}</p>` : ''}`;
     W.market.forEach((L, i) => {
@@ -278,7 +278,8 @@ function renderSide() {
     }
     { const S = C.SHOPLV[W.shop], nx = C.SHOPLV[W.shop + 1]; h += `<article class="card"><div class="row"><b>铺面：${S.name}</b><span class="dim">口碑 ${Math.round(W.fame)}</span></div>${W.shop ? `<div class="row dim"><span>日租 ${S.rent} · 柜位 ${C.shelfCount(W)}/${S.slots} · 零售价 ×${S.mult}</span></div>` : ''}${nx ? `<div class="row"><span class="dim">${nx.tip} 日租 ${nx.rent}。</span><button data-act="shopup">盘下${nx.name} ${fmt(nx.cost)}</button></div>` : ''}<div class="row dim"><span>熟客：${Object.keys(C.BUYERS).map(k => `${k} ${C.relWord(C.relOf(W, k))}`).join('，')}</span></div></article>`; }
     h += `<article class="card"><b>工具铺</b>${Object.keys(C.SHOP).map(k => { const S = C.SHOP[k], lv = W.tools[k], mx = lv >= S.levels.length; return `<div class="row"><span><b>${S.levels[lv - 1]}</b> <span class="dim">${S.tip}</span></span>${mx ? '<span class="dim">已是最好的</span>' : `<button data-act="tool" data-k="${k}">换${S.levels[lv]} ${fmt(S.price[lv - 1])}</button>`}</div>`; }).join('')}</article>`;
-    const ach = Object.values(W.ach); h += `<article class="card"><div class="row"><b>${C.rankOf(W)}</b><span>眼力 ${W.eye}</span></div><div class="row dim"><span>${C.RANKS.map(r => `${r[1]} ${r[0]}`).join(' → ')}</span></div>${ach.length ? ach.map(a => `<div class="row"><span class="say">★ ${esc(a.name)}</span><span class="dim">第 ${a.day} 天</span></div>`).join('') : '<div class="row dim"><span>还没有成就</span></div>'}</article>`;
+    if (!W.flags.debt) h += `<article class="card"><div class="row"><b>父亲留下的欠条</b><span>${fmt(C.DEBT)}</span></div><div class="row"><span class="dim">还清它是第三章的目标之一。还的时候要留够周转的钱。</span><button data-act="debt">还清</button></div></article>`;
+    h += `<article class="card"><div class="row"><b>${C.rankOf(W)}</b><span>眼力 ${W.eye} · 身家 ${fmt(C.netWorth(W))}</span></div><div class="row dim"><span>${C.RANKS.map(r => `${r[1]} ${r[0]}`).join(' → ')}</span></div><div class="achs">${C.ACH_ALL.map(a => { const g = W.ach[a[0]]; return `<span class="${g ? 'got' : ''}" title="${g ? '第 ' + g.day + ' 天达成' : '未达成'}">${g ? '★' : '☆'} ${a[1]}</span>`; }).join('')}</div><div class="row dim"><span>已达成 ${C.ACH_ALL.filter(a => W.ach[a[0]]).length} / ${C.ACH_ALL.length}</span></div></article>`;
     h += `<article class="card"><b>流水</b>${W.log.slice(-40).reverse().map(l => `<div class="row dim"><span>第 ${l.day} 天 ${esc(l.t)}</span><span>${l.amt ? (l.amt > 0 ? '+' : '') + fmt(l.amt) : ''}</span></div>`).join('')}</article>`;
   }
   el.innerHTML = h;
@@ -319,6 +320,42 @@ function renderTools() {
   $('#hint').textContent = V.note || t;
   $('#title').textContent = tray ? (V.ref ? '种水与颜色对照盘' : '成品托盘') : V.rec ? (V.mode === 'market' ? `${V.rec.origin} · ${V.rec.info.skin}` : `#${V.rec.id} ${V.rec.origin} · ${V.rec.info.skin}${V.mode === 'own' && V.piece ? ' · ' + V.piece.name : ''}${V.mode === 'review' ? ' · 复盘' : ''}`) : '';
 }
+/* ---------- 激活码 ---------- */
+function sha256(ascii) { const rr = (v, a) => (v >>> a) | (v << (32 - a)), mp = Math.pow, mw = mp(2, 32); let res = ''; const words = [], bl = ascii.length * 8; const hash = sha256.h = sha256.h || [], k = sha256.k = sha256.k || []; let pc = k.length; const comp = {};
+  for (let c = 2; pc < 64; c++) if (!comp[c]) { for (let i = 0; i < 313; i += c) comp[i] = c; hash[pc] = (mp(c, .5) * mw) | 0; k[pc++] = (mp(c, 1 / 3) * mw) | 0; }
+  ascii += '\x80'; while (ascii.length % 64 - 56) ascii += '\x00';
+  for (let i = 0; i < ascii.length; i++) { const j = ascii.charCodeAt(i); if (j >> 8) return ''; words[i >> 2] |= j << ((3 - i) % 4) * 8; }
+  words[words.length] = ((bl / mw) | 0); words[words.length] = bl; let H = hash.slice(0, 8);
+  for (let j = 0; j < words.length;) { const w = words.slice(j, j += 16), old = H; H = H.slice(0, 8);
+    for (let i = 0; i < 64; i++) { const w15 = w[i - 15], w2 = w[i - 2], a = H[0], e = H[4];
+      const t1 = H[7] + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25)) + ((e & H[5]) ^ ((~e) & H[6])) + k[i] + (w[i] = (i < 16) ? w[i] : (w[i - 16] + (rr(w15, 7) ^ rr(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (rr(w2, 17) ^ rr(w2, 19) ^ (w2 >>> 10))) | 0);
+      const t2 = (rr(a, 2) ^ rr(a, 13) ^ rr(a, 22)) + ((a & H[1]) ^ (a & H[2]) ^ (H[1] & H[2])); H = [(t1 + t2) | 0].concat(H); H[4] = (H[4] + t1) | 0; }
+    for (let i = 0; i < 8; i++) H[i] = (H[i] + old[i]) | 0; }
+  for (let i = 0; i < 8; i++) for (let j = 3; j + 1; j--) { const b = (H[i] >> (j * 8)) & 255; res += ((b < 16) ? 0 : '') + b.toString(16); }
+  return res; }
+const CFG = window.JADE_CONFIG || { license: false, trialDays: 3, buyText: '' };
+function codeOk(c) { c = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return c.length === 16 && (window.JADE_LICENSES || []).indexOf(sha256('jade:' + c)) >= 0; }
+function licensed() { if (!CFG.license) return true; try { return codeOk(localStorage.getItem('jade-license')); } catch (e) { return false; } }
+/* ---------- 新手教学：牛叔带着看第一块石头 ---------- */
+const COACH = [
+  ['牛叔：先别急着买。按住石头拖一拖，四面都转着看一遍。', () => W.flags.orbit],
+  ['牛叔：左下角那支手电，按住它拖到石头上。', () => W.flags.torch],
+  ['牛叔：把右上角的室内灯关了，看光透出来多大一片。再点石头别的位置比一比。', () => W.flags.dark],
+  ['牛叔：看右边这块料的标签和老板说的话。觉得行就还个价买下来；不行就点别的料。', () => W.stones.length > 0],
+  ['牛叔：买下了。先在右边的「判断本」里写下你觉得的种水、色、裂，以后对答案。', () => W.flags.guess],
+  ['牛叔：选底下的「画圈开皮」，在石头上圈一小块，看看皮下面是什么。', () => W.flags.open],
+  ['牛叔：右边报价变了，还写了原因。可以卖给出价最高的，也可以接着切。卖出一件货，我就不啰嗦了。', () => W.stat.sold > 0],
+];
+function coachUpdate() { const el = $('#coach'); if (!W || W.flags.tut || V.mode === 'tray' || !$('#start').hidden) { el.hidden = true; return; }
+  let i = 0; while (i < COACH.length && COACH[i][1]()) i++;
+  if (i >= COACH.length) { W.flags.tut = true; el.hidden = true; save(); V.note = '牛叔：行了，剩下的自己摸。右上角「教程」里有图鉴，忘了就翻。'; renderAll(); return; }
+  el.hidden = false; el.innerHTML = `<span>${esc(COACH[i][0])}</span><small>${i + 1} / ${COACH.length}</small><button data-act="skiptut">跳过教学</button>`; }
+function flag(k) { if (W && !W.flags[k]) { W.flags[k] = true; coachUpdate(); storyCheck(); } }
+function storyCheck() { const ch = C.checkStory(W); if (!ch) return; save(); Snd.win(); const nx = C.CHAPTERS[W.chapter];
+  $('#storybody').innerHTML = `<h2>${ch.title} · 完成</h2><p>${esc(ch.done)}</p><p class="say">眼力 +${ch.reward.eye}${ch.reward.cash ? `，奖励 ${fmt(ch.reward.cash)}` : ''}</p>${nx ? `<h3>${nx.title}</h3><p>${esc(nx.story)}</p><ul>${nx.goals.map(g => `<li>${g[1]}</li>`).join('')}</ul>` : '<p>主线完成。生意可以一直做下去。</p>'}<button data-act="storyok" class="pri">继续</button>`;
+  $('#story').hidden = false; renderTop(); renderSide(); }
+function goalCard() { const ch = C.CHAPTERS[W.chapter]; if (!ch) return `<article class="card goal"><div class="row"><b>主线完成</b><span class="dim">一代货主</span></div></article>`;
+  return `<article class="card goal"><div class="row"><b>${ch.title}</b><button data-act="storyshow">剧情</button></div>${ch.goals.map(g => { const d = C.goalDone(W, g[0]); return `<div class="row ${d ? 'done' : ''}"><span>${d ? '✔' : '○'} ${g[1]}</span></div>`; }).join('')}</article>`; }
 /* 场景里的人：摊主、公盘上竞标的人。只是剪影和对话气泡 */
 const NPC_LOOK = { '小商贩': ['#6b4a2a', 'hat'], '个人转让': ['#4a5560', 'cap'], '二级供应商': ['#3f4a3a', 'glass'], '大型集散地': ['#51463a', 'glass'], '拍卖市场': ['#2f3440', 'suit'], '场口直采': ['#5a4a32', 'hat'] };
 function npcSvg(col, acc, s) { return `<svg viewBox="0 0 120 130" width="${s}" height="${s * 1.08}" aria-hidden="true"><ellipse cx="60" cy="128" rx="58" ry="46" fill="${col}"/><rect x="50" y="62" width="20" height="20" fill="#b98f6a"/><circle cx="60" cy="46" r="24" fill="#c79f78"/><circle cx="51" cy="44" r="2.4" fill="#2a2018"/><circle cx="69" cy="44" r="2.4" fill="#2a2018"/><path d="M51 56 Q60 62 69 56" stroke="#2a2018" stroke-width="2" fill="none"/>${acc === 'hat' ? '<ellipse cx="60" cy="27" rx="38" ry="8" fill="#b89a5a"/><path d="M38 27 Q60 -6 82 27Z" fill="#c9ab68"/>' : acc === 'cap' ? '<path d="M36 36 Q60 8 84 36Z" fill="#2c3a4a"/><rect x="72" y="32" width="22" height="5" rx="2" fill="#2c3a4a"/>' : acc === 'glass' ? '<path d="M37 34 Q60 14 83 34 L83 28 Q60 6 37 28Z" fill="#2a2018"/><circle cx="51" cy="44" r="7" fill="none" stroke="#2a2018" stroke-width="2"/><circle cx="69" cy="44" r="7" fill="none" stroke="#2a2018" stroke-width="2"/><path d="M58 44h4" stroke="#2a2018" stroke-width="2"/>' : '<path d="M37 34 Q60 14 83 34 L83 28 Q60 6 37 28Z" fill="#1c1c1c"/><path d="M52 82 L60 96 L68 82Z" fill="#e8e2d6"/><path d="M58 84h4l2 22h-8z" fill="#7a2a2a"/>'}</svg>`; }
@@ -329,7 +366,7 @@ function renderNpc() { const el = $('#npc'); if (!el) return; const L = V.rec; i
   if (L.auction) h += `<div class="rivals">${[0, 1, 2].map(i => `<span style="opacity:${0.5 + 0.15 * i}">${npcSvg(['#3a3f4c', '#4c3a3a', '#3a4c44'][i], ['suit', 'glass', 'cap'][i], 46)}<i>${['也在看这块', '写了标书', '摇摇头走了'][(L.seed + i) % 3]}</i></span>`).join('')}</div>`;
   h += `<div class="seller"><button class="bubble" data-act="npcnext" title="再听听老板怎么说">${esc(say)}</button>${npcSvg(lk[0], lk[1], 92)}<b>${L.auction ? '公盘主持' : L.channel === '个人转让' ? '卖家' : '老板'} · ${L.channel}</b></div>`;
   el.innerHTML = h; }
-function renderAll() { renderTop(); renderSide(); renderTools(); renderDock(); renderNpc(); invalidate(false); $('#over').hidden = !W.over; }
+function renderAll() { storyCheck(); coachUpdate(); renderTop(); renderSide(); renderTools(); renderDock(); renderNpc(); invalidate(false); $('#over').hidden = !W.over; }
 function refreshQuote(s, p, record) {
   const prev = s.last[p.id]; qcache.clear();
   const q = getQuotes(s, p); s.last[p.id] = { best: q.best, stats: q.stats, prev: prev ? prev.best : null, why: prev ? C.explain(prev.stats, q.stats) : [] };
@@ -432,6 +469,7 @@ document.addEventListener('click', ev => {
   if (b.dataset.tab) { if (b.dataset.tab === 'tray') { openTray(false); return; } if (V.mode === 'tray') { tab = b.dataset.tab; view(null, null, null); return; } tab = b.dataset.tab; renderSide(); return; }
   if (b.dataset.tool) { V.tool = b.dataset.tool; V.lens = null; V.cut = null; V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); invalidate(false); return; }
   const a = b.dataset.act;
+  if (a !== 'menu') $('#hmenu').classList.remove('open');
   if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) view('market', L, null); }
   else if (a === 'offer' || a === 'take') {
     const L = V.rec, offer = a === 'take' ? L.ask : +($('#offer').value || 0); V.offer = offer;
@@ -482,6 +520,18 @@ document.addEventListener('click', ev => {
   else if (a === 'cabup') { const c = V.cab_, i = c.k; if (c.g.rolls[i] < c.g.risks[i]) { c.hurt = true; c.done = true; Snd.lose(); } else { c.k++; Snd.grind(); if (c.k >= c.g.max) c.done = true; } renderCab(); }
   else if (a === 'cabstop') { V.cab_.done = true; renderCab(); }
   else if (a === 'cabok') { const c = V.cab_; V.wk.cabMult = c.g.mults[c.k] / c.g.mults[Math.min(c.g.max, 2)] * (c.hurt ? 0.6 : 1); V.wk.cabKey = c.key; V.wk.cabText = `${c.g.sizes[c.k]} mm${c.hurt ? '（磨伤了）' : ''}`; $('#cabgame').hidden = true; renderSide(); }
+  else if (a === 'menu') { $('#hmenu').classList.toggle('open'); }
+  else if (a === 'skiptut') { W.flags.tut = true; save(); renderAll(); }
+  else if (a === 'storyok') { $('#story').hidden = true; }
+  else if (a === 'storyshow') { const ch = C.CHAPTERS[W.chapter]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${C.goalDone(W, g[0]) ? '✔ ' : ''}${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">知道了</button>`; $('#story').hidden = false; }
+  else if (a === 'debt') { const r = C.payDebt(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
+  else if (a === 'startgo') { $('#start').hidden = true; Snd.tap(); renderAll(); }
+  else if (a === 'startnew') { C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; $('#start').hidden = true; view('market', W.market.find(L => !L.sold && !L.fake) || W.market[0], null); const ch = C.CHAPTERS[0]; $('#storybody').innerHTML = `<h2>${ch.title}</h2><p>${esc(ch.story)}</p><ul>${ch.goals.map(g => `<li>${g[1]}</li>`).join('')}</ul><button data-act="storyok" class="pri">进夜市</button>`; $('#story').hidden = false; }
+  else if (a === 'starthelp') { $('#start').hidden = true; $('#help').hidden = false; showPane('play'); renderAll(); }
+  else if (a === 'home') { showStart(); }
+  else if (a === 'codego') { const c = $('#codeIn').value; if (codeOk(c)) { try { localStorage.setItem('jade-license', c); } catch (e) { } $('#paywall').hidden = true; Snd.win(); V.note = '激活成功，谢谢支持。'; showStart(); } else { $('#codeMsg').textContent = '这个激活码不对。检查一下有没有输错，字母不分大小写。'; } }
+  else if (a === 'codeopen') { $('#codeMsg').textContent = ''; $('#paywall').hidden = false; }
+  else if (a === 'codeclose') { $('#paywall').hidden = true; }
   else if (a === 'npcnext') { V.npcI = (V.npcI || 0) + 1; V.msg = ''; Snd.tap(); renderNpc(); }
   else if (a === 'callout') { const r = C.callOut(W, V.rec); V.msg = r.msg; if (r.ok) Snd.win(); else Snd.lose(); save(); renderTop(); renderSide(); renderNpc(); }
   else if (a === 'shopup') { const r = C.upgradeShop(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
@@ -489,7 +539,7 @@ document.addEventListener('click', ev => {
   else if (a === 'unshelf') { W.items.find(x => x.id === +b.dataset.i).state = 'ready'; save(); openTray(false, 'shelf'); }
   else if (a === 'cab2') openTray(false, 'shelf');
   else if (a === 'toff') { V.torch.on = false; renderTools(); invalidate(false); }
-  else if (a === 'room') { if (b.dataset.moved) { delete b.dataset.moved; return; } V.room = !V.room; Snd.tap(); renderTools(); renderDock(); invalidate(false); }
+  else if (a === 'room') { if (b.dataset.moved) { delete b.dataset.moved; return; } V.room = !V.room; if (!V.room && V.torch.on) flag('dark'); Snd.tap(); renderTools(); renderDock(); invalidate(false); }
   else if (a === 'burr') { V.burr = b.dataset.k; renderTools(); }
   else if (a === 'cview') { cutFromView(); V.cut.fromView = true; renderTools(); invalidate(false); }
   else if (a === 'ccancel') { V.cut = null; renderTools(); invalidate(false); }
@@ -509,7 +559,7 @@ document.addEventListener('click', ev => {
     }, 1150);
   }
   else if (a === 'rvok') { $('#reveal').hidden = true; }
-  else if (a === 'next') { const n = C.nextDay(W); qcache.clear(); for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold && C.volCache.get(s.seed)) refreshQuote(s, p, true); save(); const fresh = W.items.some(i => i.state === 'ready'); tab = 'market'; view(null, null, null); V.note = `第 ${W.day} 天。${n.join('，')}。货源已更新，昨天的报价作废。`; renderTools(); if (fresh && n.some(x => x.includes('做好了'))) { openTray(false); V.note = n.filter(x => x.includes('做好了')).join('；'); renderTools(); } }
+  else if (a === 'next') { if (!licensed() && W.day >= CFG.trialDays) { $('#codeMsg').textContent = `试玩到第 ${CFG.trialDays} 天为止。输入激活码后可以接着这个存档一直玩下去。`; $('#paywall').hidden = false; return; } const n = C.nextDay(W); qcache.clear(); for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold && C.volCache.get(s.seed)) refreshQuote(s, p, true); save(); const fresh = W.items.some(i => i.state === 'ready'); tab = 'market'; view(null, null, null); V.note = `第 ${W.day} 天。${n.join('，')}。货源已更新，昨天的报价作废。`; renderTools(); if (fresh && n.some(x => x.includes('做好了'))) { openTray(false); V.note = n.filter(x => x.includes('做好了')).join('；'); renderTools(); } }
   else if (a === 'restart') { $('#confirm').hidden = false; }
   else if (a === 'no') { $('#confirm').hidden = true; }
   else if (a === 'yes') { $('#confirm').hidden = true; C.volCache.clear(); thumbs.clear(); qcache.clear(); loaded = null; W = C.newWorld((Date.now() ^ (Math.random() * 1e9)) >>> 0); save(); tab = 'market'; view(null, null, null); }
@@ -519,7 +569,7 @@ document.addEventListener('click', ev => {
 });
 document.addEventListener('input', ev => {
   if (ev.target.id === 'cutT') { V.cutT = +ev.target.value; $('#cutV').textContent = V.cutT; if (V.cut && V.cut.fromView) { V.cut.d = V.cut.base - V.cutT; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d); renderTools(); } invalidate(true); }
-  if (ev.target.id === 'gW' || ev.target.id === 'gC' || ev.target.id === 'gK') { const s = V.rec, w = $('#gW').value; s.guess = w === '' ? null : { water: +w, color: $('#gC').value, crack: $('#gK').value }; save(); }
+  if (ev.target.id === 'gW' || ev.target.id === 'gC' || ev.target.id === 'gK') { const s = V.rec, w = $('#gW').value; s.guess = w === '' ? null : { water: +w, color: $('#gC').value, crack: $('#gK').value }; save(); if (s.guess) flag('guess'); }
   if (ev.target.id === 'wkRoute' || ev.target.id === 'wkMaster' || ev.target.id === 'wkTheme') { V.wk[{ wkRoute: 'route', wkMaster: 'master', wkTheme: 'theme' }[ev.target.id]] = ev.target.value; renderSide(); }
   if (ev.target.id === 'tTilt' || ev.target.id === 'tAz' || ev.target.id === 'tH') { V.torch.tilt = +$('#tTilt').value; V.torch.az = +$('#tAz').value; V.torch.h = +$('#tH').value; $('#tTiltV').textContent = V.torch.tilt; $('#tHV').textContent = V.torch.h; invalidate(true); }
   if (ev.target.id === 'sawD' && V.sawPlan) { V.sawPlan.depth = +ev.target.value; sawRebuild(); const el = $('#sawD'); if (el) el.focus(); }
@@ -528,7 +578,7 @@ document.addEventListener('input', ev => {
   if (ev.target.id === 'sec') { V.section = +ev.target.value; invalidate(true); }
 });
 const ptrs = new Map(); let drag = null, lastCarve = null, strokeCost = 0; const lineEl = $('#cutline');
-function torchAt(ev) { const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, curPiece(), r.ro, r.rd, V.mode === 'review'); if (h) { const T = V.torch; T.on = true; T.p = h.p; T.n = h.n; if (!T.dir || T.dir[0] * h.n[0] + T.dir[1] * h.n[1] + T.dir[2] * h.n[2] < 0.15) { T.dir = h.n; } } return h; }
+function torchAt(ev) { const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, curPiece(), r.ro, r.rd, V.mode === 'review'); if (h) { flag('torch'); const T = V.torch; T.on = true; T.p = h.p; T.n = h.n; if (!T.dir || T.dir[0] * h.n[0] + T.dir[1] * h.n[1] + T.dir[2] * h.n[2] < 0.15) { T.dir = h.n; } } return h; }
 function carveAt(ev) {
   const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, V.piece, r.ro, r.rd); if (!h) return;
   if (lastCarve && Math.hypot(h.p[0] - lastCarve[0], h.p[1] - lastCarve[1], h.p[2] - lastCarve[2]) < 1.2) return;
@@ -611,7 +661,7 @@ function doPeel(pts) {
   for (let y = y0; y <= y1; y += step) for (let x = x0; x <= x1; x += step) if (inside(x, y)) { const r = rayAt(x, y), h = C.pick(V.e.vol, V.piece, r.ro, r.rd); if (h && !h.flat) hits.push(h); }
   let cost = 0, n = 0; for (const h of hits) { const res = C.peelAt(W, V.rec, V.piece, h.p, h.n); if (res) { cost += res.cost; n++; } }
   if (!n) { V.note = '圈里没有可切的皮。'; renderTools(); return; }
-  loaded = null; Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `切皮完成，花费 ${Math.max(1, Math.round(cost))} 元。`; renderAll();
+  flag('open'); loaded = null; Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `切皮完成，花费 ${Math.max(1, Math.round(cost))} 元。`; renderAll();
 }
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 { const sw = $('#lightsw'); let mv = null; try { const s = JSON.parse(localStorage.getItem('jade-lightsw') || 'null'); if (s) { sw.style.left = s[0] + 'px'; sw.style.top = s[1] + 'px'; sw.style.right = 'auto'; } } catch (e) { }
@@ -655,7 +705,8 @@ canvas.addEventListener('pointermove', ev => {
 function endPtr(ev) {
   ptrs.delete(ev.pointerId); if (!drag) return;
   if (drag.tray && V.hold == null && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 6) { const it = pickTray(ev.clientX, ev.clientY); V.sel = it ? it.id : null; if (it) focusItem(); else { const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); } renderSide(); invalidate(false); }
-  if (drag.kind === 'grind') { const s = V.rec, p = V.piece; refreshQuote(s, p, true); V.note = `本次打磨花费 ${Math.max(1, Math.round(strokeCost))} 元。`; save(); renderAll(); }
+  if (drag.kind === 'orbit' && Math.hypot(ev.clientX - (drag.x0 || ev.clientX), ev.clientY - (drag.y0 || ev.clientY)) > 30) flag('orbit');
+  if (drag.kind === 'grind') { flag('open'); const s = V.rec, p = V.piece; refreshQuote(s, p, true); V.note = `本次打磨花费 ${Math.max(1, Math.round(strokeCost))} 元。`; save(); renderAll(); }
   if (drag.kind === 'loupe' && ev.pointerType !== 'mouse') { V.lens = null; invalidate(false); }
   if (drag.kind === 'orbit' && drag.click && V.torch.on && V.torch.p && V.e && V.mode !== 'tray' && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 5) { torchAt(ev); Snd.tap(); } // 手电亮着时，点一下石头就把灯挪过去
   if (drag.kind === 'torch' || drag.kind === 'ttail' || drag.kind === 'tmid' || drag.kind === 'orbit') { renderDock(); invalidate(false); }
@@ -684,5 +735,7 @@ window.JadeDebug = { torchScreen: () => { const t = torchPts(); return { tail: p
 if (!W.market || !W.market.length) C.enterScene(W, W.scene || '夜市地摊');
 fillManual();
 view('market', W.market.find(L => !L.sold) || null, null);
-if (!hadSave) { $('#help').hidden = false; showPane('play'); }
+function showStart() { const st = $('#start'); st.hidden = false; $('#stCont').hidden = !hadSaveNow(); $('#stInfo').textContent = hadSaveNow() ? `存档：第 ${W.day} 天 · ${C.rankOf(W)} · 现金 ${fmt(W.cash)} · ${(C.CHAPTERS[W.chapter] || { title: '主线完成' }).title}` : '还没有存档'; $('#stLic').textContent = !CFG.license ? '' : licensed() ? '已激活' : `试玩版：可以玩到第 ${CFG.trialDays} 天`; $('#stCode').hidden = !CFG.license || licensed(); $('#buyText').textContent = CFG.buyText || ''; coachUpdate(); }
+function hadSaveNow() { return !!load() && (W.day > 1 || W.stones.length > 0 || W.flags.tut); }
+showStart();
 })();

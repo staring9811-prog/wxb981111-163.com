@@ -11,7 +11,7 @@ body = re.sub(r'<title>.*?</title>\s*', '', body, count=1)
 loader = r'''
 <script>
 (function () {
-  var LOCAL = __VER__, FILES = ['core.js', 'shader.js', 'ui.js'];
+  var LOCAL = __VER__, FILES = ['config.js', 'licenses.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }
@@ -59,3 +59,32 @@ html, body {{ margin: 0; height: 100%; }}
 '''
 (here / 'play.html').write_text(html, encoding='utf-8')
 print('play.html built, version', ver['version'])
+
+# 对外售卖的发布包：python3 build.py --dist  →  dist/ 整个文件夹传到任何静态网站主机即可。
+# 不带联网更新（更新就是重新上传），打开激活码校验。
+import sys, shutil
+if '--dist' in sys.argv:
+    dist = here / 'dist'; shutil.rmtree(dist, ignore_errors=True); dist.mkdir()
+    page = (here / 'index.html').read_text(encoding='utf-8')
+    page = re.sub(r'<title>.*?</title>\s*', '', page, count=1)
+    page = re.sub(r'<script src="([^"]+)"></script>', lambda m: f'<script src="{m.group(1)}?v={ver["version"]}"></script>', page)
+    (dist / 'index.html').write_text(f'''<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0c0a">
+<title>翡翠博弈</title>
+<style>html, body {{ margin: 0; height: 100%; }}</style>
+</head>
+<body>
+{page}
+</body>
+</html>
+''', encoding='utf-8')
+    for f in ['core.js', 'shader.js', 'ui.js', 'licenses.js']: shutil.copy(here / f, dist / f)
+    cfg = (here / 'config.js').read_text(encoding='utf-8').replace('license: false', 'license: true')
+    (dist / 'config.js').write_text(cfg, encoding='utf-8')
+    print('dist/ built with license check ON')
+

@@ -546,6 +546,39 @@ const EVENTS = [
 ];
 function rollEvent(w) { const r = new Rng(seedOf(w.seed, 'event', w.day)); w.event = r.chance(0.55) ? r.pick(EVENTS) : null; }
 function productDemand(w, type) { return w.event && w.event.type === type ? w.event.m : 1; }
+/* ---------- 主线剧情与目标 ---------- */
+const CHAPTERS = [
+  { title: '第一章 入行', story: '父亲走得突然，留给你一间关了门的小铺、二十万现金，还有一张十五万的欠条。他生前在瑞丽做了半辈子翡翠毛料，你却连灯都没打过几次。老街坊牛叔把你领到夜市：“先别想着发财，学会看石头，学会不买。”',
+    goals: [['tut', '跟着牛叔看完第一块石头（新手教学）'], ['buy1', '买下第一块石头'], ['sold1', '卖出第一件货，料或成品都行']], reward: { eye: 5, cash: 0 }, done: '第一块石头出了手。牛叔没夸你，只说：“记住这一块是怎么看的、怎么卖的。以后每一块都记。”' },
+  { title: '第二章 站稳', story: '夜市的料便宜，假的也多。想进集散地的档口，得让人家觉得你是懂行的。先做成一笔赚钱的买卖，把本钱滚到三十万。',
+    goals: [['win', '做成一块赚钱的石头'], ['cash30', '现金达到 30 万'], ['eye15', '眼力达到 15（写判断本、对答案来涨）']], reward: { eye: 5, cash: 10000 }, done: '集散地的档口老板开始认得你了。有人递烟，有人递石头。牛叔提醒：“递石头的比递烟的危险。”' },
+  { title: '第三章 开张', story: '父亲的铺面还锁着，欠条也还压在抽屉里。把债还了，把门打开，摆上你自己做的第一只镯子。',
+    goals: [['debt', '还清父亲留下的 15 万欠债（在账本里）'], ['shop1', '盘下一个铺面'], ['bangle', '做出第一只手镯']], reward: { eye: 8, cash: 20000 }, done: '铺子重新开了张。第一位进门的客人摸着那只镯子说：“你爸当年也给我留过一只。”' },
+  { title: '第四章 闯公盘', story: '公盘上没人跟你讲价，只有一张标书。出高了白花钱，出低了给别人做嫁衣。去中一次标，让他们知道小铺子也会看货。',
+    goals: [['eye40', '眼力达到 40'], ['bid', '在翡翠公盘中标一次']], reward: { eye: 10, cash: 50000 }, done: '开标那天，你的名字被念了出来。回头一看，几个老面孔都在重新打量你。' },
+  { title: '第五章 识货', story: '做大了，找上门的不只有客人，还有做局的。能把假货说破，能让客人回头，才算真的立住。',
+    goals: [['fake', '当面识破一块假货'], ['order', '完成一张客户订单'], ['regular', '有一位买家成为你的熟客']], reward: { eye: 10, cash: 80000 }, done: '“那家铺子的小老板，眼睛毒，人实在。”这句话开始在街上传。' },
+  { title: '第六章 大货', story: '小料养家，大料立名。去碰真正的高货：冰种以上的成品，两百万的身家。',
+    goals: [['ice', '做出冰种以上的成品'], ['worth200', '身家达到 200 万（现金＋应收＋成品）']], reward: { eye: 15, cash: 150000 }, done: '牛叔把他用了三十年的那支手电递给你：“我看不动了。以后你自己照。”' },
+  { title: '终章 一代货主', story: '最后一步：把铺面做成街上最好的那一家，身家过千万。到那时，你再回头看第一天在夜市买的那块石头。',
+    goals: [['shop3', '把铺面升到精品店'], ['worth1000', '身家达到 1000 万']], reward: { eye: 30, cash: 0 }, done: '你成了别人口中的“货主”。夜市还是那个夜市，灯泡底下蹲着的年轻人里，有一个正学着你当年的样子压灯。故事到这里告一段落，生意可以一直做下去。' },
+];
+const DEBT = 150000;
+function netWorth(w) { let v = w.cash; for (const r of w.recv) v += r.amt; for (const it of w.items) if (it.state === 'ready' || it.state === 'shelf' || it.state === 'kept') v += it.value * 0.6; return v; }
+function goalDone(w, k) {
+  const a = w.ach, st = w.stat;
+  return ({ tut: !!w.flags.tut, buy1: w.stones.length > 0, sold1: st.sold > 0, win: !!a.win, cash30: w.cash >= 3e5, eye15: w.eye >= 15, debt: !!w.flags.debt, shop1: w.shop >= 1, bangle: !!a.bangle, eye40: w.eye >= 40, bid: !!a.bid,
+    fake: !!a.fake, order: !!a.order, regular: Object.keys(w.rel).some(k2 => w.rel[k2] >= 10), ice: !!a.ice, worth200: netWorth(w) >= 2e6, shop3: w.shop >= 3, worth1000: netWorth(w) >= 1e7 })[k];
+}
+// 检查当前章节是否完成；完成则发奖励并进入下一章，返回刚完成的章节
+function checkStory(w) {
+  if (netWorth(w) >= 1e6) achieve(w, 'm1', '身家过百万'); if (netWorth(w) >= 1e7) achieve(w, 'm10', '身家过千万'); if (w.eye >= 100) achieve(w, 'eye100', '眼力过百'); if (w.stat.sold >= 20) achieve(w, 'sold20', '卖出二十件货'); if (w.stones.filter(s => s.closed).length >= 10) achieve(w, 'ten', '经手十块石头'); if (w.day >= 30) achieve(w, 'd30', '撑过第一个月');
+  const ch = CHAPTERS[w.chapter]; if (!ch || !ch.goals.every(g => goalDone(w, g[0]))) return null;
+  w.chapter++; w.eye += ch.reward.eye; w.cash += ch.reward.cash; if (ch.reward.cash) w.log.push({ day: w.day, t: `${ch.title} 完成`, amt: ch.reward.cash });
+  return ch;
+}
+function payDebt(w) { if (w.flags.debt) return { ok: false, msg: '已经还清了。' }; if (w.cash < DEBT + 2000) return { ok: false, msg: '现金不够，还得留点周转。' }; w.cash -= DEBT; w.flags.debt = true; w.log.push({ day: w.day, t: '还清父亲的欠债', amt: -DEBT }); achieve(w, 'debt', '父债子还'); return { ok: true, msg: '欠条撕了。' }; }
+const ACH_ALL = [['win', '第一块赚钱的石头'], ['cutup', '第一刀切涨'], ['steal', '捡漏：净赚超过买价两倍'], ['bust', '交学费：一块亏掉六成以上'], ['sharp', '火眼金睛：种、色、裂全部判断对'], ['fake', '识破一块假货'], ['bid', '公盘中标'], ['bangle', '第一只手镯'], ['ice', '做出冰种以上的成品'], ['cab', '一粒满色蛋面'], ['big', '单件成品过十万'], ['order', '第一张客户订单'], ['keep', '第一件藏品'], ['shop', '有了自己的铺面'], ['tool', '第一件好工具'], ['debt', '父债子还'], ['m1', '身家过百万'], ['m10', '身家过千万'], ['eye100', '眼力过百'], ['sold20', '卖出二十件货'], ['ten', '经手十块石头'], ['d30', '撑过第一个月']];
 const RANKS = [[0, '学徒'], [15, '跑摊的'], [40, '看货人'], [80, '行家'], [150, '掌眼师傅'], [260, '一代货主']];
 function rankOf(w) { let n = RANKS[0][1]; for (const r of RANKS) if (w.eye >= r[0]) n = r[1]; return n; }
 function sceneOpen(w, name) { const S = SCENES[name]; return w.eye >= S.eye || w.cash >= S.cash; }
@@ -580,7 +613,7 @@ function placeBid(w, L, amount) {
   if (amount - old > w.cash) return { ok: false, msg: '现金不够押这个标。' };
   w.cash += old - amount; L.bid = amount; return { ok: true, msg: `已投标 ${fmt(amount)}，标款先押着，收工后开标。` };
 }
-function newWorld(seed) { const w = { v: 7, seed, day: 1, cash: ECON.startCash, recv: [], stones: [], works: [], items: [], market: [], markets: {}, scene: '夜市地摊', eye: 0, orders: [], ach: {}, news: [], log: [], nextId: 1, over: false, tools: { torch: 1, loupe: 1, saw: 1 }, event: null, rel: {}, fame: 0, after: [], shop: 0 }; applyTools(w); genMarket(w); fillOrders(w); rollEvent(w); return w; }
+function newWorld(seed) { const w = { v: 8, seed, day: 1, cash: ECON.startCash, recv: [], stones: [], works: [], items: [], market: [], markets: {}, scene: '夜市地摊', eye: 0, orders: [], ach: {}, news: [], log: [], nextId: 1, over: false, tools: { torch: 1, loupe: 1, saw: 1 }, event: null, rel: {}, fame: 0, after: [], shop: 0, chapter: 0, flags: {}, stat: { sold: 0 } }; applyTools(w); genMarket(w); fillOrders(w); rollEvent(w); return w; }
 function sellerWindow(st, vol, r) {
   let best = null; const o = [0, 0, 0, 0], grade = HUES[st.hue].grade;
   for (let i = 0; i < 60; i++) {
@@ -749,6 +782,7 @@ function sell(w, s, piece, q) {
     const fakeSold = s.fake && piece.id === 0 && !piece.planes.length && qq.stats.kAvg < 0.45;
     w.after.push({ day: w.day + r.int(2, 4), buyer: q.buyer, kind: fakeSold ? 'fake' : ratio > 1.35 ? 'bust' : ratio < 0.8 ? 'boom' : 'ok', amt: q.price, stone: s.id });
   }
+  w.stat.sold++;
   piece.sold = true; piece.soldPrice = q.price; piece.soldDay = w.day; piece.buyer = q.buyer;
   s.proceeds += q.price;
   if (q.days) w.recv.push({ day: w.day + q.days, amt: q.price, from: q.buyer }); else w.cash += q.price;
@@ -841,6 +875,7 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
 function stoneDone(w, s) { return s.pieces.every(p => p.sold || p.kept) && !w.works.some(k => k.stone === s.id) && !w.items.some(i => i.stone === s.id && i.state !== 'sold' && i.state !== 'kept'); }
 function sellItem(w, it, how) {
   const r = new Rng(seedOf(w.seed, 'item', it.id)), price = Math.round(it.value * productDemand(w, it.type) * (how === 'retail' ? 0.95 : 0.6) / 10) * 10, days = how === 'retail' ? r.int(6, 14) : 0;
+  w.stat.sold++;
   it.state = 'sold'; it.price = price;
   if (days) w.recv.push({ day: w.day + days, amt: price, from: `寄卖 ${it.name}` }); else w.cash += price;
   w.log.push({ day: w.day, t: `${it.name} ${how === 'retail' ? `寄卖，约 ${days} 天回款` : '批发现结'}`, amt: price });
@@ -881,6 +916,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);

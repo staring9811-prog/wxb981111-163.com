@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0c0a">
+<title>翡翠博弈</title>
+<style>html, body { margin: 0; height: 100%; }</style>
+</head>
+<body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 布局：暗室工作台。左侧是整块三维原石，右侧是货源、存货和账本；窄屏时上下排列。只做暗色，因为打灯要在暗处看。 */
+:root {
+  color-scheme: dark;
+  --bg: #0e0c0a; --panel: #181512; --raise: #221e19; --line: #322c25;
+  --fg: #ebe4d8; --dim: #9c9183; --jade: #66c497; --lamp: #f0c070; --up: #e8705c; --down: #5fb98a;
+  --display: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", STSong, serif;
+  --body: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 14px; line-height: 1.5; overflow: hidden; }
+#app { height: 100%; display: flex; flex-direction: column; }
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); }
+h1 { font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: .12em; margin: 0; color: var(--jade); }
+#stats { display: flex; gap: 16px; flex: 1; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+#stats span { color: var(--dim); font-size: 12px; } #stats b { margin: 0 3px; font-size: 15px; }
+button { font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--dim); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--lamp); outline-offset: 1px; }
+button:disabled { opacity: .4; cursor: default; }
+button.pri { background: #2b3f33; border-color: #3f6a55; }
+button[aria-pressed="true"], button[aria-selected="true"] { background: #3a3122; border-color: var(--lamp); color: var(--lamp); }
+main { flex: 1; min-height: 0; display: flex; }
+#stage { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; }
+#gl { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; background: #070605; }
+#stage::before { content: ""; position: absolute; inset: 0 0 auto; height: 70px; background: linear-gradient(#000a, #0000); pointer-events: none; z-index: 1; }
+#hud { z-index: 2; position: absolute; top: 8px; left: max(16px, env(safe-area-inset-left, 0px)); right: 16px; pointer-events: none; }
+#title { font-family: var(--display); font-size: 16px; text-shadow: 0 1px 4px #000, 0 0 10px #000; }
+#hint { text-shadow: 0 1px 3px #000, 0 0 8px #000; }
+#hint { color: #c9bfb0; font-size: 12.5px; max-width: 46em; }
+#bar { border-top: 1px solid var(--line); background: var(--panel); padding-block: 6px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 6px; }
+#tools, #opts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+#opts { min-height: 32px; font-size: 13px; }
+#opts input[type=range] { width: min(180px, 40vw); accent-color: var(--lamp); }
+aside { width: 360px; border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+#tabs { display: flex; border-bottom: 1px solid var(--line); }
+#tabs button { flex: 1; border: 0; border-radius: 0; background: none; padding: 9px 0; color: var(--dim); }
+#tabs button[aria-selected="true"] { color: var(--lamp); box-shadow: inset 0 -2px var(--lamp); background: none; }
+#panel { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.card { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; background: var(--bg); }
+.card[data-act] { cursor: pointer; } .card.sel { border-color: var(--lamp); } .card.gone { opacity: .45; }
+.row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
+.dim, .note { color: var(--dim); font-size: 12.5px; } .note { margin: 0; }
+.price { font-variant-numeric: tabular-nums; font-size: 15px; color: var(--lamp); }
+.tags { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; font-size: 12.5px; color: var(--dim); }
+.tag { border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; } .tag.w { color: var(--jade); border-color: #3f6a55; } .tag.b { color: var(--lamp); border-color: #6a5632; }
+.why { margin: 2px 0 0; flex-basis: 100%; color: var(--fg); font-size: 12.5px; }
+#overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#cutline { stroke: #ff9a3c; stroke-width: 2; stroke-dasharray: 6 4; }
+#npc { position: absolute; left: 0; right: 0; top: 44px; z-index: 1; pointer-events: none; display: flex; justify-content: center; gap: 28px; align-items: flex-start; }
+#npc .seller { position: absolute; right: 62px; top: -6px; display: flex; flex-direction: column; align-items: flex-end; filter: drop-shadow(0 4px 8px #000a); } #npc .seller b { font-size: 11.5px; font-weight: 500; color: #c9bfb0; text-shadow: 0 1px 3px #000; margin-top: -8px; }
+#npc .bubble { pointer-events: auto; max-width: 230px; background: #f3ecdd; color: #2a2018; border: 0; border-radius: 12px; padding: 6px 11px; font-size: 13px; line-height: 1.4; text-align: left; position: relative; margin-bottom: 6px; box-shadow: 0 2px 8px #0008; }
+#npc .bubble::after { content: ""; position: absolute; left: auto; right: 34px; bottom: -7px; margin-left: -7px; border: 7px solid transparent; border-top-color: #f3ecdd; border-bottom: 0; }
+#npc .bubble:hover { background: #fff8e8; border: 0; }
+#npc .rivals { display: flex; gap: 6px; position: absolute; left: 14px; top: 26px; } #npc .rivals span { display: flex; flex-direction: column; align-items: center; } #npc .rivals i { font-style: normal; font-size: 10.5px; color: #b9b0a2; text-shadow: 0 1px 3px #000; }
+.ava { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; align-items: center; justify-content: center; font-size: 11px; color: #fff; margin-right: 5px; vertical-align: middle; }
+@media (max-width: 760px) { #npc .seller svg { width: 60px; height: 65px; } #npc .bubble { max-width: 170px; font-size: 12px; } #npc .rivals { display: none; } }
+#coach { position: absolute; left: 50%; transform: translateX(-50%); bottom: 150px; z-index: 4; max-width: min(92%, 560px); background: #f3ecddf2; color: #2a2018; border-radius: 10px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; font-size: 13.5px; box-shadow: 0 4px 16px #000b; }
+#coach small { color: #7a6a55; white-space: nowrap; } #coach button { background: #e2d8c2; color: #2a2018; border-color: #b9ab8e; font-size: 12px; padding: 2px 8px; white-space: nowrap; }
+.goal { border-color: #6a5632; background: #1c1810; } .goal .row { font-size: 12.5px; color: var(--dim); } .goal .row:first-child { font-size: 14px; color: var(--lamp); } .goal .done { color: var(--jade); } .goal button { font-size: 12px; padding: 1px 8px; }
+.achs { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px; color: #6f675c; } .achs .got { color: var(--lamp); }
+.startbox { align-items: center; text-align: center; min-width: min(86vw, 340px); padding: 28px 26px !important; background: radial-gradient(circle at 50% 0%, #2a3a2f, #14110e 70%) !important; border-color: #3f6a55 !important; }
+.startbox .eyebrow { margin: 0; font-size: 12px; letter-spacing: .3em; color: var(--dim); } .startbox .big { font-family: var(--display); font-size: 44px; letter-spacing: .18em; margin: 4px 0; color: var(--jade); text-shadow: 0 0 24px #66c49755; }
+.startbox .tag2 { margin: 0 0 8px; color: var(--fg); max-width: 22em; } .startbox button { width: 100%; padding: 9px; font-size: 15px; }
+.storybox { max-width: 32em !important; } .storybox h3 { margin: 8px 0 0; font-size: 15px; color: var(--lamp); }
+#paywall input { font: inherit; font-size: 17px; letter-spacing: .08em; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; text-align: center; }
+#sawbox { right: 14px; top: 116px; } #sawbox input { accent-color: var(--lamp); width: 100%; }
+#sawbox { position: absolute; z-index: 4; width: 220px; background: #1a1714ee; border: 1px solid var(--lamp); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; box-shadow: 0 4px 14px #000a; }
+.rawimg { width: 72px; height: 72px; border-radius: 3px; flex: none; }
+#lasso { stroke: #ff9a3c; stroke-width: 2; stroke-dasharray: 6 4; fill: rgba(255,154,60,.12); }
+.modal table { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 12.5px; width: 100%; }
+.modal th, .modal td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; } .modal th:first-child { text-align: left; }
+.modal h3 { margin: 6px 0 0; font-size: 14px; color: var(--lamp); font-weight: 600; }
+.scroll { overflow-x: auto; flex: none; }
+.modal > div.tut { max-width: 46em; width: 100%; }
+.tut section { display: flex; flex-direction: column; gap: 8px; } .tut ol { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 4px; }
+.tut .scenes button { flex-direction: row; justify-content: center; }
+.atlas { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.atlas.six { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.atlas figure { margin: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+.atlas img { width: 100%; aspect-ratio: 1; display: block; object-fit: cover; }
+.case { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; background: var(--bg); display: flex; flex-direction: column; gap: 6px; } .case p { margin: 0; font-size: 13px; }
+#caseAtlas { display: flex; flex-direction: column; gap: 8px; }
+.four { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } .four figure { margin: 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; } .four img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; } .four figcaption { font-size: 11.5px; color: var(--dim); text-align: center; }
+.atlas figcaption { padding: 5px 7px; display: flex; flex-direction: column; gap: 1px; font-size: 12px; } .atlas figcaption span { color: var(--dim); }
+.up { color: var(--up); } .down { color: var(--down); }
+.bargain { border-top: 1px dashed var(--line); margin-top: 5px; padding-top: 6px; display: flex; flex-direction: column; gap: 5px; }
+.bargain label { font-size: 12px; color: var(--dim); }
+.bargain input { flex: 1; min-width: 80px; font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px; }
+.say { margin: 0; color: var(--lamp); }
+.patter { margin: 0; font-size: 12.5px; color: var(--fg); font-style: italic; border-left: 2px solid var(--line); padding-left: 8px; }
+.pieces { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.pc { padding: 3px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; width: 72px; }
+.pc img, .pc i { width: 64px; height: 64px; display: block; background: #070605; border-radius: 2px; }
+.pc.on { border-color: var(--lamp); }
+.felt { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px; border-radius: 4px; background: #16241f; border: 2px solid #5a4326; } .felt .pc { background: #0f1a16; } .felt .pc .dim { font-size: 11px; } .pc.sold { opacity: .35; }
+.quotes { border-top: 1px dashed var(--line); margin-top: 5px; padding-top: 6px; display: flex; flex-direction: column; gap: 5px; }
+.q i { font-style: normal; color: var(--dim); font-size: 12px; } .q button { font-variant-numeric: tabular-nums; }
+.delta { margin: 0; font-size: 12.5px; }
+/* 场景里的实物：墙上的灯开关、可以拖出去的手电 */
+#lightsw { touch-action: none; cursor: pointer; position: absolute; right: 14px; top: 52px; z-index: 3; width: 34px; height: 54px; padding: 0; border-radius: 5px; background: linear-gradient(#d9d2c4, #a89f8f); border: 1px solid #5c554a; box-shadow: 0 2px 6px #000a, inset 0 0 0 3px #efe9dc; }
+#lightsw span { position: absolute; left: 8px; right: 8px; top: 9px; height: 34px; border-radius: 3px; background: linear-gradient(#8f877a 0 50%, #f4efe4 50% 100%); box-shadow: inset 0 0 2px #0008; }
+#lightsw[aria-pressed="true"] { background: linear-gradient(#d9d2c4, #a89f8f); border-color: #5c554a; }
+#lightsw[aria-pressed="true"] span { background: linear-gradient(#fff8e0 0 50%, #9a9284 50% 100%); box-shadow: 0 0 10px #ffe9a8aa, inset 0 0 2px #0006; }
+#torchdock { position: absolute; left: 12px; bottom: 96px; z-index: 3; display: flex; flex-direction: column; gap: 4px; cursor: grab; touch-action: none; user-select: none; }
+#torchdock .tbody { position: relative; display: flex; gap: 4px; align-items: center; padding: 6px 10px 6px 34px; border-radius: 16px 8px 8px 16px; background: linear-gradient(#3b3d42, #17181b 60%, #2a2c30); border: 1px solid #55585e; box-shadow: 0 3px 8px #000b; }
+#torchdock .thead { position: absolute; left: -6px; top: -4px; bottom: -4px; width: 34px; border-radius: 10px 4px 4px 10px; background: linear-gradient(#55585e, #1d1e21 55%, #3a3c41); border: 1px solid #6a6d73; }
+#torchdock .thead::after { content: ""; position: absolute; left: 3px; top: 5px; bottom: 5px; width: 9px; border-radius: 5px; background: #2a2a28; }
+#torchdock.lit .thead::after { background: #fff3c4; box-shadow: 0 0 14px 4px #ffe9a0aa; }
+#torchdock button { padding: 2px 7px; font-size: 11.5px; border-radius: 10px; background: #0d0d0e; border-color: #4a4c51; }
+#torchdock button[aria-pressed="true"] { color: var(--lamp); border-color: var(--lamp); background: #2a2416; }
+#gyrowrap { display: flex; gap: 10px; align-items: center; cursor: default; padding: 4px 4px 0; }
+#gyro { position: relative; width: 66px; height: 66px; border-radius: 50%; flex: none; cursor: crosshair; touch-action: none; background: radial-gradient(circle, #2c2e33 0 2px, transparent 3px), repeating-radial-gradient(circle, transparent 0 10px, #4a4c5155 10px 11px), #101113; border: 1px solid #6a6d73; box-shadow: 0 2px 6px #000a; }
+#gyro::before, #gyro::after { content: ""; position: absolute; background: #4a4c51; } #gyro::before { left: 50%; top: 4px; bottom: 4px; width: 1px; } #gyro::after { top: 50%; left: 4px; right: 4px; height: 1px; }
+#gyrodot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--lamp); box-shadow: 0 0 8px #f0c070; left: 50%; top: 50%; z-index: 1; pointer-events: none; }
+.tdist { display: flex; flex-direction: column; font-size: 11.5px; color: #c9bfb0; text-shadow: 0 1px 3px #000; } .tdist input { width: 110px; accent-color: var(--lamp); }
+#tfloat { position: absolute; z-index: 3; display: flex; gap: 3px; } #tfloat button { width: 24px; height: 24px; padding: 0; border-radius: 50%; font-size: 11px; background: #0d0d0ecc; border-color: #6a6d73; }
+#tfloat button[aria-pressed="true"] { color: var(--lamp); border-color: var(--lamp); }
+.cabrow { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; } .cabrow span { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; color: var(--dim); } .cabrow i { display: block; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #c8f0cf, #2f9a55 55%, #146b3a); opacity: .35; } .cabrow .past i { opacity: .6; } .cabrow .on i { opacity: 1; box-shadow: 0 0 10px #66c497; } .cabrow .on { color: var(--fg); }
+#opts select { font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; }
+#torchdock .tinfo { display: flex; gap: 8px; font-size: 11.5px; color: #c9bfb0; text-shadow: 0 1px 3px #000; padding-left: 4px; } #torchdock .tinfo b { color: var(--fg); }
+.scenes { display: flex; gap: 5px; flex-wrap: wrap; } .scenes button { flex: 1; min-width: 72px; padding: 5px 4px; font-size: 13px; display: flex; flex-direction: column; align-items: center; line-height: 1.25; } .scenes small { font-size: 10.5px; color: var(--dim); }
+#reveal { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(8,6,5,.72); text-align: center; padding: 16px; }
+#reveal h2 { font-family: var(--display); font-size: 34px; margin: 0; letter-spacing: .2em; } #reveal p { margin: 0; }
+#reveal .big { font-size: 56px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; } #reveal .why2 { color: var(--dim); font-size: 13px; max-width: 30em; }
+#reveal.up h2, #reveal.up .big { color: var(--up); } #reveal.down h2, #reveal.down .big { color: var(--down); } #reveal.flat h2, #reveal.flat .big { color: var(--lamp); }
+#reveal .blade { width: min(60%, 420px); height: 3px; background: linear-gradient(90deg, transparent, #ffb060, #fff, #ffb060, transparent); animation: saw 1.1s linear; box-shadow: 0 0 18px #ff9a3c; }
+@keyframes saw { 0% { transform: translateY(-90px) scaleX(.3); opacity: .2 } 50% { transform: translateY(0) scaleX(1); opacity: 1 } 100% { transform: translateY(90px) scaleX(.3); opacity: .2 } }
+@media (prefers-reduced-motion: reduce) { #reveal .blade { animation: none; } }
+.work { border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+.work label { color: var(--dim); font-size: 12.5px; } .work select { font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; flex: 1; min-width: 0; max-width: 70%; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+.modal > div { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; max-width: 34em; max-height: 90%; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+.modal h2 { font-family: var(--display); margin: 0; font-size: 18px; color: var(--jade); }
+.modal p, .modal li { margin: 0; color: var(--fg); } .modal ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+#menuBtn { display: none; } #hmenu { display: flex; gap: 8px; }
+@media (max-width: 760px) {
+  header { gap: 6px; padding-block: 5px; flex-wrap: nowrap; position: relative; } header > button { padding: 4px 8px; font-size: 13px; white-space: nowrap; }
+  #stats { gap: 8px; flex-wrap: nowrap; overflow: hidden; min-width: 0; } #stats div { white-space: nowrap; } #stats div:nth-child(3), #stats div:nth-child(4) { display: none; } #stats span { font-size: 10.5px; } #stats b { font-size: 13px; margin: 0 2px; }
+  #menuBtn { display: inline-block; } #hmenu { display: none; position: absolute; right: 8px; top: 100%; z-index: 30; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; box-shadow: 0 6px 18px #000c; } #hmenu.open { display: flex; }
+  #tools { flex-wrap: nowrap; overflow-x: auto; } #tools button { flex: none; white-space: nowrap; padding: 5px 8px; font-size: 13px; }
+  #torchdock { bottom: 88px; left: 6px; transform: scale(.8); transform-origin: left bottom; }
+  #coach { bottom: auto; top: 46px; width: 92%; flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px; } #coach span { flex: 1 1 100%; }
+  #lightsw { top: 96px; right: 8px; } #hint { display: none; }
+  main { flex-direction: column; } #stage { flex: 0 0 58%; } aside { width: auto; flex: 1; border-left: 0; border-top: 1px solid var(--line); }
+  h1 { font-size: 17px; } #stats { gap: 10px; } #hint { font-size: 12px; }
+}
+</style>
+<div id="app">
+  <header>
+    <h1>翡翠博弈</h1>
+    <div id="stats"></div>
+    <button id="menuBtn" data-act="menu">菜单</button>
+    <div id="hmenu"><button data-act="quality">画质 标准</button><button data-act="mute">声音 开</button><button data-act="help">教程</button><button data-act="home">主页</button></div>
+    <button data-act="next" class="pri">收工，下一天</button>
+  </header>
+  <main>
+    <section id="stage">
+      <canvas id="gl"></canvas>
+      <svg id="overlay" aria-hidden="true"><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
+      <div id="reveal" hidden></div>
+      <div id="sawbox" hidden></div>
+      <div id="npc" hidden></div>
+      <div id="coach" hidden></div>
+      <button id="lightsw" data-act="room" aria-label="室内灯开关" title="室内灯"><span></span></button>
+      <div id="tfloat" hidden><button id="tfP" data-act="tpower" title="关手电">关</button><button id="tfC" data-act="tcolor" title="白光/黄光">白</button></div>
+      <div id="torchdock" title="手电">
+        <div class="tbody"><i class="thead"></i>
+          <button id="tkPower" data-act="tpower" title="开关">开关</button><button id="tkColor" data-act="tcolor" title="光色">白光</button><button id="tkDim" data-act="tdim" title="亮度">强光</button><button id="tkBody" data-act="lbody" title="画面里显示筒身">筒身</button>
+        </div>
+        <div class="tinfo"><b id="tkName">手电</b><span id="tkTip">按住拖到石头上</span></div>
+        <div id="gyrowrap" hidden><div id="gyro" title="方向盘：拖动小点改变手电倾斜的方向和角度，双击回正"><i id="gyrodot"></i></div>
+          <div class="tdist"><label for="tDist">离石头 <b id="tDistV">0</b> mm</label><input id="tDist" type="range" min="0" max="90" step="1" value="0"></div></div>
+      </div>
+      <div id="hud"><div id="title"></div><div id="hint">正在备货…</div></div>
+      <div id="bar">
+        <div id="tools">
+          <button data-tool="rotate">转动</button>
+          <button data-tool="loupe">放大镜</button>
+          <button data-tool="grind">磨头开窗</button>
+          <button data-tool="peel">画圈开皮</button>
+          <button data-tool="cut">大锯下刀</button>
+          <button data-tool="saw">小锯取料</button>
+        </div>
+        <div id="opts"></div>
+      </div>
+    </section>
+    <aside>
+      <div id="tabs" role="tablist">
+        <button data-tab="market" role="tab">货源</button>
+        <button data-tab="mine" role="tab">我的料</button>
+        <button data-tab="tray" role="tab">成品盘</button>
+        <button data-tab="ledger" role="tab">账本</button>
+      </div>
+      <div id="panel"></div>
+    </aside>
+  </main>
+</div>
+<div id="help" class="modal" hidden><div class="tut">
+  <h2>教程</h2>
+  <div class="scenes">
+    <button data-act="pane" data-k="play">怎么玩</button><button data-act="pane" data-k="skin">看皮壳</button><button data-act="pane" data-k="water">看种水</button><button data-act="pane" data-k="atlas">种色图鉴</button><button data-act="pane" data-k="color">看色和裂</button><button data-act="pane" data-k="make">做件出货</button><button data-act="pane" data-k="value">价值表</button>
+  </div>
+  <section data-pane="play">
+    <p>每块原石的内部在生成时就定死了：种水、色带的走向和深浅、裂、棉。你做的每件事都只是在看同一块石头，不会重新抽奖。赚钱靠的是比卖家和买家看得更准，以及知道什么时候停手。</p>
+    <h3>一局的顺序</h3>
+    <ol>
+      <li><b>挑场子</b>：右侧「货源」顶上选场景。刚开始只有夜市地摊。</li>
+      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了；手电亮着时，<b>点一下石头</b>灯就挪到那里；抓筒尾拖动来倾斜（往下拖向自己倒，往上拖向对面倒，左右拖左右倒），也可以用旁边的<b>方向盘</b>精确调（双击回正）；抓筒身中段或用滑杆拉远拉近。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角是<b>室内灯开关</b>（可以拖到顺手的位置），关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
+      <li><b>读标签</b>：每块料标了它赌的是种水、色、裂还是镯位，选中后有一句提示。</li>
+      <li><b>出价</b>：还价或照价买。看不准就不买。公盘里是投暗标。</li>
+      <li><b>写判断本</b>：买下后先写你认为的种水、色、裂，之后对答案涨眼力。</li>
+      <li><b>开料</b>：「画圈开皮」剥一块皮看肉；「磨头开窗」自己控制深浅；「下刀切割」拖一条线切开。每一步之后右侧报价都会变，并写明原因。</li>
+      <li><b>出手</b>：随时可以按买家报价卖掉；或者「送去做件」，等几天到「成品盘」里卖成品。</li>
+      <li><b>收工</b>：右上角「收工，下一天」。货源换新，报价作废，货款和成品到账。</li>
+    </ol>
+    <h3>假货、熟客和铺面</h3>
+    <ul>
+      <li><b>假货</b>：夜市里约三成是做过手脚的料，集散地偶尔也有。<b>染色皮</b>远看一身松花，放大镜下色块是平的、边缘齐、没有砂粒；<b>贴片窗</b>窗口种色极好，但压灯时光散不开，放大镜下窗口一圈有黄色胶线。看出来可以当面说破，老板会大降价；说错了他翻脸不卖。</li>
+      <li><b>熟客</b>：买家回去切了才知道你卖的料怎么样。他切涨了会记你的好、以后出价更高；切垮了会压你的价；把假料卖出去会被上门退货，口碑大跌。</li>
+      <li><b>铺面</b>：在「账本」里盘柜台或店面，成品摆进去每天有散客按零售价买，不用让批发商压价。要付日租，口碑越好卖得越快。</li>
+      <li><b>合伙</b>：两万以上的料可以「找人合伙」，各出一半本钱，这块料出完货后赚亏对半分。</li>
+      <li><b>赌一刀</b>：下刀前可以和旁边的行家赌这一刀是涨是垮，赌注是账面的 5%。</li>
+      <li><b>盯着取蛋面</b>：做蛋面时可以自己盯着，从小号一号一号放大，越大越值钱，但每放一号都可能磨出裂，磨伤了要退一号还打折。</li>
+      <li><b>黄光</b>：手电切到黄光，绿会显得更浓。卖家爱用这招，你自己看料最好用白光。</li>
+    </ul>
+    <h3>能帮你的东西</h3>
+    <ul>
+      <li><b>工具铺</b>（在「账本」页）：手电可以升到超强探照灯，厚皮黑皮也能打进去；放大镜能升到 8 倍；锯机升级后锯缝更窄、少吃料。</li>
+      <li><b>请师傅掌眼</b>：付一点钱，听一个老师傅对种水、色、裂的判断。他十次里会错两三次。</li>
+      <li><b>老板的话</b>：选中一块料会看到卖家怎么吆喝。有的是实话，有的只是话术，越不懂行的卖家越不可信。</li>
+      <li><b>今日行情</b>：每天可能有某类成品特别好卖或被压价，决定现在出手还是先放进藏品柜等等。</li>
+    </ul>
+    <h3>先分清这块料赌什么</h3>
+    <ul>
+    <li><b>赌种水</b>：没什么色，值不值钱全看种老不老。重点压灯看光晕。</li>
+    <li><b>赌色</b>：皮上或窗口见色。色是真的吗？是一条带穿进去，还是只贴着皮一层？</li>
+    <li><b>赌裂</b>：皮上已经能看到裂。裂走多深、会不会切断镯位，决定了能出什么货。</li>
+    <li><b>赌镯位</b>：个头够出手镯。一只好镯子能扛起整块料的成本，一条裂也能让它归零。</li>
+  </ul>
+    <h3>场子、眼力和订单</h3>
+    <ul>
+    <li><b>四个场子</b>：夜市地摊便宜但假表现多，黄灯下绿会显得更浓；集散地开窗料多、价格贴着货；公盘是暗标竞拍，出一口价、收工后开标；场口直采全是没人开过的蒙头料。后面的场子要眼力或资金够了才进得去。</li>
+    <li><b>判断本</b>：买下后、下刀前，写下你对种水、色、裂的判断。这块料全部出手后对答案，判断得准涨眼力。</li>
+    <li><b>客户订单</b>：成品盘里列着客人想要的东西，做出对路的成品交给他，比零售价还高。</li>
+    <li><b>藏品柜</b>：舍不得卖的成品可以收藏，随时拿出来看。</li>
+  </ul>
+  </section>
+  <section data-pane="skin" hidden>
+    <p>皮壳是你能免费看到的唯一线索。下面是同一块石头换上十二种皮的样子，由游戏自己的画面拍的。皮越厚越黑，灯越打不进去；皮薄的料好坏都藏不住。</p>
+    <div class="atlas" id="skinAtlas">正在拍对照图…</div>
+    <h3>皮上还要看什么</h3>
+    <ul>
+      <li><b>松花</b>：皮上一点点、一片片的绿色斑，是里面有色的线索。可信度看场口，有的皮上有、里面没有。</li>
+      <li><b>蟒带</b>：皮上一条条发亮、砂更细的带子，下面的种通常更老。</li>
+      <li><b>癣</b>：皮上的黑斑。癣常和色长在一起，也会吃掉色。</li>
+      <li><b>裂</b>：皮上的黑线，带锈边的是大裂，细发丝一样的是小裂。转着找，看它绕了石头多远。</li>
+      <li><b>雾</b>：皮和肉之间的一层黄、红或白。开皮见雾还没到肉，雾厚的料要多扣损耗。</li>
+    </ul>
+    <h3>各场口的脾气</h3>
+    <div class="scroll" id="originTable"></div>
+    <p class="note">这是本游戏里的倾向，不是真实统计。场口只给先验，每块石头都可能是反例。</p>
+  </section>
+  <section data-pane="water" hidden>
+    <p>种水是底价。下面是同一块薄皮石头、同一盏灯压在同一个位置，只换种水的样子。看的是<b>光晕多大、多干净</b>。</p>
+    <div class="atlas six" id="waterAtlas">正在拍对照图…</div>
+    <ul>
+    <li>压灯后<b>光晕大、边缘柔、颜色干净</b>，说明种老水长（冰种以上能透出好几厘米）。</li>
+    <li>光只在灯头附近<b>一小团发白</b>，说明种嫩（豆种、糯种），光被打散了走不远。</li>
+    <li>露肉后看质感：种老的像冰或玻璃，能看进去很深；种嫩的发白发闷，放大镜下能看到颗粒。</li>
+    <li>同一块料换几个位置压灯。一边透一边不透，可能是<b>变种</b>，也可能只是那边皮厚。</li>
+    <li>皮厚、皮黑的料挡光，灯下不亮不代表种差，只代表你看不清。</li>
+  </ul>
+    <p>做成成品后的差别可以到对照盘里转着看：<button data-act="gotoref">打开种水与颜色对照盘</button></p>
+  </section>
+  <section data-pane="atlas" hidden>
+    <p>同一块黄砂皮石头，只换里面的种水和颜色。每组四张：<b>隔着皮压灯</b>（买之前能看到的）、<b>开窗</b>、<b>对着窗口压灯</b>、<b>切开</b>。对着看，记住每种料从外到里是怎么一步步露出来的。</p>
+    <p class="note" id="caseProg">正在拍第 1 组…</p>
+    <div id="caseAtlas"></div>
+    <p class="note">图是游戏画面现场拍的，和你玩的时候看到的一致。真实翡翠变化更多，这里只是每种的典型样子；皮更厚更黑时，第一张会暗得多。</p>
+  </section>
+  <section data-pane="color" hidden>
+    <h3>怎么看色</h3>
+    <ul>
+    <li>光晕被染绿只说明<b>光路上有色</b>。薄薄一层色就能把整团光染绿，所以灯下绿总是比实际的多。</li>
+    <li>把灯挪开一两厘米再压：绿光跟着走，说明色面积大；只有一个位置绿，说明色很局部。</li>
+    <li>从侧面和背面看光从哪里透出来。色带是一片有方向的东西，换角度才能看出它往哪走。</li>
+    <li>皮上的<b>松花</b>是色的线索，但有的场口松花不可靠，皮上有、里面没有。</li>
+    <li>窗口里的色只代表窗口那一小块。卖家开的窗一定开在最好看的地方。</li>
+  </ul>
+    <h3>怎么看裂、棉、脏</h3>
+    <ul>
+    <li><b>裂</b>会挡光：光晕里一条明暗分界线，一侧亮一侧暗，那就是裂面。换方向压灯能看出它的走向。</li>
+    <li>把手电「倾斜」调大、贴着皮扫，皮上的裂线和起伏更明显；转「朝向」换个方向扫，顺着裂的方向照看不见，横着照最清楚。</li>
+    <li>裂不是一条直线：有锯齿、有粗有细、有的段合上了看不见，旁边还会带几丝羽裂，大裂常常岔出小裂。</li>
+    <li><b>棉</b>在灯下是一团团发白的云，<b>脏和癣</b>是吸光的黑块，常常挨着色。</li>
+    <li>大裂会切断手镯位；小纹影响不大。裂附近的料基本是废料。</li>
+    <li>灯太亮反而会把细裂“照穿”看不见；留着皮兜光会让色显得更深。条件不同，看到的不一样。</li>
+  </ul>
+  </section>
+  <section data-pane="make" hidden>
+    <h3>一块料的几条路</h3>
+    <ul>
+    <li><b>原样转手</b>：买得便宜就直接卖，赚差价，不承担开料风险。</li>
+    <li><b>画圈开皮</b>：在皮上画一个圈，整片切掉圈里的皮，只剥到刚露肉，不会磨深伤料。想自己控制深浅就用磨头。</li>
+    <li><b>开窗</b>：磨掉一小块皮。窗口漂亮时买家会往好处想，这时卖掉常常比继续开更划算。</li>
+    <li><b>小锯取料</b>：料切明了以后，在面上圈出想要的那块（比如一条色带），或者点「智能圈色」让它自动沿色块画线。画完后石头上会出现一个橙色的立体框，标出小锯要取走的范围；可以调「取料深度」（不是一锯到底），转过去看框伸进去多深，点「确认下锯」才真的锯，不满意就重画。取下的料头可以卖、送去做件，也可以摆进铺面零售或收进藏品柜。色好的小块单独送去做蛋面，比混在大料里值钱。</li>
+    <li><b>下刀</b>：在石头上拖一条线就是锯路，任意角度都行；也可以把一个面转到正对自己，按厚度切片。切开的面一目了然，想象空间也没了。</li>
+    <li><b>送去做件</b>：你来定做什么（手镯、牌子挂件、蛋面、珠串、雕件）、找谁做、什么题材。一份料的价值主要在能出几只什么档次的镯子；出不了镯子的料，色浓的小块取蛋面，棉多的做山水，裂多的车珠子或让好雕工藏进花件里，垮料也能回血。先下刀把好坏部分分开，再分别送去，比整块交出去值钱。</li>
+    <li><b>成品盘</b>：做好的东西摆在托盘里，可以转着看，一件件卖或整盘卖。批发现结约零售的六成，寄卖接近零售但回款慢。盘里还有一个种水与颜色的对照盘可以随时看。</li>
+  </ul>
+    <h3>什么料做什么</h3>
+    <ul>
+      <li><b>手镯</b>：要一整圈无裂的料，片厚至少 10 毫米。最值钱，也最怕裂。找平洲镯师最稳。</li>
+      <li><b>牌子挂件</b>：出货稳。干净的高种料做素面无事牌最显水头；有棉做山水；有裂做花鸟龙凤把裂藏进纹路；拿不准就交给师傅定。</li>
+      <li><b>蛋面</b>：只取色最浓的一小块，其余算废料。先下刀把色块单独切出来再送。高货找揭阳师傅。</li>
+      <li><b>珠串</b>：能避开裂，碎料和裂多的料靠它回血。机雕厂就够。</li>
+      <li><b>雕件摆件</b>：整块随形雕，裂和脏都能藏。苏工最贵也最能化腐朽为神奇，但料太差撑不起工费。</li>
+    </ul>
+  </section>
+  <section data-pane="value" hidden>
+    <p>成品价由种和色相乘决定，再从成品往回推：成品价 → 扣工费和渠道利润 → 明料价 → 看不见的部分打风险折扣 → 蒙头料价。所以同样的石头，看得越清，买家出价越接近它真正的价值，好坏都是。</p>
+  <div class="scroll" id="vtable"></div>
+  <p class="note">表里是单只手镯的零售成交价（无棉无裂），按公开资料的量级定的游戏数值，不是实时行情。相邻种级差几倍，色差一档能差十倍。毛料买家按零售价的六成左右起算，再扣利润和风险；成品批发约六成，寄卖接近零售但回款慢。</p>
+  </section>
+  <button data-act="help" class="pri">开始玩</button>
+</div></div>
+<div id="cabgame" class="modal" hidden><div><h2>盯着师傅取蛋面</h2><div id="cabbody" style="display:flex;flex-direction:column;gap:8px"></div></div></div>
+<div id="start" class="modal"><div class="startbox">
+  <p class="eyebrow">瑞丽 · 姐告夜市</p>
+  <h1 class="big">翡翠博弈</h1>
+  <p class="tag2">一刀穷，一刀富。皮壳底下是什么，买之前没人知道。</p>
+  <p id="stInfo" class="note"></p>
+  <button data-act="startgo" id="stCont" class="pri">继续游戏</button>
+  <button data-act="startnew">新的一局</button>
+  <button data-act="starthelp">教程与图鉴</button>
+  <button data-act="codeopen" id="stCode" hidden>输入激活码</button>
+  <p id="stLic" class="note"></p>
+</div></div>
+<div id="story" class="modal" hidden><div id="storybody" class="storybox"></div></div>
+<div id="paywall" class="modal" hidden><div>
+  <h2>输入激活码</h2><p id="codeMsg" class="say"></p>
+  <label for="codeIn" class="note">激活码（16 位，形如 ABCD-EFGH-JKLM-NPQR）</label>
+  <input id="codeIn" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX">
+  <p class="note" id="buyText"></p>
+  <div class="row"><button data-act="codeclose">先不输</button><button data-act="codego" class="pri">激活</button></div>
+</div></div>
+<div id="confirm" class="modal" hidden><div>
+  <h2>新开一局？</h2><p>当前进度会被清掉，现金回到 200K。</p>
+  <div class="row"><button data-act="no">继续当前这局</button><button data-act="yes" class="pri">清空并重新开始</button></div>
+</div></div>
+<div id="over" class="modal" hidden><div>
+  <h2>周转不动了</h2><p>现金见底，手里也没有可卖的货。翻开账本看看每块石头错在判断还是错在价钱，然后重新开始。</p>
+  <button data-act="yes" class="pri">重新开始</button>
+</div></div>
+<script src="config.js?v=19"></script>
+<script src="licenses.js?v=19"></script>
+<script src="core.js?v=19"></script>
+<script src="shader.js?v=19"></script>
+<script src="ui.js?v=19"></script>
+
+</body>
+</html>

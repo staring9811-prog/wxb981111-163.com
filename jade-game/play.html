@@ -74,6 +74,15 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 #npc .rivals { display: flex; gap: 6px; position: absolute; left: 14px; top: 26px; } #npc .rivals span { display: flex; flex-direction: column; align-items: center; } #npc .rivals i { font-style: normal; font-size: 10.5px; color: #b9b0a2; text-shadow: 0 1px 3px #000; }
 .ava { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; align-items: center; justify-content: center; font-size: 11px; color: #fff; margin-right: 5px; vertical-align: middle; }
 @media (max-width: 760px) { #npc .seller svg { width: 60px; height: 65px; } #npc .bubble { max-width: 170px; font-size: 12px; } #npc .rivals { display: none; } }
+#coach { position: absolute; left: 50%; transform: translateX(-50%); bottom: 150px; z-index: 4; max-width: min(92%, 560px); background: #f3ecddf2; color: #2a2018; border-radius: 10px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; font-size: 13.5px; box-shadow: 0 4px 16px #000b; }
+#coach small { color: #7a6a55; white-space: nowrap; } #coach button { background: #e2d8c2; color: #2a2018; border-color: #b9ab8e; font-size: 12px; padding: 2px 8px; white-space: nowrap; }
+.goal { border-color: #6a5632; background: #1c1810; } .goal .row { font-size: 12.5px; color: var(--dim); } .goal .row:first-child { font-size: 14px; color: var(--lamp); } .goal .done { color: var(--jade); } .goal button { font-size: 12px; padding: 1px 8px; }
+.achs { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px; color: #6f675c; } .achs .got { color: var(--lamp); }
+.startbox { align-items: center; text-align: center; min-width: min(86vw, 340px); padding: 28px 26px !important; background: radial-gradient(circle at 50% 0%, #2a3a2f, #14110e 70%) !important; border-color: #3f6a55 !important; }
+.startbox .eyebrow { margin: 0; font-size: 12px; letter-spacing: .3em; color: var(--dim); } .startbox .big { font-family: var(--display); font-size: 44px; letter-spacing: .18em; margin: 4px 0; color: var(--jade); text-shadow: 0 0 24px #66c49755; }
+.startbox .tag2 { margin: 0 0 8px; color: var(--fg); max-width: 22em; } .startbox button { width: 100%; padding: 9px; font-size: 15px; }
+.storybox { max-width: 32em !important; } .storybox h3 { margin: 8px 0 0; font-size: 15px; color: var(--lamp); }
+#paywall input { font: inherit; font-size: 17px; letter-spacing: .08em; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; text-align: center; }
 #sawbox { right: 14px; top: 116px; } #sawbox input { accent-color: var(--lamp); width: 100%; }
 #sawbox { position: absolute; z-index: 4; width: 220px; background: #1a1714ee; border: 1px solid var(--lamp); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; box-shadow: 0 4px 14px #000a; }
 .rawimg { width: 72px; height: 72px; border-radius: 3px; flex: none; }
@@ -143,8 +152,16 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .modal > div { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; max-width: 34em; max-height: 90%; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
 .modal h2 { font-family: var(--display); margin: 0; font-size: 18px; color: var(--jade); }
 .modal p, .modal li { margin: 0; color: var(--fg); } .modal ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+#menuBtn { display: none; } #hmenu { display: flex; gap: 8px; }
 @media (max-width: 760px) {
-  main { flex-direction: column; } #stage { flex: 0 0 56%; } aside { width: auto; flex: 1; border-left: 0; border-top: 1px solid var(--line); }
+  header { gap: 6px; padding-block: 5px; flex-wrap: nowrap; position: relative; } header > button { padding: 4px 8px; font-size: 13px; white-space: nowrap; }
+  #stats { gap: 8px; flex-wrap: nowrap; overflow: hidden; min-width: 0; } #stats div { white-space: nowrap; } #stats div:nth-child(3), #stats div:nth-child(4) { display: none; } #stats span { font-size: 10.5px; } #stats b { font-size: 13px; margin: 0 2px; }
+  #menuBtn { display: inline-block; } #hmenu { display: none; position: absolute; right: 8px; top: 100%; z-index: 30; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; box-shadow: 0 6px 18px #000c; } #hmenu.open { display: flex; }
+  #tools { flex-wrap: nowrap; overflow-x: auto; } #tools button { flex: none; white-space: nowrap; padding: 5px 8px; font-size: 13px; }
+  #torchdock { bottom: 88px; left: 6px; transform: scale(.8); transform-origin: left bottom; }
+  #coach { bottom: auto; top: 46px; width: 92%; flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px; } #coach span { flex: 1 1 100%; }
+  #lightsw { top: 96px; right: 8px; } #hint { display: none; }
+  main { flex-direction: column; } #stage { flex: 0 0 58%; } aside { width: auto; flex: 1; border-left: 0; border-top: 1px solid var(--line); }
   h1 { font-size: 17px; } #stats { gap: 10px; } #hint { font-size: 12px; }
 }
 </style>
@@ -152,10 +169,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <header>
     <h1>翡翠博弈</h1>
     <div id="stats"></div>
-    <button data-act="quality">画质 标准</button>
-    <button data-act="mute">声音 开</button>
-    <button data-act="help">教程</button>
-    <button data-act="restart">新开一局</button>
+    <button id="menuBtn" data-act="menu">菜单</button>
+    <div id="hmenu"><button data-act="quality">画质 标准</button><button data-act="mute">声音 开</button><button data-act="help">教程</button><button data-act="home">主页</button></div>
     <button data-act="next" class="pri">收工，下一天</button>
   </header>
   <main>
@@ -165,6 +180,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <div id="reveal" hidden></div>
       <div id="sawbox" hidden></div>
       <div id="npc" hidden></div>
+      <div id="coach" hidden></div>
       <button id="lightsw" data-act="room" aria-label="室内灯开关" title="室内灯"><span></span></button>
       <div id="tfloat" hidden><button id="tfP" data-act="tpower" title="关手电">关</button><button id="tfC" data-act="tcolor" title="白光/黄光">白</button></div>
       <div id="torchdock" title="手电">
@@ -329,6 +345,25 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <button data-act="help" class="pri">开始玩</button>
 </div></div>
 <div id="cabgame" class="modal" hidden><div><h2>盯着师傅取蛋面</h2><div id="cabbody" style="display:flex;flex-direction:column;gap:8px"></div></div></div>
+<div id="start" class="modal"><div class="startbox">
+  <p class="eyebrow">瑞丽 · 姐告夜市</p>
+  <h1 class="big">翡翠博弈</h1>
+  <p class="tag2">一刀穷，一刀富。皮壳底下是什么，买之前没人知道。</p>
+  <p id="stInfo" class="note"></p>
+  <button data-act="startgo" id="stCont" class="pri">继续游戏</button>
+  <button data-act="startnew">新的一局</button>
+  <button data-act="starthelp">教程与图鉴</button>
+  <button data-act="codeopen" id="stCode" hidden>输入激活码</button>
+  <p id="stLic" class="note"></p>
+</div></div>
+<div id="story" class="modal" hidden><div id="storybody" class="storybox"></div></div>
+<div id="paywall" class="modal" hidden><div>
+  <h2>输入激活码</h2><p id="codeMsg" class="say"></p>
+  <label for="codeIn" class="note">激活码（16 位，形如 ABCD-EFGH-JKLM-NPQR）</label>
+  <input id="codeIn" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX">
+  <p class="note" id="buyText"></p>
+  <div class="row"><button data-act="codeclose">先不输</button><button data-act="codego" class="pri">激活</button></div>
+</div></div>
 <div id="confirm" class="modal" hidden><div>
   <h2>新开一局？</h2><p>当前进度会被清掉，现金回到 200K。</p>
   <div class="row"><button data-act="no">继续当前这局</button><button data-act="yes" class="pri">清空并重新开始</button></div>
@@ -340,11 +375,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v18</div>
+<div id="ver">v19</div>
 
 <script>
 (function () {
-  var LOCAL = 18, FILES = ['core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 19, FILES = ['config.js', 'licenses.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }
