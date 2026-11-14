@@ -43,7 +43,7 @@ const Snd = (() => { let ac = null, on = true; const ctx = () => { if (!ac) try 
 let W = null;
 const V = { mode: null, rec: null, piece: null, e: null, tool: 'rotate', burr: '中磨头', torch: { on: false, p: null, n: null, rake: false, tilt: 0, az: 0, h: 0 }, lampBody: true, room: true, lens: null, cut: null, cutT: 12, section: 0, msg: '', note: '', wk: { route: 'bracelet', master: '平洲镯师', theme: '师傅定' }, ref: false, sel: null, cab: false };
 const cam = { yaw: 0.6, pitch: 0.35, dist: 300, t: [0, 0, 0] };
-const Q = { scale: 1, fast: 0.45, K: 16, tuned: false };
+const Q = { scale: 1, fast: 0.45, K: 16, tuned: false, user: 1 };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
 
 function save() { try { localStorage.setItem(SAVE_KEY, C.serialize(W)); } catch (e) { /* 存不了也能继续玩 */ } }
@@ -71,7 +71,7 @@ function render(scale, forceSize) {
   if (V.mode === 'tray') return renderTray(scale);
   gl.useProgram(prog);
   if (!V.e) { gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(0.03, 0.027, 0.024, 1); gl.clear(gl.COLOR_BUFFER_BIT); return; }
-  const rect = canvas.getBoundingClientRect(), pr = Math.min(window.devicePixelRatio || 1, 2) * Q.scale * scale;
+  const dpr0 = window.devicePixelRatio || 1, rect = canvas.getBoundingClientRect(), pr = (dpr0 >= 1.5 ? Math.min(dpr0, 2) : 1.5) * Q.scale * Q.user * scale; // 普通屏幕按 1.5 倍超采样，抗锯齿
   const w = forceSize || Math.max(2, Math.round(rect.width * pr)), h = forceSize || Math.max(2, Math.round(rect.height * pr));
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const t0 = performance.now();
@@ -438,6 +438,7 @@ document.addEventListener('click', ev => {
   else if (a === 'keep') { C.keepItem(W, W.items.find(x => x.id === +b.dataset.i)); save(); openTray(false, false); }
   else if (a === 'unkeep') { W.items.find(x => x.id === +b.dataset.i).state = 'ready'; save(); openTray(false, true); }
   else if (a === 'iorder') { const it = W.items.find(x => x.id === +b.dataset.i), o = W.orders.find(x => x.id === +b.dataset.o); C.sellToOrder(W, it, o); Snd.win(); save(); openTray(false, false); }
+  else if (a === 'quality') { const o = [[1, '画质 标准'], [1.35, '画质 高'], [0.7, '画质 省电']], i = (o.findIndex(x => x[0] === Q.user) + 1) % o.length; Q.user = o[i][0]; b.textContent = o[i][1]; Q.tuned = false; Q.scale = 1; invalidate(false); }
   else if (a === 'mute') { b.textContent = Snd.toggle() ? '声音 开' : '声音 关'; }
   else if (a === 'tray') openTray(false);
   else if (a === 'trayref') openTray(true);

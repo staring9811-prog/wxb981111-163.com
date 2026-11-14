@@ -29,7 +29,14 @@ float ign(vec2 p){ return fract(52.9829189*fract(dot(p,vec2(0.06711056,0.0058371
 vec4 G(vec3 p){ return texture(uGeom,p/(2.0*uBox)+0.5); }
 vec4 M(vec3 p){ return texture(uMat,p/(2.0*uBox)+0.5); }
 // 用小尺度噪声扰动取样位置，让色带边缘呈絮状、丝状，而不是体素的糊边
-vec4 Mw(vec3 p){ vec3 w=vec3(vnoise(p*0.55+11.0),vnoise(p*0.55+37.0),vnoise(p*0.55+71.0))-0.5; return M(p+w*2.2); }
+vec4 Mw(vec3 p){ vec3 w=vec3(vnoise(p*0.55+11.0),vnoise(p*0.55+37.0),vnoise(p*0.55+71.0))-0.5; vec4 m=M(p+w*2.2);
+  // 色根有纤维感：顺着一个方向拉丝，边缘咬合得更清楚
+  float fib=vnoise(p*vec3(1.6,0.28,1.6)+uPhase)*0.6+vnoise(p*vec3(3.8,0.5,3.8)+uPhase*1.3)*0.4;
+  float wisp=vnoise(p*0.42+uPhase*2.0)*0.6+vnoise(p*1.1+uPhase)*0.4;
+  float c=m.r+(fib-0.5)*0.46+(wisp-0.5)*0.30;                     // 边缘不是渐变的雾，而是一丝丝、一絮絮咬进去
+  m.r=clamp(mix(m.r*(0.7+0.6*fib),smoothstep(0.16,0.50,c)*min(1.0,m.r*2.2+0.25),0.72),0.0,1.0); return m; }
+vec3 hash3(vec3 c){ return vec3(hash(c),hash(c+17.3),hash(c+41.7)); }
+float worley(vec3 p){ vec3 b=floor(p-0.5); float d=9.0; for(int x=0;x<2;x++) for(int y=0;y<2;y++) for(int z=0;z<2;z++){ vec3 c=b+vec3(float(x),float(y),float(z)); vec3 q=c+hash3(c)-p; d=min(d,dot(q,q)); } return sqrt(d); }
 float sdfOf(vec4 g){ return mix(g.g,g.r,uPristine); }
 float planeD(vec3 p){ float m=-1e9; for(int i=0;i<16;i++){ if(i>=uNPl) break; m=max(m,dot(p,uPl[i].xyz)-uPl[i].w); }
   for(int h=0;h<4;h++){ if(h>=uNHo) break; float m2=-1e9; for(int j=0;j<6;j++){ if(j>=uHoN[h]) break; m2=max(m2,dot(p,uHo[h*6+j].xyz)-uHo[h*6+j].w); } m=max(m,-m2); }
@@ -45,7 +52,8 @@ float scat(vec4 m){ return max(0.02,0.62*exp(-3.6*m.g))+m.b*0.3; }
 vec3 albedo(vec4 m){ // 色根：中心浓、往外晕开变淡，而不是一块平涂
   float core=smoothstep(0.38,0.90,m.r), halo=smoothstep(0.03,0.42,m.r);
   vec3 light=mix(uBandCol,uBodyCol,0.50)*vec3(1.04,1.0,0.92);
-  vec3 a=mix(uBodyCol,mix(light,uBandCol*0.92,core),halo); a=mix(a,vec3(0.97),m.b*0.6); return a*(1.0-0.8*m.a); }
+  vec3 deep=mix(uBandCol,vec3(dot(uBandCol,vec3(0.3,0.5,0.2))),0.14)*0.74;   // 浓处往深里走，不是荧光绿
+  vec3 a=mix(uBodyCol,mix(light,deep,core),halo); a=mix(a,vec3(0.97),m.b*0.6); return a*(1.0-0.8*m.a); }
 
 float crG(int i, vec3 p, out float ins){
   vec3 d=p-uCrA[i].xyz; vec3 n=uCrB[i].xyz; float h=dot(d,n); vec3 q=d-n*h; float r=length(q);
@@ -94,10 +102,15 @@ bool trace(vec3 ro, vec3 rd, out vec3 p, out vec3 n, out float flat_){
 float softShadow(vec3 p, vec3 l){ float res=1.0, t=2.5; for(int i=0;i<10;i++){ float d=mapD(p+l*t); res=min(res,7.0*d/t); t+=clamp(d,1.5,7.0); if(res<0.02||t>70.0) break; } return clamp(res,0.0,1.0); }
 float calcAO(vec3 p, vec3 n){ float o=0.0, w=1.0; for(int i=1;i<=4;i++){ float h=float(i)*2.4; o+=w*(h-mapD(p+n*h)); w*=0.6; } return clamp(1.0-0.16*o,0.0,1.0); }
 // 皮壳高度场：大起伏 + 砂粒
-float skinH(vec3 p, float gf){ return 0.9*fbm(p*0.22+uPhase)+uSkinGrain*(0.55*vnoise(p*gf+uPhase)+0.30*vnoise(p*gf*2.3+uPhase+5.0)+0.15*vnoise(p*gf*5.1+uPhase+9.0)); }
-vec3 envLight(vec3 r, vec3 keyL){ // 假想的摄影棚：一盏主柔光箱 + 顶部漫射 + 暗的地面
-  float box=smoothstep(0.80,0.97,dot(r,keyL)); float top=smoothstep(-0.2,0.9,r.y);
-  return vec3(1.0,0.97,0.92)*box*2.2+vec3(0.20,0.21,0.23)*top+vec3(0.03,0.028,0.025); }
+float skinH(vec3 p, float gf){ float h=0.9*fbm(p*0.22+uPhase)+uSkinGrain*(0.55*vnoise(p*gf+uPhase)+0.30*vnoise(p*gf*2.3+uPhase+5.0)+0.15*vnoise(p*gf*5.1+uPhase+9.0));
+  if(uHi>0.5) h+=(0.25+0.75*uSkinGrain)*0.55*(1.0-smoothstep(0.0,0.75,worley(p*gf*0.85+uPhase))); // 一粒粒鼓起来的砂
+  return h; }
+vec3 envLight(vec3 r, vec3 keyL){ // 假想的房间：一扇带窗棂的窗（主光）、一条侧面的灯带、顶部漫射、暗的地面
+  vec3 t=normalize(cross(keyL,vec3(0.0,1.0,0.001))), b=cross(t,keyL); float z=dot(r,keyL), x=dot(r,t)/max(z,1e-3), y=dot(r,b)/max(z,1e-3);
+  float win=z>0.0?(1.0-smoothstep(0.30,0.36,abs(x)))*(1.0-smoothstep(0.20,0.25,abs(y))):0.0; win*=1.0-0.55*max(1.0-smoothstep(0.0,0.02,abs(x)),1.0-smoothstep(0.0,0.02,abs(y)));
+  vec3 sl=normalize(uCamRot*vec3(0.85,0.25,0.30)); float strip=smoothstep(0.90,0.97,dot(r,sl));
+  float top=smoothstep(-0.2,0.9,r.y);
+  return uKeyCol*win*2.6+vec3(0.75,0.82,0.95)*strip*0.7+vec3(0.20,0.21,0.23)*top+uTabCol*0.35*smoothstep(0.0,-0.7,r.y)*uFloorOn+vec3(0.03,0.028,0.025); }
 
 vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   vec4 g=G(p); float depth0=-g.r; float skinT=g.b;
@@ -118,6 +131,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     col*=0.74+0.30*gr+0.20*gr2+0.12*gr3;
     col*=1.0-0.45*smoothstep(0.24,0.10,gr2)*uSkinGrain;            // 砂眼小坑
     col+=vec3(0.10,0.095,0.085)*smoothstep(0.86,0.95,gr3)*uSkinGrain; // 浅色砂粒
+    float lum=dot(uSkinCol,vec3(0.33));
     vec4 b1=M(p-n*(skinT+2.0)), b2=M(p-n*(skinT+5.0));
     // 松花、蟒带、癣：部分来自皮下真相，部分是与内部无关的假象，比例由场口可靠度决定
     float cT=max(b1.r,b2.r*0.7);
@@ -138,12 +152,15 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     vec3 gh=vec3(skinH(p+vec3(e,0,0),gf),skinH(p+vec3(0,e,0),gf),skinH(p+vec3(0,0,e),gf))-h0;
     gh-=n*dot(gh,n);
     vec3 ns=normalize(n-gh*(1.6+detail*0.8)*(1.0-mang*0.6));
-    float cav=smoothstep(0.25,0.75,h0/(0.9+uSkinGrain));              // 凹处更暗
+    float cav=smoothstep(0.25,0.85,h0/(1.0+uSkinGrain*1.3));           // 凹处更暗
+    col=mix(col,lum<0.3?col*1.35+0.035:col*0.62,(1.0-cav)*0.45);          // 缝里积的土：黑皮缝里发灰，浅皮缝里发暗
     float dif=max(dot(ns,keyL),0.0)*sh;
-    vec3 lit=uKeyCol*dif*0.95+vec3(0.55,0.62,0.75)*max(dot(ns,fillL),0.0)*0.22+vec3(0.9,0.9,1.0)*pow(max(dot(ns,rimL),0.0),2.0)*0.18+vec3(0.20,0.19,0.18)*ao*(0.6+0.4*ns.y);
+    vec3 lit=uTabCol*max(-ns.y,0.0)*0.55*uFloorOn+uKeyCol*dif*0.95+vec3(0.55,0.62,0.75)*max(dot(ns,fillL),0.0)*0.22+vec3(0.9,0.9,1.0)*pow(max(dot(ns,rimL),0.0),2.0)*0.18+vec3(0.20,0.19,0.18)*ao*(0.6+0.4*ns.y);
     vec3 hv=normalize(keyL-rd); float gloss=mix(0.22,0.05,uSkinGrain);
     float sp=pow(max(dot(ns,hv),0.0),mix(30.0,10.0,uSkinGrain))*gloss*sh;
-    surf=(col*(0.72+0.38*cav)*lit+vec3(sp))*uAmbient;
+    float glint=step(0.972,hash(floor(p*gf*3.2)+uPhase))*pow(max(dot(reflect(rd,ns),keyL),0.0),6.0)*sh;   // 砂粒晶面的闪点
+    float sheen=pow(1.0-max(dot(ns,-rd),0.0),3.0);
+    surf=(col*(0.66+0.44*cav)*lit+vec3(sp)+vec3(1.0,0.97,0.9)*glint*(0.35+0.9*uSkinGrain)+col*sheen*0.22)*uAmbient;
     if(uTorch.w>0.0){ vec3 dl=uRakePos-p; float dd=length(dl); surf+=col*max(dot(ns,dl/dd),0.0)/(1.0+dd*dd/uRakeFall)*uRakeI; }
   }
   // 玉肉表面：切面抛光感强，磨出的窗口偏哑光
@@ -156,7 +173,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   vec3 T=T0, acc=vec3(0.0); float dt=0.40, trav=0.0; float gp[10];
   x+=dir*dt*(ign(gl_FragCoord.xy)-0.5)*0.9*flesh;   // 抖动起点，消除分层条纹
   for(int i=0;i<10;i++){ float ins; gp[i]=i<uNCr?crG(i,x,ins):1.0; }
-  float ambL=uAmbient*(0.42+0.58*max(dot(nf,keyL),0.0)*mix(1.0,sh,0.6))*mix(1.0,ao,0.5);
+  float ambL=uAmbient*(0.42+0.58*max(dot(nf,keyL),0.0)*mix(1.0,sh,0.6)+0.14*max(-nf.y,0.0)*uFloorOn)*mix(1.0,ao,0.5);
   vec3 ambC=mix(vec3(1.0),uKeyCol,0.85); // 场景灯光的颜色会改变你看到的色：黄灯下绿显得更浓
   for(int k=0;k<18;k++){ if(k>=uK) break;
     vec3 s=x+dir*dt*0.5; vec4 gs=G(s); float ds=max(sdfOf(gs),planeD(s));
@@ -164,6 +181,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     vec4 m=Mw(s); vec3 sg=sigT(m); float sc=scat(m); vec3 al=albedo(m);
     float fogw=uFogT>0.0?1.0-smoothstep(gs.b+uFogT*0.6,gs.b+uFogT,-gs.r):0.0; al=mix(al,uFogCol,fogw*0.75); sg+=fogw*0.10;
     // 晶粒：种越嫩颗粒越明显；放大镜下更清楚
+    al*=mix(vec3(1.0),vec3(0.74,0.84,0.78)+vec3(0.34,0.20,0.16)*vec3(vnoise(s*0.21+uPhase),vnoise(s*0.19+uPhase+4.0),vnoise(s*0.23+uPhase+9.0)),smoothstep(0.10,0.50,m.r)); // 色里有深有浅、偏黄偏蓝
     // 玉肉天然的不均匀：絮状棉团、清透的水路、底色深浅、零星黑点
     float cl=fbm(s*0.10+uPhase*0.37), cl2=vnoise(s*0.33+uPhase);
     float floc=smoothstep(0.50,0.78,cl*0.65+cl2*0.35)*(0.30+m.b*1.6)*(1.0-0.45*m.g);
@@ -186,13 +204,16 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     vec2 lk=crLook(i,p,h,ins)*uCrB[i].w; line=max(line,lk.x); halo=max(halo,lk.y); }
   acc=mix(acc,acc*vec3(1.0,0.86,0.70)+vec3(0.10,0.095,0.085)*uAmbient,halo*0.55*flesh);
   acc*=1.0-0.80*line*flesh;
-  if(flat_>0.5) acc*=1.0+0.035*sin(dot(p,uCamRot[0])*5.0+vnoise(p*0.3)*4.0)*flesh; // 锯痕
+  if(flat_>0.5) acc*=1.0+0.014*sin(dot(p,vec3(0.83,0.21,0.52))*4.3+vnoise(p*0.25)*9.0)*flesh; // 很淡的锯痕
   // 菲涅耳反光：种水越好表面越“起光”
   float wS=M(p-n*0.5).g; float ndv=max(dot(nf,-rd),0.0);
   float F=(0.035+0.965*pow(1.0-ndv,5.0))*mix(0.45,1.0,wS)*mix(0.55,1.0,flat_);
   vec3 refl=envLight(reflect(rd,nf),keyL)*mix(1.0,sh,0.7);
   vec3 hv2=normalize(keyL-rd); float spec=pow(max(dot(nf,hv2),0.0),mix(40.0,220.0,flat_*0.6+wS*0.4))*mix(0.5,1.6,wS)*sh;
-  vec3 col=surf*(1.0-flesh)+acc+(refl*F+vec3(spec)*0.5)*uAmbient*flesh;
+  if(flat_>0.5) spec*=0.75+0.5*vnoise(p*vec3(7.0,0.6,7.0));                 // 抛光留下的细丝
+  acc*=1.0+0.30*pow(1.0-ndv,3.0)*wS;                                        // 种好的料，边缘薄处更透亮
+  float wet=mix(0.55,1.0,flat_);                                            // 表面一层水膜
+  vec3 col=surf*(1.0-flesh)+acc*(1.0-F*0.6)+(refl*F*wet*1.25+vec3(spec)*0.5)*uAmbient*flesh;
   if(uTorch.w>0.0){ float r=length(p-uTorchSurf); col+=vec3(1.0,0.97,0.9)*min(uTorch.w,6.0)*0.06*exp(-r*r/9.0); col+=vec3(0.5)*(smoothstep(4.0,4.4,r)-smoothstep(4.6,5.0,r))*0.30; }
   if(uFakeT>1.5&&detail>0.5){ float rv=smoothstep(0.06,0.30,flesh)*(1.0-smoothstep(0.70,0.96,flesh)); col=mix(col,vec3(0.98,0.82,0.45),rv*0.85); } // 贴片窗：放大镜下窗口一圈胶线
   if(uCutOn>0.5&&abs(dot(p,uCut.xyz)-uCut.w)<0.45) col=mix(col,vec3(1.0,0.55,0.15),0.85);
@@ -244,6 +265,7 @@ void main(){
       mc=mix(mc,vec3(1.0,0.95,0.8)*1.4,smoothstep(3.0,0.0,along)); mc*=0.85+0.15*step(0.5,fract(along*0.22));
       col=mix(col,mc,0.62); } }
   if(uGlare.z>0.0){ float d=length(gl_FragCoord.xy-uGlare.xy)/uRes.y; col+=vec3(1.0,0.95,0.85)*uGlare.z*(0.020/(d*d+0.0012)+0.10*exp(-d*d*40.0)); }
+  col*=1.0-0.22*dot(c,c);
   col=aces(col*1.15);
   col=pow(col,vec3(1.0/2.2));
   col+=(ign(gl_FragCoord.xy+17.0)-0.5)/255.0;
