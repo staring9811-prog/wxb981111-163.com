@@ -159,6 +159,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     float mang=smoothstep(0.5,0.8,mix(vnoise(p*0.03+uPhase*2.0),b1.g,uSkinRel))*smoothstep(0.45,0.6,vnoise(p*vec3(0.03,0.2,0.03)+uPhase));
     col=mix(col,col*1.22+0.04,mang*0.5);
     col=mix(col,vec3(0.05,0.06,0.05),smoothstep(0.2,0.6,max(b1.a,b2.a))*0.8*uSkinRel);
+    if(uFakeT>3.5){ col=uSkinCol*(0.74+0.20*gr+0.06*gr2); col+=vec3(0.05)*smoothstep(0.6,0.9,vnoise(p*0.5+uPhase)); } // 假皮：胶拌砂糊上去的，颜色一个样，没有风化的深浅和层次
     float crk=0.0; // 到皮的裂：明显的是黑线带锈边，隐蔽的只是一条细发丝
     for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); if(ins<0.01||abs(h)>5.0) continue; float vis=mix(0.38,1.0,uCrC[i].w);
       vec3 lk=crLook(i,p,h,ins)*vis; col=mix(col,col*vec3(1.10,0.62,0.36),lk.y*0.65); col*=1.0-0.90*lk.x; crk=max(crk,lk.x); }

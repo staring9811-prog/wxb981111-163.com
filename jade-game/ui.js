@@ -499,6 +499,19 @@ function buildAtlas() {
     h = ''; V.lensAll = true; for (const [nm, gr, tx] of [['粗砂', 0.95, '颗粒大、松、扎手。里面晶粒通常也粗：豆种居多'], ['中砂', 0.55, '颗粒看得见但排得紧。糯种到糯冰'], ['细砂', 0.22, '颗粒要凑近才看得出，摸着像细砂纸。种老的相'], ['蜡壳、极细', 0.05, '几乎看不到颗粒，表面发亮像打了蜡。常见于老坑高种']]) { const s3 = mk(); s3.w0 = 0.4; s3.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: gr, sig: 0.7, weather: 0.35, t: 1.6, phase: 3 }; const v3 = C.bake(s3, 44); V.mode = 'own'; V.rec = null; V.piece = C.WHOLE; V.e = { st: s3, vol: v3 }; V.lens = null; V.room = true; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; cam.dist = Math.max(v3.hx, v3.hy, v3.hz) * 1.3; V.torch = { on: false, p: null, n: null }; loaded = null; render(1, 168);
       h += `<figure><img src="${canvas.toDataURL('image/jpeg', 0.85)}" alt="${nm}"><figcaption><b>${nm}</b><span>${tx}</span></figcaption></figure>`; } V.lensAll = false;
     $('#grainAtlas').innerHTML = h;
+    const shot2 = (st, vol, o) => { V.mode = 'own'; V.rec = null; V.e = { st, vol }; V.lens = null; V.room = true; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; cam.dist = Math.max(vol.hx, vol.hy, vol.hz) * o.dist; const b = camBasis(); V.piece = o.cut ? { planes: [[-b.f[0], -b.f[1], -b.f[2], 0]] } : C.WHOLE; V.torch = { on: false, p: null, n: null }; V.lensAll = !!o.lens; V.fakeT = o.fakeT || null; loaded = null; render(1, 168); V.lensAll = false; V.fakeT = null; return canvas.toDataURL('image/jpeg', 0.85); };
+    const fig = (src, nm, tx) => `<figure><img src="${src}" alt="${nm}"><figcaption><b>${nm}</b><span>${tx}</span></figcaption></figure>`;
+    { h = ''; const s4 = mk(); s4.w0 = 0.4; s4.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: 0.7, sig: 0.7, weather: 0.5, t: 1.6, phase: 3 }; const v4 = C.bake(s4, 44);
+      h += fig(shot2(s4, v4, { dist: 3.6 }), '真皮 · 远看', '颜色有深有浅，有风化的锈斑，凸处磨得亮、凹处藏着泥') + fig(shot2(s4, v4, { dist: 1.3, lens: 1 }), '真皮 · 放大镜', '砂粒大小有变化，一粒粒是长在上面的')
+        + fig(shot2(s4, v4, { dist: 3.6, fakeT: 4 }), '假皮 · 远看', '通体一个颜色，像刷了一层漆，没有深浅过渡') + fig(shot2(s4, v4, { dist: 1.3, lens: 1, fakeT: 4 }), '假皮 · 放大镜', '砂粒一样大、一样色，是胶拌砂糊的，没有风化层次');
+      $('#fakeSkinAtlas').innerHTML = h; }
+    { h = ''; for (const [nm, g, tx] of [['粗（豆种）', 0.1, '晶粒肉眼可见，一粒粒像白糖，反光一片片闪'], ['较粗（糯种）', 0.28, '晶粒要凑近才看得出，表面细腻但不透'], ['细（糯冰到冰）', 0.55, '放大镜下才见到颗粒，开始有水感'], ['极细（高冰、玻璃）', 0.88, '放大镜下也看不到颗粒，像一块冻住的水']]) { const s5 = mk(); s5.w0 = g; s5.cot = 0.15; s5.skin = { name: '灰绿薄皮', col: C.SKINS['灰绿薄皮'].col, grain: 0.3, sig: 0.5, weather: 0.3, t: 1, phase: 3 }; const v5 = C.bake(s5, 44); h += fig(shot2(s5, v5, { dist: 1.15, lens: 1, cut: 1 }), nm, tx); }
+      $('#fleshAtlas').innerHTML = h; }
+    { h = ''; const mkc = (hue, str, w) => { const s6 = mk(); s6.w0 = w || 0.55; s6.hue = hue; s6.cot = 0.15; s6.feats = [{ type: 'full', strength: str, seed: 77, c: [0, 0, 0] }]; s6.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: 0.6, sig: 0.7, weather: 0.4, t: 1.4, phase: 3 }; return [s6, C.bake(s6, 44)]; };
+      for (const [nm, str, tx] of [['淡', 0.25, '隐隐一层绿，自然光下几乎看不出'], ['中', 0.5, '看得出是绿，但不饱满'], ['浓', 0.75, '颜色饱满，最讨喜的浓度'], ['过浓', 1.0, '厚处发暗，要切薄了才显色']]) { const [a, b] = mkc('阳绿', str); h += fig(shot2(a, b, { dist: 3.3, cut: 1 }), '浓度：' + nm, tx); }
+      $('#colorAtlas1').innerHTML = h; h = '';
+      for (const [hue, tx, w] of [['淡绿', '偏浅偏嫩'], ['阳绿', '鲜亮带一点黄味'], ['正绿', '不偏黄不偏蓝，最正'], ['帝王绿', '浓而深，最贵'], ['油青', '偏灰偏蓝，发闷'], ['紫罗兰', '粉紫，见光淡'], ['黄翡', '暖黄到橙'], ['阳绿', '同样的色放在种差的料上，色是死的，不透不活', 0.12]]) { const [a, b] = mkc(hue, 0.75, w); h += fig(shot2(a, b, { dist: 3.3, cut: 1 }), w ? '阳绿 · 豆种底' : hue, tx); }
+      $('#colorAtlas2').innerHTML = h; }
   } catch (e) { $('#skinAtlas').textContent = '对照图生成失败：' + e.message; }
   V.mode = keep.mode; V.rec = keep.rec; V.piece = keep.piece; V.e = keep.e; V.torch = keep.torch; V.room = keep.room; V.lens = keep.lens; Object.assign(cam, keep.cam); loaded = null; invalidate(false);
   const word = (v, a, b) => v >= b ? '高' : v >= a ? '中' : '低';
@@ -556,7 +569,7 @@ function buildCases() {
   };
   setTimeout(step, 30);
 }
-function showPane(k) { document.querySelectorAll('#help [data-pane]').forEach(x => x.hidden = x.dataset.pane !== k); document.querySelectorAll('#help [data-act=pane]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k)); if (k === 'skin' || k === 'water') buildAtlas(); if (k === 'atlas') buildCases(); if (k === 'crack') buildCracks(); if (k === 'fake') buildFakes(); }
+function showPane(k) { document.querySelectorAll('#help [data-pane]').forEach(x => x.hidden = x.dataset.pane !== k); document.querySelectorAll('#help [data-act=pane]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k)); if (k === 'skin' || k === 'water' || k === 'color') buildAtlas(); if (k === 'atlas') buildCases(); if (k === 'crack') buildCracks(); if (k === 'fake') buildFakes(); }
 
 /* 裂图鉴：每种裂拍四张——皮上、隔皮压灯、切开、切面压灯 */
 const CRK = [
@@ -565,6 +578,7 @@ const CRK = [
   ['隐裂（皮上看不见）', '皮厚或者皮色深，裂在皮上不露头。只有压灯才能发现：光晕里突然一条明暗分界。全蒙头的料最怕这个，所以要多换几个位置、几个方向压灯。', (a, r, u) => [['through', [r[0] * 6, r[1] * 6, r[2] * 6], [r[0] - u[0] * 0.25, r[1] - u[1] * 0.25, r[2] - u[2] * 0.25], a * 1.5, 1, 0]]],
   ['小绺、碎裂', '一组方向差不多的短裂，是同一次受力留下的。单条不深，但挤在一起这一片就取不出整料，只能做小件、珠子，或者用雕工把它们藏进纹路里。', (a, r, u) => [-2, -1, 0, 1, 2].map(k => ['hair', [r[0] * k * 7 + u[0] * (k % 2 ? 9 : -6), r[1] * k * 7 + u[1] * (k % 2 ? 9 : -6), r[2] * k * 7 + u[2] * (k % 2 ? 9 : -6)], [r[0] + u[0] * 0.12 * k, r[1] + u[1] * 0.12 * k, r[2] + u[2] * 0.12 * k], a * 0.26, 1, 0])],
   ['石纹（愈合的裂）', '很早以前裂开过，后来又被矿物长死了。切面上是一条发白的线，没有黑缝，不挡光，指甲划过去不卡。不算裂，对取料影响很小，只是不好看。别把它当成裂吓得贱卖。', (a, r, u) => [['healed', [0, 0, 0], [r[0] + u[0] * 0.3, r[1] + u[1] * 0.3, r[2] + u[2] * 0.3], a * 1.4, 0.2, 0]]],
+  ['实例：几种线混在一块料上', '切开一块料，面上常常不止一种线，要一条一条分开读。这张切面上：<b>横贯的那条细而锐、带黄锈的</b>是通天大裂，两头到皮，它把料分成两半，是这块料最大的问题；<b>旁边短的一条细黑线</b>是小绺，不到皮，取料时让开就行；<b>几道宽而模糊的乳白带子</b>是石纹，没有缝，不挡光，不算裂，可以不管。压灯那张能看出区别：光走到大裂就停了，穿过石纹却照样亮。读法是先找挡光的、到皮的，那是真问题；发白发虚不挡光的放到最后。拿不准就用放大镜指上去，会标出来。', (a, r, u) => [['through', [0, 0, 0], [u[0] + r[0] * 0.18, u[1] + r[1] * 0.18, u[2] + r[2] * 0.18], a * 1.6, 1, 1], ['hair', [r[0] * -16 + u[0] * -12, r[1] * -16 + u[1] * -12, r[2] * -16 + u[2] * -12], [r[0] + u[0] * 0.5, r[1] + u[1] * 0.5, r[2] + u[2] * 0.5], a * 0.22, 1, 0], ['healed', [r[0] * 10, r[1] * 10, r[2] * 10], [r[0] + u[0] * 0.35, r[1] + u[1] * 0.35, r[2] + u[2] * 0.35], a * 1.2, 0.2, 0], ['healed', [r[0] * -24, r[1] * -24, r[2] * -24], [r[0] - u[0] * 0.3, r[1] - u[1] * 0.3, r[2] - u[2] * 0.3], a * 0.9, 0.2, 0]]],
   ['十字裂', '两组方向的裂交叉，把料分成几小块。每一块都小，出不了镯子，只能按小件算价。看到皮上两条裂相交，就别按整料的价钱去想了。', (a, r, u) => [['through', [0, 0, 0], r, a * 1.6, 1, 1], ['through', [0, 0, 0], [u[0] + r[0] * 0.15, u[1] + r[1] * 0.15, u[2] + r[2] * 0.15], a * 1.6, 1, 1]]],
 ];
 let cracksStarted = false;
