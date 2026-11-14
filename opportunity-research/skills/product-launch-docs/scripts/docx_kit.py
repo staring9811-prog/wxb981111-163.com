@@ -177,19 +177,24 @@ def margin_fill(m):
     return GREEN if m >= 10 else (AMBER if m >= 0 else RED)
 
 
-def comp_table(items, vs):
+def comp_table(items, vs, group=None):
     """竞品表。items: 列表，每项 dict：
          ch（amazon/lowes/homedepot/wayfair）、pid、brand、title、img（本地图片路径）、price、
          rating、reviews、sales（月销）、config（多行配置文字，如 "整装，落地式\\n陶瓷盆\\nMDF"）
-       vs: {pid: "和我们比" 文字}，差价按我们的促销价算。"""
+       vs: {pid: "和我们比" 文字}，差价按我们的促销价算。
+       group: 层级名（如 "自营低价款"），写在表上方作小标题；按层级分组时每组调一次。"""
+    if group: para(f'**{group}**', size=9, after=2)
     rows = []
     for x in items:
-        rc = f"{float(x['reviews']):,.0f} 条" if x.get('reviews') not in (None, '', 'None') else '—'
+        rv = x.get('reviews')
         rt = f"{float(x['rating']):.1f}" if x.get('rating') else '—'
+        if rv not in (None, '', 'None'): rt += f"\n{float(rv):,.0f} 条"  # 没有评论数（如 Amazon 导出）只写评分
+        s = float(x.get('sales') or 0)
+        sales = f'{s:,.0f}' if s >= 10 or s == 0 else f'{s:.1f}'
         rows.append([img_cell(x['img']) if x.get('img') else '',
                      link_cell([f"**{x.get('brand') or ''}**", f"型号：{x['pid']}", _html.unescape(x.get('title') or '')[:48]],
                                x.get('link') or link_of(x['ch'], x['pid'])),
-                     usd(x['price']), f'{rt}\n{rc}', f"{float(x.get('sales') or 0):,.0f}", x.get('config', ''), vs.get(x['pid'], '')])
+                     usd(x['price']), rt, sales, x.get('config', ''), vs.get(x['pid'], '')])
     return table(['主图', '品牌 · 型号 · 链接', '售价', '评分\n评论数', '月销', '配置', '和我们比'], rows,
                  [2.3, 4.2, 1.4, 1.6, 1.3, 2.8, 4.2], size=7.5, aligns=[None, None, C_, C_, C_, None, None])
 

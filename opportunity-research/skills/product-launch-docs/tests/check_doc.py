@@ -55,7 +55,7 @@ def run(path, mode, channels, renders, skus):
         ok('L2', all(k in full for k in ('机会点', '危机点', '两大方向')))
         bad = [k for k in ('销量预估', '第三个月', '直接竞对：', '核心结论') if k in full]
         ok('L3', not bad, '出现：' + '、'.join(bad))
-        ok('L4', re.search(r'要[^、，。\n]{1,12}[、，]\s*要[^、，。\n]{1,12}[、，]\s*要', full) and '外观设计理念' in full and '使用性设计理念' in full)
+        ok('L4', re.search(r'要[^\n]{1,24}?、\s*要[^\n]{1,24}?、\s*要', full) and '外观设计理念' in full and '使用性设计理念' in full)
         sec = full.split('产品落地价格', 1)[-1]
         ok('L5', re.search(r'利润率\s*[\d.]+\s*[–-]\s*[\d.]+\s*%', sec) and any('利润率' in hdr(t) and '促销价' in hdr(t) for t in tables))
         ok('L6', imgs >= channels + renders, f'图片 {imgs} 张，需要 ≥ {channels + renders}')

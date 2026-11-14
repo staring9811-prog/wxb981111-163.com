@@ -97,6 +97,8 @@ def main():
     ap.add_argument('--row-order', help='行顺序，逗号分隔（不在其中的行丢弃）')
     ap.add_argument('--col-order', help='列顺序，逗号分隔（不在其中的列排在后面）')
     ap.add_argument('--col-label', action='append', default=[], help='列显示名，如 陶瓷=陶瓷盆')
+    ap.add_argument('--col-map', action='append', default=[], help='归并/改名列取值，如 Cultured Marble=人造大理石、木板=木板/其他；我们的差异列不要并')
+    ap.add_argument('--row-map', action='append', default=[], help='归并/改名行取值（行不是 price 时）')
     ap.add_argument('--price-bins', default='0,200,300,400,600,900')
     ap.add_argument('--our', action='append', default=[], help='我们的格子 行值:列值，可重复')
     ap.add_argument('--our-note', default='', help='副标题里关于我们的说明')
@@ -118,9 +120,13 @@ def main():
     rows_raw = [r for r in load(a.input) if keep(r, a.filter)]
     bs = bands(a.price_bins) if a.rows == 'price' else None
     collabel = dict(x.split('=', 1) for x in a.col_label)
+    cmap = dict(x.split('=', 1) for x in a.col_map)
+    rmap = dict(x.split('=', 1) for x in a.row_map)
 
     def rkey(r):
-        return band_of(num(g(r, 'price')), bs) if bs else str(g(r, a.rows) or '未标').strip()
+        if bs: return band_of(num(g(r, 'price')), bs)
+        v = str(g(r, a.rows) or '未标').strip()
+        return rmap.get(v, v)
 
     cell, noprice = {}, []
     for r in rows_raw:
@@ -129,7 +135,8 @@ def main():
             continue
         if bs and num(g(r, 'price')) <= 0:
             noprice.append(r); continue
-        cell.setdefault((rkey(r), str(g(r, a.cols) or '未标').strip()), []).append(r)
+        cv = str(g(r, a.cols) or '未标').strip()
+        cell.setdefault((rkey(r), cmap.get(cv, cv)), []).append(r)
 
     ours = []
     for o in a.our:
@@ -174,7 +181,7 @@ def main():
     h = [f'<!doctype html><meta charset="utf-8"><style>{CSS}</style><div class="w"><h2>{html.escape(a.title)}</h2>']
     shade_txt = '月销越高底色越深' if a.shade == 'sales' else f'单{a.unit}月销越高底色越深'
     h.append(f'<div class="s">{html.escape(a.subtitle)} · {shade_txt} · 评分低于 4.0 标红' +
-             (f' · 黄色行 / 黄框为我们（{html.escape(a.our_note)}）' if ours else '') + '</div>')
+             ((' · 黄色行 / 黄框为我们' + (f'（{html.escape(a.our_note)}）' if a.our_note else '')) if ours else '') + '</div>')
     h.append(f'<table><tr><th rowspan="2" style="background:#f4f6f8">{html.escape(rowname)}</th>')
     for i, c in enumerate(cols):
         h.append(f'<th colspan="{n}" class="g" style="background:{pal[i % 2]}">{html.escape(collabel.get(c, c))}</th>')
