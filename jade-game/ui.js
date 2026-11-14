@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const C = window.Core, $ = s => document.querySelector(s), fmt = C.fmt;
-const SAVE_KEY = 'jade-bargain-web-v6';
+const SAVE_KEY = 'jade-bargain-web-v7';
 const canvas = $('#gl'), gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
 if (!gl) { $('#hint').textContent = '这台设备的浏览器不支持 WebGL2，无法显示三维原石。'; return; }
 
@@ -47,7 +47,7 @@ const Q = { scale: 1, fast: 0.45, K: 16, tuned: false };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
 
 function save() { try { localStorage.setItem(SAVE_KEY, C.serialize(W)); } catch (e) { /* 存不了也能继续玩 */ } }
-function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 6) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
+function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 7) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
 
 /* ---------- 相机与渲染 ---------- */
 function camBasis() {
@@ -89,6 +89,7 @@ function render(scale, forceSize) {
   gl.uniform3fv(u('uBodyCol'), C.BODIES[st.body]); gl.uniform3fv(u('uBandCol'), H.band); gl.uniform3fv(u('uHueAbs'), H.abs); gl.uniform3fv(u('uFogCol'), st.fog.col); gl.uniform1f(u('uFogT'), st.fog.t);
   const A = new Float32Array(40), B = new Float32Array(40), Cc = new Float32Array(40), Tt = new Float32Array(30);
   st.cracks.slice(0, 10).forEach((c, i) => { A.set([c.c[0], c.c[1], c.c[2], c.R], i * 4); B.set([c.n[0], c.n[1], c.n[2], c.open], i * 4); Cc.set([c.warp, c.freq, c.phase, c.skinVis], i * 4); Tt.set(c.t1, i * 3); });
+  gl.uniform1f(u('uFakeT'), V.rec && V.rec.fake && V.mode !== 'review' ? (V.rec.fake.type === 'paint' ? 1 : 2) : 0);
   gl.uniform1i(u('uNCr'), Math.min(10, st.cracks.length)); gl.uniform4fv(u('uCrA'), A); gl.uniform4fv(u('uCrB'), B); gl.uniform4fv(u('uCrC'), Cc); gl.uniform3fv(u('uCrT'), Tt);
   const T = V.torch;
   if (T.on && T.p) {
@@ -96,14 +97,12 @@ function render(scale, forceSize) {
     const onFlesh = depth0 > skinT - 0.2, left = Math.max(0, skinT - Math.max(0, depth0)), inset = onFlesh ? 0.6 : left + 0.6, entry = onFlesh ? 1 : Math.max(0.02, Math.exp(-sk.sig * left));
     const dn = b.r[0] * n[0] + b.r[1] * n[1] + b.r[2] * n[2]; let tan = [b.r[0] - n[0] * dn, b.r[1] - n[1] * dn, b.r[2] - n[2] * dn];
     const tl = Math.hypot(tan[0], tan[1], tan[2]) || 1; tan = tan.map(v => v / tl);
-    const t2 = [n[1] * tan[2] - n[2] * tan[1], n[2] * tan[0] - n[0] * tan[2], n[0] * tan[1] - n[1] * tan[0]];
-    const th = T.tilt * Math.PI / 180, ph = T.az * Math.PI / 180, sT = Math.sin(th), cT = Math.cos(th), H = T.h;
-    const side = [tan[0] * Math.cos(ph) + t2[0] * Math.sin(ph), tan[1] * Math.cos(ph) + t2[1] * Math.sin(ph), tan[2] * Math.cos(ph) + t2[2] * Math.sin(ph)];
-    const dir = [-n[0] * cT + side[0] * sT, -n[1] * cT + side[1] * sT, -n[2] * cT + side[2] * sT];   // 光射入的方向
+    const Td = T.dir || n, cT = Math.max(0.08, Td[0] * n[0] + Td[1] * n[1] + Td[2] * n[2]), sT = Math.sqrt(Math.max(0, 1 - cT * cT)), H = T.h || 0;
+    const dir = [-Td[0], -Td[1], -Td[2]];   // 光射入的方向
     const lamp = [p[0] - dir[0] * (H + 2.5), p[1] - dir[1] * (H + 2.5), p[2] - dir[2] * (H + 2.5)];  // 灯头位置
     // 贴着压灯光全进去；抬高或放斜，进去的少、洒在表面的多
-    gl.uniform4f(u('uTorch'), p[0] - n[0] * inset, p[1] - n[1] * inset, p[2] - n[2] * inset, 28 * [1, 1.9, 3.6][W.tools.torch - 1] * Math.max(entry, [0, 0.05, 0.14][W.tools.torch - 1]) * Math.pow(cT, 0.6) / (1 + (H / 9) * (H / 9)));
-    gl.uniform3fv(u('uTorchDir'), dir); gl.uniform3fv(u('uTorchSurf'), p);
+    gl.uniform4f(u('uTorch'), p[0] - n[0] * inset, p[1] - n[1] * inset, p[2] - n[2] * inset, 28 * (T.dim ? 0.4 : 1) * [1, 1.9, 3.6][W.tools.torch - 1] * Math.max(entry, [0, 0.05, 0.14][W.tools.torch - 1]) * Math.pow(cT, 0.6) / (1 + (H / 9) * (H / 9)));
+    gl.uniform3fv(u('uTorchDir'), dir); gl.uniform3fv(u('uTorchSurf'), p); gl.uniform3fv(u('uTorchCol'), T.yellow ? [1.0, 0.80, 0.45] : [1, 1, 1]);
     gl.uniform3fv(u('uRakePos'), lamp); gl.uniform1f(u('uRakeFall'), 30 + H * H * 5 + sT * 1400); gl.uniform1f(u('uRakeI'), 0.5 + 2.0 * sT + Math.min(1.1, H * 0.04));
     T.spread = 260 * (1 + H / 12);
     gl.uniform3fv(u('uLampA'), lamp); gl.uniform3f(u('uLampB'), lamp[0] - dir[0] * 42, lamp[1] - dir[1] * 42, lamp[2] - dir[2] * 42); gl.uniform1f(u('uLampOn'), forceSize || !V.lampBody ? 0 : 1);
@@ -130,7 +129,7 @@ const REF = (() => { const B = C.BODIES['白底'], H = C.HUES, it = (type, name,
   it('cab', '紫罗兰', 0.65, 1, '紫罗兰', '春色，贵一两倍'), it('bracelet', '冰种飘花手镯', 0.65, 0.3, '阳绿', '色只占一段：种定底价，色定倍数'),
   Object.assign(it('pendant', '佛公牌', 0.5, 0.35, '阳绿', '浮雕题材：常年好卖，不挑料'), { theme: '观音佛公' }), Object.assign(it('pendant', '山水牌', 0.4, 0.2, '淡绿', '棉可以做成雪和云'), { theme: '山水', cot: 0.5 }), Object.assign(it('pendant', '平安扣', 0.82, 0.15, '阳绿', '交给师傅定：圆润的扣子最显水头'), { theme: '师傅定' }), Object.assign(it('carve', '佛公摆件', 0.3, 0.4, '正绿', '整块随形雕，裂和脏藏进题材里'), { theme: '观音佛公' }),
 ]; })();
-function trayItems() { return V.ref ? REF : W.items.filter(i => i.state === (V.cab ? 'kept' : 'ready')).slice(0, 16); }
+function trayItems() { return V.ref ? REF : W.items.filter(i => i.state === (V.cab === 'shelf' ? 'shelf' : V.cab ? 'kept' : 'ready')).slice(0, 16); }
 function trayLayout(items) { const n = items.length, cols = Math.max(1, Math.ceil(Math.sqrt(n * 1.5))), rows = Math.ceil(n / cols), sp = 84; return { cols, rows, sp, pos: items.map((_, i) => [((i % cols) - (cols - 1) / 2) * sp, (Math.floor(i / cols) - (rows - 1) / 2) * sp]), half: [cols * sp / 2 + 14, rows * sp / 2 + 14] }; }
 function renderTray(scale) {
   gl.useProgram(progT);
@@ -147,7 +146,7 @@ function renderTray(scale) {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 function holdItem(id) { V.hold = id; V.back = false; const it = (V.ref ? REF : W.items).find(x => x.id === id); cam.t = [0, it.type === 'carve' ? 17 : 5, 0]; cam.dist = it.type === 'cab' ? 60 : it.type === 'carve' ? 150 : 135; cam.pitch = 0.45; cam.yaw = 0.5; renderTools(); renderSide(); invalidate(false); }
-function openTray(ref, cab) { V.hold = null; V.mode = 'tray'; V.ref = !!ref; V.cab = !!cab; V.rec = null; V.piece = null; V.e = null; V.sel = null; V.tool = 'rotate'; const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.yaw = 0.35; cam.pitch = 0.85; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); V.note = ''; tab = 'tray'; renderAll(); }
+function openTray(ref, cab) { V.hold = null; V.mode = 'tray'; V.ref = !!ref; V.cab = cab || false; V.rec = null; V.piece = null; V.e = null; V.sel = null; V.tool = 'rotate'; const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.yaw = 0.35; cam.pitch = 0.85; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); V.note = ''; tab = 'tray'; renderAll(); }
 function focusItem() { const items = trayItems(), i = items.findIndex(x => x.id === V.sel); if (i < 0) return; const lay = trayLayout(items); cam.t = [lay.pos[i][0], items[i].type === 'carve' ? 16 : 5, lay.pos[i][1]]; cam.dist = items[i].type === 'cab' ? 80 : 170; cam.pitch = Math.min(cam.pitch, 0.62); }
 function pickTray(cx, cy) { const r = rayAt(cx, cy); if (r.rd[1] >= 0) return null; const t = (5 - r.ro[1]) / r.rd[1], x = r.ro[0] + r.rd[0] * t, z = r.ro[2] + r.rd[2] * t, items = trayItems(), lay = trayLayout(items); let best = null, bd = 44; items.forEach((it, i) => { const d = Math.hypot(x - lay.pos[i][0], z - lay.pos[i][1]); if (d < bd) { bd = d; best = it; } }); return best; }
 function lookAlong(n) { cam.pitch = Math.max(-1.55, Math.min(1.55, Math.asin(Math.max(-1, Math.min(1, n[1]))))); cam.yaw = Math.atan2(n[0], n[2]); }
@@ -196,6 +195,7 @@ function renderSide() {
       h += `<article class="card ${sel ? 'sel' : ''} ${L.sold ? 'gone' : ''}" data-act="listing" data-i="${i}"><div class="row"><b>${L.origin} · ${L.info.skin}</b><span class="price">${L.sold ? '已买' : L.auction ? '底价 ' + fmt(L.floor) : fmt(L.ask)}</span></div>
       <div class="row dim"><span>${(L.info.weight / 1000).toFixed(2)} kg · ${L.info.dims.join('×')} mm</span><span>${L.channel}</span></div>
       <div class="tags"><span class="tag ${L.info.window ? 'w' : ''}">${L.info.window ? '卖家已开窗' : '全蒙头'}</span>${betHtml(L.info.bet, sel)}</div>`;
+      if (sel && !L.sold && !L.called) h += `<div class="row"><span class="dim">觉得皮或窗口做过手脚？说对了老板大降价，说错了他翻脸不卖。</span><button data-act="callout">当面说这是假货</button></div>`;
       if (sel && !L.sold) h += `${(L.patter || []).map(x => `<p class="patter">${esc(x)}</p>`).join('')}${L.opinion ? `<p class="say">${esc(L.opinion)}</p>` : `<div class="row"><span class="dim">拿不准？</span><button data-act="appr">请师傅掌眼（${fmt(C.appraiseFee(L))}）</button></div>`}`;
       if (L.auction && L.bid && !L.sold) h += `<div class="row"><span class="say">已投标 ${fmt(L.bid)}，收工后开标</span></div>`;
       if (sel && !L.sold && L.auction) h += `<div class="bargain"><label for="offer">暗标出价（元）。别人出多少你看不到，出高了白花钱，出低了拿不到。</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${L.bid || V.offer || L.floor}"><button data-act="bid" class="pri">${L.bid ? '改标' : '投标'}</button></div>${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
@@ -228,7 +228,7 @@ function renderSide() {
         const q = getQuotes(s, V.piece), last = s.last[V.piece.id], stt = q.stats;
         h += `<div class="quotes"><div class="row dim"><span>${V.piece.name} · ${Math.round(stt.weight)} g${stt.isSlab ? ` · 片厚 ${stt.thickness.toFixed(0)} mm` : ''}${stt.bracelets ? ` · 可见手镯位 ${stt.bracelets}` : ''} · 看清程度 ${Math.round(stt.kAvg * 100)}%</span></div>`;
         if (last && last.prev != null && last.prev !== q.best) h += `<p class="delta">较上次报价 ${pct(q.best, Math.max(1, last.prev))}${last.why && last.why.length ? '：' + esc(last.why.join('；')) : ''}</p>`;
-        for (const o of q.list) h += `<div class="row q"><span><b>${o.buyer}</b> <i>${esc(o.note)}</i></span>${o.price ? `<button data-act="sell" data-b="${o.buyer}">${fmt(o.price)} 卖</button>` : '<span class="dim">不收</span>'}</div>`;
+        for (const o of q.list) h += `<div class="row q"><span><b>${o.buyer}</b> <i>${o.rel ? o.rel + ' · ' : ''}${esc(o.note)}</i></span>${o.price ? `<button data-act="sell" data-b="${o.buyer}">${fmt(o.price)} 卖</button>` : '<span class="dim">不收</span>'}</div>`;
         const K = V.wk, plan = C.workPlan(W, s, V.piece, K.route, K.master, K.theme), themed = K.route === 'pendant' || K.route === 'carve';
         const opt = (o, cur, f) => Object.keys(o).map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${f(k)}</option>`).join('');
         h += `<div class="work"><b>送去做件</b>
@@ -245,15 +245,16 @@ function renderSide() {
     const items = trayItems();
     if (V.ref) { h += `<p class="note">对照盘：上面六块素面牌从豆种到玻璃种，下面是同为冰种、不同颜色的蛋面。转动托盘，对着光看它们的差别。</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${it.name}</b></div><div class="row dim"><span>${it.note}</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button></div></article>`; h += `<button data-act="trayback" class="pri">回到我的托盘</button>`; }
     else {
-      h += `<div class="scenes"><button data-act="cab0" aria-pressed="${!V.cab}">待售托盘</button><button data-act="cab1" aria-pressed="${V.cab}">藏品柜（${W.items.filter(i => i.state === 'kept').length}）</button></div>`;
+      h += `<div class="scenes"><button data-act="cab0" aria-pressed="${!V.cab}">待售托盘</button><button data-act="cab2" aria-pressed="${V.cab === 'shelf'}">铺面柜台（${C.shelfCount(W)}/${C.SHOPLV[W.shop].slots}）</button><button data-act="cab1" aria-pressed="${V.cab === true}">藏品柜（${W.items.filter(i => i.state === 'kept').length}）</button></div>`;
+      if (V.cab === 'shelf') { h += `<p class="note">${W.shop ? `${C.SHOPLV[W.shop].name}：摆在这里的成品每天有散客上门，按零售价${C.SHOPLV[W.shop].mult > 1 ? '加一点' : ''}买走，口碑越好卖得越快。` : '还没有铺面。到「账本」里盘一个柜台，成品就能自己零售，不用再让批发商压价。'}</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${esc(it.name)}</b><span class="price">${fmt(it.value * C.SHOPLV[W.shop].mult)}</span></div><div class="row dim"><span>${C.waterName(it.w)} · 第 ${it.shelfDay} 天上柜</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button><button data-act="unshelf" data-i="${it.id}">撤回托盘</button></div></article>`; }
       if (!V.cab && W.event) h += `<p class="say">今日行情：${esc(W.event.t)}（${W.event.m > 1 ? '+' : ''}${Math.round((W.event.m - 1) * 100)}%）</p>`;
       if (!V.cab) { h += `<article class="card"><b>客户订单</b>${W.orders.map(o => `<div class="row dim"><span>${esc(C.orderText(o))}</span><span>加价 ${Math.round((o.bonus - 1) * 100)}% · 第 ${o.due} 天前</span></div>`).join('') || '<div class="row dim"><span>暂时没有订单</span></div>'}</article>`;
       for (const k of W.works) h += `<article class="card"><div class="row"><b>加工中 · ${esc(k.from)}</b><span class="dim">第 ${k.ready} 天取货</span></div><div class="row dim"><span>${esc(k.what)}</span></div></article>`; }
-      if (V.cab) { if (!items.length) h += `<p class="note">藏品柜是空的。舍不得卖的成品可以收进来，随时拿出来看。</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${esc(it.name)}</b><span class="price">${fmt(it.value)}</span></div><div class="row dim"><span>${C.waterName(it.w)} · ${it.master} · 出自 #${it.stone}</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button><button data-act="unkeep" data-i="${it.id}">拿回托盘出售</button></div></article>`; }
-      else if (!items.length) h += `<p class="note">托盘是空的。把料送去做件，做好后成品会摆在这里，可以转着看，一件件卖或整盘卖。</p>`;
+      if (V.cab === true) { if (!items.length) h += `<p class="note">藏品柜是空的。舍不得卖的成品可以收进来，随时拿出来看。</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${esc(it.name)}</b><span class="price">${fmt(it.value)}</span></div><div class="row dim"><span>${C.waterName(it.w)} · ${it.master} · 出自 #${it.stone}</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button><button data-act="unkeep" data-i="${it.id}">拿回托盘出售</button></div></article>`; }
+      else if (!V.cab && !items.length) h += `<p class="note">托盘是空的。把料送去做件，做好后成品会摆在这里，可以转着看，一件件卖或整盘卖。</p>`;
       else if (!V.cab) { const tot = items.reduce((a, i) => a + i.value, 0); h += `<article class="card"><div class="row"><b>整盘 ${items.length} 件</b><span>零售估值 ${fmt(tot)}</span></div><div class="row"><button data-act="iall" data-how="whole">整盘批发现结 ${fmt(tot * 0.6)}</button><button data-act="iall" data-how="retail" class="pri">整盘寄卖 ${fmt(tot * 0.95)}</button></div></article>`; }
       if (!V.cab) for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${esc(it.name)}</b><span class="price">${fmt(it.value)}</span></div><div class="row dim"><span>${C.waterName(it.w)} · ${it.lv > 0.6 ? '色满' : it.lv > 0.25 ? '带色' : it.lv > 0.08 ? '飘色' : '无色'}${it.theme && it.theme !== '师傅定' ? ' · ' + it.theme : ''} · ${it.master} · 出自 #${it.stone}</span></div>
-        <div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button><button data-act="isell" data-i="${it.id}" data-how="whole">批发 ${fmt(it.value * 0.6 * C.productDemand(W, it.type))}</button><button data-act="isell" data-i="${it.id}" data-how="retail">寄卖 ${fmt(it.value * 0.95 * C.productDemand(W, it.type))}（6–14 天）</button>${W.orders.filter(o => C.orderMatch(o, it)).slice(0, 1).map(o => `<button data-act="iorder" data-i="${it.id}" data-o="${o.id}" class="pri">交给${o.who} ${fmt(it.value * o.bonus)}</button>`).join('')}<button data-act="keep" data-i="${it.id}">收藏</button></div></article>`;
+        <div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button><button data-act="isell" data-i="${it.id}" data-how="whole">批发 ${fmt(it.value * 0.6 * C.productDemand(W, it.type))}</button><button data-act="isell" data-i="${it.id}" data-how="retail">寄卖 ${fmt(it.value * 0.95 * C.productDemand(W, it.type))}（6–14 天）</button>${W.orders.filter(o => C.orderMatch(o, it)).slice(0, 1).map(o => `<button data-act="iorder" data-i="${it.id}" data-o="${o.id}" class="pri">交给${o.who} ${fmt(it.value * o.bonus)}</button>`).join('')}<button data-act="shelf" data-i="${it.id}">摆进铺面</button><button data-act="keep" data-i="${it.id}">收藏</button></div></article>`;
       h += `<button data-act="trayref">看种水与颜色对照盘</button>`;
     }
   } else {
@@ -264,10 +265,12 @@ function renderSide() {
       h += `<article class="card ${V.mode === 'review' && V.rec === s ? 'sel' : ''}"><div class="row"><b>复盘 #${s.id} ${s.origin} · ${s.info.skin}</b><span class="${net >= 0 ? 'up' : 'down'}">${net >= 0 ? '+' : ''}${fmt(net)}</span></div>
       <div class="row dim"><span>买入 ${fmt(s.buyPrice)} · 加工 ${fmt(s.costs)} · 回款 ${fmt(s.proceeds)} · 持有 ${s.closeDay - s.buyDay} 天</span></div>
       <div class="row dim"><span>买入当天原样转手最高 ${fmt(s.flip)}；途中账面最高 ${fmt(s.best)}</span></div>
+      ${r.fake ? `<div class="row"><span class="say">这是一块假料：${r.fake}</span></div>` : ''}
       <div class="row dim"><span>真相：${r.water}，${r.feats.length ? r.hue + '（' + r.feats.join('、') + '）' : '基本无色'}，${r.cracks} 条裂${r.shift ? '，' + r.shift : ''}；全部做成件的零售价值约 ${fmt(r.truth)}</span></div>
       ${s.guessResult ? `<div class="row"><span class="say">判断本：你写的是 ${C.waterName(C.GRADES[s.guess.water])}／${{ none: '无色', skin: '贴皮色', deep: '色吃进去', full: '满色' }[s.guess.color]}／${s.guess.crack === 'few' ? '裂少' : '裂多'}，实际 ${C.waterName(C.GRADES[s.guessResult.water])}／${{ none: '无色', skin: '贴皮色', deep: '色吃进去', full: '满色' }[s.guessResult.color]}／${s.guessResult.crack === 'few' ? '裂少' : '裂多'}。眼力 +${s.guessResult.pts}</span></div>` : ''}
       <div class="row"><span class="dim">一次赚钱不等于判断正确，亏了也不一定是决策错。</span><button data-act="review" data-s="${s.id}">看剖面</button></div></article>`;
     }
+    { const S = C.SHOPLV[W.shop], nx = C.SHOPLV[W.shop + 1]; h += `<article class="card"><div class="row"><b>铺面：${S.name}</b><span class="dim">口碑 ${Math.round(W.fame)}</span></div>${W.shop ? `<div class="row dim"><span>日租 ${S.rent} · 柜位 ${C.shelfCount(W)}/${S.slots} · 零售价 ×${S.mult}</span></div>` : ''}${nx ? `<div class="row"><span class="dim">${nx.tip} 日租 ${nx.rent}。</span><button data-act="shopup">盘下${nx.name} ${fmt(nx.cost)}</button></div>` : ''}<div class="row dim"><span>熟客：${Object.keys(C.BUYERS).map(k => `${k} ${C.relWord(C.relOf(W, k))}`).join('，')}</span></div></article>`; }
     h += `<article class="card"><b>工具铺</b>${Object.keys(C.SHOP).map(k => { const S = C.SHOP[k], lv = W.tools[k], mx = lv >= S.levels.length; return `<div class="row"><span><b>${S.levels[lv - 1]}</b> <span class="dim">${S.tip}</span></span>${mx ? '<span class="dim">已是最好的</span>' : `<button data-act="tool" data-k="${k}">换${S.levels[lv]} ${fmt(S.price[lv - 1])}</button>`}</div>`; }).join('')}</article>`;
     const ach = Object.values(W.ach); h += `<article class="card"><div class="row"><b>${C.rankOf(W)}</b><span>眼力 ${W.eye}</span></div><div class="row dim"><span>${C.RANKS.map(r => `${r[1]} ${r[0]}`).join(' → ')}</span></div>${ach.length ? ach.map(a => `<div class="row"><span class="say">★ ${esc(a.name)}</span><span class="dim">第 ${a.day} 天</span></div>`).join('') : '<div class="row dim"><span>还没有成就</span></div>'}</article>`;
     h += `<article class="card"><b>流水</b>${W.log.slice(-40).reverse().map(l => `<div class="row dim"><span>第 ${l.day} 天 ${esc(l.t)}</span><span>${l.amt ? (l.amt > 0 ? '+' : '') + fmt(l.amt) : ''}</span></div>`).join('')}</article>`;
@@ -301,7 +304,7 @@ function renderTools() {
   }
   if (tray && V.hold != null) o = `<button data-act="back" aria-pressed="${!!V.back}">打背光</button><button data-act="unhold" class="pri">放回托盘</button>`;
   else if (tray) o = `<span class="dim">点一件选中，再点「拿起来看」</span>`;
-  else o += `<button data-act="room" aria-pressed="${V.room}">室内灯</button>`;
+
   $('#opts').innerHTML = o;
   let t = V.e ? HINTS[V.tool] : '从右侧「货源」里点一块石头开始看料。';
   if (tray && V.hold != null) t = '拿在手里看：拖动可以转到任何角度，包括背面和底下。打开背光看它透不透、色根怎么走。';
@@ -310,7 +313,7 @@ function renderTools() {
   $('#hint').textContent = V.note || t;
   $('#title').textContent = tray ? (V.ref ? '种水与颜色对照盘' : '成品托盘') : V.rec ? (V.mode === 'market' ? `${V.rec.origin} · ${V.rec.info.skin}` : `#${V.rec.id} ${V.rec.origin} · ${V.rec.info.skin}${V.mode === 'own' && V.piece ? ' · ' + V.piece.name : ''}${V.mode === 'review' ? ' · 复盘' : ''}`) : '';
 }
-function renderAll() { renderTop(); renderSide(); renderTools(); invalidate(false); $('#over').hidden = !W.over; }
+function renderAll() { renderTop(); renderSide(); renderTools(); renderDock(); invalidate(false); $('#over').hidden = !W.over; }
 function refreshQuote(s, p, record) {
   const prev = s.last[p.id]; qcache.clear();
   const q = getQuotes(s, p); s.last[p.id] = { best: q.best, stats: q.stats, prev: prev ? prev.best : null, why: prev ? C.explain(prev.stats, q.stats) : [] };
@@ -326,7 +329,7 @@ function buildAtlas() {
   const keep = { mode: V.mode, rec: V.rec, piece: V.piece, e: V.e, torch: V.torch, room: V.room, lens: V.lens, cam: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist, t: cam.t } };
   const mk = () => { const st = C.genStone(424242, '木那', '二级供应商'); st.feats = []; st.cracks = []; st.dirt = []; st.shift = null; st.wVar = 0; st.cot = 0.08; st.planes = []; st.fog = { t: 0, col: [1, 1, 1] }; st.body = '白底'; return st; };
   const shot = (st, vol, torch) => { V.mode = 'own'; V.rec = null; V.piece = C.WHOLE; V.e = { st, vol }; V.lens = null; V.room = !torch; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; cam.dist = Math.max(vol.hx, vol.hy, vol.hz) * 3.9; V.torch = { on: false, p: null, n: null, rake: false, tilt: 0, az: 0, h: 0 };
-    if (torch) { const b = camBasis(), h = C.pick(vol, C.WHOLE, b.pos, b.f); if (h) V.torch = { on: true, p: h.p, n: h.n, rake: false, tilt: 0, az: 0, h: 0 }; }
+    if (torch) { const b = camBasis(), h = C.pick(vol, C.WHOLE, b.pos, b.f); if (h) V.torch = { on: true, p: h.p, n: h.n, dir: h.n, h: 0 }; }
     render(1, 168); return canvas.toDataURL('image/jpeg', 0.85); };
   try {
     const st = mk(); st.w0 = 0.4; st.skin = Object.assign({}, st.skin, { t: 2 }); const vol = C.bake(st, 44); let h = '';
@@ -396,9 +399,17 @@ document.addEventListener('click', ev => {
   else if (a === 'back') { V.back = !V.back; renderTools(); invalidate(false); }
   else if (a === 'tool') { const r = C.buyTool(W, b.dataset.k); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
   else if (a === 'appr') { const rec = V.rec, r = C.appraise(W, rec); if (!r.ok) V.msg = r.msg; else Snd.tap(); save(); renderTop(); renderSide(); }
-  else if (a === 'lbody') { V.lampBody = !V.lampBody; renderTools(); invalidate(false); }
+  else if (a === 'lbody') { V.lampBody = !V.lampBody; renderDock(); invalidate(false); }
+  else if (a === 'tpower') { const T = V.torch; if (T.on && T.p) T.on = false; else if (T.p) T.on = true; Snd.tap(); renderDock(); invalidate(false); }
+  else if (a === 'tcolor') { V.torch.yellow = !V.torch.yellow; Snd.tap(); renderDock(); invalidate(false); }
+  else if (a === 'tdim') { V.torch.dim = !V.torch.dim; Snd.tap(); renderDock(); invalidate(false); }
+  else if (a === 'callout') { const r = C.callOut(W, V.rec); V.msg = r.msg; if (r.ok) Snd.win(); else Snd.lose(); save(); renderTop(); renderSide(); }
+  else if (a === 'shopup') { const r = C.upgradeShop(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
+  else if (a === 'shelf') { const r = C.toShelf(W, W.items.find(x => x.id === +b.dataset.i)); if (!r.ok) { V.note = r.msg; renderTools(); } save(); openTray(false, false); }
+  else if (a === 'unshelf') { W.items.find(x => x.id === +b.dataset.i).state = 'ready'; save(); openTray(false, 'shelf'); }
+  else if (a === 'cab2') openTray(false, 'shelf');
   else if (a === 'toff') { V.torch.on = false; renderTools(); invalidate(false); }
-  else if (a === 'room') { V.room = !V.room; renderTools(); invalidate(false); }
+  else if (a === 'room') { V.room = !V.room; Snd.tap(); renderTools(); renderDock(); invalidate(false); }
   else if (a === 'burr') { V.burr = b.dataset.k; renderTools(); }
   else if (a === 'cview') { cutFromView(); V.cut.fromView = true; renderTools(); invalidate(false); }
   else if (a === 'ccancel') { V.cut = null; renderTools(); invalidate(false); }
@@ -433,7 +444,7 @@ document.addEventListener('input', ev => {
   if (ev.target.id === 'sec') { V.section = +ev.target.value; invalidate(true); }
 });
 const ptrs = new Map(); let drag = null, lastCarve = null, strokeCost = 0; const lineEl = $('#cutline');
-function torchAt(ev) { const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, curPiece(), r.ro, r.rd, V.mode === 'review'); if (h) { V.torch.on = true; V.torch.p = h.p; V.torch.n = h.n; } return h; }
+function torchAt(ev) { const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, curPiece(), r.ro, r.rd, V.mode === 'review'); if (h) { const T = V.torch; T.on = true; T.p = h.p; T.n = h.n; if (!T.dir || T.dir[0] * h.n[0] + T.dir[1] * h.n[1] + T.dir[2] * h.n[2] < 0.15) { T.dir = h.n; } } return h; }
 function carveAt(ev) {
   const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, V.piece, r.ro, r.rd); if (!h) return;
   if (lastCarve && Math.hypot(h.p[0] - lastCarve[0], h.p[1] - lastCarve[1], h.p[2] - lastCarve[2]) < 1.2) return;
@@ -441,6 +452,17 @@ function carveAt(ev) {
   uploadBox(V.e.vol, res.box); invalidate(true);
 }
 function showLine(d) { const r = canvas.getBoundingClientRect(); lineEl.hidden = !d; if (d) { lineEl.setAttribute('x1', d.x0 - r.left); lineEl.setAttribute('y1', d.y0 - r.top); lineEl.setAttribute('x2', d.x - r.left); lineEl.setAttribute('y2', d.y - r.top); } }
+/* 手电是场景里的实物：从左下角的手电上拖出来放到石头上；抓灯头挪位置，抓筒尾转角度、拉远 */
+function proj(wp) { const r = canvas.getBoundingClientRect(), b = camBasis(), v = [wp[0] - b.pos[0], wp[1] - b.pos[1], wp[2] - b.pos[2]], z = v[0] * b.f[0] + v[1] * b.f[1] + v[2] * b.f[2]; return [r.left + r.width / 2 + (v[0] * b.r[0] + v[1] * b.r[1] + v[2] * b.r[2]) / z / TANF * r.height / 2, r.top + r.height / 2 - (v[0] * b.up[0] + v[1] * b.up[1] + v[2] * b.up[2]) / z / TANF * r.height / 2]; }
+function torchPts() { const T = V.torch, d = T.dir || T.n, h = (T.h || 0) + 2.5; return { head: [T.p[0] + d[0] * h, T.p[1] + d[1] * h, T.p[2] + d[2] * h], tail: [T.p[0] + d[0] * (h + 42), T.p[1] + d[1] * (h + 42), T.p[2] + d[2] * (h + 42)] }; }
+function torchTail(ev) { const T = V.torch, r = rayAt(ev.clientX, ev.clientY), b = camBasis(), den = r.rd[0] * b.f[0] + r.rd[1] * b.f[1] + r.rd[2] * b.f[2];
+  const tt = ((T.p[0] - r.ro[0]) * b.f[0] + (T.p[1] - r.ro[1]) * b.f[1] + (T.p[2] - r.ro[2]) * b.f[2]) / den, q = [r.ro[0] + r.rd[0] * tt, r.ro[1] + r.rd[1] * tt, r.ro[2] + r.rd[2] * tt];
+  let v = [q[0] - T.p[0], q[1] - T.p[1], q[2] - T.p[2]]; const len = Math.hypot(v[0], v[1], v[2]) || 1; v = v.map(x => x / len); const dn = v[0] * T.n[0] + v[1] * T.n[1] + v[2] * T.n[2];
+  if (dn < 0.09) { v = v.map((x, i) => x + T.n[i] * (0.09 - dn)); const l2 = Math.hypot(v[0], v[1], v[2]); v = v.map(x => x / l2); }
+  T.dir = v; T.h = Math.max(0, Math.min(90, len - 44.5)); invalidate(true); }
+function renderDock() { const d = $('#torchdock'), T = V.torch, show = !!V.e && V.mode !== 'tray'; d.hidden = !show; $('#lightsw').hidden = !show; if (!show) return;
+  d.classList.toggle('lit', T.on && !!T.p); $('#tkPower').setAttribute('aria-pressed', T.on && !!T.p); $('#tkColor').setAttribute('aria-pressed', !!T.yellow); $('#tkColor').textContent = T.yellow ? '黄光' : '白光'; $('#tkDim').setAttribute('aria-pressed', !T.dim); $('#tkDim').textContent = T.dim ? '弱光' : '强光'; $('#tkBody').setAttribute('aria-pressed', V.lampBody);
+  $('#tkName').textContent = C.SHOP.torch.levels[W.tools.torch - 1]; $('#tkTip').textContent = T.on && T.p ? '抓灯头挪位置，抓筒尾转角度、拉远' : '按住拖到石头上'; $('#lightsw').setAttribute('aria-pressed', V.room); }
 function showLasso(pts) { const el = $('#lasso'), r = canvas.getBoundingClientRect(); el.hidden = !pts; if (pts) el.setAttribute('points', pts.map(p => (p[0] - r.left) + ',' + (p[1] - r.top)).join(' ')); }
 function planSaw(pts) {
   // 凸包，再削到最多六个角
@@ -469,7 +491,10 @@ function doPeel(pts) {
   loaded = null; Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `切皮完成，花费 ${Math.max(1, Math.round(cost))} 元。`; renderAll();
 }
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+$('#torchdock').addEventListener('pointerdown', ev => { if (ev.target.closest('button') || !V.e) return; ev.preventDefault(); canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: 'torch' }; V.torch.h = 0; V.torch.dir = null; });
 canvas.addEventListener('pointerdown', ev => {
+  if (V.e && V.mode !== 'tray' && V.torch.on && V.torch.p && ev.button !== 2) { const tp = torchPts(), a = proj(tp.tail), b2 = proj(tp.head), dt = Math.hypot(ev.clientX - a[0], ev.clientY - a[1]), dh = Math.hypot(ev.clientX - b2[0], ev.clientY - b2[1]);
+    if (dt < 26 || dh < 20) { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: dt <= dh ? 'ttail' : 'torch' }; return; } }
   if (V.mode === 'tray') { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: 'orbit', x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, tray: true }; return; }
   if (!V.e) return; canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
   if (ptrs.size === 2) { showLine(null); const a = [...ptrs.values()]; drag = { kind: 'pinch', d: Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), x: (a[0][0] + a[1][0]) / 2, y: (a[0][1] + a[1][1]) / 2 }; return; }
@@ -489,6 +514,7 @@ canvas.addEventListener('pointermove', ev => {
   if (drag.kind === 'pinch' && ptrs.size === 2) { const a = [...ptrs.values()], d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), x = (a[0][0] + a[1][0]) / 2, y = (a[0][1] + a[1][1]) / 2; cam.dist = Math.min(1500, Math.max(40, cam.dist * drag.d / Math.max(1, d))); cam.yaw -= (x - drag.x) * 0.008; cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch + (y - drag.y) * 0.008)); drag.d = d; drag.x = x; drag.y = y; invalidate(true); }
   else if (drag.kind === 'orbit') { cam.yaw -= (ev.clientX - drag.x) * 0.008; cam.pitch = Math.max(V.mode === 'tray' && V.hold == null ? 0.12 : -1.5, Math.min(1.5, cam.pitch + (ev.clientY - drag.y) * 0.008)); drag.x = ev.clientX; drag.y = ev.clientY; if (V.cut && V.cut.fromView) { V.cut = null; renderTools(); } invalidate(true); }
   else if (drag.kind === 'torch') { torchAt(ev); invalidate(true); }
+  else if (drag.kind === 'ttail') torchTail(ev);
   else if (drag.kind === 'loupe') { V.lens = { x: ev.clientX, y: ev.clientY }; invalidate(true); }
   else if (drag.kind === 'grind') carveAt(ev);
   else if (drag.kind === 'line') { drag.x = ev.clientX; drag.y = ev.clientY; showLine(drag); }
@@ -499,6 +525,7 @@ function endPtr(ev) {
   if (drag.tray && V.hold == null && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 6) { const it = pickTray(ev.clientX, ev.clientY); V.sel = it ? it.id : null; if (it) focusItem(); else { const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); } renderSide(); invalidate(false); }
   if (drag.kind === 'grind') { const s = V.rec, p = V.piece; refreshQuote(s, p, true); V.note = `本次打磨花费 ${Math.max(1, Math.round(strokeCost))} 元。`; save(); renderAll(); }
   if (drag.kind === 'loupe' && ev.pointerType !== 'mouse') { V.lens = null; invalidate(false); }
+  if (drag.kind === 'torch' || drag.kind === 'ttail') { renderDock(); invalidate(false); }
   if (drag.kind === 'lasso') { if (drag.saw) planSaw(drag.pts); else { showLasso(null); doPeel(drag.pts); } }
   if (drag.kind === 'line') {
     showLine(null);
@@ -520,7 +547,7 @@ new ResizeObserver(() => invalidate(false)).observe(canvas);
 /* ---------- 启动 ---------- */
 const hadSave = !!load();
 W = load() || C.newWorld((Date.now() ^ 0x5f3759df) >>> 0);
-window.JadeDebug = { V, cam, Q, render, invalidate, view, world: () => W, setWorld: w => { W = w; } };
+window.JadeDebug = { torchScreen: () => { const t = torchPts(); return { tail: proj(t.tail), head: proj(t.head) }; }, V, cam, Q, render, invalidate, view, world: () => W, setWorld: w => { W = w; } };
 if (!W.market || !W.market.length) C.enterScene(W, W.scene || '夜市地摊');
 fillManual();
 view('market', W.market.find(L => !L.sold) || null, null);

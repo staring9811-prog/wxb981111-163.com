@@ -93,6 +93,19 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .quotes { border-top: 1px dashed var(--line); margin-top: 5px; padding-top: 6px; display: flex; flex-direction: column; gap: 5px; }
 .q i { font-style: normal; color: var(--dim); font-size: 12px; } .q button { font-variant-numeric: tabular-nums; }
 .delta { margin: 0; font-size: 12.5px; }
+/* 场景里的实物：墙上的灯开关、可以拖出去的手电 */
+#lightsw { position: absolute; right: 14px; top: 52px; z-index: 3; width: 34px; height: 54px; padding: 0; border-radius: 5px; background: linear-gradient(#d9d2c4, #a89f8f); border: 1px solid #5c554a; box-shadow: 0 2px 6px #000a, inset 0 0 0 3px #efe9dc; }
+#lightsw span { position: absolute; left: 8px; right: 8px; top: 9px; height: 34px; border-radius: 3px; background: linear-gradient(#8f877a 0 50%, #f4efe4 50% 100%); box-shadow: inset 0 0 2px #0008; }
+#lightsw[aria-pressed="true"] { background: linear-gradient(#d9d2c4, #a89f8f); border-color: #5c554a; }
+#lightsw[aria-pressed="true"] span { background: linear-gradient(#fff8e0 0 50%, #9a9284 50% 100%); box-shadow: 0 0 10px #ffe9a8aa, inset 0 0 2px #0006; }
+#torchdock { position: absolute; left: 12px; bottom: 96px; z-index: 3; display: flex; flex-direction: column; gap: 4px; cursor: grab; touch-action: none; user-select: none; }
+#torchdock .tbody { position: relative; display: flex; gap: 4px; align-items: center; padding: 6px 10px 6px 34px; border-radius: 16px 8px 8px 16px; background: linear-gradient(#3b3d42, #17181b 60%, #2a2c30); border: 1px solid #55585e; box-shadow: 0 3px 8px #000b; }
+#torchdock .thead { position: absolute; left: -6px; top: -4px; bottom: -4px; width: 34px; border-radius: 10px 4px 4px 10px; background: linear-gradient(#55585e, #1d1e21 55%, #3a3c41); border: 1px solid #6a6d73; }
+#torchdock .thead::after { content: ""; position: absolute; left: 3px; top: 5px; bottom: 5px; width: 9px; border-radius: 5px; background: #2a2a28; }
+#torchdock.lit .thead::after { background: #fff3c4; box-shadow: 0 0 14px 4px #ffe9a0aa; }
+#torchdock button { padding: 2px 7px; font-size: 11.5px; border-radius: 10px; background: #0d0d0e; border-color: #4a4c51; }
+#torchdock button[aria-pressed="true"] { color: var(--lamp); border-color: var(--lamp); background: #2a2416; }
+#torchdock .tinfo { display: flex; gap: 8px; font-size: 11.5px; color: #c9bfb0; text-shadow: 0 1px 3px #000; padding-left: 4px; } #torchdock .tinfo b { color: var(--fg); }
 .scenes { display: flex; gap: 5px; flex-wrap: wrap; } .scenes button { flex: 1; min-width: 72px; padding: 5px 4px; font-size: 13px; display: flex; flex-direction: column; align-items: center; line-height: 1.25; } .scenes small { font-size: 10.5px; color: var(--dim); }
 #reveal { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(8,6,5,.72); text-align: center; padding: 16px; }
 #reveal h2 { font-family: var(--display); font-size: 34px; margin: 0; letter-spacing: .2em; } #reveal p { margin: 0; }
@@ -126,11 +139,17 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <canvas id="gl"></canvas>
       <svg id="overlay" aria-hidden="true"><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
       <div id="reveal" hidden></div>
+      <button id="lightsw" data-act="room" aria-label="室内灯开关" title="室内灯"><span></span></button>
+      <div id="torchdock" title="手电">
+        <div class="tbody"><i class="thead"></i>
+          <button id="tkPower" data-act="tpower" title="开关">开关</button><button id="tkColor" data-act="tcolor" title="光色">白光</button><button id="tkDim" data-act="tdim" title="亮度">强光</button><button id="tkBody" data-act="lbody" title="画面里显示筒身">筒身</button>
+        </div>
+        <div class="tinfo"><b id="tkName">手电</b><span id="tkTip">按住拖到石头上</span></div>
+      </div>
       <div id="hud"><div id="title"></div><div id="hint">正在备货…</div></div>
       <div id="bar">
         <div id="tools">
           <button data-tool="rotate">转动</button>
-          <button data-tool="torch">手电</button>
           <button data-tool="loupe">放大镜</button>
           <button data-tool="grind">磨头开窗</button>
           <button data-tool="peel">画圈开皮</button>
@@ -161,7 +180,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <h3>一局的顺序</h3>
     <ol>
       <li><b>挑场子</b>：右侧「货源」顶上选场景。刚开始只有夜市地摊。</li>
-      <li><b>看料</b>：点一块石头。底下工具栏选「转动」拖着看四面；选「手电」在石头上点一下压灯，再转到侧面和背面看光从哪透出来；关掉「室内灯」看得更清楚；「放大镜」看砂粒和细裂。</li>
+      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了；抓灯头可以挪位置，抓筒尾可以转角度、往外拉远。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角墙上是<b>室内灯开关</b>，关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
       <li><b>读标签</b>：每块料标了它赌的是种水、色、裂还是镯位，选中后有一句提示。</li>
       <li><b>出价</b>：还价或照价买。看不准就不买。公盘里是投暗标。</li>
       <li><b>写判断本</b>：买下后先写你认为的种水、色、裂，之后对答案涨眼力。</li>
@@ -169,6 +188,13 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <li><b>出手</b>：随时可以按买家报价卖掉；或者「送去做件」，等几天到「成品盘」里卖成品。</li>
       <li><b>收工</b>：右上角「收工，下一天」。货源换新，报价作废，货款和成品到账。</li>
     </ol>
+    <h3>假货、熟客和铺面</h3>
+    <ul>
+      <li><b>假货</b>：夜市里约三成是做过手脚的料，集散地偶尔也有。<b>染色皮</b>远看一身松花，放大镜下色块是平的、边缘齐、没有砂粒；<b>贴片窗</b>窗口种色极好，但压灯时光散不开，放大镜下窗口一圈有黄色胶线。看出来可以当面说破，老板会大降价；说错了他翻脸不卖。</li>
+      <li><b>熟客</b>：买家回去切了才知道你卖的料怎么样。他切涨了会记你的好、以后出价更高；切垮了会压你的价；把假料卖出去会被上门退货，口碑大跌。</li>
+      <li><b>铺面</b>：在「账本」里盘柜台或店面，成品摆进去每天有散客按零售价买，不用让批发商压价。要付日租，口碑越好卖得越快。</li>
+      <li><b>黄光</b>：手电切到黄光，绿会显得更浓。卖家爱用这招，你自己看料最好用白光。</li>
+    </ul>
     <h3>能帮你的东西</h3>
     <ul>
       <li><b>工具铺</b>（在「账本」页）：手电可以升到超强探照灯，厚皮黑皮也能打进去；放大镜能升到 8 倍；锯机升级后锯缝更窄、少吃料。</li>
@@ -275,11 +301,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v11</div>
+<div id="ver">v12</div>
 
 <script>
 (function () {
-  var LOCAL = 11, FILES = ['core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 12, FILES = ['core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }

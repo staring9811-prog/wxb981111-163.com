@@ -12,7 +12,7 @@ uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[1
 uniform vec3 uSkinCol; uniform float uSkinSig, uSkinGrain, uSkinRel, uWeather, uPhase;
 uniform vec3 uBodyCol, uBandCol, uHueAbs, uFogCol; uniform float uFogT;
 uniform int uNCr; uniform vec4 uCrA[10]; uniform vec4 uCrB[10]; uniform vec4 uCrC[10]; uniform vec3 uCrT[10];
-uniform vec3 uLampA, uLampB; uniform float uLampOn;
+uniform vec3 uLampA, uLampB; uniform float uLampOn; uniform float uFakeT; uniform vec3 uTorchCol;
 uniform vec4 uTorch; uniform vec3 uTorchDir, uTorchSurf, uRakePos; uniform float uRakeFall, uRakeI, uSpread;
 uniform vec3 uGlare; // 手电接触点的屏幕位置 xy（像素）与可见强度
 uniform float uAmbient; uniform vec4 uLens; uniform int uK; uniform float uHi;
@@ -72,7 +72,7 @@ vec3 fluence(vec3 s){
   tau*=r/4.0;
   float geo=1.0/(1.0+r*r/uSpread);
   float beam=mix(0.30,1.0,smoothstep(-0.3,0.8,dot(dn,uTorchDir)));
-  return uTorch.w*exp(-tau)*geo*beam*segT(uTorch.xyz,s); }
+  return uTorch.w*uTorchCol*exp(-tau)*geo*beam*segT(uTorch.xyz,s); }
 
 vec3 calcN(vec3 p){ const float e=1.0; vec2 k=vec2(1.,-1.);
   return normalize(k.xyy*sdfOf(G(p+k.xyy*e))+k.yyx*sdfOf(G(p+k.yyx*e))+k.yxy*sdfOf(G(p+k.yxy*e))+k.xxx*sdfOf(G(p+k.xxx*e))); }
@@ -122,8 +122,10 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     float cT=max(b1.r,b2.r*0.7);
     float fake=smoothstep(0.62,0.80,vnoise(p*0.045+uPhase+31.7));
     float hint=mix(fake*0.8,cT,uSkinRel);
+    float pf=(uFakeT>0.5&&uFakeT<1.5)?smoothstep(0.42,0.50,vnoise(p*0.07+uPhase+31.7)):0.0; if(detail<0.5) hint=max(hint,pf*0.95); // 染色皮：远看一身松花
     float speck=smoothstep(0.42,0.72,vnoise(p*1.3+7.0+uPhase))*(0.6+0.4*vnoise(p*3.1+uPhase));
     col=mix(col,mix(vec3(0.20,0.38,0.19),uBandCol,0.5),clamp(hint*speck*0.9,0.,1.));
+    if(detail>0.5) col=mix(col,vec3(0.11,0.40,0.19),pf*0.93); // 放大镜下：色块平、边缘齐、没有砂粒
     float mang=smoothstep(0.5,0.8,mix(vnoise(p*0.03+uPhase*2.0),b1.g,uSkinRel))*smoothstep(0.45,0.6,vnoise(p*vec3(0.03,0.2,0.03)+uPhase));
     col=mix(col,col*1.22+0.04,mang*0.5);
     col=mix(col,vec3(0.05,0.06,0.05),smoothstep(0.2,0.6,max(b1.a,b2.a))*0.8*uSkinRel);
@@ -191,6 +193,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   vec3 hv2=normalize(keyL-rd); float spec=pow(max(dot(nf,hv2),0.0),mix(40.0,220.0,flat_*0.6+wS*0.4))*mix(0.5,1.6,wS)*sh;
   vec3 col=surf*(1.0-flesh)+acc+(refl*F+vec3(spec)*0.5)*uAmbient*flesh;
   if(uTorch.w>0.0){ float r=length(p-uTorchSurf); col+=vec3(1.0,0.97,0.9)*min(uTorch.w,6.0)*0.06*exp(-r*r/9.0); col+=vec3(0.5)*(smoothstep(4.0,4.4,r)-smoothstep(4.6,5.0,r))*0.30; }
+  if(uFakeT>1.5&&detail>0.5){ float rv=smoothstep(0.06,0.30,flesh)*(1.0-smoothstep(0.70,0.96,flesh)); col=mix(col,vec3(0.98,0.82,0.45),rv*0.85); } // 贴片窗：放大镜下窗口一圈胶线
   if(uCutOn>0.5&&abs(dot(p,uCut.xyz)-uCut.w)<0.45) col=mix(col,vec3(1.0,0.55,0.15),0.85);
   return col; }
 
