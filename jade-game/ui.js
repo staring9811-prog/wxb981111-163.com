@@ -17,7 +17,7 @@ gl.useProgram(prog);
 const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
 const loc = gl.getAttribLocation(prog, 'aPos'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 const U = {}; const u = n => U[n] || (U[n] = gl.getUniformLocation(prog, n));
-function tex3d(unit) { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_3D, t); for (const p of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_3D, p, gl.LINEAR); for (const p of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D, p, gl.CLAMP_TO_EDGE); return t; }
+function tex3d(unit) { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_3D, t); for (const p of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_3D, p, gl.LINEAR); if (unit === 1) gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); for (const p of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D, p, gl.CLAMP_TO_EDGE); return t; }
 const tGeom = tex3d(0), tMat = tex3d(1);
 gl.uniform1i(u('uGeom'), 0); gl.uniform1i(u('uMat'), 1);
 gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
@@ -25,7 +25,7 @@ let loaded = null;
 function upload(vol) {
   if (loaded === vol) return; loaded = vol;
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, tGeom); gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA16F, vol.nx, vol.ny, vol.nz, 0, gl.RGBA, gl.FLOAT, vol.geom);
-  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_3D, tMat); gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, vol.nx, vol.ny, vol.nz, 0, gl.RGBA, gl.UNSIGNED_BYTE, vol.mat);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_3D, tMat); gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, vol.nx, vol.ny, vol.nz, 0, gl.RGBA, gl.UNSIGNED_BYTE, vol.mat); gl.generateMipmap(gl.TEXTURE_3D);
 }
 function uploadBox(vol, b) {
   const w = b[1] - b[0] + 1, h = b[3] - b[2] + 1, d = b[5] - b[4] + 1, tmp = new Float32Array(w * h * d * 4); let o = 0;
@@ -155,7 +155,7 @@ function renderTray(scale) {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 function holdItem(id) { V.hold = id; V.back = false; const it = (V.ref ? REF : W.items).find(x => x.id === id); cam.t = [0, it.type === 'carve' ? 17 : 5, 0]; cam.dist = it.type === 'cab' ? 60 : it.type === 'carve' ? 150 : 135; cam.pitch = 0.45; cam.yaw = 0.5; renderTools(); renderSide(); invalidate(false); }
-function openTray(ref, cab) { V.hold = null; V.mode = 'tray'; V.ref = !!ref; V.cab = cab || false; V.rec = null; V.piece = null; V.e = null; V.sel = null; V.tool = 'rotate'; const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.yaw = 0.35; cam.pitch = 0.85; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); V.note = ''; tab = 'tray'; renderAll(); }
+function openTray(ref, cab) { V.hold = null; V.spin = false; clearInterval(V.spinT); V.mode = 'tray'; V.ref = !!ref; V.cab = cab || false; V.rec = null; V.piece = null; V.e = null; V.sel = null; V.tool = 'rotate'; const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.yaw = 0.35; cam.pitch = 0.85; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); V.note = ''; tab = 'tray'; renderAll(); }
 function focusItem() { const items = trayItems(), i = items.findIndex(x => x.id === V.sel); if (i < 0) return; const lay = trayLayout(items); cam.t = [lay.pos[i][0], items[i].type === 'carve' ? 16 : 5, lay.pos[i][1]]; cam.dist = items[i].type === 'cab' ? 80 : 170; cam.pitch = Math.min(cam.pitch, 0.62); }
 function pickTray(cx, cy) { const r = rayAt(cx, cy); if (r.rd[1] >= 0) return null; const t = (5 - r.ro[1]) / r.rd[1], x = r.ro[0] + r.rd[0] * t, z = r.ro[2] + r.rd[2] * t, items = trayItems(), lay = trayLayout(items); let best = null, bd = 44; items.forEach((it, i) => { const d = Math.hypot(x - lay.pos[i][0], z - lay.pos[i][1]); if (d < bd) { bd = d; best = it; } }); return best; }
 function lookAlong(n) { cam.pitch = Math.max(-1.55, Math.min(1.55, Math.asin(Math.max(-1, Math.min(1, n[1]))))); cam.yaw = Math.atan2(n[0], n[2]); }
@@ -330,7 +330,7 @@ function renderTools() {
     o += `<label for="cutT">片厚 <b id="cutV">${V.cutT}</b> mm</label><input id="cutT" type="range" min="3" max="60" step="1" value="${V.cutT}"><button data-act="cview">从正对我的面切这么厚</button>`;
     if (V.cut) o += `<select id="betSel" aria-label="和旁边的行家赌这一刀"><option value="">不赌</option><option value="up" ${V.bet === 'up' ? 'selected' : ''}>赌这刀切涨</option><option value="down" ${V.bet === 'down' ? 'selected' : ''}>赌这刀切垮</option></select><button data-act="cut" class="pri">下刀（切工 ${fmt(V.cut.pv.cost)}）</button><button data-act="ccancel">取消</button><span class="dim">两侧约 ${Math.round(V.cut.pv.a)} g / ${Math.round(V.cut.pv.b)} g</span>`;
   }
-  if (tray && V.hold != null) o = `<button data-act="back" aria-pressed="${!!V.back}">打背光</button><button data-act="unhold" class="pri">放回托盘</button>`;
+  if (tray && V.hold != null) o = `<button data-act="spin" aria-pressed="${!!V.spin}">慢慢转</button><button data-act="back" aria-pressed="${!!V.back}">打背光</button><button data-act="unhold" class="pri">放回托盘</button>`;
   else if (tray) o = `<span class="dim">点一件选中，再点「拿起来看」</span>`;
 
   $('#opts').innerHTML = o;
@@ -530,6 +530,7 @@ document.addEventListener('click', ev => {
   else if (a === 'hold') { holdItem(V.ref ? b.dataset.i : +b.dataset.i); }
   else if (a === 'unhold') { openTray(V.ref, V.cab); }
   else if (a === 'back') { V.back = !V.back; renderTools(); invalidate(false); }
+  else if (a === 'spin') { V.spin = !V.spin; renderTools(); clearInterval(V.spinT); if (V.spin) V.spinT = setInterval(() => { if (V.hold == null || V.mode !== 'tray') { clearInterval(V.spinT); V.spin = false; return; } cam.yaw += 0.035; render(0.7); }, 70); else invalidate(false); }
   else if (a === 'tool') { const r = C.buyTool(W, b.dataset.k); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
   else if (a === 'appr') { const rec = V.rec, r = C.appraise(W, rec); if (!r.ok) V.msg = r.msg; else Snd.tap(); save(); renderTop(); renderSide(); }
   else if (a === 'lbody') { V.lampBody = !V.lampBody; renderDock(); invalidate(false); }

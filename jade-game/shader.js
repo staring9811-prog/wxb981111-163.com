@@ -27,7 +27,8 @@ float vnoise(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.0-2.0*f);
 float fbm(vec3 p){ return 0.5*vnoise(p)+0.3*vnoise(p*2.1+3.1)+0.2*vnoise(p*4.3+7.7); }
 float ign(vec2 p){ return fract(52.9829189*fract(dot(p,vec2(0.06711056,0.00583715)))); }
 vec4 G(vec3 p){ return texture(uGeom,p/(2.0*uBox)+0.5); }
-vec4 M(vec3 p){ return texture(uMat,p/(2.0*uBox)+0.5); }
+vec4 M(vec3 p){ return textureLod(uMat,p/(2.0*uBox)+0.5,0.0); }
+float Mblur(vec3 p){ return textureLod(uMat,p/(2.0*uBox)+0.5,2.3).r; } // 模糊过的色浓度：色根周围那一圈晕
 // 用小尺度噪声扰动取样位置，让色带边缘呈絮状、丝状，而不是体素的糊边
 vec4 Mw(vec3 p){ vec3 w=vec3(vnoise(p*0.55+11.0),vnoise(p*0.55+37.0),vnoise(p*0.55+71.0))-0.5; vec4 m=M(p+w*2.2);
   // 色根有纤维感：顺着一个方向拉丝，边缘咬合得更清楚
@@ -184,18 +185,21 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     if(ds>0.4) break;
     vec4 m=Mw(s); vec3 sg=sigT(m); float sc=scat(m); vec3 al=albedo(m);
     float fogw=uFogT>0.0?1.0-smoothstep(gs.b+uFogT*0.6,gs.b+uFogT,-gs.r):0.0; al=mix(al,uFogCol,fogw*0.75); sg+=fogw*0.10;
+    float bleed=clamp(Mblur(s)*1.5-m.r*0.7,0.0,1.0); al=mix(al,mix(al,uBandCol,0.6)*vec3(1.03,1.0,0.94),bleed*0.55);         // 色晕：浓色往四周化开
+    float seep=smoothstep(4.2,0.0,(-gs.r)-gs.b)*(1.0-fogw)*(0.55+0.45*vnoise(s*0.35+uPhase)); al=mix(al,al*mix(vec3(1.0),uSkinCol*1.7+vec3(0.10,0.04,0.0),0.7),seep*0.55); // 皮下沁色：靠皮几毫米被皮色染进来
     // 晶粒：种越嫩颗粒越明显；放大镜下更清楚
     al*=mix(vec3(1.0),vec3(0.74,0.84,0.78)+vec3(0.34,0.20,0.16)*vec3(vnoise(s*0.21+uPhase),vnoise(s*0.19+uPhase+4.0),vnoise(s*0.23+uPhase+9.0)),smoothstep(0.10,0.50,m.r)); // 色里有深有浅、偏黄偏蓝
     // 玉肉天然的不均匀：絮状棉团、清透的水路、底色深浅、零星黑点
     float cl=fbm(s*0.10+uPhase*0.37), cl2=vnoise(s*0.33+uPhase);
     float floc=smoothstep(0.50,0.78,cl*0.65+cl2*0.35)*(0.30+m.b*1.6)*(1.0-0.45*m.g);
     float vein=1.0-smoothstep(0.0,0.07,abs(vnoise(s*0.07+uPhase*0.9)-0.5));
+    float lit=1.0; if(uHi>0.5){ float f2=fbm((s+keyL*3.0)*0.10+uPhase*0.37); lit=1.0-0.42*smoothstep(0.50,0.78,f2)*(0.4+0.6*m.g); } // 絮团互相遮光，才有里面一层层的感觉
     al=mix(al,vec3(0.96,0.97,0.95),floc*0.55); sc*=1.0+floc*1.4; sc*=1.0-0.55*vein*m.g; sg*=1.0-0.40*vein*m.g;
     al*=mix(vec3(0.74,0.79,0.76),vec3(1.0),smoothstep(0.22,0.78,fbm(s*0.045+uPhase*0.21)));
     float spk=step(0.990-0.03*m.a,hash(floor(s*1.4)+uPhase))*(0.35+0.65*m.a+0.25*(1.0-m.g)); al*=1.0-0.85*spk;
     float cg=mix(vnoise(s*1.6+3.0),vnoise(s*4.5+1.0),0.45)-0.5; float gk=(1.0-m.g)*(0.42+detail*0.55);
     al*=1.0+cg*gk; sc*=1.0+cg*gk*1.6;
-    vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.47,0.21,m.g)),flesh)*ambL*exp(-sg*trav*0.5);
+    vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.47,0.21,m.g)),flesh)*ambL*exp(-sg*trav*0.5)*lit;
     if(uTorch.w>0.0) Lin+=fluence(s);
     vec3 xe=x+dir*dt;
     for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);
@@ -218,6 +222,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   acc*=1.0+0.30*pow(1.0-ndv,3.0)*wS;                                        // 种好的料，边缘薄处更透亮
   float wet=mix(0.55,1.0,flat_);                                            // 表面一层水膜
   vec3 col=surf*(1.0-flesh)+acc*(1.0-F*0.6)+(refl*F*wet*1.25+vec3(spec)*0.5)*uAmbient*flesh;
+  if(flesh>0.5){ vec3 cell=floor(p*3.6); vec3 rn=normalize(n+(hash3(cell+uPhase)-0.5)*1.1); float gl=step(0.955,hash(cell+uPhase*3.0))*pow(max(dot(reflect(rd,rn),keyL),0.0),26.0); col+=vec3(1.0,0.99,0.95)*gl*pow(1.0-wS,3.0)*1.1*uAmbient*sh; } // 翠性：种嫩的料切面上有一片片晶面的闪光
   if(uTorch.w>0.0){ float r=length(p-uTorchSurf); col+=vec3(1.0,0.97,0.9)*min(uTorch.w,6.0)*0.06*exp(-r*r/9.0); col+=vec3(0.5)*(smoothstep(4.0,4.4,r)-smoothstep(4.6,5.0,r))*0.30; }
   if(uFakeT>1.5&&detail>0.5){ float rv=smoothstep(0.06,0.30,flesh)*(1.0-smoothstep(0.70,0.96,flesh)); col=mix(col,vec3(0.98,0.82,0.45),rv*0.85); } // 贴片窗：放大镜下窗口一圈胶线
   if(uCutOn>0.5){ float cd=abs(dot(p,uCut.xyz)-uCut.w); if(uCutOn>1.5){ float fl=0.6+0.4*hash(floor(p*0.7)+uCutOn); col+=vec3(1.0,0.75,0.4)*fl*exp(-cd*cd/5.0)*1.6; col=mix(col,vec3(1.0,0.97,0.9),(1.0-smoothstep(0.2,0.9,cd))); } else if(cd<0.45) col=mix(col,vec3(1.0,0.55,0.15),0.85); } // 预览是橙线；锯的时候发白发亮、带火星
@@ -322,6 +327,10 @@ float motif(vec2 q, int th, float sd){
     h+=0.35*smoothstep(1.2,-1.5,length(q-vec2(0.,3.5))-5.2);
     h-=0.22*smoothstep(0.45,0.0,abs(length(q-vec2(0.,-9.6))-2.4))*step(-9.0,q.y)*step(abs(q.x),2.1);
     h-=0.16*smoothstep(0.45,0.0,abs(length(q-vec2(0.,0.5))-7.2))*step(q.y,-1.0);
+    h-=0.20*smoothstep(0.35,0.0,abs(length(q-vec2(-2.1,-8.2))-1.0))*step(q.y,-8.2); h-=0.20*smoothstep(0.35,0.0,abs(length(q-vec2(2.1,-8.2))-1.0))*step(q.y,-8.2); // 笑眼
+    h-=0.30*smoothstep(0.9,0.2,length(q-vec2(0.,5.2)));                                           // 肚脐
+    h+=0.22*smoothstep(0.55,0.0,abs(length(q-vec2(0.,-5.0))-4.8))*step(-2.6,q.y)*(0.6+0.4*step(0.5,fract(atan(q.x,q.y+5.0)*5.0))); // 佛珠
+    h-=0.14*smoothstep(0.4,0.0,abs(fract((q.x*0.7+q.y*0.35)*0.5)-0.5)*2.0-0.15)*step(6.0,q.y)*step(q.y,11.5);                        // 衣褶
     return h; }
   if(th==2){ float h=0.0;
     for(int k=0;k<3;k++){ float fk=float(k); float ridge=-7.0+fk*6.0+2.8*sin(q.x*0.45+fk*2.1+sd)+1.4*sin(q.x*1.1+fk*4.0)+abs(q.x)*0.22;
@@ -344,6 +353,7 @@ float sdItem(vec3 p, int i){
     float b=sdRBox(q-vec3(0.0,3.0,0.0),vec3(12.0,3.0,18.0),2.6);
     float top=smoothstep(2.2,5.2,q.y)*smoothstep(0.0,2.2,-max(abs(q.x)-11.2,abs(q.z)-17.2));
     if(th==0){ b+=0.30*smoothstep(0.55,0.0,abs(max(abs(q.x)-9.2,abs(q.z)-15.2)))*top; return max(b,-(length(q.xz-vec2(0.0,-15.6))-1.2)); }
+    b+=0.32*smoothstep(0.45,0.0,abs(max(abs(q.x)-10.0,abs(q.z)-16.0)))*top*(0.55+0.45*step(0.5,fract((abs(q.x)+abs(q.z))*0.45))); // 一圈回纹边框
     return b-1.5*motif(q.xz,th,sd)*top; }
   if(t==2){ return max(sdEll(q,vec3(7.5,4.8,6.0)),-q.y); }                                           // 蛋面
   if(t==3){ float sa=6.2831853/18.0; float a=round(atan(q.z,q.x)/sa)*sa; return length(q-vec3(26.0*cos(a),4.4,26.0*sin(a)))-4.3; }
@@ -353,12 +363,24 @@ float sdItem(vec3 p, int i){
     d=smin(d,min(length(q-vec3(-7.6,28.5,0.0)),length(q-vec3(7.6,28.5,0.0)))-2.6,1.6);
     d=smin(d,sdEll(q-vec3(0.0,10.0,7.5),vec3(9.0,8.0,6.5)),3.0);
     d=smin(d,min(sdEll(q-vec3(-12.5,13.0,4.0),vec3(4.0,7.0,4.5)),sdEll(q-vec3(12.5,13.0,4.0),vec3(4.0,7.0,4.5))),3.0);
-    d+=0.35*smoothstep(0.5,0.0,abs(length(q.xy-vec2(0.0,30.0))-3.0))*step(q.y,29.4)*step(5.5,q.z); }
+    d+=0.35*smoothstep(0.5,0.0,abs(length(q.xy-vec2(0.0,30.0))-3.0))*step(q.y,29.4)*step(5.5,q.z);
+    d+=0.30*(smoothstep(0.4,0.0,abs(length(q.xy-vec2(-2.8,31.2))-1.3))+smoothstep(0.4,0.0,abs(length(q.xy-vec2(2.8,31.2))-1.3)))*step(31.2,q.y)*step(5.0,q.z); // 眯着的眼
+    d=smin(d,min(sdEll(q-vec3(-8.0,25.5,0.5),vec3(1.5,3.6,1.6)),sdEll(q-vec3(8.0,25.5,0.5),vec3(1.5,3.6,1.6))),1.0);                              // 垂肩的耳
+    d=max(d,-(length(q-vec3(0.0,9.5,13.6))-1.1));                                                                                                    // 肚脐
+    d=smin(d,length(vec2(length(q.xz-vec2(0.0,2.5))-8.2,(q.y-20.5)*1.2))-0.9,0.7);                                                                  // 颈间一串佛珠
+    d+=0.45*smoothstep(0.5,0.0,abs(fract(q.y*0.16+abs(q.x)*0.06)-0.5)*2.0-0.2)*step(q.y,17.0)*smoothstep(5.0,9.0,abs(q.x));                      // 两侧衣褶
+    d=smin(d,sdEll(q-vec3(0.0,2.2,0.0),vec3(17.0,3.0,14.0))-0.7*abs(sin(atan(q.z,q.x)*7.0))*step(q.y,5.0),2.0); }                                   // 莲花座
   else if(th==2){ d=sdEll(q-vec3(0.0,17.0,0.0),vec3(10.0,21.0,8.0)); d=smin(d,sdEll(q-vec3(-11.5,10.0,1.0),vec3(8.5,14.0,7.0)),5.0); d=smin(d,sdEll(q-vec3(10.5,8.0,-1.0),vec3(8.5,11.5,7.0)),5.0);
-    d-=1.8*(fbm(vec3(q.x*0.5,q.y*0.14,q.z*0.5)+sd)-0.5)+0.5*sin(q.x*1.7+q.z*1.1+q.y*0.3); }
+    d-=1.8*(fbm(vec3(q.x*0.5,q.y*0.14,q.z*0.5)+sd)-0.5)+0.5*sin(q.x*1.7+q.z*1.1+q.y*0.3);
+    d+=0.40*(1.0-smoothstep(0.0,0.16,abs(fract(q.y*0.19+0.3*vnoise(q*0.14+sd))-0.5)));                       // 一层层的山石纹理
+    d=smin(d,length(q-vec3(6.5,16.0,7.5))-2.6,1.2); d=smin(d,length(q-vec3(4.0,19.5,7.0))-2.0,1.0); d=smin(d,length(q-vec3(9.0,19.0,6.0))-1.8,1.0); } // 山腰一丛松
   else if(th==3){ d=length(q-vec3(0.0,11.0,0.0))-6.5; float sa=6.2831853/7.0; float a=atan(q.z,q.x); float ar=a-round(a/sa)*sa; float rr=length(q.xz);
     vec3 pq=vec3(rr*cos(ar),q.y,rr*sin(ar)); vec3 pp=pq-vec3(10.5,9.0,0.0); pp.xy=mat2(0.82,0.57,-0.57,0.82)*pp.xy;
-    d=smin(d,sdEll(pp,vec3(3.2,10.5,5.2)),2.2); d=smin(d,sdEll(q-vec3(0.0,2.5,0.0),vec3(13.0,3.0,13.0)),3.0); }
+    d=smin(d,sdEll(pp,vec3(3.2,10.5,5.2)),2.2);
+    float sb=6.2831853/5.0; float ab=a+0.6-round((a+0.6)/sb)*sb; vec3 pq2=vec3(rr*cos(ab),q.y,rr*sin(ab)); vec3 pp2=pq2-vec3(6.0,13.0,0.0); pp2.xy=mat2(0.94,0.34,-0.34,0.94)*pp2.xy;
+    d=smin(d,sdEll(pp2,vec3(2.4,8.0,3.8)),1.6);                                                             // 里面一圈花瓣
+    d+=0.5*smoothstep(0.55,0.0,length(vec2(fract(q.x*0.5)-0.5,fract(q.z*0.5)-0.5)))*step(16.5,q.y)*step(length(q.xz),5.0); // 莲蓬上的孔
+    d=smin(d,sdEll(q-vec3(0.0,2.5,0.0),vec3(13.0,3.0,13.0)),3.0); }
   else { vec3 qc=q-vec3(0.0,19.0,0.0); d=(length(qc/vec3(17.0,20.0,12.0))-1.0)*12.0-3.2*(fbm(qc*0.11+sd)-0.5)+0.7*sin(qc.y*0.9+qc.x*0.5+3.0*fbm(qc*0.08+sd)); }
   return max(d*0.85,-q.y); }
 float mapI(vec3 p, out int id){ float d=1e9; id=-1; for(int i=0;i<16;i++){ if(i>=uN) break; vec2 c=p.xz-uIt[i].xy; float far=length(c)-46.0; if(far>d) continue; float v=sdItem(p,i); if(v<d){ d=v; id=i; } } return d; }
@@ -369,6 +391,8 @@ vec3 env(vec3 r, vec3 L){ return vec3(1.0,0.97,0.92)*smoothstep(0.84,0.97,dot(r,
 vec3 feltAt(vec2 xz){ return vec3(0.030,0.050,0.044)*(0.8+0.5*vnoise(vec3(xz*3.0,1.0)))+vec3(0.018)*vnoise(vec3(xz*0.05,3.0)); }
 vec3 jade(vec3 p, vec3 n, vec3 rd, int id, vec3 L, float sh){
   float w=uIc[id].a, lv=uIb[id].a, sd=uIt[id].w, cot=uIx[id].y; vec3 body=uIb[id].rgb, band=uIc[id].rgb; vec3 org=vec3(uIt[id].x,0.0,uIt[id].y);
+  float cav=clamp((0.7-sdItem(p+n*0.7,id))/0.7,0.0,1.0);                // 凹处：刻线、衣褶里抛光不到，是磨砂的
+  n=normalize(n+0.030*(vec3(vnoise(p*0.8+sd),vnoise(p*0.8+sd+5.0),vnoise(p*0.8+sd+9.0))-0.5)*(1.0-cav)); // 抛光面上细微的橘皮纹
   float sig=0.85*exp(-4.4*w);                            // 每毫米散射：豆 0.55 很快不透，冰 0.05 半透，玻璃 0.013 几乎不散
   vec3 dir=refract(rd,n,1.0/1.55); if(dot(dir,dir)<0.5) dir=rd;
   vec3 L2=normalize(vec3(-0.5,0.30,-0.75));              // 背后的逆光，让薄处和边缘透亮
@@ -398,6 +422,9 @@ vec3 jade(vec3 p, vec3 n, vec3 rd, int id, vec3 L, float sh){
   float ndv=max(dot(n,-rd),0.0); float F=0.045+0.955*pow(1.0-ndv,5.0);
   vec3 hv=normalize(L-rd); float nh=max(dot(n,hv),0.0);
   float sp=pow(nh,mix(70.0,520.0,w))*mix(0.55,2.4,w)*sh+pow(nh,9.0)*0.07*sh;   // 一点锐高光 + 一层柔润的油光
+  sp*=1.0-0.88*cav; F*=1.0-0.65*cav;
+  acc=mix(acc,acc*0.78+vec3(0.15,0.155,0.15)*(0.5+0.5*ndl),cav*0.6);            // 磨砂的地方发白、不反光，和抛光的凸面形成对比
+  acc*=1.0-0.22*smoothstep(0.35,1.0,cav);
   return acc*0.92*(1.0-F)+env(reflect(rd,n),L)*F*mix(0.55,1.0,w)*mix(0.5,1.0,sh)+vec3(sp); }
 vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0); }
 void main(){
