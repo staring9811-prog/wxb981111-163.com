@@ -68,16 +68,19 @@ float crG(int i, vec3 p, out float ins){
   h+=uCrC[i].x*(sin(a*uCrC[i].y+uCrC[i].z)+sin(b*uCrC[i].y*1.37+uCrC[i].z*2.1))*0.5;
   h+=uCrC[i].x*0.35*((abs(fract(a*uCrC[i].y*1.9+uCrC[i].z)-0.5)*4.0-1.0)+0.6*(abs(fract(b*uCrC[i].y*2.3-uCrC[i].z)-0.5)*4.0-1.0));
   float R=uCrA[i].w*(1.0+0.18*sin(atan(b,a)*3.0+uCrC[i].z)); ins=1.0-smoothstep(R*0.85,R,r); return h; }
-// 裂在表面上的样子：细碎锯齿、粗细不一、时断时续，旁边带几丝羽裂。返回 x=主线 y=晕
-vec2 crLook(int i, vec3 p, float h, float ins){
-  float ph=uCrC[i].z; float n1=vnoise(p*0.33+ph), n2=vnoise(p*1.25+ph*1.7), n3=vnoise(p*0.11+ph*0.3);
-  float hh=h+(n2-0.5)*0.9+(vnoise(p*3.1+ph)-0.5)*0.25;
-  float wd=mix(0.07,0.62,n1*n1)*mix(0.6,1.0,uCrB[i].w);
-  float gap=smoothstep(0.18,0.36,n3+0.25*n1);                    // 有的段合上了，看不见
-  float main=(1.0-smoothstep(wd*0.35,wd,abs(hh)))*gap;
-  float off=0.9+2.2*n3; float fe=(1.0-smoothstep(0.03,0.13,abs(abs(hh)-off)))*smoothstep(0.55,0.75,vnoise(p*0.45+ph+5.0))*0.5; // 羽裂
-  float halo=(1.0-smoothstep(0.3,1.2+2.2*n1,abs(hh)))*(0.35+0.65*n3)*gap;
-  return vec2(max(main,fe),halo)*ins; }
+// 裂在表面上的样子：一条连续的细线，粗细有变化、到尖端收细，旁边带几丝羽裂；合上的裂（石纹）是一条白线。
+// 返回 x=暗线 y=两侧的晕 z=愈合的白线
+vec3 crLook(int i, vec3 p, float h, float ins){
+  float ph=uCrC[i].z; float n1=vnoise(p*0.33+ph), n3=vnoise(p*0.11+ph*0.3);
+  float hh=h+(vnoise(p*1.25+ph*1.7)-0.5)*0.35+(vnoise(p*3.1+ph)-0.5)*0.18;
+  float tip=smoothstep(0.0,0.4,ins);
+  float wd=mix(0.16,0.50,n1)*mix(0.4,1.0,tip);
+  float shut=mix(1.0,smoothstep(0.10,0.30,n3),0.45);            // 个别地方贴得紧，线变淡，但不断成虚线
+  float main=(1.0-smoothstep(wd*0.4,wd+0.30,abs(hh)))*shut;
+  float off=0.8+1.6*n3; float fe=(1.0-smoothstep(0.05,0.30,abs(abs(hh)-off)))*smoothstep(0.60,0.78,vnoise(p*0.45+ph+5.0))*0.45; // 羽裂
+  float halo=(1.0-smoothstep(0.2,1.0+2.4*n1,abs(hh)))*(0.45+0.55*n3);
+  float healed=1.0-step(0.5,uCrB[i].w);
+  return vec3(max(main,fe)*(1.0-healed),halo*(1.0-healed),main*healed)*smoothstep(0.0,0.15,ins); }
 float segT(vec3 A, vec3 B){ float T=1.0;
   for(int i=0;i<10;i++){ if(i>=uNCr) break; float ia,ib; float ga=crG(i,A,ia), gb=crG(i,B,ib);
     if(ga*gb<0.0){ float t=ga/(ga-gb); T*=1.0-mix(ia,ib,t)*uCrB[i].w*0.80; } }
@@ -156,8 +159,8 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     col=mix(col,col*1.22+0.04,mang*0.5);
     col=mix(col,vec3(0.05,0.06,0.05),smoothstep(0.2,0.6,max(b1.a,b2.a))*0.8*uSkinRel);
     float crk=0.0; // 到皮的裂：明显的是黑线带锈边，隐蔽的只是一条细发丝
-    for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); if(ins<0.01||abs(h)>5.0) continue; float vis=mix(0.38,1.0,uCrC[i].w)*uCrB[i].w;
-      vec2 lk=crLook(i,p,h,ins)*vis; col=mix(col,col*vec3(1.15,0.70,0.48),lk.y*0.5); col*=1.0-0.88*lk.x; crk=max(crk,lk.x); }
+    for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); if(ins<0.01||abs(h)>5.0) continue; float vis=mix(0.38,1.0,uCrC[i].w);
+      vec3 lk=crLook(i,p,h,ins)*vis; col=mix(col,col*vec3(1.10,0.62,0.36),lk.y*0.65); col*=1.0-0.90*lk.x; crk=max(crk,lk.x); }
     // 凹凸：对高度场做有限差分
     float e=0.35; float h0=skinH(p,gf);
     vec3 gh=vec3(skinH(p+vec3(e,0,0),gf),skinH(p+vec3(0,e,0),gf),skinH(p+vec3(0,0,e),gf))-h0;
@@ -215,11 +218,14 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
       gp[i]=h; }
     acc+=T*al*sc*dt*Lin; T*=exp(-sg*dt); x=xe; trav+=dt; dt*=1.19;
   }
-  float line=0.0, halo=0.0; // 露肉面上的裂：一条暗线，两侧发白起雾，大裂带锈色
+  float line=0.0, halo=0.0, heal=0.0, rust=0.0; // 露肉面上的裂：一条暗线，两侧起白雾；靠皮的一段被水和铁锈沁黄，越往里越淡
   for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); if(ins<0.01||abs(h)>5.0) continue;
-    vec2 lk=crLook(i,p,h,ins)*uCrB[i].w; line=max(line,lk.x); halo=max(halo,lk.y); }
-  acc=mix(acc,acc*vec3(1.0,0.86,0.70)+vec3(0.10,0.095,0.085)*uAmbient,halo*0.55*flesh);
-  acc*=1.0-0.80*line*flesh;
+    vec3 lk=crLook(i,p,h,ins); line=max(line,lk.x); halo=max(halo,lk.y); heal=max(heal,lk.z);
+    rust=max(rust,lk.y*exp(-max(depth0-skinT,0.0)/(3.0+0.10*uCrA[i].w))); }
+  acc=mix(acc,acc*0.88+vec3(0.15,0.15,0.14)*uAmbient,halo*0.5*flesh);
+  acc=mix(acc,acc*vec3(0.96,0.66,0.36),rust*0.8*flesh);
+  acc*=1.0-0.86*line*flesh;
+  acc=mix(acc,acc*1.04+vec3(0.20,0.20,0.19)*uAmbient,heal*0.65*flesh);
   if(flat_>0.5) acc*=1.0+0.014*sin(dot(p,vec3(0.83,0.21,0.52))*4.3+vnoise(p*0.25)*9.0)*flesh; // 很淡的锯痕
   // 菲涅耳反光：种水越好表面越“起光”
   float wS=M(p-n*0.5).g; float ndv=max(dot(nf,-rd),0.0);

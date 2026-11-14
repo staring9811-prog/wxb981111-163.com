@@ -215,9 +215,9 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   </main>
 </div>
 <div id="help" class="modal" hidden><div class="tut">
-  <h2>教程</h2>
+  <div class="row"><h2 style="margin:0">教程</h2><button data-act="help">关闭（Esc）</button></div>
   <div class="scenes">
-    <button data-act="pane" data-k="play">怎么玩</button><button data-act="pane" data-k="skin">看皮壳</button><button data-act="pane" data-k="water">看种水</button><button data-act="pane" data-k="atlas">种色图鉴</button><button data-act="pane" data-k="color">看色和裂</button><button data-act="pane" data-k="make">做件出货</button><button data-act="pane" data-k="value">价值表</button>
+    <button data-act="pane" data-k="play">怎么玩</button><button data-act="pane" data-k="skin">看皮壳</button><button data-act="pane" data-k="water">看种水</button><button data-act="pane" data-k="atlas">种色图鉴</button><button data-act="pane" data-k="color">看色和裂</button><button data-act="pane" data-k="crack">裂图鉴</button><button data-act="pane" data-k="make">做件出货</button><button data-act="pane" data-k="value">价值表</button>
   </div>
   <section data-pane="play">
     <p>你从一个蹲在摊边看热闹的人做起：先围观猜石头练眼力，再小本倒手，再自己下刀做货、开铺面、开直播、开分店。每一章解锁新的玩法，牛叔会带着你做第一遍。</p>
@@ -240,6 +240,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <li><b>上学</b>：每个年龄段有几种学校可选，贵贱不同，孩子长的本事也不同（读书、手艺、眼力、口才、管事）。每个孩子有自己的天分和短板，开始看不出来。学校还会带来以后的人和事，好坏都有。</li>
       <li><b>12 岁以后可以帮忙</b>：学雕刻做货、看店、跟着看石头、开机器切石头、当主播。课余帮忙效果减半；不上学全职干效果翻倍，但书就不读了。上了大学的孩子几年不在家，毕业后可能回来接班，也可能留在外地。</li>
       <li><b>借钱</b>：房子、车子可以抵押，利息低；民间借贷不要抵押但利息高，拖久了有人上门。房和车都能卖，卖价是买价的八成。</li>
+      <li><b>花钱培养</b>：五岁以后可以每天送孩子去补课、学手艺、练眼、练口才、学管账或者锻炼。对上天分长得快，对上短板事倍功半；练得太密孩子会累。</li>
+      <li><b>婚姻</b>：可以再生孩子（一天就是一个月，所以一年能添好几个，每个都要钱养）；可以离婚（现金分一半，孩子跟谁你选）；可以再婚；也可以有婚外情，但每天花钱、家和下降，被发现就是赔礼或离婚，当了主播还会掉口碑。</li>
       <li><b>家里的事</b>：孩子生病、家长会、亲戚借钱……时不时来一件，选花钱还是花感情。</li>
     </ul>
     <h3>假货、熟客和铺面</h3>
@@ -307,6 +309,20 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <div id="caseAtlas"></div>
     <p class="note">图是游戏画面现场拍的，和你玩的时候看到的一致。真实翡翠变化更多，这里只是每种的典型样子；皮更厚更黑时，第一张会暗得多。</p>
   </section>
+  <section data-pane="crack" hidden>
+    <p>游戏里没有用物理引擎去“震”出裂，裂是按成因规则生成的：<b>受力让裂成组平行</b>（一块石头里的裂大多朝着一两个方向）；<b>风化从外往里</b>（多数裂从皮上起头，往里吃一截）；<b>靠皮的一段会被水和铁锈沁黄</b>，越往里越干净；<b>很老的裂会重新长死</b>，变成一条白色的石纹。每块石头的裂在生成时就定死了，位置、走向、深浅都真实存在于石头里，你从任何角度切，切到的都是同一条。</p>
+    <p>下面每种裂四张：<b>皮上</b>、<b>隔着皮压灯</b>（灯压在裂的一侧）、<b>切开</b>、<b>切面压灯</b>。</p>
+    <p class="note" id="crackProg">正在拍第 1 组…</p>
+    <div id="crackAtlas" style="display:flex;flex-direction:column;gap:8px"></div>
+    <h3>看到裂怎么办</h3>
+    <ul>
+      <li>先分清是<b>裂</b>还是<b>石纹</b>：裂是黑缝、挡光、带黄锈；石纹是白线、不挡光。</li>
+      <li>看它<b>绕了多远</b>：皮上的线越长、两头都看得到，里面吃得越深。</li>
+      <li>看它<b>朝哪个方向</b>：顺着大裂下刀，把料一分为二，损失最小；垂直着裂去切片，每一片都带裂。</li>
+      <li>一块石头上的裂大多平行。找到一条，就顺着它的方向在旁边再压灯找第二条。</li>
+      <li>按任意打开的窗口、教程、对话，都可以按 <b>Esc</b> 关掉。</li>
+    </ul>
+  </section>
   <section data-pane="color" hidden>
     <h3>怎么看色</h3>
     <ul>
@@ -320,7 +336,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <ul>
     <li><b>裂</b>会挡光：光晕里一条明暗分界线，一侧亮一侧暗，那就是裂面。换方向压灯能看出它的走向。</li>
     <li>把手电「倾斜」调大、贴着皮扫，皮上的裂线和起伏更明显；转「朝向」换个方向扫，顺着裂的方向照看不见，横着照最清楚。</li>
-    <li>裂不是一条直线：有锯齿、有粗有细、有的段合上了看不见，旁边还会带几丝羽裂，大裂常常岔出小裂。</li>
+    <li>裂不是一条直线：有锯齿、有粗有细、到尖端收细，旁边带几丝羽裂，大裂常常岔出小裂。各种裂在皮上、灯下、切面上的样子见「裂图鉴」。</li>
     <li><b>棉</b>在灯下是一团团发白的云，<b>脏和癣</b>是吸光的黑块，常常挨着色。</li>
     <li>大裂会切断手镯位；小纹影响不大。裂附近的料基本是废料。</li>
     <li>灯太亮反而会把细裂“照穿”看不见；留着皮兜光会让色显得更深。条件不同，看到的不一样。</li>

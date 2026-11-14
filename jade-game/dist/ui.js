@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const C = window.Core, $ = s => document.querySelector(s), fmt = C.fmt;
-const SAVE_KEY = 'jade-bargain-web-v10';
+const SAVE_KEY = 'jade-bargain-web-v11';
 const canvas = $('#gl'), gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
 if (!gl) { $('#hint').textContent = '这台设备的浏览器不支持 WebGL2，无法显示三维原石。'; return; }
 
@@ -54,7 +54,7 @@ const Q = { scale: 1, fast: 0.45, K: 16, tuned: false, user: 1 };
 let tab = 'market', thumbs = new Map(), qcache = new Map();
 
 function save() { try { localStorage.setItem(SAVE_KEY, C.serialize(W)); } catch (e) { /* 存不了也能继续玩 */ } }
-function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 10) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
+function load() { try { const s = localStorage.getItem(SAVE_KEY); if (s) { const w = JSON.parse(s); if (w && w.v === 11) { w.market = w.markets[w.scene] || []; C.applyTools(w); return w; } } } catch (e) { } return null; }
 
 /* ---------- 相机与渲染 ---------- */
 function camBasis() {
@@ -266,17 +266,22 @@ function renderSide() {
     }
   } else if (tab === 'home') {
     const f = W.fam, lc = C.lifeCost(W), bar = (v, c) => `<span class="bar"><i style="width:${Math.round(v)}%;background:${c}"></i></span>`, sel = (id, opts, cur) => `<select id="${id}">${opts.map(o => `<option value="${o[0]}" ${String(o[0]) === String(cur) ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>`;
-    h += `<article class="card"><div class="row"><b>一家四口</b><span class="dim">每天家用 ${fmt(lc.total)}</span></div>
+    h += `<article class="card"><div class="row"><b>${f.wife ? '你和' + f.wife : '单身'}，${f.kids.filter(k => !k.withMom).length} 个孩子在身边</b><span class="dim">每天家用 ${fmt(lc.total)}</span></div>
       <div class="row"><span>身体 ${Math.round(f.hp)}</span>${bar(f.hp, f.hp < 30 ? 'var(--up)' : 'var(--jade)')}</div><div class="row"><span>家和 ${Math.round(f.har)}</span>${bar(f.har, f.har < 30 ? 'var(--up)' : 'var(--lamp)')}</div>
       <div class="row dim"><span>${lc.items.map(x => `${x[0]} ${x[1]}`).join(' · ')}</span></div>
       <div class="row"><label for="fFood">吃</label>${sel('fFood', C.FOODS.map((x, i) => [i, `${x.name}（每天 ${x.cost}）`]), f.food)}</div>
       <div class="row"><span class="dim">吃得差、住得差，身体和家和每天都在掉；掉到底会生病、吵架。家里过一个月，游戏里是一天。</span><button data-act="rest" ${f.rested === W.day ? 'disabled' : ''}>今天歇业陪家人</button></div></article>`;
+    { const FC = C.FAMC; h += `<article class="card"><b>婚姻和孩子</b>
+      ${f.wife ? `<div class="row"><span class="dim">再要一个孩子：产检、生产、月子 ${fmt(FC.baby)}。多一张嘴，以后也多一个帮手。</span><button data-act="baby">和${f.wife}再生一个</button></div>
+      <div class="row"><span class="dim">离婚：现金分走一半，另加手续 ${fmt(FC.divorce)}。</span><span><button data-act="divorce" data-k="1">离婚，孩子跟我</button> <button data-act="divorce" data-k="0">离婚，孩子跟她</button></span></div>` : `<div class="row"><span class="dim">${f.lover ? `和${f.lover.name}结婚` : '托人介绍，再婚'}：彩礼婚礼 ${fmt(f.lover ? FC.wedding * 0.6 : FC.wedding)}。没有人带的小孩子每天要请保姆 ${FC.nanny}。</span><button data-act="marry">结婚</button></div>`}
+      ${f.lover ? `<div class="row"><span>外面有人：${f.lover.name} <span class="dim">每天开销 ${FC.loverDaily}，家和一直掉，随时可能被发现</span></span><span><button data-act="baby" data-k="lover">和她生一个</button> <button data-act="affairend">断掉（${fmt(FC.breakup)}）</button></span></div>` : (f.wife ? `<div class="row"><span class="dim">婚外情：每天多一笔开销，家和下降，被发现就是赔礼或者离婚；名气越大越容易被认出来。</span><button data-act="affair">在外面找一个</button></div>` : '')}</article>`; }
     h += `<article class="card"><div class="row"><b>住：${C.HOMES[f.home].name}</b><span class="dim">${C.HOMES[f.home].rent ? '日租 ' + C.HOMES[f.home].rent : '自有'}</span></div>${C.HOMES.map((x, i) => i === f.home ? '' : `<div class="row"><span class="dim">${x.name}${x.price ? ' ' + fmt(x.price) : `（日租 ${x.rent}）`}</span><button data-act="asset" data-k="home" data-i="${i}">${i > f.home ? (x.price ? '买下' : '搬过去') : (C.HOMES[f.home].price ? '卖房，搬到这里' : '搬过去')}</button></div>`).join('')}</article>`;
     h += `<article class="card"><div class="row"><b>行：${C.CARS[f.car].name}</b><span class="dim">${C.CARS[f.car].tip}</span></div>${C.CARS.map((x, i) => i === f.car || i === 0 && f.car === 0 ? '' : `<div class="row"><span class="dim">${x.name}${x.price ? ' ' + fmt(x.price) + '。' + x.tip : ''}</span><button data-act="asset" data-k="car" data-i="${i}">${i > f.car ? '买' : (i === 0 ? '卖车' : '卖掉，换这个')}</button></div>`).join('')}</article>`;
     f.kids.forEach((k, i) => { const sch = C.schoolsFor(k), can12 = k.months >= 144 && !k.away, T = [['book', '读书'], ['craft', '手艺'], ['eye', '眼力'], ['talk', '口才'], ['manage', '管事']];
-      h += `<article class="card"><div class="row"><b>${k.name} · ${C.kidAge(k)} 岁${k.months % 12 ? ' ' + (k.months % 12) + ' 个月' : ''}</b><span class="dim">${k.away ? '在外地' : C.SCHOOLS[k.school].name}</span></div>
+      h += `<article class="card"><div class="row"><b>${k.name} · ${C.kidAge(k)} 岁${k.months % 12 ? ' ' + (k.months % 12) + ' 个月' : ''}</b><span class="dim">${k.withMom ? '跟妈妈过，你付抚养费' : k.away ? '在外地' : C.SCHOOLS[k.school].name}</span></div>
         ${k.months >= 36 ? `<div class="row dim"><span>${T.map(x => `${x[1]}${C.traitWord(k.t[x[0]])}`).join(' · ')}</span></div>` : '<div class="row dim"><span>还在吃奶，什么都看不出来。</span></div>'}
         ${k.away ? '' : `<div class="row"><label for="kS${i}">上学</label>${sel('kS' + i, sch.map(id => [id, `${C.SCHOOLS[id].name}（每天 ${C.SCHOOLS[id].cost}）`]), k.school)}</div>`}
+        ${!k.away && k.months >= 60 ? `<div class="row"><label for="kT${i}">花钱培养</label><span><select id="kT${i}">${Object.keys(C.TRAIN).map(id => `<option value="${id}">${C.TRAIN[id].name}（${C.TRAIN[id].cost}）</option>`).join('')}</select> <button data-act="train" data-i="${i}" ${k.trained === W.day ? 'disabled' : ''}>去</button></span></div>${(k.tired || 0) > 3 ? '<p class="note">这阵子练得太密，孩子累了。歇几天或者去锻炼一下。</p>' : ''}` : ''}
         ${can12 ? `<div class="row"><label for="kJ${i}">帮忙</label>${sel('kJ' + i, Object.keys(C.JOBS).map(id => [id, C.JOBS[id].name]), k.job)}</div><p class="note">${k.job !== 'none' ? C.JOBS[k.job].tip + (k.school === 'work' ? '全职在干。' : '课余帮忙，效果减半。') : '满 12 岁了，可以课余帮忙；不上学全职干效果翻倍，但书就不读了，16 岁前这样做家里也有怨气。'}</p>` : (k.months >= 72 ? '<p class="note">学校不只决定成绩：同学、老师、路上遇到的人，都会在以后的日子里冒出来。贵的不一定适合这个孩子。</p>' : '')}</article>`; });
     h += `<article class="card"><b>借钱</b>${f.loans.map((L, i) => `<div class="row"><span>${C.LOANS[L.type].name} ${fmt(L.principal)} <span class="dim">每天利息 ${fmt(L.principal * L.rate)}</span></span><button data-act="repay" data-i="${i}">还清</button></div>`).join('') || '<div class="row dim"><span>没有欠债</span></div>'}
       ${Object.keys(C.LOANS).map(t => { const room = C.loanRoom(W, t); return `<div class="row"><span class="dim">${C.LOANS[t].name}：还能借 ${fmt(room)}，日息 ${(C.LOANS[t].rate * 100).toFixed(2)}%${t === 'shark' ? '。拖过 25 天会有人上门' : ''}</span>${room >= 5000 ? `<span><button data-act="borrow" data-t="${t}" data-a="${Math.min(room, 20000)}">借 ${fmt(Math.min(room, 20000))}</button> <button data-act="borrow" data-t="${t}" data-a="${room}">借满</button></span>` : ''}</div>`; }).join('')}</article>`;
@@ -462,7 +467,7 @@ function buildCases() {
   const restore = () => { V.mode = keep.mode; V.rec = keep.rec; V.piece = keep.piece; V.e = keep.e; V.torch = keep.torch; V.room = keep.room; V.lens = keep.lens; Object.assign(cam, keep.cam); loaded = null; invalidate(false); };
   let i = 0;
   const step = () => {
-    if (i >= CASES.length || $('#help').hidden) { restore(); if (i < CASES.length) casesStarted = false; return; }
+    if (i >= CASES.length || $('#help').hidden || $('#help [data-pane=atlas]').hidden) { restore(); if (i < CASES.length) casesStarted = false; return; }
     const [name, o, text] = CASES[i++];
     try {
       const st = C.genStone(515151, '木那', '二级供应商'); st.cracks = []; st.dirt = []; st.shift = null; st.wVar = 0; st.cot = 0.22; st.planes = []; st.fog = { t: 0, col: [1, 1, 1] }; st.body = '白底'; st.w0 = o.w; st.hue = o.hue || '阳绿';
@@ -488,8 +493,55 @@ function buildCases() {
   };
   setTimeout(step, 30);
 }
-function showPane(k) { document.querySelectorAll('#help [data-pane]').forEach(x => x.hidden = x.dataset.pane !== k); document.querySelectorAll('#help [data-act=pane]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k)); if (k === 'skin' || k === 'water') buildAtlas(); if (k === 'atlas') buildCases(); }
+function showPane(k) { document.querySelectorAll('#help [data-pane]').forEach(x => x.hidden = x.dataset.pane !== k); document.querySelectorAll('#help [data-act=pane]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k)); if (k === 'skin' || k === 'water') buildAtlas(); if (k === 'atlas') buildCases(); if (k === 'crack') buildCracks(); }
 
+/* 裂图鉴：每种裂拍四张——皮上、隔皮压灯、切开、切面压灯 */
+const CRK = [
+  ['通天大裂', '整块贯穿的大裂。皮上是一条带锈边的黑线，能绕石头一圈。压灯时光走到裂面就停，一边亮一边暗。切开是一条贯通的暗线，靠皮的一段被水和铁锈沁黄。沿着它下刀把料分成两半，两半各自还能用；横跨它的镯位全废。', (a, r, u) => [['through', [0, 0, 0], [r[0] + u[0] * 0.2, r[1] + u[1] * 0.2, r[2] + u[2] * 0.2], a * 1.6, 1, 1]]],
+  ['皮上起头的裂', '风化从外往里，多数裂都是从皮上起头，往里吃一截就停。皮上看得到线，压灯时裂挡住的只是靠皮的一片。切开看它吃了多深：浅的磨掉一层就没了，深的要让开它取料。', (a, r, u) => [['edge', [u[0] * a * 0.62, u[1] * a * 0.62, u[2] * a * 0.62], r, a * 0.55, 1, 1]]],
+  ['隐裂（皮上看不见）', '皮厚或者皮色深，裂在皮上不露头。只有压灯才能发现：光晕里突然一条明暗分界。全蒙头的料最怕这个，所以要多换几个位置、几个方向压灯。', (a, r, u) => [['through', [r[0] * 6, r[1] * 6, r[2] * 6], [r[0] - u[0] * 0.25, r[1] - u[1] * 0.25, r[2] - u[2] * 0.25], a * 1.5, 1, 0]]],
+  ['小绺、碎裂', '一组方向差不多的短裂，是同一次受力留下的。单条不深，但挤在一起这一片就取不出整料，只能做小件、珠子，或者用雕工把它们藏进纹路里。', (a, r, u) => [-2, -1, 0, 1, 2].map(k => ['hair', [r[0] * k * 7 + u[0] * (k % 2 ? 9 : -6), r[1] * k * 7 + u[1] * (k % 2 ? 9 : -6), r[2] * k * 7 + u[2] * (k % 2 ? 9 : -6)], [r[0] + u[0] * 0.12 * k, r[1] + u[1] * 0.12 * k, r[2] + u[2] * 0.12 * k], a * 0.26, 1, 0])],
+  ['石纹（愈合的裂）', '很早以前裂开过，后来又被矿物长死了。切面上是一条发白的线，没有黑缝，不挡光，指甲划过去不卡。不算裂，对取料影响很小，只是不好看。别把它当成裂吓得贱卖。', (a, r, u) => [['healed', [0, 0, 0], [r[0] + u[0] * 0.3, r[1] + u[1] * 0.3, r[2] + u[2] * 0.3], a * 1.4, 0.2, 0]]],
+  ['十字裂', '两组方向的裂交叉，把料分成几小块。每一块都小，出不了镯子，只能按小件算价。看到皮上两条裂相交，就别按整料的价钱去想了。', (a, r, u) => [['through', [0, 0, 0], r, a * 1.6, 1, 1], ['through', [0, 0, 0], [u[0] + r[0] * 0.15, u[1] + r[1] * 0.15, u[2] + r[2] * 0.15], a * 1.6, 1, 1]]],
+];
+let cracksStarted = false;
+function buildCracks() {
+  if (cracksStarted) return; cracksStarted = true;
+  const host = $('#crackAtlas'); host.innerHTML = '';
+  const keep = { mode: V.mode, rec: V.rec, piece: V.piece, e: V.e, torch: V.torch, room: V.room, lens: V.lens, cam: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist, t: cam.t } };
+  const restore = () => { V.mode = keep.mode; V.rec = keep.rec; V.piece = keep.piece; V.e = keep.e; V.torch = keep.torch; V.room = keep.room; V.lens = keep.lens; Object.assign(cam, keep.cam); loaded = null; invalidate(false); };
+  const nrm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; }, crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  let i = 0;
+  const step = () => {
+    if (i >= CRK.length || $('#help').hidden || $('#help [data-pane=crack]').hidden) { restore(); if (i < CRK.length) cracksStarted = false; return; }
+    const [name, text, make] = CRK[i++];
+    try {
+      const st = C.genStone(515151, '木那', '二级供应商'); st.dirt = []; st.shift = null; st.wVar = 0; st.cot = 0.18; st.planes = []; st.fog = { t: 0, col: [1, 1, 1] }; st.body = '白底'; st.w0 = 0.5; st.feats = [];
+      st.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: 0.78, sig: 0.75, weather: 0.45, t: 1.6, phase: 3 };
+      V.mode = 'own'; V.rec = null; V.lens = null; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0]; const b = camBasis();
+      st.cracks = make(st.rad[0], b.r, b.up).map((c, k) => { const n = nrm(c[2]); return { kind: c[0], c: c[1], n, t1: nrm(crs(n, [0.31, 0.87, 0.38])), R: c[3], warp: 1.3, freq: 0.06, phase: 1 + k * 1.7, open: c[4], skinVis: c[5] }; });
+      const vol = C.bake(st, 44), R0 = Math.max(vol.hx, vol.hy, vol.hz); V.e = { st, vol }; loaded = null;
+      const shot = (torch, piece, dist) => { V.piece = piece; V.room = !torch; cam.dist = R0 * dist; const bb = camBasis(); V.torch = { on: false, p: null, n: null };
+        if (torch) { const o = [0, 1, 2].map(k => bb.pos[k] - bb.r[k] * R0 * 0.42), h = C.pick(vol, piece, o, bb.f); if (h) V.torch = { on: true, p: h.p, n: h.n, dir: h.n, h: 0 }; }
+        const lb = V.lampBody; V.lampBody = false; render(1, 176); V.lampBody = lb; return canvas.toDataURL('image/jpeg', 0.85); };
+      const cut = { planes: [[-b.f[0], -b.f[1], -b.f[2], 0]] };
+      const imgs = [['皮上', shot(false, C.WHOLE, 3.0)], ['隔着皮压灯', shot(true, C.WHOLE, 3.4)], ['切开', shot(false, cut, 3.2)], ['切面压灯', shot(true, cut, 3.2)]];
+      host.insertAdjacentHTML('beforeend', `<article class="case"><div class="row"><b>${name}</b></div><div class="four">${imgs.map(x => `<figure><img src="${x[1]}" alt="${name}${x[0]}"><figcaption>${x[0]}</figcaption></figure>`).join('')}</div><p>${text}</p></article>`);
+    } catch (e) { host.insertAdjacentHTML('beforeend', `<p class="note">${name} 的图没拍出来：${e.message}</p>`); }
+    $('#crackProg').textContent = i < CRK.length ? `正在拍第 ${i + 1} / ${CRK.length} 组…` : '';
+    setTimeout(step, 30);
+  };
+  setTimeout(step, 30);
+}
+/* Esc：关掉最上面一层打开的东西 */
+addEventListener('keydown', ev => { if (ev.key !== 'Escape') return; const open = id => $(id) && !$(id).hidden; let done = true;
+  if (open('#help')) $('#help').hidden = true;
+  else if (open('#confirm')) $('#confirm').hidden = true;
+  else if (open('#story')) { const bs = $('#storybody').querySelectorAll('button'); if (bs.length === 1) bs[0].click(); else done = false; }
+  else if (open('#live')) { const x = $('#live [data-act=liveend]'); if (x) x.click(); else done = false; }
+  else if (open('#sawbox')) { const x = document.querySelector('[data-act=sawno]'); if (x) x.click(); else done = false; }
+  else { const x = document.querySelector('[data-act=trayback],[data-act=ccancel],[data-act=codeclose],[data-act=pback]'); if (x && x.offsetParent) x.click(); else if (V.lens || V.cut) { V.lens = null; V.cut = null; renderTools(); invalidate(false); } else done = false; }
+  if (done) ev.preventDefault(); });
 /* ---------- 说明书里的价值表：直接用内核公式算，保证和游戏一致 ---------- */
 function fillManual() {
   const seeds = [['豆种', 0.10], ['糯种', 0.25], ['糯冰种', 0.45], ['冰种', 0.65], ['高冰种', 0.82], ['玻璃种', 0.95]];
@@ -569,6 +621,12 @@ document.addEventListener('click', ev => {
   else if (a === 'liveend') { $('#live').hidden = true; openTray(false, false); }
   else if (a === 'branch') { const r = C.openBranch(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
   else if (a === 'hire') { const r = C.hire(W, b.dataset.k, +b.dataset.d); V.note = r.msg; save(); renderAll(); }
+  else if (a === 'train') { const r = C.trainKid(W, +b.dataset.i, $('#kT' + b.dataset.i).value); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
+  else if (a === 'baby') { const r = C.haveBaby(W, b.dataset.k === 'lover'); V.note = r.msg; if (r.ok) Snd.win(); save(); renderAll(); }
+  else if (a === 'divorce') { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '再点一次确认：' + b.textContent; return; } const r = C.divorce(W, b.dataset.k === '1'); V.note = r.msg; save(); renderAll(); }
+  else if (a === 'marry') { const r = C.marry(W); V.note = r.msg; if (r.ok) Snd.win(); save(); renderAll(); }
+  else if (a === 'affair') { const r = C.startAffair(W); V.note = r.msg; save(); renderAll(); }
+  else if (a === 'affairend') { const r = C.endAffair(W); V.note = r.msg; save(); renderAll(); }
   else if (a === 'rest') { C.restDay(W); Snd.tap(); V.note = '今天不出摊，陪家里人。身体和家和都回来一些。'; save(); renderSide(); renderTools(); }
   else if (a === 'asset') { const r = C.buyAsset(W, b.dataset.k, +b.dataset.i); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
   else if (a === 'borrow') { const r = C.borrow(W, b.dataset.t, +b.dataset.a); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
