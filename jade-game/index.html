@@ -80,6 +80,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 @keyframes pfh { 0%, 38%, 100% { transform: rotate(0) } 48%, 62% { transform: rotate(-2.4deg) } 78%, 88% { transform: rotate(1.6deg) } }
 @keyframes pfe { 0%, 93%, 100% { transform: scaleY(1) } 95.5% { transform: scaleY(0.08) } }
 @media (prefers-reduced-motion: reduce) { .pf-body, .pf-head, .pf-eye { animation: none; } }
+.cx { margin: 6px 0; } .cxs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; } .cxs span { font-size: 12px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line); color: #7d766b; } .cxs span.on { color: var(--fg); border-color: var(--jade); background: #1f2a24; }
+.scenes button small { display: block; font-size: 10px; opacity: .7; }
 .fakehelp { border: 1px solid var(--up, #c75); border-radius: 6px; padding: 8px 10px; margin: 6px 0; font-size: 13px; line-height: 1.5; } .fakehelp p { margin: 4px 0; } .fakehelp ol { margin: 2px 0 6px; padding-left: 20px; }
 .props { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 4px 0; } .props i { color: var(--dim, #9a948a); font-style: normal; font-size: 12px; }
 .bar { flex: 1; height: 8px; border-radius: 4px; background: var(--raise); overflow: hidden; max-width: 60%; align-self: center; } .bar i { display: block; height: 100%; }
@@ -380,7 +382,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <li>看它<b>绕了多远</b>：皮上的线越长、两头都看得到，里面吃得越深。</li>
       <li>看它<b>朝哪个方向</b>：顺着大裂下刀，把料一分为二，损失最小；垂直着裂去切片，每一片都带裂。</li>
       <li>一块石头上的裂大多平行。找到一条，就顺着它的方向在旁边再压灯找第二条。</li>
-      <li>按任意打开的窗口、教程、对话，都可以按 <b>Esc</b> 关掉。</li>
+      <li>按任意打开的窗口、教程、对话，都可以按 <b>Esc</b> 关掉；教程和存档窗口点旁边的空白处也能关。</li>
+      <li>工具再点一次就是放下（回到转动）；按 Esc 或在石头上快速按两下右键也能放下当前工具。</li>
     </ul>
   </section>
   <section data-pane="fake" hidden>

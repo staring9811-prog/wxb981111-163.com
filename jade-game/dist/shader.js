@@ -185,6 +185,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   // 玉肉表面：切面抛光感强，磨出的窗口偏哑光
   vec3 nf=n;
   if(flesh>0.001&&flat_<0.5){ vec3 w=vec3(vnoise(p*1.7+3.0),vnoise(p*1.7+13.0),vnoise(p*1.7+23.0))-0.5; nf=normalize(n+w*0.10); }
+  else if(flesh>0.5){ float gW=1.0-M(p-n*0.5).g; vec3 w=vec3(vnoise(p*5.5+3.0),vnoise(p*5.5+13.0),vnoise(p*5.5+23.0))-0.5; nf=normalize(n+w*0.085*gW*gW); } // 切面：种嫩的料晶粒粗，抛不平，反光是碎的；种老的像镜面
   vec3 dir=normalize(rd-n*mix(0.6,0.25,flesh));
   vec3 x=p-n*mix(skinT+0.4,0.05,flesh);
   vec3 tint=mix(vec3(1.0),uSkinCol/max(max(uSkinCol.r,uSkinCol.g),uSkinCol.b),0.7);
@@ -219,6 +220,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     float cg=mix(vnoise(s*1.6+3.0),vnoise(s*4.5+1.0),0.45)-0.5; float gk=(1.0-m.g)*(0.42+detail*0.55);
     al*=1.0+cg*gk; sc*=1.0+cg*gk*1.6;
     vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.50,0.30,m.g)),flesh)*ambL*exp(-sg*trav*0.42)*lit;
+    if(uHi>0.5){ float ld=clamp(-sdfOf(G(s+keyL*6.0))/9.0,0.0,1.0); Lin*=mix(1.22,0.74,ld); }       // 朝着灯的那一侧光进得多，背灯的深处暗下去，石头才有体积
     float tcm=-1.0;
     vec3 xe=x+dir*dt;
     for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);

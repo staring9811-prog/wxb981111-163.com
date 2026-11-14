@@ -54,6 +54,10 @@ const CHANNELS = {
   '小商贩': { skill: 0.47, margin: 0.18, window: 0.3 },
   '个人转让': { skill: 0.33, margin: 0.07, window: 0.2 },
   '大型集散地': { skill: 0.79, margin: 0.12, window: 0.55 },
+  '河滩捡石人': { skill: 0.28, margin: 0.05, window: 0.1 },
+  '过关货主': { skill: 0.66, margin: 0.06, window: 0.35 },
+  '绝当急售': { skill: 0.40, margin: 0.02, window: 0.95 },
+  '矿主': { skill: 0.70, margin: 0.03, window: 0.05 },
 };
 // sig: 皮壳每毫米挡光系数；t: 皮厚范围 mm
 const SKINS = {
@@ -492,7 +496,7 @@ function veneer(vol, spheres) {
       if (d < R - vx || d > R + 2.6) continue; const b = (i + nx * (j + ny * k)) * 4; if (g[b] > 1) continue; m[b] = 225; m[b + 1] = 200; m[b + 2] = 8; m[b + 3] = 0; } }
   vol.ver++;
 }
-const FAKE_RATE = { '夜市地摊': 0.28, '玉石集散地': 0.06, '翡翠公盘': 0, '场口直采': 0 };
+const FAKE_RATE = { '夜市地摊': 0.28, '玉石集散地': 0.06, '翡翠公盘': 0, '场口直采': 0, '河滩早市': 0.05, '姐告口岸': 0.12, '典当行绝当': 0.10, '缅北矿区': 0.02 };
 // 窗口上色：只在窗口表面薄薄一层染了绿，种水不变，往里磨一点就没了
 function dyeWin(vol, spheres) {
   const { nx, ny, nz, vx, geom: g, mat: m } = vol;
@@ -510,7 +514,7 @@ const FAKE_LESSON = 800;
 function inspectFee(s) { return clamp(Math.round(s.buyPrice * 0.02 / 10) * 10, 300, 3000); }
 // 花钱请师傅讲一种假料：手脚做在哪、为什么、怎么认。每种学一次
 function learnFake(w, type) { const L = w.lessons || (w.lessons = {}); if (L[type]) return { ok: false, msg: '这种已经学过了。' }; if (w.cash < FAKE_LESSON) return { ok: false, msg: '现金不够。' }; w.cash -= FAKE_LESSON; L[type] = true; w.eye += 1; w.log.push({ day: w.day, t: `请师傅讲假料：${FAKE_NAME[type].split('：')[0]}`, amt: -FAKE_LESSON }); return { ok: true, msg: '师傅拿着料给你讲了一遍。眼力 +1' }; }
-function inspectFake(w, s) { if (s.checked) return { ok: false, msg: '这块已经查过了。' }; const fee = inspectFee(s); if (w.cash < fee) return { ok: false, msg: '鉴定费不够。' }; w.cash -= fee; s.costs += fee; w.log.push({ day: w.day, t: `#${s.id} 请师傅鉴定真假`, amt: -fee }); s.checked = true; if (s.fake) { s.fakeKnown = true; w.eye += 2; return { ok: true, fake: s.fake.type, msg: `查出来了：${FAKE_NAME[s.fake.type]}。眼力 +2` }; } return { ok: true, fake: null, msg: '皮、窗口、颜色都查了一遍，没看出做过手脚。是真料。' }; }
+function inspectFake(w, s) { if (s.checked) return { ok: false, msg: '这块已经查过了。' }; const fee = inspectFee(s); if (w.cash < fee) return { ok: false, msg: '鉴定费不够。' }; w.cash -= fee; s.costs += fee; w.log.push({ day: w.day, t: `#${s.id} 请师傅鉴定真假`, amt: -fee }); s.checked = true; if (s.fake) { s.fakeKnown = true; w.eye += 2; codexAdd(w, 'fake', FAKE_NAME[s.fake.type].split('：')[0]); return { ok: true, fake: s.fake.type, msg: `查出来了：${FAKE_NAME[s.fake.type]}。眼力 +2` }; } return { ok: true, fake: null, msg: '皮、窗口、颜色都查了一遍，没看出做过手脚。是真料。' }; }
 // 丢弃：所有还没出手的块按 0 处理，结账复盘
 function discardStone(w, s) { let n = 0; for (const p of s.pieces) if (!p.sold) { p.sold = true; p.soldPrice = 0; p.buyer = '丢弃'; p.kept = false; p.shelf = false; n++; } s.discarded = true; w.log.push({ day: w.day, t: `#${s.id} 丢弃（${s.fake ? '假料' : '不要了'}）`, amt: 0 }); closeStone(w, s); return { ok: true, n }; }
 // 当面指出是假货：说对了老板心虚大降价，说错了老板翻脸不卖
@@ -542,6 +546,10 @@ const SCENES = {
   '玉石集散地': { channels: ['二级供应商', '大型集散地'], eye: 15, cash: 6e5, n: 6, tip: '档口整齐，开窗料多，卖家是行家，价格贴着货走。看得准才有差价。' },
   '翡翠公盘': { channels: ['拍卖市场'], eye: 40, cash: 2e6, n: 5, auction: true, tip: '暗标竞拍：每块料写一口价，收工后开标，压过所有人才拿得到，出多少付多少。' },
   '场口直采': { channels: ['场口直采'], eye: 80, cash: 6e6, n: 6, tip: '矿上刚出的蒙头料，没人开过窗，价低量大，全凭皮壳和灯下功夫。' },
+  '河滩早市': { channels: ['河滩捡石人', '个人转让'], eye: 0, cash: 0, n: 7, look: '场口直采', tabc: [0.20, 0.21, 0.19], key: [0.95, 0.98, 1.0], tip: '天刚亮，捡石人把夜里从河滩翻出来的水石摆在塑料布上。卖的人自己也不懂，便宜，十块里九块是砖头料，偶尔有一块老种。' },
+  '姐告口岸': { channels: ['过关货主', '二级供应商'], eye: 15, cash: 6e5, n: 7, look: '玉石集散地', tabc: [0.16, 0.13, 0.08], key: [1.0, 0.93, 0.80], tip: '缅甸货主刚过关，料还带着麻袋的土。他们急着回款，价钱比档口松，但只给你看一小会儿。' },
+  '典当行绝当': { channels: ['绝当急售'], eye: 40, cash: 2e6, n: 5, look: '翡翠公盘', tabc: [0.10, 0.05, 0.05], key: [1.0, 0.88, 0.70], tip: '别人赌垮了押在这里的料，大多已经开过窗、切过一刀。看得见的多，价钱压得低；可别人切过不要的，总有他的道理。' },
+  '缅北矿区': { channels: ['矿主'], eye: 80, cash: 6e6, n: 8, look: '场口直采', tabc: [0.33, 0.20, 0.10], key: [1.0, 0.90, 0.72], tip: '坐皮卡颠半天到矿上，料按堆卖，量大价低，全是蒙头。来回路费和风险都在你身上。' },
 };
 // 工具铺：等级从 1 开始，price[i] 是升到 i+2 级的价钱
 const SHOP = {
@@ -713,7 +721,7 @@ function lifeEvent(w) {
   const f = w.fam, r = new Rng(seedOf(w.seed, 'life', w.day));
   if (f.cuck && f.cuck.known && !f.cuck.asked && f.wife) { const L = w.cash >= LAWYERS[1].fee * 2 ? 1 : 0; return { cuck: true, text: `你提前收摊回家，在巷口看见${f.wife}从一辆陌生的车上下来，和车里的人说了很久的话。回到家她没有否认。`, opts: [{ label: '为了孩子，原谅这一次', har: 18, hp: -6, act: 'forgive' }, { label: `离婚，孩子跟我${L ? '（请普通律师 20000，她有错在先，分得很少）' : '（她有错在先，少分）'}`, act: 'divorce1', lawyer: L }, { label: `离婚，孩子跟她${L ? '（请普通律师 20000）' : ''}`, act: 'divorce0', lawyer: L }] }; }
   if (f.caught && f.wife && f.lover) return { text: `${f.wife}翻到了你的手机，知道了${f.lover.name}的事。她把手机摔在桌上，孩子在里屋哭。`, opts: [{ label: `认错，和${f.lover.name}断干净（分手费 ${fmt(FAMC.breakup)}，再赔礼 20000）`, cost: FAMC.breakup + 20000, har: -25, act: 'endaffair' }, { label: '离婚，孩子跟我（分一半现金）', act: 'divorce1' }, { label: '离婚，孩子跟她（分一半现金，付抚养费）', act: 'divorce0' }] };
-  if (!r.chance(0.16)) return null;
+  if (!r.chance(0.26)) return null;
   const k = r.pick(f.kids.filter(x => !x.away)) || f.kids[0], ki = f.kids.indexOf(k), sc = k.school, age = kidAge(k);
   const E = [];
   E.push({ text: `${k.name}半夜发烧，烧到三十九度。`, opts: [{ label: '去大医院（1500）', cost: 1500, har: 2 }, { label: '小诊所打一针（300）', cost: 300, hp: -2, risk: 0.3, riskNote: '没好利索，又折腾了几天，多花了 2000。', riskCost: 2000 }] });
@@ -729,14 +737,37 @@ function lifeEvent(w) {
   if (f.lover) E.push({ text: `${f.lover.name}说看中了一个包，又说总这样偷偷摸摸不是办法。`, opts: [{ label: '买（8000）', cost: 8000 }, { label: '不买，哄两句', heat: 0.05 }] });
   if (f.har < 30 && f.wife) E.push({ text: `${f.wife}红着眼睛说：“这个家你还管不管？”`, opts: [{ label: '放下石头，陪家里一天', har: 15, rest: true }, { label: '“我这不是在挣钱吗”', har: -10 }] });
   if (f.loans.some(L => L.type === 'shark' && w.day - L.day > 25)) E.push({ text: '放贷的人堵到了家门口。', opts: [{ label: '当场凑钱给一部分（5000）', cost: 5000, har: -4 }, { label: '好话说尽，求再宽限', har: -10, fame: -5 }] });
-  return r.pick(E);
+  // 生意路上的事：随章节解锁
+  const ch = w.chapter, T = '路上的事';
+  E.push({ title: T, text: '夜市收摊，隔壁摊的老头塞给你半包烟，说他年轻时切垮过一块三十万的料，要不要听他讲讲。', opts: [{ label: '坐下听半个钟头', eye: 2, hp: -1 }, { label: '太晚了，改天', }] });
+  E.push({ title: T, text: '一个背包客模样的人拿着块石头问你值多少，说是在路边花两千买的。', opts: [{ label: '照实说：不值，下次别买了', fame: 2 }, { label: '五百块收下来（500）', cost: 500, risk: 0.25, gainRisk: 6000, riskNote: '回去一压灯，居然是块小糯冰，转手卖了 6000。' }] });
+  E.push({ title: T, text: '市场管理的人来收卫生费和摊位费，说这个月涨价了。', opts: [{ label: '交（600）', cost: 600 }, { label: '递根烟，说下回一起交', risk: 0.4, riskCost: 1500, riskNote: '第二天被罚了 1500。', fame: -1 }] });
+  if (ch >= 1) E.push({ title: T, text: '牛叔叫你去他家吃饭，桌上摆了三块石头，让你猜哪块最好，猜错了洗碗。', opts: [{ label: '认真看半天再说', eye: 3, watch: -1 }, { label: '随口蒙一个', eye: 1 }] });
+  if (ch >= 1) E.push({ title: T, text: '有人在群里喊：河滩那边涨水冲出来一批水石，去晚了就没了。', opts: [{ label: '打车赶过去（200）', cost: 200, risk: 0.5, gainRisk: 3500, riskNote: '抢到一块像样的，转手赚了 3500。' }, { label: '不凑热闹' }] });
+  if (ch >= 2) E.push({ title: T, text: '同行老周约你对赌：各出一万，合买一块蒙头料，切涨了对半分。', opts: [{ label: '跟（10000）', cost: 10000, risk: 0.45, gainRisk: 26000, riskNote: '一刀下去见了绿，你分到 26000。', riskFail: '切开一片白，一万打了水漂。' }, { label: '不跟，自己的钱自己赌' }] });
+  if (ch >= 2) E.push({ title: T, text: '一位老主顾托你留意一只冰种正圈手镯，说价钱好商量，找到了先给他。', opts: [{ label: '答应下来', fame: 3 }, { label: '说现在货紧，不敢打包票', fame: -1 }] });
+  if (ch >= 2) E.push({ title: T, text: '切石师傅的锯片崩了，问你能不能先垫钱换一片，下回切石给你打折。', opts: [{ label: '垫（1200）', cost: 1200, fame: 2, eye: 1 }, { label: '手头紧，帮不了', fame: -1 }] });
+  if (ch >= 2) E.push({ title: T, text: '半夜有人敲门，说手里有块“刚从矿上偷带出来”的料，只卖今晚，不让打灯细看。', opts: [{ label: '不看不买', eye: 1 }, { label: '赌一把（8000）', cost: 8000, risk: 0.2, gainRisk: 30000, riskNote: '居然是真货，转手 30000。', riskFail: '天亮一看是块染色的砖头料，八千买了个教训。' }] });
+  if (ch >= 3) E.push({ title: T, text: '玉雕协会办比赛，报名费两千，拿了奖铺子能挂牌匾。', opts: [{ label: '报名（2000）', cost: 2000, risk: 0.35, fameRisk: 12, riskNote: '拿了个铜奖，牌匾挂上了，口碑涨了一截。', riskFail: '没拿到奖，但认识了几个同行。' }, { label: '不去' }] });
+  if (ch >= 3) E.push({ title: T, text: '隔壁铺子的老板娘来串门，说有个大客户嫌她家货少，问能不能从你这里调几件，卖了分你七成。', opts: [{ label: '行，互相帮衬', fame: 3 }, { label: '同行是冤家，不借', fame: -2 }] });
+  if (ch >= 3) E.push({ title: T, text: '一个客人拿着上个月在你这买的挂件回来，说家里人不喜欢，想退。', opts: [{ label: '痛快退（3000）', cost: 3000, fame: 5 }, { label: '只换不退', fame: -1 }, { label: '出门概不退换', fame: -5 }] });
+  if (ch >= 3) E.push({ title: T, text: '税务的人上门核账，说你去年的流水对不上。', opts: [{ label: '老实补税（8000）', cost: 8000, fame: 1 }, { label: '找人疏通（3000）', cost: 3000, risk: 0.35, riskCost: 20000, riskNote: '没疏通成，连罚带补 20000。' }] });
+  if (ch >= 4) E.push({ title: T, text: '有个大主播想跟你连麦 PK 切石头，输的人给对方刷一万的礼物。', opts: [{ label: '接', risk: 0.5, fansRisk: 3000, riskNote: '你切出了色，直播间涨了 3000 粉。', riskCost2: 10000, riskFail: '对面切涨了，你刷了一万礼物，不过也蹭到些热度。' }, { label: '不接，怕翻车' }] });
+  if (ch >= 4) E.push({ title: T, text: '直播间有人带节奏，说你卖的是 B 货，弹幕刷了一屏。', opts: [{ label: '当场拿去送检，直播出证书（1500）', cost: 1500, fame: 6 }, { label: '拉黑了事', fame: -4 }] });
+  if (ch >= 4) E.push({ title: T, text: '一个厂家找你带货，机雕的小挂件，一场给两万坑位费，但货很一般。', opts: [{ label: '接（到手 20000，口碑受损）', gain: 20000, fame: -6 }, { label: '不接，砸招牌的事不干', fame: 2 }] });
+  if (ch >= 5) E.push({ title: T, text: '分店店长打电话：有个员工手脚不干净，柜里少了一件货。', opts: [{ label: '报警处理，全员重新盘点', fame: 1, hp: -3 }, { label: '私下辞退，损失自己认（6000）', cost: 6000 }] });
+  if (ch >= 5) E.push({ title: T, text: '电视台想拍一集“从地摊到连锁”的纪录片，要你配合三天。', opts: [{ label: '配合，歇业三天', fame: 10, rest: true }, { label: '没空' }] });
+  if (ch >= 5) E.push({ title: T, text: '当年夜市上卖你第一块石头的老板病了，托人带话想见你一面。', opts: [{ label: '带上东西去看他（5000）', cost: 5000, har: 4, fame: 3 }, { label: '托人带个红包（1000）', cost: 1000 }] });
+  const fam = E.filter(x => !x.title), road = E.filter(x => x.title); return r.chance(0.5) && fam.length ? r.pick(fam) : r.pick(road);
 }
 function applyEvent(w, ev, i) { const o = ev.opts[i], f = w.fam, r = new Rng(seedOf(w.seed, 'lifeopt', w.day, i)); let note = '';
   if (o.cost) { if (o.cost > w.cash) return { ok: false, msg: '现金不够。' }; w.cash -= o.cost; w.log.push({ day: w.day, t: '家里的事', amt: -o.cost }); }
   if (o.har) f.har = clamp(f.har + o.har, 0, 100); if (o.hp) f.hp = clamp(f.hp + o.hp, 0, 100); if (o.fame) w.fame += o.fame; if (o.watch) w.watchLeft = Math.max(0, w.watchLeft + o.watch); if (o.rest) restDay(w); if (o.heat && f.lover) f.lover.heat = (f.lover.heat || 0) + o.heat;
   if (o.act === 'endaffair') { f.lover = null; f.caught = false; note = '她没再说什么，可这个家回不到从前了。'; } if (o.act === 'forgive' && f.cuck) { f.cuck = null; f.cuckDay = w.day; note = '日子还得过。只是有些东西不一样了。'; } if (o.act === 'divorce1' || o.act === 'divorce0') note = divorce(w, o.act === 'divorce1', o.lawyer || 0).msg;
   if (o.kid) { const k = f.kids[o.ki]; for (const t2 in o.kid) k.t[t2] = clamp(k.t[t2] + o.kid[t2], 0, 100); }
-  if (o.riskCost && r.chance(o.risk)) { w.cash -= o.riskCost; note = o.riskNote; w.log.push({ day: w.day, t: '家里的事（后续）', amt: -o.riskCost }); }
+  if (o.gain) { w.cash += o.gain; w.log.push({ day: w.day, t: '路上的事', amt: o.gain }); } if (o.eye) w.eye += o.eye;
+  if (o.gainRisk || o.fameRisk || o.fansRisk) { if (r.chance(o.risk)) { if (o.gainRisk) { w.cash += o.gainRisk; w.log.push({ day: w.day, t: '路上的事（后续）', amt: o.gainRisk }); } if (o.fameRisk) w.fame += o.fameRisk; if (o.fansRisk) w.fans = (w.fans || 0) + o.fansRisk; note = o.riskNote; } else { if (o.riskCost2) { w.cash -= o.riskCost2; w.fans = (w.fans || 0) + 500; w.log.push({ day: w.day, t: '路上的事（后续）', amt: -o.riskCost2 }); } note = o.riskFail || '没成。'; } }
+  else if (o.riskCost && r.chance(o.risk)) { w.cash -= o.riskCost; note = o.riskNote; w.log.push({ day: w.day, t: '家里的事（后续）', amt: -o.riskCost }); }
   if (o.back) { if (r.chance(o.risk)) note = '后来这笔钱一直没还，也不好意思再提。'; else { w.recv.push({ day: w.day + r.int(8, 20), amt: o.back, from: '亲戚还钱' }); note = '亲戚说过阵子就还。'; } }
   return { ok: true, note }; }
 // 每天结算家里：扣开销、身体和家和的涨落、孩子长大和成长、到年龄自动升学
@@ -769,12 +800,15 @@ function payDebt(w) { if (w.flags.debt) return { ok: false, msg: '已经还清�
 const ACH_ALL = [['win', '第一块赚钱的石头'], ['cutup', '第一刀切涨'], ['steal', '捡漏：净赚超过买价两倍'], ['bust', '交学费：一块亏掉六成以上'], ['sharp', '火眼金睛：种、色、裂全部判断对'], ['fake', '识破一块假货'], ['bid', '公盘中标'], ['bangle', '第一只手镯'], ['ice', '做出冰种以上的成品'], ['cab', '一粒满色蛋面'], ['big', '单件成品过十万'], ['order', '第一张客户订单'], ['keep', '第一件藏品'], ['shop', '有了自己的铺面'], ['tool', '第一件好工具'], ['live', '第一场直播'], ['fans1', '万粉博主'], ['fans10', '十万粉博主'], ['branch', '第一家分店'], ['hire', '第一名员工'], ['house', '有了自己的房子'], ['m1', '身家过百万'], ['m10', '身家过千万'], ['eye100', '眼力过百'], ['sold20', '卖出二十件货'], ['ten', '经手十块石头'], ['d30', '撑过第一个月']];
 const RANKS = [[0, '学徒'], [15, '跑摊的'], [40, '看货人'], [80, '行家'], [150, '掌眼师傅'], [260, '一代货主']];
 function rankOf(w) { let n = RANKS[0][1]; for (const r of RANKS) if (w.eye >= r[0]) n = r[1]; return n; }
-const SCENE_CH = { '夜市地摊': 0, '玉石集散地': 2, '翡翠公盘': 3, '场口直采': 4 };
+const SCENE_CH = { '夜市地摊': 0, '河滩早市': 1, '玉石集散地': 2, '姐告口岸': 2, '翡翠公盘': 3, '典当行绝当': 3, '场口直采': 4, '缅北矿区': 5 };
 function sceneOpen(w, name) { return w.chapter >= SCENE_CH[name]; }
 function enterScene(w, name) {
-  w.scene = name; if (!w.markets[name]) { w.markets[name] = []; for (let i = 0; i < SCENES[name].n + (w.fam.car >= 4 ? 2 : w.fam.car >= 2 ? 1 : 0); i++) w.markets[name].push(makeListing(w.seed, w.day, i, name)); }
+  w.scene = name; codexAdd(w, 'scene', name); if (!w.markets[name]) { w.markets[name] = []; for (let i = 0; i < SCENES[name].n + (w.fam.car >= 4 ? 2 : w.fam.car >= 2 ? 1 : 0); i++) w.markets[name].push(makeListing(w.seed, w.day, i, name)); }
   w.market = w.markets[name];
 }
+// 收集册：见过、做出过、识破过的东西都记一笔；一类集齐有奖
+function codexCats() { return [['skin', '皮壳', Object.keys(SKINS)], ['origin', '场口', Object.keys(ORIGINS)], ['scene', '去过的地方', Object.keys(SCENES)], ['water', '切出过的种水', GRADES.map(g => waterName(g))], ['hue', '切出过的颜色', Object.keys(HUES)], ['item', '做出过的成品', Object.keys(ROUTES).map(k => ROUTES[k].name)], ['theme', '做过的题材', Object.keys(THEMES).filter(k => k !== '师傅定')], ['fake', '识破的假料', Object.keys(FAKE_NAME).map(k => FAKE_NAME[k].split('：')[0])]]; }
+function codexAdd(w, cat, name) { if (!name) return false; const c = w.codex || (w.codex = {}), k = cat + ':' + name; if (c[k]) return false; const C0 = codexCats().find(x => x[0] === cat); if (!C0 || C0[2].indexOf(name) < 0) return false; c[k] = w.day; if (C0[2].every(n => c[cat + ':' + n]) && !c['done:' + cat]) { c['done:' + cat] = w.day; w.eye += 8; w.cash += 20000; w.news.push(`收集册：「${C0[1]}」集齐了，眼力 +8，行里送来贺礼 2 万`); w.log.push({ day: w.day, t: `收集册「${C0[1]}」集齐`, amt: 20000 }); } return true; }
 function achieve(w, key, name) { if (!w.ach[key]) { w.ach[key] = { day: w.day, name }; w.news.push('成就：' + name); } }
 const GRADES = [0.10, 0.25, 0.45, 0.65, 0.82, 0.95];
 function gradeIdx(w0) { w0 *= 100; return w0 < 18 ? 0 : w0 < 35 ? 1 : w0 < 55 ? 2 : w0 < 74 ? 3 : w0 < 89 ? 4 : 5; }
@@ -856,7 +890,7 @@ function negotiate(w, L, offer, share) {
 function buy(w, L, price, share) {
   share = share || 1; w.cash -= Math.round(price * share); L.sold = true;
   const s = { id: w.nextId++, seed: L.seed, origin: L.origin, channel: L.channel, strokes: L.strokes.slice(), clips: [[]], buyDay: w.day, buyPrice: price, costs: 0, proceeds: 0, pieces: [{ id: 0, name: '原石', planes: [], sold: false }], nextPiece: 1, best: 0, flip: 0, closed: false, info: L.info, last: {}, scene: L.scene, guess: null, fake: L.fake || null, exposed: !!L.exposed, share };
-  w.stones.push(s);
+  w.stones.push(s); codexAdd(w, 'skin', L.info && L.info.skin); codexAdd(w, 'origin', L.origin); codexAdd(w, 'scene', L.scene); if (L.exposed && L.fake) codexAdd(w, 'fake', FAKE_NAME[L.fake.type].split('：')[0]);
   const q = quotes(w, s, s.pieces[0]); s.flip = q.best; s.best = q.best;
   w.log.push({ day: w.day, t: `买入 ${s.origin}·${s.info.skin} ${fmt(price)}${share < 1 ? '（合伙，你出一半）' : ''}`, amt: -Math.round(price * share) });
   return s;
@@ -1140,6 +1174,7 @@ function closeStone(w, s) {
   const st = genStone(s.seed, s.origin, s.channel), fresh = bake(st), ev = evalPiece(st, fresh, WHOLE);
   const net0 = s.proceeds - s.buyPrice - s.costs; if (net0 > 0) { w.stat.wins++; achieve(w, 'win', '第一块赚钱的石头'); } if (net0 > s.buyPrice * 2) achieve(w, 'steal', '捡漏：净赚超过买价两倍'); if (net0 < -s.buyPrice * 0.6) achieve(w, 'bust', '交学费：一块亏掉六成以上');
   if (s.guess) { const g = s.guess, gi = gradeIdx(st.w0), cc = colorClass(st), ck = st.cracks.filter(c => c.open > 0.5).length >= 2 ? 'many' : 'few'; const pts = (g.water === gi ? 10 : Math.abs(g.water - gi) === 1 ? 5 : 0) + (g.color === cc ? 8 : 0) + (g.crack === ck ? 4 : 0); w.eye += pts; s.guessResult = { pts, water: gi, color: cc, crack: ck }; if (pts >= 22) achieve(w, 'sharp', '火眼金睛：种、色、裂全部判断对'); }
+  codexAdd(w, 'water', waterName(st.w0)); if (st.feats.length) codexAdd(w, 'hue', st.hue);
   s.review = { fake: s.fake ? FAKE_NAME[s.fake.type] : '', truth: Math.round(ev.truth), water: waterName(st.w0), hue: st.feats.length ? st.hue : '无色', cracks: st.cracks.filter(c => c.open > 0.5).length, feats: st.feats.map(f => ({ ribbon: '色带', pinch: '收尖色带', skin: '靠皮色', blob: '团块色', float: '飘花', full: '满色' })[f.type]), shift: st.shift ? (st.shift.drop > 0 ? '有变种（一侧种水变差）' : '有变种（一侧种水变好）') : '' };
 }
 function nextDay(w) {
@@ -1160,6 +1195,7 @@ function nextDay(w) {
       if (r.u() < (S.p + w.branches * 0.06 + w.staff.clerk * 0.04 + famEff(w, 'manager') * 0.12) * dm * clamp(1 + w.fame / 100, 0.5, 1.6)) { w.stat.shelfSold++; const price = Math.round(it.value * S.mult * dm * r.range(0.94, 1.06) / 10) * 10; it.state = 'sold'; it.price = price; w.cash += price; w.fame += 0.5; w.log.push({ day: w.day, t: `铺面卖出 ${it.name}`, amt: price }); notes.push(`铺面卖出 ${it.name} ${fmt(price)}`); const s = w.stones.find(x => x.id === it.stone); if (s) { s.proceeds += price; if (!s.closed && stoneDone(w, s)) closeStone(w, s); } } } }
 
   w.recv = w.recv.filter(r => { if (r.day <= w.day) { w.cash += r.amt; notes.push(`${r.from} 到账 ${fmt(r.amt)}`); return false; } return true; });
+  for (const k of w.works) if (k.ready <= w.day && !(k.issue && !k.issue.done)) for (const it of k.items) { codexAdd(w, 'item', (ROUTES[it.type] || {}).name); codexAdd(w, 'theme', it.theme); }
   w.works = w.works.filter(k => { if (k.issue && !k.issue.done) { if (w.day >= k.issue.day && !k.issue.told) { k.issue.told = true; notes.push(`${k.from}：师傅做到一半停了手，等你拿主意`); } return true; } if (k.ready > w.day) return true; for (const it of k.items) { it.state = 'ready'; w.items.push(it); if (it.type === 'bracelet') achieve(w, 'bangle', '第一只手镯'); if (it.w >= 0.62) achieve(w, 'ice', '做出冰种以上的成品'); if (it.value >= 1e5) achieve(w, 'big', '单件成品过十万'); if (it.type === 'cab' && it.lv > 0.6) achieve(w, 'cab', '一粒满色蛋面'); } notes.push(`${k.from} 做好了：${k.items.length} 件${k.lost ? `，压坏 ${k.lost} 只镯子` : ''}`); return false; });
   if ((w.staff.host || famEff(w, 'host') > 0.15) && can(w, 'live') && w.liveDay !== w.day - 1) { const d = w.day; w.day = d - 1; const lr = liveRun(w); w.day = d; if (lr.ok) notes.push(`主播替你播了一场：成交 ${lr.sold} 件 ${fmt(lr.income)}，涨粉 ${lr.gain}`); } // 昨天你没播，主播替你播
   genMarket(w); fillOrders(w); rollEvent(w); if (w.event) notes.push('行情：' + w.event.t); for (const x of w.news) notes.push(x);
@@ -1169,6 +1205,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);
