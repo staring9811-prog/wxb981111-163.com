@@ -50,6 +50,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .why { margin: 2px 0 0; flex-basis: 100%; color: var(--fg); font-size: 12.5px; }
 #overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 #cutline { stroke: #ff9a3c; stroke-width: 2; stroke-dasharray: 6 4; }
+#sawbox { position: absolute; z-index: 4; width: 220px; background: #1a1714ee; border: 1px solid var(--lamp); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; box-shadow: 0 4px 14px #000a; }
+.rawimg { width: 72px; height: 72px; border-radius: 3px; flex: none; }
 #lasso { stroke: #ff9a3c; stroke-width: 2; stroke-dasharray: 6 4; fill: rgba(255,154,60,.12); }
 .modal table { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 12.5px; width: 100%; }
 .modal th, .modal td { border: 1px solid var(--line); padding: 3px 6px; text-align: right; white-space: nowrap; } .modal th:first-child { text-align: left; }
@@ -81,7 +83,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .q i { font-style: normal; color: var(--dim); font-size: 12px; } .q button { font-variant-numeric: tabular-nums; }
 .delta { margin: 0; font-size: 12.5px; }
 /* 场景里的实物：墙上的灯开关、可以拖出去的手电 */
-#lightsw { position: absolute; right: 14px; top: 52px; z-index: 3; width: 34px; height: 54px; padding: 0; border-radius: 5px; background: linear-gradient(#d9d2c4, #a89f8f); border: 1px solid #5c554a; box-shadow: 0 2px 6px #000a, inset 0 0 0 3px #efe9dc; }
+#lightsw { touch-action: none; cursor: pointer; position: absolute; right: 14px; top: 52px; z-index: 3; width: 34px; height: 54px; padding: 0; border-radius: 5px; background: linear-gradient(#d9d2c4, #a89f8f); border: 1px solid #5c554a; box-shadow: 0 2px 6px #000a, inset 0 0 0 3px #efe9dc; }
 #lightsw span { position: absolute; left: 8px; right: 8px; top: 9px; height: 34px; border-radius: 3px; background: linear-gradient(#8f877a 0 50%, #f4efe4 50% 100%); box-shadow: inset 0 0 2px #0008; }
 #lightsw[aria-pressed="true"] { background: linear-gradient(#d9d2c4, #a89f8f); border-color: #5c554a; }
 #lightsw[aria-pressed="true"] span { background: linear-gradient(#fff8e0 0 50%, #9a9284 50% 100%); box-shadow: 0 0 10px #ffe9a8aa, inset 0 0 2px #0006; }
@@ -135,6 +137,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <canvas id="gl"></canvas>
       <svg id="overlay" aria-hidden="true"><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
       <div id="reveal" hidden></div>
+      <div id="sawbox" hidden></div>
       <button id="lightsw" data-act="room" aria-label="室内灯开关" title="室内灯"><span></span></button>
       <div id="tfloat" hidden><button id="tfP" data-act="tpower" title="关手电">关</button><button id="tfC" data-act="tcolor" title="白光/黄光">白</button></div>
       <div id="torchdock" title="手电">
@@ -179,7 +182,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <h3>一局的顺序</h3>
     <ol>
       <li><b>挑场子</b>：右侧「货源」顶上选场景。刚开始只有夜市地摊。</li>
-      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了；抓灯头可以挪位置；旁边的<b>方向盘</b>拖小点改倾斜方向和角度（双击回正）；滑杆或抓筒尾沿着筒身拉远拉近。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角墙上是<b>室内灯开关</b>，关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
+      <li><b>看料</b>：点一块石头，拖着转四面。画面左下角有一支<b>手电</b>：按住它拖到石头上就亮了；抓灯头挪位置；抓筒尾直接转方向，或用旁边的<b>方向盘</b>精确调（双击回正）；抓筒身中段或用滑杆拉远拉近。手电上有开关、白光/黄光、强弱光几个按钮，在开窗、下刀时也一直能用。右上角是<b>室内灯开关</b>（可以拖到顺手的位置），关灯看透光更清楚。「放大镜」看砂粒和细裂。</li>
       <li><b>读标签</b>：每块料标了它赌的是种水、色、裂还是镯位，选中后有一句提示。</li>
       <li><b>出价</b>：还价或照价买。看不准就不买。公盘里是投暗标。</li>
       <li><b>写判断本</b>：买下后先写你认为的种水、色、裂，之后对答案涨眼力。</li>
@@ -277,7 +280,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <li><b>原样转手</b>：买得便宜就直接卖，赚差价，不承担开料风险。</li>
     <li><b>画圈开皮</b>：在皮上画一个圈，整片切掉圈里的皮，只剥到刚露肉，不会磨深伤料。想自己控制深浅就用磨头。</li>
     <li><b>开窗</b>：磨掉一小块皮。窗口漂亮时买家会往好处想，这时卖掉常常比继续开更划算。</li>
-    <li><b>小锯取料</b>：料切明了以后，在面上圈出想要的那块（比如一条色带），小锯沿圈锯穿，把它单独取下来；剩下的料还在。色好的小块单独送去做蛋面，比混在大料里值钱。</li>
+    <li><b>小锯取料</b>：料切明了以后，在面上圈出想要的那块（比如一条色带），或者点「智能圈色」让它自动沿色块画线。画完只是预览，会告诉你取多少、剩多少，点「确认下锯」才真的锯；不满意就重画。取下的料头可以卖、送去做件，也可以摆进铺面零售或收进藏品柜。色好的小块单独送去做蛋面，比混在大料里值钱。</li>
     <li><b>下刀</b>：在石头上拖一条线就是锯路，任意角度都行；也可以把一个面转到正对自己，按厚度切片。切开的面一目了然，想象空间也没了。</li>
     <li><b>送去做件</b>：你来定做什么（手镯、牌子挂件、蛋面、珠串、雕件）、找谁做、什么题材。一份料的价值主要在能出几只什么档次的镯子；出不了镯子的料，色浓的小块取蛋面，棉多的做山水，裂多的车珠子或让好雕工藏进花件里，垮料也能回血。先下刀把好坏部分分开，再分别送去，比整块交出去值钱。</li>
     <li><b>成品盘</b>：做好的东西摆在托盘里，可以转着看，一件件卖或整盘卖。批发现结约零售的六成，寄卖接近零售但回款慢。盘里还有一个种水与颜色的对照盘可以随时看。</li>

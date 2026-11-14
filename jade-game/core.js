@@ -498,7 +498,10 @@ const SHOPLV = [
   { name: '精品店', cost: 600000, rent: 3500, slots: 14, mult: 1.15, p: 0.36, tip: '装修讲究，高货卖得上价，摆十四件。' },
 ];
 function upgradeShop(w) { const nx = SHOPLV[w.shop + 1]; if (!nx) return { ok: false, msg: '已经是最好的铺面。' }; if (nx.cost > w.cash) return { ok: false, msg: '现金不够。' }; w.cash -= nx.cost; w.shop++; w.log.push({ day: w.day, t: `盘下${nx.name}`, amt: -nx.cost }); achieve(w, 'shop', '有了自己的铺面'); return { ok: true, msg: `盘下了${nx.name}，每天租金 ${nx.rent}。` }; }
-function shelfCount(w) { return w.items.filter(i => i.state === 'shelf').length; }
+function shelfCount(w) { let n = w.items.filter(i => i.state === 'shelf').length; for (const s of w.stones) if (!s.closed) for (const p of s.pieces) if (p.shelf && !p.sold) n++; return n; }
+// 料头也能摆进铺面零售，或收进藏品柜
+function pieceShelf(w, s, p) { if (shelfCount(w) >= SHOPLV[w.shop].slots) return { ok: false, msg: w.shop ? '柜台摆满了。' : '还没有铺面，先到账本里盘一个。' }; p.shelf = true; p.kept = false; return { ok: true }; }
+function pieceKeep(w, s, p, on) { p.kept = on; p.shelf = false; if (on) { achieve(w, 'keep', '第一件藏品'); closeStone(w, s); } else if (s.closed) { s.closed = false; } }
 function toShelf(w, it) { if (shelfCount(w) >= SHOPLV[w.shop].slots) return { ok: false, msg: w.shop ? '柜台摆满了。' : '还没有铺面，先到账本里盘一个。' }; it.state = 'shelf'; it.shelfDay = w.day; return { ok: true }; }
 /* ---------- 场景、眼力、订单、成就 ---------- */
 const SCENES = {
@@ -835,7 +838,7 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
   w.log.push({ day: w.day, t: `送加工 #${s.id} ${piece.name}（${R.name}，${masterName}）`, amt: -plan.fee });
   return { ok: true, fee: plan.fee, days: M.days };
 }
-function stoneDone(w, s) { return s.pieces.every(p => p.sold) && !w.works.some(k => k.stone === s.id) && !w.items.some(i => i.stone === s.id && i.state !== 'sold' && i.state !== 'kept'); }
+function stoneDone(w, s) { return s.pieces.every(p => p.sold || p.kept) && !w.works.some(k => k.stone === s.id) && !w.items.some(i => i.stone === s.id && i.state !== 'sold' && i.state !== 'kept'); }
 function sellItem(w, it, how) {
   const r = new Rng(seedOf(w.seed, 'item', it.id)), price = Math.round(it.value * productDemand(w, it.type) * (how === 'retail' ? 0.95 : 0.6) / 10) * 10, days = how === 'retail' ? r.int(6, 14) : 0;
   it.state = 'sold'; it.price = price;
@@ -864,7 +867,9 @@ function nextDay(w) {
     else if (a.kind === 'fake') { relAdd(w, a.buyer, -35); w.fame -= 8; w.cash -= a.amt; const s = w.stones.find(x => x.id === a.stone); if (s) s.proceeds -= a.amt; w.log.push({ day: w.day, t: `${a.buyer}发现是假料，上门退货`, amt: -a.amt }); notes.push(`${a.buyer}发现你卖的是做过手脚的料，上门退了 ${fmt(a.amt)}，口碑大跌`); }
     else relAdd(w, a.buyer, 2);
     return false; });
-  { const S = SHOPLV[w.shop]; for (const it of w.items) if (it.state === 'shelf') { const r = new Rng(seedOf(w.seed, 'shelf', it.id, w.day)), dm = productDemand(w, it.type);
+  { const S = SHOPLV[w.shop]; for (const s of w.stones) if (!s.closed) for (const p of s.pieces) if (p.shelf && !p.sold) { const r = new Rng(seedOf(w.seed, 'pshelf', s.seed, p.id, w.day));
+      if (r.u() < S.p * 0.8 * clamp(1 + w.fame / 100, 0.5, 1.6)) { const q = quotes(w, s, p), price = Math.round(q.best * 1.12 * S.mult * r.range(0.95, 1.08) / 10) * 10; if (price < 50) continue; p.sold = true; p.shelf = false; p.soldPrice = price; p.buyer = '铺面散客'; s.proceeds += price; w.cash += price; w.log.push({ day: w.day, t: `铺面卖出 #${s.id} ${p.name}`, amt: price }); notes.push(`铺面卖出料头 #${s.id} ${p.name} ${fmt(price)}`); closeStone(w, s); } }
+    for (const it of w.items) if (it.state === 'shelf') { const r = new Rng(seedOf(w.seed, 'shelf', it.id, w.day)), dm = productDemand(w, it.type);
       if (r.u() < S.p * dm * clamp(1 + w.fame / 100, 0.5, 1.6)) { const price = Math.round(it.value * S.mult * dm * r.range(0.94, 1.06) / 10) * 10; it.state = 'sold'; it.price = price; w.cash += price; w.fame += 0.5; w.log.push({ day: w.day, t: `铺面卖出 ${it.name}`, amt: price }); notes.push(`铺面卖出 ${it.name} ${fmt(price)}`); const s = w.stones.find(x => x.id === it.stone); if (s) { s.proceeds += price; if (!s.closed && stoneDone(w, s)) closeStone(w, s); } } } }
   w.log.push({ day: w.day, t: '生活开销', amt: -ECON.daily });
   w.recv = w.recv.filter(r => { if (r.day <= w.day) { w.cash += r.amt; notes.push(`${r.from} 到账 ${fmt(r.amt)}`); return false; } return true; });
@@ -876,6 +881,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, CAB_SIZES, cabGame, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);

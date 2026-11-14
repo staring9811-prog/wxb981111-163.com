@@ -116,6 +116,7 @@ function render(scale, forceSize) {
   gl.uniform1f(u('uCutOn'), cutOn ? 1 : 0); if (cutOn) gl.uniform4f(u('uCut'), V.cut.n[0], V.cut.n[1], V.cut.n[2], V.cut.d);
   const SC = { '夜市地摊': [0, [0.075, 0.05, 0.03], [0.014, 0.010, 0.009], [1.0, 0.82, 0.56]], '玉石集散地': [1, [0.125, 0.115, 0.10], [0.022, 0.02, 0.018], [1.0, 0.97, 0.92]], '翡翠公盘': [2, [0.05, 0.06, 0.08], [0.008, 0.01, 0.014], [0.92, 0.97, 1.0]], '场口直采': [3, [0.3, 0.25, 0.18], [0.12, 0.10, 0.08], [1.0, 0.94, 0.84]] }[(V.rec && V.rec.scene) || W.scene] || [1, [0.115, 0.1, 0.085], [0.02, 0.018, 0.016], [1, 0.96, 0.9]];
   gl.uniform1i(u('uScene'), V.mode === 'market' ? SC[0] : 1); gl.uniform3fv(u('uBgA'), V.mode === 'market' ? SC[1] : [0.115, 0.1, 0.085]); gl.uniform3fv(u('uBgB'), V.mode === 'market' ? SC[2] : [0.02, 0.018, 0.016]); gl.uniform3fv(u('uKeyCol'), V.mode === 'market' ? SC[3] : [1, 0.96, 0.9]);
+  { const tab = { '夜市地摊': [0.20, 0.07, 0.05], '玉石集散地': [0.10, 0.16, 0.13], '翡翠公盘': [0.035, 0.04, 0.055], '场口直采': [0.30, 0.23, 0.15] }; const on = !forceSize && V.info && V.mode !== 'review' && V.floor !== false; gl.uniform1f(u('uFloorOn'), on ? 1 : 0); if (on) { gl.uniform1f(u('uFloorY'), V.info.lo - 0.4); gl.uniform1f(u('uFloorR'), Math.max(120, V.info.radius * 3.2)); gl.uniform3fv(u('uTabCol'), V.mode === 'market' ? (tab[(V.rec && V.rec.scene) || W.scene] || tab['玉石集散地']) : [0.09, 0.14, 0.12]); } }
   gl.uniform1i(u('uK'), scale < 1 ? 8 : Q.K); gl.uniform1f(u('uHi'), scale < 1 ? 0 : 1);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   if (scale === 1 && !forceSize && !Q.tuned) { const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const ms = performance.now() - t0; if (ms > 350 && Q.scale > 0.45) { Q.scale *= 0.7; invalidate(false); } else Q.tuned = true; }
@@ -165,9 +166,9 @@ function thumb(s, piece) {
 }
 
 /* ---------- 选择 ---------- */
-function frame() { const inf = C.pieceInfo(V.e.vol, V.mode === 'review' ? C.WHOLE : curPiece()); cam.t = inf.center; cam.dist = Math.max(60, inf.radius * 4.3); V.info = inf; }
+function frame() { const inf = C.pieceInfo(V.e.vol, V.mode === 'review' ? C.WHOLE : curPiece(), [0, 1, 0]); cam.t = inf.center; cam.dist = Math.max(60, inf.radius * 4.3); V.info = inf; }
 function view(mode, rec, piece) {
-  V.ref = false; if (tab === 'tray') tab = 'mine';
+  V.ref = false; if (tab === 'tray') tab = 'mine'; $('#sawbox').hidden = true;
   V.mode = mode; V.rec = rec; V.piece = piece; V.e = rec ? C.getVol(rec) : null; V.torch.p = null; V.torch.on = false; V.lens = null; V.cut = null; V.msg = ''; V.note = '';
   if (V.e) { if (mode === 'review') V.section = V.e.vol.hy; frame(); }
   if (mode !== 'own' && (V.tool === 'grind' || V.tool === 'cut' || V.tool === 'peel' || V.tool === 'saw')) V.tool = 'rotate';
@@ -206,7 +207,7 @@ function renderSide() {
     const open = W.stones.filter(s => !s.closed), ready = W.items.filter(i => i.state === 'ready').length;
     if (!open.length && !W.works.length) h += `<p class="note">还没有存货。到「货源」里挑一块买下，就能在这里开窗、下刀、询价或送去做件。</p>`;
     for (const k of W.works) h += `<article class="card"><div class="row"><b>加工中 · ${esc(k.from)}</b><span class="dim">第 ${k.ready} 天取货</span></div><div class="row dim"><span>${esc(k.what)}，按看得见的料预计 ${k.expected} 件。开出来才知道。</span></div></article>`;
-    const raws = []; for (const s of open) for (const p of s.pieces) if (!p.sold) raws.push([s, p]);
+    const raws = []; for (const s of open) for (const p of s.pieces) if (!p.sold && !p.kept) raws.push([s, p]);
     if (raws.length > 1) { h += `<article class="card"><div class="row"><b>料头盘</b><span class="dim">${raws.length} 块待处理</span></div><p class="note">切下来的料都先放在这里，不用急着卖或加工。点一块拿到工作台上看、再切或送去做件。</p><div class="felt">`;
       for (const [s, p] of raws) { const t = thumb(s, p), lq = s.last[p.id]; h += `<button class="pc ${V.mode === 'own' && V.piece === p ? 'on' : ''}" data-act="piece" data-s="${s.id}" data-p="${p.id}">${t ? `<img src="${t}" alt="">` : '<i></i>'}<span>#${s.id} ${p.name}</span><span class="dim">${lq ? fmt(lq.best) : '未询价'}</span></button>`; }
       h += `</div></article>`; }
@@ -222,7 +223,7 @@ function renderSide() {
           <div class="row"><label for="gC">色</label><select id="gC">${o([['none', '基本无色'], ['skin', '只有贴皮一层'], ['deep', '有色吃进去'], ['full', '满色']], g.color || 'none')}</select></div>
           <div class="row"><label for="gK">裂</label><select id="gK">${o([['few', '裂少（至多一条）'], ['many', '裂多（两条以上）']], g.crack || 'few')}</select></div></div>`;
         else if (s.guess) h += `<p class="note">判断本已封存：${C.waterName(C.GRADES[s.guess.water])}，${{ none: '基本无色', skin: '贴皮色', deep: '色吃进去', full: '满色' }[s.guess.color]}，${s.guess.crack === 'few' ? '裂少' : '裂多'}。出完货对答案。</p>`; }
-      for (const p of s.pieces) { if (p.sold) continue; const t = thumb(s, p); h += `<button class="pc ${act && V.piece === p ? 'on' : ''}" data-act="piece" data-s="${s.id}" data-p="${p.id}">${t ? `<img src="${t}" alt="">` : '<i></i>'}<span>${p.name}</span></button>`; }
+      for (const p of s.pieces) { if (p.sold || p.kept) continue; const t = thumb(s, p); h += `<button class="pc ${act && V.piece === p ? 'on' : ''}" data-act="piece" data-s="${s.id}" data-p="${p.id}">${t ? `<img src="${t}" alt="">` : '<i></i>'}<span>${p.name}</span></button>`; }
       h += `</div>`;
       if (act && V.piece && !V.piece.sold) {
         const q = getQuotes(s, V.piece), last = s.last[V.piece.id], stt = q.stats;
@@ -238,6 +239,7 @@ function renderSide() {
           ${K.route === 'cab' && plan.ok ? `<div class="row"><span class="dim">${K.cabKey === s.id + ':' + V.piece.id ? `你定的尺寸：${K.cabText}` : '可以自己盯着师傅一号一号放大，贪大有风险。'}</span><button data-act="cabgo" ${K.cabKey === s.id + ':' + V.piece.id ? 'disabled' : ''}>自己盯着取</button></div>` : ''}
           ${plan.warn.map(x => `<p class="say">${esc(x)}</p>`).join('')}
           <div class="row"><span class="dim">预计 ${plan.n} ${C.ROUTES[K.route].unit} · 工费 ${fmt(plan.fee)} · ${plan.days} 天</span><button data-act="work" class="pri" ${plan.ok ? '' : 'disabled'}>送去</button></div></div>`;
+        h += `<div class="row q"><span><b>不急着卖</b> <i>${V.piece.shelf ? '已摆在铺面' : '摆进铺面零售，或收进藏品柜'}</i></span><span><button data-act="pshelf" ${V.piece.shelf ? 'disabled' : ''}>摆进铺面</button> <button data-act="pkeep">收藏</button></span></div>`;
         h += `<p class="note">报价只在今天有效。账面开涨不是现金到账。</p></div>`;
       }
       h += `</article>`;
@@ -247,6 +249,8 @@ function renderSide() {
     if (V.ref) { h += `<p class="note">对照盘：上面六块素面牌从豆种到玻璃种，下面是同为冰种、不同颜色的蛋面。转动托盘，对着光看它们的差别。</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${it.name}</b></div><div class="row dim"><span>${it.note}</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button></div></article>`; h += `<button data-act="trayback" class="pri">回到我的托盘</button>`; }
     else {
       h += `<div class="scenes"><button data-act="cab0" aria-pressed="${!V.cab}">待售托盘</button><button data-act="cab2" aria-pressed="${V.cab === 'shelf'}">铺面柜台（${C.shelfCount(W)}/${C.SHOPLV[W.shop].slots}）</button><button data-act="cab1" aria-pressed="${V.cab === true}">藏品柜（${W.items.filter(i => i.state === 'kept').length}）</button></div>`;
+      const rawOf = key => { const o = []; for (const s of W.stones) for (const p of s.pieces) if (p[key] && !p.sold) o.push([s, p]); return o; }, rawCard = (s, p, lbl) => `<article class="card"><div class="row"><b>料头 #${s.id} ${p.name}</b><span class="price">${fmt(((s.last[p.id] || {}).best || 0) * (lbl === 'shelf' ? 1.12 * C.SHOPLV[W.shop].mult : 1))}</span></div><div class="row">${thumb(s, p) ? `<img class="rawimg" src="${thumb(s, p)}" alt="">` : ''}<span class="dim">${s.origin} · ${s.info.skin}。这是没加工的明料，拿到工作台上可以转着看、打灯把玩。</span></div><div class="row"><button data-act="pview" data-s="${s.id}" data-p="${p.id}">拿到工作台看</button><button data-act="pback" data-s="${s.id}" data-p="${p.id}">撤回料头盘</button></div></article>`;
+      if (V.cab === 'shelf') h += rawOf('shelf').map(x => rawCard(x[0], x[1], 'shelf')).join(''); if (V.cab === true) h += rawOf('kept').map(x => rawCard(x[0], x[1], 'kept')).join('');
       if (V.cab === 'shelf') { h += `<p class="note">${W.shop ? `${C.SHOPLV[W.shop].name}：摆在这里的成品每天有散客上门，按零售价${C.SHOPLV[W.shop].mult > 1 ? '加一点' : ''}买走，口碑越好卖得越快。` : '还没有铺面。到「账本」里盘一个柜台，成品就能自己零售，不用再让批发商压价。'}</p>`; for (const it of items) h += `<article class="card ${V.sel === it.id ? 'sel' : ''}" data-act="isel" data-i="${it.id}"><div class="row"><b>${esc(it.name)}</b><span class="price">${fmt(it.value * C.SHOPLV[W.shop].mult)}</span></div><div class="row dim"><span>${C.waterName(it.w)} · 第 ${it.shelfDay} 天上柜</span></div><div class="row"><button data-act="hold" data-i="${it.id}">拿起来看</button><button data-act="unshelf" data-i="${it.id}">撤回托盘</button></div></article>`; }
       if (!V.cab && W.event) h += `<p class="say">今日行情：${esc(W.event.t)}（${W.event.m > 1 ? '+' : ''}${Math.round((W.event.m - 1) * 100)}%）</p>`;
       if (!V.cab) { h += `<article class="card"><b>客户订单</b>${W.orders.map(o => `<div class="row dim"><span>${esc(C.orderText(o))}</span><span>加价 ${Math.round((o.bonus - 1) * 100)}% · 第 ${o.due} 天前</span></div>`).join('') || '<div class="row dim"><span>暂时没有订单</span></div>'}</article>`;
@@ -297,7 +301,7 @@ function renderTools() {
   let o = '';
   if (V.mode === 'review') o += `<label for="sec">剖面高度</label><input id="sec" type="range" min="${(-V.e.vol.hy).toFixed(0)}" max="${V.e.vol.hy.toFixed(0)}" step="0.5" value="${V.section}"><span class="dim">复盘：这是石头原本的内部</span>`;
   else if (V.tool === 'torch') o += `<label for="tTilt">倾斜 <b id="tTiltV">${V.torch.tilt}</b>°</label><input id="tTilt" type="range" min="0" max="85" step="5" value="${V.torch.tilt}"><label for="tAz">朝向</label><input id="tAz" type="range" min="0" max="360" step="15" value="${V.torch.az}"><label for="tH">离皮 <b id="tHV">${V.torch.h}</b> mm</label><input id="tH" type="range" min="0" max="60" step="2" value="${V.torch.h}"><button data-act="lbody" aria-pressed="${V.lampBody}">显示筒身</button><button data-act="toff" ${V.torch.on ? '' : 'disabled'}>关灯</button>`;
-  else if (V.tool === 'saw' && own) o += V.sawPlan ? `<button data-act="sawgo" class="pri">下锯（锯工 ${fmt(V.sawPlan.pv.cost)}）</button><button data-act="sawno">取消</button><span class="dim">取出约 ${Math.round(V.sawPlan.pv.a)} g，剩下约 ${Math.round(V.sawPlan.pv.b)} g</span>` : `<span class="dim">在料上圈出要取的那一块</span>`;
+  else if (V.tool === 'saw' && own) o += V.sawPlan ? `<button data-act="sawgo" class="pri">下锯（锯工 ${fmt(V.sawPlan.pv.cost)}）</button><button data-act="sawno">取消</button><span class="dim">取出约 ${Math.round(V.sawPlan.pv.a)} g，剩下约 ${Math.round(V.sawPlan.pv.b)} g</span>` : `<button data-act="sawsmart">智能圈色</button><span class="dim">或自己在料上圈出要取的那一块。画完线先预览，确认了才锯。</span>`;
   else if (V.tool === 'grind') o += Object.keys(C.TOOLS).map(k => `<button data-act="burr" data-k="${k}" aria-pressed="${V.burr === k}">${k}</button>`).join('');
   else if (V.tool === 'cut' && own) {
     o += `<label for="cutT">片厚 <b id="cutV">${V.cutT}</b> mm</label><input id="cutT" type="range" min="3" max="60" step="1" value="${V.cutT}"><button data-act="cview">从正对我的面切这么厚</button>`;
@@ -377,7 +381,7 @@ function buildCases() {
     try {
       const st = C.genStone(515151, '木那', '二级供应商'); st.cracks = []; st.dirt = []; st.shift = null; st.wVar = 0; st.cot = 0.22; st.planes = []; st.fog = { t: 0, col: [1, 1, 1] }; st.body = '白底'; st.w0 = o.w; st.hue = o.hue || '阳绿';
       const a = st.rad[0], sd = 77; st.feats = [];
-      if (o.full) st.feats.push({ type: 'full', strength: o.full, seed: sd });
+      if (o.full) st.feats.push({ type: 'full', strength: o.full, seed: sd, c: [0, 0, 0] });
       if (o.float) st.feats.push({ type: 'float', strength: o.float, seed: sd, c: [0, 0, 0], R: a * 1.3 });
       if (o.ribbon) st.feats.push({ type: 'ribbon', strength: o.ribbon, seed: sd, n: [0.26, 0.93, 0.26], t1: [0.96, -0.27, 0], t2: [0.07, 0.25, -0.97], c: [0, 4, 0], width: 5.5, R: a * 1.6, warp: 3, freq: 0.05, phase: 1 });
       st.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: 0.78, sig: 0.75, weather: 0.45, t: 1.6, phase: 3 };
@@ -415,7 +419,7 @@ function fillManual() {
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act],[data-tab],[data-tool]'); if (!b) return;
   if (b.dataset.tab) { if (b.dataset.tab === 'tray') { openTray(false); return; } if (V.mode === 'tray') { tab = b.dataset.tab; view(null, null, null); return; } tab = b.dataset.tab; renderSide(); return; }
-  if (b.dataset.tool) { V.tool = b.dataset.tool; V.lens = null; V.cut = null; V.sawPlan = null; showLasso(null); V.note = ''; renderTools(); invalidate(false); return; }
+  if (b.dataset.tool) { V.tool = b.dataset.tool; V.lens = null; V.cut = null; V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); invalidate(false); return; }
   const a = b.dataset.act;
   if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) view('market', L, null); }
   else if (a === 'offer' || a === 'take') {
@@ -443,8 +447,13 @@ document.addEventListener('click', ev => {
   else if (a === 'iall') { for (const it of trayItems()) C.sellItem(W, it, b.dataset.how); save(); tab = 'ledger'; view(null, null, null); }
   else if (a === 'review') { view('review', W.stones.find(x => x.id === +b.dataset.s), null); }
   else if (a === 'rake') { V.torch.rake = !V.torch.rake; renderTools(); invalidate(false); }
-  else if (a === 'sawno') { V.sawPlan = null; showLasso(null); renderTools(); }
-  else if (a === 'sawgo') { const s = V.rec, p = V.piece, r = C.saw(W, s, p, V.sawPlan.planes); V.sawPlan = null; showLasso(null);
+  else if (a === 'sawno') { V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); }
+  else if (a === 'sawsmart') { smartSaw(); }
+  else if (a === 'pshelf') { const r = C.pieceShelf(W, V.rec, V.piece); V.note = r.ok ? '已摆进铺面，散客会按零售价来买。' : r.msg; save(); renderAll(); }
+  else if (a === 'pkeep') { const s = V.rec, p = V.piece; C.pieceKeep(W, s, p, true); save(); V.note = '已收进藏品柜。'; if (s.closed) { tab = 'ledger'; view('review', s, null); } else renderAll(); }
+  else if (a === 'pback') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); if (p.kept) C.pieceKeep(W, s, p, false); p.shelf = false; save(); openTray(false, V.cab); }
+  else if (a === 'pview') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); tab = 'mine'; view('own', s, p); if (!s.last[p.id]) refreshQuote(s, p); renderAll(); }
+  else if (a === 'sawgo') { const s = V.rec, p = V.piece, r = C.saw(W, s, p, V.sawPlan.planes); V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true;
     if (!r.ok) { V.note = r.msg; renderTools(); return; }
     Snd.saw(); refreshQuote(s, p, false); refreshQuote(s, r.piece, true); save(); V.note = `取出 ${r.piece.name}，锯工 ${fmt(r.cost)}。它已放进料头盘，可单独查看、出售或送去做件。`; tab = 'mine'; frame(); renderAll(); }
   else if (a === 'hold') { holdItem(V.ref ? b.dataset.i : +b.dataset.i); }
@@ -467,7 +476,7 @@ document.addEventListener('click', ev => {
   else if (a === 'unshelf') { W.items.find(x => x.id === +b.dataset.i).state = 'ready'; save(); openTray(false, 'shelf'); }
   else if (a === 'cab2') openTray(false, 'shelf');
   else if (a === 'toff') { V.torch.on = false; renderTools(); invalidate(false); }
-  else if (a === 'room') { V.room = !V.room; Snd.tap(); renderTools(); renderDock(); invalidate(false); }
+  else if (a === 'room') { if (b.dataset.moved) { delete b.dataset.moved; return; } V.room = !V.room; Snd.tap(); renderTools(); renderDock(); invalidate(false); }
   else if (a === 'burr') { V.burr = b.dataset.k; renderTools(); }
   else if (a === 'cview') { cutFromView(); V.cut.fromView = true; renderTools(); invalidate(false); }
   else if (a === 'ccancel') { V.cut = null; renderTools(); invalidate(false); }
@@ -520,14 +529,16 @@ function torchTail(ev) { const T = V.torch, r = rayAt(ev.clientX, ev.clientY), b
   const tt = ((T.p[0] - r.ro[0]) * b.f[0] + (T.p[1] - r.ro[1]) * b.f[1] + (T.p[2] - r.ro[2]) * b.f[2]) / den, q = [r.ro[0] + r.rd[0] * tt, r.ro[1] + r.rd[1] * tt, r.ro[2] + r.rd[2] * tt];
   let v = [q[0] - T.p[0], q[1] - T.p[1], q[2] - T.p[2]]; const len = Math.hypot(v[0], v[1], v[2]) || 1; v = v.map(x => x / len); const dn = v[0] * T.n[0] + v[1] * T.n[1] + v[2] * T.n[2];
   if (dn < 0.09) { v = v.map((x, i) => x + T.n[i] * (0.09 - dn)); const l2 = Math.hypot(v[0], v[1], v[2]); v = v.map(x => x / l2); }
-  const d0 = T.dir || T.n, along = (q[0] - T.p[0]) * d0[0] + (q[1] - T.p[1]) * d0[1] + (q[2] - T.p[2]) * d0[2]; T.h = Math.max(0, Math.min(90, along - 44.5)); invalidate(true); renderDock(); } // 抓筒尾只沿轴向拉远拉近，转方向用方向盘
+  if (drag && drag.kind === 'tmid') { const d0 = T.dir || T.n, along = (q[0] - T.p[0]) * d0[0] + (q[1] - T.p[1]) * d0[1] + (q[2] - T.p[2]) * d0[2]; T.h = Math.max(0, Math.min(90, along - 23.5)); } // 抓筒身中段：沿筒身拉远拉近
+  else { const d0 = T.dir || T.n, k = 0.35; let nd = [0, 1, 2].map(i => d0[i] + (v[i] - d0[i]) * k); const l3 = Math.hypot(nd[0], nd[1], nd[2]) || 1; T.dir = nd.map(x => x / l3); } // 抓筒尾：转方向，带阻尼，不会一下甩飞
+  invalidate(true); renderDock(); }
 function gyroBasis() { const T = V.torch, n = T.n, b = camBasis(), pr = v => { const d = v[0] * n[0] + v[1] * n[1] + v[2] * n[2]; let o = [v[0] - n[0] * d, v[1] - n[1] * d, v[2] - n[2] * d]; const l = Math.hypot(o[0], o[1], o[2]) || 1; return o.map(x => x / l); }; const tx = pr(b.r); let ty = [n[1] * tx[2] - n[2] * tx[1], n[2] * tx[0] - n[0] * tx[2], n[0] * tx[1] - n[1] * tx[0]]; if (ty[0] * b.up[0] + ty[1] * b.up[1] + ty[2] * b.up[2] < 0) ty = ty.map(x => -x); return { tx, ty }; }
 function gyroSet(px, py) { const T = V.torch; if (!T.p) return; const g = gyroBasis(), r = Math.min(1, Math.hypot(px, py)), tilt = r * 1.45, s = Math.sin(tilt), c = Math.cos(tilt), k = r > 1e-3 ? 1 / Math.hypot(px, py) : 0;
   T.dir = [0, 1, 2].map(i => T.n[i] * c + (g.tx[i] * px + g.ty[i] * py) * k * s); invalidate(true); renderDock(); }
 function gyroPad(ev) { const r = $('#gyro').getBoundingClientRect(); gyroSet(((ev.clientX - r.left) / r.width - 0.5) * 2, -((ev.clientY - r.top) / r.height - 0.5) * 2); }
 function renderDock() { const d = $('#torchdock'), T = V.torch, show = !!V.e && V.mode !== 'tray'; d.hidden = !show; $('#lightsw').hidden = !show; if (!show) return;
   d.classList.toggle('lit', T.on && !!T.p); $('#tkPower').setAttribute('aria-pressed', T.on && !!T.p); $('#tkColor').setAttribute('aria-pressed', !!T.yellow); $('#tkColor').textContent = T.yellow ? '黄光' : '白光'; $('#tkDim').setAttribute('aria-pressed', !T.dim); $('#tkDim').textContent = T.dim ? '弱光' : '强光'; $('#tkBody').setAttribute('aria-pressed', V.lampBody);
-  $('#tkName').textContent = C.SHOP.torch.levels[W.tools.torch - 1]; $('#tkTip').textContent = T.on && T.p ? '抓灯头挪位置；方向盘转角度；滑杆或抓筒尾拉远' : '按住拖到石头上'; $('#lightsw').setAttribute('aria-pressed', V.room);
+  $('#tkName').textContent = C.SHOP.torch.levels[W.tools.torch - 1]; $('#tkTip').textContent = T.on && T.p ? '抓灯头挪位置；抓筒尾或用方向盘转；抓筒身或滑杆拉远' : '按住拖到石头上'; $('#lightsw').setAttribute('aria-pressed', V.room);
   const placed = T.on && !!T.p; $('#gyrowrap').hidden = !placed; const fl = $('#tfloat'); fl.hidden = !placed || !V.lampBody;
   if (placed) { const g = gyroBasis(), d = T.dir || T.n, cT = Math.max(-1, Math.min(1, d[0] * T.n[0] + d[1] * T.n[1] + d[2] * T.n[2])), rr = Math.acos(cT) / 1.45, sx = d[0] * g.tx[0] + d[1] * g.tx[1] + d[2] * g.tx[2], sy = d[0] * g.ty[0] + d[1] * g.ty[1] + d[2] * g.ty[2], l = Math.hypot(sx, sy) || 1; $('#gyrodot').style.left = (50 + sx / l * rr * 46) + '%'; $('#gyrodot').style.top = (50 - sy / l * rr * 46) + '%'; $('#tDist').value = T.h || 0; $('#tDistV').textContent = Math.round(T.h || 0);
     const sr = canvas.getBoundingClientRect(), tp = proj(torchPts().tail); fl.style.left = Math.max(4, Math.min(sr.width - 70, tp[0] - sr.left + 10)) + 'px'; fl.style.top = Math.max(4, Math.min(sr.height - 30, tp[1] - sr.top - 12)) + 'px'; $('#tfP').setAttribute('aria-pressed', true); $('#tfC').textContent = T.yellow ? '黄' : '白'; } }
@@ -552,7 +563,22 @@ function planSaw(pts) {
     let n = [r1.rd[1] * r2.rd[2] - r1.rd[2] * r2.rd[1], r1.rd[2] * r2.rd[0] - r1.rd[0] * r2.rd[2], r1.rd[0] * r2.rd[1] - r1.rd[1] * r2.rd[0]]; const l = Math.hypot(n[0], n[1], n[2]); n = n.map(v => v / l);
     if (n[0] * rc.rd[0] + n[1] * rc.rd[1] + n[2] * rc.rd[2] > 0) n = n.map(v => -v);
     planes.push([n[0], n[1], n[2], n[0] * r1.ro[0] + n[1] * r1.ro[1] + n[2] * r1.ro[2]]); }
-  showLasso(hull); V.sawPlan = { planes, pv: C.sawPreview(V.rec, V.piece, planes) }; V.note = ''; renderTools();
+  showLasso(hull); V.sawPlan = { planes, pv: C.sawPreview(V.rec, V.piece, planes) }; V.note = '线画好了，还没有锯。看清楚取多少、剩多少，确认了再下锯。';
+  const sb = $('#sawbox'), sr = canvas.getBoundingClientRect(); sb.hidden = false; sb.style.left = Math.max(8, Math.min(sr.width - 230, cx - sr.left - 100)) + 'px'; sb.style.top = Math.max(8, Math.min(sr.height - 90, Math.max(...hull.map(p => p[1])) - sr.top + 10)) + 'px';
+  sb.innerHTML = `<span>取出约 <b>${Math.round(V.sawPlan.pv.a)} g</b>，剩下约 ${Math.round(V.sawPlan.pv.b)} g，锯工 ${fmt(V.sawPlan.pv.cost)}</span><div class="row"><button data-act="sawno">重画</button><button data-act="sawgo" class="pri">确认下锯</button></div>`;
+  renderTools();
+}
+// 智能圈色：在当前看到的露肉面上找最大的一片色，自动把线画好
+function smartSaw() {
+  const r = canvas.getBoundingClientRect(), vol = V.e.vol, m = vol.mat, g = vol.geom, N = 46, cw = r.width / N, ch = r.height / N, val = new Float32Array(N * N); let mx = 0;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const ry = rayAt(r.left + (i + 0.5) * cw, r.top + (j + 0.5) * ch), h = C.pick(vol, V.piece, ry.ro, ry.rd); if (!h) continue;
+    const q = [h.p[0] - h.n[0] * 1.2, h.p[1] - h.n[1] * 1.2, h.p[2] - h.n[2] * 1.2], ii = Math.max(0, Math.min(vol.nx - 1, Math.floor((q[0] + vol.hx) / vol.vx))), jj = Math.max(0, Math.min(vol.ny - 1, Math.floor((q[1] + vol.hy) / vol.vx))), kk = Math.max(0, Math.min(vol.nz - 1, Math.floor((q[2] + vol.hz) / vol.vx))), b = (ii + vol.nx * (jj + vol.ny * kk)) * 4;
+    if (!(-g[b] > g[b + 2])) continue; const c = m[b] / 255; val[i + N * j] = c; if (c > mx) mx = c; }
+  const thr = Math.max(0.22, mx * 0.55), seen = new Uint8Array(N * N); let best = [];
+  for (let s0 = 0; s0 < N * N; s0++) { if (seen[s0] || val[s0] < thr) continue; const comp = [], st = [s0]; seen[s0] = 1; while (st.length) { const c = st.pop(); comp.push(c); const i = c % N, j = (c / N) | 0; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, b2 = j + dj; if (a < 0 || b2 < 0 || a >= N || b2 >= N) continue; const k = a + N * b2; if (!seen[k] && val[k] >= thr) { seen[k] = 1; st.push(k); } } } if (comp.length > best.length) best = comp; }
+  if (best.length < 4) { V.note = '这个面上没找到成片的色。把带色的切面或窗口转到正对自己再试。'; renderTools(); return; }
+  const pts = []; for (const c of best) { const x = r.left + (c % N + 0.5) * cw, y = r.top + (((c / N) | 0) + 0.5) * ch; pts.push([x - cw * 0.7, y - ch * 0.7], [x + cw * 0.7, y - ch * 0.7], [x - cw * 0.7, y + ch * 0.7], [x + cw * 0.7, y + ch * 0.7]); }
+  planSaw(pts);
 }
 function doPeel(pts) {
   if (pts.length < 6) return;
@@ -566,14 +592,18 @@ function doPeel(pts) {
   loaded = null; Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `切皮完成，花费 ${Math.max(1, Math.round(cost))} 元。`; renderAll();
 }
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+{ const sw = $('#lightsw'); let mv = null; try { const s = JSON.parse(localStorage.getItem('jade-lightsw') || 'null'); if (s) { sw.style.left = s[0] + 'px'; sw.style.top = s[1] + 'px'; sw.style.right = 'auto'; } } catch (e) { }
+  sw.addEventListener('pointerdown', ev => { sw.setPointerCapture(ev.pointerId); const r = sw.getBoundingClientRect(); mv = { x: ev.clientX, y: ev.clientY, ox: ev.clientX - r.left, oy: ev.clientY - r.top, moved: false }; });
+  sw.addEventListener('pointermove', ev => { if (!mv) return; if (!mv.moved && Math.hypot(ev.clientX - mv.x, ev.clientY - mv.y) < 6) return; mv.moved = true; const st = $('#stage').getBoundingClientRect(), x = Math.max(4, Math.min(st.width - 40, ev.clientX - st.left - mv.ox)), y = Math.max(4, Math.min(st.height - 60, ev.clientY - st.top - mv.oy)); sw.style.left = x + 'px'; sw.style.top = y + 'px'; sw.style.right = 'auto'; });
+  sw.addEventListener('pointerup', () => { if (mv && mv.moved) { sw.dataset.moved = '1'; try { localStorage.setItem('jade-lightsw', JSON.stringify([parseFloat(sw.style.left), parseFloat(sw.style.top)])); } catch (e) { } } mv = null; }); }
 $('#gyro').addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); $('#gyro').setPointerCapture(ev.pointerId); gyroPad(ev); });
 $('#gyro').addEventListener('pointermove', ev => { if (ev.buttons || ev.pointerType !== 'mouse') gyroPad(ev); });
 $('#gyro').addEventListener('pointerup', () => invalidate(false));
 $('#gyro').addEventListener('dblclick', () => { gyroSet(0, 0); invalidate(false); });
 $('#torchdock').addEventListener('pointerdown', ev => { if (ev.target.closest('button') || ev.target.closest('#gyrowrap') || !V.e) return; ev.preventDefault(); canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: 'torch' }; V.torch.h = 0; V.torch.dir = null; });
 canvas.addEventListener('pointerdown', ev => {
-  if (V.e && V.mode !== 'tray' && V.torch.on && V.torch.p && ev.button !== 2) { const tp = torchPts(), a = proj(tp.tail), b2 = proj(tp.head), dt = Math.hypot(ev.clientX - a[0], ev.clientY - a[1]), dh = Math.hypot(ev.clientX - b2[0], ev.clientY - b2[1]);
-    if (dt < 26 || dh < 20) { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: dt <= dh ? 'ttail' : 'torch' }; return; } }
+  if (V.e && V.mode !== 'tray' && V.torch.on && V.torch.p && ev.button !== 2) { const tp = torchPts(), a = proj(tp.tail), b2 = proj(tp.head), mid = [(a[0] + b2[0]) / 2, (a[1] + b2[1]) / 2], dt = Math.hypot(ev.clientX - a[0], ev.clientY - a[1]), dh = Math.hypot(ev.clientX - b2[0], ev.clientY - b2[1]), dm = Math.hypot(ev.clientX - mid[0], ev.clientY - mid[1]), mn = Math.min(dt, dh, dm);
+    if (mn < 24) { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: mn === dt ? 'ttail' : mn === dh ? 'torch' : 'tmid' }; return; } }
   if (V.mode === 'tray') { canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { kind: 'orbit', x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, tray: true }; return; }
   if (!V.e) return; canvas.setPointerCapture(ev.pointerId); ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
   if (ptrs.size === 2) { showLine(null); const a = [...ptrs.values()]; drag = { kind: 'pinch', d: Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), x: (a[0][0] + a[1][0]) / 2, y: (a[0][1] + a[1][1]) / 2 }; return; }
@@ -593,7 +623,7 @@ canvas.addEventListener('pointermove', ev => {
   if (drag.kind === 'pinch' && ptrs.size === 2) { const a = [...ptrs.values()], d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), x = (a[0][0] + a[1][0]) / 2, y = (a[0][1] + a[1][1]) / 2; cam.dist = Math.min(1500, Math.max(40, cam.dist * drag.d / Math.max(1, d))); cam.yaw -= (x - drag.x) * 0.008; cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch + (y - drag.y) * 0.008)); drag.d = d; drag.x = x; drag.y = y; invalidate(true); }
   else if (drag.kind === 'orbit') { cam.yaw -= (ev.clientX - drag.x) * 0.008; cam.pitch = Math.max(V.mode === 'tray' && V.hold == null ? 0.12 : -1.5, Math.min(1.5, cam.pitch + (ev.clientY - drag.y) * 0.008)); drag.x = ev.clientX; drag.y = ev.clientY; if (V.cut && V.cut.fromView) { V.cut = null; renderTools(); } invalidate(true); }
   else if (drag.kind === 'torch') { torchAt(ev); invalidate(true); }
-  else if (drag.kind === 'ttail') torchTail(ev);
+  else if (drag.kind === 'ttail' || drag.kind === 'tmid') torchTail(ev);
   else if (drag.kind === 'loupe') { V.lens = { x: ev.clientX, y: ev.clientY }; invalidate(true); }
   else if (drag.kind === 'grind') carveAt(ev);
   else if (drag.kind === 'line') { drag.x = ev.clientX; drag.y = ev.clientY; showLine(drag); }
@@ -604,7 +634,7 @@ function endPtr(ev) {
   if (drag.tray && V.hold == null && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 6) { const it = pickTray(ev.clientX, ev.clientY); V.sel = it ? it.id : null; if (it) focusItem(); else { const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); } renderSide(); invalidate(false); }
   if (drag.kind === 'grind') { const s = V.rec, p = V.piece; refreshQuote(s, p, true); V.note = `本次打磨花费 ${Math.max(1, Math.round(strokeCost))} 元。`; save(); renderAll(); }
   if (drag.kind === 'loupe' && ev.pointerType !== 'mouse') { V.lens = null; invalidate(false); }
-  if (drag.kind === 'torch' || drag.kind === 'ttail' || drag.kind === 'orbit') { renderDock(); invalidate(false); }
+  if (drag.kind === 'torch' || drag.kind === 'ttail' || drag.kind === 'tmid' || drag.kind === 'orbit') { renderDock(); invalidate(false); }
   if (drag.kind === 'lasso') { if (drag.saw) planSaw(drag.pts); else { showLasso(null); doPeel(drag.pts); } }
   if (drag.kind === 'line') {
     showLine(null);

@@ -17,6 +17,7 @@ uniform vec4 uTorch; uniform vec3 uTorchDir, uTorchSurf, uRakePos; uniform float
 uniform vec3 uGlare; // 手电接触点的屏幕位置 xy（像素）与可见强度
 uniform float uAmbient; uniform vec4 uLens; uniform int uK; uniform float uHi;
 uniform vec3 uBgA, uBgB, uKeyCol; uniform int uScene;
+uniform float uFloorY, uFloorOn, uFloorR; uniform vec3 uTabCol;
 out vec4 outC;
 
 float hash(vec3 p){ p=fract(p*0.3183099+vec3(.1,.2,.3)); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
@@ -228,6 +229,15 @@ void main(){
   col=(col+vec3(0.012)*(vnoise(vec3(gl_FragCoord.xy*0.9,1.0))-0.5))*(0.30+0.70*uAmbient);
   vec3 p,n; float fl;
   bool hitS=trace(uCamPos,rd,p,n,fl); if(hitS) col=shade(p,n,rd,detail,fl);
+  // 台面：石头放在桌上，有接触阴影、主光投影和手电洒出来的光
+  if(!hitS&&uFloorOn>0.5&&rd.y<-0.001&&uCamPos.y>uFloorY){ float tf=(uFloorY-uCamPos.y)/rd.y; vec3 q=uCamPos+rd*tf; float rr=length(q.xz);
+    if(rr<uFloorR*1.6){ vec3 keyL=normalize(uCamRot*vec3(-0.55,0.62,0.56)); if(keyL.y<0.25){ keyL.y=0.25; keyL=normalize(keyL); }
+      float sh=softShadow(q+vec3(0.0,0.6,0.0),keyL); float near=mapD(q+vec3(0.0,2.5,0.0)); float ao=clamp(near/14.0,0.0,1.0); ao=0.35+0.65*ao*ao;
+      float weave=0.82+0.18*vnoise(vec3(q.xz*2.6,3.0))+0.10*(vnoise(vec3(q.xz*0.06,7.0))-0.5)+0.05*sin(q.x*3.1)*sin(q.z*3.1);
+      vec3 tc=uTabCol*weave*(uKeyCol*(0.20+0.80*sh)*max(keyL.y,0.0)*1.5+0.10)*ao*uAmbient;
+      if(uTorch.w>0.0){ vec3 dl=uRakePos-q; float dd=length(dl); tc+=uTabCol*weave*uTorchCol*max(dl.y/dd,0.0)*uRakeI*2.0/(1.0+dd*dd/900.0)*softShadow(q+vec3(0.0,0.6,0.0),dl/dd);
+        float dg=length(q-vec3(uTorchSurf.x,uFloorY,uTorchSurf.z)); tc+=uTabCol*uTorchCol*min(uTorch.w,12.0)*0.012*exp(-dg*dg/1800.0); }
+      col=mix(tc,col,smoothstep(uFloorR*0.9,uFloorR*1.6,rr)); } }
   if(uLampOn>0.5){ float tc=capI(uCamPos,rd,uLampA,uLampB,5.5);
     if(tc>0.0&&(!hitS||tc<length(p-uCamPos))){ vec3 pc=uCamPos+rd*tc; vec3 ax=normalize(uLampB-uLampA); vec3 nc=normalize((pc-uLampA)-ax*dot(pc-uLampA,ax)+ax*0.001);
       float along=dot(pc-uLampA,ax); vec3 mc=mix(vec3(0.05,0.05,0.055),vec3(0.16,0.16,0.17),0.5+0.5*dot(nc,normalize(uCamRot*vec3(-0.5,0.6,0.6))))+vec3(0.25)*pow(max(dot(nc,normalize(uCamRot*vec3(-0.4,0.7,0.6))),0.0),24.0);
