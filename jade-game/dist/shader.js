@@ -80,7 +80,8 @@ vec3 crLook(int i, vec3 p, float h, float ins){
   float off=0.8+1.6*n3; float fe=(1.0-smoothstep(0.05,0.30,abs(abs(hh)-off)))*smoothstep(0.60,0.78,vnoise(p*0.45+ph+5.0))*0.45; // 羽裂
   float halo=(1.0-smoothstep(0.2,1.0+2.4*n1,abs(hh)))*(0.45+0.55*n3);
   float healed=1.0-step(0.5,uCrB[i].w);
-  return vec3(max(main,fe)*(1.0-healed),halo*(1.0-healed),main*healed)*smoothstep(0.0,0.15,ins); }
+  float band=(1.0-smoothstep(0.4,2.6+2.2*n1,abs(hh)))*(0.45+0.55*n3)*(0.6+0.4*vnoise(p*0.9+ph));   // 石纹：一条宽而模糊的乳白带子，没有缝
+  return vec3(max(main,fe)*(1.0-healed),halo*(1.0-healed),band*healed)*smoothstep(0.0,0.15,ins); }
 float segT(vec3 A, vec3 B){ float T=1.0;
   for(int i=0;i<10;i++){ if(i>=uNCr) break; float ia,ib; float ga=crG(i,A,ia), gb=crG(i,B,ib);
     if(ga*gb<0.0){ float t=ga/(ga-gb); T*=1.0-mix(ia,ib,t)*uCrB[i].w*0.80; } }
@@ -185,13 +186,15 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   vec3 tint=mix(vec3(1.0),uSkinCol/max(max(uSkinCol.r,uSkinCol.g),uSkinCol.b),0.7);
   vec3 T0=mix(exp(-uSkinSig*skinT)*tint,vec3(1.0),flesh);
   vec3 T=T0, acc=vec3(0.0); float dt=uK<12?0.50:0.40, trav=0.0; float grow=uK<12?1.39:1.19; float gp[10];
+  float wDeep=smoothstep(0.50,0.90,M(p-n*0.5).g); grow*=1.0+0.10*wDeep;   // 种越好，光线往里走得越深，才看得到底
   x+=dir*dt*(ign(gl_FragCoord.xy)-0.5)*0.9*flesh;   // 抖动起点，消除分层条纹
   for(int i=0;i<10;i++){ float ins; gp[i]=i<uNCr?crG(i,x,ins):1.0; }
   float ambL=uAmbient*(0.42+0.58*max(dot(nf,keyL),0.0)*mix(1.0,sh,0.6)+0.14*max(-nf.y,0.0)*uFloorOn)*mix(1.0,ao,0.5);
   vec3 ambC=mix(vec3(1.0),uKeyCol,0.85); // 场景灯光的颜色会改变你看到的色：黄灯下绿显得更浓
   for(int k=0;k<18;k++){ if(k>=uK) break;
     vec3 s=x+dir*dt*0.5; vec4 gs=G(s); float ds=max(sdfOf(gs),planeD(s));
-    if(ds>0.4) break;
+    if(ds>0.4){ acc+=T*envLight(dir,keyL)*uAmbient*0.55; T=vec3(0.0); break; }                  // 穿出去了：透过石头看到后面的台面和灯
+    if(k>0){ float fk=clamp((gs.b-0.2+gs.r)/max(dt*0.8,0.6),0.0,1.0); if(fk>0.0){ acc+=T*fk*(uSkinCol*0.15+tint*exp(-uSkinSig*gs.b)*0.42*smoothstep(-0.55,0.25,dir.y))*ambC*ambL; T*=1.0-fk; if(fk>0.98) break; } } // 望到了对面的皮：从里面看是一层暗壳，朝着灯的那面透一点光，压在台面上的那面是黑的
     vec4 m=Mw(s); vec3 sg=sigT(m); float sc=scat(m); vec3 al=albedo(m);
     float fogw=uFogT>0.0?1.0-smoothstep(gs.b+uFogT*0.6,gs.b+uFogT,-gs.r):0.0; al=mix(al,uFogCol,fogw*0.75); sg+=fogw*0.10;
     float bleed=clamp(Mblur(s)*1.5-m.r*0.7,0.0,1.0); al=mix(al,mix(al,uBandCol,0.6)*vec3(1.03,1.0,0.94),bleed*0.55);         // 色晕：浓色往四周化开
@@ -200,7 +203,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     al*=mix(vec3(1.0),vec3(0.74,0.84,0.78)+vec3(0.34,0.20,0.16)*vec3(vnoise(s*0.21+uPhase),vnoise(s*0.19+uPhase+4.0),vnoise(s*0.23+uPhase+9.0)),smoothstep(0.10,0.50,m.r)); // 色里有深有浅、偏黄偏蓝
     // 玉肉天然的不均匀：絮状棉团、清透的水路、底色深浅、零星黑点
     float cl=fbm(s*0.10+uPhase*0.37), cl2=vnoise(s*0.33+uPhase);
-    float floc=smoothstep(0.50,0.78,cl*0.65+cl2*0.35)*(0.30+m.b*1.6)*(1.0-0.45*m.g);
+    float gI=smoothstep(0.50,0.90,m.g); sc*=mix(1.0,0.42,gI); float fl0=mix(0.50,0.62,gI); float floc=smoothstep(fl0,fl0+mix(0.28,0.10,gI),cl*mix(0.65,0.45,gI)+cl2*mix(0.35,0.55,gI))*(0.30+m.b*1.6)*(1.0-0.20*m.g); // 高种料里的棉是一缕一缕清楚的，中间是清的
     float vein=1.0-smoothstep(0.0,0.07,abs(vnoise(s*0.07+uPhase*0.9)-0.5));
     float lit=1.0; if(uHi>0.5){ float f2=fbm((s+keyL*3.0)*0.10+uPhase*0.37); lit=1.0-0.42*smoothstep(0.50,0.78,f2)*(0.4+0.6*m.g); } // 絮团互相遮光，才有里面一层层的感觉
     al=mix(al,vec3(0.96,0.97,0.95),floc*0.55); sc*=1.0+floc*1.4; sc*=1.0-0.55*vein*m.g; sg*=1.0-0.40*vein*m.g;
@@ -212,13 +215,15 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
     float cg=mix(vnoise(s*1.6+3.0),vnoise(s*4.5+1.0),0.45)-0.5; float gk=(1.0-m.g)*(0.42+detail*0.55);
     al*=1.0+cg*gk; sc*=1.0+cg*gk*1.6;
     vec3 Lin=ambC*T0*mix(T0*0.4,vec3(mix(0.50,0.30,m.g)),flesh)*ambL*exp(-sg*trav*0.42)*lit;
-    if(uTorch.w>0.0) Lin+=fluence(s);
+    float tcm=-1.0;
     vec3 xe=x+dir*dt;
     for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,xe,ins);
-      if(h*gp[i]<0.0&&ins>0.3){ float op=uCrB[i].w; vec3 gl=T0*ambL*0.5; if(uTorch.w>0.0) gl+=fluence(xe); acc+=T*gl*op*0.45; T*=1.0-0.5*op; }
+      if(h*gp[i]<0.0&&ins>0.3){ float op=uCrB[i].w; float tc=clamp(gp[i]/(gp[i]-h),0.0,1.0); if(tcm<0.0||tc<tcm) tcm=tc; vec3 xc=x+dir*dt*tc; vec3 gl=T0*ambL*0.5*exp(-sg*(trav+dt*tc)*0.42); if(uTorch.w>0.0) gl+=max(fluence(xc-dir*0.8),fluence(xc+dir*0.8)); float gz=0.20+0.25*smoothstep(0.2,0.9,abs(dot(dir,uCrB[i].xyz))); acc+=T*exp(-sg*dt*tc)*gl*op*gz*0.55*ins; T*=1.0-0.42*op*ins; }
       gp[i]=h; }
+    if(uTorch.w>0.0){ if(tcm>=0.0) Lin+=tcm*fluence(x+dir*dt*tcm*0.5)+(1.0-tcm)*fluence(x+dir*dt*(1.0+tcm)*0.5); else Lin+=fluence(s); } // 这一步里穿过了裂：裂前裂后分开算光，不然会出一圈圈台阶
     acc+=T*al*sc*dt*Lin; T*=exp(-sg*dt); x=xe; trav+=dt; dt*=grow;
   }
+  acc+=T*uBodyCol*ambC*ambL*0.06;
   float line=0.0, halo=0.0, heal=0.0, rust=0.0; // 露肉面上的裂：一条暗线，两侧起白雾；靠皮的一段被水和铁锈沁黄，越往里越淡
   for(int i=0;i<10;i++){ if(i>=uNCr) break; float ins; float h=crG(i,p,ins); if(ins<0.01||abs(h)>5.0) continue;
     vec3 lk=crLook(i,p,h,ins); line=max(line,lk.x); halo=max(halo,lk.y); heal=max(heal,lk.z);
@@ -226,7 +231,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   acc=mix(acc,acc*0.88+vec3(0.15,0.15,0.14)*uAmbient,halo*0.5*flesh);
   acc=mix(acc,acc*vec3(0.96,0.66,0.36),rust*0.8*flesh);
   acc*=1.0-0.86*line*flesh;
-  acc=mix(acc,acc*1.03+vec3(0.13,0.13,0.125)*uAmbient,heal*mix(0.55,0.28,M(p).g)*flesh);   // 石纹：种越好越淡，只是一丝发白
+  acc=mix(acc,acc*1.02+vec3(0.11,0.11,0.105)*uAmbient,heal*mix(0.60,0.40,M(p).g)*flesh);   // 石纹：种越好越淡，只是一丝发白
   if(flat_>0.5){ vec3 sc0=vec3(170.0,90.0,-140.0); float arc=sin(length(p-sc0)*5.2+vnoise(p*0.2)*2.5); acc*=1.0+(0.020*arc+0.010*sin(length(p-sc0)*17.0))*flesh; } // 圆锯片留下的一圈圈弧形锯痕
   // 菲涅耳反光：种水越好表面越“起光”
   float wS=M(p-n*0.5).g; float ndv=max(dot(nf,-rd),0.0);
@@ -237,7 +242,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   spec+=pow(max(dot(nf,hv2),0.0),9.0)*0.10*mix(0.6,1.0,flat_)*sh;            // 油脂到玻璃光泽之间那层宽而柔的反光
   acc*=1.0+0.30*pow(1.0-ndv,3.0)*wS;                                        // 种好的料，边缘薄处更透亮
   float wet=mix(0.55,1.0,flat_);                                            // 表面一层水膜
-  vec3 col=surf*(1.0-flesh)+acc*(1.0-F*0.6)+(refl*F*wet*mix(1.25,3.4,flat_)+vec3(spec)*0.5)*uAmbient*flesh;
+  vec3 col=surf*(1.0-flesh)+acc*(1.0-F*0.6)+(refl*F*wet*mix(1.25,2.0,flat_)+vec3(spec)*0.5)*uAmbient*flesh;
   if(flesh>0.5){ vec3 cell=floor(p*3.6); vec3 rn=normalize(n+(hash3(cell+uPhase)-0.5)*1.1); float gl=step(0.955,hash(cell+uPhase*3.0))*pow(max(dot(reflect(rd,rn),keyL),0.0),26.0); col+=vec3(1.0,0.99,0.95)*gl*pow(1.0-wS,3.0)*1.1*uAmbient*sh; } // 翠性：种嫩的料切面上有一片片晶面的闪光
   if(uTorch.w>0.0){ float r=length(p-uTorchSurf); col+=vec3(1.0,0.97,0.9)*min(uTorch.w,6.0)*0.06*exp(-r*r/9.0); col+=vec3(0.5)*(smoothstep(4.0,4.4,r)-smoothstep(4.6,5.0,r))*0.30; }
   if(uFakeT>2.5){ float ch=smoothstep(0.2,0.6,M(p).r)*flesh; float net=1.0-smoothstep(0.015,0.085,abs(vnoise(p*1.9+uPhase)-0.5)); if(detail>0.5) col=mix(col,col*vec3(0.25,0.62,0.33),net*ch*0.9); else col=mix(col,col*vec3(0.80,1.14,0.80),0.4*ch); } // 上色窗：远看绿得匀而艳，放大镜下颜色沿着晶粒缝成网

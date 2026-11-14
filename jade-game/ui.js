@@ -139,7 +139,7 @@ function render(scale, forceSize) {
   { const tab = { '夜市地摊': [0.20, 0.07, 0.05], '玉石集散地': [0.10, 0.16, 0.13], '翡翠公盘': [0.035, 0.04, 0.055], '场口直采': [0.30, 0.23, 0.15] }; const on = !forceSize && V.info && V.mode !== 'review' && V.floor !== false; gl.uniform1f(u('uFloorOn'), on ? 1 : 0); gl.uniform1f(u('uDecor'), on && V.mode === 'market' ? 1 : 0); if (on) { gl.uniform1f(u('uFloorY'), V.info.lo - 0.4); gl.uniform1f(u('uFloorR'), Math.max(120, V.info.radius * 3.2)); gl.uniform3fv(u('uTabCol'), V.mode === 'market' ? (tab[(V.rec && V.rec.scene) || W.scene] || tab['玉石集散地']) : [0.09, 0.14, 0.12]); } }
   gl.uniform1i(u('uK'), scale < 1 ? 10 : Q.K); gl.uniform1f(u('uHi'), scale < 1 ? 0 : 1);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
-  if (scale === 1 && !forceSize && !Q.tuned) { const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const ms = performance.now() - t0; if (ms > 350 && Q.scale > 0.45) { Q.scale *= 0.7; invalidate(false); } else Q.tuned = true; }
+  if (scale === 1 && !forceSize && !Q.tuned) { const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); const ms = performance.now() - t0; Q.slow = ms > 350 ? (Q.slow || 0) + 1 : 0; if (ms > 350 && Q.slow < 3) { invalidate(false); } else if (ms > 350 && Q.scale > 0.6) { Q.slow = 1; Q.scale *= 0.8; invalidate(false); } else Q.tuned = true; }
 }
 /* ---------- 成品托盘 ---------- */
 const TYPE_ID = { bracelet: 0, pendant: 1, cab: 2, bead: 3, carve: 4 };
@@ -389,7 +389,7 @@ function renderSide() {
 const HINTS = {
   rotate: '拖动转石头，滚轮或双指缩放。右键拖动在任何工具下都能转。',
   torch: '点或拖到石头上放灯，灯会留在原处。贴着压（离皮 0、倾斜 0）光进得最深；放斜贴着皮扫，裂和起伏最明显；抬高是照表面。',
-  loupe: '移动放大镜看皮壳颗粒、松花、细裂和玉肉晶粒。可以和手电一起用。',
+  loupe: '移动放大镜看皮壳颗粒、松花、细裂和玉肉晶粒。把镜子移到一条线上，会标出它是哪种裂、还是不算裂的石纹。可以和手电一起用。',
   grind: '在石头上拖动磨皮开窗。同一处来回磨会越磨越深，磨掉的料回不来。',
   saw: '小锯取料：在看得清的面上圈出想要的那一块（比如色带），沿圈直着锯穿，把它单独取下来。圈会被拉成最多六条边的形状。',
   peel: '在石头上画一个圈，确认后圈里的皮会被整片切掉，只剥到刚露肉，不伤里面的料。圈越大切工越贵，想象空间也越少。',
@@ -661,7 +661,7 @@ function fillManual() {
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act],[data-tab],[data-tool]'); if (!b) return;
   if (b.dataset.tab) { if (b.dataset.tab === 'tray') { openTray(false); return; } if (V.mode === 'tray') { tab = b.dataset.tab; view(null, null, null); return; } tab = b.dataset.tab; renderSide(); return; }
-  if (b.dataset.tool) { V.tool = b.dataset.tool; V.lens = null; V.cut = null; V.sawPlan = null; V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); invalidate(false); return; }
+  if (b.dataset.tool) { if ($('#crlabel')) $('#crlabel').hidden = true; V.tool = b.dataset.tool; V.lens = null; V.cut = null; V.sawPlan = null; V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); invalidate(false); return; }
   const a = b.dataset.act;
   if (a !== 'menu') $('#hmenu').classList.remove('open');
   if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) view('market', L, null); }
@@ -934,8 +934,18 @@ canvas.addEventListener('pointerdown', ev => {
   else if (V.tool === 'peel' || V.tool === 'saw') { drag = { kind: 'lasso', saw: V.tool === 'saw', pts: [[ev.clientX, ev.clientY]] }; V.sawPlan = null; }
   else if (V.tool === 'cut') { drag = { kind: 'line', x0: ev.clientX, y0: ev.clientY, x: ev.clientX, y: ev.clientY }; }
 });
+/* 放大镜指到一条线上：告诉你它是什么 */
+const CRK_NAME = { through: ['通天大裂', '整块贯穿，挡光。横跨它的位置出不了镯子，顺着它下刀损失最小'], edge: ['皮上起头的裂', '从皮往里吃了一截，看它吃多深，取料要让开'], hair: ['小绺', '短而浅的细裂，影响小，做小件或雕花可以避开'], branch: ['岔裂', '从大裂上岔出来的小裂，跟着主裂一起让开'] };
+function crackLabel(ev) { const el = $('#crlabel'); if (!el) return; if (V.tool !== 'loupe' || !V.e || V.mode === 'tray') { el.hidden = true; return; }
+  const r = rayAt(ev.clientX, ev.clientY), h = C.pick(V.e.vol, curPiece(), r.ro, r.rd, V.mode === 'review'); if (!h) { el.hidden = true; return; }
+  const vol = V.e.vol, flesh = h.flat || -C.sampleG(vol, 0, h.p[0], h.p[1], h.p[2]) > C.sampleG(vol, 2, h.p[0], h.p[1], h.p[2]) - 0.3, out = [0, 0]; let best = null, bd = 2.4;
+  for (const c of V.e.st.cracks) { if (!flesh && (c.skinVis !== 1 || c.open <= 0.5)) continue; C.crackG(c, h.p[0], h.p[1], h.p[2], out); const d = Math.abs(out[0]); if (out[1] > 0.3 && d < bd) { bd = d; best = c; } }
+  if (!best) { el.hidden = true; return; }
+  const nm = best.open <= 0.5 ? ['石纹（不算裂）', '很早裂过又长死了。没有缝、不挡光，不影响取料，只是不好看'] : (CRK_NAME[best.kind] || CRK_NAME.hair), rc = $('#stage') ? $('#stage').getBoundingClientRect() : canvas.getBoundingClientRect();
+  el.innerHTML = `<b class="${best.open <= 0.5 ? '' : 'say'}">${nm[0]}</b><span>${nm[1]}</span>`; el.style.left = Math.min(rc.width - 240, Math.max(6, ev.clientX - rc.left + 18)) + 'px'; el.style.top = Math.max(6, ev.clientY - rc.top + 22) + 'px'; el.hidden = false; }
 canvas.addEventListener('pointermove', ev => {
   if (!V.e && V.mode !== 'tray') return;
+  crackLabel(ev);
   if (ptrs.has(ev.pointerId)) ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
   if (!drag) { if (V.tool === 'loupe' && ev.pointerType === 'mouse') { V.lens = { x: ev.clientX, y: ev.clientY }; invalidate(true); } return; }
   if (drag.kind === 'pinch' && ptrs.size === 2) { const a = [...ptrs.values()], d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), x = (a[0][0] + a[1][0]) / 2, y = (a[0][1] + a[1][1]) / 2; cam.dist = Math.min(1500, Math.max(40, cam.dist * drag.d / Math.max(1, d))); cam.yaw -= (x - drag.x) * 0.008; cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch + (y - drag.y) * 0.008)); drag.d = d; drag.x = x; drag.y = y; invalidate(true); }

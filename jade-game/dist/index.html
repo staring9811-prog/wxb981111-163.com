@@ -102,6 +102,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .phone { width: min(92vw, 340px); border-radius: 22px !important; border: 3px solid #3a3a3e !important; background: linear-gradient(#1a1418, #0f0d10) !important; } .phone b { color: #ff6b6b; }
 #livechat { height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 4px 2px; } #livechat p { margin: 0; font-size: 13px; padding: 3px 8px; border-radius: 10px; background: #ffffff12; align-self: flex-start; } #livechat p.sys { background: #f0c07030; color: var(--lamp); align-self: stretch; text-align: center; } .storybox h3 { margin: 8px 0 0; font-size: 15px; color: var(--lamp); }
 #paywall input { font: inherit; font-size: 17px; letter-spacing: .08em; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; text-align: center; }
+#crlabel { position: absolute; z-index: 5; max-width: 230px; background: #1a1714f2; border: 1px solid var(--lamp); border-radius: 6px; padding: 6px 9px; font-size: 12.5px; line-height: 1.45; pointer-events: none; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 4px 12px #000a; } #crlabel[hidden] { display: none; } #crlabel span { color: #c9bfb0; }
 #sawbox { right: 14px; top: 116px; } #sawbox input { accent-color: var(--lamp); width: 100%; }
 #sawbox { position: absolute; z-index: 4; width: 220px; background: #1a1714ee; border: 1px solid var(--lamp); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; box-shadow: 0 4px 14px #000a; }
 .rawimg { width: 72px; height: 72px; border-radius: 3px; flex: none; }
@@ -198,6 +199,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <svg id="overlay" aria-hidden="true"><g id="layoutg"></g><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
       <div id="reveal" hidden></div>
       <div id="sawbox" hidden></div>
+      <div id="crlabel" hidden></div>
       <div id="npc" hidden></div>
       <div id="coach" hidden></div>
       <div id="daycard" hidden></div>
@@ -359,7 +361,8 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <div id="crackAtlas" style="display:flex;flex-direction:column;gap:8px"></div>
     <h3>看到裂怎么办</h3>
     <ul>
-      <li>先分清是<b>裂</b>还是<b>石纹</b>：裂是黑缝、挡光、带黄锈；石纹是白线、不挡光。</li>
+      <li><b>拿不准就用放大镜指上去</b>：选「放大镜」，把镜子移到那条线上，旁边会标出它是通天大裂、皮上起头的裂、小绺、岔裂，还是不算裂的石纹，以及对取料的影响。皮上看不见的隐裂，在皮上指不出来，要开了窗或切开后在肉上才能认。</li>
+      <li>先分清是<b>裂</b>还是<b>石纹</b>：裂是一条细而锐的缝（发黑，或者反光发亮），挡光，靠皮处带黄锈；石纹是一条宽而模糊的乳白带子，没有缝，不挡光。</li>
       <li>看它<b>绕了多远</b>：皮上的线越长、两头都看得到，里面吃得越深。</li>
       <li>看它<b>朝哪个方向</b>：顺着大裂下刀，把料一分为二，损失最小；垂直着裂去切片，每一片都带裂。</li>
       <li>一块石头上的裂大多平行。找到一条，就顺着它的方向在旁边再压灯找第二条。</li>
@@ -465,12 +468,12 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <h2>周转不动了</h2><p>现金见底，手里也没有可卖的货。翻开账本看看每块石头错在判断还是错在价钱，然后重新开始。</p>
   <button data-act="yes" class="pri">重新开始</button>
 </div></div>
-<script src="config.js?v=30"></script>
-<script src="licenses.js?v=30"></script>
-<script src="faces.js?v=30"></script>
-<script src="core.js?v=30"></script>
-<script src="shader.js?v=30"></script>
-<script src="ui.js?v=30"></script>
+<script src="config.js?v=31"></script>
+<script src="licenses.js?v=31"></script>
+<script src="faces.js?v=31"></script>
+<script src="core.js?v=31"></script>
+<script src="shader.js?v=31"></script>
+<script src="ui.js?v=31"></script>
 
 </body>
 </html>
