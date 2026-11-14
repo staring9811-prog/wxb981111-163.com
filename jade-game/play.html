@@ -78,6 +78,9 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .atlas.six { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
 .atlas figure { margin: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
 .atlas img { width: 100%; aspect-ratio: 1; display: block; object-fit: cover; }
+.case { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; background: var(--bg); display: flex; flex-direction: column; gap: 6px; } .case p { margin: 0; font-size: 13px; }
+#caseAtlas { display: flex; flex-direction: column; gap: 8px; }
+.four { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } .four figure { margin: 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; } .four img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; } .four figcaption { font-size: 11.5px; color: var(--dim); text-align: center; }
 .atlas figcaption { padding: 5px 7px; display: flex; flex-direction: column; gap: 1px; font-size: 12px; } .atlas figcaption span { color: var(--dim); }
 .up { color: var(--up); } .down { color: var(--down); }
 .bargain { border-top: 1px dashed var(--line); margin-top: 5px; padding-top: 6px; display: flex; flex-direction: column; gap: 5px; }
@@ -185,7 +188,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 <div id="help" class="modal" hidden><div class="tut">
   <h2>教程</h2>
   <div class="scenes">
-    <button data-act="pane" data-k="play">怎么玩</button><button data-act="pane" data-k="skin">看皮壳</button><button data-act="pane" data-k="water">看种水</button><button data-act="pane" data-k="color">看色和裂</button><button data-act="pane" data-k="make">做件出货</button><button data-act="pane" data-k="value">价值表</button>
+    <button data-act="pane" data-k="play">怎么玩</button><button data-act="pane" data-k="skin">看皮壳</button><button data-act="pane" data-k="water">看种水</button><button data-act="pane" data-k="atlas">种色图鉴</button><button data-act="pane" data-k="color">看色和裂</button><button data-act="pane" data-k="make">做件出货</button><button data-act="pane" data-k="value">价值表</button>
   </div>
   <section data-pane="play">
     <p>每块原石的内部在生成时就定死了：种水、色带的走向和深浅、裂、棉。你做的每件事都只是在看同一块石头，不会重新抽奖。赚钱靠的是比卖家和买家看得更准，以及知道什么时候停手。</p>
@@ -259,6 +262,12 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   </ul>
     <p>做成成品后的差别可以到对照盘里转着看：<button data-act="gotoref">打开种水与颜色对照盘</button></p>
   </section>
+  <section data-pane="atlas" hidden>
+    <p>同一块黄砂皮石头，只换里面的种水和颜色。每组四张：<b>隔着皮压灯</b>（买之前能看到的）、<b>开窗</b>、<b>对着窗口压灯</b>、<b>切开</b>。对着看，记住每种料从外到里是怎么一步步露出来的。</p>
+    <p class="note" id="caseProg">正在拍第 1 组…</p>
+    <div id="caseAtlas"></div>
+    <p class="note">图是游戏画面现场拍的，和你玩的时候看到的一致。真实翡翠变化更多，这里只是每种的典型样子；皮更厚更黑时，第一张会暗得多。</p>
+  </section>
   <section data-pane="color" hidden>
     <h3>怎么看色</h3>
     <ul>
@@ -317,11 +326,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v13</div>
+<div id="ver">v14</div>
 
 <script>
 (function () {
-  var LOCAL = 13, FILES = ['core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 14, FILES = ['core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }

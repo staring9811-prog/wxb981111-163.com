@@ -346,7 +346,59 @@ function buildAtlas() {
   const word = (v, a, b) => v >= b ? '高' : v >= a ? '中' : '低';
   $('#originTable').innerHTML = '<table><thead><tr><th>场口</th><th>种水</th><th>出色</th><th>裂</th><th>皮壳表现可信度</th><th>常见皮</th></tr></thead><tbody>' + Object.keys(C.ORIGINS).map(k => { const O = C.ORIGINS[k]; return `<tr><th>${k}</th><td>${word(O.w, 35, 42)}</td><td>${word(O.c, 48, 54)}</td><td>${word(O.crack, 38, 48)}</td><td>${word(O.rel * 100, 50, 65)}</td><td style="text-align:left;white-space:normal">${O.skins.slice(0, 3).join('、')}</td></tr>`; }).join('') + '</tbody></table>';
 }
-function showPane(k) { document.querySelectorAll('#help [data-pane]').forEach(x => x.hidden = x.dataset.pane !== k); document.querySelectorAll('#help [data-act=pane]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k)); if (k === 'skin' || k === 'water') buildAtlas(); }
+/* 种色图鉴：每种种水、每种颜色各拍四张——隔皮压灯、开窗、窗口压灯、切开 */
+const CASES = [
+  ['豆种', { w: 0.10 }, '隔着皮几乎不透，灯头只亮一小团。窗口像粗瓷，发白发干，看得见一粒粒晶体。切开是不透的白，没有水感。'],
+  ['糯种', { w: 0.25 }, '光晕比豆种大一圈，发浑发柔。窗口细腻，像糯米汤。切开匀净、温吞，光只进表层。'],
+  ['糯冰种', { w: 0.45 }, '光晕明显变大，边缘柔和。窗口半透，有点水感。切开能往里看进去一点，絮开始看得见。'],
+  ['冰种', { w: 0.65 }, '隔着皮透出一大片，颜色干净。窗口像冰块，清亮。切开通透，里面的棉絮像冰里的气泡和云。'],
+  ['高冰种', { w: 0.82 }, '整块都被点亮。窗口起光，清澈。切开几乎没有杂质，像冻住的清水。'],
+  ['玻璃种', { w: 0.95 }, '通体透亮像灯泡。窗口像玻璃，表面有一层荧光。切开接近透明，能看穿到背后。'],
+  ['淡绿', { w: 0.55, hue: '淡绿', full: 0.8 }, '灯下泛一层很淡的绿，开窗是清淡的豆青。最容易被灯高估：灯下看着有色，自然光下很浅。只比无色贵一点。'],
+  ['阳绿', { w: 0.6, hue: '阳绿', full: 0.9 }, '灯下是鲜亮带黄味的绿光。窗口翠、亮、活。切开颜色鲜阳。满色时比无色贵十几倍。'],
+  ['正绿', { w: 0.6, hue: '正绿', full: 0.95 }, '灯下绿得浓而正，不偏黄不偏蓝。窗口沉稳饱满。切开色浓均匀。满色贵几十倍。'],
+  ['帝王绿', { w: 0.65, hue: '帝王绿', full: 1 }, '色太浓，灯下反而发暗发黑，要强光才透出深绿。窗口浓艳深沉。切开像墨绿的玻璃，薄处才显翠。最贵。'],
+  ['紫罗兰', { w: 0.5, hue: '紫罗兰', full: 0.9 }, '灯下泛粉紫。紫色见光“死”：灯下好看，自然光下会淡一截。窗口是淡淡的藕紫。'],
+  ['黄翡', { w: 0.45, hue: '黄翡', full: 0.9 }, '灯下是暖黄到橙。多在皮下一层（雾和皮色渗进来的），往里常常就没了。'],
+  ['油青', { w: 0.55, hue: '油青', full: 0.9 }, '灯下灰蓝绿，发闷。窗口色沉、带灰。种好的叫蓝水，种差就是油青，价钱差很多。'],
+  ['飘花', { w: 0.65, hue: '阳绿', float: 0.9 }, '灯下光晕里有一团团绿影，位置换了影子也跟着变。窗口和切面是白底上散着絮状、丝状的绿。种定底价，花定倍数。'],
+  ['色带', { w: 0.5, hue: '正绿', ribbon: 0.95 }, '隔着皮只在色带经过的地方透绿，挪开灯就白了。窗口如果正好开在带子上会以为满色。切开才知道是一条：宽窄、走向、有没有穿过去。'],
+];
+let casesStarted = false;
+function buildCases() {
+  if (casesStarted) return; casesStarted = true;
+  const host = $('#caseAtlas'); host.innerHTML = '';
+  const keep = { mode: V.mode, rec: V.rec, piece: V.piece, e: V.e, torch: V.torch, room: V.room, lens: V.lens, cam: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist, t: cam.t } };
+  const restore = () => { V.mode = keep.mode; V.rec = keep.rec; V.piece = keep.piece; V.e = keep.e; V.torch = keep.torch; V.room = keep.room; V.lens = keep.lens; Object.assign(cam, keep.cam); loaded = null; invalidate(false); };
+  let i = 0;
+  const step = () => {
+    if (i >= CASES.length || $('#help').hidden) { restore(); if (i < CASES.length) casesStarted = false; return; }
+    const [name, o, text] = CASES[i++];
+    try {
+      const st = C.genStone(515151, '木那', '二级供应商'); st.cracks = []; st.dirt = []; st.shift = null; st.wVar = 0; st.cot = 0.22; st.planes = []; st.fog = { t: 0, col: [1, 1, 1] }; st.body = '白底'; st.w0 = o.w; st.hue = o.hue || '阳绿';
+      const a = st.rad[0], sd = 77; st.feats = [];
+      if (o.full) st.feats.push({ type: 'full', strength: o.full, seed: sd });
+      if (o.float) st.feats.push({ type: 'float', strength: o.float, seed: sd, c: [0, 0, 0], R: a * 1.3 });
+      if (o.ribbon) st.feats.push({ type: 'ribbon', strength: o.ribbon, seed: sd, n: [0.26, 0.93, 0.26], t1: [0.96, -0.27, 0], t2: [0.07, 0.25, -0.97], c: [0, 4, 0], width: 5.5, R: a * 1.6, warp: 3, freq: 0.05, phase: 1 });
+      st.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: 0.78, sig: 0.75, weather: 0.45, t: 1.6, phase: 3 };
+      const vol = C.bake(st, 44), R0 = Math.max(vol.hx, vol.hy, vol.hz);
+      V.mode = 'own'; V.rec = null; V.e = { st, vol }; V.lens = null; cam.yaw = 0.5; cam.pitch = 0.3; cam.t = [0, 0, 0];
+      const shot = (torch, piece, dist) => { V.piece = piece; V.room = !torch; cam.dist = R0 * dist; const b = camBasis(); V.torch = { on: false, p: null, n: null };
+        if (torch) { const h = C.pick(vol, piece, b.pos, b.f); if (h) V.torch = { on: true, p: h.p, n: h.n, dir: h.n, h: 0 }; }
+        const lb = V.lampBody; V.lampBody = false; render(1, 176); V.lampBody = lb; return canvas.toDataURL('image/jpeg', 0.85); };
+      const img1 = shot(true, C.WHOLE, 3.7);
+      const b = camBasis(), h = C.pick(vol, C.WHOLE, b.pos, b.f), sk = C.sampleG(vol, 2, h.p[0], h.p[1], h.p[2]), g = [b.r, b.up];
+      for (const [dx, dy] of [[0, 0], [7, 2], [-7, -1], [1, 7], [-2, -7]]) { const q = [0, 1, 2].map(k => h.p[k] + g[0][k] * dx + g[1][k] * dy), rr = C.pick(vol, C.WHOLE, [q[0] - b.f[0] * 300, q[1] - b.f[1] * 300, q[2] - b.f[2] * 300], b.f); if (rr) C.carve(vol, C.WHOLE, rr.p[0] + rr.n[0] * (9 - sk - 1.3), rr.p[1] + rr.n[1] * (9 - sk - 1.3), rr.p[2] + rr.n[2] * (9 - sk - 1.3), 9); }
+      loaded = null;
+      const img2 = shot(false, C.WHOLE, 2.3), img3 = shot(true, C.WHOLE, 2.6), cut = { planes: [[-b.f[0], -b.f[1], -b.f[2], 0]] }, img4 = shot(false, cut, 3.4);
+      host.insertAdjacentHTML('beforeend', `<article class="case"><div class="row"><b>${name}</b><span class="dim">${C.waterName(o.w)}${o.hue ? ' · ' + o.hue : ' · 无色'}</span></div><div class="four">${[['隔着皮压灯', img1], ['开窗', img2], ['对着窗口压灯', img3], ['切开', img4]].map(x => `<figure><img src="${x[1]}" alt="${name}${x[0]}"><figcaption>${x[0]}</figcaption></figure>`).join('')}</div><p>${text}</p></article>`);
+    } catch (e) { host.insertAdjacentHTML('beforeend', `<p class="note">${name} 的图没拍出来：${e.message}</p>`); }
+    $('#caseProg').textContent = i < CASES.length ? `正在拍第 ${i + 1} / ${CASES.length} 组…` : '';
+    setTimeout(step, 30);
+  };
+  setTimeout(step, 30);
+}
+function showPane(k) { document.querySelectorAll('#help [data-pane]').forEach(x => x.hidden = x.dataset.pane !== k); document.querySelectorAll('#help [data-act=pane]').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === k)); if (k === 'skin' || k === 'water') buildAtlas(); if (k === 'atlas') buildCases(); }
 
 /* ---------- 说明书里的价值表：直接用内核公式算，保证和游戏一致 ---------- */
 function fillManual() {
