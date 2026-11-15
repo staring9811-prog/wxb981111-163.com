@@ -93,6 +93,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 @media (prefers-reduced-motion: reduce) { .pf-body, .pf-head, .pf-eye { animation: none; } }
 .cx { margin: 6px 0; } .cxs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; } .cxs span { font-size: 12px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line); color: #7d766b; } .cxs span.on { color: var(--fg); border-color: var(--jade); background: #1f2a24; }
 .scenes button small { display: block; font-size: 10px; opacity: .7; }
+.tune { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; } .tune button { padding: 3px 8px; font-size: 12.5px; }
 .fakehelp { border: 1px solid var(--up, #c75); border-radius: 6px; padding: 8px 10px; margin: 6px 0; font-size: 13px; line-height: 1.5; } .fakehelp p { margin: 4px 0; } .fakehelp ol { margin: 2px 0 6px; padding-left: 20px; }
 .props { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 4px 0; } .props i { color: var(--dim, #9a948a); font-style: normal; font-size: 12px; }
 .bar { flex: 1; height: 8px; border-radius: 4px; background: var(--raise); overflow: hidden; max-width: 60%; align-self: center; } .bar i { display: block; height: 100%; }
@@ -371,6 +372,27 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
     <li>同一块料换几个位置压灯。一边透一边不透，可能是<b>变种</b>，也可能只是那边皮厚。</li>
     <li>皮厚、皮黑的料挡光，灯下不亮不代表种差，只代表你看不清。</li>
   </ul>
+    <h3>切开以后：六档种水的切面</h3>
+    <p>同一块料、同一刀、同样的室内光，只换种水。这是肉眼直接看切面的样子，不打灯、不用放大镜。</p>
+    <div class="atlas" id="sectionAtlas">正在拍对照图…</div>
+    <ul>
+      <li><b>先看有没有颗粒</b>：看得见一粒粒的是豆种；看不见颗粒但一片死白的是糯种。</li>
+      <li><b>再看能看进去多深</b>：只在表面的是糯；能看进去几毫米、发灰的是糯冰；像看进一块冰的是冰种；一眼到底的是高冰、玻璃。</li>
+      <li><b>看颜色的样子</b>：种差的料颜色是“干”的，一块就是一块；种好的料颜色会“化开”，边缘是融的，里面有深浅层次。</li>
+      <li><b>看底子的冷暖</b>：糯种偏暖白；冰种以上偏清冷。</li>
+    </ul>
+    <h3>棉：四种样子</h3>
+    <p>棉是玉肉里没长透的白色部分。下面是同一块冰种料，只换棉的类型。种越好，棉越显眼（糯种里棉和底子一样白，看不出来）。</p>
+    <div class="atlas" id="cotAtlas">正在拍对照图…</div>
+    <p class="note">每块石头的棉以其中一种为主，生成时就定了。目前棉的类型只影响样子；值多少钱按棉的多少算，雪花棉的溢价还没有做进估价。</p>
+    <h3>变种</h3>
+    <p>一块料里种水不是处处一样。大约四分之一的料有“变种”：过了某个位置，种水掉一档到两档（偶尔是变好）。</p>
+    <div class="atlas" id="shiftAtlas">正在拍对照图…</div>
+    <ul>
+      <li>切面上看：一侧清、一侧白，中间有几毫米的过渡，不是一条线（一条线的是裂或石纹）。</li>
+      <li>皮上看：变种的位置砂的粗细会变，细砂一侧种好。隔皮压灯时，两侧光晕大小明显不同。</li>
+      <li>应对：下刀时顺着变种的界面切，把好的一半和差的一半分开，各卖各的价。</li>
+    </ul>
     <h3>肉的粗细对照</h3>
     <p>同一块料的切面，放大镜下看晶粒。种水的本质就是晶粒的粗细：越细越透。国标《翡翠分级》里的“质地”也是按这个分档的。</p>
     <div class="atlas" id="fleshAtlas">正在拍对照图…</div>
@@ -506,12 +528,12 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   <h2>周转不动了</h2><p>现金见底，手里也没有可卖的货。翻开账本看看每块石头错在判断还是错在价钱，然后重新开始。</p>
   <button data-act="yes" class="pri">重新开始</button>
 </div></div>
-<script src="config.js?v=39"></script>
-<script src="licenses.js?v=39"></script>
-<script src="faces.js?v=39"></script>
-<script src="core.js?v=39"></script>
-<script src="shader.js?v=39"></script>
-<script src="ui.js?v=39"></script>
+<script src="config.js?v=40"></script>
+<script src="licenses.js?v=40"></script>
+<script src="faces.js?v=40"></script>
+<script src="core.js?v=40"></script>
+<script src="shader.js?v=40"></script>
+<script src="ui.js?v=40"></script>
 
 </body>
 </html>

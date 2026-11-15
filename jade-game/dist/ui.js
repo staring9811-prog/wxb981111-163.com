@@ -219,8 +219,9 @@ function render(scale, forceSize) {
   const PL = new Float32Array(64); pc.planes.slice(0, 16).forEach((p, i) => PL.set(p, i * 4));
   gl.uniform1i(u('uNPl'), Math.min(16, pc.planes.length)); gl.uniform4fv(u('uPl'), PL);
   const HO = new Float32Array(128), HN = new Int32Array(4), hs = (pc.holes || []).slice(0, 4); hs.forEach((H, k) => { HN[k] = Math.min(8, H.length); H.slice(0, 8).forEach((P, j) => HO.set(P, (k * 8 + j) * 4)); });
-  { const SP = new Float32Array(36), sp = V.sawPlan && V.mode === 'own' && !forceSize ? V.sawPlan.box : []; sp.forEach((P, j) => SP.set(P, j * 4)); gl.uniform1i(u('uSawN'), sp.length); gl.uniform4fv(u('uSaw'), SP); } gl.uniform1i(u('uNHo'), hs.length); gl.uniform4fv(u('uHo'), HO); gl.uniform1iv(u('uHoN'), HN); gl.uniform1f(u('uPristine'), V.mode === 'review' ? 1 : 0);
+  { const SP = new Float32Array(36), sp = V.wedge && V.mode === 'own' && !forceSize ? V.wedge : V.sawPlan && V.mode === 'own' && !forceSize ? V.sawPlan.box : []; sp.forEach((P, j) => SP.set(P, j * 4)); gl.uniform1i(u('uSawN'), sp.length); gl.uniform4fv(u('uSaw'), SP); } gl.uniform1i(u('uNHo'), hs.length); gl.uniform4fv(u('uHo'), HO); gl.uniform1iv(u('uHoN'), HN); gl.uniform1f(u('uPristine'), V.mode === 'review' ? 1 : 0);
   const sk = st.skin, H = C.HUES[st.hue];
+  { const ck = st.cotKind != null ? st.cotKind : ((st.seed >>> 3) % 4); gl.uniform4fv(u('uCot'), [[1.3, 0.2, 0.12, 0.05], [0.25, 1.5, 0.1, 0], [0.4, 0.2, 1.5, 0], [0.5, 0.2, 0.1, 1.2]][ck] || [0.8, 0.4, 0.2, 0.1]); }
   gl.uniform3fv(u('uSkinCol'), sk.col); gl.uniform1f(u('uSkinSig'), sk.sig); gl.uniform1f(u('uSkinGrain'), sk.grain); gl.uniform1f(u('uSkinRel'), C.ORIGINS[st.origin].rel); gl.uniform1f(u('uWeather'), sk.weather); gl.uniform1f(u('uPhase'), sk.phase);
   gl.uniform3fv(u('uBodyCol'), C.BODIES[st.body]); gl.uniform3fv(u('uBandCol'), H.band); gl.uniform3fv(u('uHueAbs'), H.abs); gl.uniform3fv(u('uFogCol'), st.fog.col); gl.uniform1f(u('uFogT'), st.fog.t);
   const A = new Float32Array(40), B = new Float32Array(40), Cc = new Float32Array(40), Tt = new Float32Array(30);
@@ -543,7 +544,10 @@ function renderTools() {
   else if (V.tool === 'grind') o += Object.keys(C.TOOLS).map(k => `<button data-act="burr" data-k="${k}" aria-pressed="${V.burr === k}">${k}</button>`).join('');
   else if (V.tool === 'cut' && own) {
     o += `<label for="cutT">片厚 <b id="cutV">${V.cutT}</b> mm</label><input id="cutT" type="range" min="3" max="60" step="1" value="${V.cutT}"><button data-act="cview">从正对我的面切这么厚</button>`;
-    if (V.cut) o += `<select id="betSel" aria-label="和旁边的行家赌这一刀"><option value="">不赌</option><option value="up" ${V.bet === 'up' ? 'selected' : ''}>赌这刀切涨</option><option value="down" ${V.bet === 'down' ? 'selected' : ''}>赌这刀切垮</option></select><button data-act="cut" class="pri">下刀（切工 ${fmt(V.cut.pv.cost)}）</button><button data-act="ccancel">取消</button><span class="dim">两侧约 ${Math.round(V.cut.pv.a)} g / ${Math.round(V.cut.pv.b)} g</span>`;
+    if (V.cut) o += `<select id="betSel" aria-label="和旁边的行家赌这一刀"><option value="">不赌</option><option value="up" ${V.bet === 'up' ? 'selected' : ''}>赌这刀切涨</option><option value="down" ${V.bet === 'down' ? 'selected' : ''}>赌这刀切垮</option></select><button data-act="cut" class="pri">下刀（切工 ${fmt(V.cut.pv.cost)}）</button><button data-act="ccancel">取消</button><span class="dim">两侧约 ${Math.round(V.cut.pv.a)} g / ${Math.round(V.cut.pv.b)} g</span><span class="tune"><span class="dim">微调</span><button data-act="ctune" data-k="turn" data-s="1" title="线逆时针转 2 度">↺</button><button data-act="ctune" data-k="turn" data-s="-1" title="线顺时针转 2 度">↻</button><button data-act="ctune" data-k="lean" data-s="1" title="刀面往里倒 2 度">里倾</button><button data-act="ctune" data-k="lean" data-s="-1" title="刀面往外倒 2 度">外倾</button><button data-act="ctune" data-k="move" data-s="1" title="平移 1 毫米">移+</button><button data-act="ctune" data-k="move" data-s="-1" title="平移 1 毫米">移−</button><button data-act="cfold" title="再画一段，两段夹住的一角整块锯下">加一折</button></span>`;
+    else if (V.wedge) o += `<button data-act="wcut" class="pri" ${V.wedgePv && V.wedgePv.a >= 3 ? '' : 'disabled'}>下刀（折线取角${V.wedgePv ? '，切工 ' + fmt(V.wedgePv.cost) : ''}）</button><button data-act="ccancel">取消</button><span class="dim">${V.wedgePv ? `橙色范围是要锯下的一角，约 ${Math.round(V.wedgePv.a)} g；剩下约 ${Math.round(V.wedgePv.b)} g` : ''}</span>`;
+    else if (V.fold) o += `<span class="say">再画第二段</span><button data-act="ccancel">取消</button>`;
+    else o += `<span class="dim">在石头上拖一条线。画好后可以微调角度和位置，或「加一折」锯下一个角。</span>`;
   }
   if (tray && V.hold != null) o = `<button data-act="spin" aria-pressed="${!!V.spin}">慢慢转</button><button data-act="back" aria-pressed="${!!V.back}">打背光</button><button data-act="unhold" class="pri">放回托盘</button>`;
   else if (tray) o = `<span class="dim">点一件选中，再点「拿起来看」</span>`;
@@ -640,6 +644,14 @@ function buildAtlas() {
       $('#fakeSkinAtlas').innerHTML = h; }
     { h = ''; for (const [nm, g, tx] of [['粗（豆种）', 0.1, '晶粒肉眼可见，一粒粒像白糖，反光一片片闪'], ['较粗（糯种）', 0.28, '晶粒要凑近才看得出，表面细腻但不透'], ['细（糯冰到冰）', 0.55, '放大镜下才见到颗粒，开始有水感'], ['极细（高冰、玻璃）', 0.88, '放大镜下也看不到颗粒，像一块冻住的水']]) { const s5 = mk(); s5.w0 = g; s5.cot = 0.15; s5.skin = { name: '灰绿薄皮', col: C.SKINS['灰绿薄皮'].col, grain: 0.3, sig: 0.5, weather: 0.3, t: 1, phase: 3 }; const v5 = C.bake(s5, 44); h += fig(shot2(s5, v5, { dist: 1.15, lens: 1, cut: 1 }), nm, tx); }
       $('#fleshAtlas').innerHTML = h; }
+    { const mkw = (w, cot, kind, o) => { const s7 = mk(); s7.w0 = w; s7.cot = cot; s7.cotKind = kind; s7.hue = '阳绿'; s7.wVar = 0; if (o && o.shift) { const bb = camBasis(); s7.shift = { n: bb.r.slice(), h: 0, drop: o.shift }; } s7.feats = [{ type: 'ribbon', strength: 0.8, seed: 77, n: [0.26, 0.93, 0.26], t1: [0.96, -0.27, 0], t2: [0.07, 0.25, -0.97], c: [0, 4, 0], width: 4, R: s7.rad[0] * 1.2, warp: 3, freq: 0.05, phase: 1 }]; s7.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: 0.6, sig: 0.7, weather: 0.4, t: 1.4, phase: 3 }; return fig(shot2(s7, C.bake(s7, 44), { dist: 3.0, cut: 1 }), o.nm, o.tx); };
+      cam.yaw = 0.5; cam.pitch = 0.3; h = '';
+      for (const [nm, w, tx] of [['豆种', 0.10, '一粒粒晶体肉眼可见，像白糖、粗瓷。不透，颜色是干的、一块一块的'], ['糯种', 0.25, '看不见颗粒了，匀净，像米汤、年糕。暖白，光只进表面一点'], ['糯冰种', 0.45, '开始发灰发透，能看进去两三毫米。颜色开始化开'], ['冰种', 0.65, '像冻住的水，底子清冷。能看进去一截，里面的棉看得清'], ['高冰种', 0.82, '清透，看得到很深，颜色在里面是融开的、有层次'], ['玻璃种', 0.95, '几乎没有遮挡，一眼望到底，薄处起荧光']]) h += mkw(w, 0.2, 0, { nm, tx });
+      $('#sectionAtlas').innerHTML = h; h = '';
+      for (const [nm, k, tx] of [['云絮棉', 0, '一团团柔和的白雾，边界是虚的。最常见，轻的不碍事，多了显得闷'], ['雪花棉', 1, '一颗颗清楚的白点，像雪花落在冰里。木那料的招牌，底子够清反而加分'], ['棉线、棉丝', 2, '一丝一丝的白线，顺着一个方向。少量无碍，多了像裂，卖相差'], ['石花、团棉', 3, '成团的死白，不透光，边界清楚。取料要避开，避不开就靠雕工遮']]) h += mkw(0.7, 0.6, k, { nm, tx });
+      $('#cotAtlas').innerHTML = h; h = '';
+      h += mkw(0.78, 0.2, 0, { nm: '变种：一边冰一边糯', tx: '同一块料，种水从一侧到另一侧变了。右边清透，左边发白。窗口开在好的一侧，会让人高估整块料', shift: 0.42 }) + mkw(0.55, 0.2, 0, { nm: '变种：一边糯冰一边豆', tx: '过渡带有几毫米宽，没有一条清楚的线。切之前在皮上找砂粗细变化的位置', shift: 0.38 });
+      $('#shiftAtlas').innerHTML = h; }
     { h = ''; const mkc = (hue, str, w) => { const s6 = mk(); s6.w0 = w || 0.55; s6.hue = hue; s6.cot = 0.15; s6.feats = [{ type: 'full', strength: str, seed: 77, c: [0, 0, 0] }]; s6.skin = { name: '黄砂皮', col: C.SKINS['黄砂皮'].col, grain: 0.6, sig: 0.7, weather: 0.4, t: 1.4, phase: 3 }; return [s6, C.bake(s6, 44)]; };
       for (const [nm, str, tx] of [['淡', 0.25, '隐隐一层绿，自然光下几乎看不出'], ['中', 0.5, '看得出是绿，但不饱满'], ['浓', 0.75, '颜色饱满，最讨喜的浓度'], ['过浓', 1.0, '厚处发暗，要切薄了才显色']]) { const [a, b] = mkc('阳绿', str); h += fig(shot2(a, b, { dist: 3.3, cut: 1 }), '浓度：' + nm, tx); }
       $('#colorAtlas1').innerHTML = h; h = '';
@@ -856,7 +868,7 @@ document.addEventListener('click', ev => {
   else if (a === 'pkeep') { const s = V.rec, p = V.piece; C.pieceKeep(W, s, p, true); save(); V.note = '已收进藏品柜。'; if (s.closed) { tab = 'ledger'; view('review', s, null); } else renderAll(); }
   else if (a === 'pback') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); if (p.kept) C.pieceKeep(W, s, p, false); p.shelf = false; save(); openTray(false, V.cab); }
   else if (a === 'pview') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); tab = 'mine'; view('own', s, p); if (!s.last[p.id]) refreshQuote(s, p); renderAll(); }
-  else if (a === 'sawgo') { const s = V.rec, p = V.piece, r = C.saw(W, s, p, V.sawPlan.planes); V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true;
+  else if (a === 'sawgo' || a === 'wcut') { if (a === 'wcut') { V.sawPlan = { planes: V.wedge, box: V.wedge }; V.wedge = null; V.cut = null; } const s = V.rec, p = V.piece, r = C.saw(W, s, p, V.sawPlan.planes); V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true;
     if (!r.ok) { V.note = r.msg; renderTools(); return; }
     Snd.saw(); refreshQuote(s, p, false); refreshQuote(s, r.piece, true); save(); V.note = `取出 ${r.piece.name}，锯工 ${fmt(r.cost)}。它已放进料头盘，可单独查看、出售或送去做件。`; tab = 'mine'; frame(); renderAll(); }
   else if (a === 'hold') { holdItem(V.ref ? b.dataset.i : +b.dataset.i); }
@@ -924,7 +936,12 @@ document.addEventListener('click', ev => {
   else if (a === 'room') { if (b.dataset.moved) { delete b.dataset.moved; return; } V.room = !V.room; if (!V.room && V.torch.on) flag('dark'); Snd.tap(); renderTools(); renderDock(); invalidate(false); }
   else if (a === 'burr') { V.burr = b.dataset.k; renderTools(); }
   else if (a === 'cview') { cutFromView(); V.cut.fromView = true; renderTools(); invalidate(false); }
-  else if (a === 'ccancel') { V.cut = null; renderTools(); invalidate(false); }
+  else if (a === 'ccancel') { V.cut = null; V.fold = null; V.wedge = null; V.note = ''; renderTools(); invalidate(false); }
+  else if (a === 'ctune') { const c = V.cut, k = b.dataset.k, sg = +b.dataset.s; if (!c) return; const rot = (v, ax, ang) => { const cs = Math.cos(ang), sn = Math.sin(ang), d = v[0] * ax[0] + v[1] * ax[1] + v[2] * ax[2], cr = [ax[1] * v[2] - ax[2] * v[1], ax[2] * v[0] - ax[0] * v[2], ax[0] * v[1] - ax[1] * v[0]]; return v.map((x, i) => x * cs + cr[i] * sn + ax[i] * d * (1 - cs)); };
+    if (!c.c) { const ce = V.info.center, dd = c.n[0] * ce[0] + c.n[1] * ce[1] + c.n[2] * ce[2] - c.d; c.c = ce.map((x, i) => x - c.n[i] * dd); c.f = camBasis().f.slice(); const t = [c.n[1] * c.f[2] - c.n[2] * c.f[1], c.n[2] * c.f[0] - c.n[0] * c.f[2], c.n[0] * c.f[1] - c.n[1] * c.f[0]], l = Math.hypot(t[0], t[1], t[2]) || 1; c.t = t.map(x => x / l); }
+    if (k === 'turn') { c.n = rot(c.n, c.f, sg * 2 * Math.PI / 180); c.t = rot(c.t, c.f, sg * 2 * Math.PI / 180); } else if (k === 'lean') c.n = rot(c.n, c.t, sg * 2 * Math.PI / 180); else c.c = c.c.map((x, i) => x + c.n[i] * sg);
+    const l = Math.hypot(c.n[0], c.n[1], c.n[2]); c.n = c.n.map(x => x / l); c.d = c.n[0] * c.c[0] + c.n[1] * c.c[1] + c.n[2] * c.c[2]; c.fromView = false; c.pv = C.cutPreview(V.rec, V.piece, c.n, c.d); renderTools(); invalidate(false); }
+  else if (a === 'cfold') { if (!V.cut) return; V.fold = { n: V.cut.n.slice(), d: V.cut.d }; V.cut = null; V.note = '第一段记下了。再画第二段，两段夹住的那一角会被整块锯下来。'; renderTools(); invalidate(false); }
   else if (a === 'cut') {
     const s = V.rec, p = V.piece, before = bookOf(s).v, rv = $('#reveal'), cutSpec = V.cut;
     rv.className = 'sawing'; rv.innerHTML = '<p>锯片吃进去了…</p>'; rv.hidden = false; Snd.saw(); canvas.classList.add('shake'); if (navigator.vibrate) try { navigator.vibrate([40, 30, 40, 30, 80]); } catch (e) { }
@@ -1062,7 +1079,7 @@ function doPeel() { const hits = V.peelPlan ? V.peelPlan.hits : []; V.peelPlan =
   if (!n) { V.note = '圈里没有可切的皮。'; renderTools(); return; }
   flag('open'); loaded = null; Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `切皮完成，花费 ${Math.max(1, Math.round(cost))} 元。`; renderAll();
 }
-function dropTool() { if (V.tool === 'rotate' && !V.lens && !V.cut && !V.sawPlan && !V.peelPlan) return false; V.tool = 'rotate'; V.lens = null; V.cut = null; V.sawPlan = null; V.peelPlan = null; showLasso(null); showLine(null); $('#sawbox').hidden = true; if ($('#crlabel')) $('#crlabel').hidden = true; V.note = ''; renderTools(); invalidate(false); return true; }
+function dropTool() { if (V.tool === 'rotate' && !V.lens && !V.cut && !V.sawPlan && !V.peelPlan && !V.wedge && !V.fold) return false; V.tool = 'rotate'; V.lens = null; V.cut = null; V.wedge = null; V.fold = null; V.sawPlan = null; V.peelPlan = null; showLasso(null); showLine(null); $('#sawbox').hidden = true; if ($('#crlabel')) $('#crlabel').hidden = true; V.note = ''; renderTools(); invalidate(false); return true; }
 let lastCtx = 0;
 canvas.addEventListener('contextmenu', e => { e.preventDefault(); const t = performance.now(); if (t - lastCtx < 420) dropTool(); lastCtx = t; });
 document.addEventListener('click', ev => { if (ev.target.id === 'help' || ev.target.id === 'saves') ev.target.hidden = true; });
@@ -1128,7 +1145,9 @@ function endPtr(ev) {
     if (Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > 24) {
       const r1 = rayAt(drag.x0, drag.y0), r2 = rayAt(drag.x, drag.y);
       let n = [r1.rd[1] * r2.rd[2] - r1.rd[2] * r2.rd[1], r1.rd[2] * r2.rd[0] - r1.rd[0] * r2.rd[2], r1.rd[0] * r2.rd[1] - r1.rd[1] * r2.rd[0]]; const l = Math.hypot(n[0], n[1], n[2]); n = n.map(v => v / l);
-      V.cut = { n, d: n[0] * r1.ro[0] + n[1] * r1.ro[1] + n[2] * r1.ro[2] }; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d); V.note = '';
+      const d0 = n[0] * r1.ro[0] + n[1] * r1.ro[1] + n[2] * r1.ro[2];
+      if (V.fold) { const ce = V.info.center, side = (nn, dd) => nn[0] * ce[0] + nn[1] * ce[1] + nn[2] * ce[2] - dd > 0 ? [nn[0], nn[1], nn[2], dd] : [-nn[0], -nn[1], -nn[2], -dd]; V.wedge = [side(V.fold.n, V.fold.d), side(n, d0), [0, 1, 0, 9999]]; V.fold = null; V.cut = null; let pv = null; try { pv = C.sawPreview(V.rec, V.piece, V.wedge); } catch (e) { } V.wedgePv = pv; V.note = pv && pv.a >= 3 ? '' : '这两段没夹住料。取消后重画。'; renderTools(); invalidate(false); return; }
+      V.cut = { n, d: d0 }; V.cut.pv = C.cutPreview(V.rec, V.piece, V.cut.n, V.cut.d); V.note = '';
       renderTools(); invalidate(false);
     }
   }
