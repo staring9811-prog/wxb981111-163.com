@@ -677,7 +677,7 @@ function liveRun(w) {
   for (const it of items) { const p = clamp(0.36 + viewers / 16000, 0.36, 0.92), k = (0.78 + Math.min(0.45, w.fans / 220000) + r.range(0, 0.1)) * productDemand(w, it.type);
     if (r.u() < p) { const price = Math.round(it.value * k / 10) * 10; it.state = 'sold'; it.price = price; income += price; sold.push(it); w.stat.sold++; lines.push(['sys', `${it.name} ${fmt(price)} 成交`]); lines.push(['c', r.pick(CHAT.sold)]); const s = w.stones.find(x => x.id === it.stone); if (s) { s.proceeds += price; if (!s.closed && stoneDone(w, s)) closeStone(w, s); } }
     else lines.push(['c', `${it.name}：${r.pick(CHAT.miss)}`]); }
-  const gain = Math.round(viewers * 0.6 * drama + sold.length * 150 + r.range(0, 80)); w.fans += gain; w.cash += income; w.liveDay = w.day; w.stat.live++; w.stat.liveIncome += income;
+  const gain = Math.round(viewers * 0.6 * drama + sold.length * 150 + r.range(0, 80)); if (w.flags.linSigned && !w.flags.linOut && income) { const cutL = Math.round(income * 0.2); income -= cutL; lines.push(['sys', `公司抽成 ${fmt(cutL)}`]); } w.fans += gain; w.cash += income; w.liveDay = w.day; w.stat.live++; w.stat.liveIncome += income;
   if (income) w.log.push({ day: w.day, t: `直播卖出 ${sold.length} 件`, amt: income }); lines.push(['c', r.pick(CHAT.end)]); lines.push(['sys', `下播。成交 ${sold.length} 件 ${fmt(income)}，涨粉 ${gain}`]);
   achieve(w, 'live', '第一场直播'); if (w.fans >= 1e4) achieve(w, 'fans1', '万粉博主'); if (w.fans >= 1e5) achieve(w, 'fans10', '十万粉博主');
   { const nr = 1 + (w.fans > 5000 ? 1 : 0) + (w.fans > 50000 ? 1 : 0) + (r.chance(0.5) ? 1 : 0), before = (w.reqs || []).length, ob = w.orders.length; genLiveReqs(w, r, nr); const got = (w.reqs || []).length - before + (w.orders.length - ob); if (got) lines.push(['sys', `下播后私信里有 ${got} 个人找你：代赌、求鉴定、寄料代工或者定制`]); }
@@ -785,6 +785,35 @@ function lifeEvent(w) {
     // 第一幕终 · 牛叔的本钱
     if (!F.s_niu && w.chapter >= 3) return { script: 'niu', title: T, text: '你有了自己做货的本事。牛叔看着你新做出来的那件货，看了很久，说：“当初借你那一万二，你早就不欠我了。往后的路我没走过，帮不了你了。”他转身去收摊，背比去年又弯了一点。', opts: [
       { label: '连本带利还他一万五，再包个红包（16000）', cost: 16000, tend: { yi: 5 }, fame: 3, flag: 'niuPaid' }, { label: '把本钱一万二还上（12000）', cost: 12000, tend: { yi: 1 }, flag: 'niuPaid' }, { label: '“叔，我周转紧，过阵子一起还。”', tend: { yi: -6 }, flag: 'niuOwe' }] };
+    // ===== 第二幕 立业 =====
+    const stake = Math.round(clamp(w.cash * 0.3, 20000, 300000) / 1000) * 1000, yi = (w.tend || {}).yi || 0, seen = n => Object.keys(w.codex || {}).indexOf('scene:' + n) >= 0;
+    // 对手线 · 老周
+    const gap = w.day - (F.lastScript || -9) >= 5;
+    if (gap && !F.s_zhou1 && w.chapter >= 3 && w.shop >= 1) return { script: 'zhou1', title: '老周', text: '你对面的铺子换了招牌。老周比你早入行十年，进货的路子比你宽。开张那天他端着一壶茶过了街，把茶放在你柜台上：“以后就是街坊了。生意各做各的，你说呢？”他的眼睛一直在看你柜里的货。', opts: [
+      { label: '“周哥说得对，各做各的，互不拆台。”', tend: { yi: 2, wen: 1 }, flag: 'zhouPeace' }, { label: '客气两句，把茶喝了', flag: 'zhouCool' }, { label: '“这条街不大，怕是容不下两家。”', tend: { wen: -2 }, fame: 2, flag: 'zhouWar' }] };
+    if (F.s_zhou1 && !F.s_zhou2 && w.day >= F.s_zhou1 + 25 && w.cash >= 30000) return { script: 'zhou2', title: '老周', text: `公盘上出了一块大料，底价高得吓人，一家吃不下。老周找到你：“${F.zhouWar ? '咱俩斗归斗，钱不能不赚。' : ''}一人一半，切涨了对半分。你敢不敢？”${yi <= -8 ? '他顿了顿：“不过丑话说前头，我听人讲过你的事。账要当面点清。”' : ''}`, opts: [
+      { label: `跟他联手，出 ${fmt(stake)}`, cost: stake, risk: 0.55, gainRisk: Math.round(stake * 1.9), riskNote: `一刀下去满色。你分到 ${fmt(Math.round(stake * 1.9))}。老周拍着你的肩膀说，下回还找你。`, riskFail: '切开一片白棉。两个人对着石头抽了一下午的烟，谁也没怪谁。', tend: { yi: 2 }, flag: 'zhouAlly' },
+      { label: `甩开他，自己抢着拍（${fmt(stake * 2)}）`, cost: stake * 2, risk: 0.4, gainRisk: Math.round(stake * 5), riskNote: `你一个人吃下了整块，切涨了，${fmt(Math.round(stake * 5))} 到手。老周从此见了你不说话。`, riskFail: '你一个人吃下了整块，切垮了。老周在对面门口嗑瓜子。', tend: { yi: -3, wen: -3 }, flag: 'zhouWar' },
+      { label: '太大了，不碰', tend: { wen: 1 } }] };
+    // 货源线 · 岩温
+    if (gap && !F.s_yan1 && w.chapter >= 3 && seen('姐告口岸')) return { script: 'yan1', title: '岩温', text: '口岸上一个缅甸货主，汉话说得磕磕绊绊，叫岩温。他的料不吹，问什么答什么，价钱开得比别人实在。成交的时候他说：“我阿爸说，中国老板分两种，一种一次，一种一辈子。”他把找零一张一张数给你。', opts: [
+      { label: '现款付清，多给两百茶钱', cost: 200, tend: { yi: 3 }, flag: 'yanTrust' }, { label: '照价付，留个电话', tend: { yi: 1 }, flag: 'yanKnow' }, { label: '看他老实，再狠压一刀（省 3000）', gain: 3000, tend: { yi: -4 }, flag: 'yanCheat' }] };
+    if (F.s_yan1 && !F.s_yan2 && !F.yanCheat && w.chapter >= 4 && w.day >= F.s_yan1 + 30) return { script: 'yan2', title: '矿上的事', text: `半夜岩温打来电话，声音压得很低。矿上乱了，有人趁乱带出来一批料，全是老坑的好东西，只要市价的三成，天亮前要现钱。“老板，我不懂这是不是好事。你说收，我就带过来。”你知道这种料来路说不清：收了，可能是这辈子最大的一笔；也可能连人带货被扣在口岸。`, opts: [
+      { label: `收，${fmt(stake)} 现钱`, cost: stake, risk: 0.65, gainRisk: Math.round(stake * 4), riskNote: `料过了关。转手 ${fmt(Math.round(stake * 4))}。岩温没再接过你的电话。`, riskFail: '货在口岸被扣了，钱一分没回来。岩温被带走问话，再没出现在口岸上。', tend: { yi: -6, wen: -4 }, fame: -3, flag: 'yanGone' },
+      { label: '“岩温，这个钱不能赚。你也别碰。”', tend: { yi: 5, wen: 2 }, flag: 'yanMine' },
+      { label: '不收，但也不多说什么', tend: { wen: 1 }, flag: 'yanCool' }] };
+    if (F.yanMine && !F.s_yan3 && w.day >= F.yanMine + 12) return { script: 'yan3', title: '岩温', text: '岩温又出现在口岸上，瘦了一圈。那批料后来出了事，沾手的人都进去了。他把一个地址塞给你：“我阿爸的朋友是矿主。我跟他说了你。以后你去矿上，报我的名字。”', opts: [{ label: '收下地址', flag: 'mineOpen', fame: 3 }] };
+    // 流量线 · 林姐
+    if (gap && !F.s_lin1 && w.chapter >= 4 && (w.fans || 0) >= 3000) return { script: 'lin1', title: '林姐', text: '一个穿西装的女人在你直播间蹲了三天，第四天直接来了铺子。名片上印着某某传媒，她让你叫她林姐。“你讲石头讲得好，但你不会做号。签给我，流量我来，你只管对着镜头切。签约费三万，以后直播的流水公司抽两成。”', opts: [
+      { label: '签（到手 30000，粉丝涨五成）', gain: 30000, fansMul: 1.5, tend: { wen: -1 }, flag: 'linSigned' }, { label: '“我就是个卖石头的，不会演。”', tend: { yi: 1 }, fame: 2, flag: 'linNo' }] };
+    if (F.linSigned && !F.s_lin2 && w.day >= F.linSigned + 20) return { script: 'lin2', title: '林姐', text: '林姐发来一份排期：下周三场，带一个厂家的机雕挂件，成本三十，卖二百九十九，话术都写好了——“老坑冰种，矿主直供”。你把样品放在灯下看了看，是酸洗过的。', opts: [
+      { label: '照着念（到手 50000，涨粉 5000）', gain: 50000, fansAdd: 5000, tend: { yi: -7 }, fame: -8, flag: 'linSold' }, { label: '不带。解约，赔违约金（20000）', cost: 20000, tend: { yi: 5 }, fame: 4, flag: 'linOut' }, { label: '带，但直播里说实话：这是机雕的 B 货，三十块的东西', tend: { yi: 4 }, fame: 6, flag: 'linOut', risk: 1, riskCost: 20000, riskNote: '那场直播炸了，弹幕都在夸你。林姐第二天寄来了解约函和两万的账单。' }] };
+    // 第二幕终 · 那一年
+    if (!F.s_year && w.chapter >= 4 && (w.day >= 150 || w.chapter >= 5)) { const k0 = f0kid(w), wife = w.fam.wife, big = Math.round(clamp(Math.max(0, netWorth(w)) * 0.25, 50000, 2000000) / 1000) * 1000;
+      const o = []; if (k0) o.push({ label: `顾标王和${wife || '家里'}：${k0.name}的事交给他自己`, gain: big, har: wife ? 6 : 0, kidAway: w.fam.kids.indexOf(k0), tend: { jia: -6 }, flag: 'yearKid' });
+      o.push({ label: `顾${k0 ? k0.name : '家'}${wife ? '和' + wife : ''}：标王让给别人`, har: 10, kidBook: 12, ordRep: -10, fame: -5, tend: { jia: 5 }, flag: 'yearKing' });
+      if (wife) o.push({ label: `顾标王${k0 ? '和' + k0.name : ''}：${wife}那边让她妹妹先陪着`, gain: big, kidBook: 12, har: -30, tend: { jia: -10 }, flag: 'yearWife' });
+      return { script: 'year', title: '那一年', text: `有些年份，事情是一起来的。${k0 ? `${k0.name}要升学考试了，班主任说这孩子差一口气，最后三个月得有人盯着。` : ''}公盘上出了一块十年不遇的标王，行里人人都在算自己能出到多少，开标就在下个月。${wife ? `${wife}这阵子总说累，去医院查出来要做个手术，不算大，但得有人陪床。` : ''}你把日历翻来覆去地看。一个人只有一双手，这一年，只够顾两头。`, opts: o }; }
   }
   const f = w.fam, r = new Rng(seedOf(w.seed, 'life', w.day));
   if (f.cuck && f.cuck.known && !f.cuck.asked && f.wife) { const L = w.cash >= LAWYERS[1].fee * 2 ? 1 : 0; return { cuck: true, text: `你提前收摊回家，在巷口看见${f.wife}从一辆陌生的车上下来，和车里的人说了很久的话。回到家她没有否认。`, opts: [{ label: '为了孩子，原谅这一次', har: 18, hp: -6, act: 'forgive' }, { label: `离婚，孩子跟我${L ? '（请普通律师 20000，她有错在先，分得很少）' : '（她有错在先，少分）'}`, act: 'divorce1', lawyer: L }, { label: `离婚，孩子跟她${L ? '（请普通律师 20000）' : ''}`, act: 'divorce0', lawyer: L }] }; }
@@ -837,7 +866,7 @@ function lifeEvent(w) {
 }
 function applyEvent(w, ev, i) { const o = ev.opts[i], f = w.fam, r = new Rng(seedOf(w.seed, 'lifeopt', w.day, i)); let note = '';
   if (o.cost) { if (o.cost > w.cash) return { ok: false, msg: '现金不够。' }; w.cash -= o.cost; w.log.push({ day: w.day, t: '家里的事', amt: -o.cost }); }
-  if (o.har) tend(w, 'jia', o.har > 0 ? 1 : -1); if (o.tend) for (const k in o.tend) tend(w, k, o.tend[k]); if (o.flag) w.flags[o.flag] = w.day; if (ev.script) w.flags['s_' + ev.script] = w.day; if (o.debtX) w.debt = Math.round(debtOf(w) * o.debtX); if (o.payDebt) { w.debt = Math.max(0, debtOf(w) - o.payDebt); }
+  if (o.har) tend(w, 'jia', o.har > 0 ? 1 : -1); if (o.tend) for (const k in o.tend) tend(w, k, o.tend[k]); if (o.flag) w.flags[o.flag] = w.day; if (ev.script) { w.flags['s_' + ev.script] = w.day; w.flags.lastScript = w.day; } if (o.fansAdd) w.fans = (w.fans || 0) + o.fansAdd; if (o.fansMul) w.fans = Math.round((w.fans || 0) * o.fansMul); if (o.ordRep) w.ordRep = clamp(ordRep(w) + o.ordRep, 0, 100); if (o.kidAway != null && f.kids[o.kidAway]) { const k = f.kids[o.kidAway]; k.away = true; k.job = 'none'; k.t.moral = clamp(k.t.moral - 15, 0, 100); } if (o.kidBook) { const k = f0kid(w); if (k) k.t.book = clamp(k.t.book + o.kidBook, 0, 100); } if (o.debtX) w.debt = Math.round(debtOf(w) * o.debtX); if (o.payDebt) { w.debt = Math.max(0, debtOf(w) - o.payDebt); }
   if (o.har) f.har = clamp(f.har + o.har, 0, 100); if (o.hp) f.hp = clamp(f.hp + o.hp, 0, 100); if (o.fame) w.fame += o.fame; if (o.watch) w.watchLeft = Math.max(0, w.watchLeft + o.watch); if (o.rest) restDay(w); if (o.heat && f.lover) f.lover.heat = (f.lover.heat || 0) + o.heat;
   if (o.act === 'endaffair') { f.lover = null; f.caught = false; note = '她没再说什么，可这个家回不到从前了。'; } if (o.act === 'forgive' && f.cuck) { f.cuck = null; f.cuckDay = w.day; note = '日子还得过。只是有些东西不一样了。'; } if (o.act === 'divorce1' || o.act === 'divorce0') note = divorce(w, o.act === 'divorce1', o.lawyer || 0).msg;
   if (o.kid) { const k = f.kids[o.ki]; for (const t2 in o.kid) k.t[t2] = clamp(k.t[t2] + o.kid[t2], 0, 100); }
@@ -876,6 +905,7 @@ function lifeTick(w, notes) {
 // 父亲的欠条：开局就欠着。第一幕结尾债主上门后有期限，过期没还会涨
 function debtOf(w) { if (w.debt == null) w.debt = 60000; return w.flags.debt ? 0 : w.debt; }
 function payDebt(w, part) { if (w.flags.debt) return { ok: false, msg: '已经还清了。' }; const amt = part ? Math.min(part, debtOf(w)) : debtOf(w); if (w.cash < amt) return { ok: false, msg: '现金不够。' }; w.cash -= amt; w.debt = debtOf(w) - amt; w.log.push({ day: w.day, t: part ? '还父亲的欠债（一部分）' : '还清父亲的欠债', amt: -amt }); tend(w, 'jia', part ? 1 : 3); if (w.debt <= 0) { w.flags.debt = true; achieve(w, 'debt', '父债子还'); return { ok: true, msg: '欠条撕了。你给老家打了个电话，父亲在那头半天没说话。' }; } return { ok: true, msg: `还了 ${fmt(amt)}，还欠 ${fmt(w.debt)}。` }; }
+function f0kid(w) { return w.fam.kids.filter(k => !k.away && !k.withMom && k.months >= 108 && k.months < 216).sort((a, b) => b.months - a.months)[0] || null; }
 // 三个看不见的倾向：稳、义、家。不显示数字，只从别人嘴里听到
 function tend(w, k, d) { const t = w.tend || (w.tend = { wen: 0, yi: 0, jia: 0 }); t[k] = clamp((t[k] || 0) + d, -40, 40); }
 function tendWords(w) { const t = w.tend || { wen: 0, yi: 0, jia: 0 }, o = []; o.push(t.wen >= 8 ? '行里说你是个稳当人' : t.wen <= -8 ? '行里说你胆子太大，迟早出事' : ''); o.push(t.yi >= 8 ? '都说你做生意厚道' : t.yi <= -8 ? '有人背后说你滑头' : ''); o.push(t.jia >= 8 ? '邻居说你顾家' : t.jia <= -8 ? '邻居说你不着家' : ''); return o.filter(Boolean); }
@@ -898,7 +928,7 @@ const ACH_ALL = [['win', '第一块赚钱的石头'], ['cutup', '第一刀切涨
 const RANKS = [[0, '学徒'], [15, '跑摊的'], [40, '看货人'], [80, '行家'], [150, '掌眼师傅'], [260, '一代货主']];
 function rankOf(w) { let n = RANKS[0][1]; for (const r of RANKS) if (w.eye >= r[0]) n = r[1]; return n; }
 const SCENE_CH = { '夜市地摊': 0, '河滩早市': 1, '玉石集散地': 2, '姐告口岸': 2, '翡翠公盘': 3, '典当行绝当': 3, '场口直采': 4, '缅北矿区': 5 };
-function sceneOpen(w, name) { return w.chapter >= SCENE_CH[name]; }
+function sceneOpen(w, name) { return w.chapter >= SCENE_CH[name] || (name === '缅北矿区' && !!w.flags.mineOpen); }
 function enterScene(w, name) {
   w.scene = name; codexAdd(w, 'scene', name); if (!w.markets[name]) { w.markets[name] = []; for (let i = 0; i < SCENES[name].n + (w.fam.car >= 4 ? 2 : w.fam.car >= 2 ? 1 : 0); i++) w.markets[name].push(makeListing(w.seed, w.day, i, name)); }
   w.market = w.markets[name];
@@ -924,6 +954,10 @@ const QUESTS = [
   { id: 'q_clean', line: '信用', title: '无债一身轻', desc: '借过钱，并且现在一分不欠', show: w => !!w.flags.borrowed, ok: w => !!w.flags.borrowed && w.fam.loans.length === 0 && (w.stat.repaid || 0) >= 1, har: 5 },
   { id: 'q_50m', line: '长线', title: '五千万', desc: '身家达到 5000 万', show: w => w.chapter >= 6 || netWorth(w) >= 1e7, ok: w => netWorth(w) >= 5e7, fame: 20 },
   { id: 'q_codex', line: '长线', title: '收集册过半', desc: '收集册里集齐 5 类', show: w => w.chapter >= 3, ok: w => cx(w, 'done:') >= 5, eye: 15, cash: 100000 },
+  { id: 'q_zhou', line: '人物', title: '对面的老周', desc: '和老周打一次交道：联手、翻脸，都算一种了结', show: w => !!w.flags.s_zhou1, ok: w => !!w.flags.s_zhou2, fame: 2 },
+  { id: 'q_yan', line: '人物', title: '岩温的地址', desc: '让岩温把矿主介绍给你（提前开放缅北矿区）', show: w => !!w.flags.s_yan1 && !w.flags.yanCheat && !w.flags.yanGone, ok: w => !!w.flags.mineOpen, eye: 4 },
+  { id: 'q_lin', line: '人物', title: '镜头里的人', desc: '在林姐的合同面前做出你的选择', show: w => !!w.flags.s_lin1, ok: w => !!w.flags.linNo || !!w.flags.linOut || !!w.flags.linSold, fame: 2 },
+  { id: 'h_clean', hidden: true, title: '不赚那个钱', desc: '矿上的料不收，烂货不带', ok: w => !!w.flags.yanMine && (!!w.flags.linOut || !!w.flags.linNo), fame: 10, eye: 5 },
   { id: 'h_late', hidden: true, title: '拼命三郎', desc: '一个晚上把 5 个钟头的夜熬满', ok: w => !!w.flags.lateMax, eye: 2 },
   { id: 'h_angry', hidden: true, title: '花钱买个明白', desc: '把老板惹毛了，还是加价把石头买了下来', ok: w => !!w.flags.angryBuy, eye: 2 },
   { id: 'h_broke', hidden: true, title: '触底', desc: '现金掉到一千以下，后来又回到十万', ok: w => !!w.flags.broke && w.cash >= 1e5, fame: 5, eye: 3 },
