@@ -844,8 +844,10 @@ function fillOrders(w) {
   for (const o of w.orders) if (o.taken === undefined) o.taken = true;
   for (const o of w.orders) if (o.taken && o.due < w.day) { w.ordRep = clamp(ordRep(w) - 12, 0, 100); w.fame -= 2; w.stat.ordFail = (w.stat.ordFail || 0) + 1; w.news.push(`${o.who}的单没交上，他去别家了。接单口碑 −12`); }
   w.orders = w.orders.filter(o => o.due >= w.day);
-  const rep = ordRep(w), want = rep < 12 ? 1 : Math.min(6, 2 + Math.floor(rep / 20));
-  for (let k = 0; w.orders.filter(o => !o.taken).length < want && k < 8; k++) {
+  // 不是天天有单：名气、铺面、分店、接单口碑越高，上门订货的人越多
+  const rep = ordRep(w), want = rep < 12 ? 1 : Math.min(6, 1 + Math.floor(rep / 25) + Math.min(2, w.shop || 0) + Math.min(1, w.branches || 0));
+  const pA = clamp(0.10 + Math.max(0, w.fame) / 90 + (w.shop || 0) * 0.14 + (w.branches || 0) * 0.08 + rep / 300 + (w.fans || 0) / 60000, 0.04, 0.95), ra = new Rng(seedOf(w.seed, 'ordarr', w.day)), arrive = (ra.chance(pA) ? 1 : 0) + (ra.chance(pA * 0.5) ? 1 : 0) + (ra.chance(pA * 0.25) ? 1 : 0);
+  for (let k = 0; k < arrive && w.orders.filter(o => !o.taken).length < want; k++) {
     const r = new Rng(seedOf(w.seed, 'order', w.day, k, w.nextId));
     w.orders.push({ id: w.nextId++, type: r.pick(['bracelet', 'bracelet', 'pendant', 'pendant', 'cab', 'bead', 'carve']), minW: r.pick([0.25, 0.25, 0.45, 0.45, 0.65]), color: r.chance(0.4), bonus: Math.round(r.range(1.25, 1.7) * (0.92 + rep / 400) * 100) / 100, due: w.day + r.int(5, 10), who: r.pick(ORDER_WHO), face: r.int(0, 5), taken: false, say: r.pick(['朋友介绍来的，说你这里货真。', '急着送人，能按时吗？', '价钱好说，东西要对。', '上回那件戴着不错，再订一件。', '先说好，过了日子我可不等。']) });
   }
@@ -1103,17 +1105,30 @@ function cabGame(w, s, piece) {
   for (let k = 1; k <= max; k++) { risks.push(clamp(base * (1 + 0.4 * (k - 1)), 0, 0.85)); rolls.push(r.u()); }
   return { sizes: CAB_SIZES, mults: CAB_MULT, max, risks, rolls, hint: base < 0.14 ? '料很干净，可以大胆放。' : base < 0.3 ? '有点棉和小纹，放大要掂量。' : '裂和脏不少，贪大容易伤。' };
 }
-function workPlan(w, s, piece, route, masterName, theme) {
+// 在片料上画一个圈口：圈压在片的正中厚度上，外径 72、内径 56。只看得见的裂会拦你，看不见的要压出来才知道
+function ringAt(s, piece, c) {
+  const e = getVol(s), st = e.st, vol = e.vol, slab = slabOf(piece); if (!slab || slab.T < 9.5) return { ok: false, msg: '手镯要先切成片：两刀平行、片厚至少 10 毫米。' };
+  const ev = evalPiece(st, vol, piece), n = slab.n, t1 = norm3(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), t2 = cross(n, t1), mid = (slab.hi + slab.lo) / 2, off = dot(c, n) - mid, c0 = [c[0] - n[0] * off, c[1] - n[1] * off, c[2] - n[2] * off], g = vol.geom, m = vol.mat, grade = HUES[st.hue].grade, cg = [0, 0];
+  let flesh = true, known = false, any = false, sv = 0, sk = 0, cnt = 0;
+  for (let q = 0; q < 24; q++) { const ca = Math.cos(q * TAU / 24), sa = Math.sin(q * TAU / 24); for (const rr of [29, 35]) for (const hh of [-3.5, 3.5]) {
+    const x = c0[0] + (t1[0] * ca + t2[0] * sa) * rr + n[0] * hh, y = c0[1] + (t1[1] * ca + t2[1] * sa) * rr + n[1] * hh, z = c0[2] + (t1[2] * ca + t2[2] * sa) * rr + n[2] * hh;
+    if (Math.abs(x) >= vol.hx || Math.abs(y) >= vol.hy || Math.abs(z) >= vol.hz || planeD(piece, x, y, z) > 0) { flesh = false; continue; } const b = vIndex(vol, x, y, z) * 4; if (!(g[b + 1] < 0 && -g[b] > g[b + 2])) { flesh = false; continue; }
+    for (let ci = 0; ci < st.cracks.length; ci++) { const k = st.cracks[ci]; if (k.open <= 0.5) continue; crackG(k, x, y, z, cg); if (Math.abs(cg[0]) < 2.2 && cg[1] > 0.5) { any = true; if (ev.known[ci]) known = true; } }
+    sv += vd(m[b + 1] / 255, m[b] / 255, m[b + 2] / 255, m[b + 3] / 255, grade); sk += ev.kAt(x, y, z); cnt++; } }
+  return { ok: flesh && !known, msg: !flesh ? '这一圈有地方出了料，或者压到了皮。往里挪一挪。' : known ? '这一圈压在看得见的裂上，压出来就是断的。' : '', flesh, any, c: c0, n, v: cnt ? sv / cnt * ev.ringVol : 0, k: cnt ? sk / cnt : 0 };
+}
+function workPlan(w, s, piece, route, masterName, theme, opts) {
   const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), tp = ev.truthParts, M = masterOf(w, masterName), R = ROUTES[route];
   const rv = routeValue(w, tp, ev.stats.bracelets, route, masterName, theme), warn = [];
-  if (route === 'bracelet' && !ev.stats.bracelets) warn.push('看不到完整的手镯位：料不够大、太薄，或被裂切断。');
+  const myRings = route === 'bracelet' && opts && opts.rings && opts.rings.length ? opts.rings.length : 0;
+  if (route === 'bracelet' && !ev.stats.bracelets && !myRings) { const sl = slabOf(piece); warn.push(!sl ? '手镯是从片料上压出来的。这块还是整料，师傅只会顺着三个正方向试着排，排不下不等于没有：先用大锯切出一片（两刀平行，片厚至少 10 毫米），再在片上自己画圈口。' : sl.T < 9.5 ? `这片只有 ${sl.T.toFixed(0)} 毫米厚，手镯至少要 10 毫米。` : '师傅没排出完整的手镯位（片不够大，或者被看得见的裂切断）。你可以自己在片上画圈口试试。'); }
   if (route === 'cab' && rv.n === 0) warn.push('没有够浓的色，出不了蛋面。');
   if (ev.stats.kAvg < 0.5) warn.push('这块料大部分还没看清，师傅只能边做边看，结果可能和预想差很多。');
   const fee = Math.round((120 + Math.max(1, rv.n) * R.fee) * M.fee * (w.staff.master ? 0.8 : 1) * (1 - 0.3 * famEff(w, 'carver')) * (skillsOf(w).layout >= 2 ? 0.9 : 1));
-  return { fee, days: Math.max(1, M.days - (w.staff.master ? 1 : 0)), n: rv.n, warn, ok: !(route === 'cab' && rv.n === 0) && !(route === 'bracelet' && !ev.stats.bracelets) };
+  return { fee, days: Math.max(1, M.days - (w.staff.master ? 1 : 0)), n: myRings || rv.n, warn, ok: !(route === 'cab' && rv.n === 0) && !(route === 'bracelet' && !ev.stats.bracelets && !myRings) };
 }
 function sendWork(w, s, piece, route, masterName, theme, opts) {
-  const plan = workPlan(w, s, piece, route, masterName, theme); if (!plan.ok) return { ok: false, msg: plan.warn[0] };
+  const plan = workPlan(w, s, piece, route, masterName, theme, opts); if (!plan.ok) return { ok: false, msg: plan.warn[0] };
   if (plan.fee > w.cash) return { ok: false, msg: '现金不够付工费。' };
   const e = getVol(s), st = e.st, ev = evalPiece(st, e.vol, piece), tp = ev.truthParts, M = masterOf(w, masterName), R = ROUTES[route];
   const r = new Rng(seedOf(w.seed, 'work', s.seed, piece.id, route, masterName)), items = [], body = BODIES[st.body], band = HUES[st.hue].band;
@@ -1122,7 +1137,9 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
   const rv = routeValue(w, tp, tp.rings.length, route, masterName, theme); if (route === 'cab' && opts && opts.cabMult) rv.total *= opts.cabMult; rv.total *= (1 + 0.15 * famEff(w, 'carver')) * (skillsOf(w).layout >= 3 ? 1.06 : 1);
   let lost = 0;
   if (route === 'bracelet') {
-    for (const v of tp.rings) { if (r.chance(M.press)) { lost++; continue; } mk('bracelet', `${wn}手镯`, v * 1.1 * rv.craft, lvOf()); }
+    let ringVals = tp.rings, cracked = 0; if (opts && opts.rings && opts.rings.length) { ringVals = []; for (const c of opts.rings) { const ra = ringAt(s, piece, c); if (!ra.flesh || ra.any) { cracked++; continue; } ringVals.push(ra.v); } }
+    lost += cracked;
+    for (const v of ringVals) { if (r.chance(M.press)) { lost++; continue; } mk('bracelet', `${wn}手镯`, v * 1.1 * rv.craft, lvOf()); }
     if (tp.Vclean * 0.12 > 50) mk('pendant', '镯芯与边角小件', tp.Vclean * 0.12 * rv.craft, lvOf());
   } else {
     const n = Math.max(1, rv.n), wts = []; let sum = 0; for (let i = 0; i < n; i++) { const x = Math.exp(r.norm() * 0.45); wts.push(x); sum += x; } wts.sort((a, b) => b - a);
@@ -1234,6 +1251,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, ordRep, orderCap, orderWord, acceptOrder, declineOrder, BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, ringAt, ordRep, orderCap, orderWord, acceptOrder, declineOrder, BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);
