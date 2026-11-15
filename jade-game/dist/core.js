@@ -109,11 +109,12 @@ function qWater(w) {
 function vd(w, c, cot, dirt, grade) { return ECON.base * qWater(w) * (1 + 30 * c * grade) * (1 - 0.6 * cot) * (1 - 0.9 * dirt); }
 
 /* ---------- 原石真相（由种子完全决定） ---------- */
-function genStone(seed, originId, channelId) {
+// gv：生成规则的版本。旧存档里的石头没有 gv，照旧规则生成，里面不会变；新进的货用 2：小料占多数、裂更多更长
+function genStone(seed, originId, channelId, gv) { const G2 = gv >= 2;
   const r = new Rng(seedOf(seed, 'stone:v1'));
   const O = ORIGINS[originId];
-  const st = { seed, origin: originId, channel: channelId };
-  const kg = 0.5 + 6.5 * Math.pow(r.u(), 1.8); // 0.5–7 公斤，中等以上的料更常见，够切够做
+  const st = { seed, origin: originId, channel: channelId, gv2: G2 };
+  const kgU = r.u(), kg = G2 ? 0.25 + 5.0 * Math.pow(kgU, 3.6) : 0.5 + 6.5 * Math.pow(kgU, 1.8); // 0.5–7 公斤，中等以上的料更常见，够切够做
   const ry = r.range(0.55, 0.85), rz = r.range(0.72, 1.0);
   const a = Math.cbrt(3 * kg / ECON.density * 1e6 / (4 * Math.PI * ry * rz));
   st.rad = [a, a * ry, a * rz];
@@ -147,14 +148,14 @@ function genStone(seed, originId, channelId) {
   }
   // 裂按成因生成：地应力让裂成组平行（节理），所以先定两个主方向；风化从外往里，所以多数裂从皮上起头往里吃；
   // 通天裂整块贯穿；小绺是内部的短纹；愈合裂（石纹）被后来的矿物长死了，只剩一条白线，不算裂。
-  st.cracks = []; const nc = Math.round(O.crack / 100 * r.range(1.5, 9)), sets = [r.dir(), r.dir()];
-  for (let i = 0; i < Math.min(nc, 6); i++) {
+  st.cracks = []; const ncU = r.range(0, 1), nc = Math.round(O.crack / 100 * (G2 ? 4.5 + 9.5 * ncU : 1.5 + 7.5 * ncU)), sets = [r.dir(), r.dir()];
+  for (let i = 0; i < Math.min(nc, G2 ? 8 : 6); i++) {
     const s0 = sets[r.chance(0.7) ? 0 : 1], j = r.dir(), n = norm3([s0[0] + j[0] * 0.22, s0[1] + j[1] * 0.22, s0[2] + j[2] * 0.22]), u = r.u(), d = r.dir(), seen = r.chance(S.sig > 1 ? 0.35 : 0.65) ? 1 : 0;
-    const kind = u < 0.16 ? 'through' : u < 0.58 ? 'edge' : u < 0.82 ? 'hair' : 'healed';
+    const kind = u < (G2 ? 0.2 : 0.16) ? 'through' : u < (G2 ? 0.62 : 0.58) ? 'edge' : u < (G2 ? 0.88 : 0.82) ? 'hair' : 'healed';
     let c, R, open = 1, skinVis = seen;
     if (kind === 'through' || kind === 'healed') { const cr = r.range(0, 0.3); c = [d[0] * st.rad[0] * cr, d[1] * st.rad[1] * cr, d[2] * st.rad[2] * cr]; R = a * r.range(1.1, 1.7); if (kind === 'healed') { open = 0.2; R = a * r.range(0.5, 1.3); } }
-    else if (kind === 'edge') { const e = norm3(cross(n, d)); c = [e[0] * st.rad[0] * 0.92, e[1] * st.rad[1] * 0.92, e[2] * st.rad[2] * 0.92]; R = a * r.range(0.35, 0.85); skinVis = r.chance(S.sig > 1 ? 0.5 : 0.8) ? 1 : 0; }
-    else { const cr = r.range(0.1, 0.75); c = [d[0] * st.rad[0] * cr, d[1] * st.rad[1] * cr, d[2] * st.rad[2] * cr]; R = a * r.range(0.12, 0.3); open = r.chance(0.6) ? 1 : 0.2; }
+    else if (kind === 'edge') { const e = norm3(cross(n, d)); c = [e[0] * st.rad[0] * 0.92, e[1] * st.rad[1] * 0.92, e[2] * st.rad[2] * 0.92]; R = a * (G2 ? 0.5 + 0.65 * r.u() : 0.35 + 0.5 * r.u()); skinVis = r.chance(S.sig > 1 ? 0.5 : 0.8) ? 1 : 0; }
+    else { const cr = r.range(0.1, 0.75); c = [d[0] * st.rad[0] * cr, d[1] * st.rad[1] * cr, d[2] * st.rad[2] * cr]; R = a * (G2 ? 0.2 + 0.28 * r.u() : 0.12 + 0.18 * r.u()); open = r.chance(G2 ? 0.8 : 0.6) ? 1 : 0.2; }
     st.cracks.push({ kind, c, n, t1: norm3(cross(n, [0.31, 0.87, 0.38])), R, warp: r.range(0.4, 2.2), freq: r.range(0.03, 0.09), phase: r.range(0, TAU), open, skinVis });
   }
   { // 分叉：主裂上岔出去的小裂
@@ -407,7 +408,7 @@ function evalPiece(st, vol, piece) {
           for (const rr of [29, 35]) { for (const hh of [top - 1, top - 8]) {
             const u = a + ca * rr, v = b + sa * rr, x = t1[0] * u + t2[0] * v + n[0] * hh, y = t1[1] * u + t2[1] * v + n[1] * hh, z = t1[2] * u + t2[2] * v + n[2] * hh;
             if (!fleshAt(x, y, z)) { ok = false; break; }
-            for (let ci = 0; ci < st.cracks.length; ci++) { const c = st.cracks[ci]; if (c.open <= 0.5 || (useKnown && !known[ci])) continue; crackG(c, x, y, z, _cg); if (Math.abs(_cg[0]) < 2.2 && _cg[1] > 0.5) { ok = false; break; } }
+            for (let ci = 0; ci < st.cracks.length; ci++) { const c = st.cracks[ci]; if (c.open <= 0.5 || (useKnown && !known[ci])) continue; crackG(c, x, y, z, _cg); if (Math.abs(_cg[0]) < (st.gv2 ? 3.2 : 2.2) && _cg[1] > 0.5) { ok = false; break; } }
             if (!ok) break;
             const bb = vIndex(vol, x, y, z) * 4; sv += vd(m[bb + 1] / 255, m[bb] / 255, m[bb + 2] / 255, m[bb + 3] / 255, grade); sk += kAt(x, y, z); cnt++;
           } if (!ok) break; }
@@ -472,7 +473,7 @@ const volCache = new Map(); // seed -> {st, vol, applied}
 // strokes: 每 5 个数一组 [x,y,z,R,clipIndex]；clips[i] 是当时那块料的切面集合
 function getVol(rec) {
   let e = volCache.get(rec.seed);
-  if (!e) { const st = genStone(rec.seed, rec.origin, rec.channel); const vol = bake(st); e = { st, vol, applied: 0 }; volCache.set(rec.seed, e); }
+  if (!e) { const st = genStone(rec.seed, rec.origin, rec.channel, rec.gv); const vol = bake(st); e = { st, vol, applied: 0 }; volCache.set(rec.seed, e); }
   const s = rec.strokes || [], clips = rec.clips || [[]];
   for (; e.applied < s.length; e.applied += 5) carve(e.vol, clipPiece(clips[s[e.applied + 4]]), s[e.applied], s[e.applied + 1], s[e.applied + 2], s[e.applied + 3]);
   if (rec.peeled && !e.peeledDone) { e.peeledDone = true; peelVol(e.vol); }
@@ -1125,7 +1126,7 @@ function makeListing(wseed, day, i, scene) {
   scene = scene || '夜市地摊';
   const r = new Rng(seedOf(wseed, 'mkt', day, i, scene));
   const origin = r.pick(Object.keys(ORIGINS)), channel = r.pick(SCENES[scene].channels), C = CHANNELS[channel];
-  const L = { scene, seed: seedOf(wseed, 'stone', day, i, scene), origin, channel, strokes: [], clips: [[]], patience: 3, sold: false };
+  const L = { gv: 2, scene, seed: seedOf(wseed, 'stone', day, i, scene), origin, channel, strokes: [], clips: [[]], patience: 3, sold: false };
   let e = getVol(L);
   const fk = r.chance(FAKE_RATE[scene] || 0) ? ['paint', 'paint', 'veneer', 'dye', 'dye', 'skin'][Math.floor(r.u() * 6)] : null;
   if ((r.chance(C.window) || fk === 'veneer' || fk === 'dye') && scene !== '场口直采' && fk !== 'skin') { L.strokes = sellerWindow(e.st, e.vol, r); e = getVol(L); }
@@ -1160,7 +1161,7 @@ function negotiate(w, L, offer, share) {
 }
 function buy(w, L, price, share) {
   share = share || 1; w.cash -= Math.round(price * share); L.sold = true; if (L.angry || L.patience <= 0) w.flags.angryBuy = true;
-  const s = { id: w.nextId++, seed: L.seed, origin: L.origin, channel: L.channel, strokes: L.strokes.slice(), clips: [[]], buyDay: w.day, buyPrice: price, costs: 0, proceeds: 0, pieces: [{ id: 0, name: '原石', planes: [], sold: false }], nextPiece: 1, best: 0, flip: 0, closed: false, info: L.info, last: {}, scene: L.scene, guess: null, fake: L.fake || null, exposed: !!L.exposed, share };
+  const s = { id: w.nextId++, gv: L.gv, seed: L.seed, origin: L.origin, channel: L.channel, strokes: L.strokes.slice(), clips: [[]], buyDay: w.day, buyPrice: price, costs: 0, proceeds: 0, pieces: [{ id: 0, name: '原石', planes: [], sold: false }], nextPiece: 1, best: 0, flip: 0, closed: false, info: L.info, last: {}, scene: L.scene, guess: null, fake: L.fake || null, exposed: !!L.exposed, share };
   w.stones.push(s); codexAdd(w, 'skin', L.info && L.info.skin); codexAdd(w, 'origin', L.origin); codexAdd(w, 'scene', L.scene); if (L.exposed && L.fake) codexAdd(w, 'fake', FAKE_NAME[L.fake.type].split('：')[0]);
   const q = quotes(w, s, s.pieces[0]); s.flip = q.best; s.best = q.best;
   w.log.push({ day: w.day, t: `买入 ${s.origin}·${s.info.skin} ${fmt(price)}${share < 1 ? '（合伙，你出一半）' : ''}`, amt: -Math.round(price * share) });
@@ -1472,7 +1473,7 @@ function closeStone(w, s) {
   if (s.closed || !stoneDone(w, s)) return;
   if (s.share < 1) { const settle = Math.round((s.proceeds - s.costs) * (1 - s.share)); w.cash -= settle; s.settle = settle; w.log.push({ day: w.day, t: `#${s.id} 合伙结账：${settle >= 0 ? '分给合伙人' : '合伙人补给你'}`, amt: -settle }); }
   s.closed = true; s.closeDay = w.day;
-  const st = genStone(s.seed, s.origin, s.channel), fresh = bake(st), ev = evalPiece(st, fresh, WHOLE);
+  const st = genStone(s.seed, s.origin, s.channel, s.gv), fresh = bake(st), ev = evalPiece(st, fresh, WHOLE);
   const net0 = s.proceeds - s.buyPrice - s.costs; if (net0 > 0) { w.stat.wins++; achieve(w, 'win', '第一块赚钱的石头'); } if (net0 > s.buyPrice * 2) achieve(w, 'steal', '捡漏：净赚超过买价两倍'); if (net0 < -s.buyPrice * 0.6) achieve(w, 'bust', '交学费：一块亏掉六成以上');
   if (s.guess) { const g = s.guess, gi = gradeIdx(st.w0), cc = colorClass(st), ck = st.cracks.filter(c => c.open > 0.5).length >= 2 ? 'many' : 'few'; const pts = (g.water === gi ? 10 : Math.abs(g.water - gi) === 1 ? 5 : 0) + (g.color === cc ? 8 : 0) + (g.crack === ck ? 4 : 0); w.eye += pts; s.guessResult = { pts, water: gi, color: cc, crack: ck }; if (pts >= 22) achieve(w, 'sharp', '火眼金睛：种、色、裂全部判断对'); }
   codexAdd(w, 'water', waterName(st.w0)); if (st.feats.length) codexAdd(w, 'hue', st.hue);
@@ -1501,7 +1502,7 @@ function nextDay(w) {
 
   w.recv = w.recv.filter(r => { if (r.day <= w.day) { w.cash += r.amt; notes.push(`${r.from} 到账 ${fmt(r.amt)}`); return false; } return true; });
   for (const k of w.works) if (k.ready <= w.day && !(k.issue && !k.issue.done)) { for (const it of k.items) { codexAdd(w, 'item', (ROUTES[it.type] || {}).name); codexAdd(w, 'theme', it.theme); if (it.type === 'bracelet' && it.w >= 0.62) codexAdd(w, 'treasure', '冰种手镯'); if (it.w >= 0.9) codexAdd(w, 'treasure', '玻璃种成品'); if (it.type === 'cab' && it.lv > 0.6) codexAdd(w, 'treasure', '满色蛋面'); if (it.value >= 1e5) codexAdd(w, 'treasure', '十万大件'); if (it.value >= 1e6) codexAdd(w, 'treasure', '百万重器'); } if (k.items.filter(it => it.type === 'bracelet').length >= 3) codexAdd(w, 'treasure', '一料三镯'); if (k.issue && k.issue.type === 'color' && k.issue.win) codexAdd(w, 'treasure', '追色成功'); }
-  w.works = w.works.filter(k => { if (k.issue && !k.issue.done) { if (w.day >= k.issue.day && !k.issue.told) { k.issue.told = true; notes.push(`${k.from}：师傅做到一半停了手，等你拿主意`); } return true; } if (k.ready > w.day) return true; { const cs = w.stones.find(x => x.id === k.stone); if (cs && cs.client) { const tot = k.items.reduce((a, it) => a + it.value, 0), e2 = getVol(cs), exp = Math.max(200, evalPiece(e2.st, bake(genStone(cs.seed, cs.origin, cs.channel)), WHOLE).truth * 0.45), ratio = clamp(tot / exp, 0.3, 1.8), pay = Math.round(cs.costs + cs.client.fee * ratio); w.cash += pay; cs.proceeds += pay; w.fame += ratio >= 1 ? 2 : ratio < 0.6 ? -2 : 0; if (ratio >= 1) w.fans += 200; for (const p of cs.pieces) if (!p.sold) { p.sold = true; p.soldPrice = 0; p.buyer = cs.client.who; } w.log.push({ day: w.day, t: `${cs.client.who}的代工交货（垫的工费一并结回）`, amt: pay }); notes.push(`${cs.client.who}的料做好交回去了：做出 ${k.items.length} 件，货值 ${fmt(tot)}，${ratio >= 1 ? '他很满意' : ratio < 0.6 ? '他嫌做得不值' : '他觉得还行'}，结给你 ${fmt(pay)}`); cs.client.done = true; closeStone(w, cs); return false; } }
+  w.works = w.works.filter(k => { if (k.issue && !k.issue.done) { if (w.day >= k.issue.day && !k.issue.told) { k.issue.told = true; notes.push(`${k.from}：师傅做到一半停了手，等你拿主意`); } return true; } if (k.ready > w.day) return true; { const cs = w.stones.find(x => x.id === k.stone); if (cs && cs.client) { const tot = k.items.reduce((a, it) => a + it.value, 0), e2 = getVol(cs), exp = Math.max(200, evalPiece(e2.st, bake(genStone(cs.seed, cs.origin, cs.channel, cs.gv)), WHOLE).truth * 0.45), ratio = clamp(tot / exp, 0.3, 1.8), pay = Math.round(cs.costs + cs.client.fee * ratio); w.cash += pay; cs.proceeds += pay; w.fame += ratio >= 1 ? 2 : ratio < 0.6 ? -2 : 0; if (ratio >= 1) w.fans += 200; for (const p of cs.pieces) if (!p.sold) { p.sold = true; p.soldPrice = 0; p.buyer = cs.client.who; } w.log.push({ day: w.day, t: `${cs.client.who}的代工交货（垫的工费一并结回）`, amt: pay }); notes.push(`${cs.client.who}的料做好交回去了：做出 ${k.items.length} 件，货值 ${fmt(tot)}，${ratio >= 1 ? '他很满意' : ratio < 0.6 ? '他嫌做得不值' : '他觉得还行'}，结给你 ${fmt(pay)}`); cs.client.done = true; closeStone(w, cs); return false; } }
     for (const it of k.items) { it.state = 'ready'; w.items.push(it); if (it.type === 'bracelet') achieve(w, 'bangle', '第一只手镯'); if (it.w >= 0.62) achieve(w, 'ice', '做出冰种以上的成品'); if (it.value >= 1e5) achieve(w, 'big', '单件成品过十万'); if (it.type === 'cab' && it.lv > 0.6) achieve(w, 'cab', '一粒满色蛋面'); } notes.push(`${k.from} 做好了：${k.items.length} 件${k.lost ? `，压坏 ${k.lost} 只镯子` : ''}`); return false; });
   if ((w.staff.host || famEff(w, 'host') > 0.15) && can(w, 'live') && w.liveDay !== w.day - 1) { const d = w.day; w.day = d - 1; const lr = liveRun(w); w.day = d; if (lr.ok) notes.push(`主播替你播了一场：成交 ${lr.sold} 件 ${fmt(lr.income)}，涨粉 ${lr.gain}`); } // 昨天你没播，主播替你播
   genMarket(w); fillOrders(w); rollEvent(w); if (w.event) notes.push('行情：' + w.event.t); for (const x of w.news) notes.push(x);
