@@ -366,7 +366,9 @@ const TK = { bracelet: 'ring', pendant: 'plate', cab: 'cab', bead: 'bead', carve
 function workOpts(s) { const K = V.wk, o = {}, key = s.id + ':' + V.piece.id + ':' + V.piece.planes.length + ':' + K.route, tk = TK[K.route]; if (V.rings && V.rings.key === key && V.rings.list.length) { if (tk === 'ring') o.rings = V.rings.list; else if (tk === 'plate') o.plates = V.rings.list; else o.tmpl = { kind: tk, list: V.rings.list }; } if (K.route === 'cab' && K.cabKey === s.id + ':' + V.piece.id) o.cabMult = K.cabMult; if (K.rush) o.rush = K.rush; return Object.keys(o).length ? o : null; }
 /* 便签：已接的订单一直贴在看石头的画面上 */
 function renderNotes() { const el = $('#notes'); if (!el) return; const mine = (W.orders || []).filter(o => o.taken); if (!mine.length || !$('#start').hidden) { el.hidden = true; return; } el.hidden = false;
-  el.innerHTML = mine.map((o, i) => { const left = o.due - W.day, need = C.minDays(W, o.type), tight = left < need, has = W.items.some(it => it.state === 'ready' && C.orderMatch(o, it)), making = W.works.some(k => k.route === o.type); return `<div class="sticky ${tight && !has ? 'late' : ''}" style="transform:rotate(${[-2, 1.5, -1, 2][i % 4]}deg)"><b>${esc(o.who)}</b><span>${esc(C.orderText(o).replace(o.who, ''))}</span><span>还剩 <b>${left}</b> 天 · 加价 ${Math.round((o.bonus - 1) * 100)}%</span><span class="sm">${has ? '货已做好，去成品盘交单' : making ? '有货在做' : tight ? `来不及了：最快也要 ${need} 天，除非加急` : `这种货最快 ${need} 天做出`}</span></div>`; }).join(''); }
+  el.innerHTML = mine.map((o, i) => { const left = o.due - W.day, need = C.minDays(W, o.type), tight = left < need, has = W.items.some(it => it.state === 'ready' && C.orderMatch(o, it)), mk0 = W.works.filter(k => k.route === o.type), making = mk0.length > 0, mkDays = making ? Math.min(...mk0.map(k => k.ready - W.day)) : 0, mkWait = mk0.some(k => k.issue && !k.issue.done && C.issueOf(W, k)); return `<div class="sticky ${tight && !has ? 'late' : ''}" style="transform:rotate(${[-2, 1.5, -1, 2][i % 4]}deg)"><b>${esc(o.who)}</b><span>${esc(C.orderText(o).replace(o.who, ''))}</span><span>还剩 <b>${left}</b> 天 · 加价 ${Math.round((o.bonus - 1) * 100)}%</span><span class="sm">${has ? '货已做好，去成品盘交单' : making ? (mkWait ? '有货在做，师傅停工等你拿主意' : `有货在做，还有 ${Math.max(0, mkDays)} 天完成${mkDays > left ? '，赶不上' : ''}`) : tight ? `来不及了：最快也要 ${need} 天，除非加急` : `这种货最快 ${need} 天做出`}</span></div>`; }).join(''); }
+/* 干活要花时间：时间不够就拦下来，提示熬夜或收工 */
+function useTime(h, what) { const r = C.spendTime(W, h); if (r.ok) { renderTop(); return true; } V.note = (what ? what + '要 ' + h + ' 个钟头。' : '') + r.msg; V.msg = V.note; Snd.lose(); renderTop(); renderTools(); renderSide(); return false; }
 function workCard(k) { const is = C.issueOf(W, k); let h = `<article class="card"><div class="row"><b>加工中 · ${esc(k.from)}</b><span class="dim">${is ? '停工，等你拿主意' : '第 ' + k.ready + ' 天取货'}</span></div><div class="row dim"><span>${esc(k.what)}，按看得见的料预计 ${k.expected} 件。</span></div>`;
   if (is) h += issueHtml(k, is); else if (k.issue && k.issue.done) h += `<p class="${k.issue.win ? 'note' : 'say'}">${esc(k.issue.note)}</p>`; return h + '</article>'; }
 function issueHtml(k, is) { const word = p => p >= 1 ? '稳' : is.see ? Math.round(p * 100) + '% 把握' : p > 0.7 ? '把握大' : p > 0.45 ? '五五开' : '把握不大'; return `<p class="say">${esc(is.text)}</p>${is.opts.map((o, i) => `<div class="row"><span class="dim">${word(o.p)}${o.p < 1 ? `：成了 ×${o.win}，不成 ×${o.lose}` : `：×${o.win}`}</span><button data-act="issue" data-id="${k.id}" data-i="${i}">${esc(o.label)}</button></div>`).join('')}${is.see ? '' : '<p class="note">学了相应的手艺，这里能看到具体几成把握。</p>'}`; }
@@ -383,6 +385,7 @@ function renderTop() {
   let inv = 0; for (const s of W.stones) if (!s.closed) for (const p of s.pieces) if (!p.sold) inv += (s.last[p.id] || {}).best || 0;
   const cashNow = W.cash; 
   $('#stats').innerHTML = `<div><span>第</span><b>${W.day}</b><span>天</span></div><div><span>现金</span><b>${fmt(W.cash)}</b></div><div><span>应收</span><b>${fmt(recv)}</b></div><div><span>存货报价</span><b>${fmt(inv)}</b></div><div><span>${C.rankOf(W)} · 眼力</span><b>${W.eye}</b></div>${C.can(W, 'live') ? `<div><span>粉丝</span><b>${fmt(W.fans)}</b></div>` : ''}`;
+  { const cap = C.dayHours(W), used = C.hoursUsed(W), ot = used > cap; $('#stats').insertAdjacentHTML('beforeend', `<div class="clock ${ot ? 'ot' : used > cap - 1.5 ? 'warn' : ''}"><span>${ot ? '熬夜' : '今天'}</span><b>${used.toFixed(used % 1 ? 1 : 0)}/${cap}</b><span>小时</span>${used >= cap - 0.26 && !W.lateOk ? '<button data-act="late">熬夜接着干</button>' : ''}</div>`); }
   if (lastCash != null && Math.abs(cashNow - lastCash) >= 1 && $('#start').hidden) floatCash(cashNow - lastCash); lastCash = cashNow;
 }
 function betHtml(bet, full) { return `<span class="tag b">${bet.main}</span>${bet.tags.map(t => `<span class="tag">${t}</span>`).join('')}${full ? `<p class="why">${esc(bet.why)}</p>` : ''}`; }
@@ -390,6 +393,7 @@ function renderSide() {
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
   const el = $('#panel'); let h = goalCard();
   if (tab === 'market') {
+    if ((W.reqs || []).length) h += `<article class="card"><div class="row"><b>直播间来的活</b><span class="dim">${W.reqs.length} 件 · 过期不候</span></div>${W.reqs.map(q => `<div class="guest"><div><b>${esc(q.who)} · ${{ bet: '请你代赌', appraise: '求鉴定', make: '寄料代工' }[q.t]}</b><span>${esc(q.text)}</span><span class="dim">要花 ${q.hrs} 个钟头 · 第 ${q.due} 天前</span><span><button data-act="livereq" data-i="${q.id}" class="pri">接</button> <button data-act="livereqno" data-i="${q.id}">不接</button></span></div></div>`).join('')}<p class="note">成不成看你的眼力（现在约 ${Math.round(Math.min(0.88, Math.max(0.3, 0.32 + W.eye / 180)) * 100)}% 把握）。定制的单在下面前台里。</p></article>`;
     if (C.can(W, 'work')) { const offers = W.orders.filter(o => !o.taken), mine = W.orders.filter(o => o.taken), F = window.JADE_FACES || {};
       h += `<article class="card"><div class="row"><b>前台 · 客人订货</b><span class="dim">接单口碑 ${Math.round(C.ordRep(W))}（${C.orderWord(W)}）· 在手 ${mine.length}/${C.orderCap(W)}</span></div>
         <div class="desk">${offers.map(o => `<div class="guest"><span class="ph" style="width:54px;height:60px">${(fk => F[fk] ? `<img src="${F[fk]}" alt="">` : '')({ '陈太太': 'w_玉兰', '珠宝店王姐': 'w_晓梅' }[o.who] || 'n' + (o.face || 0))}</span><div><b>${esc(o.who)}</b><span>${esc(C.orderText(o).replace(o.who, ''))}</span><span class="dim">“${esc(o.say || '')}” 加价 ${Math.round((o.bonus - 1) * 100)}% · 第 ${o.due} 天前</span><span><button data-act="otake" data-o="${o.id}" class="pri">接单</button> <button data-act="oskip" data-o="${o.id}">不接</button></span></div></div>`).join('') || '<p class="note">今天前台没有客人。口碑高了来的人会多。</p>'}</div>
@@ -835,7 +839,7 @@ document.addEventListener('click', ev => {
   if (b.dataset.tool) { if ($('#crlabel')) $('#crlabel').hidden = true; V.tool = b.dataset.tool === V.tool ? 'rotate' : b.dataset.tool; V.lens = null; V.cut = null; V.sawPlan = null; V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); invalidate(false); return; }
   const a = b.dataset.act;
   if (a !== 'menu') $('#hmenu').classList.remove('open');
-  if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) view('market', L, null); }
+  if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) { if (L.lookDay !== W.day && !L.sold) { if (!useTime(0.5, '上手看一块料')) return; L.lookDay = W.day; save(); } view('market', L, null); } }
   else if (a === 'offer' || a === 'take') {
     const L = V.rec, offer = a === 'take' ? L.ask : +($('#offer').value || 0); V.offer = offer;
     const sh = V.partner && L.ask >= 8000 ? 0.5 : 1, r = C.negotiate(W, L, offer, sh); V.msg = r.msg;
@@ -848,11 +852,14 @@ document.addEventListener('click', ev => {
   else if (a === 'ringforce') { V.ringForce = !V.ringForce; renderSide(); }
   else if (a === 'ringundo') { if (V.rings) V.rings.list.pop(); renderSide(); invalidate(false); }
   else if (a === 'ringclear') { V.rings = null; renderSide(); invalidate(false); }
+  else if (a === 'late') { W.lateOk = true; V.note = '今晚熬夜。最多再干 5 个钟头，每小时身体 −2、家和 −0.6。'; save(); renderTop(); renderTools(); }
+  else if (a === 'livereq') { const r = C.doLiveReq(W, +b.dataset.i); if (!r.ok) { V.note = r.msg; renderTop(); renderTools(); return; } if (r.win) Snd.win(); else Snd.lose(); save(); $('#storybody').innerHTML = `<h2>${r.win ? '办成了' : '没办好'}</h2><p>${esc(r.msg)}</p><button data-act="storyok" class="pri">知道了</button>`; $('#story').hidden = false; renderAll(); }
+  else if (a === 'livereqno') { W.reqs = (W.reqs || []).filter(q => q.id !== +b.dataset.i); save(); renderSide(); }
   else if (a === 'layout') { V.layoutOn = !V.layoutOn; V.layoutKey = null; renderSide(); invalidate(false); }
   else if (a === 'prop') { V.wk.route = b.dataset.r; V.wk.theme = b.dataset.t; renderTools(); renderSide(); drawLayout(); }
   else if (a === 'learn') { const r = C.learnSkill(W, b.dataset.k); V.note = r.msg; if (r.ok) Snd.win(); save(); renderAll(); }
   else if (a === 'issue') { const r = C.resolveIssue(W, +b.dataset.id, +b.dataset.i); if (!r.ok) return; if (r.win) Snd.win(); save(); V.note = r.msg; $('#storybody').innerHTML = `<h2>${r.win ? '成了' : '没成'}</h2><p>${esc(r.msg)}</p><button data-act="storyok" class="pri">知道了</button>`; $('#story').hidden = false; renderAll(); }
-  else if (a === 'work') { const s = V.rec, K = V.wk, r = C.sendWork(W, s, V.piece, K.route, K.master, K.theme, workOpts(s)); if (r.ok) { V.rings = null; V.ringMode = false; } if (!r.ok) { V.note = r.msg; renderTools(); return; } qcache.clear(); save(); afterStoneChange(s); V.note = `已送去，工费 ${fmt(r.fee)}，${r.days} 天后到托盘取成品。`; renderTools(); }
+  else if (a === 'work') { { if (!useTime(0.25, '跟师傅交代')) return; } const s = V.rec, K = V.wk, r = C.sendWork(W, s, V.piece, K.route, K.master, K.theme, workOpts(s)); if (r.ok) { V.rings = null; V.ringMode = false; } if (!r.ok) { V.note = r.msg; renderTools(); return; } qcache.clear(); save(); afterStoneChange(s); V.note = `已送去，工费 ${fmt(r.fee)}，${r.days} 天后到托盘取成品。`; renderTools(); }
   else if (a === 'scene') { C.enterScene(W, b.dataset.k); save(); Snd.tap(); Snd.amb(b.dataset.k); view('market', W.market.find(L => !L.sold) || null, null); }
   else if (a === 'bid') { const L = V.rec, r = C.placeBid(W, L, +($('#offer').value || 0)); V.msg = r.msg; if (r.ok) Snd.coin(); save(); renderTop(); renderSide(); renderNpc(); }
   else if (a === 'cab0') openTray(false, false);
@@ -872,20 +879,20 @@ document.addEventListener('click', ev => {
   else if (a === 'iall') { for (const it of trayItems()) C.sellItem(W, it, b.dataset.how); save(); tab = 'ledger'; view(null, null, null); }
   else if (a === 'review') { view('review', W.stones.find(x => x.id === +b.dataset.s), null); }
   else if (a === 'rake') { V.torch.rake = !V.torch.rake; renderTools(); invalidate(false); }
-  else if (a === 'peelgo') { doPeel(); }
+  else if (a === 'peelgo') { { if (!useTime(0.5, '切皮')) return; } doPeel(); }
   else if (a === 'peelno') { V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); }
-  else if (a === 'peelall') { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = `整块的皮都剥掉，花 ${fmt(C.peelAllCost(V.rec))}，回不去。再点一次确认`; return; } const r = C.peelAll(W, V.rec); if (!r.ok) { V.note = r.msg; renderTools(); return; } flag('open'); loaded = null; qcache.clear(); Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `全去皮完成，花费 ${fmt(r.cost)}。里面什么样，现在谁都看得见了。`; renderAll(); }
+  else if (a === 'peelall') { if (b.dataset.sure === '1' || a !== 'peelall') { if (!useTime(1, '全去皮')) return; } if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = `整块的皮都剥掉，花 ${fmt(C.peelAllCost(V.rec))}，回不去。再点一次确认`; return; } const r = C.peelAll(W, V.rec); if (!r.ok) { V.note = r.msg; renderTools(); return; } flag('open'); loaded = null; qcache.clear(); Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `全去皮完成，花费 ${fmt(r.cost)}。里面什么样，现在谁都看得见了。`; renderAll(); }
   else if (a === 'sawno') { V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); }
   else if (a === 'sawsmart') { smartSaw(); }
   else if (a === 'pshelf') { const r = C.pieceShelf(W, V.rec, V.piece); V.note = r.ok ? '已摆进铺面，散客会按零售价来买。' : r.msg; save(); renderAll(); }
   else if (a === 'flesson') { const r = C.learnFake(W, b.dataset.k); V.note = r.msg; if (r.ok) Snd.coin(); save(); if (!$('#story').hidden && r.ok) $('#story').querySelector('.fakehelp').outerHTML = fakeExplain(b.dataset.k); renderAll(); }
-  else if (a === 'fcheck') { const r = C.inspectFake(W, V.rec); V.note = r.msg; if (r.fake) Snd.lose(); save(); renderAll(); }
+  else if (a === 'fcheck') { { if (!useTime(0.25, '请师傅鉴定')) return; } const r = C.inspectFake(W, V.rec); V.note = r.msg; if (r.fake) Snd.lose(); save(); renderAll(); }
   else if (a === 'fkeep') { const s = V.rec; for (const p of s.pieces) if (!p.sold && !p.kept) C.pieceKeep(W, s, p, true); save(); V.note = '贴了标签，收进藏品柜。到「成品盘 → 藏品柜」里能看到标签。'; if (s.closed) { tab = 'ledger'; view('review', s, null); } else renderAll(); }
   else if (a === 'fdiscard') { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '丢了就没了，再点一次确认'; return; } const s = V.rec; C.discardStone(W, s); qcache.clear(); save(); V.note = '丢掉了。交的学费记在账本里。'; tab = 'ledger'; view('review', s, null); }
   else if (a === 'pkeep') { const s = V.rec, p = V.piece; C.pieceKeep(W, s, p, true); save(); V.note = '已收进藏品柜。'; if (s.closed) { tab = 'ledger'; view('review', s, null); } else renderAll(); }
   else if (a === 'pback') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); if (p.kept) C.pieceKeep(W, s, p, false); p.shelf = false; save(); openTray(false, V.cab); }
   else if (a === 'pview') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); tab = 'mine'; view('own', s, p); if (!s.last[p.id]) refreshQuote(s, p); renderAll(); }
-  else if (a === 'sawgo' || a === 'wcut') { if (a === 'wcut') { V.sawPlan = { planes: V.wedge, box: V.wedge }; V.wedge = null; V.cut = null; } const s = V.rec, p = V.piece, r = C.saw(W, s, p, V.sawPlan.planes); V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true;
+  else if (a === 'sawgo' || a === 'wcut') { if (!useTime(0.5, '锯料')) return; if (a === 'wcut') { V.sawPlan = { planes: V.wedge, box: V.wedge }; V.wedge = null; V.cut = null; } const s = V.rec, p = V.piece, r = C.saw(W, s, p, V.sawPlan.planes); V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true;
     if (!r.ok) { V.note = r.msg; renderTools(); return; }
     Snd.saw(); refreshQuote(s, p, false); refreshQuote(s, r.piece, true); save(); V.note = `取出 ${r.piece.name}，锯工 ${fmt(r.cost)}。它已放进料头盘，可单独查看、出售或送去做件。`; tab = 'mine'; frame(); renderAll(); }
   else if (a === 'hold') { holdItem(V.ref ? b.dataset.i : +b.dataset.i); }
@@ -904,16 +911,16 @@ document.addEventListener('click', ev => {
   else if (a === 'cabstop') { V.cab_.done = true; renderCab(); }
   else if (a === 'cabok') { const c = V.cab_; V.wk.cabMult = c.g.mults[c.k] / c.g.mults[Math.min(c.g.max, 2)] * (c.hurt ? 0.6 : 1); V.wk.cabKey = c.key; V.wk.cabText = `${c.g.sizes[c.k]} mm${c.hurt ? '（磨伤了）' : ''}`; $('#cabgame').hidden = true; renderSide(); }
   else if (a === 'menu') { $('#hmenu').classList.toggle('open'); }
-  else if (a === 'watch') { const L = V.rec, g = V.wg || {}; if (g.water == null) { V.msg = '先选一个种水再看。'; renderSide(); return; } const r = C.watch(W, L, { water: g.water, color: g.color || 'none', crack: g.crack || 'few' }); if (!r.ok) { V.msg = r.msg; renderSide(); return; }
+  else if (a === 'watch') { { if (!useTime(0.5, '围观')) return; } const L = V.rec, g = V.wg || {}; if (g.water == null) { V.msg = '先选一个种水再看。'; renderSide(); return; } const r = C.watch(W, L, { water: g.water, color: g.color || 'none', crack: g.crack || 'few' }); if (!r.ok) { V.msg = r.msg; renderSide(); return; }
     V.wg = null; Snd.saw(); save(); L.id = '围观'; const nm = ['豆种', '糯种', '糯冰种', '冰种', '高冰种', '玻璃种'], cn = { none: '基本无色', skin: '只有贴皮色', deep: '色吃进去了', full: '满色' };
     $('#storybody').innerHTML = `<h2>他一刀切开了</h2><p>实际是：<b>${nm[r.water]}</b>，${cn[r.color]}，${r.crack === 'few' ? '裂少' : '裂多'}。</p>${r.fake ? fakeExplain(r.fake) : ''}<p>你猜的是：${nm[g.water]}，${cn[g.color || 'none']}，${(g.crack || 'few') === 'few' ? '裂少' : '裂多'}。</p><p class="say">眼力 +${r.pts}${r.tip ? `；种水猜对了，旁边的人输给你 ${r.tip} 块彩头` : ''}</p><p class="note">关掉这个框后可以拖动「剖面高度」看这块石头里面到底什么样，和你刚才打灯看到的对一对。</p><button data-act="storyok" class="pri">看剖面</button>`;
     $('#story').hidden = false; view('review', L, null); }
-  else if (a === 'livego') { const r = C.liveRun(W); if (!r.ok) { V.note = r.msg; renderTools(); renderSide(); return; } save(); const box = $('#livechat'); box.innerHTML = ''; $('#liveview').textContent = r.viewers + ' 人在看'; $('#liveend').hidden = true; $('#live').hidden = false;
+  else if (a === 'livego') { { if (!useTime(3, '开一场直播')) return; } const r = C.liveRun(W); if (!r.ok) { V.note = r.msg; renderTools(); renderSide(); return; } save(); const box = $('#livechat'); box.innerHTML = ''; $('#liveview').textContent = r.viewers + ' 人在看'; $('#liveend').hidden = true; $('#live').hidden = false;
     r.lines.forEach((ln, i) => setTimeout(() => { const d = document.createElement('p'); d.className = ln[0]; d.textContent = ln[0] === 'c' ? '观众：' + ln[1] : ln[1]; box.appendChild(d); box.scrollTop = box.scrollHeight; if (ln[0] === 'sys' && i) Snd.coin(); if (i === r.lines.length - 1) $('#liveend').hidden = false; }, 350 + i * 520)); }
   else if (a === 'liveend') { $('#live').hidden = true; openTray(false, false); }
   else if (a === 'branch') { const r = C.openBranch(W); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
   else if (a === 'hire') { const r = C.hire(W, b.dataset.k, +b.dataset.d); V.note = r.msg; save(); renderAll(); }
-  else if (a === 'train') { const r = C.trainKid(W, +b.dataset.i, $('#kT' + b.dataset.i).value); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
+  else if (a === 'train') { { if (!useTime(0.5, '陪孩子去')) return; } const r = C.trainKid(W, +b.dataset.i, $('#kT' + b.dataset.i).value); V.note = r.msg; if (r.ok) Snd.coin(); save(); renderAll(); }
   else if (a === 'baby') { const r = C.haveBaby(W, b.dataset.k === 'lover'); V.note = r.msg; if (r.ok) Snd.win(); save(); renderAll(); }
   else if (a === 'divorce') { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '再点一次确认：' + b.textContent; return; } const r = C.divorce(W, b.dataset.k === '1', V.law || 0); V.note = r.msg; save(); renderAll(); }
   else if (a === 'marry') { const r = C.marry(W); V.note = r.msg; if (r.ok) Snd.win(); save(); renderAll(); }
@@ -959,7 +966,7 @@ document.addEventListener('click', ev => {
     if (k === 'turn') { c.n = rot(c.n, c.f, sg * 2 * Math.PI / 180); c.t = rot(c.t, c.f, sg * 2 * Math.PI / 180); } else if (k === 'lean') c.n = rot(c.n, c.t, sg * 2 * Math.PI / 180); else c.c = c.c.map((x, i) => x + c.n[i] * sg);
     const l = Math.hypot(c.n[0], c.n[1], c.n[2]); c.n = c.n.map(x => x / l); c.d = c.n[0] * c.c[0] + c.n[1] * c.c[1] + c.n[2] * c.c[2]; c.fromView = false; c.pv = C.cutPreview(V.rec, V.piece, c.n, c.d); renderTools(); invalidate(false); }
   else if (a === 'cfold') { if (!V.cut) return; V.fold = { n: V.cut.n.slice(), d: V.cut.d }; V.cut = null; V.note = '第一段记下了。再画第二段，两段夹住的那一角会被整块锯下来。'; renderTools(); invalidate(false); }
-  else if (a === 'cut') {
+  else if (a === 'cut') { { if (!useTime(0.75, '下刀')) return; }
     const s = V.rec, p = V.piece, before = bookOf(s).v, rv = $('#reveal'), cutSpec = V.cut;
     rv.className = 'sawing'; rv.innerHTML = '<p>锯片吃进去了…</p>'; rv.hidden = false; Snd.saw(); canvas.classList.add('shake'); if (navigator.vibrate) try { navigator.vibrate([40, 30, 40, 30, 80]); } catch (e) { }
     V.sawing = 1; const fx = setInterval(() => { V.sawing++; render(Q.fast); }, 110); setTimeout(() => { clearInterval(fx); V.sawing = 0; canvas.classList.remove('shake'); }, 1100);
@@ -1124,7 +1131,7 @@ canvas.addEventListener('pointerdown', ev => {
   if (orbit) drag = { kind: 'orbit', x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, click: ev.button !== 2 };
   else if (V.tool === 'torch') { drag = { kind: 'torch' }; torchAt(ev); renderTools(); invalidate(true); }
   else if (V.tool === 'loupe') { drag = { kind: 'loupe' }; V.lens = { x: ev.clientX, y: ev.clientY }; invalidate(true); }
-  else if (V.tool === 'grind') { drag = { kind: 'grind' }; lastCarve = null; strokeCost = 0; carveAt(ev); }
+  else if (V.tool === 'grind') { if (!useTime(0.25, '开一处窗')) return; drag = { kind: 'grind' }; lastCarve = null; strokeCost = 0; carveAt(ev); }
   else if ((V.tool === 'saw' && V.sawPlan) || (V.tool === 'peel' && V.peelPlan)) { drag = { kind: 'orbit', x: ev.clientX, y: ev.clientY }; }
   else if (V.tool === 'peel' || V.tool === 'saw') { drag = { kind: 'lasso', saw: V.tool === 'saw', pts: [[ev.clientX, ev.clientY]] }; V.sawPlan = null; }
   else if (V.tool === 'cut') { drag = { kind: 'line', x0: ev.clientX, y0: ev.clientY, x: ev.clientX, y: ev.clientY }; }

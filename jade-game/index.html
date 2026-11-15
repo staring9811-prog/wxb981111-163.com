@@ -83,6 +83,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 @media (prefers-reduced-motion: reduce) { .pf-body, .pf-head, .pf-eye { animation: none; } }
 .cx { margin: 6px 0; } .cxs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; } .cxs span { font-size: 12px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line); color: #7d766b; } .cxs span.on { color: var(--fg); border-color: var(--jade); background: #1f2a24; }
 .scenes button small { display: block; font-size: 10px; opacity: .7; }
+.clock.warn b { color: var(--lamp); } .clock.ot b, .clock.ot span { color: var(--up, #e07a5a); } .clock button { margin-left: 6px; padding: 2px 8px; font-size: 12px; }
 #notes { position: absolute; left: 10px; top: 96px; z-index: 2; display: flex; flex-direction: column; gap: 8px; pointer-events: none; max-width: 168px; } #notes[hidden] { display: none; }
 .sticky { background: #f1e29a; color: #3a3018; padding: 7px 9px 8px; font-size: 12px; line-height: 1.4; display: flex; flex-direction: column; box-shadow: 0 3px 8px #0009; border-top: 10px solid #e3d07a; } .sticky b { font-weight: 700; } .sticky .sm { font-size: 11px; opacity: .8; } .sticky.late { background: #f3b39a; border-top-color: #e08a6a; }
 @media (max-width: 760px) { #notes { top: 70px; max-width: 128px; } .sticky { font-size: 10.5px; padding: 4px 6px; } }
@@ -258,6 +259,21 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
       <li><b>出手</b>：随时可以按买家报价卖掉；或者「送去做件」，等几天到「成品盘」里卖成品。</li>
       <li><b>收工</b>：右上角「收工，下一天」。货源换新，报价作废，货款和成品到账。</li>
     </ol>
+    <h3>一天的时间</h3>
+    <ul>
+      <li>页头有个钟：<b>今天 已用/能用 小时</b>。一天正常能干 9 个钟头；吃得好多 1–2 个钟头，身体好再多 1 个，身体差少 2 个。</li>
+      <li><b>干什么都花时间</b>：上手看一块新料半个钟头，围观半个钟头，开一处窗一刻钟，下刀三刻钟，小锯和切皮半个钟头，全去皮一个钟头，跟师傅交代一刻钟，开一场直播三个钟头。转石头、打灯、看教程不花时间。</li>
+      <li><b>熬夜</b>：时间用完后点「熬夜接着干」，最多再干 5 个钟头，每小时身体 −2、家和 −0.6，第二天结算。早早收工（剩 3 个钟头以上）身体会回一点。</li>
+    </ul>
+    <h3>直播间来的活</h3>
+    <ul>
+      <li>每场直播下播后，私信里会有人找你，粉丝越多来的越多。出现在「货源」页顶部，几天内不接就过期。</li>
+      <li><b>代赌</b>：粉丝打钱请你替他挑石头。切涨抽一成半并涨粉，切垮掉粉掉口碑。</li>
+      <li><b>求鉴定</b>：寄来石头请你看真假和种水。看准收鉴定费、涨口碑和眼力；看走眼退钱掉口碑。</li>
+      <li><b>寄料代工</b>：替他安排师傅做件，两天后收代工费；做垮了只收三成。</li>
+      <li><b>定制</b>：直接变成前台的一张订单，加价比普通客人高。</li>
+      <li>成不成主要看眼力。每件活都要花时间。</li>
+    </ul>
     <h3>师傅、提案和中途决断</h3>
     <ul>
       <li><b>每个师傅三项本事</b>：避裂、做色、设计。镯师避裂好，揭阳师傅做色好，苏工设计和避裂都强但贵。雇了驻店师傅后多一个「自家师傅」，只收料工，属性雇来时随机，有一项是长处，做得越多越熟。</li>
