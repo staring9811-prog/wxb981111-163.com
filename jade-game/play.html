@@ -105,6 +105,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 @media (max-width: 760px) { #notes { top: 70px; max-width: 128px; } .sticky { font-size: 10.5px; padding: 4px 6px; } }
 .desk { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; } .guest { display: flex; gap: 10px; align-items: flex-start; } .guest > div { display: flex; flex-direction: column; gap: 2px; font-size: 13px; flex: 1; }
 .tune { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; } .tune button { padding: 3px 8px; font-size: 12.5px; }
+.lbar { display: inline-block; width: 34px; height: 5px; border-radius: 3px; background: var(--raise); vertical-align: middle; overflow: hidden; margin-right: 4px; } .lbar i { display: block; height: 100%; background: var(--lamp); }
 .fakehelp { border: 1px solid var(--up, #c75); border-radius: 6px; padding: 8px 10px; margin: 6px 0; font-size: 13px; line-height: 1.5; } .fakehelp p { margin: 4px 0; } .fakehelp ol { margin: 2px 0 6px; padding-left: 20px; }
 .props { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 4px 0; } .props i { color: var(--dim, #9a948a); font-style: normal; font-size: 12px; }
 .bar { flex: 1; height: 8px; border-radius: 4px; background: var(--raise); overflow: hidden; max-width: 60%; align-self: center; } .bar i { display: block; height: 100%; }
@@ -558,11 +559,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v50</div>
+<div id="ver">v51</div>
 
 <script>
 (function () {
-  var LOCAL = 50, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 51, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }

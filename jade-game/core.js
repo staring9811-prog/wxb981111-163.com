@@ -516,11 +516,11 @@ function inspectFee(s) { return clamp(Math.round(s.buyPrice * 0.02 / 10) * 10, 3
 function learnFake(w, type) { const L = w.lessons || (w.lessons = {}); if (L[type]) return { ok: false, msg: '这种已经学过了。' }; if (w.cash < FAKE_LESSON) return { ok: false, msg: '现金不够。' }; w.cash -= FAKE_LESSON; L[type] = true; w.eye += 1; w.log.push({ day: w.day, t: `请师傅讲假料：${FAKE_NAME[type].split('：')[0]}`, amt: -FAKE_LESSON }); return { ok: true, msg: '师傅拿着料给你讲了一遍。眼力 +1' }; }
 function inspectFake(w, s) { if (s.checked) return { ok: false, msg: '这块已经查过了。' }; const fee = inspectFee(s); if (w.cash < fee) return { ok: false, msg: '鉴定费不够。' }; w.cash -= fee; s.costs += fee; w.log.push({ day: w.day, t: `#${s.id} 请师傅鉴定真假`, amt: -fee }); s.checked = true; if (s.fake) { s.fakeKnown = true; w.eye += 2; codexAdd(w, 'fake', FAKE_NAME[s.fake.type].split('：')[0]); return { ok: true, fake: s.fake.type, msg: `查出来了：${FAKE_NAME[s.fake.type]}。眼力 +2` }; } return { ok: true, fake: null, msg: '皮、窗口、颜色都查了一遍，没看出做过手脚。是真料。' }; }
 // 丢弃：所有还没出手的块按 0 处理，结账复盘
-function discardStone(w, s) { let n = 0; for (const p of s.pieces) if (!p.sold) { p.sold = true; p.soldPrice = 0; p.buyer = '丢弃'; p.kept = false; p.shelf = false; n++; } s.discarded = true; w.log.push({ day: w.day, t: `#${s.id} 丢弃（${s.fake ? '假料' : '不要了'}）`, amt: 0 }); closeStone(w, s); return { ok: true, n }; }
+function discardStone(w, s) { if (s.fake) tend(w, 'yi', 2); let n = 0; for (const p of s.pieces) if (!p.sold) { p.sold = true; p.soldPrice = 0; p.buyer = '丢弃'; p.kept = false; p.shelf = false; n++; } s.discarded = true; w.log.push({ day: w.day, t: `#${s.id} 丢弃（${s.fake ? '假料' : '不要了'}）`, amt: 0 }); closeStone(w, s); return { ok: true, n }; }
 // 当面指出是假货：说对了老板心虚大降价，说错了老板翻脸不卖
 function callOut(w, L) {
   if (L.called) return { msg: '已经说过了。' }; L.called = true;
-  if (L.fake) { L.reserve = Math.max(100, Math.round(L.reserve * 0.12 / 10) * 10); L.ask = Math.round(L.reserve * 1.3 / 10) * 10; L.exposed = true; w.eye += 5; achieve(w, 'fake', '识破一块假货'); return { ok: true, msg: `老板脸色一变：“……兄弟好眼力，这块 ${fmt(L.ask)} 你拿走，别声张。”（${FAKE_NAME[L.fake.type]}）眼力 +5` }; }
+  if (L.fake) { L.reserve = Math.max(100, Math.round(L.reserve * 0.12 / 10) * 10); L.ask = Math.round(L.reserve * 1.3 / 10) * 10; L.exposed = true; w.eye += 5; tend(w, 'yi', 1); achieve(w, 'fake', '识破一块假货'); return { ok: true, msg: `老板脸色一变：“……兄弟好眼力，这块 ${fmt(L.ask)} 你拿走，别声张。”（${FAKE_NAME[L.fake.type]}）眼力 +5` }; }
   L.angry = true; L.patience = 1; L.ask = Math.round(L.ask * 1.25 / 10) * 10; L.reserve = Math.max(L.reserve, Math.round(L.ask * 0.97 / 10) * 10); w.fame = Math.max(-50, (w.fame || 0) - 2);
   return { ok: false, msg: `老板把石头一把收回去：“不懂别乱讲！这是正经料子。”过了一会儿又说：“真想要也行，${fmt(L.ask)}，加两成五，一分不少，算你赔我的名声。”` };
 }
@@ -607,7 +607,7 @@ const CHAPTERS = [
 // 每个玩法在第几章解锁（章节从 0 数）
 const UNLOCK = { buy: 1, open: 1, tools: 1, cut: 2, work: 2, tray: 2, shop: 3, live: 4, chain: 5 };
 function can(w, k) { return w.chapter >= (UNLOCK[k] || 0); }
-const DEBT = 0;
+const DEBT = 0;   // 旧字段，已由 debtOf 取代
 function netWorth(w) { let v = w.cash; for (const r of w.recv) v += r.amt; for (const it of w.items) if (it.state === 'ready' || it.state === 'shelf' || it.state === 'kept') v += it.value * 0.6; return v; }
 function goalDone(w, k) {
   const a = w.ach, st = w.stat, staff = w.staff.clerk + w.staff.master + w.staff.host;
@@ -730,9 +730,9 @@ function creditWord(w) { const c = creditOf(w); return c >= 85 ? '极好' : c >=
 function stockValue(w) { let v = 0; for (const it of w.items) if (it.state === 'ready' || it.state === 'shelf') v += it.value * 0.6; for (const s of w.stones) if (!s.closed && !s.client && !s.proxy) for (const p of s.pieces) if (!p.sold) v += (s.last[p.id] || {}).best || s.buyPrice * 0.5 / Math.max(1, s.pieces.length); return v; }
 function loanRoom(w, type) { const f = w.fam, used = f.loans.filter(L => L.type === type).reduce((a, L) => a + L.principal, 0), cr = creditOf(w);
   const cap = type === 'home' ? HOMES[f.home].price * 0.6 : type === 'car' ? CARS[f.car].price * 0.5 : type === 'credit' ? (cr < 20 ? 0 : (8000 + Math.max(0, netWorth(w)) * 0.12) * cr / 50) : type === 'stock' ? stockValue(w) * 0.4 : type === 'recv' ? w.recv.reduce((a, r) => a + r.amt, 0) * 0.8 : 30000 + w.eye * 1500 + Math.max(0, w.fame) * 2000; return Math.max(0, Math.round(cap - used)); }
-function borrow(w, type, amt) { amt = Math.round(amt); if (amt <= 0 || amt > loanRoom(w, type)) return { ok: false, msg: '借不了这么多。' }; w.fam.loans.push({ type, principal: amt, rate: LOANS[type].rate, day: w.day, due: w.day + LOAN_TERM }); w.cash += amt; w.flags.borrowed = true; w.log.push({ day: w.day, t: `${LOANS[type].name}借入`, amt }); return { ok: true, msg: `借到 ${fmt(amt)}，每天利息 ${fmt(amt * LOANS[type].rate)}，第 ${w.day + LOAN_TERM} 天到期。到期不还利息变三倍，再拖 ${LOAN_GRACE} 天清算。` }; }
+function borrow(w, type, amt) { amt = Math.round(amt); if (amt <= 0 || amt > loanRoom(w, type)) return { ok: false, msg: '借不了这么多。' }; w.fam.loans.push({ type, principal: amt, rate: LOANS[type].rate, day: w.day, due: w.day + LOAN_TERM }); w.cash += amt; w.flags.borrowed = true; if (type === 'shark') tend(w, 'wen', -2); w.log.push({ day: w.day, t: `${LOANS[type].name}借入`, amt }); return { ok: true, msg: `借到 ${fmt(amt)}，每天利息 ${fmt(amt * LOANS[type].rate)}，第 ${w.day + LOAN_TERM} 天到期。到期不还利息变三倍，再拖 ${LOAN_GRACE} 天清算。` }; }
 function loanOverdue(w, L) { return w.day > (L.due || L.day + LOAN_TERM); }
-function repay(w, i) { const L = w.fam.loans[i]; if (!L) return { ok: false, msg: '' }; if (w.cash < L.principal) return { ok: false, msg: '现金不够还这一笔。' }; w.cash -= L.principal; const late = loanOverdue(w, L); w.credit = clamp(creditOf(w) + (late ? 0 : 3), 0, 100); w.stat.repaid = (w.stat.repaid || 0) + 1; w.log.push({ day: w.day, t: `还清${LOANS[L.type].name}`, amt: -L.principal }); w.fam.loans.splice(i, 1); return { ok: true, msg: late ? '还清了。逾期还的，信用没涨。' : '按时还清，信用分 +3。' }; }
+function repay(w, i) { const L = w.fam.loans[i]; if (!L) return { ok: false, msg: '' }; if (w.cash < L.principal) return { ok: false, msg: '现金不够还这一笔。' }; w.cash -= L.principal; const late = loanOverdue(w, L); w.credit = clamp(creditOf(w) + (late ? 0 : 3), 0, 100); tend(w, 'wen', late ? 0 : 2); w.stat.repaid = (w.stat.repaid || 0) + 1; w.log.push({ day: w.day, t: `还清${LOANS[L.type].name}`, amt: -L.principal }); w.fam.loans.splice(i, 1); return { ok: true, msg: late ? '还清了。逾期还的，信用没涨。' : '按时还清，信用分 +3。' }; }
 // 清算：收走抵押物贱卖抵债，不够的从现金扣
 function liquidate(w, L, notes) { const f = w.fam; let owe = Math.round(L.principal * 1.1), got = 0, what = '';
   if (L.type === 'home' && f.home > 0) { got = HOMES[f.home].price * 0.6; what = `${HOMES[f.home].name}被收走拍卖，一家搬回工棚`; f.home = 0; f.har = clamp(f.har - 20, 0, 100); }
@@ -740,7 +740,7 @@ function liquidate(w, L, notes) { const f = w.fam; let owe = Math.round(L.princi
   else if (L.type === 'stock') { const its = w.items.filter(it => it.state === 'ready' || it.state === 'shelf').sort((a, b) => b.value - a.value); let n = 0; for (const it of its) { if (got >= owe) break; got += it.value * 0.4; it.state = 'sold'; it.price = Math.round(it.value * 0.4); n++; } for (const s of w.stones) { if (got >= owe || s.closed || s.client || s.proxy) continue; for (const p of s.pieces) if (!p.sold && got < owe) { const v = ((s.last[p.id] || {}).best || 0) * 0.4; got += v; p.sold = true; p.soldPrice = Math.round(v); p.buyer = '清算'; s.proceeds += Math.round(v); n++; } closeStone(w, s); } what = `${n} 件货被拉走贱卖`; }
   else if (L.type === 'recv') { let n = 0; w.recv = w.recv.filter(r => { if (got >= owe) return true; got += r.amt * 0.9; n++; return false; }); what = `${n} 笔应收款被转走`; }
   else what = L.type === 'shark' ? '放贷的人带着人上门，把屋里值钱的都搬了' : '银行起诉，账户被划扣';
-  const rest = Math.round(got - owe); w.cash += rest; w.credit = clamp(creditOf(w) - 25, 0, 100); w.fame -= L.type === 'shark' ? 6 : 3; w.stat.liquidated = (w.stat.liquidated || 0) + 1; w.log.push({ day: w.day, t: `${LOANS[L.type].name}清算`, amt: rest }); notes.push(`${LOANS[L.type].name}拖了太久，被清算：${what}。${rest >= 0 ? '抵完还剩 ' + fmt(rest) : '还不够，又从账上扣了 ' + fmt(-rest)}。信用分 −25`); }
+  const rest = Math.round(got - owe); w.cash += rest; tend(w, 'wen', -6); w.credit = clamp(creditOf(w) - 25, 0, 100); w.fame -= L.type === 'shark' ? 6 : 3; w.stat.liquidated = (w.stat.liquidated || 0) + 1; w.log.push({ day: w.day, t: `${LOANS[L.type].name}清算`, amt: rest }); notes.push(`${LOANS[L.type].name}拖了太久，被清算：${what}。${rest >= 0 ? '抵完还剩 ' + fmt(rest) : '还不够，又从账上扣了 ' + fmt(-rest)}。信用分 −25`); }
 function loanTick(w, notes) { const f = w.fam; for (const L of f.loans.slice()) { if (!L.due) L.due = L.day + LOAN_TERM; const od = w.day - L.due; if (od === 1) notes.push(`${LOANS[L.type].name} ${fmt(L.principal)} 到期没还：从今天起利息三倍，每天掉信用，${LOAN_GRACE} 天内不还就清算`); if (od > 0) w.credit = clamp(creditOf(w) - 1, 0, 100); if (od > LOAN_GRACE) { f.loans.splice(f.loans.indexOf(L), 1); liquidate(w, L, notes); } else if (od === -3) notes.push(`${LOANS[L.type].name} ${fmt(L.principal)} 还有 3 天到期`); } }
 function buyAsset(w, kind, lv) { const f = w.fam, T = kind === 'home' ? HOMES : CARS, cur = f[kind]; if (lv === cur) return { ok: false, msg: '' };
   const sell = T[cur].price * 0.8, debt = f.loans.filter(L => L.type === kind).reduce((a, L) => a + L.principal, 0), need = T[lv].price - sell + debt;
@@ -749,7 +749,7 @@ function buyAsset(w, kind, lv) { const f = w.fam, T = kind === 'home' ? HOMES : 
   if (kind === 'home' && lv >= 2) achieve(w, 'house', '有了自己的房子'); return { ok: true, msg: lv > cur ? `${kind === 'home' ? '搬进了' : '换成了'}${T[lv].name}。` : `卖掉换成${T[lv].name}，回笼 ${fmt(-need)}。` }; }
 function setSchool(w, i, id) { const k = w.fam.kids[i]; if (schoolsFor(k).indexOf(id) < 0) return { ok: false, msg: '这个年纪或成绩上不了。' }; k.school = id; k.away = !!SCHOOLS[id].away; if (k.away) k.job = 'none'; return { ok: true, msg: `${k.name}：${SCHOOLS[id].name}。` }; }
 function setJob(w, i, job) { const k = w.fam.kids[i]; if (k.months < 144 || k.away) return { ok: false, msg: '还太小，或者人不在家。' }; k.job = job; return { ok: true, msg: '' }; }
-function restDay(w) { w.fam.rested = w.day; w.fam.har = clamp(w.fam.har + 7, 0, 100); w.fam.hp = clamp(w.fam.hp + 5, 0, 100); }
+function restDay(w) { tend(w, 'jia', 2); w.fam.rested = w.day; w.fam.har = clamp(w.fam.har + 7, 0, 100); w.fam.hp = clamp(w.fam.hp + 5, 0, 100); }
 // 花钱培养：每个孩子每天一次。天分对路的长得快；练得太密孩子会累，效果减半还伤家和
 function trainKid(w, i, id) { const k = w.fam.kids[i], T = TRAIN[id]; if (!k || !T) return { ok: false, msg: '' }; if (k.away || k.withMom) return { ok: false, msg: '人不在身边。' }; if (k.months < 60) return { ok: false, msg: '还太小，五岁以后再说。' }; if (k.trained === w.day) return { ok: false, msg: `${k.name}今天已经练过了。` }; if (w.cash < T.cost) return { ok: false, msg: '现金不够。' };
   w.cash -= T.cost; w.log.push({ day: w.day, t: `培养${k.name}：${T.name}`, amt: -T.cost }); k.trained = w.day; k.tired = (k.tired || 0) + (id === 'sport' ? -1 : 1.5); const tired = k.tired > 4, r = new Rng(seedOf(w.seed, 'train', k.name, w.day));
@@ -767,10 +767,25 @@ function marry(w) { const f = w.fam; if (f.wife) return { ok: false, msg: '' }; 
   if (f.lover) { f.wife = f.lover.name; f.lover = null; for (const k of f.kids) if (k.out) { k.out = false; k.withMom = false; k.away = false; } } else f.wife = WIFE_NAMES.find(n => n !== f.ex) || '玉兰';
   for (const k of f.kids) if (!k.withMom && k.months > 36) k.t.moral = clamp(k.t.moral - 4, 0, 100); f.har = 68; return { ok: true, msg: `和${f.wife}结婚了。孩子们要花些时间适应。` }; }
 // 婚外情：每天花钱、掉家和，每天都有被发现的可能，名气越大越容易被人认出来
-function startAffair(w) { const f = w.fam; if (f.lover) return { ok: false, msg: '' }; f.lover = { name: LOVER_NAMES[(w.seed + w.day) % LOVER_NAMES.length], day: w.day, heat: 0 }; return { ok: true, msg: `你和${f.lover.name}走到了一起。每天多一笔开销，纸包不住火。` }; }
+function startAffair(w) { const f = w.fam; if (f.lover) return { ok: false, msg: '' }; tend(w, 'jia', -8); f.lover = { name: LOVER_NAMES[(w.seed + w.day) % LOVER_NAMES.length], day: w.day, heat: 0 }; return { ok: true, msg: `你和${f.lover.name}走到了一起。每天多一笔开销，纸包不住火。` }; }
 function endAffair(w) { const f = w.fam; if (!f.lover) return { ok: false, msg: '' }; if (w.cash < FAMC.breakup) return { ok: false, msg: `分手要给 ${fmt(FAMC.breakup)}，现金不够。` }; w.cash -= FAMC.breakup; w.log.push({ day: w.day, t: '分手费', amt: -FAMC.breakup }); const n = f.lover.name; f.lover = null; f.caught = false; return { ok: true, msg: `和${n}断了。` }; }
 // 家里的事：每天小概率来一件，要么花钱，要么花感情
 function lifeEvent(w) {
+  { const F = w.flags, T = '人生的坎';
+    // 第一幕 · 第一次打眼
+    if (!F.s_dayan && w.chapter >= 1 && (w.stones.some(s => s.closed && profitOf(s) < -500) || Object.keys(w.codex || {}).some(k => k.indexOf('fake:') === 0))) return { script: 'dayan', title: T, text: '打眼了。你把亏掉的数在心里算了三遍，越算越堵。收摊的时候牛叔叫住你，没提那块石头，只说：“来我屋里坐坐。”他从床底下拖出一个木箱，里面是一块染得发绿的砖头料，上面贴着发黄的纸条：一九九一年，三千二。“那年三千二，是我两年的工钱。”', opts: [
+      { label: '坐下来，听他把那块料讲完', eye: 3, tend: { wen: 3, yi: 1 }, hp: -1 }, { label: '“叔，借我五千，我明天就赢回来。”', gain: 5000, tend: { wen: -4 }, flag: 'niuLoan' }] };
+    // 第一幕终 · 父亲的信
+    if (!F.s_letter && w.chapter >= 2 && w.day >= 20 && !F.debt) return { script: 'letter', title: T, text: `老家来了一封信，是父亲的字，歪歪扭扭。当年他赌石头输掉的那笔债，债主找上门了，说再不还就去你厂里闹。信的最后一行：“爸对不住你。你别管，我去跟他们说。”可你知道他没什么可说的。欠条上的数是 ${fmt(debtOf(w))}，对方给了三十天。`, opts: [
+      { label: '先寄 5000 回去稳住，剩下的三十天内凑', cost: 5000, payDebt: 5000, flag: 'letter', tend: { jia: 2 }, har: 2 }, { label: '回信说知道了，三十天内想办法', flag: 'letter' }, { label: '把信压在箱底，先顾眼前的生意', flag: 'letter', tend: { jia: -3 }, har: -4 }] };
+    if (F.letter && !F.letterDone && w.day >= F.letter + 30) return F.debt
+      ? { script: 'letterEnd', title: T, text: '三十天到了。钱你已经寄回去，欠条父亲亲手烧了。他托人带话，只有一句：“你比我强。”阿秀那天多炒了两个菜。', opts: [{ label: '把那句话记在心里', flag: 'letterDone', tend: { jia: 3, yi: 2 }, har: 8, fame: 3 }] }
+      : { script: 'letterEnd', title: T, text: '三十天到了，钱没凑齐。债主真的去了厂里，在门口坐了一整天，厂里人人都知道了。父亲在电话那头哭了。债滚成了更大的数，下一个期限是又一个三十天。', opts: [{ label: '咬牙认下', flag: 'letterDone', debtX: 1.3, tend: { jia: -4, wen: -2 }, har: -15, fame: -8 }] };
+    if (F.letterDone && !F.debt && !F.s_letter2 && w.day >= F.letterDone + 30) return { script: 'letter2', title: T, text: '又一个三十天到了。债主这回带了人，把你铺盖卷扔到了工棚外头。阿秀抱着小宝站在门口，一句话没说。', opts: [{ label: '把手头值钱的都拿去抵', debtX: 1.2, tend: { jia: -5 }, har: -20, fame: -6, hp: -8 }] };
+    // 第一幕终 · 牛叔的本钱
+    if (!F.s_niu && w.chapter >= 3) return { script: 'niu', title: T, text: '你有了自己做货的本事。牛叔看着你新做出来的那件货，看了很久，说：“当初借你那一万二，你早就不欠我了。往后的路我没走过，帮不了你了。”他转身去收摊，背比去年又弯了一点。', opts: [
+      { label: '连本带利还他一万五，再包个红包（16000）', cost: 16000, tend: { yi: 5 }, fame: 3, flag: 'niuPaid' }, { label: '把本钱一万二还上（12000）', cost: 12000, tend: { yi: 1 }, flag: 'niuPaid' }, { label: '“叔，我周转紧，过阵子一起还。”', tend: { yi: -6 }, flag: 'niuOwe' }] };
+  }
   const f = w.fam, r = new Rng(seedOf(w.seed, 'life', w.day));
   if (f.cuck && f.cuck.known && !f.cuck.asked && f.wife) { const L = w.cash >= LAWYERS[1].fee * 2 ? 1 : 0; return { cuck: true, text: `你提前收摊回家，在巷口看见${f.wife}从一辆陌生的车上下来，和车里的人说了很久的话。回到家她没有否认。`, opts: [{ label: '为了孩子，原谅这一次', har: 18, hp: -6, act: 'forgive' }, { label: `离婚，孩子跟我${L ? '（请普通律师 20000，她有错在先，分得很少）' : '（她有错在先，少分）'}`, act: 'divorce1', lawyer: L }, { label: `离婚，孩子跟她${L ? '（请普通律师 20000）' : ''}`, act: 'divorce0', lawyer: L }] }; }
   if (f.caught && f.wife && f.lover) return { text: `${f.wife}翻到了你的手机，知道了${f.lover.name}的事。她把手机摔在桌上，孩子在里屋哭。`, opts: [{ label: `认错，和${f.lover.name}断干净（分手费 ${fmt(FAMC.breakup)}，再赔礼 20000）`, cost: FAMC.breakup + 20000, har: -25, act: 'endaffair' }, { label: '离婚，孩子跟我（分一半现金）', act: 'divorce1' }, { label: '离婚，孩子跟她（分一半现金，付抚养费）', act: 'divorce0' }] };
@@ -822,6 +837,7 @@ function lifeEvent(w) {
 }
 function applyEvent(w, ev, i) { const o = ev.opts[i], f = w.fam, r = new Rng(seedOf(w.seed, 'lifeopt', w.day, i)); let note = '';
   if (o.cost) { if (o.cost > w.cash) return { ok: false, msg: '现金不够。' }; w.cash -= o.cost; w.log.push({ day: w.day, t: '家里的事', amt: -o.cost }); }
+  if (o.har) tend(w, 'jia', o.har > 0 ? 1 : -1); if (o.tend) for (const k in o.tend) tend(w, k, o.tend[k]); if (o.flag) w.flags[o.flag] = w.day; if (ev.script) w.flags['s_' + ev.script] = w.day; if (o.debtX) w.debt = Math.round(debtOf(w) * o.debtX); if (o.payDebt) { w.debt = Math.max(0, debtOf(w) - o.payDebt); }
   if (o.har) f.har = clamp(f.har + o.har, 0, 100); if (o.hp) f.hp = clamp(f.hp + o.hp, 0, 100); if (o.fame) w.fame += o.fame; if (o.watch) w.watchLeft = Math.max(0, w.watchLeft + o.watch); if (o.rest) restDay(w); if (o.heat && f.lover) f.lover.heat = (f.lover.heat || 0) + o.heat;
   if (o.act === 'endaffair') { f.lover = null; f.caught = false; note = '她没再说什么，可这个家回不到从前了。'; } if (o.act === 'forgive' && f.cuck) { f.cuck = null; f.cuckDay = w.day; note = '日子还得过。只是有些东西不一样了。'; } if (o.act === 'divorce1' || o.act === 'divorce0') note = divorce(w, o.act === 'divorce1', o.lawyer || 0).msg;
   if (o.kid) { const k = f.kids[o.ki]; for (const t2 in o.kid) k.t[t2] = clamp(k.t[t2] + o.kid[t2], 0, 100); }
@@ -857,7 +873,27 @@ function lifeTick(w, notes) {
   if (f.hp < 25) notes.push('身体快撑不住了，该歇一天、吃好一点'); if (f.har < 25) notes.push('家里气氛很僵');
   return lc.total;
 }
-function payDebt(w) { if (w.flags.debt) return { ok: false, msg: '已经还清了。' }; if (w.cash < DEBT + 2000) return { ok: false, msg: '现金不够，还得留点周转。' }; w.cash -= DEBT; w.flags.debt = true; w.log.push({ day: w.day, t: '还清父亲的欠债', amt: -DEBT }); achieve(w, 'debt', '父债子还'); return { ok: true, msg: '欠条撕了。' }; }
+// 父亲的欠条：开局就欠着。第一幕结尾债主上门后有期限，过期没还会涨
+function debtOf(w) { if (w.debt == null) w.debt = 60000; return w.flags.debt ? 0 : w.debt; }
+function payDebt(w, part) { if (w.flags.debt) return { ok: false, msg: '已经还清了。' }; const amt = part ? Math.min(part, debtOf(w)) : debtOf(w); if (w.cash < amt) return { ok: false, msg: '现金不够。' }; w.cash -= amt; w.debt = debtOf(w) - amt; w.log.push({ day: w.day, t: part ? '还父亲的欠债（一部分）' : '还清父亲的欠债', amt: -amt }); tend(w, 'jia', part ? 1 : 3); if (w.debt <= 0) { w.flags.debt = true; achieve(w, 'debt', '父债子还'); return { ok: true, msg: '欠条撕了。你给老家打了个电话，父亲在那头半天没说话。' }; } return { ok: true, msg: `还了 ${fmt(amt)}，还欠 ${fmt(w.debt)}。` }; }
+// 三个看不见的倾向：稳、义、家。不显示数字，只从别人嘴里听到
+function tend(w, k, d) { const t = w.tend || (w.tend = { wen: 0, yi: 0, jia: 0 }); t[k] = clamp((t[k] || 0) + d, -40, 40); }
+function tendWords(w) { const t = w.tend || { wen: 0, yi: 0, jia: 0 }, o = []; o.push(t.wen >= 8 ? '行里说你是个稳当人' : t.wen <= -8 ? '行里说你胆子太大，迟早出事' : ''); o.push(t.yi >= 8 ? '都说你做生意厚道' : t.yi <= -8 ? '有人背后说你滑头' : ''); o.push(t.jia >= 8 ? '邻居说你顾家' : t.jia <= -8 ? '邻居说你不着家' : ''); return o.filter(Boolean); }
+function ageOf(w) { return 28 + Math.floor((w.day - 1) / 12); }
+function actOf(w) { return w.chapter <= 2 ? ['第一幕', '入行', '我能不能靠这个吃饭？'] : w.chapter <= 4 ? ['第二幕', '立业', '我要做多大？拿什么换？'] : ['第三幕', '传承', '这些东西最后留给谁？']; }
+// 这辈子的四条线，各 0–1
+function lifeLines(w) { const f = w.fam; return [['财富', clamp(Math.log10(Math.max(1e4, netWorth(w))) - 4, 0, 4) / 4], ['名声', clamp((w.fame + 10) / 110, 0, 1)], ['家庭', clamp((f.har / 100) * (f.wife ? 1 : 0.6), 0, 1)], ['传承', clamp(Math.max(0, ...f.kids.map(k => k.away || k.withMom ? 0.1 : Math.max(k.t.eye, k.t.craft, k.t.manage, k.t.talk) / 100 * (k.job && k.job !== 'none' ? 1.3 : 0.8))), 0, 1)]]; }
+// 今天可以做什么：按紧急程度给两三条
+function todayHints(w) { const o = [], left = dayHours(w) - hoursUsed(w);
+  for (const k of w.works) if (issueOf(w, k)) o.push(`师傅停工等你拿主意：${k.from}`);
+  for (const s of w.stones) if (s.proxy && !s.proxy.done) o.push(`替${s.proxy.who}代赌的料还没切，今天不切明早算你失信`);
+  for (const od of w.orders.filter(x => x.taken).sort((a, b) => a.due - b.due).slice(0, 1)) { const has = w.items.some(it => it.state === 'ready' && orderMatch(od, it)); o.push(has ? `${od.who}的货做好了，去成品盘交单` : `${od.who}的单还剩 ${od.due - w.day} 天`); }
+  if (w.flags.letter && !w.flags.debt && !w.flags.letterDone) o.push(`父亲的欠债 ${fmt(debtOf(w))}，第 ${w.flags.letter + 30} 天前要还上（在「家」里还）`);
+  for (const L of w.fam.loans) if ((L.due || 0) - w.day <= 3) o.push(`${LOANS[L.type].name} ${fmt(L.principal)} ${w.day > L.due ? '已经逾期' : '快到期了'}`);
+  if ((w.reqs || []).some(q => !q.on)) o.push('直播间有人找你，在货源页顶上');
+  if (w.fam.hp < 30) o.push('身体快撑不住了，歇一天，吃好一点'); if (w.fam.har < 30) o.push('家里气氛很僵，陪陪家人');
+  if (!o.length) o.push(w.chapter === 0 ? `去围观别人切石头，先猜再看（今天还能看 ${w.watchLeft} 块）` : left > 1 ? '到货源里上手看几块料，看准了再出价' : '时间差不多了，收工');
+  return o.slice(0, 3); }
 const ACH_ALL = [['win', '第一块赚钱的石头'], ['cutup', '第一刀切涨'], ['steal', '捡漏：净赚超过买价两倍'], ['bust', '交学费：一块亏掉六成以上'], ['sharp', '火眼金睛：种、色、裂全部判断对'], ['fake', '识破一块假货'], ['bid', '公盘中标'], ['bangle', '第一只手镯'], ['ice', '做出冰种以上的成品'], ['cab', '一粒满色蛋面'], ['big', '单件成品过十万'], ['order', '第一张客户订单'], ['keep', '第一件藏品'], ['shop', '有了自己的铺面'], ['tool', '第一件好工具'], ['live', '第一场直播'], ['fans1', '万粉博主'], ['fans10', '十万粉博主'], ['branch', '第一家分店'], ['hire', '第一名员工'], ['house', '有了自己的房子'], ['m1', '身家过百万'], ['m10', '身家过千万'], ['eye100', '眼力过百'], ['sold20', '卖出二十件货'], ['ten', '经手十块石头'], ['d30', '撑过第一个月']];
 const RANKS = [[0, '学徒'], [15, '跑摊的'], [40, '看货人'], [80, '行家'], [150, '掌眼师傅'], [260, '一代货主']];
 function rankOf(w) { let n = RANKS[0][1]; for (const r of RANKS) if (w.eye >= r[0]) n = r[1]; return n; }
@@ -934,7 +970,7 @@ function acceptOrder(w, id) { const o = w.orders.find(x => x.id === id); if (!o 
 function declineOrder(w, id) { w.orders = w.orders.filter(x => x.id !== id || x.taken); return { ok: true }; }
 function fillOrders(w) {
   for (const o of w.orders) if (o.taken === undefined) o.taken = true;
-  for (const o of w.orders) if (o.taken && o.due < w.day) { w.ordRep = clamp(ordRep(w) - 12, 0, 100); w.fame -= 2; w.stat.ordFail = (w.stat.ordFail || 0) + 1; w.news.push(`${o.who}的单没交上，他去别家了。接单口碑 −12`); }
+  for (const o of w.orders) if (o.taken && o.due < w.day) { w.ordRep = clamp(ordRep(w) - 12, 0, 100); tend(w, 'wen', -2); w.fame -= 2; w.stat.ordFail = (w.stat.ordFail || 0) + 1; w.news.push(`${o.who}的单没交上，他去别家了。接单口碑 −12`); }
   w.orders = w.orders.filter(o => o.due >= w.day);
   // 不是天天有单：名气、铺面、分店、接单口碑越高，上门订货的人越多
   const rep = ordRep(w), want = rep < 12 ? 1 : Math.min(6, 1 + Math.floor(rep / 25) + Math.min(2, w.shop || 0) + Math.min(1, w.branches || 0));
@@ -947,7 +983,7 @@ function fillOrders(w) {
 function orderMatch(o, it) { return it.type === o.type && it.w >= o.minW - 0.03 && (!o.color || it.lv > 0.25); }
 function orderText(o) { return `${o.who}要一${ROUTES[o.type].unit}${waterName(o.minW)}以上${o.color ? '带色' : ''}的${ROUTES[o.type].name}`; }
 function sellToOrder(w, it, o) {
-  const price = Math.round(it.value * (o.bonus + (w.fam.car >= 3 ? 0.05 : 0)) / 10) * 10; it.state = 'sold'; it.price = price; w.cash += price; w.orders = w.orders.filter(x => x !== o); w.eye += 3; w.ordRep = clamp(ordRep(w) + 6, 0, 100); w.stat.ordDone = (w.stat.ordDone || 0) + 1;
+  const price = Math.round(it.value * (o.bonus + (w.fam.car >= 3 ? 0.05 : 0)) / 10) * 10; it.state = 'sold'; it.price = price; w.cash += price; w.orders = w.orders.filter(x => x !== o); w.eye += 3; w.ordRep = clamp(ordRep(w) + 6, 0, 100); tend(w, 'wen', 1); w.stat.ordDone = (w.stat.ordDone || 0) + 1;
   w.log.push({ day: w.day, t: `${it.name} 交给${o.who}的订单`, amt: price }); achieve(w, 'order', '第一张客户订单');
   const s = w.stones.find(x => x.id === it.stone); if (s) { s.proceeds += price; if (!s.closed && stoneDone(w, s)) closeStone(w, s); }
   return price;
@@ -1130,7 +1166,7 @@ function saw(w, s, piece, planes) {
 function sell(w, s, piece, q) {
   { // 买家回去切了才知道你卖的料怎么样：过几天见分晓
     const qq = quotes(w, s, piece), fair = qq.truth * ECON.rough, r = new Rng(seedOf(w.seed, 'after', s.seed, piece.id)), ratio = q.price / Math.max(1, fair);
-    const fakeSold = s.fake && piece.id === 0 && !piece.planes.length && qq.stats.kAvg < 0.45;
+    const fakeSold = s.fake && piece.id === 0 && !piece.planes.length && qq.stats.kAvg < 0.45; if (fakeSold && (s.fakeKnown || s.exposed)) tend(w, 'yi', -5);
     w.after.push({ day: w.day + r.int(2, 4), buyer: q.buyer, kind: fakeSold ? 'fake' : ratio > 1.35 ? 'bust' : ratio < 0.8 ? 'boom' : 'ok', amt: q.price, stone: s.id });
   }
   w.stat.sold++;
@@ -1335,7 +1371,7 @@ function closeStone(w, s) {
 function nextDay(w) {
   const notes = []; w.news = [];
   for (const k in w.markets) for (const L of w.markets[k]) if (L.auction && L.bid && !L.sold) { const nm = `${L.origin}·${L.info.skin}`; w.cash += L.bid; if (L.bid >= L.top) { buy(w, L, L.bid); notes.push(`${nm} 中标，成交 ${fmt(L.bid)}（对手最高出到 ${fmt(L.top)}）`); achieve(w, 'bid', '公盘中标'); } else notes.push(`${nm} 未中标，中标价 ${fmt(L.top)}，标款退回`); }
-  { const ot = Math.max(0, hoursUsed(w) - dayHours(w)); if (ot >= 4.99) w.flags.lateMax = true; if (ot > 0) { w.fam.hp = clamp(w.fam.hp - 2 * ot, 0, 100); w.fam.har = clamp(w.fam.har - 0.6 * ot, 0, 100); notes.push(`昨晚熬了 ${ot.toFixed(1)} 个钟头，身体 −${(2 * ot).toFixed(0)}`); } else if (hoursUsed(w) < dayHours(w) - 3) w.fam.hp = clamp(w.fam.hp + 0.6, 0, 100); w.hrs = 0; w.lateOk = false; w.reqs = (w.reqs || []).filter(q => q.due > w.day); }
+  { const ot = Math.max(0, hoursUsed(w) - dayHours(w)); if (ot >= 4.99) w.flags.lateMax = true; if (ot > 0) { tend(w, 'wen', -0.5); tend(w, 'jia', -0.5); w.fam.hp = clamp(w.fam.hp - 2 * ot, 0, 100); w.fam.har = clamp(w.fam.har - 0.6 * ot, 0, 100); notes.push(`昨晚熬了 ${ot.toFixed(1)} 个钟头，身体 −${(2 * ot).toFixed(0)}`); } else if (hoursUsed(w) < dayHours(w) - 3) w.fam.hp = clamp(w.fam.hp + 0.6, 0, 100); w.hrs = 0; w.lateOk = false; w.reqs = (w.reqs || []).filter(q => q.due > w.day); }
   for (const cs of w.stones) if (cs.client && cs.client.done && !cs.closed) closeStone(w, cs);
   for (const cs of w.stones) if (cs.proxy && !cs.proxy.done) { const r0 = proxySettle(w, cs, true); if (r0.ok) notes.push(r0.msg); }
   for (const cs of w.stones) if (cs.client && !cs.client.done && !cs.closed && cs.client.due < w.day + 1 && !w.works.some(k => k.stone === cs.id)) { cs.client.done = true; w.fame -= 4; w.fans = Math.max(0, w.fans - 300); for (const p of cs.pieces) if (!p.sold) { p.sold = true; p.soldPrice = 0; p.buyer = cs.client.who; } notes.push(`${cs.client.who}的料到期没做出来，他把料要了回去，在直播间说了你几句。口碑 −4`); closeStone(w, cs); }
@@ -1365,6 +1401,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, QUESTS, questsActive, checkQuests, creditOf, creditWord, stockValue, loanOverdue, LOAN_TERM, LOAN_GRACE, premiumPrice, dayHours, hoursUsed, spendTime, doLiveReq, proxyBuy, proxySettle, appraiseAnswer, ringAt, TMPL, minDays, RUSH, ordRep, orderCap, orderWord, acceptOrder, declineOrder, BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, debtOf, payDebt, tend, tendWords, ageOf, actOf, lifeLines, todayHints, QUESTS, questsActive, checkQuests, creditOf, creditWord, stockValue, loanOverdue, LOAN_TERM, LOAN_GRACE, premiumPrice, dayHours, hoursUsed, spendTime, doLiveReq, proxyBuy, proxySettle, appraiseAnswer, ringAt, TMPL, minDays, RUSH, ordRep, orderCap, orderWord, acceptOrder, declineOrder, BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);
