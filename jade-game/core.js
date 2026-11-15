@@ -94,7 +94,7 @@ const BUYERS = {
   '私人藏家': { skill: 0.43, risk: 0.36, margin: 0.08, opt: 1.05, cash: 500000, days: 2, pref: '色' },
   '急收商人': { skill: 0.62, risk: 0.82, margin: 0.28, opt: 0.80, cash: 120000, days: 0, pref: '周转' },
 };
-const TOOLS = { '细磨头': { r: 4, bite: 1.0 }, '中磨头': { r: 7, bite: 1.5 }, '粗磨头': { r: 12, bite: 2.2 } };
+const TOOLS = { '细磨头': { r: 4, bite: 0.7 }, '中磨头': { r: 7, bite: 1.0 }, '粗磨头': { r: 12, bite: 1.5 } };
 const ECON = { startCash: 8000, daily: 300, base: 16.7, yield: 0.3, braceletBonus: 4, rough: 0.6, pressFail: 0.05, grind: 0.06, cutBase: 80, cutArea: 0.015, kerf: 1.2, density: 3.33, priorScale: 0.8 };
 // 相对无色手镯零售价：豆 0.1 万、糯 0.5 万、糯冰 3 万、冰 15 万、高冰 40 万、玻璃 90 万（见 research/value-chain.md）
 const WATER_ANCHORS = [[0.10, 1], [0.25, 5], [0.45, 30], [0.65, 150], [0.82, 400], [0.95, 900]];
@@ -555,10 +555,11 @@ const SCENES = {
 const SHOP = {
   torch: { name: '手电', levels: ['普通手电', '强光手电', '超强探照灯'], price: [8000, 45000], tip: '光更强，照得更深更远，厚皮黑皮也能打进一点。' },
   loupe: { name: '放大镜', levels: ['3 倍放大镜', '5 倍放大镜', '8 倍放大镜'], price: [4000, 20000], tip: '放得更大，砂粒、细裂、晶粒看得更清。' },
+  grind: { name: '打磨机', levels: ['旧磨机', '调速打磨机', '水磨精修机'], price: [6000, 30000], tip: '每一下磨得更浅（约为原来的六成、三成半），开窗不容易磨过头；水磨精修机还会在刚见肉的地方自动收手。' },
   saw: { name: '锯机', levels: ['旧锯机', '薄片锯', '线切割机'], price: [12000, 60000], tip: '锯缝更窄（1.2 → 0.8 → 0.5 毫米），切工更便宜，少吃料。' },
 };
-const KERFS = [1.2, 0.8, 0.5], CUTK = [1, 0.85, 0.7];
-function applyTools(w) { if (!w.tools) w.tools = { torch: 1, loupe: 1, saw: 1 }; ECON.kerf = KERFS[w.tools.saw - 1]; ECON.cutBase = Math.round(80 * CUTK[w.tools.saw - 1]); }
+const GRINDK = [1, 0.6, 0.35], KERFS = [1.2, 0.8, 0.5], CUTK = [1, 0.85, 0.7];
+function applyTools(w) { if (!w.tools) w.tools = { torch: 1, loupe: 1, saw: 1 }; if (!w.tools.grind) w.tools.grind = 1; ECON.kerf = KERFS[w.tools.saw - 1]; ECON.cutBase = Math.round(80 * CUTK[w.tools.saw - 1]); }
 function buyTool(w, key) { const S = SHOP[key], lv = w.tools[key]; if (lv >= S.levels.length) return { ok: false, msg: '已经是最高级了。' }; const p = S.price[lv - 1]; if (p > w.cash) return { ok: false, msg: '现金不够。' }; w.cash -= p; w.tools[key]++; applyTools(w); w.log.push({ day: w.day, t: `添置 ${S.levels[lv]}`, amt: -p }); achieve(w, 'tool', '第一件好工具'); return { ok: true, msg: `换上了${S.levels[lv]}。` }; }
 // 请师傅掌眼：付费买一个有可能出错的意见。同一块石头问几次都是同一个答案
 function appraiseFee(rec) { return Math.max(200, Math.round((rec.ask || rec.buyPrice || 20000) * 0.01 / 10) * 10); }
@@ -867,7 +868,7 @@ function placeBid(w, L, amount) {
   if (amount - old > w.cash) return { ok: false, msg: '现金不够押这个标。' };
   w.cash += old - amount; L.bid = amount; return { ok: true, msg: `已投标 ${fmt(amount)}，标款先押着，收工后开标。` };
 }
-function newWorld(seed) { const w = { v: 11, seed, day: 1, cash: ECON.startCash, recv: [], stones: [], works: [], items: [], market: [], markets: {}, scene: '夜市地摊', eye: 0, orders: [], ach: {}, news: [], log: [], nextId: 1, over: false, tools: { torch: 1, loupe: 1, saw: 1 }, event: null, rel: {}, fame: 0, after: [], shop: 0, fam: newFamily(seed), chapter: 0, flags: {}, stat: { sold: 0, watch: 0, tips: 0, wins: 0, cuts: 0, shelfSold: 0, live: 0, liveIncome: 0 }, watchLeft: 3, fans: 0, liveDay: 0, cutDay: 0, branches: 0, staff: { clerk: 0, master: 0, host: 0 } }; applyTools(w); genMarket(w); fillOrders(w); rollEvent(w); return w; }
+function newWorld(seed) { const w = { v: 11, seed, day: 1, cash: ECON.startCash, recv: [], stones: [], works: [], items: [], market: [], markets: {}, scene: '夜市地摊', eye: 0, orders: [], ach: {}, news: [], log: [], nextId: 1, over: false, tools: { torch: 1, loupe: 1, saw: 1, grind: 1 }, event: null, rel: {}, fame: 0, after: [], shop: 0, fam: newFamily(seed), chapter: 0, flags: {}, stat: { sold: 0, watch: 0, tips: 0, wins: 0, cuts: 0, shelfSold: 0, live: 0, liveIncome: 0 }, watchLeft: 3, fans: 0, liveDay: 0, cutDay: 0, branches: 0, staff: { clerk: 0, master: 0, host: 0 } }; applyTools(w); genMarket(w); fillOrders(w); rollEvent(w); return w; }
 function sellerWindow(st, vol, r) {
   let best = null; const o = [0, 0, 0, 0], grade = HUES[st.hue].grade;
   for (let i = 0; i < 60; i++) {
@@ -960,8 +961,9 @@ function explain(a, b) {
 function clipPiece(c) { return !c ? { planes: [] } : Array.isArray(c) ? { planes: c } : { planes: c.planes, holes: c.holes }; }
 function clipIndex(s, piece) { const key = JSON.stringify({ planes: piece.planes, holes: piece.holes || [] }); for (let i = 0; i < s.clips.length; i++) if (JSON.stringify(Array.isArray(s.clips[i]) ? { planes: s.clips[i], holes: [] } : s.clips[i]) === key) return i; s.clips.push(JSON.parse(key)); return s.clips.length - 1; }
 function grind(w, s, piece, p, n, toolName) {
-  const T = TOOLS[toolName], e = getVol(s);
-  const c = [p[0] + n[0] * (T.r - T.bite), p[1] + n[1] * (T.r - T.bite), p[2] + n[2] * (T.r - T.bite)].map(v => Math.round(v * 10) / 10);
+  const T = TOOLS[toolName], e = getVol(s), lv = (w.tools && w.tools.grind) || 1; let bite = T.bite * GRINDK[lv - 1];
+  if (lv >= 3) { const left = sampleG(e.vol, 2, p[0], p[1], p[2]) + sampleG(e.vol, 0, p[0], p[1], p[2]); if (left > 0.05) bite = Math.min(bite, left + 0.3); }   // 水磨精修：还有皮的地方，最多磨到刚见肉
+  const c = [p[0] + n[0] * (T.r - bite), p[1] + n[1] * (T.r - bite), p[2] + n[2] * (T.r - bite)].map(v => Math.round(v * 10) / 10);
   s.strokes.push(c[0], c[1], c[2], T.r, clipIndex(s, piece));
   const res = carve(e.vol, piece, c[0], c[1], c[2], T.r); e.applied = s.strokes.length;
   const cost = res.removed * ECON.grind; s.costs += cost; w.cash -= cost;
