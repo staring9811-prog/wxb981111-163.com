@@ -1106,21 +1106,22 @@ function cabGame(w, s, piece) {
   return { sizes: CAB_SIZES, mults: CAB_MULT, max, risks, rolls, hint: base < 0.14 ? '料很干净，可以大胆放。' : base < 0.3 ? '有点棉和小纹，放大要掂量。' : '裂和脏不少，贪大容易伤。' };
 }
 // 在片料上画一个圈口：圈压在片的正中厚度上，外径 72、内径 56。只看得见的裂会拦你，看不见的要压出来才知道
-function ringAt(s, piece, c) {
-  const e = getVol(s), st = e.st, vol = e.vol, slab = slabOf(piece); if (!slab || slab.T < 9.5) return { ok: false, msg: '手镯要先切成片：两刀平行、片厚至少 10 毫米。' };
+function ringAt(s, piece, c, kind) {
+  const plate = kind === 'plate', e = getVol(s), st = e.st, vol = e.vol, slab = slabOf(piece); if (!slab || slab.T < (plate ? 6 : 9.5)) return { ok: false, msg: plate ? '牌子要先切成片：两刀平行、片厚至少 6 毫米。' : '手镯要先切成片：两刀平行、片厚至少 10 毫米。' };
   const ev = evalPiece(st, vol, piece), n = slab.n, t1 = norm3(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), t2 = cross(n, t1), mid = (slab.hi + slab.lo) / 2, off = dot(c, n) - mid, c0 = [c[0] - n[0] * off, c[1] - n[1] * off, c[2] - n[2] * off], g = vol.geom, m = vol.mat, grade = HUES[st.hue].grade, cg = [0, 0];
-  let flesh = true, known = false, any = false, sv = 0, sk = 0, cnt = 0;
-  for (let q = 0; q < 24; q++) { const ca = Math.cos(q * TAU / 24), sa = Math.sin(q * TAU / 24); for (const rr of [29, 35]) for (const hh of [-3.5, 3.5]) {
-    const x = c0[0] + (t1[0] * ca + t2[0] * sa) * rr + n[0] * hh, y = c0[1] + (t1[1] * ca + t2[1] * sa) * rr + n[1] * hh, z = c0[2] + (t1[2] * ca + t2[2] * sa) * rr + n[2] * hh;
+  let flesh = true, known = false, any = false, sv = 0, sk = 0, cnt = 0, colN = 0; const pts = [];
+  if (plate) { for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) for (const hh of [-2.5, 2.5]) pts.push([i * 9.5, j * 6.5, hh]); } else for (let q = 0; q < 24; q++) { const ca = Math.cos(q * TAU / 24), sa = Math.sin(q * TAU / 24); for (const rr of [29, 35]) for (const hh of [-3.5, 3.5]) pts.push([ca * rr, sa * rr, hh]); }
+  { for (const [pa, pb, hh] of pts) {
+    const x = c0[0] + t1[0] * pa + t2[0] * pb + n[0] * hh, y = c0[1] + t1[1] * pa + t2[1] * pb + n[1] * hh, z = c0[2] + t1[2] * pa + t2[2] * pb + n[2] * hh;
     if (Math.abs(x) >= vol.hx || Math.abs(y) >= vol.hy || Math.abs(z) >= vol.hz || planeD(piece, x, y, z) > 0) { flesh = false; continue; } const b = vIndex(vol, x, y, z) * 4; if (!(g[b + 1] < 0 && -g[b] > g[b + 2])) { flesh = false; continue; }
     for (let ci = 0; ci < st.cracks.length; ci++) { const k = st.cracks[ci]; if (k.open <= 0.5) continue; crackG(k, x, y, z, cg); if (Math.abs(cg[0]) < 2.2 && cg[1] > 0.5) { any = true; if (ev.known[ci]) known = true; } }
-    sv += vd(m[b + 1] / 255, m[b] / 255, m[b + 2] / 255, m[b + 3] / 255, grade); sk += ev.kAt(x, y, z); cnt++; } }
-  return { ok: flesh && !known, msg: !flesh ? '这一圈有地方出了料，或者压到了皮。往里挪一挪。' : known ? '这一圈压在看得见的裂上，压出来就是断的。' : '', flesh, any, c: c0, n, v: cnt ? sv / cnt * ev.ringVol : 0, k: cnt ? sk / cnt : 0 };
+    sv += vd(m[b + 1] / 255, m[b] / 255, m[b + 2] / 255, m[b + 3] / 255, grade); const kk = ev.kAt(x, y, z); sk += kk; if (m[b] / 255 > 0.25 && kk > 0.5) colN++; cnt++; } }
+  return { ok: flesh && !known, msg: !flesh ? '图纸有地方出了料，或者压到了皮。往里挪一挪。' : known ? '图纸压在看得见的裂上。可以挪开，也可以打开「强行放」赌师傅能避开。' : '', flesh, known, any, c: c0, n, t1, t2, vd: cnt ? sv / cnt : 0, v: cnt ? sv / cnt * ev.ringVol : 0, k: cnt ? sk / cnt : 0, col: cnt ? colN / cnt : 0 };
 }
 function workPlan(w, s, piece, route, masterName, theme, opts) {
   const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), tp = ev.truthParts, M = masterOf(w, masterName), R = ROUTES[route];
   const rv = routeValue(w, tp, ev.stats.bracelets, route, masterName, theme), warn = [];
-  const myRings = route === 'bracelet' && opts && opts.rings && opts.rings.length ? opts.rings.length : 0;
+  const myRings = route === 'bracelet' && opts && opts.rings && opts.rings.length ? opts.rings.length : route === 'pendant' && opts && opts.plates && opts.plates.length ? opts.plates.length : 0;
   if (route === 'bracelet' && !ev.stats.bracelets && !myRings) { const sl = slabOf(piece); warn.push(!sl ? '手镯是从片料上压出来的。这块还是整料，师傅只会顺着三个正方向试着排，排不下不等于没有：先用大锯切出一片（两刀平行，片厚至少 10 毫米），再在片上自己画圈口。' : sl.T < 9.5 ? `这片只有 ${sl.T.toFixed(0)} 毫米厚，手镯至少要 10 毫米。` : '师傅没排出完整的手镯位（片不够大，或者被看得见的裂切断）。你可以自己在片上画圈口试试。'); }
   if (route === 'cab' && rv.n === 0) warn.push('没有够浓的色，出不了蛋面。');
   if (ev.stats.kAvg < 0.5) warn.push('这块料大部分还没看清，师傅只能边做边看，结果可能和预想差很多。');
@@ -1136,8 +1137,10 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
   const wn = waterName(tp.wMean), lvOf = () => clamp(tp.colorFrac * 1.6 * r.range(0.3, 1.7), 0, 1);
   const rv = routeValue(w, tp, tp.rings.length, route, masterName, theme); if (route === 'cab' && opts && opts.cabMult) rv.total *= opts.cabMult; rv.total *= (1 + 0.15 * famEff(w, 'carver')) * (skillsOf(w).layout >= 3 ? 1.06 : 1);
   let lost = 0;
-  if (route === 'bracelet') {
-    let ringVals = tp.rings, cracked = 0; if (opts && opts.rings && opts.rings.length) { ringVals = []; for (const c of opts.rings) { const ra = ringAt(s, piece, c); if (!ra.flesh || ra.any) { cracked++; continue; } ringVals.push(ra.v); } }
+  if (route === 'pendant' && opts && opts.plates && opts.plates.length) {
+    const nm = theme === '师傅定' ? '挂件' : theme; for (const o of opts.plates) { const ra = ringAt(s, piece, o.c || o, 'plate'); if (!ra.flesh) { lost++; continue; } let v = ra.vd * 7.9 * 0.9 * rv.craft * rv.fit; if (ra.any) v *= r.chance(0.25 + 0.6 * M.dodge) ? 0.8 : 0.3; mk('pendant', `${wn}${nm}`, v, clamp(ra.col * 1.6, 0, 1)); }
+  } else if (route === 'bracelet') {
+    let ringVals = tp.rings, cracked = 0; if (opts && opts.rings && opts.rings.length) { ringVals = []; for (const o of opts.rings) { const ra = ringAt(s, piece, o.c || o); if (!ra.flesh) { cracked++; continue; } if (ra.any) { if (r.chance(o.forced ? 0.12 + 0.42 * M.dodge : 0.05 + 0.30 * M.dodge)) ringVals.push(ra.v * 0.6); else cracked++; continue; } ringVals.push(ra.v); } }   // 压到裂：师傅避裂的本事决定能不能救回来，救回来也是带纹的
     lost += cracked;
     for (const v of ringVals) { if (r.chance(M.press)) { lost++; continue; } mk('bracelet', `${wn}手镯`, v * 1.1 * rv.craft, lvOf()); }
     if (tp.Vclean * 0.12 > 50) mk('pendant', '镯芯与边角小件', tp.Vclean * 0.12 * rv.craft, lvOf());
