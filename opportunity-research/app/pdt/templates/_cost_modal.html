@@ -1,0 +1,29 @@
+{# 费用评估确认弹窗 CMP-F16-01。用法：页面 include 本片段；按钮加 data-cost-kind / data-cost-month / data-cost-target / data-cost-params，
+   点击后先 POST /jobs/estimate，再弹出本窗；“确认并开始”后 POST /jobs/{id}/confirm，并触发 window 事件 pdt:job-started。 #}
+<div class="modal" id="cmp-f16-01" role="dialog" aria-modal="true" aria-labelledby="cmp-t" aria-hidden="true" data-component="CMP-F16-01">
+  <div class="modal__dialog">
+    <div class="modal__head">
+      <div><h2 class="modal__title" id="cmp-t">确认费用后开始</h2><p class="modal__sub" data-cost="label"></p></div>
+      <button class="btn btn--ghost btn--icon" type="button" data-close aria-label="关闭"><svg class="icon"><use href="#ph-x"/></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="est">
+        <div class="stat"><div class="stat__label">预计调用量</div><div class="stat__value num" data-cost="calls"></div><div class="stat__meta" data-cost="note"></div></div>
+        <div class="stat"><div class="stat__label">预计费用</div><div class="stat__value num" data-cost="usd"></div><div class="stat__meta"><span class="etag">估算</span></div></div>
+        <div class="stat"><div class="stat__label">预计耗时</div><div class="stat__value num" data-cost="minutes"></div><div class="stat__meta">可中断，续跑不重复计费</div></div>
+      </div>
+      <dl class="kv" data-cost="usage"></dl>
+      <div class="banner banner--warn" data-cost="warn" hidden style="margin-top: var(--space-4);">
+        <svg class="icon"><use href="#ph-warning"/></svg>
+        <div class="banner__body"><div class="banner__title">预计超过本月上限</div><div class="small" data-cost="warntext"></div></div>
+        <div class="banner__actions"><a class="btn btn--sm" href="/settings/budget">调整上限</a></div>
+      </div>
+      <div class="banner banner--block" data-cost="error" hidden style="margin-top: var(--space-4);"><svg class="icon"><use href="#ph-warning-octagon"/></svg><div class="banner__body" data-cost="errortext"></div></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn" type="button" data-cost-cancel>取消</button>
+      <button class="btn btn--primary" type="button" data-cost-ok><svg class="icon"><use href="#ph-play"/></svg><span>确认并开始</span></button>
+    </div>
+  </div>
+</div>
+<script src="/static/costgate.js"></script>

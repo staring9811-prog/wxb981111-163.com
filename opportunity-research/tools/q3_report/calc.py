@@ -19,6 +19,11 @@ def band(p):
 dims=['尺寸段','形态','装','主色','柜体材质','台面材质','元素','价位']
 import csv as _csv0
 _DM={'拆装':'装','尺寸':'尺寸段','台面':'台面材质','柜体':'柜体材质','价格带':'价位'}
+import os as _os
+_PDP=json.load(open('amz_pdp_tags.json',encoding='utf-8')) if _os.path.exists('amz_pdp_tags.json') else {}
+def _bandw(w):
+    return next((bb for lo,hi,bb in [(15,21,'18″'),(21,26,'24″'),(26,29,'28″'),(29,33,'30″'),(33,39,'36″'),(39,45,'42″'),(45,54,'48″'),(54,66,'60″'),(66,999,'72″+')] if lo<=w<hi),None)
+_PDPB={a:{'陶瓷':'陶瓷','树脂':'树脂','CM':'Cultured Marble'}[p['basin']] for a,p in _PDP.items() if p.get('basin') in ('陶瓷','树脂','CM') and not (p.get('width') and _bandw(p['width']) and AMZW.get(a) and _bandw(p['width'])!=AMZW.get(a))}
 _OVA={(r['商品ID'],_DM.get(r['属性'],r['属性'])):r['改成'] for r in _csv0.DictReader(open('tag_override.csv',encoding='utf-8')) if r['渠道']=='amazon'}
 share=C.defaultdict(lambda:C.defaultdict(C.Counter))  # dim->month->value
 for i,m,u,p in snap:
@@ -29,8 +34,29 @@ for i,m,u,p in snap:
             _sz=AMZW.get(i) or tg.get('尺寸段','')
             if p>={'18″':400,'24″':500,'28″':800,'30″':800,'36″':1000,'42″':1200,'48″':1200,'60″':1500,'72″+':1500}.get(_sz,1e9): v='整装'
             elif p<{'18″':300,'24″':300,'28″':300,'30″':400,'36″':400,'42″':500,'48″':500,'60″':500,'72″+':500}.get(_sz,0): v='拆装'
+            _pa_=(_PDP.get(i) or {}).get('asm')
+            if _pa_: v=_pa_   # 商品页写明的按页面（与 calc3 一致）
+            elif v=='拆装':   # 石材台面价格线（与 calc3 一致）
+                _tv=tg.get('台面材质') or '未标'
+                if _tv in ('陶瓷','树脂','未标') and i in _PDPB: _tv=_PDPB[i]
+                if _tv in ('未标',''): _tv=(_PDP.get(i) or {}).get('top') or _tv
+                _tv=_OVA.get((i,'台面材质'),_tv)
+                _ln={'18″':450,'24″':450,'28″':500,'30″':500,'36″':550,'42″':700,'48″':700,'60″':1000,'72″+':1200}.get(_sz)
+                if _tv in ('石英石','岗石','卡拉拉大理石','岩板') and _ln and p>=_ln: v='整装'
+        if d=='台面材质' and (v or '未标') in ('陶瓷','树脂','未标') and i in _PDPB: v=_PDPB[i]   # 商品页明确写了的按页面
+        elif d=='台面材质' and p and (v or '未标') in ('陶瓷','未标'):   # 大尺寸树脂盆规则（只对页面没写的；与 calc3 一致）
+            _sz=AMZW.get(i) or tg.get('尺寸段','')
+            _k=tg.get('装')
+            if p>={'18″':400,'24″':500,'28″':800,'30″':800,'36″':1000,'42″':1200,'48″':1200,'60″':1500,'72″+':1500}.get(_sz,1e9): _k='整装'
+            elif p<{'18″':300,'24″':300,'28″':300,'30″':400,'36″':400,'42″':500,'48″':500,'60″':500,'72″+':500}.get(_sz,0): _k='拆装'
+            if _k=='拆装' and p<{'48″':700,'60″':1000,'72″+':900}.get(_sz,0): v='树脂'
+        if not v or v=='未标':   # 原来没标的，用商品页补（与 calc3 一致）
+            _pp=_PDP.get(i) or {}
+            v={'台面材质':_pp.get('top'),'柜体材质':{'实木':'实木框架','实木框架':'实木框架','MDF':'MDF','人造板（未细分）':'MDF','含刨花板':'含刨花板','含胶合板':'含胶合板'}.get(_pp.get('cab')),'主色':_pp.get('color'),'元素':_pp.get('elem')}.get(d) or v
+        if d=='柜体材质' and v=='实木': v='实木框架'
+        if d=='形态' and v=='落地式' and (_PDP.get(i) or {}).get('struct')=='开放式': v='开放式'   # 与 calc3 一致
         if (i,d) in _OVA: v=_OVA[(i,d)]
-        if d=='元素' and v: v=v.split('|')[0].split('+')[-1] if v.startswith('纯色+') else v.split('+')[0] if v.startswith('夏克式+') else v
+        if d=='元素' and v: v=v.split('|')[0]   # 组合元素单独成行（与 calc3 一致）
         share[d][m][v or '未标']+=u
 out['amz_share']={d:{m:dict(cn) for m,cn in ms.items()} for d,ms in share.items()}
 # channels 2026-01..10

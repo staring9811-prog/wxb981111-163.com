@@ -1,0 +1,16 @@
+{# 拉取 / 续拉记录（第 1 次 / 续拉），供 PAGE-F17-01 #}
+<div class="table-wrap table-wrap--flush">
+  <table class="table">
+    <thead><tr><th>次序</th><th>发起</th><th class="t-num">拉取</th><th>结束</th><th class="t-num">计费</th></tr></thead>
+    <tbody>
+    {% for sg in segs %}
+      <tr><td>第 {{ loop.index }} 次{% if not loop.first %} · 续拉{% endif %}</td><td class="num">{{ sg.start }}</td><td class="t-num">{{ sg.rows|num }}<div class="cell-sub">{{ sg.pages }} 页 · {{ sg.calls }} 次调用</div></td>
+        <td>{% if sg.reason == '完成' %}<span class="badge badge--ok"><svg class="icon"><use href="#ph-check-circle"/></svg>完成</span>{% else %}<span class="badge badge--warn"><svg class="icon"><use href="#ph-warning"/></svg>{{ sg.reason or '进行中' }}</span>{% endif %}<div class="cell-sub">{{ sg.end }}</div></td>
+        <td class="t-num">${{ '%.2f'|format(sg.usd or 0) }}</td></tr>
+    {% else %}
+      <tr><td colspan="5" class="muted small">没有拉取记录（本批来自上传或导入）。</td></tr>
+    {% endfor %}
+    </tbody>
+    {% if segs %}<tfoot><tr><td colspan="2" class="small muted" style="padding: var(--space-2) var(--space-3);">合计 · 已拉部分未重复调用</td><td class="t-num strong" style="padding: var(--space-2) var(--space-3);">{{ segs|sum(attribute='rows')|num }}</td><td></td><td class="t-num strong" style="padding: var(--space-2) var(--space-3);">${{ '%.2f'|format(segs|sum(attribute='usd')) }}</td></tr></tfoot>{% endif %}
+  </table>
+</div>

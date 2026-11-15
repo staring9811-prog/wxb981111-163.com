@@ -1,0 +1,39 @@
+/* 品类机会判定台 · 对原型 app.css 的补充（原型文件不改，这里只放运行系统需要的修正） */
+
+/* ── 侧栏：固定视口高度；品牌区与底部不压缩，中间菜单单独滚动（DESIGN-02） ── */
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 21;
+  width: var(--sidebar-w); height: 100vh;
+  overflow: hidden;
+}
+.app.is-collapsed .sidebar { width: var(--sidebar-w-collapsed); }
+.main { grid-column: 2; }
+.sidebar__brand, .sidebar__foot { flex: none; }
+.sidebar .nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* 证据小标签浮层未打开时不占页面末尾（否则页面多出一截可滚动的空白） */
+.popover { top: 0; left: 0; }
+
+@media (max-width: 1279px) {
+  .sidebar { width: var(--sidebar-w-collapsed); }
+}
+@media (max-width: 767px) {
+  .sidebar, .app.is-collapsed .sidebar { position: static; width: auto; height: auto; overflow-x: auto; }
+  .sidebar .nav { overflow-y: visible; }
+}
+
+/* ── 锚点跳到区块标题时不被吸顶的顶栏遮住（如其他渠道数据 #t-est 切换估算对照页签） ── */
+.section__title[id], .panel__title[id] { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+
+/* ── 费用评估确认弹窗 CMP-F16-01 的三格估算：所有页面共用（原来只在预算页的页面样式里定义，决策卡等页面上会堆成一列） ── */
+.est { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-4) 0; }
+.est .stat { padding: var(--space-3) var(--space-4); }
+.est .stat__value { font-size: var(--text-xl); }
+@media (max-width: 767px) { .est { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── 侧栏：操作者菜单 16 项 + 5 个分组，在 1440×900 下要全部可见（DESIGN-02 / 18）：收紧分组间距与行高 ── */
+.sidebar .nav { padding-top: var(--space-1); padding-bottom: var(--space-2); }
+.sidebar .nav__group { margin: var(--space-3) var(--space-3) 2px; }
+.sidebar .nav__item { min-height: 32px; }
+
+/* 已批准决策卡：分渠道并排表的"快照"标记统一放在表上方说明里，单元格内不再逐个显示，避免表格横向溢出（DESIGN-12） */
+#chan-table .etag--snap { display: none; }

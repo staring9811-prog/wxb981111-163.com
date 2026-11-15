@@ -1,0 +1,317 @@
+{
+  "state_schema_version": 1,
+  "project_name": "opportunity-research",
+  "project_started_at_utc": "2026-10-26T12:02:40Z",
+  "last_updated_at_utc": "2026-11-04T12:00:00Z",
+  "work_type": "feature",
+  "workflow_mode": "standard",
+  "delivery_target": "tdd",
+  "upstream": {
+    "solution": "output/解题方案书.md（第二轮，2026-11-03）",
+    "solution_state": "solution-v2/state.json",
+    "confirmed": "wen 2026-11-03「继续写解题方案书，然后进 PRD」"
+  },
+  "stage_confirmations": {
+    "stage1_shared_understanding": {
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-11-03T05:40:08Z",
+      "source": "wen：对，开始写 PRD（场景锚点第二轮 V1）"
+    },
+    "stage4_5_v1": {
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-11-03T05:44:18Z",
+      "source": "方案即场景锚点 V1（wen 2026-11-03 确认\"对，开始写 PRD\"），无新增业务取舍"
+    },
+    "stage4_6_mvp": {
+      "status": "confirmed",
+      "confirmed_at_utc": "2026-11-03T05:59:14Z",
+      "source": "wen 2026-11-03：第一版全做（F15–F27）+ 追加其他渠道（F28、F29），只做浴室柜"
+    }
+  },
+  "contract_revision": 9,
+  "source_ids_changed": [
+    "F30",
+    "US-F30-01",
+    "REQ-F30-01",
+    "REQ-F30-02",
+    "REQ-F30-03",
+    "REQ-F30-04",
+    "REQ-F30-05",
+    "AC-F30-01～32",
+    "NFR-014"
+  ],
+  "current_stage": "goal",
+  "current_substep": "revision 9：PRD 核心、Design 增量（蓝图 §12 wen 确认）、TDD 契约均完成并校验通过；待 /goal 开发验收（提示 output/tests/goal_prompt_r9.md）",
+  "completed_stages": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "design",
+    "tdd"
+  ],
+  "skipped_stages": [
+    "3"
+  ],
+  "next_action": "按 output/tests/goal_prompt_r9.md 执行 /goal：实现渠道调研（PAGE-F30-01～03）与打标确认 / 工作台增量，验证新增与失效的 TDD 行。。r8 遗留（不变）：wen：本人电脑启动 + 局域网另一设备访问（SMOKE-01）；设置页填真实密钥并提供卖家精灵接口文档（RULE-08）；在电脑上用 Bright Data / Apify 回补 Lowe's / Wayfair 历史后渠道重算；账号页暂缓（DESIGN-03）；待办：回补渠道月度续更、按自动值批量确认、组合套装 / 实用水槽等新方向",
+  "open_questions": [
+    {
+      "id": "OQ-R2-01",
+      "node": "角色与权限（谁操作、谁审批、谁只看）",
+      "priority": "P0",
+      "status": "resolved",
+      "answer": "三角色：wen 操作（导数据、生成 / 编辑决策卡）；老板审批（策略库、立项）；运营 / 采购 / 研发只读",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-02",
+      "node": "产品形态（网页系统 / 本地报告）",
+      "priority": "P0",
+      "status": "resolved",
+      "answer": "浏览器网页系统（评审会投屏；展开项、勾选变量、审批）",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-03",
+      "node": "数据进入方式（每月上传导出 / 用卖家精灵接口自动拉）及账号归属",
+      "priority": "P0",
+      "status": "resolved",
+      "answer": "Amazon 月度数据由系统用卖家精灵接口自动拉；Lowe's / HD / Wayfair 评论用 VP 追踪器（并入）；数据进来后系统自动打标，wen 确认元素和低置信度标签",
+      "source": "wen 2026-11-03（见 OQ-R2-06、09、10）"
+    },
+    {
+      "id": "OQ-R2-04",
+      "node": "第一版范围",
+      "priority": "P0",
+      "status": "resolved",
+      "answer": "第一版全做：数据导入核对 + 机会扫描 + 决策卡；差评自动拉取与归类；预测台账 + 策略库审批；利润测算接入 + 模型更新回测",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-05",
+      "node": "外部\"全品店利润测算 + 数据拉取软件\"交给本系统的形式（文件 / 接口 / 共享库）与现状",
+      "priority": "P0",
+      "status": "resolved",
+      "answer": "两个工具已放入 tools/；Amazon 数据走卖家精灵接口",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-06",
+      "node": "\"达标以及元素的确认\"中\"达标\"的含义（打标？成功线判定？）",
+      "priority": "P1",
+      "status": "resolved",
+      "answer": "\"达标\"= 打标：系统自动打属性标签，wen 确认元素和低置信度标签",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-07",
+      "node": "看图打标 / 差评归类用的大模型凭据归属与配置",
+      "priority": "P1",
+      "status": "resolved",
+      "answer": "系统设置页由 wen 填写 / 更换 / 删除 / 测试密钥（卖家精灵、Bright Data、Apify、大模型），只显示后 4 位，存本机不进仓库",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-08",
+      "node": "第一版品类范围（只浴室柜 / 可配置多品类）",
+      "priority": "P1",
+      "status": "resolved",
+      "answer": "第一版只做浴室柜；分框维度、属性列表、打标规则做成可配置；利润测算和 VP 追踪本身跨品类照常用",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-09",
+      "node": "Amazon 月度销量（卖家精灵）由谁、怎么进系统",
+      "priority": "P0",
+      "status": "resolved",
+      "answer": "系统用卖家精灵接口自动拉 Amazon 月度数据（2024-10 至 2025-12 的历史数据就是用卖家精灵 MCP 按月拉的，可行；前提：wen 的卖家精灵账号接口可用）",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-10",
+      "node": "两个工具的接入方式（并入同一系统 / 保持独立只导文件）",
+      "priority": "P0",
+      "status": "resolved",
+      "answer": "并入同一个系统：利润测算台、评论 VP 追踪器原有功能全保留，和决策卡打通",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-11",
+      "node": "部署方式（本机运行 / 云端所有人可访问）",
+      "priority": "P0",
+      "status": "resolved",
+      "answer": "在 wen 的电脑上运行，局域网共享（老板、运营 / 采购 / 研发在内网打开）",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-12",
+      "node": "局域网下三种角色怎么区分（账号登录 / 不登录）",
+      "priority": "P1",
+      "status": "resolved",
+      "answer": "简单账号密码：wen 建三类账号；审批记录审批人和时间；未登录看不到",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-13",
+      "node": "花钱的接口（卖家精灵、Bright Data、Apify、大模型）的预算控制",
+      "priority": "P1",
+      "status": "resolved",
+      "answer": "先评估费用和时间、wen 确认再跑；每个服务设月度上限，到了自动停；有记账",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "OQ-R2-14",
+      "node": "大模型提供方",
+      "priority": "P2",
+      "status": "resolved",
+      "answer": "兼容多家，设置页里选（Claude / OpenAI 等，各填各的 key）",
+      "source": "wen 2026-11-03"
+    }
+  ],
+  "key_decisions_made": [
+    {
+      "id": "KD-R2-01",
+      "decision": "在 wen 电脑运行、局域网共享",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "KD-R2-02",
+      "decision": "利润测算台与评论 VP 追踪器并入同一系统",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "KD-R2-03",
+      "decision": "Amazon 数据由卖家精灵接口自动拉，手动上传作后备",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "KD-R2-04",
+      "decision": "第一版加入 Home Depot / Lowe's / Wayfair：分渠道扫描、决策卡并排；评论换算销量（VP×50、非VP×20，可改）+ 榜单排名平滑法；成功线 AI 提议默认值",
+      "source": "wen 2026-11-03"
+    },
+    {
+      "id": "KD-R2-05",
+      "decision": "小平台调研单独成页（渠道调研），不并入机会扫描；第一版只做导入 + 展示，系统内抓取放第二版（REQ-F30-05）；证据等级\"历史观察\"，与\"经回测（打折）\"分开标",
+      "source": "wen 2026-11-04"
+    }
+  ],
+  "category": "generic",
+  "deliverables": {
+    "prd": "output/PRD详细版.md",
+    "requirements": "output/requirements.md（revision 10）",
+    "analysis": "output/requirements-analysis.md（P0=0、P1=0）"
+  },
+  "validation": {
+    "at": "2026-11-05T03:00:00Z",
+    "check_evidence": "pass",
+    "check_format": "pass",
+    "check_consistency": "pass (未识别 User Goals 章节提示，与 v9 同)",
+    "check_requirements_contract": "pass (221 stable objects, revision 10)"
+  },
+  "design": {
+    "round": 2,
+    "blueprint": "output/设计决策蓝图.md",
+    "blueprint_confirmed": {
+      "at": "2026-11-03T06:04:06Z",
+      "source": "wen：沿用第一轮风格，蓝图确认，继续出页面"
+    },
+    "source_revision": 9,
+    "revision": 9,
+    "status": "completed",
+    "pages": 21,
+    "local_link_scan": "717 个本地链接目标全部存在（2026-11-04）",
+    "trace_rows": 166,
+    "design_derived": [
+      "DEC-101",
+      "DEC-102",
+      "DEC-103",
+      "DEC-104",
+      "DEC-105",
+      "DEC-106"
+    ],
+    "completed_at_utc": "2026-11-04T12:00:00Z",
+    "blueprint_confirmed_r9": {
+      "at": "2026-11-04",
+      "source": "wen：蓝图 §12 四个选择全部按推荐（1A 独立框详情页、2A 宽表、3A 数据分区导入页、4A 全部列出降灰 + 只看可读框）"
+    }
+  },
+  "tdd": {
+    "entry_check": {
+      "status": "passed",
+      "at_utc": "2026-10-26T16:23:20Z",
+      "inputs": [
+        "output/requirements.md@rev5（128 条 active，全部 required）",
+        "output/设计追溯矩阵.md（128 行 covered，revision 一致）",
+        "output/页面清单.md（第一期 26 页，MD/HTML 唯一匹配）",
+        "output/PRD详细版.md@v5",
+        "output/技术方案.md",
+        "output/设计决策蓝图.md"
+      ],
+      "design_fixes_before_contract": [
+        "PAGE-F11-01 状态计数卡改为 1/8/9，与表格和筛选一致",
+        "17/44 的 Wilson 90% 区间改为 27.6–51.0%（F07-01、F08-01、F12-02 及对应 MD）"
+      ]
+    },
+    "contract": "output/tests/TDD验收契约.md",
+    "rows": {
+      "SMOKE": 2,
+      "FLOW": 40,
+      "DESIGN": 21,
+      "RULE": 11
+    },
+    "validation": {
+      "validator": "tdd-master/validators/check_delivery_contract.py",
+      "result": "pass",
+      "required_sources": 128,
+      "scope_pages": 26,
+      "warnings": [
+        "行为/风险验收 28 条（体量提示）"
+      ],
+      "run_at": "2026-10-26T16:23:20Z"
+    },
+    "revision": 9,
+    "status": "completed",
+    "validator": "check_delivery_contract.py 通过（163 required source / 21 scope pages / 74 rows）",
+    "completed_at_utc": "2026-11-04T12:00:00Z"
+  },
+  "history": [
+    {
+      "at": "2026-11-03T03:11:24Z",
+      "note": "第一轮 PRD v5 / 设计 / TDD 已被 wen 判定未达预期（2026-10-27）；第二轮以新方案书为准重新走 PRD，旧需求 ID 不复用、按契约规则 retired 或沿用"
+    },
+    {
+      "at": "2026-11-03T06:27:53Z",
+      "event": "Design 第二轮完成：18 页 MD/HTML、技术方案附录 A、设计追溯矩阵；DEC-102～104 wen 确认"
+    },
+    {
+      "at": "2026-11-03T06:31:02Z",
+      "event": "TDD 第二轮完成：验收契约按 revision 7 重写，校验通过"
+    },
+    {
+      "at": "2026-11-03T09:47:28Z",
+      "event": "第一版开发完成：113 个测试通过；五轮独立视觉复核后 16/17 页通过（账号页暂缓）；验收结果 51 pass / 3 pending"
+    },
+    {
+      "at": "2026-11-03T13:51:50Z",
+      "event": "PRD v8 / requirements revision 8：小平台回测增量（REQ-F18-04、F19-03、F23-02、F28-03、F29-03、AC-F27-04、NFR-013；REQ-F20-01 rev 2），校验通过"
+    },
+    {
+      "at": "2026-11-03T14:17:20Z",
+      "event": "Design v8（蓝图 §11 wen 确认、7 页增量、技术方案附录、追溯 128 行）与 TDD revision 8（FLOW-27～32、RULE-09，61 行，校验通过）完成"
+    },
+    {
+      "at": "2026-11-03T17:03:55Z",
+      "event": "revision 8（小平台回测）开发完成：143 个测试通过；7 个改动页面独立视觉复核通过；验收 58/61"
+    },
+    {
+      "at": "2026-11-04T10:00:00Z",
+      "event": "revision 9（小平台单元×指标观察，方案书 §11）：PRD v9 / requirements r9（新增 F30、NFR-014）/ analysis r9（RA-120～130）校验通过；蓝图 §12 草案待确认"
+    },
+    {
+      "at": "2026-11-04T12:00:00Z",
+      "event": "revision 9 Design 增量（PAGE-F30-01～03 新增，PAGE-F18-01 / PAGE-F15-02 局部更新，技术方案附录 API/DATA/SEQ-F30、追溯矩阵 166 行）与 TDD 契约（新增 FLOW-33～40、DESIGN-19～21、RULE-10～11，DESIGN-02 / 08、RULE-01 失效重验）完成；/goal 提示 output/tests/goal_prompt_r9.md"
+    }
+  ],
+  "revision": 10
+}

@@ -1,3 +1,4 @@
+import os
 import q3paths
 import sqlite3,json,glob,os,collections as C,statistics as S
 c=sqlite3.connect('pdt.sqlite3'); q=lambda s,*a:c.execute(s,a).fetchall()
@@ -10,10 +11,7 @@ def band(p):
     return '<$200' if p<200 else '$200–399' if p<400 else '$400–699' if p<700 else '$700–999' if p<1000 else '≥$1000'
 def elem(v):
     if not v: return '未标'
-    v=v.split('|')[0]
-    if v.startswith('纯色+'): return v.split('+')[-1]
-    if v.startswith('夏克式+'): return '夏克式'
-    return v
+    return v.split('|')[0]   # 组合元素（夏克式+复古立柱、纯色+竖棱等）单独成行，不再合并（wen 2026-11-09）
 recs={}   # ch -> list of dict(pid,fam,brand,attrs,price,rating,u{month:units},vp{},nv{})
 stars={}  # ch -> pid -> list (month,stars)
 # Amazon
@@ -24,15 +22,15 @@ for i,t,v in q("select item_id,tag,value from tag where channel='amazon'"): tags
 pinfo={i:(p or f,b) for i,p,f,b in q("select item_id,parent,family_key,brand from product where channel='amazon'")}
 import amzfix
 FIX,_=amzfix.corrections()
-A=C.defaultdict(lambda:dict(u={},r={},price=None,rating=None))
+A=C.defaultdict(lambda:dict(u={},r={},pm={},price=None,rating=None))
 for i,m,u,p,r,cu in q("select item_id,month,units,price,rating,json_extract(raw,'$.child_units') from snapshot where channel='amazon' and month>='2026-01' order by month"):
     a=A[i]; a['u'][m]=FIX.get((i,m),(cu if cu is not None else u) or 0)
     if r: a['r'][m]=r; a['rating']=r
-    if p: a['price']=p
+    if p: a['price']=p; a['pm'][m]=p
 L=[];LALL=[]   # LALL：2026 年出现过的全部子体（交叉筛选算 1–10 月趋势用，避免 1–4 月只卖过的商品被漏掉）
 for i,a in A.items():
     tg=tags.get(i,{}); fam,br=pinfo.get(i,(i,''))
-    LALL.append(dict(pid=i,fam=fam,brand=br or '未知品牌',price=a['price'],rating=a['rating'],u=a['u'],r=a['r'],
+    LALL.append(dict(pid=i,fam=fam,brand=br or '未知品牌',price=a['price'],rating=a['rating'],u=a['u'],r=a['r'],pm=a['pm'],
       at={'尺寸':AMZW.get(i) or nz(tg.get('尺寸段')),'形态':nz(tg.get('形态')),'拆装':nz(tg.get('装')),'台面':nz(tg.get('台面材质')),'柜体':nz(tg.get('柜体材质')),'主色':nz(tg.get('主色')),'元素':elem(tg.get('元素')),'价格带':band(a['price'])},
       listed=any(m in a['u'] for m in W)))
     if any(m in a['u'] for m in W+P): L.append(LALL[-1])
@@ -88,6 +86,74 @@ for _r in recs['amazon']+LALL:
     if _ln and _p and _p<_ln and _r['at'].get('拆装')!='拆装':
         _fl.append(('amazon',_r['pid'],_r['brand'],_r['at']['尺寸'],_p,_r['at'].get('拆装')+' → 拆装',round(sum(_r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10'))/3,1)))
         _r['at']['拆装']='拆装'
+# 商品页明确写了台盆材质的，按页面算（wen 2026-11-08：写了是什么就是什么）。只改一体台盆类（陶瓷/树脂/未标），石材、木板台面不动。
+import json as _js
+_PDP=_js.load(open('amz_pdp_tags.json',encoding='utf-8')) if os.path.exists('amz_pdp_tags.json') else {}
+_BM={'陶瓷':'陶瓷','树脂':'树脂','CM':'Cultured Marble'}
+def _pdp_ok(pid,size):
+    p=_PDP.get(pid)
+    if not p or p.get('basin') not in _BM: return None
+    w=p.get('width')
+    if w:
+        b=next((bb for lo,hi,bb in [(15,21,'18″'),(21,26,'24″'),(26,29,'28″'),(29,33,'30″'),(33,39,'36″'),(39,45,'42″'),(45,54,'48″'),(54,66,'60″'),(66,999,'72″+')] if lo<=w<hi),None)
+        if b and b!=size: return None   # 页面已被改成别的尺寸，不采信
+    return _BM[p['basin']]
+_seen=set();_pdpn=0
+for _r in recs['amazon']+LALL:
+    if id(_r) in _seen: continue
+    _seen.add(id(_r))
+    _b=_pdp_ok(_r['pid'],_r['at'].get('尺寸'))
+    _r['_pdp']=bool(_b)
+    if _b and _r['at'].get('台面') in ('陶瓷','树脂','未标') and _r['at']['台面']!=_b:
+        _r['at']['台面']=_b; _pdpn+=1
+print('按商品页改台盆',_pdpn,'条（商品页已抓',len(_PDP),'）')
+# 原来没标的属性，用商品页（标题、五点、规格表）补上
+_CABM={'实木':'实木框架','实木框架':'实木框架','MDF':'MDF','人造板（未细分）':'MDF','含刨花板':'含刨花板','含胶合板':'含胶合板'}   # wen 2026-11-08：Amazon 实木一律算实木框架，人造板算 MDF
+_fill=C.Counter();_seen=set()
+for _r in recs['amazon']+LALL:
+    if id(_r) in _seen: continue
+    _seen.add(id(_r)); _p=_PDP.get(_r['pid'])
+    if not _p: continue
+    a=_r['at']
+    for k,v in (('台面',_p.get('top')),('柜体',_CABM.get(_p.get('cab'))),('主色',_p.get('color')),('元素',_p.get('elem'))):
+        if v and a.get(k) in ('未标',None,''): a[k]=v; _fill[k]+=1
+print('用商品页补未标',dict(_fill))
+for _r in recs['amazon']+LALL:
+    if _r['at'].get('柜体')=='实木': _r['at']['柜体']='实木框架'
+    # 开放式（revision 10 口径）：落地式里柜体结构是开放层板的记为开放式；柜体结构来自统一打标表（含看图）和商品页文字
+    if _r['at'].get('形态')=='落地式' and (_PDP.get(_r['pid']) or {}).get('struct')=='开放式': _r['at']['形态']='开放式'
+# 商品页写了拆装 / 整装的按页面（wen 2026-11-09：全部 Amazon；优先于价格线，人工改标仍最优先）
+_seen=set();_pgn=C.Counter()
+for _r in recs['amazon']+LALL:
+    if id(_r) in _seen: continue
+    _seen.add(id(_r)); _pa_=(_PDP.get(_r['pid']) or {}).get('asm')
+    if _pa_ and _r['at'].get('拆装')!=_pa_:
+        _fl.append(('amazon',_r['pid'],_r['brand'],_r['at'].get('尺寸'),_r.get('price'),str(_r['at'].get('拆装'))+' → '+_pa_+'（商品页写明）',round(sum(_r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10'))/3,1)))
+        _pgn[_r['at'].get('拆装')+'→'+_pa_]+=1; _r['at']['拆装']=_pa_
+print('按商品页改拆装/整装',dict(_pgn))
+# 石材台面（wen 2026-11-09）：页面没写拆装/整装、标成拆装、售价 ≥ 石材线 → 整装
+STONE_LINE={'18″':450,'24″':450,'28″':500,'30″':500,'36″':550,'42″':700,'48″':700,'60″':1000,'72″+':1200}
+_seen=set();_stn=C.Counter()
+for _r in recs['amazon']+LALL:
+    if id(_r) in _seen: continue
+    _seen.add(id(_r)); a=_r['at']
+    if a.get('台面') not in ('石英石','岗石','卡拉拉大理石','岩板') or a.get('拆装')!='拆装': continue
+    _pa_=(_PDP.get(_r['pid']) or {}).get('asm'); _ln=STONE_LINE.get(a.get('尺寸')); _p=_r.get('price')
+    if _pa_ is None and _ln and _p and _p>=_ln:
+        _fl.append(('amazon',_r['pid'],_r['brand'],a.get('尺寸'),_p,'拆装 → 整装（石材台面价格线）',round(sum(_r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10'))/3,1)))
+        a['拆装']='整装'; _stn['价格线']+=1
+print('石材台面拆装→整装',dict(_stn))
+# 大尺寸树脂盆规则（wen 2026-11-08）：拆装、48″ 及以上、售价低于线价，台面标的是陶瓷或没标 → 树脂盆。
+# 高于线价的多是石材台面；木板台面、不含台面不动。
+RESIN_LINE={'48″':700,'60″':1000,'72″+':900}
+_seen=set()
+for _r in recs['amazon']+LALL:
+    if id(_r) in _seen: continue
+    _seen.add(id(_r))
+    _ln=RESIN_LINE.get(_r['at'].get('尺寸')); _p=_r.get('price')
+    if _ln and _p and _p<_ln and not _r.get('_pdp') and _r['at'].get('拆装')=='拆装' and _r['at'].get('台面') in ('陶瓷','未标'):
+        _fl.append(('amazon',_r['pid'],_r['brand'],_r['at']['尺寸'],_p,str(_r['at'].get('台面'))+' → 树脂（大尺寸价格线）',round(sum(_r['u'].get(m,0) for m in ('2026-08','2026-09','2026-10'))/3,1)))
+        _r['at']['台面']='树脂'
 # 人工改标（最高优先级，覆盖打标和价格线）：tag_override.csv 每行 渠道,商品ID,属性,改成
 import csv as _csv0
 _OV=[r for r in _csv0.DictReader(open('tag_override.csv',encoding='utf-8'))]
@@ -96,7 +162,10 @@ for _ch,_L in list(recs.items())+[('amazon',LALL)]:
     for _r in _L: _ix.setdefault(_r['pid'],[]).append(_r)
     for _o in _OV:
         if _o['渠道']==_ch:
-            for _r in _ix.get(_o['商品ID'],[]): _r['at'][_o['属性']]=_o['改成']
+            for _r in _ix.get(_o['商品ID'],[]):
+                if _o['属性']=='售价':   # 补售价（如 Lowe's 系列页缺价），价格带跟着重算
+                    _r['price']=float(_o['改成']); _r['at']['价格带']=band(_r['price'])
+                else: _r['at'][_o['属性']]=_o['改成']
 print('人工改标',len(_OV),'条')
 import csv as _csv
 with open('asm_flips.csv','w',encoding='utf-8-sig',newline='') as _f:
@@ -163,11 +232,12 @@ def metrics(ch,rows,tot_u,tot_sku):
     mon_=[sum(r['u'].get(m,0) for r in rows) for m in M]
     skum_=[len({r['pid'] for r in rows if r['u'].get(m,0)>0}) for m in M]
     act_=len({r['pid'] for r in rows if any(r['u'].get(m,0)>0 for m in W)})
-    return dict(skum=skum_,act=act_,mon=mon_,sku=len(pids),fam=len({r['fam'] for r in rows}),u=w,share=w/tot_u if tot_u else 0,size=sz.most_common(1)[0][0] if sz else '—',
-        price=wavg('price'),rating=wavg('rating'),anc_u=anc_u,anc_p=anc_p if anc_u>=20 else None,per=w/len(pids) if pids else 0,
-        trend=(w*3/p-1) if p>=150 else None,rc=rc,sdi=(w/tot_u)/(len(pids)/tot_sku) if tot_u and pids else None,qo=qo,p3=p)
+    _actr=[r for r in rows if any(r['u'].get(m,0)>0 for m in W)]
+    return dict(skum=skum_,act=act_,mon=mon_,sku=act_,sku_all=len(pids),fam=len({r['fam'] for r in _actr}),u=w,share=w/tot_u if tot_u else 0,size=sz.most_common(1)[0][0] if sz else '—',
+        price=wavg('price'),rating=wavg('rating'),anc_u=anc_u,anc_p=anc_p if anc_u>=20 else None,per=w/act_ if act_ else 0,
+        trend=(w*3/p-1) if p>=150 else None,rc=rc,sdi=(w/tot_u)/(act_/tot_sku) if tot_u and act_ else None,qo=qo,p3=p)
 def table(ch,keyfn,top=None,minu=0):
-    rows=recs[ch]; tot_u=sum(sum(r['u'].get(m,0) for m in W) for r in rows)/3; tot_sku=len({r['pid'] for r in rows})
+    rows=recs[ch]; tot_u=sum(sum(r['u'].get(m,0) for m in W) for r in rows)/3; tot_sku=len({r['pid'] for r in rows if any(r['u'].get(m,0)>0 for m in W)})
     g=C.defaultdict(list)
     for r in rows: g[keyfn(r)].append(r)
     out=[dict(k=k,**metrics(ch,v,tot_u,tot_sku)) for k,v in g.items()]

@@ -9,15 +9,15 @@ SMALL_SHEET={'homedepot':'Home Depot','wayfair':'Wayfair','lowes':"Lowe's"}
 SMALL_COL={'拆装':'确认：拆装/整装','台面':'确认：台面材质','柜体':'确认：柜体材质','元素':'确认：元素','形态':'确认：形态'}
 ATTRS=['拆装','形态','尺寸','价格带','台面','柜体','主色','元素']
 def _ov_write(edits,note):
-    rows=list(csv.DictReader(open(OV,encoding='utf-8'))) if os.path.exists(OV) else []
-    idx={(r['渠道'],r['商品ID'],r['属性']):r for r in rows}
+    import sync,datetime
+    rows=sync.read_ov(); idx={(r['渠道'],r['商品ID'],r['属性']):r for r in rows}
+    now=datetime.datetime.now().isoformat(timespec='seconds')
     for e in edits:
         k=(e['ch'],e['pid'],e['attr'])
-        if k in idx: idx[k]['改成']=e['val']; idx[k]['备注']=note
+        if k in idx: idx[k].update({'改成':e['val'],'备注':note,'时间':now})
         else:
-            r={'渠道':k[0],'商品ID':k[1],'属性':k[2],'改成':e['val'],'备注':note}; rows.append(r); idx[k]=r
-    with open(OV,'w',encoding='utf-8',newline='') as f:
-        w=csv.DictWriter(f,fieldnames=['渠道','商品ID','属性','改成','备注']); w.writeheader(); w.writerows(rows)
+            r={'渠道':k[0],'商品ID':k[1],'属性':k[2],'改成':e['val'],'备注':note,'时间':now}; rows.append(r); idx[k]=r
+    sync.write_ov(rows)
 def _amz_write(edits,now):
     c=sqlite3.connect(os.path.join(q3paths.DATA,'pdt.sqlite3')); n=0
     for e in edits:

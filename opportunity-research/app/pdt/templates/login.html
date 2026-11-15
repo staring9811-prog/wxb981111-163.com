@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-id" content="PAGE-F15-01">
+  <title>登录 · 品类机会判定台</title>
+  <link rel="stylesheet" href="/static/tokens.css">
+  <link rel="stylesheet" href="/static/app.css">
+  <style>
+    .login {
+      min-height: 100vh;
+      display: grid; place-items: center;
+      padding: var(--space-8) var(--container-gutter-phone);
+    }
+    .login__box { width: min(400px, 100%); }
+    .login__brand { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin-bottom: var(--space-6); text-align: center; }
+    .login__brand .brand-mark { width: 40px; height: 40px; }
+    .login__name { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; letter-spacing: var(--tracking-display); }
+    .login__sub { font-size: var(--text-sm); color: var(--muted); }
+    .login__panel { padding: var(--space-6); }
+    .login__form > * + * { margin-top: var(--space-4); }
+    .login__submit { width: 100%; height: 38px; margin-top: var(--space-5); }
+    .login__foot { margin-top: var(--space-5); font-size: var(--text-xs); color: var(--muted); text-align: center; letter-spacing: var(--tracking-small); }
+    .login__foot p + p { margin-top: var(--space-1); }
+  </style>
+</head>
+<body>
+  <script src="/static/icons.js"></script>
+  <main class="login">
+    <div class="login__box enter">
+      <div class="login__brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="bm-bg" width="24" height="24" rx="5"/><rect class="bm-band" x="5" y="10.5" width="14" height="3" rx="1.5"/><circle class="bm-dot" cx="13" cy="12" r="3"/></svg>
+        <h1 class="login__name">品类机会判定台</h1>
+        <p class="login__sub">浴室柜 · 公司局域网内使用</p>
+      </div>
+
+      <section class="panel login__panel" aria-labelledby="login-title">
+        <h2 id="login-title" class="visually-hidden">账号密码登录</h2>
+
+        <div class="banner banner--warn" id="expired" role="status" {% if not expired %}hidden{% endif %} style="margin-bottom: var(--space-4);">
+          <svg class="icon"><use href="#ph-clock"/></svg>
+          <div class="banner__body">登录已失效，请重新登录。</div>
+        </div>
+
+        <form class="login__form" id="login-form" method="post" action="/login">
+          <div class="field">
+            <label class="field__label" for="account">账号<span class="req" aria-hidden="true">*</span></label>
+            <input class="input" id="account" name="account" required value="{{ account or '' }}" autocomplete="username" autofocus aria-describedby="account-err">
+            <div class="field__error" id="account-err" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>请输入账号</div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="password">密码<span class="req" aria-hidden="true">*</span></label>
+            <input class="input" id="password" name="password" type="password" required autocomplete="current-password" aria-describedby="password-err">
+            <div class="field__error" id="password-err" hidden><svg class="icon"><use href="#ph-warning-octagon"/></svg>请输入密码</div>
+          </div>
+
+          <div class="banner banner--block" id="auth-err" role="alert" {% if not error %}hidden{% endif %}>
+            <svg class="icon"><use href="#ph-warning-octagon"/></svg>
+            <div class="banner__body">账号或密码不正确。</div>
+          </div>
+
+          <button class="btn btn--primary login__submit" type="submit" id="submit">
+            <svg class="icon"><use href="#ph-lock-simple"/></svg><span>登录</span>
+          </button>
+        </form>
+      </section>
+
+      <div class="login__foot">
+        <p>忘记密码请联系操作者 wen 在账号管理中重置。</p>
+        <p>本系统运行在 wen 的电脑上，仅限公司局域网访问。</p>
+      </div>
+    </div>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

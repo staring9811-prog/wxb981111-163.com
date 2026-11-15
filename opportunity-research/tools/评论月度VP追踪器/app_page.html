@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>评论月度 VP 追踪器</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2733;--mute:#5b6876;--line:#dde2e8;--acc:#2f5fd0;--ok:#1d8a4c;--warn:#b26a00}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#1f2d3d;color:#fff;padding:12px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header h1{font-size:17px;margin:0 12px 0 0}header select,header button{font-size:14px}
+main{max-width:1280px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+section{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 10px}.hint{color:var(--mute);font-size:12.5px;margin:4px 0 8px}
+label{display:inline-flex;gap:6px;align-items:center;margin:3px 14px 3px 0}
+input[type=text],input[type=number],input[type=date],select,textarea{font:inherit;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:#fff}
+textarea{width:100%;min-height:46px}table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:left;vertical-align:top}th{color:var(--mute);font-weight:600}
+td input[type=text]{width:100%}td input[type=number]{width:64px}
+button{font:inherit;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer}
+button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}button:disabled{opacity:.5;cursor:default}
+.steps{display:flex;flex-wrap:wrap;gap:8px}.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;background:#eef2f7}
+.ok{color:var(--ok)}.warn{color:var(--warn)}pre{background:#0f1720;color:#d5dde6;padding:10px;border-radius:6px;max-height:330px;overflow:auto;font-size:12px;white-space:pre-wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style></head><body>
+<header><h1>评论月度 VP 追踪器</h1>
+<select id="proj"></select><button onclick="newProj()">复制为新项目</button>
+<span id="run" class="pill"></span></header>
+<main>
+<div>
+<section><h2>1. 项目与时间窗</h2>
+<div class="grid2"><label>项目名 <input type="text" id="name"></label><label>品类 <input type="text" id="category"></label>
+<label>起始日期 <input type="date" id="w_start"></label><label>最后一个完整月的月底 <input type="date" id="w_end"></label></div>
+<label><input type="checkbox" id="w_partial"> 当月未完整的数据也采，单列"未完整"</label>
+<p class="hint">时间窗决定统计哪些月份；评论条数越多费用越高，时间窗越长评论越多。</p></section>
+
+<section><h2>2. 渠道与落地页</h2>
+<p class="hint"><b>有 BSR 的渠道</b>（Lowe's Best Sellers 榜单）选"BSR/热销榜"，取榜单前 N。<b>没有 BSR 的渠道</b>（Home Depot、Wayfair）选"类目落地页"或"关键词落地页"，按页面自然顺序取前 N。
+"排除广告"会跳过 Sponsored 广告位并顺延；"父体去重"把同一款的不同颜色/尺寸只算一个（Lowe's 按父体 ID、HDP 按共享评论判断、Wayfair 本身按款列出）。</p>
+<table><thead><tr><th>启用</th><th>名称</th><th>平台</th><th>落地页类型</th><th>网址 / 关键词</th><th>前N</th><th>排除广告</th><th>父体去重</th><th></th></tr></thead>
+<tbody id="entries"></tbody></table>
+<button onclick="addEntry()">+ 添加入口</button>
+<label style="margin-left:14px"><input type="checkbox" id="dedupe_x"> 跨入口去重（同一商品出现在多个入口时只保留第一个）</label></section>
+
+<section><h2>3. 商品筛选（只留目标品类）</h2>
+<label>内置规则 <select id="preset"><option value="">无（只用下面的关键词）</option><option value="bathroom_vanity">浴室柜</option></select></label>
+<div class="grid2"><div>标题必须含（任一，逗号分隔）<textarea id="inc"></textarea></div><div>标题含这些就排除<textarea id="exc"></textarea></div></div>
+<div>但含这些仍保留（例：vanity with）<textarea id="keep"></textarea></div></section>
+
+<section><h2>4. 评论少的商品</h2>
+<label>页面累计评论数低于 <input type="number" id="low_th" min="0" style="width:80px"> 条（0 = 不启用）时：</label><br>
+<label><input type="radio" name="low" value="split"> 照常区分 VP / 非VP</label>
+<label><input type="radio" name="low" value="total_only"> 只统计月度合计，不区分 VP</label>
+<label><input type="radio" name="low" value="skip"> 不采集（省钱）</label></section>
+
+<section><h2>5. 预算上限（美元，达到即停）</h2>
+<div class="grid2"><label>BD · Lowe's <input type="number" id="b_bd_lowes" step="1"></label><label>BD · Wayfair <input type="number" id="b_bd_wayfair" step="1"></label>
+<label>Apify · Lowe's <input type="number" id="b_ap_lowes" step="1"></label><label>Apify · Wayfair <input type="number" id="b_ap_wayfair" step="1"></label></div>
+<label><input type="checkbox" id="exp_detail"> Excel 附评论明细（作证据用；只要月度数可不勾）</label>
+<p class="hint">Home Depot 直连，不花钱。BD = Bright Data（Lowe's、Wayfair 的列表/详情页），Apify = 评论采集。</p></section>
+<div class="steps"><button onclick="save()">保存设置</button></div>
+</div>
+
+<div>
+<section><h2>运行</h2>
+<div class="steps">
+<button class="primary" onclick="go('lists')">① 采集列表</button>
+<button class="primary" onclick="go('estimate')">② 评估时间和费用</button>
+<button class="primary" onclick="go('collect')">③ 开始采集评论</button>
+<button class="primary" onclick="go('export')">④ 导出 Excel</button>
+<button onclick="go('all')">一键全部</button></div>
+<p class="hint">建议先 ①②，看评估再决定 ③。每一步都可断点续跑，已采过的不会重复花钱。</p>
+<div id="lists"></div></section>
+<section><h2>时间与费用评估</h2><div id="est" class="hint">先点 ① 和 ②。</div></section>
+<section><h2>已花费</h2><div id="ledger"></div><div id="keys" class="hint"></div></section>
+<section><h2>导出文件</h2><div id="exports" class="hint">还没有。</div></section>
+<section><h2>日志</h2><pre id="log"></pre></section>
+</div></main>
+<script>
+const $=id=>document.getElementById(id);let cur=null,cfg=null;
+const PLAT=["Lowes","HomeDepot","Wayfair"],MODE={bsr:"BSR/热销榜",category:"类目落地页",keyword:"关键词落地页"};
+async function j(u,o){const r=await fetch(u,o);return r.json()}
+async function init(){const ps=await j('/api/projects');$('proj').innerHTML=ps.map(p=>`<option>${p}</option>`).join('');$('proj').onchange=()=>load($('proj').value);if(ps.length)load(ps[0]);setInterval(poll,5000)}
+async function load(n){cur=n;cfg=await j('/api/project?name='+encodeURIComponent(n));fill();poll()}
+function fill(){const w=cfg.window||{},f=cfg.filters||{},b=cfg.budget||{},l=cfg.low_reviews||{};
+$('name').value=cfg.name||'';$('category').value=cfg.category||'';$('w_start').value=w.start||'';$('w_end').value=w.full_end||'';$('w_partial').checked=w.include_partial!==false;
+$('preset').value=f.preset||'';$('inc').value=(f.include_keywords||[]).join(', ');$('exc').value=(f.exclude_keywords||[]).join(', ');$('keep').value=(f.keep_keywords||[]).join(', ');
+$('dedupe_x').checked=!!cfg.dedupe_across_entries;$('low_th').value=l.threshold||0;document.querySelectorAll('input[name=low]').forEach(x=>x.checked=x.value==(l.mode||'split'));
+$('b_bd_lowes').value=b.bd_lowes_usd??10;$('b_bd_wayfair').value=b.bd_wayfair_usd??10;$('b_ap_lowes').value=b.apify_lowes_usd??10;$('b_ap_wayfair').value=b.apify_wayfair_usd??10;
+$('exp_detail').checked=(cfg.export||{}).review_details!==false;$('entries').innerHTML='';(cfg.entries||[]).forEach(addEntry)}
+function addEntry(e){e=e||{enabled:true,name:'',platform:'Lowes',mode:'bsr',url:'',top_n:100,exclude_sponsored:true,dedupe_parent:false};
+const tr=document.createElement('tr');const val=e.mode=='keyword'?(e.keyword||''):(e.url||'');
+tr.innerHTML=`<td><input type=checkbox class=en ${e.enabled!==false?'checked':''}></td><td><input type=text class=nm value="${e.name||''}"></td>
+<td><select class=pl>${PLAT.map(p=>`<option ${p==e.platform?'selected':''}>${p}</option>`).join('')}</select></td>
+<td><select class=md>${Object.entries(MODE).map(([k,v])=>`<option value=${k} ${k==e.mode?'selected':''}>${v}</option>`).join('')}</select></td>
+<td><input type=text class=ur value="${val}" placeholder="类目/榜单网址，或关键词"></td><td><input type=number class=tn value="${e.top_n||100}"></td>
+<td><input type=checkbox class=sp ${e.exclude_sponsored!==false?'checked':''}></td><td><input type=checkbox class=dp ${e.dedupe_parent?'checked':''}></td>
+<td><button onclick="this.closest('tr').remove()">删</button></td>`;$('entries').appendChild(tr)}
+const kw=s=>s.split(/[,，\n]/).map(x=>x.trim()).filter(Boolean);
+function collect(){const ents=[...$('entries').children].map(tr=>{const q=c=>tr.querySelector('.'+c),md=q('md').value,e={enabled:q('en').checked,name:q('nm').value.trim(),platform:q('pl').value,mode:md,top_n:+q('tn').value,exclude_sponsored:q('sp').checked,dedupe_parent:q('dp').checked};if(md=='keyword')e.keyword=q('ur').value.trim();else e.url=q('ur').value.trim();return e});
+return Object.assign({},cfg,{name:$('name').value.trim(),category:$('category').value.trim(),window:{start:$('w_start').value,full_end:$('w_end').value,include_partial:$('w_partial').checked},
+filters:{preset:$('preset').value,include_keywords:kw($('inc').value),exclude_keywords:kw($('exc').value),keep_keywords:kw($('keep').value)},dedupe_across_entries:$('dedupe_x').checked,
+low_reviews:{threshold:+$('low_th').value,mode:document.querySelector('input[name=low]:checked').value},
+budget:{bd_lowes_usd:+$('b_bd_lowes').value,bd_wayfair_usd:+$('b_bd_wayfair').value,apify_lowes_usd:+$('b_ap_lowes').value,apify_wayfair_usd:+$('b_ap_wayfair').value},
+export:{review_details:$('exp_detail').checked},entries:ents})}
+async function save(){cfg=collect();const r=await j('/api/project',{method:'POST',body:JSON.stringify(cfg)});if(r.ok){if(r.name!=cur){await init();$('proj').value=r.name}cur=r.name;alert('已保存')}else alert(r.error)}
+async function newProj(){const n=prompt('新项目名（例：马桶_2026）');if(!n)return;cfg=collect();cfg.name=n;await j('/api/project',{method:'POST',body:JSON.stringify(cfg)});await init();$('proj').value=n;load(n)}
+async function go(step){await save();const r=await j(`/api/run?name=${encodeURIComponent(cur)}&step=${step}`,{method:'POST'});if(!r.ok)alert(r.msg);poll()}
+const money=x=>'$'+(+x||0).toFixed(2);
+async function poll(){if(!cur)return;const s=await j('/api/state?name='+encodeURIComponent(cur));
+$('run').textContent=s.running?`运行中：${(s.status||{}).step||''} ${(s.status||{}).detail||''}`:'空闲';$('run').className='pill '+(s.running?'warn':'ok');
+$('lists').innerHTML='<table><tr><th>入口</th><th>选中/目标</th><th>看过</th><th>已采集</th></tr>'+Object.entries(s.lists).map(([k,v])=>`<tr><td>${k}</td><td>${v.选中}/${v.目标}</td><td>${v.看过}</td><td>${v.已采集}</td></tr>`).join('')+'</table>';
+if(s.estimate){const e=s.estimate;$('est').innerHTML='<table><tr><th>平台</th><th>商品</th><th>预计窗口内评论</th><th>BD 请求/费用</th><th>Apify 费用</th><th>预计耗时</th></tr>'+Object.entries(e.平台).map(([p,v])=>`<tr><td>${p}</td><td>${v.商品数}</td><td>${v.预计窗口内评论[0]}–${v.预计窗口内评论[1]}</td><td>${v.BD请求} / ${money(v.BD费用)}</td><td>${money(v.Apify费用)}</td><td>${v.预计耗时分钟} 分钟</td></tr>`).join('')+`<tr><th>合计</th><td></td><td></td><th>${money(e.合计.BD费用)}</th><th>${money(e.合计.Apify费用)}</th><th>约 ${e.合计.预计耗时分钟} 分钟</th></tr></table><p class=hint>总费用上限约 <b>${money(e.合计.总费用)}</b>。${e.合计.说明}</p>`}
+const L=s.ledger||{};$('ledger').innerHTML=`BD：Lowe's ${L.bd_lowes_req||0} 次、Wayfair ${L.bd_wayfair_req||0} 次（${money(((L.bd_lowes_req||0)+(L.bd_wayfair_req||0))*0.0015)}）；Apify：Lowe's ${money(L.apify_lowes_usd)}、Wayfair ${money(L.apify_wayfair_usd)}`;
+$('keys').textContent='密钥：'+Object.entries(s.keys).map(([k,v])=>k+' '+v).join('；');
+$('exports').innerHTML=s.exports.length?s.exports.map(f=>`<div><a href="/download?name=${encodeURIComponent(cur)}&file=${encodeURIComponent(f)}">${f}</a></div>`).join(''):'还没有。';
+$('log').textContent=s.log.join('\n');$('log').scrollTop=1e9}
+init();
+</script></body></html>
