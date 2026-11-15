@@ -41,6 +41,7 @@ button.pri { background: #2b3f33; border-color: #3f6a55; }
 button[aria-pressed="true"], button[aria-selected="true"] { background: #3a3122; border-color: var(--lamp); color: var(--lamp); }
 main { flex: 1; min-height: 0; display: flex; }
 #stage { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; }
+#stage { isolation: isolate; } #backdrop { position: absolute; z-index: -1; pointer-events: none; } #backdrop[hidden] { display: none; }
 #gl { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; background: #070605; }
 #stage::before { content: ""; position: absolute; inset: 0 0 auto; height: 70px; background: linear-gradient(#000a, #0000); pointer-events: none; z-index: 1; }
 #hud { z-index: 2; position: absolute; top: 8px; left: max(16px, env(safe-area-inset-left, 0px)); right: 16px; pointer-events: none; }
@@ -204,6 +205,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
   </header>
   <main>
     <section id="stage">
+      <canvas id="backdrop" hidden></canvas>
       <canvas id="gl"></canvas>
       <svg id="overlay" aria-hidden="true"><g id="layoutg"></g><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
       <div id="reveal" hidden></div>
@@ -513,11 +515,11 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v37</div>
+<div id="ver">v38</div>
 
 <script>
 (function () {
-  var LOCAL = 37, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 38, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }

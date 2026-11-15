@@ -286,10 +286,10 @@ void main(){
     col=mix(gnd,sky,smoothstep(hz-0.01,hz+0.012,c.y))*0.62; col=mix(col,vec3(0.34,0.33,0.30),(1.0-smoothstep(hz,hz+0.10,c.y))*step(hz,c.y)*0.55);
     col+=vec3(0.45,0.36,0.22)*exp(-dot(c-vec2(-0.5,0.42),c-vec2(-0.5,0.42))*6.0);
   }
-  if(uBackOn>0.5){ vec2 sv=gl_FragCoord.xy/uRes; float ty=1.0-sv.y; vec2 buv=vec2(0.5+(sv.x-0.5)*1.3*(uRes.x/uRes.y)/1.6+sin(uYaw)*0.06, 1.0-clamp(ty*1.3+0.03,0.0,1.0)); col=texture(uBack,buv).rgb*(0.66+0.34*spot); } // 场景画：摊位、人群、道具；转动石头时背景跟着微微平移
   col=(col+vec3(0.012)*(vnoise(vec3(gl_FragCoord.xy*0.9,1.0))-0.5))*(0.30+0.70*uAmbient);
+  float bgw=0.0; if(uBackOn>0.5){ col=vec3(0.0); bgw=1.0; }   // 场景画在画布后面另一层里动：这里把背景留成透明
   vec3 p,n; float fl;
-  bool hitS=trace(uCamPos,rd,p,n,fl); if(hitS) col=shade(p,n,rd,detail,fl);
+  bool hitS=trace(uCamPos,rd,p,n,fl); if(hitS){ col=shade(p,n,rd,detail,fl); bgw=0.0; }
   // 台面：石头放在桌上，有接触阴影、主光投影和手电洒出来的光
   bool hitD=false; // 摊位上别的石头：只是陪衬，不能操作
   if(!hitS&&uDecor>0.5&&uFloorOn>0.5){ float tb=1e9; vec3 keyL=normalize(uCamRot*vec3(-0.55,0.62,0.56));
@@ -297,7 +297,7 @@ void main(){
       vec3 rad=vec3(1.0,0.62,0.8)*sz, cc=vec3(cos(ang)*rr,uFloorY+rad.y*0.92,sin(ang)*rr); vec3 o=(uCamPos-cc)/rad, d=rd/rad; float a=dot(d,d), b=dot(o,d), c2=dot(o,o)-1.0, h=b*b-a*c2;
       if(h>0.0){ float t=(-b-sqrt(h))/a; if(t>0.0&&t<tb){ tb=t; vec3 q=uCamPos+rd*t; vec3 nn=normalize((q-cc)/(rad*rad)); nn=normalize(nn+0.35*(vec3(vnoise(q*0.5),vnoise(q*0.5+9.0),vnoise(q*0.5+17.0))-0.5));
           vec3 base=mix(vec3(0.42,0.34,0.24),vec3(0.20,0.22,0.20),hash(vec3(fi,7.0,uPhase)))*(0.7+0.6*fbm(q*0.12+fi*3.0))*(0.8+0.4*vnoise(q*1.6));
-          col=base*(uKeyCol*max(dot(nn,keyL),0.0)*0.95+0.20+uTabCol*max(-nn.y,0.0)*0.5)*uAmbient*mix(0.30,1.0,exp(-rr*rr/(uFloorR*uFloorR*0.42))); hitD=true; } } } }
+          col=base*(uKeyCol*max(dot(nn,keyL),0.0)*0.95+0.20+uTabCol*max(-nn.y,0.0)*0.5)*uAmbient*mix(0.30,1.0,exp(-rr*rr/(uFloorR*uFloorR*0.42))); hitD=true; bgw=0.0; } } } }
   if(!hitS&&!hitD&&uFloorOn>0.5&&rd.y<-0.001&&uCamPos.y>uFloorY){ float tf=(uFloorY-uCamPos.y)/rd.y; vec3 q=uCamPos+rd*tf; float rr=length(q.xz);
     if(rr<uFloorR*1.6){ vec3 keyL=normalize(uCamRot*vec3(-0.55,0.62,0.56)); if(keyL.y<0.25){ keyL.y=0.25; keyL=normalize(keyL); }
       float sh=softShadow(q+vec3(0.0,0.6,0.0),keyL); float near=mapD(q+vec3(0.0,2.5,0.0)); float ao=clamp(near/14.0,0.0,1.0); ao=0.35+0.65*ao*ao;
@@ -306,13 +306,13 @@ void main(){
       vec3 tc=uTabCol*weave*(uKeyCol*(0.20+0.80*sh)*max(keyL.y,0.0)*1.5+0.10)*ao*uAmbient*pool;
       if(uTorch.w>0.0){ vec3 dl=uRakePos-q; float dd=length(dl); tc+=uTabCol*weave*uTorchCol*max(dl.y/dd,0.0)*uRakeI*2.0/(1.0+dd*dd/900.0)*softShadow(q+vec3(0.0,0.6,0.0),dl/dd);
         float dg=length(q-vec3(uTorchSurf.x,uFloorY,uTorchSurf.z)); tc+=uTabCol*uTorchCol*min(uTorch.w,12.0)*0.012*exp(-dg*dg/1800.0); }
-      col=mix(tc,col,smoothstep(uFloorR*0.9,uFloorR*1.6,rr)); } }
+      float ff=smoothstep(uFloorR*0.9,uFloorR*1.6,rr); col=mix(tc,col,ff); bgw*=ff; } }
   if(uSawN>0){ // 立体的取料框：隔着石头也能看到它伸进去多深
     float tE=0.0, tX=1e9; bool ok=true; for(int i=0;i<9;i++){ if(i>=uSawN) break; float dn=dot(uSaw[i].xyz,rd), ds=dot(uSaw[i].xyz,uCamPos)-uSaw[i].w;
       if(dn<-1e-5) tE=max(tE,-ds/dn); else if(dn>1e-5) tX=min(tX,-ds/dn); else if(ds>0.0) ok=false; }
-    if(ok&&tE<tX){ float th=tX-tE; col=mix(col,vec3(1.0,0.55,0.15),0.10+0.45*(1.0-smoothstep(0.0,2.2,th)));
+    if(ok&&tE<tX){ float th=tX-tE; float k1=0.10+0.45*(1.0-smoothstep(0.0,2.2,th)); col=mix(col,vec3(1.0,0.55,0.15),k1); bgw*=1.0-k1;
       vec3 pe=uCamPos+rd*tE, px2=uCamPos+rd*tX; float e1=1e9, e2=1e9, f1=1e9, f2=1e9; for(int i=0;i<9;i++){ if(i>=uSawN) break; float a=abs(dot(pe,uSaw[i].xyz)-uSaw[i].w), b=abs(dot(px2,uSaw[i].xyz)-uSaw[i].w); if(a<e1){ e2=e1; e1=a; } else if(a<e2) e2=a; if(b<f1){ f2=f1; f1=b; } else if(b<f2) f2=b; }
-      col=mix(col,vec3(1.0,0.70,0.30),0.75*(1.0-smoothstep(0.3,0.9,e2))+0.45*(1.0-smoothstep(0.3,0.9,f2))); } }
+      float k2=min(1.0,0.75*(1.0-smoothstep(0.3,0.9,e2))+0.45*(1.0-smoothstep(0.3,0.9,f2))); col=mix(col,vec3(1.0,0.70,0.30),k2); bgw*=1.0-k2; } }
   if(uLampOn>0.5){ vec3 ax=normalize(uLampB-uLampA); float t1=capI(uCamPos,rd,uLampA,uLampB,5.2), t2=capI(uCamPos,rd,uLampA,uLampA+ax*10.0,7.4); float tc=-1.0, rad=5.2;
     if(t1>0.0) tc=t1; if(t2>0.0&&(tc<0.0||t2<tc)){ tc=t2; rad=7.4; }
     if(tc>0.0&&(!hitS||tc<length(p-uCamPos))){ vec3 pc=uCamPos+rd*tc; float along=dot(pc-uLampA,ax); vec3 nc=normalize((pc-uLampA)-ax*along+ax*0.001);
@@ -320,7 +320,7 @@ void main(){
       vec3 mc=mix(vec3(0.035,0.035,0.04),vec3(0.20,0.20,0.215),0.5+0.5*dot(nc,kL))*kn+vec3(0.55)*pow(max(dot(reflect(rd,nc),kL),0.0),30.0);
       mc=mix(mc,vec3(0.45,0.36,0.18),step(9.5,along)*step(along,11.0));                       // 灯头和筒身之间一圈铜箍
       mc=mix(mc,uTorchCol*vec3(1.0,0.96,0.82)*2.2,smoothstep(2.2,0.0,along));                 // 灯头的光
-      col=mix(col,mc,rad>6.0?0.86:0.70); } }
+      col=mix(col,mc,rad>6.0?0.86:0.70); bgw*=rad>6.0?0.14:0.30; } }
   if(uGlare.z>0.0){ float d=length(gl_FragCoord.xy-uGlare.xy)/uRes.y; col+=vec3(1.0,0.95,0.85)*uGlare.z*(0.020/(d*d+0.0012)+0.10*exp(-d*d*40.0)); }
   col*=1.0-0.22*dot(c,c);
   col=aces(col*1.15);
@@ -328,7 +328,8 @@ void main(){
   col+=(ign(gl_FragCoord.xy+17.0)-0.5)/255.0;
   if(lensQ>=0.0){ col*=1.0-0.42*smoothstep(0.62,1.0,lensQ); col+=vec3(0.10,0.11,0.12)*smoothstep(0.75,0.0,length((gl_FragCoord.xy-uLens.xy)/uLens.z-vec2(-0.35,0.40)))*0.5; } // 镜片边缘压暗，左上有一块反光
   col=mix(col,mix(vec3(0.35,0.27,0.14),vec3(0.95,0.85,0.55),smoothstep(-1.0,1.0,dot(normalize(gl_FragCoord.xy-uLens.xy+1e-3),vec2(-0.6,0.8)))),rim*0.95);
-  outC=vec4(col,1.0);
+  bgw*=1.0-rim*0.95;
+  outC=vec4(max(col,0.0),1.0-bgw);
 }`;
 
 /* 成品托盘：解析造型（手镯、牌子、平安扣、蛋面、珠串、摆件），玉质用体内步进：
