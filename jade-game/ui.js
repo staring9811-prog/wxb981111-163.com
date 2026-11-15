@@ -399,7 +399,7 @@ function renderTop() {
   if (lastCash != null && Math.abs(cashNow - lastCash) >= 1 && $('#start').hidden) floatCash(cashNow - lastCash); lastCash = cashNow;
 }
 function betHtml(bet, full) { return `<span class="tag b">${bet.main}</span>${bet.tags.map(t => `<span class="tag">${t}</span>`).join('')}${full ? `<p class="why">${esc(bet.why)}</p>` : ''}`; }
-function renderSide() { renderNotes();
+function renderSide() { renderNotes(); renderPulse();
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
   const el = $('#panel'); let h = goalCard();
   if (tab === 'market') {
@@ -661,6 +661,16 @@ function refreshQuote(s, p, record) {
   const q = getQuotes(s, p); s.last[p.id] = { best: q.best, stats: q.stats, prev: prev ? prev.best : null, why: prev ? C.explain(prev.stats, q.stats) : [] };
   if (record) { const bk = bookOf(s); if (bk.all && bk.v > s.best) s.best = bk.v; }
 }
+/* 行情板：每动一次石头（开窗、切皮、下刀、取料），记下这块石头整体能卖多少、变了多少、为什么变 */
+function stoneTotal(s) { let v = s.proceeds || 0; for (const p of s.pieces) if (!p.sold) v += (s.last[p.id] ? s.last[p.id].best : getQuotes(s, p).best) || 0; return Math.round(v); }
+function pulse(s, act, p) { const tot = stoneTotal(s), prev = s.pulseTot, why = p && s.last[p.id] ? (s.last[p.id].why || []).filter(x => !/重量少了/.test(x) || act === '开窗' || act === '画圈开皮' || act === '全去皮') : []; s.hist = (s.hist || []).concat([{ act, from: prev == null ? tot : prev, to: tot, why: why.slice(0, 4), day: W.day }]).slice(-8); s.pulseTot = tot; renderPulse(); }
+function renderPulse() { const el = $('#pulse'); if (!el) return; const s = V.rec; if (V.mode !== 'own' || !s || s.closed || !s.hist || !s.hist.length || !$('#start').hidden) { el.hidden = true; return; } el.hidden = false;
+  const H = s.hist, L = H[H.length - 1], base = s.proxy ? s.proxy.price : s.buyPrice, tot = s.pulseTot, d = L.to - L.from, pc = L.from > 0 ? d / L.from : 0, kA = V.piece && s.last[V.piece.id] ? s.last[V.piece.id].stats.kAvg : null, cls = v => v > 0 ? 'up' : v < 0 ? 'dn' : '';
+  el.innerHTML = `<div class="row"><b>行情板 · #${s.id}</b><button data-act="pulsefold">${V.pulseFold ? '展开' : '收起'}</button></div><div class="big">现在整块能卖 <b>${fmt(tot)}</b>${base ? ` <span class="${cls(tot - base - (s.costs || 0))}">${tot >= base + (s.costs || 0) ? '赚' : '亏'} ${fmt(Math.abs(tot - base - (s.costs || 0)))}</span>` : ''}</div>${V.pulseFold ? '' : `<div class="dim">成本 ${fmt(base)}${s.costs ? ' + 加工 ' + fmt(s.costs) : ''}${kA != null ? ` · 这块看清 ${Math.round(kA * 100)}%` : ''}</div>
+    <div class="last"><span>刚才「${L.act}」</span> ${L.act === '买入' ? `买家现在肯出 ${fmt(L.to)}` : `${fmt(L.from)} → <b class="${cls(d)}">${fmt(L.to)}（${d === 0 ? '没动' : (d > 0 ? '+' : '−') + Math.abs(Math.round(pc * 100)) + '%'}）</b>`}</div>
+    ${L.why.length ? `<ul>${L.why.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : `<div class="dim">${L.act === '买入' ? '买家只按皮壳和已有的窗口出价。' : d === 0 ? '买家没看到新东西，报价没动。' : '露出来的东西改变了买家的判断。'}</div>`}
+    ${H.length > 1 ? `<div class="hist">${H.slice(-5, -1).reverse().map(x => { const dd = x.to - x.from; return `<div><span>${x.act}</span><span class="${cls(dd)}">${dd === 0 ? '没动' : (dd > 0 ? '+' : '−') + fmt(Math.abs(dd))}</span></div>`; }).join('')}</div>` : ''}
+    <div class="dim">${kA != null && kA < 0.5 ? '看清的还不到一半：买家按最坏的打算出价。多露一点，报价就跟着你露出来的东西走——可能涨，也可能跌。' : kA != null && kA < 0.85 ? '还有没看清的地方。再开、再切之前想一想：现在停手卖，还是接着赌。' : '基本看清了，再切报价不会有大变化，该卖卖、该做做。'}</div>`}`; }
 function afterStoneChange(s) { if (s.closed) { tab = 'ledger'; view('review', s, null); } else { const next = s.pieces.find(x => !x.sold); if (next) { view('own', s, next); if (!s.last[next.id]) refreshQuote(s, next); renderAll(); } else { tab = 'mine'; view(null, null, null); } } }
 
 /* ---------- 教程里的对照图：用游戏自己的渲染器现场拍 ---------- */
@@ -877,7 +887,7 @@ document.addEventListener('click', ev => {
   else if (a === 'offer' || a === 'take' || a === 'premium') {
     const L = V.rec, offer = a === 'premium' ? C.premiumPrice(L) : a === 'take' ? L.ask : +($('#offer').value || 0); V.offer = offer;
     const sh = V.partner && L.ask >= 8000 ? 0.5 : 1, r = C.negotiate(W, L, offer, sh); V.msg = r.msg;
-    if (r.res === 'deal') { Snd.coin(); const s = C.buy(W, L, r.price, sh); V.partner = false; tab = 'mine'; view('own', s, s.pieces[0]); refreshQuote(s, s.pieces[0], true); save(); V.note = `成交 ${fmt(r.price)}。可以直接询价转手，也可以开窗、下刀或送加工。`; renderAll(); return; }
+    if (r.res === 'deal') { Snd.coin(); const s = C.buy(W, L, r.price, sh); V.partner = false; tab = 'mine'; view('own', s, s.pieces[0]); setTimeout(() => pulse(s, '买入', s.pieces[0]), 0); refreshQuote(s, s.pieces[0], true); save(); V.note = `成交 ${fmt(r.price)}。可以直接询价转手，也可以开窗、下刀或送加工。`; renderAll(); return; }
     save(); renderSide(); renderNpc();
   }
   else if (a === 'piece') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); view('own', s, p); if (!s.last[p.id]) refreshQuote(s, p); renderAll(); }
@@ -898,6 +908,7 @@ document.addEventListener('click', ev => {
   else if (a === 'golive') { if (!C.can(W, 'live')) { V.note = '直播间在第五章「直播间」解锁：先把铺面开起来、攒够口碑。'; renderTools(); return; } V.cab = false; tab = 'tray'; openTray(false, false); V.note = '直播间在这页最上面。把成品放在待售托盘或柜台里，点「开直播」。一场 3 个钟头，每天一场。'; renderAll(); const p0 = $('#panel'); if (p0) p0.scrollTop = 0; }
   else if (a === 'goalopen') { V.goalOpen = !V.goalOpen; renderSide(); }
   else if (a === 'minetab') { V.mineTab = b.dataset.k; if (V.mineTab !== 'make' && V.ringMode) { V.ringMode = false; V.ringGhost = null; } renderSide(); drawLayout(); }
+  else if (a === 'pulsefold') { V.pulseFold = !V.pulseFold; renderPulse(); }
   else if (a === 'questall') { V.questOpen = !V.questOpen; renderSide(); }
   else if (a === 'layout') { V.layoutOn = !V.layoutOn; V.layoutKey = null; renderSide(); invalidate(false); }
   else if (a === 'prop') { V.wk.route = b.dataset.r; V.wk.theme = b.dataset.t; renderTools(); renderSide(); drawLayout(); }
@@ -931,7 +942,7 @@ document.addEventListener('click', ev => {
   else if (a === 'rake') { V.torch.rake = !V.torch.rake; renderTools(); invalidate(false); }
   else if (a === 'peelgo') { { if (!useTime(0.5, '切皮')) return; } doPeel(); }
   else if (a === 'peelno') { V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); }
-  else if (a === 'peelall') { if (b.dataset.sure === '1' || a !== 'peelall') { if (!useTime(1, '全去皮')) return; } if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = `整块的皮都剥掉，花 ${fmt(C.peelAllCost(V.rec))}，回不去。再点一次确认`; return; } const r = C.peelAll(W, V.rec); if (!r.ok) { V.note = r.msg; renderTools(); return; } flag('open'); loaded = null; qcache.clear(); Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `全去皮完成，花费 ${fmt(r.cost)}。里面什么样，现在谁都看得见了。`; renderAll(); }
+  else if (a === 'peelall') { if (b.dataset.sure === '1' || a !== 'peelall') { if (!useTime(1, '全去皮')) return; } if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = `整块的皮都剥掉，花 ${fmt(C.peelAllCost(V.rec))}，回不去。再点一次确认`; return; } const r = C.peelAll(W, V.rec); if (!r.ok) { V.note = r.msg; renderTools(); return; } flag('open'); loaded = null; qcache.clear(); Snd.saw(); refreshQuote(V.rec, V.piece, true); pulse(V.rec, '全去皮', V.piece); save(); V.note = `全去皮完成，花费 ${fmt(r.cost)}。里面什么样，现在谁都看得见了。`; renderAll(); }
   else if (a === 'sawno') { V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true; V.note = ''; renderTools(); }
   else if (a === 'sawsmart') { smartSaw(); }
   else if (a === 'pshelf') { const r = C.pieceShelf(W, V.rec, V.piece); V.note = r.ok ? '已摆进铺面，散客会按零售价来买。' : r.msg; save(); renderAll(); }
@@ -944,7 +955,7 @@ document.addEventListener('click', ev => {
   else if (a === 'pview') { const s = W.stones.find(x => x.id === +b.dataset.s), p = s.pieces.find(x => x.id === +b.dataset.p); tab = 'mine'; view('own', s, p); if (!s.last[p.id]) refreshQuote(s, p); renderAll(); }
   else if (a === 'sawgo' || a === 'wcut') { if (!useTime(0.5, '锯料')) return; if (a === 'wcut') { V.sawPlan = { planes: V.wedge, box: V.wedge }; V.wedge = null; V.cut = null; } const s = V.rec, p = V.piece, r = C.saw(W, s, p, V.sawPlan.planes); V.sawPlan = null; showLasso(null); $('#sawbox').hidden = true;
     if (!r.ok) { V.note = r.msg; renderTools(); return; }
-    Snd.saw(); refreshQuote(s, p, false); refreshQuote(s, r.piece, true); save(); V.note = `取出 ${r.piece.name}，锯工 ${fmt(r.cost)}。它已放进料头盘，可单独查看、出售或送去做件。`; tab = 'mine'; frame(); renderAll(); }
+    Snd.saw(); refreshQuote(s, p, false); refreshQuote(s, r.piece, true); pulse(s, '小锯取料', p); save(); V.note = `取出 ${r.piece.name}，锯工 ${fmt(r.cost)}。它已放进料头盘，可单独查看、出售或送去做件。`; tab = 'mine'; frame(); renderAll(); }
   else if (a === 'hold') { holdItem(V.ref ? b.dataset.i : +b.dataset.i); }
   else if (a === 'unhold') { openTray(V.ref, V.cab); }
   else if (a === 'back') { V.back = !V.back; renderTools(); invalidate(false); }
@@ -1023,7 +1034,7 @@ document.addEventListener('click', ev => {
     setTimeout(() => {
       const r = C.cut(W, s, p, cutSpec.n, cutSpec.d);
       if (!r.ok) { rv.hidden = true; V.note = r.msg; renderTools(); return; }
-      V.cut = null; refreshQuote(s, p, false); refreshQuote(s, r.piece, true); tab = 'mine'; save(); frame(); renderAll();
+      V.cut = null; refreshQuote(s, p, false); refreshQuote(s, r.piece, true); pulse(s, '大锯下刀', p); tab = 'mine'; save(); frame(); renderAll();
       const after = bookOf(s).v, d = (after / Math.max(1, before) - 1) * 100, why = (s.last[p.id].why || []).concat(s.last[r.piece.id].why || []).filter(x => !x.startsWith('重量')).slice(0, 3);
       let betMsg = ''; if (V.bet) { const stake = Math.min(W.cash, Math.max(200, Math.round(before * 0.05 / 10) * 10)), win = (V.bet === 'up' && d >= 3) || (V.bet === 'down' && d <= -3), push = Math.abs(d) < 3; if (!push) { W.cash += win ? stake : -stake; W.log.push({ day: W.day, t: `和行家赌一刀（赌${V.bet === 'up' ? '涨' : '垮'}）`, amt: win ? stake : -stake }); } betMsg = push ? '平开，赌注不算。' : win ? `赌对了，赢了行家 ${fmt(stake)}。` : `赌错了，输给行家 ${fmt(stake)}。`; V.bet = ''; save(); renderTop(); }
       const up = d >= 3, down = d <= -3; if (up) { Snd.win(); C.achieve(W, 'cutup', '第一刀切涨'); } else if (down) Snd.lose(); else Snd.tap();
@@ -1153,7 +1164,7 @@ function planPeel(pts) {
 function doPeel() { const hits = V.peelPlan ? V.peelPlan.hits : []; V.peelPlan = null; showLasso(null); $('#sawbox').hidden = true;
   let cost = 0, n = 0; for (const h of hits) { const res = C.peelAt(W, V.rec, V.piece, h.p, h.n); if (res) { cost += res.cost; n++; } }
   if (!n) { V.note = '圈里没有可切的皮。'; renderTools(); return; }
-  flag('open'); loaded = null; Snd.saw(); refreshQuote(V.rec, V.piece, true); save(); V.note = `切皮完成，花费 ${Math.max(1, Math.round(cost))} 元。`; renderAll();
+  flag('open'); loaded = null; Snd.saw(); refreshQuote(V.rec, V.piece, true); pulse(V.rec, '画圈开皮', V.piece); save(); V.note = `切皮完成，花费 ${Math.max(1, Math.round(cost))} 元。`; renderAll();
 }
 function dropTool() { if (V.tool === 'rotate' && !V.lens && !V.cut && !V.sawPlan && !V.peelPlan && !V.wedge && !V.fold) return false; V.tool = 'rotate'; V.lens = null; V.cut = null; V.wedge = null; V.fold = null; V.sawPlan = null; V.peelPlan = null; showLasso(null); showLine(null); $('#sawbox').hidden = true; if ($('#crlabel')) $('#crlabel').hidden = true; V.note = ''; renderTools(); invalidate(false); return true; }
 let lastCtx = 0;
@@ -1224,7 +1235,7 @@ function endPtr(ev) {
   ptrs.delete(ev.pointerId); if (!drag) return;
   if (drag.tray && V.hold == null && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 6) { const it = pickTray(ev.clientX, ev.clientY); V.sel = it ? it.id : null; if (it) focusItem(); else { const lay = trayLayout(trayItems()); cam.t = [0, 6, 0]; cam.dist = Math.max(200, Math.max(lay.half[0], lay.half[1]) * 2.5); } renderSide(); invalidate(false); }
   if (drag.kind === 'orbit' && Math.hypot(ev.clientX - (drag.x0 || ev.clientX), ev.clientY - (drag.y0 || ev.clientY)) > 30) flag('orbit');
-  if (drag.kind === 'grind') { flag('open'); const s = V.rec, p = V.piece; refreshQuote(s, p, true); V.note = `本次打磨花费 ${Math.max(1, Math.round(strokeCost))} 元。`; save(); renderAll(); }
+  if (drag.kind === 'grind') { flag('open'); const s = V.rec, p = V.piece; refreshQuote(s, p, true); pulse(s, '开窗', p); V.note = `本次打磨花费 ${Math.max(1, Math.round(strokeCost))} 元。`; save(); renderAll(); }
   if (drag.kind === 'loupe' && ev.pointerType !== 'mouse') { V.lens = null; invalidate(false); }
   if (drag.kind === 'orbit' && drag.click && V.torch.on && V.torch.p && V.e && V.mode !== 'tray' && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 5) { torchAt(ev); Snd.tap(); } // 手电亮着时，点一下石头就把灯挪过去
   if (drag.kind === 'torch' || drag.kind === 'ttail' || drag.kind === 'tmid' || drag.kind === 'orbit') { renderDock(); invalidate(false); }

@@ -110,6 +110,8 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
 .tb { display: inline-block; min-width: 1.5em; text-align: center; font-size: 11.5px; font-weight: 700; color: #14110e; border-radius: 3px; padding: 0 4px; margin-right: 6px; vertical-align: 1px; }
 .card.tier { border-left-width: 4px; } .card.t0 { border-left-color: #cfcac0; } .card.t1 { border-left-color: #5fd08a; } .card.t2 { border-left-color: #5aa8f0; } .card.t3 { border-left-color: #b07af0; box-shadow: 0 0 10px #b07af033; } .card.t4 { border-left-color: #f0963a; box-shadow: 0 0 14px #f0963a55; }
 .good { color: #7fe0a0; }
+#pulse { position: absolute; right: 10px; bottom: 10px; z-index: 3; width: 250px; background: #14110ef0; border: 1px solid var(--lamp); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 4px 14px #000a; display: flex; flex-direction: column; gap: 3px; } #pulse[hidden] { display: none; } #pulse .big { font-size: 14px; } #pulse .big b { font-size: 17px; color: var(--lamp); } #pulse .up { color: #ff7a6a; } #pulse .dn { color: #6fd0a0; } #pulse ul { margin: 0; padding-left: 16px; } #pulse .last { margin-top: 2px; } #pulse .last span { color: var(--lamp); } #pulse .hist { border-top: 1px solid var(--line); margin-top: 3px; padding-top: 3px; } #pulse .hist div { display: flex; justify-content: space-between; opacity: .8; } #pulse button { padding: 1px 8px; font-size: 11.5px; }
+@media (max-width: 760px) { #pulse { width: 180px; font-size: 11px; right: 6px; bottom: 6px; } }
 .cutmm { display: block; width: 100%; font-size: 13.5px; padding: 4px 0; } .cutmm b { color: var(--lamp); }
 .tune { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; } .tune button { padding: 3px 8px; font-size: 12.5px; }
 .lbar { display: inline-block; width: 34px; height: 5px; border-radius: 3px; background: var(--raise); vertical-align: middle; overflow: hidden; margin-right: 4px; } .lbar i { display: block; height: 100%; background: var(--lamp); }
@@ -227,6 +229,7 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
       <div id="crlabel" hidden></div>
       <div id="npc" hidden></div>
       <div id="notes" hidden></div>
+      <div id="pulse" hidden></div>
       <div id="coach" hidden></div>
       <div id="daycard" hidden></div>
       <button id="lightsw" data-act="room" aria-label="室内灯开关" title="室内灯"><span></span></button>
@@ -569,11 +572,11 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v57</div>
+<div id="ver">v58</div>
 
 <script>
 (function () {
-  var LOCAL = 57, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 58, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }

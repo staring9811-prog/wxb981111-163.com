@@ -94,6 +94,8 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
 .tb { display: inline-block; min-width: 1.5em; text-align: center; font-size: 11.5px; font-weight: 700; color: #14110e; border-radius: 3px; padding: 0 4px; margin-right: 6px; vertical-align: 1px; }
 .card.tier { border-left-width: 4px; } .card.t0 { border-left-color: #cfcac0; } .card.t1 { border-left-color: #5fd08a; } .card.t2 { border-left-color: #5aa8f0; } .card.t3 { border-left-color: #b07af0; box-shadow: 0 0 10px #b07af033; } .card.t4 { border-left-color: #f0963a; box-shadow: 0 0 14px #f0963a55; }
 .good { color: #7fe0a0; }
+#pulse { position: absolute; right: 10px; bottom: 10px; z-index: 3; width: 250px; background: #14110ef0; border: 1px solid var(--lamp); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 4px 14px #000a; display: flex; flex-direction: column; gap: 3px; } #pulse[hidden] { display: none; } #pulse .big { font-size: 14px; } #pulse .big b { font-size: 17px; color: var(--lamp); } #pulse .up { color: #ff7a6a; } #pulse .dn { color: #6fd0a0; } #pulse ul { margin: 0; padding-left: 16px; } #pulse .last { margin-top: 2px; } #pulse .last span { color: var(--lamp); } #pulse .hist { border-top: 1px solid var(--line); margin-top: 3px; padding-top: 3px; } #pulse .hist div { display: flex; justify-content: space-between; opacity: .8; } #pulse button { padding: 1px 8px; font-size: 11.5px; }
+@media (max-width: 760px) { #pulse { width: 180px; font-size: 11px; right: 6px; bottom: 6px; } }
 .cutmm { display: block; width: 100%; font-size: 13.5px; padding: 4px 0; } .cutmm b { color: var(--lamp); }
 .tune { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; } .tune button { padding: 3px 8px; font-size: 12.5px; }
 .lbar { display: inline-block; width: 34px; height: 5px; border-radius: 3px; background: var(--raise); vertical-align: middle; overflow: hidden; margin-right: 4px; } .lbar i { display: block; height: 100%; background: var(--lamp); }
@@ -211,6 +213,7 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
       <div id="crlabel" hidden></div>
       <div id="npc" hidden></div>
       <div id="notes" hidden></div>
+      <div id="pulse" hidden></div>
       <div id="coach" hidden></div>
       <div id="daycard" hidden></div>
       <button id="lightsw" data-act="room" aria-label="室内灯开关" title="室内灯"><span></span></button>
