@@ -420,7 +420,7 @@ function renderSide() {
           <div class="row"><label for="wC">色</label><select id="wC">${o([['none', '基本无色'], ['skin', '只有贴皮一层'], ['deep', '有色吃进去'], ['full', '满色']], g.color || 'none')}</select></div>
           <div class="row"><label for="wK">裂</label><select id="wK">${o([['few', '裂少（至多一条）'], ['many', '裂多（两条以上）']], g.crack || 'few')}</select></div>
           <div class="row"><span class="say">${esc(V.msg || '')}</span><button data-act="watch" class="pri">看他切</button></div></div>`; }
-      else if (sel && !L.sold) h += `<div class="bargain"><label for="offer">出价（元）</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${V.offer || Math.round(L.ask * 0.7 / 100) * 100}"><button data-act="offer">还价</button><button data-act="take" class="pri">照价买 ${fmt(L.ask)}</button></div>${L.ask >= 8000 ? `<div class="row"><button data-act="partner" aria-pressed="${!!V.partner}">找人合伙</button><span class="dim">${V.partner ? '合伙人出一半本钱，赚了亏了都对半分。' : '本钱不够或怕风险，可以拉人各出一半。'}</span></div>` : ''}${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
+      else if (sel && !L.sold) h += `<div class="bargain"><label for="offer">出价（元）</label><div class="row"><input id="offer" type="number" inputmode="numeric" min="0" step="100" value="${V.offer || Math.round(L.ask * 0.7 / 100) * 100}">${L.patience > 0 ? `<button data-act="offer">还价</button><button data-act="take" class="pri">照价买 ${fmt(L.ask)}</button>` : `<button data-act="premium" class="pri">加价买 ${fmt(C.premiumPrice(L))}</button>`}</div>${L.patience > 0 ? '' : '<p class="note">老板不想跟你谈了。还想要这块，只能在他最后的价上再加两成，不还价。</p>'}${L.ask >= 8000 ? `<div class="row"><button data-act="partner" aria-pressed="${!!V.partner}">找人合伙</button><span class="dim">${V.partner ? '合伙人出一半本钱，赚了亏了都对半分。' : '本钱不够或怕风险，可以拉人各出一半。'}</span></div>` : ''}${V.msg ? `<p class="say">${esc(V.msg)}</p>` : ''}</div>`;
       h += `</article>`;
     });
   } else if (tab === 'mine') {
@@ -845,8 +845,8 @@ document.addEventListener('click', ev => {
   const a = b.dataset.act;
   if (a !== 'menu') $('#hmenu').classList.remove('open');
   if (a === 'listing') { if (ev.target.closest('.bargain')) return; const L = W.market[+b.dataset.i]; V.offer = 0; if (V.rec !== L) { if (L.lookDay !== W.day && !L.sold) { if (!useTime(0.5, '上手看一块料')) return; L.lookDay = W.day; save(); } view('market', L, null); } }
-  else if (a === 'offer' || a === 'take') {
-    const L = V.rec, offer = a === 'take' ? L.ask : +($('#offer').value || 0); V.offer = offer;
+  else if (a === 'offer' || a === 'take' || a === 'premium') {
+    const L = V.rec, offer = a === 'premium' ? C.premiumPrice(L) : a === 'take' ? L.ask : +($('#offer').value || 0); V.offer = offer;
     const sh = V.partner && L.ask >= 8000 ? 0.5 : 1, r = C.negotiate(W, L, offer, sh); V.msg = r.msg;
     if (r.res === 'deal') { Snd.coin(); const s = C.buy(W, L, r.price, sh); V.partner = false; tab = 'mine'; view('own', s, s.pieces[0]); refreshQuote(s, s.pieces[0], true); save(); V.note = `成交 ${fmt(r.price)}。可以直接询价转手，也可以开窗、下刀或送加工。`; renderAll(); return; }
     save(); renderSide(); renderNpc();
