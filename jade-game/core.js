@@ -94,7 +94,7 @@ const BUYERS = {
   '私人藏家': { skill: 0.43, risk: 0.36, margin: 0.08, opt: 1.05, cash: 500000, days: 2, pref: '色' },
   '急收商人': { skill: 0.62, risk: 0.82, margin: 0.28, opt: 0.80, cash: 120000, days: 0, pref: '周转' },
 };
-const TOOLS = { '细磨头': { r: 4, bite: 0.7 }, '中磨头': { r: 7, bite: 1.0 }, '粗磨头': { r: 12, bite: 1.5 } };
+const TOOLS = { '细磨头': { r: 4, bite: 0.4 }, '中磨头': { r: 7, bite: 0.6 }, '粗磨头': { r: 12, bite: 0.9 } };
 const ECON = { startCash: 8000, daily: 300, base: 16.7, yield: 0.3, braceletBonus: 4, rough: 0.6, pressFail: 0.05, grind: 0.06, cutBase: 80, cutArea: 0.015, kerf: 1.2, density: 3.33, priorScale: 0.8 };
 // 相对无色手镯零售价：豆 0.1 万、糯 0.5 万、糯冰 3 万、冰 15 万、高冰 40 万、玻璃 90 万（见 research/value-chain.md）
 const WATER_ANCHORS = [[0.10, 1], [0.25, 5], [0.45, 30], [0.65, 150], [0.82, 400], [0.95, 900]];
@@ -1108,11 +1108,13 @@ function cabGame(w, s, piece) {
   return { sizes: CAB_SIZES, mults: CAB_MULT, max, risks, rolls, hint: base < 0.14 ? '料很干净，可以大胆放。' : base < 0.3 ? '有点棉和小纹，放大要掂量。' : '裂和脏不少，贪大容易伤。' };
 }
 // 在片料上画一个圈口：圈压在片的正中厚度上，外径 72、内径 56。只看得见的裂会拦你，看不见的要压出来才知道
-function ringAt(s, piece, c, kind) {
-  const plate = kind === 'plate', e = getVol(s), st = e.st, vol = e.vol, slab = slabOf(piece); if (!slab || slab.T < (plate ? 6 : 9.5)) return { ok: false, msg: plate ? '牌子要先切成片：两刀平行、片厚至少 6 毫米。' : '手镯要先切成片：两刀平行、片厚至少 10 毫米。' };
-  const ev = evalPiece(st, vol, piece), n = slab.n, t1 = norm3(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), t2 = cross(n, t1), mid = (slab.hi + slab.lo) / 2, off = dot(c, n) - mid, c0 = [c[0] - n[0] * off, c[1] - n[1] * off, c[2] - n[2] * off], g = vol.geom, m = vol.mat, grade = HUES[st.hue].grade, cg = [0, 0];
+const TMPL = { cab: { name: '蛋面', r: 13, vol: 1.5, k: 1.2, half: [6, 5, 2.5] }, bead: { name: '珠子料（一片出九颗）', r: 34, vol: 10.9, k: 0.3, half: [16, 16, 5] }, carve: { name: '雕件坯', r: 50, vol: 64, k: 0.4, half: [24, 24, 14] } };
+function ringAt(s, piece, c, kind, nrm) {
+  const plate = kind === 'plate', surf = TMPL[kind], e = getVol(s), st = e.st, vol = e.vol, slab = surf ? { n: norm3(nrm || [0, 1, 0]), hi: 0, lo: 0, T: 99 } : slabOf(piece); if (!slab || slab.T < (plate ? 6 : 9.5)) return { ok: false, msg: plate ? '牌子要先切成片：两刀平行、片厚至少 6 毫米。' : '手镯要先切成片：两刀平行、片厚至少 10 毫米。' };
+  const ev = evalPiece(st, vol, piece), n = slab.n, t1 = norm3(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), t2 = cross(n, t1), mid = (slab.hi + slab.lo) / 2, off = surf ? surf.half[2] + 0.6 : dot(c, n) - mid, c0 = [c[0] - n[0] * off, c[1] - n[1] * off, c[2] - n[2] * off], g = vol.geom, m = vol.mat, grade = HUES[st.hue].grade, cg = [0, 0];
   let flesh = true, known = false, any = false, sv = 0, sk = 0, cnt = 0, colN = 0; const pts = [];
-  if (plate) { for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) for (const hh of [-2.5, 2.5]) pts.push([i * 9.5, j * 6.5, hh]); } else for (let q = 0; q < 24; q++) { const ca = Math.cos(q * TAU / 24), sa = Math.sin(q * TAU / 24); for (const rr of [29, 35]) for (const hh of [-3.5, 3.5]) pts.push([ca * rr, sa * rr, hh]); }
+  if (surf) { const H = surf.half; for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const hh of [-H[2] * 0.8, 0, H[2] * 0.8]) pts.push([i * H[0] * 0.85, j * H[1] * 0.85, hh]); }
+  else if (plate) { for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) for (const hh of [-2.5, 2.5]) pts.push([i * 9.5, j * 6.5, hh]); } else for (let q = 0; q < 24; q++) { const ca = Math.cos(q * TAU / 24), sa = Math.sin(q * TAU / 24); for (const rr of [29, 35]) for (const hh of [-3.5, 3.5]) pts.push([ca * rr, sa * rr, hh]); }
   { for (const [pa, pb, hh] of pts) {
     const x = c0[0] + t1[0] * pa + t2[0] * pb + n[0] * hh, y = c0[1] + t1[1] * pa + t2[1] * pb + n[1] * hh, z = c0[2] + t1[2] * pa + t2[2] * pb + n[2] * hh;
     if (Math.abs(x) >= vol.hx || Math.abs(y) >= vol.hy || Math.abs(z) >= vol.hz || planeD(piece, x, y, z) > 0) { flesh = false; continue; } const b = vIndex(vol, x, y, z) * 4; if (!(g[b + 1] < 0 && -g[b] > g[b + 2])) { flesh = false; continue; }
@@ -1120,15 +1122,19 @@ function ringAt(s, piece, c, kind) {
     sv += vd(m[b + 1] / 255, m[b] / 255, m[b + 2] / 255, m[b + 3] / 255, grade); const kk = ev.kAt(x, y, z); sk += kk; if (m[b] / 255 > 0.25 && kk > 0.5) colN++; cnt++; } }
   return { ok: flesh && !known, msg: !flesh ? '图纸有地方出了料，或者压到了皮。往里挪一挪。' : known ? '图纸压在看得见的裂上。可以挪开，也可以打开「强行放」赌师傅能避开。' : '', flesh, known, any, c: c0, n, t1, t2, vd: cnt ? sv / cnt : 0, v: cnt ? sv / cnt * ev.ringVol : 0, k: cnt ? sk / cnt : 0, col: cnt ? colN / cnt : 0 };
 }
+const RUSH = [0, 0.6, 1.5, 2.6];   // 加急：快 1、2、3 天，工费加六成、一倍半、两倍六
+// 这种货最快几天能做出来（所有请得到的师傅里最快的，不加急）
+function minDays(w, route) { let d = 99; for (const k of mastersFor(w)) d = Math.min(d, Math.max(1, MASTERS[k].days - (w.staff.master ? 1 : 0))); return d; }
 function workPlan(w, s, piece, route, masterName, theme, opts) {
   const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), tp = ev.truthParts, M = masterOf(w, masterName), R = ROUTES[route];
   const rv = routeValue(w, tp, ev.stats.bracelets, route, masterName, theme), warn = [];
-  const myRings = route === 'bracelet' && opts && opts.rings && opts.rings.length ? opts.rings.length : route === 'pendant' && opts && opts.plates && opts.plates.length ? opts.plates.length : 0;
+  const myRings = opts && opts.tmpl && opts.tmpl.list.length && TMPL[opts.tmpl.kind] ? opts.tmpl.list.length : route === 'bracelet' && opts && opts.rings && opts.rings.length ? opts.rings.length : route === 'pendant' && opts && opts.plates && opts.plates.length ? opts.plates.length : 0;
   if (route === 'bracelet' && !ev.stats.bracelets && !myRings) { const sl = slabOf(piece); warn.push(!sl ? '手镯是从片料上压出来的。这块还是整料，师傅只会顺着三个正方向试着排，排不下不等于没有：先用大锯切出一片（两刀平行，片厚至少 10 毫米），再在片上自己画圈口。' : sl.T < 9.5 ? `这片只有 ${sl.T.toFixed(0)} 毫米厚，手镯至少要 10 毫米。` : '师傅没排出完整的手镯位（片不够大，或者被看得见的裂切断）。你可以自己在片上画圈口试试。'); }
   if (route === 'cab' && rv.n === 0) warn.push('没有够浓的色，出不了蛋面。');
   if (ev.stats.kAvg < 0.5) warn.push('这块料大部分还没看清，师傅只能边做边看，结果可能和预想差很多。');
   const fee = Math.round((120 + Math.max(1, rv.n) * R.fee) * M.fee * (w.staff.master ? 0.8 : 1) * (1 - 0.3 * famEff(w, 'carver')) * (skillsOf(w).layout >= 2 ? 0.9 : 1));
-  return { fee, days: Math.max(1, M.days - (w.staff.master ? 1 : 0)), n: myRings || rv.n, warn, ok: !(route === 'cab' && rv.n === 0) && !(route === 'bracelet' && !ev.stats.bracelets && !myRings) };
+  const d0 = Math.max(1, M.days - (w.staff.master ? 1 : 0)), rush = clamp((opts && opts.rush) || 0, 0, Math.min(3, d0 - 1));
+  return { fee: Math.round(fee * (1 + RUSH[rush])), days: d0 - rush, baseDays: d0, n: myRings || rv.n, warn, ok: !(route === 'cab' && rv.n === 0 && !myRings) && !(route === 'bracelet' && !ev.stats.bracelets && !myRings), rush };
 }
 function sendWork(w, s, piece, route, masterName, theme, opts) {
   const plan = workPlan(w, s, piece, route, masterName, theme, opts); if (!plan.ok) return { ok: false, msg: plan.warn[0] };
@@ -1139,7 +1145,11 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
   const wn = waterName(tp.wMean), lvOf = () => clamp(tp.colorFrac * 1.6 * r.range(0.3, 1.7), 0, 1);
   const rv = routeValue(w, tp, tp.rings.length, route, masterName, theme); if (route === 'cab' && opts && opts.cabMult) rv.total *= opts.cabMult; rv.total *= (1 + 0.15 * famEff(w, 'carver')) * (skillsOf(w).layout >= 3 ? 1.06 : 1);
   let lost = 0;
-  if (route === 'pendant' && opts && opts.plates && opts.plates.length) {
+  if (opts && opts.tmpl && opts.tmpl.list.length && TMPL[opts.tmpl.kind]) { const TM = TMPL[opts.tmpl.kind], nm = { cab: '蛋面', bead: '珠串', carve: (theme === '师傅定' ? '随形' : theme) + '雕件' }[opts.tmpl.kind];
+    for (const o of opts.tmpl.list) { const ra = ringAt(s, piece, o.p || o.c, opts.tmpl.kind, o.n); if (!ra.flesh) { lost++; continue; } let v = ra.vd * TM.vol * TM.k * rv.craft * (opts.tmpl.kind === 'carve' ? rv.fit : 1) * (opts.tmpl.kind === 'cab' ? clamp(ra.col * 1.6, 0.25, 1) * (opts.cabMult || 1) : 1);
+      if (ra.any) { if (opts.tmpl.kind === 'bead') v *= 0.9; else if (opts.tmpl.kind === 'cab') { if (r.chance(0.1 + 0.4 * M.dodge)) v *= 0.5; else { lost++; continue; } } else v *= r.chance(0.3 + 0.6 * M.dodge) ? 0.9 : 0.45; }
+      mk(route, `${wn}${nm}`, v, clamp(ra.col * 1.6, 0, 1)); }
+  } else if (route === 'pendant' && opts && opts.plates && opts.plates.length) {
     const nm = theme === '师傅定' ? '挂件' : theme; for (const o of opts.plates) { const ra = ringAt(s, piece, o.c || o, 'plate'); if (!ra.flesh) { lost++; continue; } let v = ra.vd * 7.9 * 0.9 * rv.craft * rv.fit; if (ra.any) v *= r.chance(0.25 + 0.6 * M.dodge) ? 0.8 : 0.3; mk('pendant', `${wn}${nm}`, v, clamp(ra.col * 1.6, 0, 1)); }
   } else if (route === 'bracelet') {
     let ringVals = tp.rings, cracked = 0; if (opts && opts.rings && opts.rings.length) { ringVals = []; for (const o of opts.rings) { const ra = ringAt(s, piece, o.c || o); if (!ra.flesh) { cracked++; continue; } if (ra.any) { if (r.chance(o.forced ? 0.12 + 0.42 * M.dodge : 0.05 + 0.30 * M.dodge)) ringVals.push(ra.v * 0.6); else cracked++; continue; } ringVals.push(ra.v); } }   // 压到裂：师傅避裂的本事决定能不能救回来，救回来也是带纹的
@@ -1161,7 +1171,7 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
   if (M.own) ownMaster(w).jobs++;
   w.works.push({ id: w.nextId++, stone: s.id, from: `#${s.id} ${piece.name}`, what: `${R.name} · ${masterName}`, master: masterName, route, ready: Math.max(w.day + plan.days, issue ? w.day + 2 : 0), items, expected: plan.n, lost, issue });
   w.log.push({ day: w.day, t: `送加工 #${s.id} ${piece.name}（${R.name}，${masterName}）`, amt: -plan.fee });
-  return { ok: true, fee: plan.fee, days: M.days };
+  return { ok: true, fee: plan.fee, days: plan.days };
 }
 // 三维排料：按看得见的料，把成品一件件摆进石头里。只让开已经看得见的裂；k 是这个位置看清了几成
 function layoutPlan(w, s, piece, route) {
@@ -1256,6 +1266,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, ringAt, ordRep, orderCap, orderWord, acceptOrder, declineOrder, BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, ringAt, TMPL, minDays, RUSH, ordRep, orderCap, orderWord, acceptOrder, declineOrder, BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);
