@@ -1214,14 +1214,14 @@ function peelAt(w, s, piece, p, n) {
 }
 // 预估沿平面 n·p = d 下刀后两侧的重量和切面面积
 function cutPreview(s, piece, n, d) {
-  const e = getVol(s), vol = e.vol, { nx, ny, nz, vx, geom: g } = vol; let a = 0, b = 0, area = 0;
+  const e = getVol(s), vol = e.vol, { nx, ny, nz, vx, geom: g } = vol; let a = 0, b = 0, area = 0, hA = 0, hB = 0;
   for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     const g1 = g[(i + nx * (j + ny * k)) * 4 + 1]; if (g1 >= 0) continue;
     const x = (i + 0.5) * vx - vol.hx, y = (j + 0.5) * vx - vol.hy, z = (k + 0.5) * vx - vol.hz; if (clipped(piece) && planeD(piece, x, y, z) > 0) continue;
-    const h = n[0] * x + n[1] * y + n[2] * z - d; if (h > 0) b++; else a++; if (Math.abs(h) < vx / 2) area += vx * vx;
+    const h = n[0] * x + n[1] * y + n[2] * z - d; if (h > 0) { b++; if (h > hB) hB = h; } else { a++; if (-h > hA) hA = -h; } if (Math.abs(h) < vx / 2) area += vx * vx;
   }
   const k = vx * vx * vx / 1000 * ECON.density;
-  return { a: a * k, b: b * k, area, cost: Math.round(ECON.cutBase + area * ECON.cutArea) };
+  return { a: a * k, b: b * k, area, tA: hA + vx / 2, tB: hB + vx / 2, cost: Math.round(ECON.cutBase + area * ECON.cutArea) };
 }
 // 沿任意平面下刀：一块变两块，锯缝吃掉 kerf 毫米
 function cut(w, s, piece, n, d) {
@@ -1344,7 +1344,8 @@ function cabGame(w, s, piece) {
 const TMPL = { cab: { name: '蛋面', r: 13, vol: 1.5, k: 1.2, half: [6, 5, 2.5] }, bead: { name: '珠子料（一片出九颗）', r: 34, vol: 10.9, k: 0.3, half: [16, 16, 5] }, carve: { name: '雕件坯', r: 50, vol: 64, k: 0.4, half: [24, 24, 14] } };
 function ringAt(s, piece, c, kind, nrm) {
   const plate = kind === 'plate', surf = TMPL[kind], e = getVol(s), st = e.st, vol = e.vol, slab = surf ? { n: norm3(nrm || [0, 1, 0]), hi: 0, lo: 0, T: 99 } : slabOf(piece); if (!slab || slab.T < (plate ? 6 : 9.5)) return { ok: false, msg: plate ? '牌子要先切成片：两刀平行、片厚至少 6 毫米。' : '手镯要先切成片：两刀平行、片厚至少 10 毫米。' };
-  const ev = evalPiece(st, vol, piece), n = slab.n, t1 = norm3(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), t2 = cross(n, t1), mid = (slab.hi + slab.lo) / 2, off = surf ? surf.half[2] + 0.6 : dot(c, n) - mid, c0 = [c[0] - n[0] * off, c[1] - n[1] * off, c[2] - n[2] * off], g = vol.geom, m = vol.mat, grade = HUES[st.hue].grade, cg = [0, 0];
+  const rk = s.id + ':' + piece.id + ':' + piece.planes.length + ':' + (piece.holes || []).length + ':' + (vol.ver || 0) + ':' + (s.strokes || []).length; if (!ringAt.c || ringAt.c.k !== rk) ringAt.c = { k: rk, ev: evalPiece(st, vol, piece) };
+  const ev = ringAt.c.ev, n = slab.n, t1 = norm3(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), t2 = cross(n, t1), mid = (slab.hi + slab.lo) / 2, off = surf ? surf.half[2] + 0.6 : dot(c, n) - mid, c0 = [c[0] - n[0] * off, c[1] - n[1] * off, c[2] - n[2] * off], g = vol.geom, m = vol.mat, grade = HUES[st.hue].grade, cg = [0, 0];
   let flesh = true, known = false, any = false, sv = 0, sk = 0, cnt = 0, colN = 0; const pts = [];
   if (surf) { const H = surf.half; for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const hh of [-H[2] * 0.8, 0, H[2] * 0.8]) pts.push([i * H[0] * 0.85, j * H[1] * 0.85, hh]); }
   else if (plate) { for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) for (const hh of [-2.5, 2.5]) pts.push([i * 9.5, j * 6.5, hh]); } else for (let q = 0; q < 24; q++) { const ca = Math.cos(q * TAU / 24), sa = Math.sin(q * TAU / 24); for (const rr of [29, 35]) for (const hh of [-3.5, 3.5]) pts.push([ca * rr, sa * rr, hh]); }
