@@ -834,17 +834,26 @@ const GRADES = [0.10, 0.25, 0.45, 0.65, 0.82, 0.95];
 function gradeIdx(w0) { w0 *= 100; return w0 < 18 ? 0 : w0 < 35 ? 1 : w0 < 55 ? 2 : w0 < 74 ? 3 : w0 < 89 ? 4 : 5; }
 function colorClass(st) { if (!st.feats.length || st.feats.every(f => f.strength < 0.22)) return 'none'; if (st.feats.some(f => f.type === 'full')) return 'full'; if (st.feats.every(f => f.type === 'skin')) return 'skin'; return 'deep'; }
 const ORDER_WHO = ['陈太太', '直播间老板', '广州客', '台湾藏家', '珠宝店王姐', '香港行家'];
+// 接单口碑 0–100：交货准时就涨，接了交不出就掉。口碑越高，前台来的客人越多、加价越高、能同时接的单越多
+function ordRep(w) { if (w.ordRep == null) w.ordRep = 30; return w.ordRep; }
+function orderCap(w) { return 2 + Math.floor(ordRep(w) / 30); }
+function orderWord(w) { const r = ordRep(w); return r >= 80 ? '金字招牌' : r >= 55 ? '信得过' : r >= 30 ? '一般' : r >= 12 ? '不太敢找你' : '没人敢下单'; }
+function acceptOrder(w, id) { const o = w.orders.find(x => x.id === id); if (!o || o.taken) return { ok: false, msg: '' }; if (w.orders.filter(x => x.taken).length >= orderCap(w)) return { ok: false, msg: `手上已经接了 ${orderCap(w)} 张单。口碑高了才能同时接更多。` }; o.taken = true; return { ok: true, msg: `接下了${o.who}的单，第 ${o.due} 天前交货。交不出来要掉口碑。` }; }
+function declineOrder(w, id) { w.orders = w.orders.filter(x => x.id !== id || x.taken); return { ok: true }; }
 function fillOrders(w) {
+  for (const o of w.orders) if (o.taken === undefined) o.taken = true;
+  for (const o of w.orders) if (o.taken && o.due < w.day) { w.ordRep = clamp(ordRep(w) - 12, 0, 100); w.fame -= 2; w.stat.ordFail = (w.stat.ordFail || 0) + 1; w.news.push(`${o.who}的单没交上，他去别家了。接单口碑 −12`); }
   w.orders = w.orders.filter(o => o.due >= w.day);
-  for (let k = 0; w.orders.length < 3 && k < 6; k++) {
+  const rep = ordRep(w), want = rep < 12 ? 1 : Math.min(6, 2 + Math.floor(rep / 20));
+  for (let k = 0; w.orders.filter(o => !o.taken).length < want && k < 8; k++) {
     const r = new Rng(seedOf(w.seed, 'order', w.day, k, w.nextId));
-    w.orders.push({ id: w.nextId++, type: r.pick(['bracelet', 'bracelet', 'pendant', 'pendant', 'cab', 'bead', 'carve']), minW: r.pick([0.25, 0.25, 0.45, 0.45, 0.65]), color: r.chance(0.4), bonus: Math.round(r.range(1.25, 1.7) * 100) / 100, due: w.day + r.int(5, 10), who: r.pick(ORDER_WHO) });
+    w.orders.push({ id: w.nextId++, type: r.pick(['bracelet', 'bracelet', 'pendant', 'pendant', 'cab', 'bead', 'carve']), minW: r.pick([0.25, 0.25, 0.45, 0.45, 0.65]), color: r.chance(0.4), bonus: Math.round(r.range(1.25, 1.7) * (0.92 + rep / 400) * 100) / 100, due: w.day + r.int(5, 10), who: r.pick(ORDER_WHO), face: r.int(0, 5), taken: false, say: r.pick(['朋友介绍来的，说你这里货真。', '急着送人，能按时吗？', '价钱好说，东西要对。', '上回那件戴着不错，再订一件。', '先说好，过了日子我可不等。']) });
   }
 }
 function orderMatch(o, it) { return it.type === o.type && it.w >= o.minW - 0.03 && (!o.color || it.lv > 0.25); }
 function orderText(o) { return `${o.who}要一${ROUTES[o.type].unit}${waterName(o.minW)}以上${o.color ? '带色' : ''}的${ROUTES[o.type].name}`; }
 function sellToOrder(w, it, o) {
-  const price = Math.round(it.value * (o.bonus + (w.fam.car >= 3 ? 0.05 : 0)) / 10) * 10; it.state = 'sold'; it.price = price; w.cash += price; w.orders = w.orders.filter(x => x !== o); w.eye += 3;
+  const price = Math.round(it.value * (o.bonus + (w.fam.car >= 3 ? 0.05 : 0)) / 10) * 10; it.state = 'sold'; it.price = price; w.cash += price; w.orders = w.orders.filter(x => x !== o); w.eye += 3; w.ordRep = clamp(ordRep(w) + 6, 0, 100); w.stat.ordDone = (w.stat.ordDone || 0) + 1;
   w.log.push({ day: w.day, t: `${it.name} 交给${o.who}的订单`, amt: price }); achieve(w, 'order', '第一张客户订单');
   const s = w.stones.find(x => x.id === it.stone); if (s) { s.proceeds += price; if (!s.closed && stoneDone(w, s)) closeStone(w, s); }
   return price;
@@ -1225,6 +1234,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, ordRep, orderCap, orderWord, acceptOrder, declineOrder, BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);
