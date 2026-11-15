@@ -251,6 +251,7 @@ vec3 shade(vec3 p, vec3 n, vec3 rd, float detail, float flat_){
   acc=mix(acc,acc*0.88+vec3(0.15,0.15,0.14)*uAmbient,halo*0.5*flesh);
   acc=mix(acc,acc*vec3(0.96,0.66,0.36),rust*0.8*flesh);
   acc*=1.0-0.86*line*flesh;
+  if(flat_>0.5){ float dR=depth0-skinT; float rind=smoothstep(0.1,0.5,dR)*(1.0-smoothstep(0.5,1.9+1.2*vnoise(p*0.3+uPhase),dR)); float fogR=smoothstep(0.4,1.2,dR)*(1.0-smoothstep(1.6,4.5+2.0*vnoise(p*0.2+uPhase+3.0),dR)); acc=mix(acc,acc*mix(vec3(0.74,0.60,0.42),uSkinCol*1.25,0.5),rind*0.55); acc=mix(acc,acc*vec3(1.05,0.98,0.84)+vec3(0.03,0.025,0.01)*uAmbient,fogR*0.30*(1.0-rind)); } // 切面上的皮肉交界：贴皮一圈风化的硬壳，往里是一层薄薄的黄雾，再往里才是干净的肉
   acc=mix(acc,acc*1.02+vec3(0.11,0.11,0.105)*uAmbient,heal*mix(0.60,0.40,M(p).g)*flesh);   // 石纹：种越好越淡，只是一丝发白
   if(flat_>0.5){ vec3 sc0=vec3(170.0,90.0,-140.0); float arc=sin(length(p-sc0)*5.2+vnoise(p*0.2)*2.5); acc*=1.0+(0.020*arc+0.010*sin(length(p-sc0)*17.0))*flesh; } // 圆锯片留下的一圈圈弧形锯痕
   // 菲涅耳反光：种水越好表面越“起光”
