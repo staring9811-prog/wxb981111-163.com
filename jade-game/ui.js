@@ -201,7 +201,7 @@ function backLoop(ms) { requestAnimationFrame(backLoop); const el = $('#backdrop
   { const hz = c.createLinearGradient(0, H0 * 0.28, 0, H0 * 0.62); hz.addColorStop(0, 'rgba(255,240,215,0)'); hz.addColorStop(1, 'rgba(255,236,205,.10)'); c.fillStyle = hz; c.fillRect(0, H0 * 0.28, W0, H0 * 0.34); }   // 远处一层薄薄的尘气
   const vg = c.createRadialGradient(W0 / 2, H0 * 0.5, H0 * 0.2, W0 / 2, H0 * 0.5, Math.max(W0, H0) * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.5)'); c.fillStyle = vg; c.fillRect(0, 0, W0, H0); }
 requestAnimationFrame(backLoop);
-function invalidate(fast) { clearTimeout(fullTimer); if (fast) fullTimer = setTimeout(() => invalidate(false), 170); if (pending) { pendingFast = pendingFast && fast; return; } pending = true; pendingFast = !!fast; requestAnimationFrame(() => { pending = false; render(pendingFast ? Q.fast : 1); drawLayout(); }); }
+function invalidate(fast) { clearTimeout(fullTimer); if (fast) fullTimer = setTimeout(() => invalidate(false), 170); if (pending) { pendingFast = pendingFast && fast; return; } pending = true; pendingFast = !!fast; requestAnimationFrame(() => { pending = false; render(pendingFast ? Q.fast : 1); drawLayout(); drawRef(); }); }
 function render(scale, forceSize) {
   if (V.mode === 'tray') return renderTray(scale);
   gl.useProgram(prog);
@@ -378,6 +378,14 @@ function showOrder(id, msg) { const o = W.orders.find(x => x.id === id && x.take
   $('#storybody').innerHTML = h; $('#story').hidden = false; }
 /* 干活要花时间：时间不够就拦下来，提示熬夜或收工 */
 function useTime(h, what) { const r = C.spendTime(W, h); if (r.ok) { renderTop(); return true; } V.note = (what ? what + '要 ' + h + ' 个钟头。' : '') + r.msg; V.msg = V.note; Snd.lose(); renderTop(); renderTools(); renderSide(); return false; }
+/* 手镯位够不够大：一只镯子要 72 毫米的圈、10 毫米厚。皮要扣掉，所以石头最宽的两个方向都得明显超过 72 */
+function ringFit(d) { const s = d.slice().sort((a, b) => b - a), a = s[0], b = s[1], c = s[2], side = Math.max(1, Math.floor((a - 6) / 74)) * Math.max(1, Math.floor((b - 6) / 74)), layers = Math.max(0, Math.floor((c - 8) / 11.5));
+  if (b < 78) return { ok: false, short: `不够（次宽 ${b} mm < 78）`, text: `不够大。第二宽的方向只有 ${b} mm，放不下 72 mm 的圈。别切片了，做牌子、蛋面、珠子` };
+  if (c < 16) return { ok: false, short: `太薄（${c} mm）`, text: `够宽但太薄（${c} mm），出不了 10 mm 厚的片` };
+  return { ok: true, short: `够（一片并排 ${side} 只，约 ${layers} 片）`, text: `够大。最宽的面 ${a}×${b} mm，一片能并排 ${side} 只；厚 ${c} mm，理论上能切 ${layers} 片。实际还要扣皮、让裂` }; }
+function drawRef() { const el = $('#refg'); if (!el) return; if (!V.ringRef || !V.e || (V.mode !== 'market' && V.mode !== 'own') || !V.info) { if (el.firstChild) el.innerHTML = ''; return; }
+  const rc = canvas.getBoundingClientRect(), b = camBasis(), c = V.info.center, pt = (r, i) => { const a = i / 40 * Math.PI * 2, q = proj([c[0] + (b.r[0] * Math.cos(a) + b.up[0] * Math.sin(a)) * r, c[1] + (b.r[1] * Math.cos(a) + b.up[1] * Math.sin(a)) * r, c[2] + (b.r[2] * Math.cos(a) + b.up[2] * Math.sin(a)) * r]); return (q[0] - rc.left).toFixed(1) + ' ' + (q[1] - rc.top).toFixed(1); }, ring = r => 'M' + Array.from({ length: 40 }, (_, i) => pt(r, i)).join('L') + 'Z', top = proj([c[0] + b.up[0] * 40, c[1] + b.up[1] * 40, c[2] + b.up[2] * 40]);
+  el.innerHTML = `<path d="${ring(36)}${ring(28)}" fill="#ffd87a" fill-opacity="0.22" fill-rule="evenodd" stroke="#ffd87a" stroke-width="1.6" stroke-dasharray="5 3"/><text x="${(top[0] - rc.left).toFixed(0)}" y="${(top[1] - rc.top - 6).toFixed(0)}" text-anchor="middle" fill="#ffd87a" font-size="12" stroke="#000" stroke-width="3" paint-order="stroke">手镯：外径 72 mm · 内径 56 mm</text>`; }
 function tierBadge(it) { const t = C.tierOf(it); return `<span class="tb" style="background:${t.color}" title="${t.word}">${t.name}</span>`; }
 function workCard(k) { const is = C.issueOf(W, k); let h = `<article class="card"><div class="row"><b>加工中 · ${esc(k.from)}</b><span class="dim">${is ? '停工，等你拿主意' : '第 ' + k.ready + ' 天取货'}</span></div><div class="row dim"><span>${esc(k.what)}，按看得见的料预计 ${k.expected} 件。</span></div>`;
   if (is) h += issueHtml(k, is); else if (k.issue && k.issue.done) h += `<p class="${k.issue.win ? 'note' : 'say'}">${esc(k.issue.note)}</p>`; return h + '</article>'; }
@@ -415,7 +423,7 @@ function renderSide() { renderNotes(); renderPulse();
     W.market.forEach((L, i) => {
       const sel = V.mode === 'market' && V.rec === L;
       h += `<article class="card ${sel ? 'sel' : ''} ${L.sold ? 'gone' : ''}" data-act="listing" data-i="${i}"><div class="row"><b>${L.origin} · ${L.info.skin}</b><span class="price">${L.sold ? '已买' : L.auction ? '底价 ' + fmt(L.floor) : fmt(L.ask)}</span></div>
-      <div class="row dim"><span>${(L.info.weight / 1000).toFixed(2)} kg · ${L.info.dims.join('×')} mm</span><span>${L.channel}</span></div>
+      <div class="row dim"><span>${(L.info.weight / 1000).toFixed(2)} kg · ${L.info.dims.join('×')} mm</span><span>${L.channel}</span></div>${sel ? `<div class="row"><span class="${ringFit(L.info.dims).ok ? 'good' : 'dim'}">手镯位（外径 72 mm）：${ringFit(L.info.dims).text}</span><button data-act="ringref" aria-pressed="${!!V.ringRef}">${V.ringRef ? '收起镯圈' : '拿镯圈比一比'}</button></div>` : ''}
       <div class="tags"><span class="tag ${L.info.window ? 'w' : ''}">${L.info.window ? '卖家已开窗' : '全蒙头'}</span>${betHtml(L.info.bet, sel)}</div>`;
       if (sel && !L.sold && !L.called && C.can(W, 'buy')) h += `<div class="row"><span class="dim">觉得皮或窗口做过手脚？说对了老板大降价，说错了他翻脸不卖。</span><button data-act="callout">当面说这是假货</button></div>`;
       if (sel && !L.sold) { const eff = C.famEff(W, 'spotter'); if (eff > 0) { const kid = W.fam.kids.find(k => k.job === 'spotter'), st = C.getVol(L).st, rr = new C.Rng(C.seedOf(L.seed, 'kidsay')), right = rr.u() < 0.35 + eff * 0.9, gi = C.gradeIdx(st.w0), g2 = right ? gi : Math.max(0, Math.min(5, gi + (rr.u() < 0.5 ? 1 : -1))); h += `<p class="patter">${kid.name}凑过来小声说：“我看像${['豆种', '糯种', '糯冰种', '冰种', '高冰种', '玻璃种'][g2]}${L.fake && rr.u() < eff + 0.2 ? '，可这皮我觉得不对劲' : ''}。”</p>`; } }
@@ -598,6 +606,7 @@ function renderTools() {
   if (tray && V.hold != null) o = `<button data-act="spin" aria-pressed="${!!V.spin}">慢慢转</button><button data-act="back" aria-pressed="${!!V.back}">打背光</button><button data-act="unhold" class="pri">放回托盘</button>`;
   else if (tray) o = `<span class="dim">点一件选中，再点「拿起来看」</span>`;
 
+  if ((V.mode === 'market' || V.mode === 'own') && V.e && V.info && (V.tool === 'rotate' || V.tool === 'cut')) { const inf = V.info, d3 = V.mode === 'own' && V.piece ? [0, 1, 2].map(i => { const f = C.pieceInfo(V.e.vol, V.piece, [i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0]); return Math.round(f.hi - f.lo); }) : (V.rec.info ? V.rec.info.dims : null); o += `<button data-act="ringref" aria-pressed="${!!V.ringRef}">${V.ringRef ? '收起镯圈' : '镯圈比对'}</button>${d3 ? `<span class="${ringFit(d3).ok ? 'good' : 'dim'}">${d3.join('×')} mm · 手镯位${ringFit(d3).short}</span>` : ''}`; }
   $('#opts').innerHTML = o;
   let t = V.e ? HINTS[V.tool] : '从右侧「货源」里点一块石头开始看料。';
   if (tray && V.hold != null) t = '拿在手里看：拖动可以转到任何角度，包括背面和底下。打开背光看它透不透、色根怎么走。';
@@ -909,6 +918,7 @@ document.addEventListener('click', ev => {
   else if (a === 'goalopen') { V.goalOpen = !V.goalOpen; renderSide(); }
   else if (a === 'minetab') { V.mineTab = b.dataset.k; if (V.mineTab !== 'make' && V.ringMode) { V.ringMode = false; V.ringGhost = null; } renderSide(); drawLayout(); }
   else if (a === 'pulsefold') { V.pulseFold = !V.pulseFold; renderPulse(); }
+  else if (a === 'ringref') { V.ringRef = !V.ringRef; renderTools(); renderSide(); drawRef(); }
   else if (a === 'questall') { V.questOpen = !V.questOpen; renderSide(); }
   else if (a === 'layout') { V.layoutOn = !V.layoutOn; V.layoutKey = null; renderSide(); invalidate(false); }
   else if (a === 'prop') { V.wk.route = b.dataset.r; V.wk.theme = b.dataset.t; renderTools(); renderSide(); drawLayout(); }

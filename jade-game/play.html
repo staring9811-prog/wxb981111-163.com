@@ -223,7 +223,7 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
     <section id="stage">
       <canvas id="backdrop" hidden></canvas>
       <canvas id="gl"></canvas>
-      <svg id="overlay" aria-hidden="true"><g id="layoutg"></g><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
+      <svg id="overlay" aria-hidden="true"><g id="layoutg"></g><g id="refg"></g><line id="cutline" hidden x1="0" y1="0" x2="0" y2="0"></line><polygon id="lasso" hidden points=""></polygon></svg>
       <div id="reveal" hidden></div>
       <div id="sawbox" hidden></div>
       <div id="crlabel" hidden></div>
@@ -520,7 +520,7 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
   </ul>
     <h3>什么料做什么</h3>
     <ul>
-      <li><b>手镯</b>：要一整圈无裂的料，片厚至少 10 毫米。最值钱，也最怕裂。找平洲镯师最稳。<br><b>做法</b>：先用大锯切两刀平行的，切出一片 10 毫米以上的片料；选中这片，「做什么」选手镯，点「自己画圈口」，在片上点一下放一个圈（外径 72 毫米）。出了料、压到皮、压在看得见的裂上都放不下；看不见的裂要压出来才知道，压到了那只就断了。压在看得见的裂上时，可以打开「强行放」照样放（图纸变红）：赌师傅能避开，避裂好的师傅有四五成把握救回来，救回来也是带纹的，卖六成价；救不回来就断了。<b>牌子</b>也一样可以放图纸（38×26 毫米，片厚至少 6 毫米），放下时会显示图纸里有几成色、看清了几成。蛋面、珠子料、雕件坯也有图纸，不用切片，在任何露肉的面（切面或窗口）上点一下就能放：蛋面取面下 5 毫米的一小粒，珠子料一片出九颗，雕件坯是一整块。不想画也可以让师傅排，但师傅对整块没切的料只顺着三个正方向试，经常说“没有镯位”，切成片再试就有了。</li>
+      <li><b>手镯</b>：要一整圈无裂的料，片厚至少 10 毫米。最值钱，也最怕裂。找平洲镯师最稳。<br><b>先看够不够大</b>：选中一块料，工具栏和货源卡片上会写它的三个方向各多少毫米、手镯位够不够；点「镯圈比对」，石头上会叠一个真实大小的手镯圈（外径 72、内径 56 毫米），转着看哪个面放得下。第二宽的方向不到 78 毫米的料出不了镯子，别往片料上切。<b>做法</b>：先用大锯切两刀平行的，切出一片 10 毫米以上的片料；选中这片，「做什么」选手镯，点「自己画圈口」，在片上点一下放一个圈（外径 72 毫米）。出了料、压到皮、压在看得见的裂上都放不下；看不见的裂要压出来才知道，压到了那只就断了。压在看得见的裂上时，可以打开「强行放」照样放（图纸变红）：赌师傅能避开，避裂好的师傅有四五成把握救回来，救回来也是带纹的，卖六成价；救不回来就断了。<b>牌子</b>也一样可以放图纸（38×26 毫米，片厚至少 6 毫米），放下时会显示图纸里有几成色、看清了几成。蛋面、珠子料、雕件坯也有图纸，不用切片，在任何露肉的面（切面或窗口）上点一下就能放：蛋面取面下 5 毫米的一小粒，珠子料一片出九颗，雕件坯是一整块。不想画也可以让师傅排，但师傅对整块没切的料只顺着三个正方向试，经常说“没有镯位”，切成片再试就有了。</li>
       <li><b>牌子挂件</b>：出货稳。干净的高种料做素面无事牌最显水头；有棉做山水；有裂做花鸟龙凤把裂藏进纹路；拿不准就交给师傅定。</li>
       <li><b>蛋面</b>：只取色最浓的一小块，其余算废料。先下刀把色块单独切出来再送。高货找揭阳师傅。</li>
       <li><b>珠串</b>：能避开裂，碎料和裂多的料靠它回血。机雕厂就够。</li>
@@ -572,11 +572,11 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v58</div>
+<div id="ver">v59</div>
 
 <script>
 (function () {
-  var LOCAL = 58, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 59, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }
