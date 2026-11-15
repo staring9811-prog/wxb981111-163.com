@@ -85,6 +85,73 @@ function rayAt(cx, cy) {
 }
 function curPiece() { return V.mode === 'review' ? { planes: [[0, 1, 0, V.section]] } : (V.piece || C.WHOLE); }
 let pending = false, pendingFast = false, fullTimer = 0;
+
+/* 场景画：每个场景画一张背景——摊位、人群、道具。画在一张小画布上，交给着色器当石头后面的背景 */
+const backTex = new Map();
+function paintScene(name) {
+  const cv = document.createElement('canvas'); cv.width = 640; cv.height = 400; const x = cv.getContext('2d'); let sd = name.length * 7 + name.charCodeAt(0);
+  const R = () => { sd = (sd * 9301 + 49297) % 233280; return sd / 233280; };
+  const grad = (y0, y1, a, b) => { const g = x.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, a); g.addColorStop(1, b); return g; };
+  const rect = (c, a, b, w, h) => { x.fillStyle = c; x.fillRect(a, b, w, h); };
+  const glow = (cx, cy, r, c) => { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); };
+  const person = (px, py, s, c, hat) => { x.fillStyle = c; x.beginPath(); x.moveTo(px - s * 0.62, py); x.quadraticCurveTo(px - s * 0.78, py - s * 2.05, px, py - s * 2.15); x.quadraticCurveTo(px + s * 0.78, py - s * 2.05, px + s * 0.62, py); x.fill(); x.fillStyle = hat ? '#c9ab68' : '#1a1512'; x.beginPath(); x.arc(px, py - s * 2.5, s * 0.42, 0, 7); x.fill(); if (hat) { x.beginPath(); x.ellipse(px, py - s * 2.72, s * 0.85, s * 0.2, 0, 0, 7); x.fill(); } };
+  const crowd = (n, y0, y1, s0, s1, cols, hats) => { const a = []; for (let i = 0; i < n; i++) a.push([R() * 640, y0 + R() * (y1 - y0)]); a.sort((p, q) => p[1] - q[1]); for (const [px, py] of a) { const t = (py - y0) / ((y1 - y0) || 1); person(px, py, s0 + (s1 - s0) * t, cols[Math.floor(R() * cols.length)], hats && R() < hats); } };
+  const rocks = (sx, sy, w, n, cols) => { for (let i = 0; i < n; i++) { x.fillStyle = cols[i % cols.length]; x.beginPath(); x.ellipse(sx + R() * w, sy - R() * 3, 3 + R() * 6, 2.5 + R() * 3.5, R(), 0, 7); x.fill(); } };
+  const stall = (sx, sy, w, h, awn, cloth) => { rect('#241e19', sx, sy, 3, h); rect('#241e19', sx + w - 3, sy, 3, h);
+    for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? awn : '#e3d6bc'; x.beginPath(); x.moveTo(sx - 6 + i * (w + 12) / 8, sy); x.lineTo(sx - 6 + (i + 1) * (w + 12) / 8, sy); x.lineTo(sx - 12 + (i + 1) * (w + 24) / 8, sy + h * 0.24); x.lineTo(sx - 12 + i * (w + 24) / 8, sy + h * 0.24); x.fill(); }
+    rect(cloth, sx - 4, sy + h * 0.62, w + 8, h * 0.38); rect('rgba(0,0,0,.3)', sx - 4, sy + h * 0.62, w + 8, 3); rocks(sx + 6, sy + h * 0.61, w - 12, 9, ['#8d8674', '#a59b83', '#6f6a5c', '#b3a37f', '#5d6a5a']); };
+  const sign = (tx, sx, sy, fs, bg, fg) => { x.font = `bold ${fs}px "Noto Serif SC","Songti SC","SimSun",serif`; const w = x.measureText(tx).width + fs * 0.9; rect(bg, sx - w / 2, sy - fs * 0.75, w, fs * 1.45); x.fillStyle = fg; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(tx, sx, sy); };
+  const sack = (sx, sy, s, c) => { x.fillStyle = c; x.beginPath(); x.ellipse(sx, sy - s * 0.5, s * 0.72, s * 0.55, 0, 0, 7); x.fill(); rect(c, sx - s * 0.2, sy - s * 1.15, s * 0.4, s * 0.3); };
+  const truck = (sx, sy, s, c) => { rect(c, sx, sy - s * 1.15, s * 2.2, s * 0.95); rect('#3b3f44', sx + s * 2.2, sy - s * 0.85, s * 0.8, s * 0.65); rect('#9fb4c0', sx + s * 2.45, sy - s * 0.78, s * 0.45, s * 0.28); x.fillStyle = '#15120f'; for (const wx of [0.4, 1.7, 2.65]) { x.beginPath(); x.arc(sx + s * wx, sy - s * 0.1, s * 0.25, 0, 7); x.fill(); } };
+  const hills = (y, amp, c, f, ph) => { x.fillStyle = c; x.beginPath(); x.moveTo(0, 400); for (let i = 0; i <= 64; i++) x.lineTo(i * 10, y - amp * (0.5 + 0.5 * Math.sin(i * f + ph)) - amp * 0.3 * Math.sin(i * f * 2.7 + ph * 2)); x.lineTo(640, 400); x.fill(); };
+  const bulbs = (y, sag, n, c) => { x.strokeStyle = '#0c0a08'; x.lineWidth = 1; x.beginPath(); for (let i = 0; i <= 40; i++) { const t = i / 40; x.lineTo(t * 640, y + sag * Math.sin(t * Math.PI * 3) * 0.5 + sag * 4 * t * (1 - t)); } x.stroke(); for (let i = 0; i < n; i++) { const t = (i + 0.5) / n, bx = t * 640, by = y + sag * Math.sin(t * Math.PI * 3) * 0.5 + sag * 4 * t * (1 - t) + 4; glow(bx, by, 34, c); x.fillStyle = '#fff3d0'; x.beginPath(); x.arc(bx, by, 2.6, 0, 7); x.fill(); } };
+  const DARK = ['#1c1714', '#241c18', '#2b2320', '#191d22', '#2a2118'], DAY = ['#3a3028', '#4a3a2c', '#2f3a40', '#5a4636', '#3d3d3d', '#6a3a34'];
+  try { x.filter = 'blur(0.8px)'; } catch (e) { }
+  if (name === '夜市地摊') { rect(grad(0, 400, '#120b07', '#2a160c'), 0, 0, 640, 400); rect(grad(170, 400, '#3a2416', '#170e09'), 0, 190, 640, 210);
+    for (let i = 0; i < 5; i++) rect('#0e0907', 20 + i * 130 + R() * 20, 60 + R() * 30, 70 + R() * 30, 130);
+    stall(20, 96, 150, 112, '#a8382e', '#5a2a20'); stall(240, 104, 130, 100, '#2f5f8a', '#3a3a2a'); stall(450, 92, 170, 118, '#b0782a', '#4a2a2a');
+    bulbs(52, 16, 9, 'rgba(255,190,90,.5)'); bulbs(84, 10, 6, 'rgba(255,170,70,.35)'); sign('姐告夜市', 320, 30, 20, '#7a1f18', '#f3d9a0'); sign('赌石', 96, 86, 13, '#1d1512', '#e8c070'); sign('原石 翡翠', 536, 82, 12, '#1d1512', '#e8c070');
+    crowd(16, 205, 262, 13, 22, DARK, 0.15); for (let i = 0; i < 4; i++) glow(80 + i * 160, 150, 90, 'rgba(255,160,70,.12)'); }
+  else if (name === '玉石集散地') { rect(grad(0, 400, '#3a3832', '#211f1b'), 0, 0, 640, 400); rect(grad(190, 400, '#4a463e', '#1f1d19'), 0, 195, 640, 205);
+    for (let i = 0; i < 6; i++) { rect('#e9efe6', 30 + i * 105, 26 + (i % 2) * 10, 70, 4); glow(65 + i * 105, 30, 60, 'rgba(230,245,235,.22)'); }
+    for (let i = 0; i < 4; i++) rect('#2c2a26', 10 + i * 205, 40, 14, 160);
+    for (let i = 0; i < 5; i++) { const sx = 26 + i * 124; rect('#2f2b25', sx, 150, 104, 48); rect('rgba(190,220,210,.28)', sx + 3, 128, 98, 24); rect('#5a5348', sx, 150, 104, 4); rocks(sx + 8, 148, 88, 7, ['#9a927c', '#7f8a78', '#b5a98a', '#5f7a66']); sign(['翡翠原石', '批发', '明料', '莫西沙', '木那'][i], sx + 52, 112, 12, '#7a1f18', '#f0dca8'); }
+    crowd(11, 208, 262, 14, 23, DAY, 0); rect('#6a5a3a', 560, 232, 44, 6); rect('#3a3024', 566, 204, 32, 28); }
+  else if (name === '翡翠公盘') { rect(grad(0, 400, '#0b0e14', '#141a24'), 0, 0, 640, 400); rect(grad(190, 400, '#1a2230', '#0a0d12'), 0, 195, 640, 205);
+    for (let i = 0; i < 5; i++) { const cx0 = 70 + i * 125; x.fillStyle = 'rgba(150,190,240,.10)'; x.beginPath(); x.moveTo(cx0 - 6, 0); x.lineTo(cx0 + 6, 0); x.lineTo(cx0 + 52, 200); x.lineTo(cx0 - 52, 200); x.fill(); glow(cx0, 6, 26, 'rgba(200,225,255,.6)'); }
+    sign('翡翠公盘 · 暗标', 320, 44, 20, '#101826', '#cfe0f5');
+    for (let r0 = 0; r0 < 2; r0++) for (let i = 0; i < 6; i++) { const sx = 18 + i * 104 + r0 * 30, sy = 150 + r0 * 34, w = 84 + r0 * 10; rect('#27303c', sx, sy, w, 10 + r0 * 3); rect('#161b22', sx + 3, sy + 10, 3, 26); rect('#161b22', sx + w - 6, sy + 10, 3, 26); rocks(sx + 6, sy - 1, w - 12, 4, ['#8f9aa0', '#a8a08c', '#6d7a70']); rect('#e8eef5', sx + w / 2 - 7, sy - 14, 14, 10); x.fillStyle = '#101826'; x.font = '8px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(101 + r0 * 6 + i), sx + w / 2, sy - 9); }
+    crowd(12, 222, 266, 15, 24, ['#10141a', '#1a202a', '#232a36', '#151a14'], 0); }
+  else if (name === '场口直采' || name === '缅北矿区') { const red = name === '缅北矿区'; rect(grad(0, 200, red ? '#c7a070' : '#8fa8bc', red ? '#e8c9a0' : '#d5d0bc'), 0, 0, 640, 200); glow(red ? 500 : 130, 70, 120, red ? 'rgba(255,220,160,.6)' : 'rgba(255,250,230,.5)');
+    hills(150, 60, red ? '#8a6a4c' : '#6f7f84', 0.21, 1); hills(176, 46, red ? '#7a4a2c' : '#5d6a5c', 0.33, 2.4); rect(grad(190, 400, red ? '#8f4a26' : '#7a5c3c', red ? '#4a2412' : '#3a2a1a'), 0, 196, 640, 204);
+    for (let i = 0; i < 4; i++) { x.fillStyle = red ? 'rgba(60,24,10,.35)' : 'rgba(40,30,18,.3)'; x.beginPath(); x.moveTo(0, 204 + i * 14); x.lineTo(640, 198 + i * 16); x.lineTo(640, 202 + i * 16); x.lineTo(0, 208 + i * 14); x.fill(); }
+    rect('#c9a23a', 430, 150, 54, 22); rect('#2a2a2a', 426, 172, 66, 9); x.strokeStyle = '#c9a23a'; x.lineWidth = 6; x.beginPath(); x.moveTo(474, 152); x.lineTo(520, 118); x.lineTo(548, 150); x.stroke(); rect('#3a3a3a', 540, 148, 16, 12);
+    rect(red ? '#3f6a8a' : '#6a6f74', 60, 150, 110, 46); x.fillStyle = red ? '#2f5068' : '#4a4f54'; x.beginPath(); x.moveTo(52, 152); x.lineTo(115, 128); x.lineTo(178, 152); x.fill(); truck(210, 214, 22, red ? '#3a6a4a' : '#7a5a2a'); if (red) { truck(330, 206, 16, '#8a7a5a'); for (const px of [20, 600, 575]) { rect('#3a2a18', px, 120, 4, 78); for (let k = 0; k < 6; k++) { x.strokeStyle = '#2f5a2a'; x.lineWidth = 3; x.beginPath(); x.moveTo(px + 2, 122); x.quadraticCurveTo(px + 2 + Math.cos(k) * 22, 104 + Math.sin(k * 1.7) * 6, px + 2 + Math.cos(k) * 34, 124 + Math.abs(Math.sin(k)) * 10); x.stroke(); } } }
+    for (let i = 0; i < 9; i++) sack(300 + i * 26 + R() * 8, 236 + (i % 3) * 8, 11 + R() * 3, ['#b5a583', '#a3936f', '#c2b490'][i % 3]); rocks(40, 240, 200, 26, ['#8d8674', '#a59b83', '#6f6a5c', '#7a6a50']);
+    crowd(9, 214, 262, 12, 21, DAY, 0.6); }
+  else if (name === '河滩早市') { rect(grad(0, 190, '#5a6f88', '#e2c9a8'), 0, 0, 640, 190); glow(470, 150, 150, 'rgba(255,215,160,.55)'); hills(158, 40, '#5d6f7a', 0.25, 0.5); hills(176, 24, '#4a5a5c', 0.4, 2);
+    rect(grad(176, 214, '#8fa6b4', '#5f7684'), 0, 178, 640, 34); for (let i = 0; i < 14; i++) rect('rgba(255,240,215,.25)', R() * 640, 184 + R() * 24, 20 + R() * 40, 1.5);
+    rect(grad(208, 400, '#8a8474', '#3f3b32'), 0, 208, 640, 192); rocks(0, 232, 640, 90, ['#9a9484', '#7d786a', '#b3ad9c', '#6a665a', '#8f8672']);
+    for (let i = 0; i < 4; i++) { const sx = 30 + i * 155; x.fillStyle = ['#3f6f9a', '#a8502e', '#3f7a52', '#8a7a3a'][i]; x.beginPath(); x.moveTo(sx, 236); x.lineTo(sx + 110, 232); x.lineTo(sx + 122, 256); x.lineTo(sx - 10, 260); x.fill(); rocks(sx + 6, 250, 100, 10, ['#cfc7b0', '#a59b83', '#6f7a66', '#d8d2c0']); }
+    crowd(10, 226, 268, 12, 21, DAY, 0.4); rect('#2a2a2a', 560, 214, 46, 5); x.fillStyle = '#1a1a1a'; x.beginPath(); x.arc(566, 224, 8, 0, 7); x.arc(602, 224, 8, 0, 7); x.fill(); rect('rgba(255,255,255,.10)', 0, 150, 640, 60); }
+  else if (name === '姐告口岸') { rect(grad(0, 200, '#3a4a6a', '#e0a878'), 0, 0, 640, 200); glow(120, 160, 170, 'rgba(255,190,120,.5)'); hills(170, 26, '#3a3f4a', 0.3, 1);
+    rect('#b9ab94', 190, 70, 260, 26); rect('#a39680', 200, 96, 36, 104); rect('#a39680', 404, 96, 36, 104); rect('#8a7d68', 180, 62, 280, 10); x.fillStyle = '#7a2a20'; x.beginPath(); x.moveTo(176, 62); x.lineTo(320, 34); x.lineTo(464, 62); x.fill(); sign('姐告口岸', 320, 83, 17, '#b9ab94', '#5a1a14'); rect('#2a2f38', 236, 110, 168, 90); rect('#c9a23a', 236, 150, 168, 5);
+    rect(grad(196, 400, '#5a5148', '#231f1b'), 0, 198, 640, 202); truck(20, 232, 26, '#3f5f8a'); truck(470, 226, 22, '#7a4a2a'); for (let i = 0; i < 10; i++) sack(130 + i * 22 + R() * 10, 250 + (i % 3) * 7, 11 + R() * 3, ['#b5a583', '#a3936f', '#c2b490'][i % 3]);
+    crowd(13, 214, 266, 13, 22, DAY, 0.3); rocks(380, 252, 80, 10, ['#8d8674', '#a59b83', '#6f6a5c']); }
+  else if (name === '典当行绝当') { rect(grad(0, 400, '#2a1a12', '#140c08'), 0, 0, 640, 400); for (let i = 0; i < 16; i++) rect(i % 2 ? '#3a2416' : '#33200f', i * 40, 0, 40, 210);
+    for (let r0 = 0; r0 < 3; r0++) { rect('#1c110a', 40, 46 + r0 * 44, 560, 5); for (let i = 0; i < 12; i++) { const sx = 56 + i * 46; rocks(sx, 45 + r0 * 44, 20, 2, ['#8d8674', '#a59b83', '#5f7a66', '#b3a37f']); rect('#e8d9a8', sx + 4, 50 + r0 * 44, 10, 7); } }
+    rect('#4a2c18', 0, 176, 640, 40); rect('#2a180c', 0, 176, 640, 5); for (let i = 0; i < 32; i++) rect('#c9a23a', 6 + i * 20, 110, 2, 66); rect('#c9a23a', 0, 108, 640, 3);
+    x.fillStyle = '#7a1f18'; x.beginPath(); x.arc(560, 60, 38, 0, 7); x.fill(); x.fillStyle = '#f0d9a0'; x.font = 'bold 44px "Noto Serif SC","Songti SC",serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('當', 560, 62);
+    glow(150, 120, 130, 'rgba(255,190,110,.35)'); rect('#1a120c', 148, 60, 3, 40); x.fillStyle = '#3f6a4a'; x.beginPath(); x.moveTo(128, 104); x.lineTo(172, 104); x.lineTo(162, 86); x.lineTo(138, 86); x.fill();
+    person(330, 176, 26, '#241a14'); rect(grad(214, 400, '#2f1c10', '#120a06'), 0, 216, 640, 184); crowd(4, 240, 268, 18, 24, DARK, 0); }
+  else { rect(grad(0, 400, '#2a2622', '#16130f'), 0, 0, 640, 400);   // 工作间
+    for (let i = 0; i < 20; i++) rect(i % 2 ? '#2f2a24' : '#2a2520', i * 32, 0, 32, 196); rect('#3a3026', 0, 150, 640, 46); rect('#1e1914', 0, 150, 640, 4);
+    rect('#1e1914', 40, 40, 250, 6); const tools = [[60, '#8a8f94', 34], [86, '#6a6f74', 44], [112, '#c9a23a', 28], [140, '#8a8f94', 50], [170, '#7a4a2a', 38], [200, '#8a8f94', 30], [230, '#5a5f64', 46], [258, '#8a8f94', 36]]; for (const [tx, c, h] of tools) { rect(c, tx, 46, 4, h); rect('#3a2a1a', tx - 2, 46 + h, 8, 14); }
+    rect('#4a4f54', 400, 78, 150, 72); rect('#2a2d30', 400, 78, 150, 8); x.strokeStyle = '#b8bcc0'; x.lineWidth = 3; x.beginPath(); x.arc(475, 110, 34, Math.PI, 0); x.stroke(); rect('#c9a23a', 410, 136, 26, 8); sign('切石机', 475, 62, 12, '#1e1914', '#c9bfa8');
+    for (let i = 0; i < 5; i++) { rect('#2f6a5a', 316 + i * 14, 120 + (i % 2) * 6, 10, 30 - (i % 2) * 6); } rocks(40, 148, 260, 16, ['#8d8674', '#a59b83', '#6f6a5c', '#5f7a66', '#b3a37f']);
+    glow(320, 20, 220, 'rgba(255,225,170,.28)'); rect('#15110d', 318, 0, 3, 26); x.fillStyle = '#2f5a48'; x.beginPath(); x.moveTo(298, 34); x.lineTo(342, 34); x.lineTo(332, 20); x.lineTo(308, 20); x.fill(); rect(grad(196, 400, '#3a3128', '#15110d'), 0, 196, 640, 204); }
+  x.filter = 'none'; rect(grad(250, 400, 'rgba(0,0,0,0)', 'rgba(0,0,0,.45)'), 0, 250, 640, 150); return cv;
+}
 function invalidate(fast) { clearTimeout(fullTimer); if (fast) fullTimer = setTimeout(() => invalidate(false), 170); if (pending) { pendingFast = pendingFast && fast; return; } pending = true; pendingFast = !!fast; requestAnimationFrame(() => { pending = false; render(pendingFast ? Q.fast : 1); drawLayout(); }); }
 function render(scale, forceSize) {
   if (V.mode === 'tray') return renderTray(scale);
@@ -135,6 +202,8 @@ function render(scale, forceSize) {
   const cutOn = V.cut && (V.tool === 'cut' || V.sawing) && V.mode === 'own' && !forceSize;
   gl.uniform1f(u('uCutOn'), cutOn ? (V.sawing ? 2 + (V.sawing % 7) : 1) : 0); if (cutOn) gl.uniform4f(u('uCut'), V.cut.n[0], V.cut.n[1], V.cut.n[2], V.cut.d);
   const SC = ({ '夜市地摊': [0, [0.075, 0.05, 0.03], [0.014, 0.010, 0.009], [1.0, 0.82, 0.56]], '玉石集散地': [1, [0.125, 0.115, 0.10], [0.022, 0.02, 0.018], [1.0, 0.97, 0.92]], '翡翠公盘': [2, [0.05, 0.06, 0.08], [0.008, 0.01, 0.014], [0.92, 0.97, 1.0]], '场口直采': [3, [0.3, 0.25, 0.18], [0.12, 0.10, 0.08], [1.0, 0.94, 0.84]] }[(C.SCENES[(V.rec && V.rec.scene) || W.scene] || {}).look || (V.rec && V.rec.scene) || W.scene] || [1, [0.115, 0.1, 0.085], [0.02, 0.018, 0.016], [1, 0.96, 0.9]]).slice(); { const S0 = C.SCENES[(V.rec && V.rec.scene) || W.scene] || {}; if (S0.key) SC[3] = S0.key; }
+  { const bn = V.mode === 'market' ? ((V.rec && V.rec.scene) || W.scene) : (V.mode === 'own' ? '工作间' : null), on = !!bn && !forceSize && V.backdrop !== false; gl.uniform1f(u('uBackOn'), on ? 1 : 0); gl.activeTexture(gl.TEXTURE5);
+    if (on) { let t = backTex.get(bn); if (!t) { t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, paintScene(bn)); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); for (const pn of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, pn, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); backTex.set(bn, t); } gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1f(u('uYaw'), cam.yaw); } gl.uniform1i(u('uBack'), 5); }
   gl.uniform1i(u('uScene'), V.mode === 'market' ? SC[0] : 1); gl.uniform3fv(u('uBgA'), V.mode === 'market' ? SC[1] : [0.115, 0.1, 0.085]); gl.uniform3fv(u('uBgB'), V.mode === 'market' ? SC[2] : [0.02, 0.018, 0.016]); gl.uniform3fv(u('uKeyCol'), V.mode === 'market' ? SC[3] : [1, 0.96, 0.9]);
   { const tab = { '夜市地摊': [0.20, 0.07, 0.05], '玉石集散地': [0.10, 0.16, 0.13], '翡翠公盘': [0.035, 0.04, 0.055], '场口直采': [0.30, 0.23, 0.15] }; { const sn = (V.rec && V.rec.scene) || W.scene, S0 = C.SCENES[sn] || {}; if (S0.tabc) tab[sn] = S0.tabc; else if (S0.look) tab[sn] = tab[S0.look]; } const on = !forceSize && V.info && V.mode !== 'review' && V.floor !== false; gl.uniform1f(u('uFloorOn'), on ? 1 : 0); gl.uniform1f(u('uDecor'), on && V.mode === 'market' ? 1 : 0); if (on) { gl.uniform1f(u('uFloorY'), V.info.lo - 0.4); gl.uniform1f(u('uFloorR'), Math.max(120, V.info.radius * 3.2)); gl.uniform3fv(u('uTabCol'), V.mode === 'market' ? (tab[(V.rec && V.rec.scene) || W.scene] || tab['玉石集散地']) : [0.09, 0.14, 0.12]); } }
   gl.uniform1i(u('uK'), scale < 1 ? 10 : Q.K); gl.uniform1f(u('uHi'), scale < 1 ? 0 : 1);
@@ -1026,7 +1095,7 @@ new ResizeObserver(() => invalidate(false)).observe(canvas);
 /* ---------- 启动 ---------- */
 const hadSave = !!load();
 W = load() || C.newWorld((Date.now() ^ 0x5f3759df) >>> 0);
-window.JadeDebug = { torchScreen: () => { const t = torchPts(); return { tail: proj(t.tail), head: proj(t.head) }; }, V, cam, Q, render, invalidate, view, world: () => W, setWorld: w => { W = w; } };
+window.JadeDebug = { paintScene, torchScreen: () => { const t = torchPts(); return { tail: proj(t.tail), head: proj(t.head) }; }, V, cam, Q, render, invalidate, view, world: () => W, setWorld: w => { W = w; } };
 if (!W.market || !W.market.length) C.enterScene(W, W.scene || '夜市地摊');
 fillManual();
 view('market', W.market.find(L => !L.sold) || null, null);

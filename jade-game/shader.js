@@ -6,7 +6,7 @@ window.JADE_VS = `#version 300 es
 in vec2 aPos; void main(){ gl_Position=vec4(aPos,0.,1.); }`;
 window.JADE_FS = `#version 300 es
 precision highp float; precision highp sampler3D;
-uniform sampler3D uGeom, uMat;
+uniform sampler3D uGeom, uMat; uniform sampler2D uBack; uniform float uBackOn, uYaw;
 uniform vec2 uRes; uniform vec3 uCamPos; uniform mat3 uCamRot; uniform float uTan;
 uniform vec3 uBox; uniform float uPristine; uniform int uNPl; uniform vec4 uPl[16]; uniform int uNHo; uniform vec4 uHo[32]; uniform int uHoN[4]; uniform int uSawN; uniform vec4 uSaw[9]; uniform vec4 uCut; uniform float uCutOn;
 uniform vec3 uSkinCol; uniform float uSkinSig, uSkinGrain, uSkinRel, uWeather, uPhase;
@@ -286,6 +286,7 @@ void main(){
     col=mix(gnd,sky,smoothstep(hz-0.01,hz+0.012,c.y))*0.62; col=mix(col,vec3(0.34,0.33,0.30),(1.0-smoothstep(hz,hz+0.10,c.y))*step(hz,c.y)*0.55);
     col+=vec3(0.45,0.36,0.22)*exp(-dot(c-vec2(-0.5,0.42),c-vec2(-0.5,0.42))*6.0);
   }
+  if(uBackOn>0.5){ vec2 sv=gl_FragCoord.xy/uRes; float ty=1.0-sv.y; vec2 buv=vec2(0.5+(sv.x-0.5)*1.3*(uRes.x/uRes.y)/1.6+sin(uYaw)*0.06, 1.0-clamp(ty*1.3+0.03,0.0,1.0)); col=texture(uBack,buv).rgb*(0.66+0.34*spot); } // 场景画：摊位、人群、道具；转动石头时背景跟着微微平移
   col=(col+vec3(0.012)*(vnoise(vec3(gl_FragCoord.xy*0.9,1.0))-0.5))*(0.30+0.70*uAmbient);
   vec3 p,n; float fl;
   bool hitS=trace(uCamPos,rd,p,n,fl); if(hitS) col=shade(p,n,rd,detail,fl);
