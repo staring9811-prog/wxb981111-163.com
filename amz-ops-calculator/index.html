@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="ops-app-version" content="1.0.2">
+<meta name="ops-app-version" content="1.0.3">
 <meta name="ops-data-schema" content="1">
 <title>运营利润测算</title>
 <script>(()=>{let t=null;try{const v=localStorage.getItem("ops_theme");if(v==="dark"||v==="light")t=v;}catch(e){}if(t)document.documentElement.dataset.theme=t;})();</script>
@@ -344,16 +344,15 @@ const fmtMet=(k,v)=>!isFinite(v)?"":PCT.has(k)?(v*100).toFixed(2).replace(/\.?0+
 function renderOps(){ renderPeriods(); const pid=S.view.period, C=S.cols;
   const grp=[["g-tot",1],["g-ad",10],["g-org",3],["g-tot",4]];
   const GN={"g-ad":"广告","g-org":"自然","g-tot":"汇总"};
-  const head1=`<tr><th rowspan="2" class="fz">SKU</th><th rowspan="2">品名</th>${C.map(c=>`<th rowspan="2">${esc(c.name)}</th>`).join("")}<th class="grp g-prof" colspan="3">结果</th><th class="grp g-tot" colspan="5">汇总（主要调 总订单 · 广告订单占比）</th><th class="grp g-ad" colspan="10">广告</th><th class="grp g-org" colspan="3">自然</th></tr>`;
-  const head2=`<tr><th class="keyh">利润率</th><th>利润 $</th><th>评价</th>${MET.map(m=>`<th class="${KEYM.has(m[0])?"keyh":""}" title="${esc(m[4]||"")}">${m[1]}</th>`).join("")}</tr>`;
+  const head1=`<tr><th rowspan="2" class="fz">SKU</th><th rowspan="2">品名</th>${C.map(c=>`<th rowspan="2">${esc(c.name)}</th>`).join("")}<th class="grp g-prof" colspan="2">结果</th><th class="grp g-tot" colspan="5">汇总（主要调 总订单 · 广告订单占比）</th><th class="grp g-ad" colspan="10">广告</th><th class="grp g-org" colspan="3">自然</th></tr>`;
+  const head2=`<tr><th class="keyh">利润率</th><th>利润 $</th>${MET.map(m=>`<th class="${KEYM.has(m[0])?"keyh":""}" title="${esc(m[4]||"")}">${m[1]}</th>`).join("")}</tr>`;
   const rows=S.skus.map((k,i)=>{ const R=periodCalc(k,pid), D=R.D, d=(S.data[pid]||{})[k.id]||{};
     const cells=MET.map(([key])=>{ const user=d[key]!==undefined&&d[key]!=="", val=D.v[key], bad=D.bad.has(key);
       const shown=user?d[key]:"", ph=!user&&isFinite(val)?fmtMet(key,val):"";
       return `<td class="${KEYM.has(key)?"keyc":""}"><input type="number" step="any" class="${user?"":"der"} ${bad?"bad":""} ${KEYM.has(key)?"key":""}" data-sku="${k.id}" data-m="${key}" value="${esc(shown)}" placeholder="${esc(ph)}" title="${bad?"和同一组里填的其他数对不上":PCT.has(key)?"填百分数，例如 9 = 9%":""}"></td>`; }).join("");
     const cls=!isFinite(R.margin)?"":R.margin<0?"neg":R.margin<nz(ST().target)/100?"amber":"pos";
-    const tg=nz(ST().target), ev=!isFinite(R.margin)?`<span class="note">数据不够</span>`:R.margin<0?`<span class="chip bad">亏损</span>`:R.margin<tg/100?`<span class="chip warn">低于目标 ${tg}%</span>`:`<span class="chip ok">达标</span>`;
-    return `<tr><td class="fz l">${esc(k.sku||"–")}</td><td class="l">${esc(k.name)}</td>${C.map(c=>`<td>${esc((k.attrs||{})[c.id]||"")}</td>`).join("")}
-      <td class="mg big ${cls}">${pct(R.margin)}</td><td class="n ${cls}">${money(R.profit)}${R.spendKnown||!isFinite(R.profit)?"":`<div class="note" title="没有广告花费，按预估推广 ${ST().adsFallback}% 估">广告按 ${ST().adsFallback}% 估</div>`}</td><td>${ev}</td>${cells}</tr>`; }).join("");
+        return `<tr><td class="fz l">${esc(k.sku||"–")}</td><td class="l">${esc(k.name)}</td>${C.map(c=>`<td>${esc((k.attrs||{})[c.id]||"")}</td>`).join("")}
+      <td class="mg big ${cls}">${pct(R.margin)}</td><td class="n ${cls}">${money(R.profit)}${R.spendKnown||!isFinite(R.profit)?"":`<div class="note" title="没有广告花费，按预估推广 ${ST().adsFallback}% 估">广告按 ${ST().adsFallback}% 估</div>`}</td>${cells}</tr>`; }).join("");
   document.getElementById("opsTable").innerHTML=`<table><thead>${head1}${head2}</thead><tbody>${rows||`<tr><td colspan="30" class="note" style="padding:14px">先在“① SKU 与成本”里加 SKU。</td></tr>`}</tbody></table>`;
   stickHead("opsTable"); }
 document.getElementById("opsTable").addEventListener("change",e=>{ const t=e.target; if(!t.dataset.m) return; const pid=S.view.period; S.data[pid]=S.data[pid]||{}; const d=S.data[pid][t.dataset.sku]=S.data[pid][t.dataset.sku]||{};
