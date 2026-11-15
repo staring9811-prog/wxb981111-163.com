@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="ops-app-version" content="1.0.3">
+<meta name="ops-app-version" content="1.1.0">
 <meta name="ops-data-schema" content="1">
 <title>运营利润测算</title>
 <script>(()=>{let t=null;try{const v=localStorage.getItem("ops_theme");if(v==="dark"||v==="light")t=v;}catch(e){}if(t)document.documentElement.dataset.theme=t;})();</script>
@@ -52,6 +52,7 @@ input::placeholder{color:var(--muted)}
 .chip{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);font-size:12px}
 .chip.ok{background:var(--pos-soft);color:var(--pos);border-color:transparent}.chip.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}.chip.bad{background:var(--neg-soft);color:var(--neg);border-color:transparent}
 .pos{color:var(--pos)}.neg{color:var(--neg)}.amber{color:var(--warn)}
+.mx td{min-width:78px}.mx td .s2{display:block;font-size:11px;font-weight:400;color:var(--muted)}.mx td.cur{outline:2px solid var(--accent);outline-offset:-2px}
 td.mg{font-weight:700;font-family:var(--f-num)}td.mg.pos{background:var(--pos-soft)}td.mg.neg{background:var(--neg-soft)}td.mg.amber{background:var(--warn-soft)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:8px 0 14px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
@@ -60,7 +61,8 @@ td.mg{font-weight:700;font-family:var(--f-num)}td.mg.pos{background:var(--pos-so
 .periods .p{display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;background:var(--surface);padding:2px 4px 2px 10px}
 .periods .p.on{border-color:var(--accent);background:var(--accent-soft)}
 .periods .p button{border:0;background:transparent;cursor:pointer;color:var(--muted);font:inherit;padding:2px 6px}
-.periods .p .nm{cursor:pointer;font-weight:600}
+.periods .p .nm{cursor:pointer;font-weight:600;margin-right:6px}
+.periods .p input.days{width:44px;padding:1px 4px;font-size:12px;margin-right:2px}
 #opsTable input[type=number]{width:96px}
 #opsTable input.key{width:120px;font-size:17px;font-weight:700;padding:6px 8px}
 #opsTable th.keyh{font-size:14px;color:var(--accent)}
@@ -109,7 +111,7 @@ dialog{border:1px solid var(--line);border-radius:var(--r);background:var(--surf
 <!-- ② ops data -->
 <section id="t-ops" class="hidden">
   <h2>运营数据（按时间段）</h2>
-  <p class="lead">时间段自己加、自己命名。每个 SKU 在每个时间段填一组数据，<b>知道其中几项就自动推算其余</b>：黑色是你填的，<i class="note">灰色斜体</i>是推算出来的，红框表示填的数之间对不上（以你填的为准）。</p>
+  <p class="lead">时间段自己加、自己命名，后面填天数就能用“日均订单”。每个 SKU 在每个时间段填一组数据，<b>知道其中几项就自动推算其余</b>：黑色是你填的，<i class="note">灰色斜体</i>是推算出来的，红框表示填的数之间对不上（以你填的为准）。</p>
   <div class="periods" id="periodBar"></div>
   <div class="row" style="margin-bottom:8px"><button class="btn sm" id="btnCopyPrev">从上一个时间段复制数据</button><button class="btn sm" id="btnClearPeriod">清空本时间段</button><span class="note">推算关系见表下方</span></div>
   <div class="tw" id="opsTable"></div>
@@ -125,7 +127,7 @@ dialog{border:1px solid var(--line);border-radius:var(--r);background:var(--surf
 <!-- ③ profit -->
 <section id="t-profit" class="hidden">
   <h2>运营利润测算</h2>
-  <p class="lead">利润 = 销售额 − 总订单 × (采购成本 + 头程 + 履约费 + 佣金 + 退款 + 汇损 + 其他) − <b>实际广告花费</b>。没有广告花费数据的，按“预估推广 %”估（会标出来）。</p>
+  <p class="lead">利润 = 销售额 − 总订单 × (折扣 + 采购成本 + 头程 + 履约费 + 佣金 + 退款 + 汇损 + 其他) − <b>广告花费</b> − 本期推广费。广告花费优先用本期数据，其次按 SKU 的广告基准（基准 CPC ÷ 基准 CVR × 广告订单），都没有才按“预估推广 %”估。</p>
   <div class="row" style="margin-bottom:6px">
     <label class="f" style="flex-direction:row;align-items:center;gap:6px">时间段<select id="profPeriod"></select></label>
     <label class="f" style="flex-direction:row;align-items:center;gap:6px">分组<select id="profGroup"></select></label>
@@ -136,6 +138,16 @@ dialog{border:1px solid var(--line);border-radius:var(--r);background:var(--surf
   <h2>FBM vs FBA 对比（不含广告的单件利润）</h2>
   <p class="lead">每个 SKU 两种履约方式的单件费用和单件利润，标出更划算的；“采用”在 SKU 表里可以改。</p>
   <div class="tw" id="fulTable"></div>
+  <h2>利润矩阵：日均单量 × 广告订单占比</h2>
+  <p class="lead">选一个 SKU 和时间段，看单量做到多少、广告单占比压到多少才赚钱。格子里是利润率（小字是这个时间段的利润），售价、折扣、推广费、天数用这个时间段的；每个广告单的成本用本期广告数据，没有就用 SKU 的广告基准。</p>
+  <div class="row" style="margin-bottom:6px">
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">SKU<select id="mxSku"></select></label>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">时间段<select id="mxPer"></select></label>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">日均单量<input id="mxRows" class="w" title="逗号分隔"></label>
+    <label class="f" style="flex-direction:row;align-items:center;gap:6px">广告单占比 %<input id="mxCols" class="w" title="逗号分隔"></label>
+  </div>
+  <div class="note" id="mxInfo" style="margin-bottom:6px"></div>
+  <div class="tw" id="mxTable" style="max-height:none"></div>
 </section>
 
 <!-- ④ settings -->
@@ -185,9 +197,9 @@ const f0=v=>isFinite(v)?Math.round(v).toLocaleString("en-US"):"–";
 const pct=v=>isFinite(v)?(v*100).toFixed(1)+"%":"–";
 const money=v=>isFinite(v)?(v<0?"−$":"$")+f2(Math.abs(v)):"–";
 const clone=o=>JSON.parse(JSON.stringify(o));
-function blank(){ const p={id:uid(),name:"本月"}; return {v:1,settings:defSettings(),cols:[{id:"c"+uid(),name:"颜色"}],skus:[],periods:[p],data:{[p.id]:{}},view:{tab:"sku",period:p.id,profPeriod:"all",group:""}}; }
+function blank(){ const p={id:uid(),name:"本月",days:30}; return {v:1,settings:defSettings(),cols:[{id:"c"+uid(),name:"颜色"}],skus:[],periods:[p],data:{[p.id]:{}},view:{tab:"sku",period:p.id,profPeriod:"all",group:""}}; }
 let S=load("ops_state")||blank();
-function fixState(){ const d=defSettings(); S.settings=Object.assign(d,S.settings||{}); S.cols=S.cols||[]; S.skus=S.skus||[]; S.periods=S.periods&&S.periods.length?S.periods:[{id:uid(),name:"本月"}]; S.data=S.data||{}; S.periods.forEach(p=>{ S.data[p.id]=S.data[p.id]||{}; });
+function fixState(){ const d=defSettings(); S.settings=Object.assign(d,S.settings||{}); S.cols=S.cols||[]; S.skus=S.skus||[]; S.periods=S.periods&&S.periods.length?S.periods:[{id:uid(),name:"本月"}]; S.data=S.data||{}; S.periods.forEach(p=>{ S.data[p.id]=S.data[p.id]||{}; if(p.days===undefined) p.days=30; });
   S.view=Object.assign({tab:"sku",period:S.periods[0].id,profPeriod:"all",group:""},S.view||{}); if(!S.periods.find(p=>p.id===S.view.period)) S.view.period=S.periods[0].id; }
 fixState();
 let saveT=0; function save(){ try{ localStorage.setItem("ops_state",JSON.stringify(S)); }catch(e){ toast("保存失败：浏览器存储空间不足"); } }
@@ -215,28 +227,29 @@ const COST_CUR={USD:"USD",RMB_TAX:"RMB 含税",RMB:"RMB 未税"};
 function costUSD(k){ const s=ST(), c=nz(k.cost); return k.costCur==="RMB_TAX"?c/(1+nz(s.tax)/100)/nz(s.rate):k.costCur==="RMB"?c/nz(s.rate):c; }
 function commission(price,cat){ const s=ST(); if(cat==="其他") return price*nz(s.cOther)/100; return price<=nz(s.cThr)?price*nz(s.cLow)/100:nz(s.cThr)*nz(s.cLow)/100+(price-nz(s.cThr))*nz(s.cHigh)/100; }
 /* Unit economics of one SKU at a price: everything except advertising. */
-function unit(k,price){ const s=ST(); const P=(k.pkgs||[]).map(pkgCalc); const sum=f=>P.reduce((a,x)=>a+x[f],0);
+function unit(k,price,disc){ disc=disc||0; const s=ST(); const pe=price*(1-disc), dAmt=price*disc; const P=(k.pkgs||[]).map(pkgCalc); const sum=f=>P.reduce((a,x)=>a+x[f],0);
   const cost=costUSD(k), sea=sum("sea"), fbmAuto=sum("fbm"), fbmOk=P.length&&!P.some(x=>x.over||x.noTail), fbmFix=num(k.fbmFix);
-  const fbm=isFinite(fbmFix)&&fbmFix>0?fbmFix:fbmAuto, fbmUsable=(isFinite(fbmFix)&&fbmFix>0)||fbmOk, fba=sum("fba")+nz(s.fbaExtra);
-  const comm=commission(price,k.cat), refund=price*nz(s.refund)/100, fx=price*nz(s.fx)/100, other=nz(k.other);
-  const base=cost+sea+comm+refund+fx+other;
+  const fbm=isFinite(fbmFix)&&fbmFix>0?fbmFix:fbmAuto, fbmUsable=(isFinite(fbmFix)&&fbmFix>0)||fbmOk, fba=sum("fba")+nz(s.fbaExtra)+nz(k.stor);
+  const comm=commission(pe,k.cat), refund=pe*nz(s.refund)/100, fx=pe*nz(s.fx)/100, other=nz(k.other);
+  const base=dAmt+cost+sea+comm+refund+fx+other;
   const pFbm=fbmUsable?price-base-fbm:NaN, pFba=P.length?price-base-fba:NaN;
   const best=!isFinite(pFbm)?"FBA":!isFinite(pFba)?"FBM":pFbm>=pFba?"FBM":"FBA";
   const use=k.ful==="FBM"&&fbmUsable?"FBM":k.ful==="FBA"?"FBA":best, ful=use==="FBM"?fbm:fba;
-  return {P,cost,sea,fbm,fba,fbmUsable,fbmAuto,comm,refund,fx,other,base,ful,use,best,pFbm,pFba,costNoAds:base+ful,profitNoAds:price-base-ful}; }
+  return {disc,dAmt,P,cost,sea,fbm,fba,fbmUsable,fbmAuto,comm,refund,fx,other,base,ful,use,best,pFbm,pFba,costNoAds:base+ful,profitNoAds:price-base-ful}; }
 
 /* ================= derivation engine (运营数据互推) ================= */
 const MET=[
-  ["totOrd","总订单","g-tot",1,"主要调这个"],["adShare","广告订单占比","g-tot",-1,"主要调这个"],["totSales","总销售额 $","g-tot",2],["tacos","TACoS","g-tot",-1],["price","本期售价 $","g-tot",2,"不填用 SKU 售价"],
+  ["totOrd","总订单","g-tot",1,"主要调这个"],["dayOrd","日均订单","g-tot",1,"= 总订单 ÷ 时间段天数"],["adShare","广告订单占比","g-tot",-1,"主要调这个"],["totSales","总销售额 $","g-tot",2],["tacos","TACoS","g-tot",-1],["price","本期售价 $","g-tot",2,"不填用 SKU 售价"],
   ["imp","曝光","g-ad",0],["ctr","CTR","g-ad",-1],["clk","点击","g-ad",0],["cpc","CPC $","g-ad",2],["spend","广告花费 $","g-ad",2],["adCvr","广告 CVR","g-ad",-1],["adOrd","广告订单","g-ad",1],["adSales","广告销售额 $","g-ad",2],["acos","ACoS","g-ad",-1],["roas","ROAS","g-ad",2],
   ["sess","自然流量","g-org",0,"Sessions"],["orgCvr","自然 CVR","g-org",-1],["orgOrd","自然订单","g-org",1]];
-const KEYM=new Set(["totOrd","adShare"]);
+const KEYM=new Set(["totOrd","dayOrd","adShare"]);
+const EXTRA=[["disc","优惠/折扣 %","优惠券、促销折扣，按售价百分比"],["promo","推广费 $","本时间段一次性费用：测评、站外、秒杀费等"]];
 const PCT=new Set(MET.filter(m=>m[3]===-1).map(m=>m[0]));
 // a = b × c  (or a = b + c)
 const REL=[["clk","imp","ctr"],["spend","clk","cpc"],["adOrd","clk","adCvr"],["adSales","adOrd","price"],["spend","acos","adSales"],["adSales","roas","spend"],
-  ["orgOrd","sess","orgCvr"],["adOrd","adShare","totOrd"],["totSales","totOrd","price"],["spend","tacos","totSales"],["totOrd","adOrd","orgOrd","+"]];
+  ["orgOrd","sess","orgCvr"],["adOrd","adShare","totOrd"],["totSales","totOrd","price"],["spend","tacos","totSales"],["totOrd","adOrd","orgOrd","+"],["totOrd","dayOrd","days"]];
 /* in: user values (percent fields as fractions). out: all values, which ones derived, and conflicting fields. */
-function derive(input){ const v=Object.assign({},input), src={}; Object.keys(v).forEach(k=>{ if(isFinite(v[k])) src[k]="in"; else delete v[k]; });
+function derive(input,soft){ const v=Object.assign({},input), src={}; Object.keys(v).forEach(k=>{ if(isFinite(v[k])) src[k]=soft&&soft.has(k)?"base":"in"; else delete v[k]; });
   const has=k=>isFinite(v[k]);
   for(let it=0;it<30;it++){ let ch=false;
     for(const [a,b,c,op] of REL){ const add=op==="+";
@@ -251,16 +264,25 @@ function derive(input){ const v=Object.assign({},input), src={}; Object.keys(v).
   return {v,src,bad}; }
 function cellInput(skuId,periodId){ const d=(S.data[periodId]||{})[skuId]||{}; const o={};
   MET.forEach(([k])=>{ let x=num(d[k]); if(isFinite(x)){ if(PCT.has(k)) x/=100; o[k]=x; } }); return o; }
-function periodCalc(k,periodId){ const inp=cellInput(k.id,periodId); const priceIn=isFinite(inp.price); if(!priceIn) inp.price=nz(k.price);
-  const D=derive(inp); if(!priceIn) D.src.price="sku";
-  const v=D.v, price=nz(v.price), U=unit(k,price);
+function periodCalc(k,periodId){ const per=S.periods.find(p=>p.id===periodId)||{}, d=(S.data[periodId]||{})[k.id]||{}, s=ST();
+  const inp=cellInput(k.id,periodId); const priceIn=isFinite(inp.price); if(!priceIn) inp.price=nz(k.price);
+  const days=num(per.days), soft=new Set(); if(!priceIn) soft.add("price"); if(days>0){ inp.days=days; soft.add("days"); }
+  let D=derive(inp,soft); const bc=num(k.bCpc), bv=num(k.bCvr)/100; let baseUsed=false;
+  if(!isFinite(D.v.spend)){ const i2=Object.assign({},inp);
+    if(bc>0&&!isFinite(D.v.cpc)){ i2.cpc=bc; soft.add("cpc"); baseUsed=true; }
+    if(bv>0&&!isFinite(D.v.adCvr)){ i2.adCvr=bv; soft.add("adCvr"); baseUsed=true; }
+    if(baseUsed){ D=derive(i2,soft); baseUsed=isFinite(D.v.spend); } }
+  if(!priceIn) D.src.price="sku";
+  const disc=Math.min(0.95,Math.max(0,nz(d.disc)/100)), promo=nz(d.promo);
+  const v=D.v, price=nz(v.price), U=unit(k,price,disc);
   const orders=isFinite(v.totOrd)?v.totOrd:NaN, sales=isFinite(v.totSales)?v.totSales:orders*price;
-  const spendKnown=isFinite(v.spend), spend=spendKnown?v.spend:(isFinite(sales)?sales*nz(ST().adsFallback)/100:NaN);
-  const profit=sales-orders*U.costNoAds-spend;
-  const res={D,U,price,orders,sales,spend,spendKnown,profit,margin:sales?profit/sales:NaN,perUnit:orders?profit/orders:NaN,adPerOrder:orders?spend/orders:NaN,
-    tacos:sales?spend/sales:NaN,acos:v.acos,beAcos:price?U.profitNoAds/price:NaN,
-    maxCpc:isFinite(v.adCvr)?(price*(1-nz(ST().target)/100)-U.costNoAds)*v.adCvr:NaN};
-  return res; }
+  const spendKnown=isFinite(v.spend), spend=spendKnown?v.spend:(isFinite(sales)?sales*nz(s.adsFallback)/100:NaN);
+  const profit=sales-orders*U.costNoAds-spend-promo;
+  const cpa=isFinite(v.spend)&&v.adOrd>0?v.spend/v.adOrd:(bc>0&&bv>0?bc/bv:NaN);
+  const room=x=>orders>0&&cpa>0?(x-U.costNoAds-promo/orders)/cpa:NaN;
+  return {D,U,price,orders,sales,spend,spendKnown,baseUsed,promo,disc,days:days>0?days:NaN,cpa,profit,margin:sales?profit/sales:NaN,perUnit:orders?profit/orders:NaN,adPerOrder:orders?spend/orders:NaN,
+    tacos:sales?spend/sales:NaN,acos:v.acos,beAcos:price?U.profitNoAds/price:NaN,beShare:room(price),tgShare:room(price*(1-nz(s.target)/100)),
+    maxCpc:isFinite(v.adCvr)?(price*(1-nz(s.target)/100)-U.costNoAds)*v.adCvr:NaN}; }
 
 /* ================= ① SKU table ================= */
 const tabs=["sku","ops","profit","set","hist"];
@@ -270,9 +292,9 @@ function render(){ const t=S.view.tab; if(t==="sku") renderSku(); if(t==="ops") 
 function renderSku(){
   const C=S.cols, K=S.skus;
   const head1=`<tr><th rowspan="2" class="fz">SKU</th><th rowspan="2">品名</th>${C.length?`<th colspan="${C.length}">属性</th>`:""}<th rowspan="2">品类</th><th rowspan="2">售价 $</th>
-    <th class="grp g-cost" colspan="4">成本</th><th class="grp g-ship" colspan="6">履约（FBM / FBA）</th><th class="grp g-ops" colspan="2">其他</th><th class="grp g-prof" colspan="2">不含广告单件利润</th><th rowspan="2"></th></tr>`;
+    <th class="grp g-cost" colspan="4">成本</th><th class="grp g-ship" colspan="6">履约（FBM / FBA）</th><th class="grp g-ops" colspan="3">其他</th><th class="grp g-ad" colspan="2">广告基准</th><th class="grp g-prof" colspan="2">不含广告单件利润</th><th rowspan="2"></th></tr>`;
   const head2=`<tr>${C.map(c=>`<th><input class="s" data-colname="${c.id}" value="${esc(c.name)}" style="width:80px" title="改列名"><button class="btn sm danger" data-delcol="${c.id}" title="删除这一列" style="padding:0 5px">×</button></th>`).join("")}
-    <th>采购成本</th><th>币种</th><th>包裹（长×宽×高 cm · kg）</th><th>头程 $</th><th>FBM 尾程 $</th><th>FBM 尾程手填 $</th><th>FBA 费 $</th><th>采用</th><th>FBM 单件利润</th><th>FBA 单件利润</th><th>其他 $/件</th><th>佣金+退款+汇损 $</th><th>利润 $</th><th>利润率</th></tr>`;
+    <th>采购成本</th><th>币种</th><th>包裹（长×宽×高 cm · kg）</th><th>头程 $</th><th>FBM 尾程 $</th><th>FBM 尾程手填 $</th><th>FBA 费 $</th><th>采用</th><th>FBM 单件利润</th><th>FBA 单件利润</th><th title="月仓储费分摊到每件，只在走 FBA 时计入">FBA 仓储 $/件</th><th>其他 $/件</th><th>佣金+退款+汇损 $</th><th title="没有本期广告数据时用来算广告费">基准 CPC $</th><th title="广告点击到下单的转化率">基准广告 CVR %</th><th>利润 $</th><th>利润率</th></tr>`;
   const rows=K.map((k,i)=>{ const U=unit(k,nz(k.price)), cls=v=>!isFinite(v)?"":v<0?"neg":v/nz(k.price)<nz(ST().target)/100?"amber":"pos";
     const pk=`<div class="pk">${(k.pkgs||[]).map((g,gi)=>`<div class="one"><input type="number" step="any" data-sku="${i}" data-pkg="${gi}" data-k="l" value="${esc(g.l)}" title="长 cm">×<input type="number" step="any" data-sku="${i}" data-pkg="${gi}" data-k="w" value="${esc(g.w)}" title="宽 cm">×<input type="number" step="any" data-sku="${i}" data-pkg="${gi}" data-k="h" value="${esc(g.h)}" title="高 cm">·<input type="number" step="any" data-sku="${i}" data-pkg="${gi}" data-k="kg" value="${esc(g.kg)}" title="毛重 kg">${k.pkgs.length>1?`<button class="btn sm danger" data-delpkg="${i}:${gi}" style="padding:0 5px">×</button>`:""}</div>`).join("")}<button class="btn sm" data-addpkg="${i}" style="align-self:flex-start;padding:0 8px">+ 包裹</button></div>`;
     const fbmTxt=U.fbmUsable?f2(U.fbm):`<span class="chip warn" title="超出 FedEx 上限，需 LTL：在右边填 LTL 价">需 LTL</span>`;
@@ -286,11 +308,13 @@ function renderSku(){
       <td><select data-sku="${i}" data-k="ful"><option value="auto" ${!k.ful||k.ful==="auto"?"selected":""}>自动（${U.best}）</option><option ${k.ful==="FBM"?"selected":""}>FBM</option><option ${k.ful==="FBA"?"selected":""}>FBA</option></select>
         <div class="${U.use==="FBA"?"tag-fba":"tag-fbm"}">${U.use}${U.use===U.best?"":" · 非最省"}</div></td>
       <td class="n ${cls(U.pFbm)}">${money(U.pFbm)}</td><td class="n ${cls(U.pFba)}">${money(U.pFba)}</td>
+      <td><input type="number" step="any" class="s" data-sku="${i}" data-k="stor" value="${esc(k.stor??"")}" placeholder="0" title="FBA 月仓储费分摊到每件"></td>
       <td><input type="number" step="any" class="s" data-sku="${i}" data-k="other" value="${esc(k.other??"")}" placeholder="0" title="包材、配件、认证分摊等"></td>
       <td class="n">${f2(U.comm+U.refund+U.fx)}</td>
+      <td><input type="number" step="any" class="s" data-sku="${i}" data-k="bCpc" value="${esc(k.bCpc??"")}"></td><td><input type="number" step="any" class="s" data-sku="${i}" data-k="bCvr" value="${esc(k.bCvr??"")}"></td>
       <td class="n ${cls(U.profitNoAds)}"><b>${money(U.profitNoAds)}</b></td><td class="mg ${cls(U.profitNoAds)}">${pct(nz(k.price)?U.profitNoAds/nz(k.price):NaN)}</td>
       <td><button class="btn sm danger" data-delsku="${i}">删</button></td></tr>`; }).join("");
-  document.getElementById("skuTable").innerHTML=`<table><thead>${head1}${head2}</thead><tbody>${rows||`<tr><td colspan="${22+C.length}" class="note" style="padding:14px">还没有 SKU：点“+ 新增 SKU”、“从利润测算台导入”或“加载示例”。</td></tr>`}</tbody></table>`;
+  document.getElementById("skuTable").innerHTML=`<table><thead>${head1}${head2}</thead><tbody>${rows||`<tr><td colspan="${25+C.length}" class="note" style="padding:14px">还没有 SKU：点“+ 新增 SKU”、“从利润测算台导入”或“加载示例”。</td></tr>`}</tbody></table>`;
   document.getElementById("skuMsg").textContent=K.length?`${K.length} 个 SKU`:"";
   stickHead("skuTable"); }
 function stickHead(id){ const t=document.querySelector("#"+id+" thead tr"); if(t) document.getElementById(id).style.setProperty("--h1",t.getBoundingClientRect().height+"px"); }
@@ -300,7 +324,7 @@ skuT.addEventListener("change",e=>{ const t=e.target;
   const i=t.dataset.sku; if(i===undefined) return; const k=S.skus[+i];
   if(t.dataset.attr){ k.attrs=k.attrs||{}; k.attrs[t.dataset.attr]=t.value; save(); return; }
   if(t.dataset.pkg!==undefined){ k.pkgs[+t.dataset.pkg][t.dataset.k]=t.value===""?"":num(t.value); }
-  else { const numK=["price","cost","fbmFix","other"].includes(t.dataset.k); k[t.dataset.k]=numK?(t.value===""?"":num(t.value)):t.value; }
+  else { const numK=["price","cost","fbmFix","other","stor","bCpc","bCvr"].includes(t.dataset.k); k[t.dataset.k]=numK?(t.value===""?"":num(t.value)):t.value; }
   save(); renderSku(); });
 skuT.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
   if(b.dataset.addpkg!==undefined){ S.skus[+b.dataset.addpkg].pkgs.push({l:"",w:"",h:"",kg:""}); }
@@ -308,16 +332,16 @@ skuT.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) re
   else if(b.dataset.delsku!==undefined){ const k=S.skus[+b.dataset.delsku]; if(!confirm(`删除 SKU“${k.sku||k.name}”？它在各时间段的运营数据也会删除。`)) return; S.skus.splice(+b.dataset.delsku,1); Object.values(S.data).forEach(d=>delete d[k.id]); }
   else if(b.dataset.delcol){ const c=S.cols.find(x=>x.id===b.dataset.delcol); if(!confirm(`删除属性列“${c.name}”？`)) return; S.cols=S.cols.filter(x=>x!==c); S.skus.forEach(k=>{ if(k.attrs) delete k.attrs[c.id]; }); if(S.view.group===c.id) S.view.group=""; }
   else return; save(); renderSku(); });
-const newSku=o=>Object.assign({id:uid(),sku:"",name:"",attrs:{},cat:"家具",price:"",cost:"",costCur:"USD",pkgs:[{l:"",w:"",h:"",kg:""}],fbmFix:"",ful:"auto",other:""},o||{});
+const newSku=o=>Object.assign({id:uid(),sku:"",name:"",attrs:{},cat:"家具",price:"",cost:"",costCur:"USD",pkgs:[{l:"",w:"",h:"",kg:""}],fbmFix:"",ful:"auto",other:"",stor:"",bCpc:"",bCvr:""},o||{});
 document.getElementById("btnAddSku").addEventListener("click",()=>{ S.skus.push(newSku({sku:"SKU-"+(S.skus.length+1)})); save(); renderSku(); });
 document.getElementById("btnAddCol").addEventListener("click",()=>{ const n=prompt("新属性列的名称（例如：尺寸、颜色、负责人、上架日期）",""); if(!n||!n.trim()) return; S.cols.push({id:"c"+uid(),name:n.trim()}); save(); renderSku(); });
 document.getElementById("btnSample").addEventListener("click",()=>{ if(S.skus.length&&!confirm("加载示例会追加 3 个示例 SKU 和示例运营数据，继续？")) return; loadSample(); });
 function loadSample(){ const c0=S.cols[0]||(S.cols.push({id:"c"+uid(),name:"颜色"}),S.cols[0]);
-  const a=newSku({sku:"BV024-WH",name:"浴室柜 24寸 单包",price:269,cost:102,pkgs:[{l:93,w:57,h:38,kg:41}],attrs:{[c0.id]:"白色"}});
-  const b=newSku({sku:"BV030-BK",name:"浴室柜 30寸 双包",price:369,cost:135.5,pkgs:[{l:90,w:57,h:33,kg:28},{l:93,w:57,h:15,kg:28}],attrs:{[c0.id]:"黑色"}});
-  const c=newSku({sku:"BV036-WH",name:"浴室柜 36寸 整装",price:899,cost:270,pkgs:[{l:101,w:106,h:53,kg:66}],attrs:{[c0.id]:"白色"}});
+  const a=newSku({sku:"BV024-WH",name:"浴室柜 24寸 单包",price:269,cost:102,bCpc:1.35,bCvr:9,pkgs:[{l:93,w:57,h:38,kg:41}],attrs:{[c0.id]:"白色"}});
+  const b=newSku({sku:"BV030-BK",name:"浴室柜 30寸 双包",price:369,cost:135.5,bCpc:1.6,bCvr:8,pkgs:[{l:90,w:57,h:33,kg:28},{l:93,w:57,h:15,kg:28}],attrs:{[c0.id]:"黑色"}});
+  const c=newSku({sku:"BV036-WH",name:"浴室柜 36寸 整装",price:899,cost:270,bCpc:2.2,bCvr:6,pkgs:[{l:101,w:106,h:53,kg:66}],attrs:{[c0.id]:"白色"}});
   S.skus.push(a,b,c); const p=S.periods[0];
-  S.data[p.id][a.id]={totOrd:120,adShare:40,cpc:1.35,adCvr:9}; S.data[p.id][b.id]={imp:42000,ctr:0.45,cpc:1.6,adCvr:8,sess:2600,orgCvr:4.5}; S.data[p.id][c.id]={spend:2100,acos:28,totOrd:31};
+  S.data[p.id][a.id]={dayOrd:4,adShare:40,disc:5}; S.data[p.id][b.id]={imp:42000,ctr:0.45,cpc:1.6,adCvr:8,sess:2600,orgCvr:4.5}; S.data[p.id][c.id]={spend:2100,acos:28,totOrd:31,promo:300};
   save(); toast("已加载 3 个示例 SKU"); render(); }
 
 /* ================= import from 利润测算台 (.json of 保存方案 / 历史库导出, or this browser's data) ================= */
@@ -333,26 +357,29 @@ function importProducts(list,params){ if(params&&isFinite(num(params.rate))) S.s
 
 /* ================= ② ops data ================= */
 function renderPeriods(){ const bar=document.getElementById("periodBar");
-  bar.innerHTML=S.periods.map(p=>`<span class="p ${p.id===S.view.period?"on":""}"><span class="nm" data-pick="${p.id}" title="点击切换；双击改名">${esc(p.name)}</span><button data-ren="${p.id}" title="改名">✎</button>${S.periods.length>1?`<button data-delp="${p.id}" title="删除">×</button>`:""}</span>`).join("")+`<button class="btn sm" id="btnAddPeriod">+ 新时间段</button>`; }
+  bar.innerHTML=S.periods.map(p=>`<span class="p ${p.id===S.view.period?"on":""}"><span class="nm" data-pick="${p.id}" title="点击切换；双击改名">${esc(p.name)}</span><input type="number" class="days" data-days="${p.id}" value="${esc(p.days??"")}" title="这个时间段有几天（用来换算日均）">天<button data-ren="${p.id}" title="改名">✎</button>${S.periods.length>1?`<button data-delp="${p.id}" title="删除">×</button>`:""}</span>`).join("")+`<button class="btn sm" id="btnAddPeriod">+ 新时间段</button>`; }
 document.getElementById("periodBar").addEventListener("click",e=>{ const t=e.target;
-  if(t.id==="btnAddPeriod"){ const n=prompt("时间段名称（例如：第1月 新品期、11月旺季、W46）",`时间段 ${S.periods.length+1}`); if(!n) return; const p={id:uid(),name:n.trim()}; S.periods.push(p); S.data[p.id]={}; S.view.period=p.id; save(); renderOps(); return; }
+  if(t.id==="btnAddPeriod"){ const n=prompt("时间段名称（例如：第1月 新品期、11月旺季、W46）",`时间段 ${S.periods.length+1}`); if(!n) return; const p={id:uid(),name:n.trim(),days:30}; S.periods.push(p); S.data[p.id]={}; S.view.period=p.id; save(); renderOps(); return; }
   if(t.dataset.pick){ S.view.period=t.dataset.pick; save(); renderOps(); return; }
   if(t.dataset.ren){ const p=S.periods.find(x=>x.id===t.dataset.ren); const n=prompt("新名称",p.name); if(n&&n.trim()){ p.name=n.trim(); save(); renderOps(); } return; }
   if(t.dataset.delp){ const p=S.periods.find(x=>x.id===t.dataset.delp); if(!confirm(`删除时间段“${p.name}”和它的运营数据？`)) return; S.periods=S.periods.filter(x=>x!==p); delete S.data[p.id]; if(S.view.period===p.id) S.view.period=S.periods[0].id; save(); renderOps(); } });
+document.getElementById("periodBar").addEventListener("change",e=>{ const id=e.target.dataset.days; if(!id) return; const p=S.periods.find(x=>x.id===id); const v=num(e.target.value); p.days=v>0?v:""; save(); renderOps(); });
 document.getElementById("periodBar").addEventListener("dblclick",e=>{ const id=e.target.dataset.pick; if(!id) return; const p=S.periods.find(x=>x.id===id); const n=prompt("新名称",p.name); if(n&&n.trim()){ p.name=n.trim(); save(); renderOps(); } });
-const fmtMet=(k,v)=>!isFinite(v)?"":PCT.has(k)?(v*100).toFixed(2).replace(/\.?0+$/,"")+"%":k==="roas"?v.toFixed(2):["imp","clk","sess"].includes(k)?String(Math.round(v)):["adOrd","orgOrd","totOrd"].includes(k)?(Math.round(v*10)/10).toString():v.toFixed(2);
+const fmtMet=(k,v)=>!isFinite(v)?"":PCT.has(k)?(v*100).toFixed(2).replace(/\.?0+$/,"")+"%":k==="roas"?v.toFixed(2):["imp","clk","sess"].includes(k)?String(Math.round(v)):["adOrd","orgOrd","totOrd","dayOrd"].includes(k)?(Math.round(v*10)/10).toString():v.toFixed(2);
 function renderOps(){ renderPeriods(); const pid=S.view.period, C=S.cols;
   const grp=[["g-tot",1],["g-ad",10],["g-org",3],["g-tot",4]];
   const GN={"g-ad":"广告","g-org":"自然","g-tot":"汇总"};
-  const head1=`<tr><th rowspan="2" class="fz">SKU</th><th rowspan="2">品名</th>${C.map(c=>`<th rowspan="2">${esc(c.name)}</th>`).join("")}<th class="grp g-prof" colspan="2">结果</th><th class="grp g-tot" colspan="5">汇总（主要调 总订单 · 广告订单占比）</th><th class="grp g-ad" colspan="10">广告</th><th class="grp g-org" colspan="3">自然</th></tr>`;
-  const head2=`<tr><th class="keyh">利润率</th><th>利润 $</th>${MET.map(m=>`<th class="${KEYM.has(m[0])?"keyh":""}" title="${esc(m[4]||"")}">${m[1]}</th>`).join("")}</tr>`;
+  const head1=`<tr><th rowspan="2" class="fz">SKU</th><th rowspan="2">品名</th>${C.map(c=>`<th rowspan="2">${esc(c.name)}</th>`).join("")}<th class="grp g-prof" colspan="2">结果</th><th class="grp g-tot" colspan="6">汇总（主要调 总订单 · 广告订单占比）</th><th class="grp g-ops" colspan="2">本期费用</th><th class="grp g-ad" colspan="10">广告</th><th class="grp g-org" colspan="3">自然</th></tr>`;
+  const TH=m=>`<th class="${KEYM.has(m[0])?"keyh":""}" title="${esc(m[4]||m[2]||"")}">${m[1]}</th>`;
+  const head2=`<tr><th class="keyh">利润率</th><th>利润 $</th>${MET.slice(0,6).map(TH).join("")}${EXTRA.map(m=>`<th title="${esc(m[2])}">${m[1]}</th>`).join("")}${MET.slice(6).map(TH).join("")}</tr>`;
   const rows=S.skus.map((k,i)=>{ const R=periodCalc(k,pid), D=R.D, d=(S.data[pid]||{})[k.id]||{};
-    const cells=MET.map(([key])=>{ const user=d[key]!==undefined&&d[key]!=="", val=D.v[key], bad=D.bad.has(key);
+    const cellA=MET.map(([key])=>{ const user=d[key]!==undefined&&d[key]!=="", val=D.v[key], bad=D.bad.has(key), isBase=!user&&D.src[key]==="base";
       const shown=user?d[key]:"", ph=!user&&isFinite(val)?fmtMet(key,val):"";
-      return `<td class="${KEYM.has(key)?"keyc":""}"><input type="number" step="any" class="${user?"":"der"} ${bad?"bad":""} ${KEYM.has(key)?"key":""}" data-sku="${k.id}" data-m="${key}" value="${esc(shown)}" placeholder="${esc(ph)}" title="${bad?"和同一组里填的其他数对不上":PCT.has(key)?"填百分数，例如 9 = 9%":""}"></td>`; }).join("");
+      return `<td class="${KEYM.has(key)?"keyc":""}"><input type="number" step="any" class="${user?"":"der"} ${bad?"bad":""} ${KEYM.has(key)?"key":""}" data-sku="${k.id}" data-m="${key}" value="${esc(shown)}" placeholder="${esc(ph)}" title="${bad?"和同一组里填的其他数对不上":isBase?"用的是 SKU 的广告基准":PCT.has(key)?"填百分数，例如 9 = 9%":""}"></td>`; });
+    const cells=cellA.slice(0,6).join("")+EXTRA.map(([key,,tip])=>`<td><input type="number" step="any" class="s" data-sku="${k.id}" data-m="${key}" value="${esc(d[key]??"")}" placeholder="0" title="${esc(tip)}"></td>`).join("")+cellA.slice(6).join("");
     const cls=!isFinite(R.margin)?"":R.margin<0?"neg":R.margin<nz(ST().target)/100?"amber":"pos";
         return `<tr><td class="fz l">${esc(k.sku||"–")}</td><td class="l">${esc(k.name)}</td>${C.map(c=>`<td>${esc((k.attrs||{})[c.id]||"")}</td>`).join("")}
-      <td class="mg big ${cls}">${pct(R.margin)}</td><td class="n ${cls}">${money(R.profit)}${R.spendKnown||!isFinite(R.profit)?"":`<div class="note" title="没有广告花费，按预估推广 ${ST().adsFallback}% 估">广告按 ${ST().adsFallback}% 估</div>`}</td>${cells}</tr>`; }).join("");
+      <td class="mg big ${cls}">${pct(R.margin)}</td><td class="n ${cls}">${money(R.profit)}${!isFinite(R.profit)?"":!R.spendKnown?`<div class="note" title="没有广告数据也没有广告基准，按预估推广 ${ST().adsFallback}% 估">广告按 ${ST().adsFallback}% 估</div>`:R.baseUsed?`<div class="note" title="广告花费 = 广告订单 × 基准 CPC ÷ 基准 CVR">广告按基准算</div>`:""}</td>${cells}</tr>`; }).join("");
   document.getElementById("opsTable").innerHTML=`<table><thead>${head1}${head2}</thead><tbody>${rows||`<tr><td colspan="30" class="note" style="padding:14px">先在“① SKU 与成本”里加 SKU。</td></tr>`}</tbody></table>`;
   stickHead("opsTable"); }
 document.getElementById("opsTable").addEventListener("change",e=>{ const t=e.target; if(!t.dataset.m) return; const pid=S.view.period; S.data[pid]=S.data[pid]||{}; const d=S.data[pid][t.dataset.sku]=S.data[pid][t.dataset.sku]||{};
@@ -376,8 +403,8 @@ function renderProfit(){ const ps=document.getElementById("profPeriod"), gs=docu
   let body;
   if(!g&&ps.value!=="all"){ body=items.map(x=>{ const R=x.R; return `<tr><td class="fz l"><b>${esc(x.k.sku||"–")}</b> ${esc(x.k.name)}</td><td><span class="${R.U.use==="FBA"?"tag-fba":"tag-fbm"}">${R.U.use}</span></td><td class="n">${f2(R.price)}</td><td class="n">${f0(R.orders)}</td><td class="n">${money(R.sales)}</td>
       <td class="n">${money(R.U.costNoAds)}</td><td class="n">${money(R.spend)}${R.spendKnown?"":` <span class="note">估</span>`}</td><td class="n">${money(R.adPerOrder)}</td><td class="n">${pct(R.acos)}</td><td class="n">${pct(R.tacos)}</td>
-      <td class="n ${cls(R.margin)}"><b>${money(R.profit)}</b></td><td class="mg ${cls(R.margin)}">${pct(R.margin)}</td><td class="n">${money(R.perUnit)}</td><td class="n">${pct(R.beAcos)}</td><td class="n">${isFinite(R.maxCpc)?money(R.maxCpc):"–"}</td></tr>`; }).join("");
-    document.getElementById("profTable").innerHTML=`<table><thead><tr><th class="fz">SKU</th><th>履约</th><th>售价</th><th>总订单</th><th>销售额</th><th title="采购+头程+履约+佣金+退款+汇损+其他">单件成本（不含广告）</th><th>广告花费</th><th>每单广告费</th><th>ACoS</th><th>TACoS</th><th>利润</th><th>利润率</th><th>单件利润</th><th title="广告订单的 ACoS 到这个值，这单正好不赚不亏">保本 ACoS</th><th title="按广告 CVR，要达到目标利润率时 CPC 最高能出多少">目标利润下 CPC 上限</th></tr></thead><tbody>${body||`<tr><td colspan="15" class="note" style="padding:14px">这个时间段还没有可算的数据（至少需要能推出总订单）。</td></tr>`}</tbody></table>`;
+      <td class="n ${cls(R.margin)}"><b>${money(R.profit)}</b></td><td class="mg ${cls(R.margin)}">${pct(R.margin)}</td><td class="n">${money(R.perUnit)}</td><td class="n">${pct(R.beAcos)}</td><td class="n">${isFinite(R.beShare)?(R.beShare<0?"怎样都亏":R.beShare>1?"100% 也赚":pct(R.beShare)):"–"}</td><td class="n">${isFinite(R.maxCpc)?money(R.maxCpc):"–"}</td></tr>`; }).join("");
+    document.getElementById("profTable").innerHTML=`<table><thead><tr><th class="fz">SKU</th><th>履约</th><th>售价</th><th>总订单</th><th>销售额</th><th title="折扣+采购+头程+履约+佣金+退款+汇损+其他">单件成本（不含广告）</th><th>广告花费</th><th>每单广告费</th><th>ACoS</th><th>TACoS</th><th>利润</th><th>利润率</th><th>单件利润</th><th title="广告订单的 ACoS 到这个值，这单正好不赚不亏">保本 ACoS</th><th title="其他条件不变，广告订单占比最多到多少还不亏">保本广告单占比</th><th title="按广告 CVR，要达到目标利润率时 CPC 最高能出多少">目标利润下 CPC 上限</th></tr></thead><tbody>${body||`<tr><td colspan="16" class="note" style="padding:14px">这个时间段还没有可算的数据（至少需要能推出总订单）。</td></tr>`}</tbody></table>`;
   } else {
     const groups={}; items.forEach(x=>{ const key=g?label(x):`${x.k.sku||"–"} ${x.k.name}`; (groups[key]=groups[key]||[]).push(x.R); });
     body=Object.entries(groups).map(([key,list])=>{ const A=aggregate(list); return `<tr><td class="fz l"><b>${esc(key)}</b></td><td class="n">${f0(A.orders)}</td><td class="n">${money(A.sales)}</td><td class="n">${money(A.spend)}${A.est?" <span class=note>含估</span>":""}</td><td class="n">${pct(A.adShare)}</td><td class="n">${pct(A.tacos)}</td><td class="n ${cls(A.margin)}"><b>${money(A.profit)}</b></td><td class="mg ${cls(A.margin)}">${pct(A.margin)}</td><td class="n">${money(A.perUnit)}</td></tr>`; }).join("");
@@ -386,7 +413,27 @@ function renderProfit(){ const ps=document.getElementById("profPeriod"), gs=docu
   // FBM vs FBA
   document.getElementById("fulTable").innerHTML=`<table><thead><tr><th class="fz">SKU</th><th>售价</th><th>采购+头程</th><th>佣金+退款+汇损+其他</th><th>FBM 尾程</th><th>FBA 费</th><th>FBM 单件利润</th><th>FBA 单件利润</th><th>更划算</th><th>采用</th></tr></thead><tbody>${S.skus.map(k=>{ const U=unit(k,nz(k.price)), p=nz(k.price);
       return `<tr><td class="fz l"><b>${esc(k.sku||"–")}</b> ${esc(k.name)}</td><td class="n">${f2(p)}</td><td class="n">${f2(U.cost+U.sea)}</td><td class="n">${f2(U.comm+U.refund+U.fx+U.other)}</td><td class="n">${U.fbmUsable?f2(U.fbm):"需 LTL"}</td><td class="n">${f2(U.fba)}</td>
-        <td class="n ${cls(p?U.pFbm/p:NaN)}">${money(U.pFbm)}</td><td class="n ${cls(p?U.pFba/p:NaN)}">${money(U.pFba)}</td><td><span class="chip ok">${U.best}</span>${isFinite(U.pFbm)&&isFinite(U.pFba)?` <span class="note">多 ${money(Math.abs(U.pFbm-U.pFba))}</span>`:""}</td><td>${U.use}${U.use===U.best?"":` <span class="chip warn">非最省</span>`}</td></tr>`; }).join("")}</tbody></table>`; }
+        <td class="n ${cls(p?U.pFbm/p:NaN)}">${money(U.pFbm)}</td><td class="n ${cls(p?U.pFba/p:NaN)}">${money(U.pFba)}</td><td><span class="chip ok">${U.best}</span>${isFinite(U.pFbm)&&isFinite(U.pFba)?` <span class="note">多 ${money(Math.abs(U.pFbm-U.pFba))}</span>`:""}</td><td>${U.use}${U.use===U.best?"":` <span class="chip warn">非最省</span>`}</td></tr>`; }).join("")}</tbody></table>`; renderMatrix(); }
+function renderMatrix(){ const mx=S.view.mx=Object.assign({sku:"",per:"",rows:"3,5,8,10,15,20,30,50",cols:"10,20,30,40,50,60,70,80"},S.view.mx||{});
+  const ks=document.getElementById("mxSku"), ps=document.getElementById("mxPer");
+  ks.innerHTML=S.skus.map(k=>`<option value="${k.id}">${esc(k.sku||"–")} ${esc(k.name)}</option>`).join(""); if(!S.skus.find(k=>k.id===mx.sku)) mx.sku=S.skus[0]?S.skus[0].id:""; ks.value=mx.sku;
+  ps.innerHTML=S.periods.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join(""); if(!S.periods.find(p=>p.id===mx.per)) mx.per=S.view.period; ps.value=mx.per;
+  document.getElementById("mxRows").value=mx.rows; document.getElementById("mxCols").value=mx.cols;
+  const info=document.getElementById("mxInfo"), box=document.getElementById("mxTable"), k=S.skus.find(x=>x.id===mx.sku);
+  if(!k){ info.textContent="先在“① SKU 与成本”里加 SKU。"; box.innerHTML=""; return; }
+  const R=periodCalc(k,mx.per), days=isFinite(R.days)?R.days:30, tg=nz(ST().target)/100;
+  const rows=String(mx.rows).split(/[,，\s]+/).map(num).filter(x=>x>0), cols=String(mx.cols).split(/[,，\s]+/).map(num).filter(x=>x>=0&&x<=100);
+  if(!(R.cpa>0)){ info.innerHTML=`<span class="amber">算不了：这个 SKU 没有每单广告成本。</span>在 SKU 表填“基准 CPC”和“基准广告 CVR”，或在这个时间段填广告花费和广告订单（或 CPC 和广告 CVR）。`; box.innerHTML=""; return; }
+  const unitGain=R.price-R.U.costNoAds;
+  info.innerHTML=`售价 ${money(R.price)}${R.disc?`（折扣 ${pct(R.disc)}）`:""} · 不含广告单件利润 ${money(unitGain)} · 每个广告单成本 ${money(R.cpa)}${R.baseUsed||!isFinite(R.D.v.spend)?"（按广告基准）":""} · 天数 ${days}${isFinite(R.days)?"":"（未填，按 30）"}${R.promo?` · 推广费 ${money(R.promo)}`:""}`;
+  const curD=R.D.v.dayOrd, curS=R.D.v.adShare, near=(arr,x)=>isFinite(x)&&arr.length?arr.reduce((b,a)=>Math.abs(a-x)<Math.abs(b-x)?a:b):null, cr=near(rows,curD), cc=near(cols,isFinite(curS)?curS*100:NaN);
+  const cell=(d,sh)=>{ const o=d*days, sales=o*R.price, p=o*(unitGain-sh/100*R.cpa)-R.promo, m=sales?p/sales:NaN, c=m<0?"neg":m<tg?"amber":"pos";
+    return `<td class="mg ${c} ${d===cr&&sh===cc?"cur":""}" title="日均 ${d} 单 · 广告单 ${sh}% · ${days} 天">${pct(m)}<span class="s2">${money(p)}</span></td>`; };
+  const shareTxt=(x,t)=>!isFinite(x)?"–":x<0?(t?"达不到":"怎样都亏"):x>=1?"100% 也行":pct(x);
+  box.innerHTML=`<table class="mx"><thead><tr><th class="fz">日均单 ＼ 广告单占比</th>${cols.map(c=>`<th>${c}%</th>`).join("")}<th title="广告单占比最多到多少还不亏">保本占比上限</th><th title="要达到目标利润率，广告单占比最多到多少">目标 ${ST().target}% 占比上限</th></tr></thead><tbody>${rows.map(d=>{ const o=d*days, room=x=>(x-R.U.costNoAds-R.promo/o)/R.cpa;
+    return `<tr><th class="fz">${d}<span class="note"> 单/天</span></th>${cols.map(c=>cell(d,c)).join("")}<td class="n">${shareTxt(room(R.price))}</td><td class="n">${shareTxt(room(R.price*(1-tg)),1)}</td></tr>`; }).join("")}</tbody></table>`
+    +(cr!==null&&cc!==null?`<p class="note">蓝框是本期当前数据最接近的格子（日均 ${f2(curD)} 单，广告单 ${pct(curS)}）。</p>`:""); }
+["mxSku","mxPer","mxRows","mxCols"].forEach(id=>document.getElementById(id).addEventListener("change",e=>{ const mx=S.view.mx, key={mxSku:"sku",mxPer:"per",mxRows:"rows",mxCols:"cols"}[id]; mx[key]=e.target.value; save(); renderMatrix(); }));
 document.getElementById("profPeriod").addEventListener("change",e=>{ S.view.profPeriod=e.target.value; save(); renderProfit(); });
 document.getElementById("profGroup").addEventListener("change",e=>{ S.view.group=e.target.value; save(); renderProfit(); });
 
@@ -436,12 +483,12 @@ function download(name,data,mime){ const url=URL.createObjectURL(new Blob([data]
 /* ================= Excel (values) ================= */
 function exportXlsx(title){ if(typeof XLSX==="undefined"){ toast("表格组件没加载，联网后再试"); return; }
   const wb=XLSX.utils.book_new(), C=S.cols, r2=v=>isFinite(v)?Math.round(v*100)/100:"", r4=v=>isFinite(v)?Math.round(v*10000)/10000:"";
-  const sku=[["SKU","品名",...C.map(c=>c.name),"品类","售价$","采购成本$","头程$","FBM尾程$","FBA费$","更划算","采用","佣金+退款+汇损$","其他$","不含广告单件利润$","不含广告利润率"]];
-  S.skus.forEach(k=>{ const U=unit(k,nz(k.price)); sku.push([k.sku,k.name,...C.map(c=>(k.attrs||{})[c.id]||""),k.cat,r2(nz(k.price)),r2(U.cost),r2(U.sea),U.fbmUsable?r2(U.fbm):"需LTL",r2(U.fba),U.best,U.use,r2(U.comm+U.refund+U.fx),r2(U.other),r2(U.profitNoAds),r4(nz(k.price)?U.profitNoAds/nz(k.price):NaN)]); });
+  const sku=[["SKU","品名",...C.map(c=>c.name),"品类","售价$","采购成本$","头程$","FBM尾程$","FBA费(含仓储)$","更划算","采用","佣金+退款+汇损$","其他$","基准CPC$","基准广告CVR%","不含广告单件利润$","不含广告利润率"]];
+  S.skus.forEach(k=>{ const U=unit(k,nz(k.price)); sku.push([k.sku,k.name,...C.map(c=>(k.attrs||{})[c.id]||""),k.cat,r2(nz(k.price)),r2(U.cost),r2(U.sea),U.fbmUsable?r2(U.fbm):"需LTL",r2(U.fba),U.best,U.use,r2(U.comm+U.refund+U.fx),r2(U.other),r2(nz(k.bCpc))||"",r2(nz(k.bCvr))||"",r2(U.profitNoAds),r4(nz(k.price)?U.profitNoAds/nz(k.price):NaN)]); });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sku),"SKU与成本");
   const all=[];
-  S.periods.forEach(p=>{ const rows=[["SKU","品名",...C.map(c=>c.name),...MET.map(m=>m[1]),"履约","单件成本(不含广告)$","广告花费$","广告花费来源","利润$","利润率","单件利润$","保本ACoS","目标CPC上限$"]];
-    S.skus.forEach(k=>{ const R=periodCalc(k,p.id), v=R.D.v; rows.push([k.sku,k.name,...C.map(c=>(k.attrs||{})[c.id]||""),...MET.map(([m])=>PCT.has(m)?r4(v[m]):r2(v[m])),R.U.use,r2(R.U.costNoAds),r2(R.spend),R.spendKnown?"实际":`按${ST().adsFallback}%估`,r2(R.profit),r4(R.margin),r2(R.perUnit),r4(R.beAcos),r2(R.maxCpc)]); if(isFinite(R.orders)) all.push({p,k,R}); });
+  S.periods.forEach(p=>{ const rows=[["SKU","品名",...C.map(c=>c.name),...MET.map(m=>m[1]),"优惠/折扣%","推广费$","履约","单件成本(不含广告)$","广告花费$","广告花费来源","利润$","利润率","单件利润$","保本ACoS","目标CPC上限$"]];
+    S.skus.forEach(k=>{ const R=periodCalc(k,p.id), v=R.D.v; rows.push([k.sku,k.name,...C.map(c=>(k.attrs||{})[c.id]||""),...MET.map(([m])=>PCT.has(m)?r4(v[m]):r2(v[m])),r4(R.disc),r2(R.promo),R.U.use,r2(R.U.costNoAds),r2(R.spend),!R.spendKnown?`按${ST().adsFallback}%估`:R.baseUsed?"按广告基准":"本期数据",r2(R.profit),r4(R.margin),r2(R.perUnit),r4(R.beAcos),r2(R.maxCpc)]); if(isFinite(R.orders)) all.push({p,k,R}); });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),p.name.replace(/[\\/?*[\]:]/g,"_").slice(0,31)); });
   const T=aggregate(all.map(x=>x.R)); const sum=[["综合（全部时间段）"],["总订单",r2(T.orders)],["总销售额$",r2(T.sales)],["广告花费$",r2(T.spend)],["TACoS",r4(T.tacos)],["广告订单占比",r4(T.adShare)],["总利润$",r2(T.profit)],["利润率",r4(T.margin)],["单件利润$",r2(T.perUnit)],[],["按 SKU","总订单","销售额$","广告花费$","利润$","利润率"]];
   const by={}; all.forEach(x=>{ const key=`${x.k.sku} ${x.k.name}`; (by[key]=by[key]||[]).push(x.R); }); Object.entries(by).forEach(([k,l])=>{ const A=aggregate(l); sum.push([k,r2(A.orders),r2(A.sales),r2(A.spend),r2(A.profit),r4(A.margin)]); });
