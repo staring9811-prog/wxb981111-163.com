@@ -85,6 +85,7 @@ aside { width: 360px; border-left: 1px solid var(--line); background: var(--pane
 .scenes button small { display: block; font-size: 10px; opacity: .7; }
 .clock.warn b { color: var(--lamp); } .clock.ot b, .clock.ot span { color: var(--up, #e07a5a); } .clock button { margin-left: 6px; padding: 2px 8px; font-size: 12px; }
 #notes { position: absolute; left: 10px; top: 96px; z-index: 2; display: flex; flex-direction: column; gap: 8px; pointer-events: none; max-width: 168px; } #notes[hidden] { display: none; }
+button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a; text-align: left; cursor: pointer; font: inherit; font-size: 12px; border-radius: 0; } button.sticky:hover { filter: brightness(1.06); } .sticky.good { background: #bfe3a8; border-top-color: #9ccf80; }
 .sticky { background: #f1e29a; color: #3a3018; padding: 7px 9px 8px; font-size: 12px; line-height: 1.4; display: flex; flex-direction: column; box-shadow: 0 3px 8px #0009; border-top: 10px solid #e3d07a; } .sticky b { font-weight: 700; } .sticky .sm { font-size: 11px; opacity: .8; } .sticky.late { background: #f3b39a; border-top-color: #e08a6a; }
 @media (max-width: 760px) { #notes { top: 70px; max-width: 128px; } .sticky { font-size: 10.5px; padding: 4px 6px; } }
 .desk { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; } .guest { display: flex; gap: 10px; align-items: flex-start; } .guest > div { display: flex; flex-direction: column; gap: 2px; font-size: 13px; flex: 1; }
