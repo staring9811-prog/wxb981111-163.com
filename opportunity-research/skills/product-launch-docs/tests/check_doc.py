@@ -78,6 +78,7 @@ def run(path, mode, channels, renders, skus):
         h2s = [t for s, t in heads if s in ('Heading 2', 'Heading 3')]
         ok('R6', sum(1 for t in h2s if '我们：' in t or '我们:' in t) >= channels, str([t for t in h2s if '我们' in t]))
         ok('R7', len(comp) >= 1 and imgs >= 1, f'竞品表 {len(comp)}，图片 {imgs}')
+        ok('R12', '设计理念' in full, '缺设计理念')
     bad = [w for w in AI_WORDS if w in full]
     ok('C1', not bad, '出现：' + '、'.join(bad))
     em = EMOJI.findall(full)
