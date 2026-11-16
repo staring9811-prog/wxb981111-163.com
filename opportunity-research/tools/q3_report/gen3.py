@@ -559,8 +559,8 @@ OURS=[]
 _op=os.path.join(q3paths.DATA,'our_products.csv')
 if os.path.exists(_op):
     for row in _csv_o.DictReader(open(_op,encoding='utf-8-sig')):
-        OURS.append({'id':row.get('编号',''),'name':row.get('名称',''),'spu':(row.get('SPU') or '').strip() or row.get('名称',''),'price':float(row['售价']) if row.get('售价') else None,
-                     'at':{d:row[d].strip() for d in D8 if (row.get(d) or '').strip()}})
+        OURS.append({'id':row.get('编号',''),'name':row.get('名称',''),'spu':(row.get('SPU') or '').strip() or row.get('名称',''),'price':float(row['售价'].replace('$','').replace(',','').strip()) if (row.get('售价') or '').strip() else None,
+                     'at':{d:row[d].strip() for d in D8 if (row.get(d) or '').strip()},**({'margin':float(row['利润率'].replace('%','').strip())} if (row.get('利润率') or '').strip() else {})})
 XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'rev':XREV,'ours':OURS,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
 import html as _hh, os
 _N=json.load(open('notes.json',encoding='utf-8')) if os.path.exists('notes.json') else None
