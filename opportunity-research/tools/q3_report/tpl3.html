@@ -1456,7 +1456,7 @@ PMROOT.addEventListener('click',function(e){
   if(a==='csv'){download('our_products.csv',csvOut(OURS));return}
   if(a==='reset'){if(confirm('丢掉本机修改，恢复为报告内置的产品清单？')){try{localStorage.removeItem(PM_LS)}catch(e){}OURS=BUILTIN.slice();PM_SRC='report';PEND=null;renderPM();draw();pmMsg('已恢复为报告内置清单')}return}
   if(a==='replace'||a==='append'){var L2=cleanItems(PEND.items);if(!L2.length){pmMsg('没有可导入的产品');return}saveOurs(a==='replace'?L2:OURS.concat(L2),a==='replace'?'已替换为新清单（'+L2.length+' 个 SKU）':'已追加 '+L2.length+' 个 SKU');PEND=null;PM_TAB='list';renderPM();return}
-  if(a==='aisave'){var c=aiCfg();c.prov=$('pm-prov').value;c.base=$('pm-base').value.trim();c.model=$('pm-model').value.trim();var k=$('pm-key').value.trim();if(k)c.key=k;try{localStorage.setItem(AI_LS,JSON.stringify(c))}catch(e){}renderPM();pmMsg('AI 接口设置已保存在本浏览器');return}
+  if(a==='aisave'){var c=aiCfg();c.prov=$('pm-prov').value;c.base=$('pm-base').value.trim();c.model=$('pm-model').value.trim();var k=$('pm-key').value.replace(/[\s\u200b-\u200d\ufeff]+/g,'').replace(/^Bearer/i,'');if(k)c.key=k;try{localStorage.setItem(AI_LS,JSON.stringify(c))}catch(e){}renderPM();pmMsg('AI 接口设置已保存在本浏览器');return}
   if(a==='aiclear'){var c2=aiCfg();c2.key='';try{localStorage.setItem(AI_LS,JSON.stringify(c2))}catch(e){}renderPM();pmMsg('已清除 API Key');return}
   if(a==='aistop'){if(AICTL)AICTL.abort();return}
   if(a==='airun'){
