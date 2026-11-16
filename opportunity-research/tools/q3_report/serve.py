@@ -23,6 +23,19 @@ class H(BaseHTTPRequestHandler):
             return self._send(200,open(OUT,'rb').read(),'text/html; charset=utf-8')
         self._send(404,'{}')
     def do_POST(self):
+        if self.path=='/api/ai':
+            # 代发 AI 请求：浏览器直连 AI 服务常被跨域、网关拦截，改由本机发出（只转发 https）
+            import urllib.request,urllib.error
+            try:
+                n=int(self.headers.get('Content-Length') or 0); req=json.loads(self.rfile.read(n) or b'{}')
+                url=str(req.get('url','')); hdr={k:str(v) for k,v in (req.get('headers') or {}).items()}
+                if not url.startswith('https://'): return self._send(400,json.dumps({'error':{'message':'只能转发 https 地址'}},ensure_ascii=False))
+                r=urllib.request.Request(url,data=str(req.get('body','')).encode('utf-8'),headers=hdr,method='POST')
+                try:
+                    with urllib.request.urlopen(r,timeout=300) as up: return self._send(up.status,up.read())
+                except urllib.error.HTTPError as e: return self._send(e.code,e.read())
+            except Exception as e:
+                return self._send(502,json.dumps({'error':{'message':'本机连不上 AI 服务：'+str(e)}},ensure_ascii=False))
         if self.path=='/api/notes':
             # 浏览器里的备注自动存到 data/notes.json；只收比现存更新的
             d=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode('utf-8'))
