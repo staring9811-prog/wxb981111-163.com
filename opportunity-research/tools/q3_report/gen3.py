@@ -547,7 +547,21 @@ for c,_n,_ in CH:
             L.append([r['pid'],r['brand'],r['fam'],None,None,{k:a.get(k) or '未标' for k in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')},[round(r['u'].get(m,0),1) for m in M10x],[0,0,0,0],1,[round(v,1) for v in _pa(r)]])
     _TDD[c]=L
 TDJS=json.dumps({'_kw':KWD,**_TDD},ensure_ascii=False,separators=(',',':'))
-XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
+# 蛋糕下钻用：每个商品的评价数（Amazon 取截至最后一个月最新一期快照的评分数；小平台取商品页评论数），与 XD 行一一对应
+_rc_amz={}
+for pid,month,rc in _db.execute("select item_id,month,ratings_count from snapshot where channel='amazon' and ratings_count is not null and month<=?",(M10x[-1],)):
+    if pid not in _rc_amz or month>_rc_amz[pid][0]: _rc_amz[pid]=(month,rc)
+_rc_small={(ch,pid):rv for ch,pid,rv in _db.execute("select channel,pid,reviews from research_product where reviews is not null")}
+XREV={c:[(_rc_amz.get(r['pid'],(0,None))[1] if c=='amazon' else _rc_small.get((c,r.get('rep') or r['pid']),_rc_small.get((c,r['pid'])))) for r in _CROSS_RECS[c]] for c,_n,_ in CH}
+# 我们的产品清单：数据目录下 our_products.csv（编号,名称,元素,形态,尺寸,台面,拆装,售价,…；属性用报告里的取值，可手工改）
+import os, csv as _csv_o
+OURS=[]
+_op=os.path.join(q3paths.DATA,'our_products.csv')
+if os.path.exists(_op):
+    for row in _csv_o.DictReader(open(_op,encoding='utf-8-sig')):
+        OURS.append({'id':row.get('编号',''),'name':row.get('名称',''),'price':float(row['售价']) if row.get('售价') else None,
+                     'at':{d:row[d].strip() for d in D8 if (row.get(d) or '').strip()}})
+XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'rev':XREV,'ours':OURS,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
 import html as _hh, os
 _N=json.load(open('notes.json',encoding='utf-8')) if os.path.exists('notes.json') else None
 tpl=tpl.replace('<!--SIDENOTES-->',_N['side'] if _N and _N.get('side') else open(q3paths.CODE+'/default_notes.html',encoding='utf-8').read())
