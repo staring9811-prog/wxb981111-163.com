@@ -25,7 +25,7 @@ if(!file){console.error('用法：node cake_uat.js <html>');process.exit(2)}
   ok('B3 有「这一层看点」结论卡',/大蛋糕/.test(await txt('#insight'))&&/一句话/.test(await txt('#insight'))&&/我们/.test(await txt('#insight')),'');
   ok('G6 未标显示为未识别且不标大蛋糕',r.filter(x=>x.v==='未标').every(x=>/未识别/.test(x.c[0])&&!/大蛋糕|主战场/.test(x.c[0])),'');
   const ins1=await txt('#insight');
-  ok('B2 看点卡写明主力块覆盖（这 N 块大蛋糕进了 M 块）',/这 \d+ 块进了 \d+ 块/.test(ins1),ins1.slice(0,80));
+  ok('B2 看点卡写明主力块覆盖（这 N 块大蛋糕进了 M 块）',/\d+ 块，进了 \d+ 块/.test(ins1),ins1.slice(0,80));
   ok('G3 大蛋糕图例写明比较口径（本渠道 + 维度）',/本渠道所有「元素」组合/.test(await txt('#insight')+await p.$eval('body',e=>e.textContent))||await p.$$eval('*',x=>x.some(e=>e.shadowRoot&&/本渠道所有「元素」组合/.test(e.shadowRoot.textContent))),'');
   ok('G6 不再出现「全市场」字样',!(await p.$$eval('*',x=>x.some(e=>e.shadowRoot&&/全市场/.test(e.shadowRoot.textContent))))&&!/全市场/.test(await p.$eval('#tbl',e=>e.closest('section,div').textContent)),'');
   ok('P1 热力图或看点卡给出具体机会格子',/机会.*(×|›|\(|（)/.test(ins1)||await p.$$eval('table.hm .oo',x=>x.length)>0,'');
