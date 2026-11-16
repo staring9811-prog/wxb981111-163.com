@@ -110,7 +110,7 @@ function vd(w, c, cot, dirt, grade) { return ECON.base * qWater(w) * (1 + 30 * c
 
 /* ---------- 原石真相（由种子完全决定） ---------- */
 // gv：生成规则的版本。旧存档里的石头没有 gv，照旧规则生成，里面不会变；新进的货用 2：小料占多数、裂更多更长
-function genStone(seed, originId, channelId, gv) { const G2 = gv >= 2;
+function genStone(seed, originId, channelId, gv) { const G2 = gv >= 2, G3 = gv >= 3;
   const r = new Rng(seedOf(seed, 'stone:v1'));
   const O = ORIGINS[originId];
   const st = { seed, origin: originId, channel: channelId, gv2: G2 };
@@ -148,7 +148,10 @@ function genStone(seed, originId, channelId, gv) { const G2 = gv >= 2;
   }
   // 裂按成因生成：地应力让裂成组平行（节理），所以先定两个主方向；风化从外往里，所以多数裂从皮上起头往里吃；
   // 通天裂整块贯穿；小绺是内部的短纹；愈合裂（石纹）被后来的矿物长死了，只剩一条白线，不算裂。
-  st.cracks = []; const ncU = r.range(0, 1), nc = Math.round(O.crack / 100 * (G2 ? 4.5 + 9.5 * ncU : 1.5 + 7.5 * ncU)), sets = [r.dir(), r.dir()];
+  st.cracks = []; const ncU = r.range(0, 1), sets = [r.dir(), r.dir()]; let nc = Math.round(O.crack / 100 * (G2 ? 4.5 + 9.5 * ncU : 1.5 + 7.5 * ncU));
+  if (G3) { // 裂的条数按概率来，不是每块都加：场口决定底数；石头越大，里面攒下的裂越多；一成半是没怎么受过力的净料，两成是碎裂料
+    const rk = new Rng(seedOf(seed, 'crackN')), tu = rk.u(), typeF = tu < 0.15 ? 0.25 : tu < 0.80 ? 1 : 1.9, lam = O.crack / 100 * 6.0 * clamp(a / 52, 0.6, 1.6) * typeF; st.crackType = tu < 0.15 ? '净' : tu < 0.80 ? '常' : '碎';
+    let Lp = Math.exp(-lam), k = 0, pp = 1; do { k++; pp *= rk.u(); } while (pp > Lp && k < 30); nc = k - 1; }
   for (let i = 0; i < Math.min(nc, G2 ? 8 : 6); i++) {
     const s0 = sets[r.chance(0.7) ? 0 : 1], j = r.dir(), n = norm3([s0[0] + j[0] * 0.22, s0[1] + j[1] * 0.22, s0[2] + j[2] * 0.22]), u = r.u(), d = r.dir(), seen = r.chance(S.sig > 1 ? 0.35 : 0.65) ? 1 : 0;
     const kind = u < (G2 ? 0.2 : 0.16) ? 'through' : u < (G2 ? 0.62 : 0.58) ? 'edge' : u < (G2 ? 0.88 : 0.82) ? 'hair' : 'healed';
@@ -1126,7 +1129,7 @@ function makeListing(wseed, day, i, scene) {
   scene = scene || '夜市地摊';
   const r = new Rng(seedOf(wseed, 'mkt', day, i, scene));
   const origin = r.pick(Object.keys(ORIGINS)), channel = r.pick(SCENES[scene].channels), C = CHANNELS[channel];
-  const L = { gv: 2, scene, seed: seedOf(wseed, 'stone', day, i, scene), origin, channel, strokes: [], clips: [[]], patience: 3, sold: false };
+  const L = { gv: 3, scene, seed: seedOf(wseed, 'stone', day, i, scene), origin, channel, strokes: [], clips: [[]], patience: 3, sold: false };
   let e = getVol(L);
   const fk = r.chance(FAKE_RATE[scene] || 0) ? ['paint', 'paint', 'veneer', 'dye', 'dye', 'skin'][Math.floor(r.u() * 6)] : null;
   if ((r.chance(C.window) || fk === 'veneer' || fk === 'dye') && scene !== '场口直采' && fk !== 'skin') { L.strokes = sellerWindow(e.st, e.vol, r); e = getVol(L); }
@@ -1136,6 +1139,7 @@ function makeListing(wseed, day, i, scene) {
   const est = estimate(e.st, e.vol, ev, 'seller', { skill: C.skill, risk: 0.3, opt: 1.0 });
   L.reserve = Math.max(300, Math.round(est * (0.95 + C.margin) * Math.exp(r.norm() * 0.15) / 10) * 10);
   L.ask = Math.max(Math.round(L.reserve * 1.12 / 10) * 10, Math.round(est * (1.35 + C.margin * 2) * Math.exp(r.norm() * 0.2) / 10) * 10);
+  { const ri = 1 + (roughIndex(wseed, day) - 1) * 0.5; L.reserve = Math.round(L.reserve * ri / 10) * 10; L.ask = Math.round(L.ask * ri / 10) * 10; }
   if (SCENES[scene].auction) { L.auction = true; L.floor = Math.max(200, Math.round(L.reserve * 0.55 / 10) * 10); let top = 0; for (let k = 0; k < 4; k++) top = Math.max(top, L.reserve * r.range(0.62, 1.22)); L.top = Math.round(top / 10) * 10; }
   if (L.fake) { const k = L.fake.type === 'paint' ? r.range(1.8, 2.6) : L.fake.type === 'skin' ? r.range(1.4, 1.9) : L.fake.type === 'dye' ? r.range(1.2, 1.5) : r.range(1.1, 1.3); L.reserve = Math.round(L.reserve * k / 10) * 10; L.ask = Math.round(L.ask * k / 10) * 10; if (L.top) L.top = Math.round(L.top * k / 10) * 10; }
   L.patter = patter(e.st, e.vol, L); if (L.fake) L.patter[1] = L.fake.type === 'paint' ? '老板：你看这一身松花，满色料的相，过了这村没这店。' : L.fake.type === 'skin' ? '老板：全蒙头的老坑料，一刀没动过，赌的就是这个心跳。' : L.fake.type === 'dye' ? '老板：窗口这个绿你自己看，阳得很，打灯都是绿的。' : '老板：窗都给你开好了，种色摆在这，闭着眼睛买。';
@@ -1167,6 +1171,9 @@ function buy(w, L, price, share) {
   w.log.push({ day: w.day, t: `买入 ${s.origin}·${s.info.skin} ${fmt(price)}${share < 1 ? '（合伙，你出一半）' : ''}`, amt: -Math.round(price * share) });
   return s;
 }
+// 毛料行情：一个慢慢起落的指数（约 0.82–1.22），六天左右一个小周期。买家出价全跟着它走，卖家的要价只跟一半——所以行情好的时候转手容易赚，行情差的时候同样的料卖不上价
+function roughIndex(seed, day) { const k = Math.floor(day / 6), f = (day % 6) / 6, v = i => 0.82 + 0.40 * new Rng(seedOf(seed, 'rough', i)).u(), s = f * f * (3 - 2 * f); return v(k) * (1 - s) + v(k + 1) * s; }
+function roughWord(x) { return x >= 1.12 ? '很热' : x >= 1.04 ? '偏热' : x > 0.96 ? '平稳' : x > 0.88 ? '偏冷' : '很冷'; }
 function quotes(w, s, piece) {
   const e = getVol(s), ev = evalPiece(e.st, e.vol, piece), st = ev.stats, list = [];
   for (const name in BUYERS) {
@@ -1177,7 +1184,7 @@ function quotes(w, s, piece) {
     if (B.pref === '净度') v *= 1 - 0.06 * Math.min(st.knownCracks, 3);
     if (B.pref === '表现' && st.kAvg < 0.5 && st.hasWindow) v *= 1 + 0.25 * st.expColor;
     if (B.pref === '色') { if (st.kAvg < 0.5) { list.push({ buyer: name, price: 0, note: '只收看得明白的明料' }); continue; } v *= 0.8 + 0.6 * Math.min(1, st.expColor * 1.5); }
-    v *= (1 - B.margin) * (0.93 + 0.14 * r.u());
+    v *= (1 - B.margin) * (0.93 + 0.14 * r.u()) * roughIndex(w.seed, w.day);
     if (v > B.cash) { v = B.cash; note = '资金上限'; }
     if (v < 100) { list.push({ buyer: name, price: 0, note: '看不上' }); continue; }
     list.push({ buyer: name, price: Math.round(v / 10) * 10, days: B.days, rel: relWord(relOf(w, name)), note: note || (B.days ? `${B.days} 天后到账` : '现结') });
@@ -1512,6 +1519,6 @@ function nextDay(w) {
 }
 function serialize(w) { return JSON.stringify(w); }
 
-const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, debtOf, payDebt, ending, tend, tendWords, ageOf, actOf, lifeLines, todayHints, QUESTS, questsActive, checkQuests, creditOf, creditWord, stockValue, loanOverdue, LOAN_TERM, LOAN_GRACE, premiumPrice, dayHours, hoursUsed, spendTime, doLiveReq, proxyBuy, proxySettle, appraiseAnswer, ringAt, TMPL, minDays, RUSH, ordRep, orderCap, orderWord, acceptOrder, declineOrder, TIERS, tierOf, orderStock, orderStatus, rushWork, rushCost, abandonOrder, sellToOrder, orderMatch,  BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
+const api = { Rng, seedOf, ORIGINS, CHANNELS, SKINS, HUES, BODIES, BUYERS, TOOLS, ECON, WHOLE, waterName, qWater, vd, genStone, bake, truthAt, crackG, sampleG, planeD, pick, carve, pieceInfo, slabOf, evalPiece, estimate, betOf, fmt, getVol, volCache, newWorld, genMarket, makeListing, negotiate, buy, quotes, explain, grind, peelAt, cutPreview, cut, sawPreview, saw, sell, pieceShelf, pieceKeep, CAB_SIZES, cabGame, FOODS, HOMES, CARS, SCHOOLS, JOBS, LOANS, TRAIN, FAMC, LAWYERS, divorceShare, veneer, dyeWin, migrate, inspectFake, discardStone, codexCats, codexAdd, debtOf, payDebt, ending, tend, tendWords, ageOf, actOf, lifeLines, todayHints, QUESTS, questsActive, checkQuests, creditOf, creditWord, stockValue, loanOverdue, LOAN_TERM, LOAN_GRACE, premiumPrice, dayHours, hoursUsed, spendTime, doLiveReq, proxyBuy, proxySettle, appraiseAnswer, ringAt, TMPL, minDays, RUSH, ordRep, orderCap, orderWord, acceptOrder, declineOrder, roughIndex, roughWord, TIERS, tierOf, orderStock, orderStatus, rushWork, rushCost, abandonOrder, sellToOrder, orderMatch,  BEATS, storyBeat, beatSeen, inspectFee, learnFake, FAKE_LESSON, peelAll, peelAllCost, peelLeft, SKILLS, skillsOf, learnSkill, masterOf, mastersFor, ownMaster, proposals, issueOf, resolveIssue, layoutPlan, trainKid, haveBaby, divorce, marry, startAffair, endAffair, kidAge, schoolsFor, traitWord, famEff, lifeCost, loanRoom, borrow, repay, buyAsset, setSchool, setJob, restDay, lifeEvent, applyEvent, UNLOCK, can, watch, liveRun, STAFF, BRANCH_COST, BRANCH_RENT, openBranch, hire, slotsOf, SCENE_CH, CHAPTERS, DEBT, ACH_ALL, netWorth, goalDone, checkStory, payDebt, FAKE_NAME, callOut, relOf, relWord, SHOPLV, upgradeShop, shelfCount, toShelf, SHOP, applyTools, buyTool, appraise, appraiseFee, productDemand, SCENES, RANKS, GRADES, rankOf, sceneOpen, enterScene, achieve, gradeIdx, colorClass, fillOrders, orderMatch, orderText, sellToOrder, keepItem, placeBid, ROUTES, MASTERS, THEMES, themeDemand, demandWord, workPlan, sendWork, sellItem, stoneDone, closeStone, nextDay, serialize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);
