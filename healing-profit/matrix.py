@@ -327,3 +327,46 @@ MX_JS_T = r"""
 """
 
 MX_JS = MX_JS_T.replace("var PX=%d, COLS=%d;", f"var PX={SPRITE_PX}, COLS={SPRITE_COLS};")
+
+# ---------------- data-driven price-tier cards (sales-weighted) ----------------
+def tier_bands(rows, q, tagfn, brands, ours=None, top=4):
+    """Bands split at midpoints between P25/P50/P75; each band: top sellers (by parent, units deduped) and tag shares."""
+    b1 = (q["p25"] + q["p50"]) / 2; b2 = (q["p50"] + q["p75"]) / 2
+    if b2 <= b1: b2 = b1 + 0.01
+    bands = [("低价带", f"< ${b1:,.0f}", "p25", lambda p: p < b1),
+             ("中价带", f"${b1:,.0f}–{b2:,.0f}", "p50", lambda p: b1 <= p < b2),
+             ("高价带", f"≥ ${b2:,.0f}", "p75", lambda p: p >= b2)]
+    tot = sum(r["u"] for r in rows) or 1
+    out = []
+    for name, rng, qk, f in bands:
+        rs = [r for r in rows if r["price"] and f(r["price"])]
+        bu = sum(r["u"] for r in rs) or 0
+        # top sellers: one line per parent
+        par = defaultdict(list)
+        for r in rs: par[r.get("parent") or r["asin"]].append(r)
+        ps = sorted(par.values(), key=lambda v: -sum(x["u"] for x in v))[:top]
+        pr = []
+        for v in ps:
+            r0 = max(v, key=lambda x: x["u"]); prices = [x["price"] for x in v]
+            pt = f"${min(prices):,.2f}" if min(prices) == max(prices) else f"${min(prices):,.0f}–{max(prices):,.0f}"
+            title = html.unescape(r0.get("title") or "")
+            pr.append(f'<li><span class="ch">{E(brands.get(r0["asin"], "") or "—")}</span><span class="pn">{E(title[:70])}{"…" if len(title) > 70 else ""}</span>'
+                      f'<span class="pp">{pt}</span><span class="pm">月销约 {sum(x["u"] for x in v):,.0f} · 评分 {r0["rating"] or "—"}（{r0.get("ratings") or 0} 评）</span></li>')
+        tagu = defaultdict(float)
+        for r in rs:
+            for t in set(tagfn(r)): tagu[t] += r["u"]
+        tags = sorted(tagu.items(), key=lambda kv: -kv[1])[:6]
+        ft = "".join(f"<li>{E(t)}<b> {u / bu * 100:.0f}%</b></li>" for t, u in tags) if bu else "<li>—</li>"
+        mine = '<span class="ours">我方定位</span>' if ours == name else ""
+        out.append(f'<article class="tier"><header><h4>{name}</h4><span class="rng">{rng}</span>'
+                   f'<span class="note">测算价 = {"25" if qk == "p25" else ("50" if qk == "p50" else "75")} 分位 ${q[qk]:,.2f} · 占月销 {bu / tot * 100:.0f}%</span>{mine}</header>'
+                   f'<div class="tier-b"><div><h5>销量前列产品（Amazon）</h5><ul class="prods">{"".join(pr) or "<li>—</li>"}</ul></div>'
+                   f'<div><h5>功能 / 材质特征（按该价带月销占比）</h5><ul class="feats">{ft}</ul></div></div></article>')
+    return f'<div class="tiers">{"".join(out)}</div>'
+
+def tagger(mid, extra=None):
+    tags = [(n, re.compile(p)) for n, p in TAGS.get(mid, [])]
+    def f(r):
+        t = [n for n, rx in tags if rx.search(r["t"])]
+        return (extra(r) if extra else []) + t
+    return f

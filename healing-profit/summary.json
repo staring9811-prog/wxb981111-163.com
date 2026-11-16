@@ -3,20 +3,20 @@
   "sku": "SAD6221-1",
   "tier": "low",
   "amzFBM": {
-   "price": 899,
-   "profit": -729.7,
-   "margin": -0.812,
-   "maxCostUSD": -48.6,
-   "maxCostRMB": -373,
-   "breakeven": 2005.0
+   "price": 799.99,
+   "profit": -795.0,
+   "margin": -0.994,
+   "maxCostUSD": -99.1,
+   "maxCostRMB": -761,
+   "breakeven": 2005
   },
   "amzFBA": {
-   "price": 899,
-   "profit": -790.6,
-   "margin": -0.879,
-   "maxCostUSD": -109.5,
-   "maxCostRMB": -841,
-   "breakeven": 2097.0
+   "price": 799.99,
+   "profit": -855.9,
+   "margin": -1.07,
+   "maxCostUSD": -160.0,
+   "maxCostRMB": -1229,
+   "breakeven": 2097
   },
   "lowesVC": {
    "price": 1449,
@@ -25,7 +25,7 @@
    "margin": -0.477,
    "maxCostUSD": 281.6,
    "maxCostRMB": 2163,
-   "breakeven": 2140.0
+   "breakeven": 2140
   },
   "lowesSC": {
    "price": 1449,
@@ -34,7 +34,7 @@
    "margin": -0.295,
    "maxCostUSD": 171.6,
    "maxCostRMB": 1319,
-   "breakeven": 2138.0
+   "breakeven": 2138
   },
   "hd": {
    "price": 1099,
@@ -43,7 +43,7 @@
    "margin": -0.706,
    "maxCostUSD": 228.1,
    "maxCostRMB": 1753,
-   "breakeven": 2150.0
+   "breakeven": 2150
   },
   "wf": {
    "price": 849,
@@ -52,27 +52,27 @@
    "margin": -1.687,
    "maxCostUSD": 73.4,
    "maxCostRMB": 564,
-   "breakeven": 2784.0
+   "breakeven": 2784
   }
  },
  {
   "sku": "SAD6221-1",
   "tier": "mid",
   "amzFBM": {
-   "price": 1299,
-   "profit": -465.7,
-   "margin": -0.359,
-   "maxCostUSD": 155.4,
-   "maxCostRMB": 1194,
-   "breakeven": 2005.0
+   "price": 999.99,
+   "profit": -663.0,
+   "margin": -0.663,
+   "maxCostUSD": 2.9,
+   "maxCostRMB": 23,
+   "breakeven": 2005
   },
   "amzFBA": {
-   "price": 1299,
-   "profit": -526.6,
-   "margin": -0.405,
-   "maxCostUSD": 94.5,
-   "maxCostRMB": 726,
-   "breakeven": 2097.0
+   "price": 999.99,
+   "profit": -723.9,
+   "margin": -0.724,
+   "maxCostUSD": -58.0,
+   "maxCostRMB": -445,
+   "breakeven": 2097
   },
   "lowesVC": {
    "price": 1700,
@@ -81,7 +81,7 @@
    "margin": -0.305,
    "maxCostUSD": 360.8,
    "maxCostRMB": 2772,
-   "breakeven": 2219.0
+   "breakeven": 2219
   },
   "lowesSC": {
    "price": 1700,
@@ -90,7 +90,7 @@
    "margin": -0.16,
    "maxCostUSD": 289.6,
    "maxCostRMB": 2225,
-   "breakeven": 2138.0
+   "breakeven": 2138
   },
   "hd": {
    "price": 1441,
@@ -99,7 +99,7 @@
    "margin": -0.363,
    "maxCostUSD": 353.8,
    "maxCostRMB": 2718,
-   "breakeven": 2150.0
+   "breakeven": 2150
   },
   "wf": {
    "price": 1399,
@@ -108,27 +108,27 @@
    "margin": -0.733,
    "maxCostUSD": 227.9,
    "maxCostRMB": 1751,
-   "breakeven": 2784.0
+   "breakeven": 2784
   }
  },
  {
   "sku": "SAD6221-1",
   "tier": "high",
   "amzFBM": {
-   "price": 1799,
-   "profit": -135.7,
-   "margin": -0.075,
-   "maxCostUSD": 410.4,
-   "maxCostRMB": 3154,
-   "breakeven": 2005.0
+   "price": 1299.99,
+   "profit": -465.0,
+   "margin": -0.358,
+   "maxCostUSD": 155.9,
+   "maxCostRMB": 1198,
+   "breakeven": 2005
   },
   "amzFBA": {
-   "price": 1799,
-   "profit": -196.6,
-   "margin": -0.109,
-   "maxCostUSD": 349.5,
-   "maxCostRMB": 2686,
-   "breakeven": 2097.0
+   "price": 1299.99,
+   "profit": -525.9,
+   "margin": -0.405,
+   "maxCostUSD": 95.0,
+   "maxCostRMB": 730,
+   "breakeven": 2097
   },
   "lowesVC": {
    "price": 2089,
@@ -137,7 +137,7 @@
    "margin": -0.12,
    "maxCostUSD": 483.6,
    "maxCostRMB": 3716,
-   "breakeven": 2341.0
+   "breakeven": 2341
   },
   "lowesSC": {
    "price": 2089,
@@ -146,7 +146,7 @@
    "margin": -0.014,
    "maxCostUSD": 472.4,
    "maxCostRMB": 3630,
-   "breakeven": 2138.0
+   "breakeven": 2138
   },
   "hd": {
    "price": 1799,
@@ -155,7 +155,7 @@
    "margin": -0.144,
    "maxCostUSD": 485.3,
    "maxCostRMB": 3729,
-   "breakeven": 2150.0
+   "breakeven": 2150
   },
   "wf": {
    "price": 1799,
@@ -164,27 +164,27 @@
    "margin": -0.405,
    "maxCostUSD": 340.3,
    "maxCostRMB": 2615,
-   "breakeven": 2784.0
+   "breakeven": 2784
   }
  },
  {
   "sku": "SAD6221-2",
   "tier": "low",
   "amzFBM": {
-   "price": 1299,
-   "profit": -836.5,
-   "margin": -0.644,
-   "maxCostUSD": 90.2,
-   "maxCostRMB": 693,
-   "breakeven": 2566.0
+   "price": 1399.99,
+   "profit": -769.8,
+   "margin": -0.55,
+   "maxCostUSD": 141.8,
+   "maxCostRMB": 1089,
+   "breakeven": 2566
   },
   "amzFBA": {
-   "price": 1299,
-   "profit": -921.8,
-   "margin": -0.71,
-   "maxCostUSD": 4.9,
-   "maxCostRMB": 38,
-   "breakeven": 2696.0
+   "price": 1399.99,
+   "profit": -855.1,
+   "margin": -0.611,
+   "maxCostUSD": 56.5,
+   "maxCostRMB": 434,
+   "breakeven": 2696
   },
   "lowesVC": {
    "price": 1070,
@@ -193,7 +193,7 @@
    "margin": -1.423,
    "maxCostUSD": 131.7,
    "maxCostRMB": 1012,
-   "breakeven": 2592.0
+   "breakeven": 2592
   },
   "lowesSC": {
    "price": 1070,
@@ -202,7 +202,7 @@
    "margin": -0.965,
    "maxCostUSD": -71.7,
    "maxCostRMB": -551,
-   "breakeven": 2736.0
+   "breakeven": 2736
   },
   "hd": {
    "price": 1499,
@@ -211,7 +211,7 @@
    "margin": -0.679,
    "maxCostUSD": 344.9,
    "maxCostRMB": 2650,
-   "breakeven": 2879.0
+   "breakeven": 2879
   },
   "wf": {
    "price": 1123,
@@ -220,27 +220,27 @@
    "margin": -1.721,
    "maxCostUSD": 121.0,
    "maxCostRMB": 930,
-   "breakeven": 3735.0
+   "breakeven": 3735
   }
  },
  {
   "sku": "SAD6221-2",
   "tier": "mid",
   "amzFBM": {
-   "price": 1799,
-   "profit": -506.5,
-   "margin": -0.282,
-   "maxCostUSD": 345.2,
-   "maxCostRMB": 2653,
-   "breakeven": 2566.0
+   "price": 1799.99,
+   "profit": -505.8,
+   "margin": -0.281,
+   "maxCostUSD": 345.8,
+   "maxCostRMB": 2657,
+   "breakeven": 2566
   },
   "amzFBA": {
-   "price": 1799,
-   "profit": -591.8,
-   "margin": -0.329,
-   "maxCostUSD": 259.9,
-   "maxCostRMB": 1997,
-   "breakeven": 2696.0
+   "price": 1799.99,
+   "profit": -591.1,
+   "margin": -0.328,
+   "maxCostUSD": 260.5,
+   "maxCostRMB": 2001,
+   "breakeven": 2696
   },
   "lowesVC": {
    "price": 1600,
@@ -249,7 +249,7 @@
    "margin": -0.724,
    "maxCostUSD": 299.0,
    "maxCostRMB": 2298,
-   "breakeven": 2758.0
+   "breakeven": 2758
   },
   "lowesSC": {
    "price": 1600,
@@ -258,7 +258,7 @@
    "margin": -0.44,
    "maxCostUSD": 177.4,
    "maxCostRMB": 1363,
-   "breakeven": 2736.0
+   "breakeven": 2736
   },
   "hd": {
    "price": 1815,
@@ -267,7 +267,7 @@
    "margin": -0.432,
    "maxCostUSD": 461.0,
    "maxCostRMB": 3542,
-   "breakeven": 2879.0
+   "breakeven": 2879
   },
   "wf": {
    "price": 1600,
@@ -276,27 +276,27 @@
    "margin": -0.987,
    "maxCostUSD": 255.0,
    "maxCostRMB": 1960,
-   "breakeven": 3735.0
+   "breakeven": 3735
   }
  },
  {
   "sku": "SAD6221-2",
   "tier": "high",
   "amzFBM": {
-   "price": 2299,
-   "profit": -176.5,
-   "margin": -0.077,
-   "maxCostUSD": 600.2,
-   "maxCostRMB": 4612,
-   "breakeven": 2566.0
+   "price": 1799.99,
+   "profit": -505.8,
+   "margin": -0.281,
+   "maxCostUSD": 345.8,
+   "maxCostRMB": 2657,
+   "breakeven": 2566
   },
   "amzFBA": {
-   "price": 2299,
-   "profit": -261.8,
-   "margin": -0.114,
-   "maxCostUSD": 514.9,
-   "maxCostRMB": 3957,
-   "breakeven": 2696.0
+   "price": 1799.99,
+   "profit": -591.1,
+   "margin": -0.328,
+   "maxCostUSD": 260.5,
+   "maxCostRMB": 2001,
+   "breakeven": 2696
   },
   "lowesVC": {
    "price": 1999,
@@ -305,7 +305,7 @@
    "margin": -0.442,
    "maxCostUSD": 425.0,
    "maxCostRMB": 3266,
-   "breakeven": 2883.0
+   "breakeven": 2883
   },
   "lowesSC": {
    "price": 1999,
@@ -314,7 +314,7 @@
    "margin": -0.228,
    "maxCostUSD": 364.9,
    "maxCostRMB": 2804,
-   "breakeven": 2736.0
+   "breakeven": 2736
   },
   "hd": {
    "price": 2099,
@@ -323,7 +323,7 @@
    "margin": -0.274,
    "maxCostUSD": 565.3,
    "maxCostRMB": 4344,
-   "breakeven": 2879.0
+   "breakeven": 2879
   },
   "wf": {
    "price": 1999,
@@ -332,27 +332,27 @@
    "margin": -0.643,
    "maxCostUSD": 367.1,
    "maxCostRMB": 2821,
-   "breakeven": 3735.0
+   "breakeven": 3735
   }
  },
  {
   "sku": "DUAL",
   "tier": "low",
   "amzFBM": {
-   "price": 79.99,
+   "price": 79.98,
    "profit": 7.6,
    "margin": 0.095,
    "maxCostUSD": 23.5,
    "maxCostRMB": 160,
-   "breakeven": 68.0
+   "breakeven": 68
   },
   "amzFBA": {
-   "price": 79.99,
+   "price": 79.98,
    "profit": 8.8,
    "margin": 0.11,
    "maxCostUSD": 24.7,
    "maxCostRMB": 168,
-   "breakeven": 67.0
+   "breakeven": 67
   },
   "lowesVC": {
    "price": 134.98,
@@ -361,7 +361,7 @@
    "margin": 0.254,
    "maxCostUSD": 36.2,
    "maxCostRMB": 246,
-   "breakeven": 101.0
+   "breakeven": 101
   },
   "lowesSC": {
    "price": 134.98,
@@ -370,7 +370,7 @@
    "margin": 0.279,
    "maxCostUSD": 45.4,
    "maxCostRMB": 309,
-   "breakeven": 74.0
+   "breakeven": 74
   },
   "hd": null,
   "wf": {
@@ -380,27 +380,27 @@
    "margin": 0.018,
    "maxCostUSD": 22.1,
    "maxCostRMB": 150,
-   "breakeven": 91.0
+   "breakeven": 91
   }
  },
  {
   "sku": "DUAL",
   "tier": "mid",
   "amzFBM": {
-   "price": 149.99,
-   "profit": 53.8,
-   "margin": 0.359,
-   "maxCostUSD": 59.2,
-   "maxCostRMB": 403,
-   "breakeven": 68.0
+   "price": 94.98,
+   "profit": 17.5,
+   "margin": 0.184,
+   "maxCostUSD": 31.2,
+   "maxCostRMB": 212,
+   "breakeven": 68
   },
   "amzFBA": {
-   "price": 149.99,
-   "profit": 55.0,
-   "margin": 0.367,
-   "maxCostUSD": 60.4,
-   "maxCostRMB": 411,
-   "breakeven": 67.0
+   "price": 94.98,
+   "profit": 18.7,
+   "margin": 0.197,
+   "maxCostUSD": 32.4,
+   "maxCostRMB": 220,
+   "breakeven": 67
   },
   "lowesVC": {
    "price": 177.98,
@@ -409,7 +409,7 @@
    "margin": 0.359,
    "maxCostUSD": 49.8,
    "maxCostRMB": 338,
-   "breakeven": 114.0
+   "breakeven": 114
   },
   "lowesSC": {
    "price": 177.98,
@@ -418,7 +418,7 @@
    "margin": 0.362,
    "maxCostUSD": 65.6,
    "maxCostRMB": 446,
-   "breakeven": 74.0
+   "breakeven": 74
   },
   "hd": {
    "price": 159.99,
@@ -427,7 +427,7 @@
    "margin": 0.395,
    "maxCostUSD": 52.4,
    "maxCostRMB": 357,
-   "breakeven": 74.0
+   "breakeven": 74
   },
   "wf": {
    "price": 163.99,
@@ -436,27 +436,27 @@
    "margin": 0.331,
    "maxCostUSD": 42.0,
    "maxCostRMB": 286,
-   "breakeven": 91.0
+   "breakeven": 91
   }
  },
  {
   "sku": "DUAL",
   "tier": "high",
   "amzFBM": {
-   "price": 249,
-   "profit": 119.1,
-   "margin": 0.478,
-   "maxCostUSD": 109.7,
-   "maxCostRMB": 746,
-   "breakeven": 68.0
+   "price": 159.99,
+   "profit": 60.4,
+   "margin": 0.377,
+   "maxCostUSD": 64.3,
+   "maxCostRMB": 437,
+   "breakeven": 68
   },
   "amzFBA": {
-   "price": 249,
-   "profit": 120.3,
-   "margin": 0.483,
-   "maxCostUSD": 110.9,
-   "maxCostRMB": 754,
-   "breakeven": 67.0
+   "price": 159.99,
+   "profit": 61.6,
+   "margin": 0.385,
+   "maxCostUSD": 65.5,
+   "maxCostRMB": 446,
+   "breakeven": 67
   },
   "lowesVC": {
    "price": 387.48,
@@ -465,7 +465,7 @@
    "margin": 0.536,
    "maxCostUSD": 115.9,
    "maxCostRMB": 788,
-   "breakeven": 180.0
+   "breakeven": 180
   },
   "lowesSC": {
    "price": 387.48,
@@ -474,7 +474,7 @@
    "margin": 0.501,
    "maxCostUSD": 164.1,
    "maxCostRMB": 1116,
-   "breakeven": 74.0
+   "breakeven": 74
   },
   "hd": null,
   "wf": null

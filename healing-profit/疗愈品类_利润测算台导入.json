@@ -1,13 +1,13 @@
 {
  "products": [
   {
-   "id": "sr77gvv",
+   "id": "6z2k4qx",
    "name": "SAD6221-1 低价带",
    "desc": "SAD6221-1 单人红外桑拿房 800×900×2100 铁杉",
    "supplier": "",
    "category": "其他",
    "peak": "非旺季",
-   "price": 899,
+   "price": 799.99,
    "cost": 6270,
    "costCur": "RMB_TAX",
    "adj": 0,
@@ -48,13 +48,13 @@
    ]
   },
   {
-   "id": "3i4nzm0",
+   "id": "0ard0zz",
    "name": "SAD6221-1 中价带",
    "desc": "SAD6221-1 单人红外桑拿房 800×900×2100 铁杉",
    "supplier": "",
    "category": "其他",
    "peak": "非旺季",
-   "price": 1299,
+   "price": 999.99,
    "cost": 6270,
    "costCur": "RMB_TAX",
    "adj": 0,
@@ -95,13 +95,13 @@
    ]
   },
   {
-   "id": "96fjd9e",
+   "id": "ykqrldu",
    "name": "SAD6221-1 高价带",
    "desc": "SAD6221-1 单人红外桑拿房 800×900×2100 铁杉",
    "supplier": "",
    "category": "其他",
    "peak": "非旺季",
-   "price": 1799,
+   "price": 1299.99,
    "cost": 6270,
    "costCur": "RMB_TAX",
    "adj": 0,
@@ -142,13 +142,13 @@
    ]
   },
   {
-   "id": "kgl87ca",
+   "id": "xwfihey",
    "name": "SAD6221-2 低价带",
    "desc": "SAD6221-2 1-2人红外桑拿房 900×1200×2100 铁杉",
    "supplier": "",
    "category": "其他",
    "peak": "非旺季",
-   "price": 1299,
+   "price": 1399.99,
    "cost": 8618,
    "costCur": "RMB_TAX",
    "adj": 0,
@@ -189,13 +189,13 @@
    ]
   },
   {
-   "id": "ihdnwfy",
+   "id": "a5fp5qm",
    "name": "SAD6221-2 中价带",
    "desc": "SAD6221-2 1-2人红外桑拿房 900×1200×2100 铁杉",
    "supplier": "",
    "category": "其他",
    "peak": "非旺季",
-   "price": 1799,
+   "price": 1799.99,
    "cost": 8618,
    "costCur": "RMB_TAX",
    "adj": 0,
@@ -236,13 +236,13 @@
    ]
   },
   {
-   "id": "it1km0s",
+   "id": "3azbyw5",
    "name": "SAD6221-2 高价带",
    "desc": "SAD6221-2 1-2人红外桑拿房 900×1200×2100 铁杉",
    "supplier": "",
    "category": "其他",
    "peak": "非旺季",
-   "price": 2299,
+   "price": 1799.99,
    "cost": 8618,
    "costCur": "RMB_TAX",
    "adj": 0,
@@ -283,13 +283,13 @@
    ]
   },
   {
-   "id": "ml10zhm",
+   "id": "qhbgiq0",
    "name": "DUAL 低价带",
    "desc": "双人淋浴花洒（滑杆双头+手持，1688 参考成本）",
    "supplier": "",
    "category": "其他",
    "peak": "非旺季",
-   "price": 79.99,
+   "price": 79.98,
    "cost": 190,
    "costCur": "RMB_NET",
    "adj": 0,
@@ -315,13 +315,13 @@
    ]
   },
   {
-   "id": "8mywk6s",
+   "id": "6o5gin2",
    "name": "DUAL 中价带",
    "desc": "双人淋浴花洒（滑杆双头+手持，1688 参考成本）",
    "supplier": "",
    "category": "其他",
    "peak": "非旺季",
-   "price": 149.99,
+   "price": 94.98,
    "cost": 190,
    "costCur": "RMB_NET",
    "adj": 0,
@@ -350,13 +350,13 @@
    ]
   },
   {
-   "id": "vlx1z92",
+   "id": "n8yk9di",
    "name": "DUAL 高价带",
    "desc": "双人淋浴花洒（滑杆双头+手持，1688 参考成本）",
    "supplier": "",
    "category": "其他",
    "peak": "非旺季",
-   "price": 249,
+   "price": 159.99,
    "cost": 190,
    "costCur": "RMB_NET",
    "adj": 0,
