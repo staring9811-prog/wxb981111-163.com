@@ -18,11 +18,11 @@ if(!file){console.error('用法：node cake_uat.js <html>');process.exit(2)}
   const iBen=h.indexOf('占本层'),iAll=h.indexOf('占全部');
   ok('G1 标题写路径和占全部',/全部/.test(t)&&/按「元素」分/.test(t)&&/占全部/.test(sub),t+' | '+sub.slice(0,40));
   ok('G2 两列且第一层相等',iBen>0&&iAll>0&&r.every(x=>x.c[iBen]===x.c[iAll]),'');
-  const big1=r.filter(x=>/大蛋糕/.test(x.c[0])).map(x=>x.v),small1=r.filter(x=>/小蛋糕/.test(x.c[0]));
+  const big1=r.filter(x=>/大蛋糕/.test(x.c[0])).map(x=>x.v),small1=r.filter(x=>/细分龙头/.test(x.c[0]));
   const real1=r.filter(x=>x.v!=='未标').map(x=>[x.v,+x.c[1].replace(/,/g,'')]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);let cum=0;const T1=real1.reduce((s,x)=>s+x[1],0),exp1=[];for(const x of real1){exp1.push(x[0]);cum+=x[1];if(cum>=T1*0.5)break}
   ok('G3 第一层只标大蛋糕，且是从大到小合计一半销量的那几块',big1.slice().sort().join()===exp1.slice().sort().join()&&!small1.length,big1.join('、')+' | 应为 '+exp1.join('、'));
   const iT=h.findIndex(x=>/^涨跌/.test(x));ok('B1 第一层能看到涨跌列，且写明比较期',iT>0&&/对比|vs/.test(h[iT])&&r.some(x=>/[+-]\d+%/.test(x.c[iT])),h[iT]);
-  ok('B3 有「这一层看点」结论卡',/大蛋糕/.test(await txt('#insight'))&&/一句话/.test(await txt('#insight'))&&/我们/.test(await txt('#insight')),'');
+  ok('B3 有「这一层看点」结论卡',/大蛋糕/.test(await txt('#insight'))&&/一句话/.test(await txt('#summary'))&&/我们/.test(await txt('#insight')),'');
   ok('G6 未标显示为未识别且不标大蛋糕',r.filter(x=>x.v==='未标').every(x=>/未识别/.test(x.c[0])&&!/大蛋糕|主战场/.test(x.c[0])),'');
   const ins1=await txt('#insight');
   ok('B2 看点卡写明主力块覆盖（这 N 块大蛋糕进了 M 块）',/\d+ 块，进了 \d+ 块/.test(ins1),ins1.slice(0,80));
@@ -37,7 +37,7 @@ if(!file){console.error('用法：node cake_uat.js <html>');process.exit(2)}
   h=await head();r=await rows();t=await txt('#tth');
   const iB=h.indexOf('占本层');
   ok('G1 第三层标题带两级路径',(t.match(/›/g)||[]).length===1&&/按「尺寸」分/.test(t),t);
-  ok('G3 小蛋糕 = 占本层 ≥ 20% 且占全部 ≥ 0.3%',r.filter(x=>x.v!=='未标').every(x=>/小蛋糕|主战场/.test(x.c[0])===(parseFloat(x.c[iB])>=20&&parseFloat(x.c[h.indexOf('占全部')])>=0.3)),'');
+  ok('G3 细分龙头 = 占本层 ≥ 20% 且占全部 ≥ 0.3%',r.filter(x=>x.v!=='未标').every(x=>/细分龙头|主战场/.test(x.c[0])===(parseFloat(x.c[iB])>=20&&parseFloat(x.c[h.indexOf('占全部')])>=0.3)),'');
   ok('G3 标签有悬停说明',await p.$$eval('#tbl .cks',x=>x.every(e=>/主战场|大蛋糕|细分龙头|缺标签/.test(e.title)||e.querySelectorAll('i[title]').length)),'');
   // 价格段 + 更多指标
   await p.click('#btog');await p.waitForTimeout(250);
