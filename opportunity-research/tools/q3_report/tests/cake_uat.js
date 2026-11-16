@@ -19,12 +19,13 @@ if(!file){console.error('用法：node cake_uat.js <html>');process.exit(2)}
   ok('G1 标题写路径和占全部',/全部/.test(t)&&/按「元素」分/.test(t)&&/占全部/.test(sub),t+' | '+sub.slice(0,40));
   ok('G2 两列且第一层相等',iBen>0&&iAll>0&&r.every(x=>x.c[iBen]===x.c[iAll]),'');
   const big1=r.filter(x=>/大蛋糕/.test(x.c[0])).map(x=>x.v),small1=r.filter(x=>/小蛋糕/.test(x.c[0]));
-  ok('G3 第一层只标大蛋糕，且是前 10%',big1.length===Math.ceil(r.filter(x=>+x.c[1].replace(/,/g,'')>0).length*0.1)&&!small1.length,big1.join('、'));
+  const real1=r.filter(x=>x.v!=='未标').map(x=>[x.v,+x.c[1].replace(/,/g,'')]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);let cum=0;const T1=real1.reduce((s,x)=>s+x[1],0),exp1=[];for(const x of real1){exp1.push(x[0]);cum+=x[1];if(cum>=T1*0.5)break}
+  ok('G3 第一层只标大蛋糕，且是从大到小合计一半销量的那几块',big1.slice().sort().join()===exp1.slice().sort().join()&&!small1.length,big1.join('、')+' | 应为 '+exp1.join('、'));
   const iT=h.findIndex(x=>/^涨跌/.test(x));ok('B1 第一层能看到涨跌列，且写明比较期',iT>0&&/对比|vs/.test(h[iT])&&r.some(x=>/[+-]\d+%/.test(x.c[iT])),h[iT]);
-  ok('B3 有「这一层看点」结论卡',/最大 3 块/.test(await txt('#insight'))&&/我们/.test(await txt('#insight')),'');
+  ok('B3 有「这一层看点」结论卡',/大蛋糕/.test(await txt('#insight'))&&/一句话/.test(await txt('#insight'))&&/我们/.test(await txt('#insight')),'');
   ok('G6 未标显示为未识别且不标大蛋糕',r.filter(x=>x.v==='未标').every(x=>/未识别/.test(x.c[0])&&!/大蛋糕|主战场/.test(x.c[0])),'');
   const ins1=await txt('#insight');
-  ok('B2 看点卡写明主力块覆盖（最大 N 块进了 M 块）',/最大 \d+ 块进了 \d+ 块/.test(ins1),ins1.slice(0,80));
+  ok('B2 看点卡写明主力块覆盖（这 N 块大蛋糕进了 M 块）',/这 \d+ 块进了 \d+ 块/.test(ins1),ins1.slice(0,80));
   ok('G3 大蛋糕图例写明比较口径（本渠道 + 维度）',/本渠道所有「元素」组合/.test(await txt('#insight')+await p.$eval('body',e=>e.textContent))||await p.$$eval('*',x=>x.some(e=>e.shadowRoot&&/本渠道所有「元素」组合/.test(e.shadowRoot.textContent))),'');
   ok('G6 不再出现「全市场」字样',!(await p.$$eval('*',x=>x.some(e=>e.shadowRoot&&/全市场/.test(e.shadowRoot.textContent))))&&!/全市场/.test(await p.$eval('#tbl',e=>e.closest('section,div').textContent)),'');
   ok('P1 热力图或看点卡给出具体机会格子',/机会.*(×|›|\(|（)/.test(ins1)||await p.$$eval('table.hm .oo',x=>x.length)>0,'');
