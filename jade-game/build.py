@@ -88,3 +88,31 @@ if '--dist' in sys.argv:
     (dist / 'config.js').write_text(cfg, encoding='utf-8')
     print('dist/ built with license check ON')
 
+
+# 单文件版：python3 build.py --single  →  release/翡翠博弈.html（免费直接玩）和 release/翡翠博弈-试玩版.html（第 3 天后要激活码）。
+# 所有脚本、头像都写进这一个文件，不联网、不用装东西，发给别人双击就能玩。
+if '--single' in sys.argv:
+    rel = here / 'release'; rel.mkdir(exist_ok=True)
+    page = (here / 'index.html').read_text(encoding='utf-8')
+    page = re.sub(r'<title>.*?</title>\s*', '', page, count=1)
+    for name, lic in [('翡翠博弈.html', False), ('翡翠博弈-试玩版.html', True)]:
+        def inline(m):
+            src = (here / m.group(1)).read_text(encoding='utf-8')
+            if m.group(1) == 'config.js' and lic: src = src.replace('license: false', 'license: true')
+            return '<script>\n' + src.replace('</script', '<\\/script') + '\n</script>'
+        out = re.sub(r'<script src="([^"]+)"></script>', inline, page)
+        (rel / name).write_text(f'''<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0e0c0a">
+<title>翡翠博弈</title>
+<style>html, body {{ margin: 0; height: 100%; }}</style>
+</head>
+<body>
+{out}
+</body>
+</html>
+''', encoding='utf-8')
+    print('release/ built: single-file, v' + str(ver['version']))
