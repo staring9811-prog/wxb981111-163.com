@@ -292,6 +292,11 @@ _hcm = HC[("SMT-HC103", "mid")]; _hch = HC[("SMT-HC103", "high")]
 HC_BE = (_hcm["cost"] + _hcm["sea"] + _hcm["fbmShip"]) / (1 - _pct)
 HC_MAX_H = (_hch["cost"] + _hch["fbm"] - 0.15 * _hch["amzPrice"]) * 6.8 * 1.13
 MX_DATA = json.dumps(MX_ITEMS, ensure_ascii=False).replace('</', '<\\/')
+CHANGELOG = json.load(open(os.path.join(HERE, "changelog.json"), encoding="utf-8"))
+import datetime as _dt
+BUILD_TIME = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=8))).strftime("%Y-%m-%d %H:%M")
+VERSION = f"v{len(CHANGELOG)}"
+CHANGELOG_HTML = "".join(f"<li><b>{E(d)}</b> {E(t)}</li>" for d, t in reversed(CHANGELOG))
 P = calc["params"]
 s1 = S[("SAD6221-1", "mid")]; s1h = S[("SAD6221-1", "high")]
 dm = S[("DUAL", "mid")]; dl = S[("DUAL", "low")]
@@ -381,6 +386,7 @@ tbody th{{font-weight:500}}
 .rules ul{{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}}
 details{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}} details>summary{{cursor:pointer;font-weight:500}} details .tw{{margin-top:10px}}
 {MX.MX_CSS}
+.ver{{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12.5px;color:var(--muted)}} .vtag{{font-family:var(--f-num);font-weight:600;color:var(--bg);background:var(--accent);border-radius:20px;padding:1px 9px}} .ver details{{flex-basis:100%;padding:6px 10px}} .ver ul{{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}}
 .todo{{margin:0;padding-left:20px;display:grid;gap:6px}}
 table.mtg td,table.mtg th{{white-space:normal;vertical-align:top;min-width:160px}}
 table.mtg tbody th{{white-space:nowrap}}
@@ -390,6 +396,8 @@ table.mtg tbody th{{white-space:nowrap}}
 <header style="display:grid;gap:8px">
   <p class="sub">疗愈项目 · 拓展品类利润摸底 · 2026-11-16 · 测算规则：利润测算台 v1.14 默认参数 · 价带口径：Amazon 同细分按销量加权的 25 / 50 / 75 分位</p>
   <h1>双人淋浴花洒 & 红外单人桑拿房：市场与利润摸底</h1>
+  <div class="ver"><span class="vtag">{VERSION}</span><span>更新于 {BUILD_TIME}（北京时间）· 本页链接始终是最新版，打开着的页面会自动刷新</span>
+    <details><summary>更新记录</summary><ul>{CHANGELOG_HTML}</ul></details></div>
   <p class="sub">Amazon 售价按卖家精灵 2026-10 子体月销加权取 25 / 50 / 75 分位作为低 / 中 / 高价带；Home Depot、Lowe's、Wayfair 没有逐条销量，用 2026-11-13 搜索页标价作参考。成本为采购报价（桑拿、恒温系统，人民币含税）与品类筛选表里的参考价（双人花洒 ¥190）。</p>
 </header>
 
