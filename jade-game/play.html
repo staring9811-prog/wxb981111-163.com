@@ -316,7 +316,11 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
       <li><b>每个师傅三项本事</b>：避裂、做色、设计。镯师避裂好，揭阳师傅做色好，苏工设计和避裂都强但贵。雇了驻店师傅后多一个「自家师傅」，只收料工，属性雇来时随机，有一项是长处，做得越多越熟。</li>
       <li><b>排料图</b>：在「送去做件」里点「看排料图」，石头上会画出这种件每一件摆在哪里（手镯是圆环，牌子是方片，蛋面是小椭圆，珠子是小球，雕件是整体轮廓）。排料只按看得见的料来排，会让开看得见的裂；学了排料设计后，黄色表示那个位置还没看清。多开窗、多切一刀，黄的会变绿，也可能直接消失。换「做什么」图跟着变。</li>
       <li><b>提案</b>：选好师傅后，他会看料给两三个做法（主推、备选、稳妥）。料没看清时他也是猜，设计好的师傅猜得准。可以照他的做，也可以自己定。</li>
-      <li><b>做到一半要你拿主意</b>：料里看不清的部分越多，越可能出状况。<b>冒出裂</b>：改小避开（稳）、改题材藏裂（看师傅避裂）、硬做赌裂不深（成了多赚，不成整件崩掉）。<b>色比想的好</b>：改方案追色（看师傅做色，成了价钱近乎翻倍，不成形也乱了）或者照原样做。<b>色只有一层皮</b>：薄薄留住，或者磨掉做素件。</li>
+      <li><b>做到一半要你拿主意，没有运气成分</b>：师傅按看得见的料排好每一件的位置，位置上真有暗裂，他就停手来电话；里面的色比露出来的多，或者外面那点色只有一层皮，也会来电话。每条路成不成，只看三样：石头里那条裂（那片色）实际什么样、这位师傅的本事够不够、你自己的手艺。
+        <br>遇裂：<b>改小</b>永远稳（四成半）；<b>藏裂</b>要师傅避裂够高——小绺 30、皮上吃进来的裂 60、通天大裂 85，够了保八成半，不够只剩三成半；<b>硬做</b>只有小绺磨得掉（一分不损），深裂会崩（一成半）。
+        <br>追色：成团的色要做色 40，走散的色带要 60，追住整批涨六成，追断只剩八成。贴皮色要做色 55 才留得住。
+        <br>师傅本事到 55–60，会告诉你那条裂、那片色到底是什么样；不到，他也说不准，你就只能蒙。自己学了「识裂避裂」「追色留色」第一层，不靠师傅也看得出。</li>
+      <li><b>所以师傅的价钱差在这里</b>：机雕厂、街边师傅便宜，遇到事只能改小；镯师避裂 70，藏得住大多数裂；揭阳师傅做色 90，什么色都追得住；苏工避裂 85，连通天裂都藏得住。自家的驻店师傅可以在「手艺」里花钱送去进修，想让他强在避裂、做色还是设计，你定，越高越贵。</li>
       <li>师傅停工等你的时候不会交货，到「我的料」或「成品盘」里那一单上做决定。</li>
       <li><b>我的手艺</b>（在「我的料」里学）：排料设计让你看懂提案值多少、省工费、少废料；识裂避裂和追色留色让你看到每条路几成把握，并提高成功率。</li>
     </ul>
@@ -579,11 +583,11 @@ button.sticky { pointer-events: auto; border: 0; border-top: 10px solid #e3d07a;
 
 </div>
 <div id="upd" hidden></div>
-<div id="ver">v65</div>
+<div id="ver">v66</div>
 
 <script>
 (function () {
-  var LOCAL = 65, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
+  var LOCAL = 66, FILES = ['config.js', 'licenses.js', 'faces.js', 'core.js', 'shader.js', 'ui.js'];
   var BASES = ['https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/claude/pensive-volta-k3p8sy/jade-game/', 'https://raw.githubusercontent.com/staring9811-prog/wxb981111-163.com/main/jade-game/'];
   function bar(text, kind) { var b = document.getElementById('upd'); b.textContent = text; b.className = kind || ''; b.hidden = false; var x = document.createElement('button'); x.textContent = '知道了'; x.onclick = function () { b.hidden = true; }; b.appendChild(x); }
   function runLocal() { (function next(i) { if (i >= FILES.length) return; var s = document.createElement('script'); s.src = FILES[i]; s.onload = function () { next(i + 1); }; s.onerror = function () { bar('找不到 ' + FILES[i] + '。请确认 play.html 和它在同一个文件夹里。', 'bad'); }; document.body.appendChild(s); })(0); }
