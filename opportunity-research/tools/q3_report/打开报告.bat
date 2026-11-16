@@ -1,6 +1,18 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
+rem ---- auto update: git pull (system git, or the git bundled with GitHub Desktop) ----
+set "GITEXE="
+where git >nul 2>nul && set "GITEXE=git"
+if not defined GITEXE for /d %%D in ("%LOCALAPPDATA%\GitHubDesktop\app-*") do if exist "%%D\resources\app\git\cmd\git.exe" set "GITEXE=%%D\resources\app\git\cmd\git.exe"
+if defined GITEXE (
+  echo Checking for updates...
+  set GIT_TERMINAL_PROMPT=0
+  "%GITEXE%" pull --ff-only
+  if errorlevel 1 echo Update skipped ^(offline, not signed in, or local changes^). Opening the current version.
+) else (
+  echo Git not found, skipping auto update.
+)
 title 浴室柜报告（关掉这个窗口报告就停止）
 python -c "import pandas,numpy,openpyxl" 2>nul || (echo 首次使用，正在安装所需组件，请稍等…… & python -m pip install pandas numpy openpyxl)
 echo 正在打开报告，浏览器会自动弹出：http://127.0.0.1:8765

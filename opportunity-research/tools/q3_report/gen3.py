@@ -547,7 +547,25 @@ for c,_n,_ in CH:
             L.append([r['pid'],r['brand'],r['fam'],None,None,{k:a.get(k) or '未标' for k in ('尺寸','价格带','台面','柜体','主色','元素','形态','拆装')},[round(r['u'].get(m,0),1) for m in M10x],[0,0,0,0],1,[round(v,1) for v in _pa(r)]])
     _TDD[c]=L
 TDJS=json.dumps({'_kw':KWD,**_TDD},ensure_ascii=False,separators=(',',':'))
-XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
+# 蛋糕下钻用：每个商品的评价数（Amazon 取截至最后一个月最新一期快照的评分数；小平台取商品页评论数），与 XD 行一一对应
+_rc_amz={}
+for pid,month,rc in _db.execute("select item_id,month,ratings_count from snapshot where channel='amazon' and ratings_count is not null and month<=?",(M10x[-1],)):
+    if pid not in _rc_amz or month>_rc_amz[pid][0]: _rc_amz[pid]=(month,rc)
+_rc_small={(ch,pid):rv for ch,pid,rv in _db.execute("select channel,pid,reviews from research_product where reviews is not null")}
+XREV={c:[(_rc_amz.get(r['pid'],(0,None))[1] if c=='amazon' else _rc_small.get((c,r.get('rep') or r['pid']),_rc_small.get((c,r['pid'])))) for r in _CROSS_RECS[c]] for c,_n,_ in CH}
+# 我们的产品清单：数据目录下 our_products.csv（编号,名称,SPU,元素,形态,尺寸,台面,拆装,售价,…；属性用报告里的取值，可手工改；SPU = 同一系列不同尺寸）
+import os, csv as _csv_o
+OURS=[]
+_op=os.path.join(q3paths.DATA,'our_products.csv')
+if os.path.exists(_op):
+    for row in _csv_o.DictReader(open(_op,encoding='utf-8-sig')):
+        OURS.append({'id':row.get('编号',''),'name':row.get('名称',''),'spu':(row.get('SPU') or '').strip() or row.get('名称',''),'price':float(row['售价'].replace('$','').replace(',','').strip()) if (row.get('售价') or '').strip() else None,
+                     'at':{d:row[d].strip() for d in D8 if (row.get(d) or '').strip()},**({'margin':float(row['利润率'].replace('%','').strip())} if (row.get('利润率') or '').strip() else {})})
+# 蛋糕下钻的高级指标：品牌（各渠道）、上架月份（只有 Amazon 有上架日期）
+_lst={iid:(la or '')[:7] for iid,la in _db.execute("select item_id,listed_at from product where channel='amazon'")}
+XBRAND={c:[(r.get('brand') or '').strip() for r in _CROSS_RECS[c]] for c,_n,_ in CH}
+XLIST={c:([_lst.get(r['pid'],'') for r in _CROSS_RECS[c]] if c=='amazon' else []) for c,_n,_ in CH}
+XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'rev':XREV,'ours':OURS,'brand':XBRAND,'listed':XLIST,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
 import html as _hh, os
 _N=json.load(open('notes.json',encoding='utf-8')) if os.path.exists('notes.json') else None
 tpl=tpl.replace('<!--SIDENOTES-->',_N['side'] if _N and _N.get('side') else open(q3paths.CODE+'/default_notes.html',encoding='utf-8').read())
