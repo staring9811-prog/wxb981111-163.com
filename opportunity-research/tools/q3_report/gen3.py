@@ -553,13 +553,13 @@ for pid,month,rc in _db.execute("select item_id,month,ratings_count from snapsho
     if pid not in _rc_amz or month>_rc_amz[pid][0]: _rc_amz[pid]=(month,rc)
 _rc_small={(ch,pid):rv for ch,pid,rv in _db.execute("select channel,pid,reviews from research_product where reviews is not null")}
 XREV={c:[(_rc_amz.get(r['pid'],(0,None))[1] if c=='amazon' else _rc_small.get((c,r.get('rep') or r['pid']),_rc_small.get((c,r['pid'])))) for r in _CROSS_RECS[c]] for c,_n,_ in CH}
-# 我们的产品清单：数据目录下 our_products.csv（编号,名称,元素,形态,尺寸,台面,拆装,售价,…；属性用报告里的取值，可手工改）
+# 我们的产品清单：数据目录下 our_products.csv（编号,名称,SPU,元素,形态,尺寸,台面,拆装,售价,…；属性用报告里的取值，可手工改；SPU = 同一系列不同尺寸）
 import os, csv as _csv_o
 OURS=[]
 _op=os.path.join(q3paths.DATA,'our_products.csv')
 if os.path.exists(_op):
     for row in _csv_o.DictReader(open(_op,encoding='utf-8-sig')):
-        OURS.append({'id':row.get('编号',''),'name':row.get('名称',''),'price':float(row['售价']) if row.get('售价') else None,
+        OURS.append({'id':row.get('编号',''),'name':row.get('名称',''),'spu':(row.get('SPU') or '').strip() or row.get('名称',''),'price':float(row['售价']) if row.get('售价') else None,
                      'at':{d:row[d].strip() for d in D8 if (row.get(d) or '').strip()}})
 XJS=json.dumps({'dims':D8,'vals':XO,'data':XD,'rev':XREV,'ours':OURS,'ch':[[c,n,col] for c,n,col in CH],'months':M10x},ensure_ascii=False,separators=(',',':'))
 import html as _hh, os
