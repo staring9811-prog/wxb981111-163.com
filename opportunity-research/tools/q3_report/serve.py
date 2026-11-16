@@ -61,10 +61,10 @@ class H(BaseHTTPRequestHandler):
                 if os.path.exists(f): shutil.copyfile(f,f+'.bak')
                 dims=['元素','形态','尺寸','台面','柜体','拆装']
                 with open(f,'w',encoding='utf-8-sig',newline='') as fh:
-                    w=csv.writer(fh); w.writerow(['编号','名称','SPU']+dims+['售价','利润率'])
+                    w=csv.writer(fh); w.writerow(['编号','名称','SPU']+dims+['售价','利润率','图片'])
                     for it in items:
                         at=it.get('at') or {}
-                        w.writerow([it.get('id',''),it.get('name',''),it.get('spu','')]+[at.get(k,'') for k in dims]+['' if it.get('price') is None else it['price'],'' if it.get('margin') is None else it['margin']])
+                        w.writerow([it.get('id',''),it.get('name',''),it.get('spu','')]+[at.get(k,'') for k in dims]+['' if it.get('price') is None else it['price'],'' if it.get('margin') is None else it['margin'],it.get('img','')])
                 return self._send(200,json.dumps({'ok':True,'n':len(items)}))
             except Exception as e:
                 return self._send(500,json.dumps({'ok':False,'err':str(e)},ensure_ascii=False))

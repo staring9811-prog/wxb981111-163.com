@@ -560,7 +560,7 @@ _op=os.path.join(q3paths.DATA,'our_products.csv')
 if os.path.exists(_op):
     for row in _csv_o.DictReader(open(_op,encoding='utf-8-sig')):
         OURS.append({'id':row.get('编号',''),'name':row.get('名称',''),'spu':(row.get('SPU') or '').strip() or row.get('名称',''),'price':float(row['售价'].replace('$','').replace(',','').strip()) if (row.get('售价') or '').strip() else None,
-                     'at':{d:row[d].strip() for d in D8 if (row.get(d) or '').strip()},**({'margin':float(row['利润率'].replace('%','').strip())} if (row.get('利润率') or '').strip() else {})})
+                     'at':{d:row[d].strip() for d in D8 if (row.get(d) or '').strip()},**({'margin':float(row['利润率'].replace('%','').strip())} if (row.get('利润率') or '').strip() else {}),**({'img':row['图片'].strip()} if (row.get('图片') or '').strip() else {})})
 # 蛋糕下钻的高级指标：品牌（各渠道）、上架月份（只有 Amazon 有上架日期）
 _lst={iid:(la or '')[:7] for iid,la in _db.execute("select item_id,listed_at from product where channel='amazon'")}
 XBRAND={c:[(r.get('brand') or '').strip() for r in _CROSS_RECS[c]] for c,_n,_ in CH}
