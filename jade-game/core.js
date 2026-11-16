@@ -1379,7 +1379,7 @@ function workPlan(w, s, piece, route, masterName, theme, opts) {
   const myRings = opts && opts.tmpl && opts.tmpl.list.length && TMPL[opts.tmpl.kind] ? opts.tmpl.list.length : route === 'bracelet' && opts && opts.rings && opts.rings.length ? opts.rings.length : route === 'pendant' && opts && opts.plates && opts.plates.length ? opts.plates.length : 0;
   if (route === 'bracelet' && !ev.stats.bracelets && !myRings) { const sl = slabOf(piece); warn.push(!sl ? '手镯是从片料上压出来的。这块还是整料，师傅只会顺着三个正方向试着排，排不下不等于没有：先用大锯切出一片（两刀平行，片厚至少 10 毫米），再在片上自己画圈口。' : sl.T < 9.5 ? `这片只有 ${sl.T.toFixed(0)} 毫米厚，手镯至少要 10 毫米。` : '师傅没排出完整的手镯位（片不够大，或者被看得见的裂切断）。你可以自己在片上画圈口试试。'); }
   if (route === 'cab' && rv.n === 0) warn.push('没有够浓的色，出不了蛋面。');
-  if (ev.stats.kAvg < 0.6) warn.push(`这块料只看清了 ${Math.round(ev.stats.kAvg * 100)}%。没看清就做，师傅只能边做边猜，排料吃亏：出货大约打 ${Math.round(blindK(ev.stats.kAvg) * 100) / 10} 折，压镯子也更容易失手。先开窗、切一刀看清楚再送，或者自己放图纸。`);
+  if (ev.stats.expArea < 6 || ev.stats.kAvg < 0.35) warn.push('这块料露出来的还不多。没露出来的地方有没有裂、色走到哪，师傅和你一样看不见：他只能让开看得见的裂，里面要是藏着暗裂，做的时候才会撞上，撞上的那一件就伤了；里面干净，蒙着做也一样好。要不要先开窗、切一刀再送，你自己判断。');
   const fee = Math.round((120 + Math.max(1, rv.n) * R.fee) * M.fee * (w.staff.master ? 0.8 : 1) * (1 - 0.3 * famEff(w, 'carver')) * (skillsOf(w).layout >= 2 ? 0.9 : 1));
   const d0 = Math.max(1, M.days - (w.staff.master ? 1 : 0)), rush = clamp((opts && opts.rush) || 0, 0, Math.min(3, d0 - 1));
   return { fee: Math.round(fee * (1 + RUSH[rush])), days: d0 - rush, baseDays: d0, n: myRings || rv.n, warn, ok: !(route === 'cab' && rv.n === 0 && !myRings) && !(route === 'bracelet' && !ev.stats.bracelets && !myRings), rush };
@@ -1391,7 +1391,7 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
   const r = new Rng(seedOf(w.seed, 'work', s.seed, piece.id, route, masterName)), items = [], body = BODIES[st.body], band = HUES[st.hue].band;
   const mk = (type, name, value, lv) => { const t = clamp(lv, 0, 1); items.push({ id: w.nextId++, stone: s.id, type, name, theme: (type === 'pendant' || type === 'carve') ? theme : '', master: masterName, value: Math.max(20, Math.round(value)), w: Math.round(tp.wMean * 100) / 100, lv: Math.round(t * 100) / 100, body, band, cot: Math.round(tp.cotMean * 100) / 100, seed: r.int(1, 9999), state: 'work' }); };
   const wn = waterName(tp.wMean), lvOf = () => clamp(tp.colorFrac * 1.6 * r.range(0.3, 1.7), 0, 1);
-  const rv = routeValue(w, tp, tp.rings.length, route, masterName, theme); const bk = blindK(ev.stats.kAvg); rv.total *= bk; if (route === 'cab' && opts && opts.cabMult) rv.total *= opts.cabMult; rv.total *= (1 + 0.15 * famEff(w, 'carver')) * (skillsOf(w).layout >= 3 ? 1.06 : 1);
+  const rv = routeValue(w, tp, tp.rings.length, route, masterName, theme);  if (route === 'cab' && opts && opts.cabMult) rv.total *= opts.cabMult; rv.total *= (1 + 0.15 * famEff(w, 'carver')) * (skillsOf(w).layout >= 3 ? 1.06 : 1);
   let lost = 0;
   if (opts && opts.tmpl && opts.tmpl.list.length && TMPL[opts.tmpl.kind]) { const TM = TMPL[opts.tmpl.kind], nm = { cab: '蛋面', bead: '珠串', carve: (theme === '师傅定' ? '随形' : theme) + '雕件' }[opts.tmpl.kind];
     for (const o of opts.tmpl.list) { const ra = ringAt(s, piece, o.p || o.c, opts.tmpl.kind, o.n); if (!ra.flesh) { lost++; continue; } let v = ra.vd * TM.vol * TM.k * rv.craft * (opts.tmpl.kind === 'carve' ? rv.fit : 1) * (opts.tmpl.kind === 'cab' ? clamp(ra.col * 1.6, 0.25, 1) * (opts.cabMult || 1) : 1);
@@ -1402,13 +1402,24 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
   } else if (route === 'bracelet') {
     let ringVals = tp.rings, cracked = 0; if (opts && opts.rings && opts.rings.length) { ringVals = []; for (const o of opts.rings) { const ra = ringAt(s, piece, o.c || o); if (!ra.flesh) { cracked++; continue; } if (ra.any) { if (r.chance(o.forced ? 0.12 + 0.42 * M.dodge : 0.05 + 0.30 * M.dodge)) ringVals.push(ra.v * 0.6); else cracked++; continue; } ringVals.push(ra.v); } }   // 压到裂：师傅避裂的本事决定能不能救回来，救回来也是带纹的
     lost += cracked;
-    for (const v of ringVals) { if (r.chance(M.press + (opts && opts.rings && opts.rings.length ? 0 : (1 - bk) * 0.6))) { lost++; continue; } mk('bracelet', `${wn}手镯`, v * 1.1 * rv.craft, lvOf()); }
+    for (const v of ringVals) { if (r.chance(M.press)) { lost++; continue; } mk('bracelet', `${wn}手镯`, v * 1.1 * rv.craft, lvOf()); }
     if (tp.Vclean * 0.12 > 50) mk('pendant', '镯芯与边角小件', tp.Vclean * 0.12 * rv.craft, lvOf());
   } else {
     const n = Math.max(1, rv.n), wts = []; let sum = 0; for (let i = 0; i < n; i++) { const x = Math.exp(r.norm() * 0.45); wts.push(x); sum += x; } wts.sort((a, b) => b - a);
     const nm = { pendant: theme === '师傅定' ? '挂件' : theme, cab: '蛋面', bead: '珠串', carve: (theme === '师傅定' ? '随形' : theme) + '雕件' }[route];
     for (let i = 0; i < n; i++) mk(route, `${wn}${nm}`, rv.total * wts[i] / sum, route === 'cab' ? r.range(0.65, 1) : lvOf() * (i < n / 2 ? 1.3 : 0.7));
   }
+  // 没有“看清程度打几折”这回事。结果只看石头里真有什么：师傅排料只能让开看得见的裂；那些皮下看不见的裂，做的时候才撞上，撞上的那一件就伤了。料里没有暗裂，蒙着做也一样好
+  let hidHit = 0; { const auto = !(opts && ((opts.rings && opts.rings.length) || (opts.plates && opts.plates.length) || (opts.tmpl && opts.tmpl.list.length)));
+    if (auto) { const hidden = st.cracks.filter((c, ci) => c.open > 0.5 && !ev.known[ci]), cg = [0, 0], RAD = { ring: 34, box: 17, cab: 6, bead: 6, carve: 22 };
+      // 师傅按看得见的料排出每一件的位置；这个位置上到底有没有暗裂，查石头里的真实情况，不掷骰子
+      const crosses = sh => { if (!hidden.length) return false; const R = sh.type === 'carve' && sh.r ? Math.max(sh.r[0], sh.r[1]) * 0.8 : (RAD[sh.type] || 12), n = sh.n || [0, 1, 0], t1 = norm3(cross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), t2 = cross(n, t1);
+        for (let q = 0; q < 20; q++) { const a = q * TAU / 20, rr = sh.type === 'ring' ? R : R * (q % 2 ? 1 : 0.5), x = sh.c[0] + (t1[0] * Math.cos(a) + t2[0] * Math.sin(a)) * rr, y = sh.c[1] + (t1[1] * Math.cos(a) + t2[1] * Math.sin(a)) * rr, z = sh.c[2] + (t1[2] * Math.cos(a) + t2[2] * Math.sin(a)) * rr; for (const c of hidden) { crackG(c, x, y, z, cg); if (Math.abs(cg[0]) < 2.4 && cg[1] > 0.5) return true; } } return false; };
+      let shapes = []; try { shapes = layoutPlan(w, s, piece, route).shapes; } catch (e2) { }
+      if (route === 'bracelet') { // 镯子一只对一个位置：按看得见的排出来的圈，压在暗裂上的那几只断掉
+        const bad = shapes.filter(crosses).length, br = items.filter(it => it.type === 'bracelet'); for (let k2 = 0; k2 < Math.min(bad, br.length); k2++) { items.splice(items.indexOf(br[br.length - 1 - k2]), 1); lost++; hidHit++; } }
+      else if (shapes.length) { const frac = shapes.filter(crosses).length / shapes.length * (1 - 0.5 * M.dodge), nBad = Math.round(items.length * frac); // 其他件：排出来的位置里有几成压着暗裂，就有几成的件带伤；避裂好的师傅做的时候能救回一半
+        for (let k2 = 0; k2 < nBad; k2++) { const it = items[Math.floor((k2 + 0.5) * items.length / nBad)]; if (it) { it.value = Math.max(20, Math.round(it.value * (route === 'bead' ? 0.8 : 0.4))); hidHit++; } } } } }
   w.cash -= plan.fee; s.costs += plan.fee; piece.sold = true; piece.soldPrice = 0; piece.buyer = '送加工';
   // 做到一半会不会出状况：全看石头里看不清的那部分藏着什么。裂、色比想的好、色没吃进去
   let issue = null; { const hid = 1 - ev.stats.kAvg, cs = tp.volCrack / Math.max(1e-6, tp.volCrack + tp.volClean), ir = new Rng(seedOf(w.seed, 'issue', s.seed, piece.id, route));
@@ -1417,7 +1428,7 @@ function sendWork(w, s, piece, route, masterName, theme, opts) {
     else if (hid > 0.2 && tp.colorFrac < 0.04 && st.feats.length && route !== 'bead' && ir.chance(0.45)) issue = { type: 'gone' };
     if (issue) { issue.day = w.day + 1; issue.done = false; } }
   if (M.own) ownMaster(w).jobs++;
-  w.works.push({ id: w.nextId++, stone: s.id, from: `#${s.id} ${piece.name}`, what: `${R.name} · ${masterName}`, master: masterName, route, ready: Math.max(w.day + plan.days, issue ? w.day + 2 : 0), items, expected: plan.n, lost, issue, fee: plan.fee, baseFee: Math.round(plan.fee / (1 + RUSH[plan.rush || 0])), rush: plan.rush || 0, order: (opts && opts.order) || null }); if (masterName === '苏工玉雕师') w.flags.suJobs = (w.flags.suJobs || 0) + 1; if (opts && opts.order) for (const it of items) it.order = opts.order;
+  w.works.push({ id: w.nextId++, stone: s.id, from: `#${s.id} ${piece.name}`, what: `${R.name} · ${masterName}`, master: masterName, route, ready: Math.max(w.day + plan.days, issue ? w.day + 2 : 0), items, expected: plan.n, lost, hidHit, issue, fee: plan.fee, baseFee: Math.round(plan.fee / (1 + RUSH[plan.rush || 0])), rush: plan.rush || 0, order: (opts && opts.order) || null }); if (masterName === '苏工玉雕师') w.flags.suJobs = (w.flags.suJobs || 0) + 1; if (opts && opts.order) for (const it of items) it.order = opts.order;
   w.log.push({ day: w.day, t: `送加工 #${s.id} ${piece.name}（${R.name}，${masterName}）`, amt: -plan.fee });
   return { ok: true, fee: plan.fee, days: plan.days };
 }
@@ -1514,7 +1525,7 @@ function nextDay(w) {
   w.recv = w.recv.filter(r => { if (r.day <= w.day) { w.cash += r.amt; notes.push(`${r.from} 到账 ${fmt(r.amt)}`); return false; } return true; });
   for (const k of w.works) if (k.ready <= w.day && !(k.issue && !k.issue.done)) { for (const it of k.items) { codexAdd(w, 'item', (ROUTES[it.type] || {}).name); codexAdd(w, 'theme', it.theme); if (it.type === 'bracelet' && it.w >= 0.62) codexAdd(w, 'treasure', '冰种手镯'); if (it.w >= 0.9) codexAdd(w, 'treasure', '玻璃种成品'); if (it.type === 'cab' && it.lv > 0.6) codexAdd(w, 'treasure', '满色蛋面'); if (it.value >= 1e5) codexAdd(w, 'treasure', '十万大件'); if (it.value >= 1e6) codexAdd(w, 'treasure', '百万重器'); } if (k.items.filter(it => it.type === 'bracelet').length >= 3) codexAdd(w, 'treasure', '一料三镯'); if (k.issue && k.issue.type === 'color' && k.issue.win) codexAdd(w, 'treasure', '追色成功'); }
   w.works = w.works.filter(k => { if (k.issue && !k.issue.done) { if (w.day >= k.issue.day && !k.issue.told) { k.issue.told = true; notes.push(`${k.from}：师傅做到一半停了手，等你拿主意`); } return true; } if (k.ready > w.day) return true; { const cs = w.stones.find(x => x.id === k.stone); if (cs && cs.client) { const tot = k.items.reduce((a, it) => a + it.value, 0), e2 = getVol(cs), exp = Math.max(200, evalPiece(e2.st, bake(genStone(cs.seed, cs.origin, cs.channel, cs.gv)), WHOLE).truth * 0.45), ratio = clamp(tot / exp, 0.3, 1.8), pay = Math.round(cs.costs + cs.client.fee * ratio); w.cash += pay; cs.proceeds += pay; w.fame += ratio >= 1 ? 2 : ratio < 0.6 ? -2 : 0; if (ratio >= 1) w.fans += 200; for (const p of cs.pieces) if (!p.sold) { p.sold = true; p.soldPrice = 0; p.buyer = cs.client.who; } w.log.push({ day: w.day, t: `${cs.client.who}的代工交货（垫的工费一并结回）`, amt: pay }); notes.push(`${cs.client.who}的料做好交回去了：做出 ${k.items.length} 件，货值 ${fmt(tot)}，${ratio >= 1 ? '他很满意' : ratio < 0.6 ? '他嫌做得不值' : '他觉得还行'}，结给你 ${fmt(pay)}`); cs.client.done = true; closeStone(w, cs); return false; } }
-    for (const it of k.items) { it.state = 'ready'; w.items.push(it); if (it.type === 'bracelet') achieve(w, 'bangle', '第一只手镯'); if (it.w >= 0.62) achieve(w, 'ice', '做出冰种以上的成品'); if (it.value >= 1e5) achieve(w, 'big', '单件成品过十万'); if (it.type === 'cab' && it.lv > 0.6) achieve(w, 'cab', '一粒满色蛋面'); } notes.push(`${k.from} 做好了：${k.items.length} 件${k.lost ? `，压坏 ${k.lost} 只镯子` : ''}`); return false; });
+    for (const it of k.items) { it.state = 'ready'; w.items.push(it); if (it.type === 'bracelet') achieve(w, 'bangle', '第一只手镯'); if (it.w >= 0.62) achieve(w, 'ice', '做出冰种以上的成品'); if (it.value >= 1e5) achieve(w, 'big', '单件成品过十万'); if (it.type === 'cab' && it.lv > 0.6) achieve(w, 'cab', '一粒满色蛋面'); } notes.push(`${k.from} 做好了：${k.items.length} 件${k.lost ? `，压坏 ${k.lost} 只镯子` : ''}${k.hidHit ? `。做的时候撞上了 ${k.hidHit} 处皮下看不见的裂，那几件伤了` : ''}`); return false; });
   if ((w.staff.host || famEff(w, 'host') > 0.15) && can(w, 'live') && w.liveDay !== w.day - 1) { const d = w.day; w.day = d - 1; const lr = liveRun(w); w.day = d; if (lr.ok) notes.push(`主播替你播了一场：成交 ${lr.sold} 件 ${fmt(lr.income)}，涨粉 ${lr.gain}`); } // 昨天你没播，主播替你播
   genMarket(w); fillOrders(w); rollEvent(w); if (w.event) notes.push('行情：' + w.event.t); for (const x of w.news) notes.push(x);
   const open = w.stones.some(s => !s.closed);
