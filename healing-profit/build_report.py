@@ -98,7 +98,7 @@ def parts_amz(r, ship_key, ship_name):
             ("平台费用", r["fees"], f'佣金 {usd(r["comm"])} + 广告 {usd(r["promo"])} + 退款 {usd(r["refund"])} + 汇损 {usd(r["fx"])}')]
 
 d_mid, s1_mid, s2_mid = R[("DUAL", "mid")], R[("SAD6221-1", "mid")], R[("SAD6221-2", "mid")]
-bars = (bar("双人淋浴花洒 · Amazon FBA · 中位价", d_mid["amzPrice"], parts_amz(d_mid, "fbaShip", "FBA 配送费"), d_mid["fba"]) +
+_old_bars = (bar("双人淋浴花洒 · Amazon FBA · 中位价", d_mid["amzPrice"], parts_amz(d_mid, "fbaShip", "FBA 配送费"), d_mid["fba"]) +
         bar("SAD6221-1 单人桑拿房 · Amazon FBM · 中位价", s1_mid["amzPrice"], parts_amz(s1_mid, "fbmShip", "LTL 尾程"), s1_mid["fbm"]) +
         bar("SAD6221-2 1-2 人桑拿房 · Amazon FBM · 中位价", s2_mid["amzPrice"], parts_amz(s2_mid, "fbmShip", "LTL 尾程"), s2_mid["fbm"]))
 
@@ -260,16 +260,20 @@ s1m = R[("SAD6221-1", "mid")]["fbm"] / R[("SAD6221-1", "mid")]["amzPrice"]
 hcm = HC[("SMT-HC103", "mid")]["fbm"] / HC[("SMT-HC103", "mid")]["amzPrice"]
 s2m = R[("SAD6221-2", "mid")]["fbm"] / R[("SAD6221-2", "mid")]["amzPrice"]
 dmm = R[("DUAL", "mid")]["fba"] / R[("DUAL", "mid")]["amzPrice"]
-MX_HTML = (
+MX_SAUNA = (
   MX.render("Amazon 红外桑拿房（木质房体）：容量 × 木材", f"2026-10 · 卖家精灵 {_sn} 个子体 · 父体月销按子体平均分摊",
             _sd[0], _sd[1], _sd[2],
             {"1 人": {"cells": ["铁杉"], "price": usd(R[("SAD6221-1", "mid")]["amzPrice"]), "margin": f"SAD6221-1 {_m(s1m)}<br>SMT-HC103 {_m(hcm)}", "cls": "bad"},
              "1-2 人": {"cells": ["铁杉"], "price": usd(R[("SAD6221-2", "mid")]["amzPrice"]), "margin": f"SAD6221-2 {_m(s2m)}", "cls": _c(s2m)}},
-            mid="sauna", row_label="容量", footnote="容量、木材按标题识别，标题没写木材的归“其他 / 未注明”；已剔除帐篷 / 便携 / 蒸汽 / 桶形款。我方售价 = 1 人 / 1-2 人款 Amazon 销量加权中位价。利润率为 Amazon FBM，SMT-HC103 按包装 +10%。") +
+            mid="sauna", row_label="容量", footnote="容量、木材按标题识别，标题没写木材的归“其他 / 未注明”；已剔除帐篷 / 便携 / 蒸汽 / 桶形款。我方售价 = 1 人 / 1-2 人款 Amazon 销量加权中位价。利润率为 Amazon FBM，SMT-HC103 按包装 +10%。")
+)
+MX_DUAL = (
   MX.render("Amazon 双人淋浴花洒：可调宽度 × 材质", f"2026-10 · 卖家精灵 {_tn} 个子体（tandem / two people / couples 词组匹配）· 已剔除带阀门的淋浴系统",
             _td[0], _td[1], _td[2],
             {"61–80″": {"cells": ["ABS + 不锈钢 / 金属"], "price": usd(R[("DUAL", "mid")]["amzPrice"], 2), "margin": _m(dmm), "cls": _c(dmm)}},
-            mid="tandem", row_label="可调宽度", footnote="材质取商品详情页的 Material 字段，可调宽度取卖点里写的最大适配宽度（如 fits 48–78 inch），按父体取一个代表 ASIN 的详情（49 个父体）。我方按 OURBAOFU 同款规格（ABS 花洒头 + 304 不锈钢杆，48–78″）落点。我方售价 = 双人款 Amazon 销量加权中位价。利润率为 Amazon FBA，成本 ¥190（参考价）。") +
+            mid="tandem", row_label="可调宽度", footnote="材质取商品详情页的 Material 字段，可调宽度取卖点里写的最大适配宽度（如 fits 48–78 inch），按父体取一个代表 ASIN 的详情（49 个父体）。我方按 OURBAOFU 同款规格（ABS 花洒头 + 304 不锈钢杆，48–78″）落点。我方售价 = 双人款 Amazon 销量加权中位价。利润率为 Amazon FBA，成本 ¥190（参考价）。")
+)
+MX_THERMO = (
   MX.render("Amazon 恒温 / 侧喷淋浴系统：顶喷尺寸 × 侧喷数量", f"2026-10 · 卖家精灵 {_hn} 个子体（thermostatic / body jets 词组匹配）",
             _hd[0], _hd[1], _hd[2],
             {"≤10″": {"cells": ["无侧喷"], "price": usd(next(x for x in TH if x["sku"]=="FFS223" and x["tier"]=="mid")["amzPrice"]), "margin": f"FFS223 {_m(_t('FFS223','mid','fba'))}", "cls": _c(_t('FFS223','mid','fba'))},
@@ -301,6 +305,11 @@ P = calc["params"]
 s1 = S[("SAD6221-1", "mid")]; s1h = S[("SAD6221-1", "high")]
 dm = S[("DUAL", "mid")]; dl = S[("DUAL", "low")]
 
+d_l, d_m, d_h = R[("DUAL", "low")], R[("DUAL", "mid")], R[("DUAL", "high")]
+d_mm, d_hm = d_m["fba"] / d_m["amzPrice"], d_h["fba"] / d_h["amzPrice"]
+s1_h = R[("SAD6221-1", "high")]; hc_h = HC[("SMT-HC103", "high")]
+BAR_DUAL = '<div class="bars">' + bar(f"双人淋浴花洒 · Amazon FBA · 按中位价", d_m["amzPrice"], parts_amz(d_m, "fbaShip", "FBA 配送费"), d_m["fba"]) + '</div>'
+BAR_SAUNA = '<div class="bars">' + bar("珠三角 SAD6221-1 · ¥6,270", s1_h["amzPrice"], parts_amz(s1_h, "fbmShip", "卡车尾程"), s1_h["fbm"]) + bar("合肥 SMT-HC103 · ¥3,842（包装 +10%）", hc_h["amzPrice"], parts_amz(hc_h, "fbmShip", "卡车尾程"), hc_h["fbm"]) + '</div>'
 page = f"""<title>疗愈品类利润摸底</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -312,7 +321,7 @@ page = f"""<title>疗愈品类利润摸底</title>
   --good:#1d7a3e; --good-bg:#e2f3e7; --warn:#8a5a00; --warn-bg:#fbf0d6; --bad:#b3261e; --bad-bg:#fbe5e3; --na:#7b8580; --na-bg:#eef1ef;
   --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
   --g0:#e1f3ee; --g1:#fbe4ee; --heat:#3aa57f; --mine-bg:#fff4c7; --box:#e8a10a;
-  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; --f-num:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
 }}
 @media (prefers-color-scheme: dark){{:root:not([data-theme="light"]){{
   --bg:#121614; --panel:#1a201d; --fg:#e7ece9; --muted:#9aa7a1; --line:#2c3531; --accent:#6cc2b1; --accent-soft:#1f2f2b;
@@ -379,8 +388,8 @@ tbody th{{font-weight:500}}
 .lg{{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--muted)}}
 .lg li{{display:flex;gap:5px;align-items:center}} .lg b{{color:var(--fg);font-weight:600;font-family:var(--f-num)}} .lg em{{font-style:normal;display:none}}
 .sw{{width:10px;height:10px;border-radius:2px;display:inline-block}}
-.callout{{border-left:4px solid var(--bad);background:var(--bad-bg);border-radius:0 8px 8px 0;padding:12px 16px;display:grid;gap:6px;font-size:14px}}
-.callout.g{{border-color:var(--good);background:var(--good-bg)}}
+.callout{{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:12px 16px;display:grid;gap:6px;font-size:14px}}
+
 .rules{{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;font-size:13.5px}}
 .rules div{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}}
 .rules ul{{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}}
@@ -391,196 +400,181 @@ details{{background:var(--panel);border:1px solid var(--line);border-radius:10px
 table.mtg td,table.mtg th{{white-space:normal;vertical-align:top;min-width:160px}}
 table.mtg tbody th{{white-space:nowrap}}
 </style>
-
+<style>
+.concl th,.concl td{{white-space:normal;vertical-align:top}}
+.concl td:nth-child(2){{white-space:nowrap;font-weight:600}}
+.concl .go{{color:var(--good)}} .concl .hold{{color:var(--warn)}} .concl .stop{{color:var(--bad)}}
+.plain{{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14.5px}}
+.lead{{font-size:15px;max-width:72ch}}
+h2{{border-bottom:1px solid var(--line)!important;padding-bottom:6px}}
+h3{{margin-top:6px}}
+</style>
 <div class="wrap">
 <header style="display:grid;gap:8px">
-  <p class="sub">疗愈项目 · 拓展品类利润摸底 · 2026-11-16 · 测算规则：利润测算台 v1.14 默认参数 · 价带口径：Amazon 同细分按销量加权的 25 / 50 / 75 分位</p>
-  <h1>双人淋浴花洒 & 红外单人桑拿房：市场与利润摸底</h1>
-  <div class="ver"><span class="vtag">{VERSION}</span><span>更新于 {BUILD_TIME}（北京时间）· 本页链接始终是最新版，打开着的页面会自动刷新</span>
+  <h1>疗愈拓展品类利润摸底</h1>
+  <p class="lead">这次要定的是三条线怎么推进：双人淋浴花洒、恒温花洒系统、单人光波房（红外桑拿房）。售价看 Amazon 同类产品的实际成交分布，成本用采购报价，费用按利润测算台 v1.14 的默认参数算。</p>
+  <div class="ver"><span class="vtag">{VERSION}</span><span>更新于 {BUILD_TIME}（北京时间）。这个链接始终是最新版。</span>
     <details><summary>更新记录</summary><ul>{CHANGELOG_HTML}</ul></details></div>
-  <p class="sub">Amazon 售价按卖家精灵 2026-10 子体月销加权取 25 / 50 / 75 分位作为低 / 中 / 高价带；Home Depot、Lowe's、Wayfair 没有逐条销量，用 2026-11-13 搜索页标价作参考。成本为采购报价（桑拿、恒温系统，人民币含税）与品类筛选表里的参考价（双人花洒 ¥190）。</p>
 </header>
 
-<section aria-label="结论">
-  <div class="verdict">
-    <div class="vc ok"><h3>双人淋浴花洒：能做，但中位价利润薄</h3>
-      <div class="big">{dm['amzFBA']['margin']*100:.0f}% <span class="sub">Amazon FBA 按市场中位价 {usd(dm['amzFBA']['price'],2)}，单件 {usd(dm['amzFBA']['profit'])}</span></div>
-      <ul><li>按销量加权：25 分位 {usd(dl['amzFBA']['price'],2)} 只剩 {dl['amzFBA']['margin']*100:.0f}%；75 分位 {usd(S[('DUAL','high')]['amzFBA']['price'],2)} 有 {S[('DUAL','high')]['amzFBA']['margin']*100:.0f}%</li>
-      <li>中位价下要做到 15%，采购价上限 ¥{S[('DUAL','mid')]['amzFBM']['maxCostRMB']}；现用 ¥190 是筛选表里的参考价，余量很小，必须拿正式报价</li>
-      <li>市场两头大、中间小：低价带（&lt; $87）占月销 42%，高价带（≥ $127）占 40%，中间只有 18%。我们对标的 OURBAOFU 规格卖 $140–190，属于高价带；要在那一档拿到 38% 左右，靠不锈钢、带手持、三头等配置</li></ul></div>
-    <div class="vc ok"><h3>恒温系统：FFS223 能做，其他要谈价</h3>
-      <div class="big">{_fba('FFS223','mid')*100:.0f}% <span class="sub">FFS223 按无侧喷恒温款中位价 {usd(next(x for x in TH if x['sku']=='FFS223' and x['tier']=='mid')['amzPrice'],2)}</span></div>
-      <ul><li>F00F40 按 2–4 侧喷中位价 $400 为 {_fba('F00F40','mid')*100:.0f}%（该细分月销仅 49 件，参考性弱）</li>
-      <li>F00F41 / F00F42 按 6 侧喷+ 中位价 $630 只有 {_fba('F00F41','mid')*100:.0f}% / {_fba('F00F42','mid')*100:.0f}%，含税要谈到约 ¥{_maxrmb_th('F00F42','mid'):,.0f}</li>
-      <li>包装尺寸、毛重为估算；cUPC 认证约 ¥10 万+ 未计入</li></ul></div>
-    <div class="vc no"><h3>红外单人桑拿房：按现报价全亏</h3>
-      <div class="big">{usd(s1['amzFBM']['breakeven'])} <span class="sub">SAD6221-1 在 Amazon 的保本价；1 人款销量加权 75 分位只有 {usd(R[('SAD6221-1','high')]['amzPrice'])}</span></div>
-      <ul><li>1 人款按销量加权：25 分位 {usd(R[('SAD6221-1','low')]['amzPrice'])}、中位 {usd(R[('SAD6221-1','mid')]['amzPrice'])}、75 分位 {usd(R[('SAD6221-1','high')]['amzPrice'])}；8/6 定的试水价 $1,000–1,500 落在市场上沿</li>
-      <li>SAD6221-1 采购 + 海运 + LTL 已经 $1,323，超过 75 分位售价</li>
-      <li>合肥便宜款 SMT-HC103 保本价约 {usd(HC_BE)}，也高于 75 分位；在 75 分位做到 15% 需含税 ≤ ¥{HC_MAX_H:,.0f}，靠谈价不现实</li>
-      <li>必须同时改物流：Amazon 主流 1 人款高约 1.35 米，我们 1.9–2.1 米、110–220kg</li></ul></div>
-  </div>
-</section>
-
-<section aria-labelledby="m">
-  <h2 id="m">一、市场情况</h2>
-  <div class="mkt">
-    <article><h3>五金花洒 / 双人淋浴</h3>
-      <dl class="kv">
-        <dt>市场规模</dt><dd>美国花洒市场 $20 亿（2024），CAGR 7.1%；手持款增速最快 7.8%，线上渠道 CAGR 8.0%</dd>
-        <dt>大盘</dt><dd>Showerheads & Systems CAGR 6.54%，高于卫浴五金整体 5.17%</dd>
-        <dt>搜索</dt><dd>rain shower head 9.3 万/月；双人细分 tandem 1.47 万 + dual for two 0.6 万 + couples 0.22 万，2022 年几乎为零，2026 比 2025 +11%</dd>
-        <dt>竞争</dt><dd>首页无大牌垄断，以中国卖家为主；双人款只有 BOONA（Shark Tank）形成品牌</dd>
-        <dt>认证</dt><dd>CEC、无铅</dd>
-      </dl>
-      <p class="decision">选品结论：第一优先级。体量大、利润可观，用来打开五金市场。</p></article>
-    <article><h3>红外桑拿房</h3>
-      <dl class="kv">
-        <dt>市场规模</dt><dd>美国桑拿市场 $2.06 亿（2025），CAGR 5.4%；红外增速最快约 7.5%；家用约 $1.22 亿（估算）</dd>
-        <dt>搜索</dt><dd>home sauna 5.6 万/月、indoor sauna 1.9 万；Google Trends 近 12 个月 infrared sauna +140%、indoor sauna +110%</dd>
-        <dt>热度</dt><dd>Reddit 讨论热度 16,621，是五金（1,853）的 9 倍；DTC 销量约 4.9 万件，大概率大于渠道</dd>
-        <dt>渠道</dt><dd>Amazon 82% SKU 是织物便携款（中位价 $150）；Wayfair / HD / Lowe's 以木质房体为主，中位价 $3,300 / $2,570 / $1,999</dd>
-        <dt>Amazon 销售</dt><dd>年销售额 $175 万–933 万，2025 年比 2024 年 +33%；木质款月销 Amazon 约 1,200 台、HD 370、Lowe's 340、Wayfair 135；1–2 人款卖得最好，九成为红外（8/6 会议）</dd>
-        <dt>认证</dt><dd>整机 ETL，须以我方电商主体申请</dd>
-      </dl>
-      <p class="decision">选品结论：第二优先级，增长期先发、绝对利润额高；便携式桑拿不做。</p></article>
-  </div>
-  <p class="note">来源：Grand View Research、Mordor Intelligence、卖家精灵关键词与类目数据、Google Trends（2026-08-04 采集）、桑拿四渠道属性分布报告、Reddit 讨论分析。</p>
-</section>
-
-<section aria-labelledby="mx">
-  <h2 id="mx">市场布局：我们落在哪一格</h2>
-  <p class="sub">一行一个尺寸 / 价格带，一组列一个材质 / 配置。看哪里卖得多（月销）、哪里挤（ASIN 数）、哪里单链接效率高（单 ASIN 月销，底色越深越好）、哪里口碑差（评分 &lt; 4.0 标红），以及我们的产品落在哪一格、按这个价能不能赚钱。</p>
-  {MX_HTML}
-  <script type="application/json" id="mxdata">{MX_DATA}</script>
-  {MX.MX_JS}
-  <div class="rules">
-    <div><b>桑拿房</b><ul>
-      <li>1 人 × 铁杉：月销 380、41 个 ASIN，单链接 9.3 台，均价 $1,203。1 人款整体销量加权中位价只有 {usd(R[('SAD6221-1','mid')]['amzPrice'])}，我们两款按这个价都亏（{_m(s1m)} / {_m(hcm)}）。</li>
-      <li>单链接效率最高的是 1-2 人“其他 / 未注明”格（26.5 台），其次 4 人+（18.8 台）但评分只有 3.76。</li>
-      <li>铁杉占木质房月销 30%，雪松只有 2%，雪松款在 Amazon 卖不动。</li></ul></div>
-    <div><b>双人淋浴花洒</b><ul>
-      <li>量最大的一格是 81″+ × 不锈钢：月销 1,359、23 个 ASIN，但加权均价只有 $84，是低价走量带。</li>
-      <li>我们按规格落在 61–80″ × ABS + 不锈钢：月销 527、12 个 ASIN、该格均价 $141、评分 4.45。整个双人款销量加权中位价是 {usd(R[('DUAL','mid')]['amzPrice'],2)}，按这个价利润率 {_m(dmm)}；想卖到该格均价 $141 附近，配置要对齐 OURBAOFU / KES 这一档。旁边 61–80″ × 纯不锈钢均价 $222、评分 4.63，是往上走的方向。</li>
-      <li>纯 ABS 款很少（合计月销约 130），评分偏低（3.95）；“金属 / 黄铜”61–80″ 一格评分 3.96，有口碑缺口。</li></ul></div>
-    <div><b>恒温 / 侧喷系统</b><ul>
-      <li>最大的一格是 ≤10″ × 无侧喷：月销 2,727，单链接 105，均价 $233。无侧喷恒温款销量加权中位价 $250，FFS223 按这个价有 {_m(_fba('FFS223','mid'))}。</li>
-      <li>16″ × 6 侧喷：月销 228、30 个 ASIN、均价 $540。6 侧喷+ 恒温款中位价 $630，F00F41 / F42 按这个价只有 {_m(_fba('F00F41','mid'))} / {_m(_fba('F00F42','mid'))}。</li>
-      <li>有侧喷的系统合计只占月销约 34%，大头仍是不带侧喷的恒温款。</li></ul></div>
-  </div>
-</section>
-
-<section aria-labelledby="mt">
-  <h2 id="mt">项目脉络：四次会议的结论</h2>
-  <div class="tw"><table class="mtg"><thead><tr><th>会议</th><th>结论</th><th>对本报告的影响</th></tr></thead><tbody>
-    <tr><th scope="row">6/25 Wellness 开品方向</th><td>核心人群三类：仪式疗愈型（占比最大）、变美型（约 35%）、压力管理 / 健康投资型（约 10%）；Home Spa 最重要的场景是淋浴和泡澡，水和光是载体；思路是从人群找痛点再开品，把高端品平民化</td><td>两个品类都落在“水 + 光”：花洒走水，红外桑拿走光（近红外抗炎修护）</td></tr>
-    <tr><th scope="row">7/17 品类筛选规则</th><td>弃用漏斗穷举，改为积分卡加权（市场体量、进入难度、竞争、场景延展性）；范围从“浴室”扩到全 Home Wellness；不做单价低于 $30 的小件；收敛到 1–3 个方向</td><td>两个品类都远高于 $30，符合规则</td></tr>
-    <tr><th scope="row">8/6 桑拿 vs 五金二选一</th><td>马桶（头部垄断）、浴缸（搜索仅 5–6 千且增长慢）、非木质便携桑拿排除；用体量、头部垄断、评分、粗略利润、品牌锚点价值 5 个维度二选一；桑拿试水款定为 1–2 人 / 2–3 人预组装红外房，Amazon 定价 $1,000–1,500，同价差异化可做波纹灯效、冥想 / 海浪音疗、香氛模块</td><td>本报告补上“粗略利润”这一维：花洒能赚；桑拿在 $1,000–1,500 这个试水价带按任何现有报价都亏</td></tr>
-    <tr><th scope="row">10/10 光波房与花洒调研</th><td>桑拿：珠三角单人房含税 ¥6,000–7,000、无起订量、质保 5–6 年；皖徐不含税 ¥3,400–4,000、整柜起订、质保短；Amazon 主流款高约 1.35 米以省尾程，我方报价都是 1.9–2.1 米；木箱 + 托盘包装；整机 ETL 须以我方电商主体申请。花洒：北美需 cUPC 等认证，单品类首次约 ¥10 万+；铜价高涨，行业转向不锈钢（比铜主体低约 ¥40）；前期选工厂现有带认证款，用竞品链接反查供应商</td><td>桑拿报价 ¥6,270 就是珠三角价位；合肥便宜款 SMT-HC103 实报价测算见下文。220kg 重量来自木箱托盘包装，高度和包装是物流费的关键。双人花洒中高价带的主流是不锈钢滑杆</td></tr>
+<section aria-labelledby="c1">
+  <h2 id="c1">一、结论和需要拍板的事</h2>
+  <div class="tw"><table class="concl"><thead><tr><th>产品线</th><th>建议</th><th>依据（Amazon，按销量加权的价位）</th><th>下一步</th></tr></thead><tbody>
+    <tr><th scope="row">双人淋浴花洒</th><td class="go">做，走高配</td>
+      <td>市场两头大、中间小：低于 $87 的占月销 42%，高于 $127 的占 40%。按中位价 {usd(d_m['amzPrice'],2)} 卖只有 {_m(d_mm)}；按高位价 {usd(d_h['amzPrice'],2)} 卖有 {_m(d_hm)}。我们对标的 OURBAOFU 卖 $140–190，属于高价带。</td>
+      <td>按不锈钢杆 + 手持 / 三头规格，用竞品链接反查供应商，拿正式报价和样品</td></tr>
+    <tr><th scope="row">恒温花洒 FFS223</th><td class="go">做</td>
+      <td>同类（无侧喷恒温款）中位价 $250 时 {_m(_fba('FFS223','mid'))}，$360 时 {_m(_fba('FFS223','high'))}</td>
+      <td>拿实测箱规、毛重，确认报价是否含税</td></tr>
+    <tr><th scope="row">恒温花洒 F00F40</th><td class="hold">先确认定位</td>
+      <td>同类（2–4 侧喷）中位价 $400 时 {_m(_fba('F00F40','mid'))}；但这类产品 Amazon 每月只卖 49 件，价格参考性弱</td>
+      <td>确认它到底对标哪类产品，再决定</td></tr>
+    <tr><th scope="row">恒温花洒 F00F41 / F00F42</th><td class="hold">谈价后再定，只留 F00F42</td>
+      <td>同类（6 侧喷及以上）中位价 $630 时只有 {_m(_fba('F00F41','mid'))} / {_m(_fba('F00F42','mid'))}。F00F42 比 F00F41 便宜 ¥200，还多一路功能</td>
+      <td>F00F42 含税谈到约 ¥{round(_maxrmb_th('F00F42','mid')/50)*50:,.0f}</td></tr>
+    <tr><th scope="row">单人光波房</th><td class="stop">暂不下单</td>
+      <td>Amazon 单人款主要卖 $800–1,300。按 $1,300 算，珠三角报价亏 {_m(-s1_h['fbm']/s1_h['amzPrice'])}，合肥报价亏 {_m(-hc_h['fbm']/hc_h['amzPrice'])}。海运 + 尾程 + 平台费用就占了售价约 74%，问题在物流和渠道，不只是采购价。Lowe's 自发货按 $2,089 算，合肥款能赚 {_m(hc_h['plat']['lowesSC']['margin'])}</td>
+      <td>让合肥厂报 1.35 米矮款 + 纸箱减重方案；按 Lowe's / Home Depot 价格重算</td></tr>
   </tbody></table></div>
-  <p class="note">来源：飞书智能纪要 2026-06-25、07-17、08-06、10-10（AI 生成纪要，个别数字以原始录音为准）。</p>
+  <div class="two">
+    <div><h3>需要老板拍板</h3><ol class="plain">
+      <li>双人花洒按高配推进，FFS223 同步推进，拿报价和样品</li>
+      <li>光波房暂不下单，给两周拿矮款和减重包装方案，下次会上定做不做；渠道以 Lowe's / Home Depot 为主</li>
+      <li>认证预算：花洒 cUPC 首次约 ¥10 万以上，光波房整机 ETL，都要用我们自己的公司主体申请</li>
+      <li>F00F41 / F00F42 只留 F00F42，按约 ¥{round(_maxrmb_th('F00F42','mid')/50)*50:,.0f} 去谈</li></ol></div>
+    <div><h3>两周内要做的</h3><div class="tw"><table><thead><tr><th>谁</th><th>做什么</th></tr></thead><tbody>
+      <tr><td>采购</td><td style="white-space:normal">双人花洒高配款：反查供应商，拿报价、样品、实测箱规</td></tr>
+      <tr><td>采购</td><td style="white-space:normal">FFS223、F00F42：实测箱规和毛重，报价是否含税</td></tr>
+      <tr><td>采购</td><td style="white-space:normal">合肥厂：1.35 米矮款、碳晶板配置、纸箱减重方案，跌落测试结果，一柜装多少台</td></tr>
+      <tr><td>合规</td><td style="white-space:normal">工厂现有认证能不能转到我们主体，不能的话费用和周期</td></tr>
+      <tr><td>数据</td><td style="white-space:normal">拿到新报价后重算；光波房交叉表改用详情页材质</td></tr></tbody></table></div></div>
+  </div>
 </section>
 
-<section aria-labelledby="d">
-  <h2 id="d">二、双人淋浴花洒</h2>
-  <h3>各价带典型产品与功能差异（Amazon，按销量加权分位划带）</h3>
+<section aria-labelledby="c2">
+  <h2 id="c2">二、前面四次会议定了什么</h2>
+  <div class="tw"><table class="mtg"><thead><tr><th>会议</th><th>定了什么</th><th>这次的对应</th></tr></thead><tbody>
+    <tr><th scope="row">6/25 开品方向</th><td>从人群出发：仪式疗愈型最多，变美型约 35%，健康投资型约 10%。淋浴和泡澡是最重要的场景，水和光是载体</td><td>花洒走水，光波房走光，都在这个方向里</td></tr>
+    <tr><th scope="row">7/17 筛选规则</th><td>用积分卡（体量、进入难度、竞争、场景延展），不做 30 美元以下的小件，收敛到 1–3 个方向</td><td>三条线都远高于 30 美元</td></tr>
+    <tr><th scope="row">8/6 二选一</th><td>排除马桶、浴缸、便携桑拿。用体量、头部垄断、评分、粗略利润、品牌锚点五个维度在光波房和花洒里选。光波房试水价定在 Amazon $1,000–1,500</td><td>这次补上“粗略利润”：花洒能赚，光波房在 $1,000–1,500 按现有报价做不出利润</td></tr>
+    <tr><th scope="row">10/10 供应链调研</th><td>光波房：珠三角单人房含税 ¥6,000–7,000，皖徐不含税 ¥3,400–4,000；Amazon 主流款高约 1.35 米。花洒：cUPC 首次约 ¥10 万+，Amazon 要求认证主体和店铺一致；行业转向不锈钢；先用竞品链接反查供应商、先选工厂现有带认证的款</td><td>两家光波房报价分别对应这两档价位；花洒的推进方式照会上定的走</td></tr>
+  </tbody></table></div>
+  <p class="note">来源：飞书智能纪要（AI 生成，个别数字以原始录音为准）。</p>
+</section>
+
+<section aria-labelledby="c3">
+  <h2 id="c3">三、市场概况</h2>
+  <div class="mkt">
+    <article><h3>花洒</h3>
+      <dl class="kv">
+        <dt>规模</dt><dd>美国花洒市场 $20 亿（2024），年增 7.1%；手持款增长最快（7.8%），线上渠道年增 8.0%</dd>
+        <dt>搜索</dt><dd>rain shower head 每月 9.3 万；双人相关词（tandem、dual for two、couples）合计约 2.3 万，2022 年前几乎没有，今年比去年 +11%</dd>
+        <dt>竞争</dt><dd>没有大牌垄断，以中国卖家为主；双人款只有 BOONA 做成了品牌</dd>
+      </dl></article>
+    <article><h3>光波房（红外桑拿房）</h3>
+      <dl class="kv">
+        <dt>规模</dt><dd>美国桑拿市场 $2.06 亿（2025），年增 5.4%；红外类增长最快，约 7.5%</dd>
+        <dt>搜索</dt><dd>home sauna 每月 5.6 万；近 12 个月 infrared sauna 搜索热度 +140%</dd>
+        <dt>热度</dt><dd>Reddit 讨论量是花洒的 9 倍，更适合做品牌锚点</dd>
+        <dt>渠道</dt><dd>Amazon 上 82% 是便携帐篷款；木质房主要在 Wayfair、Home Depot、Lowe's，中位价 $3,300 / $2,570 / $1,999</dd>
+      </dl></article>
+  </div>
+  <p class="note">来源：Grand View Research、Mordor Intelligence、卖家精灵、Google Trends、四渠道桑拿属性报告、Reddit 讨论分析。</p>
+</section>
+
+<section aria-labelledby="c4">
+  <h2 id="c4">四、双人淋浴花洒</h2>
+  <h3>市场格局：按可调宽度和材质</h3>
+  {MX_DUAL}
+  <h3>每个价位卖的是什么</h3>
+  <p class="sub">按 Amazon 销量加权，把价格分成低 / 中 / 高三段，每段列卖得最好的产品，以及这一段里常见的配置（百分比是该配置占这一段月销的比例）。</p>
   {DUAL_TIER_HTML}
-  <p class="note">Home Depot、Wayfair 搜 “dual shower head” 主要是固定头 + 手持二合一款（Moen、Delta、Kohler，$40–140），不是双人款；真正的双人款在这两个渠道只有 KES、SR SUN RISE 等少数几款。</p>
-  <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>供应端（10/10 会议）</b>
-    <span>产业带：广东开平水口供应链最全、成本中等；厦门偏高端、成本最高；浙江以 ABS 塑料为主、成本最低。材质：铜价上涨，行业转向不锈钢主体（比铜主体每件低约 ¥40）；锌包塑水路寿命风险高，不用。</span>
-    <span>认证：北美需 cUPC 等认证，单品类首次约 ¥10 万+；Amazon 要求认证主体与店铺主体一致。会上定的“先用工厂现有带认证款”要先确认认证能否转到我方主体，否则这 ¥10 万+ 要摊进首批成本。</span>
-    <span>会上的选型方向是带顶喷、腰喷、雨淋、恒温的疗愈类花洒，对应采购已报价的 4 款，测算见第三部分。</span></div>
-  <h3>利润测算（成本 ¥190）</h3>
-  <div class="two">{price_grid("DUAL")}<div class="callout g"><b>成本构成</b><span>采购 ¥190（品类筛选表里的参考价，未经 1688 核实，按未税价）= $27.94；海运 $4.03；FBA 配送 $12.04（小号大件，旺季费率）；平台费用占售价 34%（佣金 15% + 广告 10% + 退款 8% + 汇损 1%）。</span><span>包装按 70×22×12cm、4kg 估算，待采购给实测尺寸。</span></div></div>
+  <h3>利润</h3>
+  <div class="two">{price_grid("DUAL")}<div class="callout"><b>成本怎么算的</b><span>采购 ¥190（品类筛选表里的参考价，还没拿到正式报价），约 $27.94；海运 $4.03；FBA 配送 $12.04（包装按 70×22×12cm、4kg 估算）；平台费用占售价 34%（佣金 15%、广告 10%、退款 8%、汇损 1%）。</span></div></div>
   {profit_table("DUAL", CH)}
+  {BAR_DUAL}
+  <ul class="plain">
+    <li>中位价 {usd(d_m['amzPrice'],2)} 时要赚 15%，采购价最多 ¥{S[('DUAL','mid')]['amzFBM']['maxCostRMB']}。现在用的 ¥190 余量很小，正式报价一定要压在这以内。</li>
+    <li>高价带（≥ $127）占月销 40%，以 BOONA、OURBAOFU、JFJIARUI 为主，多是不锈钢杆、双头或带手持。我们按这一档的配置做，才有 35% 以上。</li>
+    <li>Home Depot、Wayfair、Lowe's 上真正的双人款很少，价格只作参考。</li></ul>
 </section>
 
-<section aria-labelledby="t">
-  <h2 id="t">三、恒温顶喷 / 侧喷花洒系统（采购已报价 4 款）</h2>
-  <p class="sub">10/10 会议定的疗愈花洒选型方向：带顶喷、腰喷（侧喷）、雨淋、恒温。采购报价：F00F40 ¥1,289、F00F41 ¥2,800、F00F42 ¥2,600、FFS223 ¥640（按含税价处理）。包装尺寸和毛重为估算（参照 Amazon 同类 13–47 lb），待采购给实测值。</p>
-  <h3>无侧喷恒温款：各价带典型产品（对标 FFS223）</h3>
+<section aria-labelledby="c5">
+  <h2 id="c5">五、恒温花洒系统（采购已报价的 4 款）</h2>
+  <p class="lead">采购报价：FFS223 ¥640、F00F40 ¥1,289、F00F42 ¥2,600、F00F41 ¥2,800（按含税处理）。包装尺寸和毛重是估算的，等采购给实测数据。</p>
+  <h3>市场格局：按顶喷尺寸和侧喷数量</h3>
+  {MX_THERMO}
+  <h3>每个价位卖的是什么</h3>
+  <p class="sub">无侧喷恒温款（对标 FFS223）</p>
   {TH0_TIER_HTML}
-  <h3>6 侧喷及以上恒温款：各价带典型产品（对标 F00F41 / F00F42）</h3>
+  <p class="sub">6 个及以上侧喷的恒温款（对标 F00F41 / F00F42）</p>
   {TH6_TIER_HTML}
-  <p class="note">F00F40（4 侧喷）对应的 2–4 侧喷恒温款在 Amazon 月销只有 49 件、9 个 ASIN，不单独列价带卡；测算用该细分的销量加权分位 $270 / $400 / $665，参考性弱。</p>
-  <h3>利润测算总览</h3>
+  <p class="note">F00F40 对应的 2–4 侧喷恒温款，Amazon 每月只卖 49 件、9 个链接，不单独列。</p>
+  <h3>利润</h3>
   {th_summary()}
-  <p class="note">Amazon 低 / 中 / 高 = 对应细分恒温款的销量加权 25 / 50 / 75 分位：FFS223 用无侧喷，F00F40 用 2–4 侧喷，F00F41 / F42 用 6 侧喷及以上。其他渠道为搜索页标价参考。</p>
-  <div class="two">
-    <div class="callout g"><b>能做：FFS223</b><span>报价 ¥640（约 $83）。无侧喷恒温款中位价 $250 时 Amazon {_m(_fba('FFS223','mid'))}，75 分位 $360 时 {_m(_fba('FFS223','high'))}；25 分位 $180 只有 {_m(_fba('FFS223','low'))}，不要打低价。</span>
-      <span>F00F40：中位价 $400 时 {_m(_fba('F00F40','mid'))}，勉强过线；但 2–4 侧喷这个细分在 Amazon 几乎没有量，价格参考性弱，上之前要先确认它到底对标哪类产品。</span></div>
-    <div class="callout"><b>要谈价：F00F41、F00F42</b><span>¥2,600–2,800（约 $338–364）。6 侧喷+ 恒温款中位价 $630 时只有 {_m(_fba('F00F41','mid'))} / {_m(_fba('F00F42','mid'))}，75 分位 $790 也只有 {_m(_fba('F00F41','high'))} / {_m(_fba('F00F42','high'))}。F00F42 比 F00F41 便宜 ¥200 且多一路功能，二选一选 F00F42。按中位价 $630 做到 15%，含税报价需降到约 ¥{_maxrmb_th('F00F42','mid'):,.0f}。</span></div>
-  </div>
-  <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>10/10 会议提醒</b><span>恒温、复杂水流款在北美售后风险高、普及度还不高；美国主流是带防烫的压力平衡阀。认证需 cUPC 等，单品类首次约 ¥10 万+，Amazon 要求认证主体与店铺一致。这些费用和退货率（测算按 8%）是这条线的主要风险。</span></div>
-  {"".join(f"<details><summary>{s['id']} 分渠道明细</summary>{th_detail(s['id'])}</details>" for s in TS)}
+  <p class="note">Amazon 低 / 中 / 高 = 同类恒温款按销量加权的 25 / 50 / 75 分位。其他渠道是搜索页标价，只作参考。</p>
+  <ul class="plain">
+    <li>FFS223：卖到同类中位价 $250 有 {_m(_fba('FFS223','mid'))}，卖到 $360 有 {_m(_fba('FFS223','high'))}。$180 以下就只剩个位数，不打低价。</li>
+    <li>F00F40：中位价时 {_m(_fba('F00F40','mid'))}，勉强过线，但同类几乎没有量，要先想清楚卖给谁。</li>
+    <li>F00F41 / F00F42：中位价 $630 时 {_m(_fba('F00F41','mid'))} / {_m(_fba('F00F42','mid'))}，卖到 $790 也只有 {_m(_fba('F00F41','high'))} / {_m(_fba('F00F42','high'))}。只留 F00F42，含税谈到约 ¥{round(_maxrmb_th('F00F42','mid')/50)*50:,.0f}。</li>
+    <li>风险：恒温和复杂水路的售后风险高（10/10 会上提过）；cUPC 认证约 ¥10 万以上，还没算进单件成本。</li></ul>
+  {"".join(f"<details><summary>{s['id']} 各渠道明细</summary>{th_detail(s['id'])}</details>" for s in TS)}
 </section>
 
-<section aria-labelledby="s">
-  <h2 id="s">四、红外单人桑拿房</h2>
-  <h3>各价带典型产品与功能差异（Amazon 1 人款，按销量加权分位划带）</h3>
+<section aria-labelledby="c6">
+  <h2 id="c6">六、单人光波房（红外桑拿房）</h2>
+  <h3>市场格局：按人数和木材</h3>
+  {MX_SAUNA}
+  <h3>每个价位卖的是什么（Amazon 单人款）</h3>
   {SAUNA_TIER_HTML}
-  <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>我方两款对标</b>
-    <span>SAD6221-1（800×900×2100，1 人）/ SAD6221-2（900×1200×2100，1-2 人）：加拿大铁杉、远红外云母加热板、8mm 透明钢化玻璃、高密度负离子、LED 阅读灯、机械控制面板。</span>
-    <span>材质和玻璃是中高配，但控制面板、灯光、娱乐配置只到低价带（无蓝牙、无 7 色光、无红光、无 App），2.1 米高、220kg 重于同类。</span></div>
-  <h3>SAD6221-1 单人款（铁杉 ¥6,270）</h3>
-  <div class="two">{price_grid("SAD6221-1")}<div class="callout"><b>为什么亏</b><span>采购 $816 = ¥6,270 ÷ 1.13 ÷ 6.8；海运 $165（0.757m³）；最大一箱 145kg 超出快递上限，只能走 LTL，按 220kg 估算 $342。三项合计 $1,323，平台费用再占售价 34%。</span></div></div>
-  {profit_table("SAD6221-1", [CH[1], CH[0]] + CH[2:])}
-  <h3>SAD6221-2 1-2 人款（铁杉 ¥8,618）</h3>
-  <div class="two">{price_grid("SAD6221-2")}<div class="callout"><b>为什么亏</b><span>采购 $1,122；海运 $195（0.891m³）；LTL $378（250kg）。Amazon 保本价 {usd(S[('SAD6221-2','mid')]['amzFBM']['breakeven'])}，高于 1-2 人款销量加权 75 分位 {usd(R[('SAD6221-2','high')]['amzPrice'])}。</span></div></div>
-  {profit_table("SAD6221-2", [CH[1], CH[0]] + CH[2:])}
-  <h3>便宜款实报价：SMT-HC103（合肥）</h3>
-  <div class="two">
-    <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>产品与报价</b>
-      <span>900×900×1900mm 单人房，铁杉，陶瓷加热器；USB + 蓝牙控制面板、双音箱、氧吧、LED 阅读灯。EXW 含税 ¥3,842（约 $500），20 尺柜起订，一柜 28 台。</span>
-      <span>配置对标低价带（陶瓷而非碳晶加热、无 7 色光 / 红光）。</span></div>
-    <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>包装（按要求各边 +10%）</b>
-      <span>工厂纸箱 4 件：183×96×17、183×92×17、98×110×20、86×50×13cm，毛重 110kg。</span>
-      <span>测算用 201×106×19、201×101×19、108×121×22、95×55×14cm，毛重 121kg（便宜款可能过不了跌落测试，加厚包装预留）。体积 1.14m³，海运 $249；最大一箱围长超 165 英寸，只能走 LTL，估 $269。</span></div>
-  </div>
+  <h3>两家报价</h3>
+  <div class="tw"><table><thead><tr><th>型号</th><th>厂家</th><th>报价</th><th>规格</th><th>包装</th></tr></thead><tbody>
+    <tr><td>SAD6221-1</td><td>中山（珠三角）</td><td>¥6,270 含税</td><td style="white-space:normal">800×900×2100mm，加拿大铁杉，远红外云母板，8mm 玻璃，负离子，机械面板，无蓝牙 / 彩光 / 红光</td><td style="white-space:normal">3 箱，0.76m³，220kg</td></tr>
+    <tr><td>SMT-HC103</td><td>合肥</td><td>¥3,842 含税</td><td style="white-space:normal">900×900×1900mm，铁杉，陶瓷加热，蓝牙 + 双音箱，氧吧，阅读灯</td><td style="white-space:normal">4 箱，按要求各边加 10%：1.14m³，121kg</td></tr>
+    <tr><td>SAD6221-2</td><td>中山（珠三角）</td><td>¥8,618 含税</td><td style="white-space:normal">900×1200×2100mm，1–2 人款，配置同 SAD6221-1</td><td style="white-space:normal">3 箱，0.89m³，250kg</td></tr>
+  </tbody></table></div>
+  <h3>为什么两家都没利润</h3>
+  <p class="lead">按 Amazon 单人款 75 分位 $1,300、自发货算：</p>
+  {BAR_SAUNA}
+  <ul class="plain">
+    <li>合肥款采购比珠三角便宜 $316，但箱子更大，海运 + 尾程反而要 $518，占售价 40%。</li>
+    <li>平台费用再占 34%。两项加起来 74%，采购价就算是 0，最多也只有 26%。</li>
+    <li>Amazon 单人款主要卖 $800–1,300，价格上不去。8/6 定的试水价 $1,000–1,500 已经在市场上沿。</li></ul>
+  <h3>各渠道利润（合肥款 SMT-HC103）</h3>
   {wx_table()}
-  <div class="two">
-    <div class="callout"><b>结论</b><span>采购降到 $500，但包装加大后海运 $249 + LTL $269 = $518，比 SAD6221-1 的 $507 还高。Amazon 1 人款 75 分位 {usd(_hch['amzPrice'])} 亏 {_m(-_hch['fbm']/_hch['amzPrice'])}，中位 {usd(_hcm['amzPrice'])} 亏 {_m(-_hcm['fbm']/_hcm['amzPrice'])}；保本价约 {usd(HC_BE)}。按原包装也一样亏。</span></div>
-    <div class="callout" style="border-color:var(--accent);background:var(--accent-soft)"><b>还能动的地方</b><span>Amazon 1 人款的量集中在 $800–1,300，这个价位下物流 $518 占售价 40–65%。只降采购价救不回来，必须同时压包装体积和重量：Amazon 主流单人款高约 1.35 米，1.9 米高的板件是箱子长 1.8–2 米的原因。</span></div>
-  </div>
-  <div class="callout g"><b>差异化机会（10/10 会议）</b><span>Amazon 桑拿差评的核心是加热板配置不足、加热体感差。优质碳晶板套件成本 ¥1,000+，低价款 ¥300 出头；用好加热板 + 5–6 年质保，是在 1 人款 75 分位（$1,300）以上讲得通的卖点。8/6 会议提出的波纹灯效、冥想 / 海浪音疗、香氛模块可作为同价差异化。</span></div>
-  <h3>要赚钱需要什么条件</h3>
-  <p class="sub">保本前台价 = 现报价下利润为 0 的售价；最高采购价 = 在该价带售价下达到 15% 目标利润率时，工厂含税报价最多能给到多少（物流按现重量和体积不变）。</p>
-  <h4>SAD6221-1</h4>
-  {need_table("SAD6221-1", [CH[1], CH[2], CH[3], CH[4], CH[5]])}
-  <p class="note">“无解”= 即使采购价为 0 也达不到 15%，这个价带下光物流和平台费用就超了。</p>
+  <ul class="plain">
+    <li>Lowe's、Home Depot 上木质房价格高得多：Lowe's 自发货按 $2,089 算，合肥款能赚 {_m(hc_h['plat']['lowesSC']['margin'])}；Home Depot 按 $1,799 算是 {_m(hc_h['plat']['hd']['margin'])}。这几个渠道没有销量数据，价格是搜索页标价。</li>
+    <li>要稳定做到 15%，两件事都要做：一是降物流，Amazon 主流单人款高约 1.35 米，我们是 1.9–2.1 米、110–220kg；二是渠道以 Lowe's / Home Depot 为主，配置补到碳晶板、彩光、红光，撑住 $1,800–2,100。</li>
+    <li>Amazon 差评集中在“加热不够”。用好的碳晶板（每套 ¥1,000 以上）加 5–6 年质保，是讲得通的卖点。</li></ul>
+  <details><summary>SAD6221-1 / SAD6221-2 各渠道明细</summary>
+    <h4>SAD6221-1</h4>{price_grid("SAD6221-1")}{profit_table("SAD6221-1", [CH[1], CH[0]] + CH[2:])}
+    <h4>SAD6221-2</h4>{price_grid("SAD6221-2")}{profit_table("SAD6221-2", [CH[1], CH[0]] + CH[2:])}
+    <h4>SAD6221-1 保本价和最高采购价</h4>{need_table("SAD6221-1", [CH[1], CH[2], CH[3], CH[4], CH[5]])}
+    <p class="note">“无解”：采购价为 0 也到不了 15%。</p></details>
 </section>
 
-<section aria-labelledby="c">
-  <h2 id="c">五、钱花在哪里（Amazon 中位价）</h2>
-  <div class="bars">{bars}</div>
-  <p class="note">每条按成本合计与售价中较大者铺满；竖线是售价，竖线以右的部分就是亏损。</p>
-</section>
-
-<section aria-labelledby="r">
-  <h2 id="r">六、测算口径与待确认</h2>
+<section aria-labelledby="c7">
+  <h2 id="c7">七、测算口径和待确认</h2>
   <div class="rules">
-    <div><b>通用（利润测算台 v1.14 默认）</b><ul>
+    <div><b>价格</b><ul>
+      <li>Amazon：卖家精灵 2026-10 子体月销，按销量加权取 25 / 50 / 75 分位，作为低 / 中 / 高价位</li>
+      <li>Home Depot、Lowe's、Wayfair：没有逐条销量，用 2026-11-13 搜索页标价参考</li>
+      <li>交叉表的尺寸、材质、配置按标题和详情页识别</li></ul></div>
+    <div><b>费用（利润测算台 v1.14 默认）</b><ul>
       <li>汇率 {P['rate']}；Amazon 佣金 {P['comm']}%、广告 {P['promo']}%、退款 {P['refund']}%、汇损 {P['fx']}%</li>
-      <li>桑拿报价按含税处理：÷ (1+{P['tax']}%) ÷ 汇率；1688 价格按未税处理：÷ 汇率</li>
-      <li>海运：FOB 整柜 ¥100,891 / 68m³（近三个月方案），按体积分摊</li>
-      <li>LTL 估算：$92.5 + $0.43/lb + $54/m³；FBM 快递燃油 29.5%</li>
-      <li>FBA 按当前日期取旺季费率（10/15–1/14）</li></ul></div>
-    <div><b>平台（默认值）</b><ul>
-      <li>Home Depot：结算价 = 前台价 ÷ 1.6，佣金 3.22%，平台发货只付处理费</li>
-      <li>Lowe's VC：÷ 1.7，佣金 5.2%（按原批发价）；Lowe's SC：÷ 1，佣金 15%，自发货</li>
-      <li>Wayfair：÷ 2.1，佣金 4%，入 CG 仓，仓储 2% + 出仓 4%</li>
-      <li>各平台广告 10%、汇损 1%、退款 10%（Wayfair 5%）、仓储 2%</li></ul></div>
+      <li>含税报价 ÷ 1.{P['tax']} ÷ 汇率；花洒参考价按未税</li>
+      <li>海运：整柜 ¥100,891 / 68m³ 按体积分摊；卡车尾程按 $92.5 + $0.43/lb + $54/m³ 估</li>
+      <li>Home Depot ÷ 1.6、Lowe's VC ÷ 1.7、Wayfair ÷ 2.1 换算结算价，再扣各自费率</li></ul></div>
     <div><b>待确认</b><ol class="todo">
-      <li>桑拿重量：报价 220kg / 250kg 是同类 2 倍，用 10/10 会上整理的单人、双人箱规和重量替换后重算</li>
-      <li>ETL 认证（我方主体申请）的费用和周期，摊入单件成本</li>
-      <li>桑拿报价是否含税（13%）</li>
-      <li>双人淋浴：正式报价（¥190 只是筛选表参考价，中位价下上限 ¥{S[('DUAL','mid')]['amzFBM']['maxCostRMB']}）、包装尺寸和毛重</li>
-      <li>桑拿：现物流下按 1 人款 75 分位 $1,300 做到 15%，含税需 ≤ ¥{S[('SAD6221-1','high')]['amzFBM']['maxCostRMB']:,}，靠谈价做不到；需要 1.35 米矮款 + 纸箱减重方案后再测</li>
-      <li>SMT-HC103：跌落测试结果、加厚后的实际箱规和毛重；同厂 1.35 米矮款和碳晶板配置的报价</li>
-      <li>花洒：工厂现有 cUPC 认证能否用于我方 Amazon 主体；不能的话认证费 ¥10 万+ 计入首批</li>
-      <li>恒温系统 4 款的实测包装尺寸、毛重，以及报价是否含税</li></ol></div>
+      <li>双人花洒正式报价（中位价下上限 ¥{S[('DUAL','mid')]['amzFBM']['maxCostRMB']}）和实测包装</li>
+      <li>恒温 4 款的实测包装、毛重，报价是否含税</li>
+      <li>合肥厂矮款、减重包装、碳晶板配置的报价，跌落测试结果，一柜装多少台</li>
+      <li>光波房报价是否含税；ETL 认证费用和周期</li>
+      <li>花洒工厂现有认证能否转到我们主体</li></ol></div>
   </div>
 </section>
+<script type="application/json" id="mxdata">{MX_DATA}</script>
+{MX.MX_JS}
 </div>
 """
 open(os.path.join(HERE, "index.html"), "w", encoding="utf-8").write(page)
