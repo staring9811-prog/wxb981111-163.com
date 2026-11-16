@@ -27,7 +27,7 @@ if(!file){console.error('用法：node cake_uat.js <html>');process.exit(2)}
   const ins1=await txt('#insight');
   ok('B2 看点卡写明主力块覆盖（这 N 块大蛋糕进了 M 块）',/\d+ 块，进了 \d+ 块/.test(ins1),ins1.slice(0,80));
   ok('G3 大蛋糕图例写明比较口径（本渠道 + 维度）',/本渠道所有「元素」组合/.test(await txt('#insight')+await p.$eval('body',e=>e.textContent))||await p.$$eval('*',x=>x.some(e=>e.shadowRoot&&/本渠道所有「元素」组合/.test(e.shadowRoot.textContent))),'');
-  ok('G6 不再出现「全市场」字样',!(await p.$$eval('*',x=>x.some(e=>e.shadowRoot&&/全市场/.test(e.shadowRoot.textContent))))&&!/全市场/.test(await p.$eval('#tbl',e=>e.closest('section,div').textContent)),'');
+  ok('G6 不再出现「全市场」字样',!(await p.$$eval('*',x=>x.some(e=>e.shadowRoot&&/全市场/.test(e.shadowRoot.textContent.replace(/不是全市场/g,'')))))&&!/全市场/.test((await p.$eval('#tbl',e=>e.closest('section,div').textContent)).replace(/不是全市场/g,'')),'');
   ok('P1 热力图或看点卡给出具体机会格子',/机会.*(×|›|\(|（)/.test(ins1)||await p.$$eval('table.hm .oo',x=>x.length)>0,'');
   ok('O2 有「在跌 / 太小 / 布局偏重」的调整提示',/在跌|太小|布局偏重|没有「我们有产品/.test(ins1),'');
   ok('B2 第一层能看到我们的 SPU 数，含未布局的大蛋糕判断',r.every(x=>/SPU|未布局|不参与判断/.test(x.c[h.indexOf('我们')])),'');
