@@ -21,22 +21,22 @@ if(!file){console.error('用法：node cake_uat.js <html>');process.exit(2)}
   const big1=r.filter(x=>/大蛋糕/.test(x.c[0])).map(x=>x.v),small1=r.filter(x=>/小蛋糕/.test(x.c[0]));
   ok('G3 第一层只标大蛋糕，且是前 10%',big1.length===Math.ceil(r.filter(x=>+x.c[1].replace(/,/g,'')>0).length*0.1)&&!small1.length,big1.join('、'));
   const iT=h.findIndex(x=>/^涨跌/.test(x));ok('B1 第一层能看到涨跌列，且写明比较期',iT>0&&/对比|vs/.test(h[iT])&&r.some(x=>/[+-]\d+%/.test(x.c[iT])),h[iT]);
-  ok('B3 有「这一层看点」结论卡',/主力/.test(await txt('#insight'))&&/我们/.test(await txt('#insight')),'');
+  ok('B3 有「这一层看点」结论卡',/最大 3 块/.test(await txt('#insight'))&&/我们/.test(await txt('#insight')),'');
   ok('G6 未标显示为未识别且不标大蛋糕',r.filter(x=>x.v==='未标').every(x=>/未识别/.test(x.c[0])&&!/大蛋糕|主战场/.test(x.c[0])),'');
   const ins1=await txt('#insight');
-  ok('B2 看点卡写明主力块覆盖（主力 N 块进了 M 块）',/主力 \d+ 块进了 \d+ 块/.test(ins1),ins1.slice(0,80));
+  ok('B2 看点卡写明主力块覆盖（最大 N 块进了 M 块）',/最大 \d+ 块进了 \d+ 块/.test(ins1),ins1.slice(0,80));
   ok('G3 大蛋糕图例写明比较口径（本渠道 + 维度）',/本渠道所有「元素」组合/.test(await txt('#insight')+await p.$eval('body',e=>e.textContent))||await p.$$eval('*',x=>x.some(e=>e.shadowRoot&&/本渠道所有「元素」组合/.test(e.shadowRoot.textContent))),'');
   ok('G6 不再出现「全市场」字样',!(await p.$$eval('*',x=>x.some(e=>e.shadowRoot&&/全市场/.test(e.shadowRoot.textContent))))&&!/全市场/.test(await p.$eval('#tbl',e=>e.closest('section,div').textContent)),'');
   ok('P1 热力图或看点卡给出具体机会格子',/机会.*(×|›|\(|（)/.test(ins1)||await p.$$eval('table.hm .oo',x=>x.length)>0,'');
   ok('O2 有「在跌 / 太小 / 布局偏重」的调整提示',/在跌|太小|布局偏重|没有「我们有产品/.test(ins1),'');
-  ok('B2 第一层能看到我们的 SPU 数，含未布局的大蛋糕判断',r.every(x=>/SPU|未布局/.test(x.c[h.indexOf('我们')])),'');
+  ok('B2 第一层能看到我们的 SPU 数，含未布局的大蛋糕判断',r.every(x=>/SPU|未布局|不参与判断/.test(x.c[h.indexOf('我们')])),'');
   // 第二、三层
   await p.click('#tbl tr.row');await p.waitForTimeout(450);
   await p.click('#tbl tr.row');await p.waitForTimeout(450);
   h=await head();r=await rows();t=await txt('#tth');
   const iB=h.indexOf('占本层');
   ok('G1 第三层标题带两级路径',(t.match(/›/g)||[]).length===1&&/按「尺寸」分/.test(t),t);
-  ok('G3 小蛋糕 = 占本层 ≥ 20%',r.filter(x=>x.v!=='未标').every(x=>/小蛋糕|主战场/.test(x.c[0])===(parseFloat(x.c[iB])>=20)),'');
+  ok('G3 小蛋糕 = 占本层 ≥ 20% 且占全部 ≥ 0.3%',r.filter(x=>x.v!=='未标').every(x=>/小蛋糕|主战场/.test(x.c[0])===(parseFloat(x.c[iB])>=20&&parseFloat(x.c[h.indexOf('占全部')])>=0.3)),'');
   ok('G3 标签有悬停说明',await p.$$eval('#tbl .cks',x=>x.every(e=>/主战场|大蛋糕|细分龙头|缺标签/.test(e.title)||e.querySelectorAll('i[title]').length)),'');
   // 价格段 + 更多指标
   await p.click('#btog');await p.waitForTimeout(250);
